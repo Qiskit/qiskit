@@ -18,7 +18,10 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.target import Target
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes.utils import control_flow
-from qiskit._accelerate.two_qubit_peephole import two_qubit_unitary_peephole_optimize
+from qiskit._accelerate.two_qubit_peephole import (
+    two_qubit_unitary_peephole_optimize,
+    HeuristicPriority,
+)
 
 
 class TwoQubitPeepholeOptimization(TransformationPass):
@@ -102,6 +105,7 @@ class TwoQubitPeepholeOptimization(TransformationPass):
         self,
         target: Target,
         approximation_degree: float | None = 1.0,
+        heuristic_priority: str | None = None,
     ):
         """Initialize the pass
 
@@ -112,15 +116,45 @@ class TwoQubitPeepholeOptimization(TransformationPass):
                 of gates used in the synthesized unitaries smaller at the cost of straying from the
                 original unitary. If ``None``, approximation is done based on gate fidelities
                 specified in the ``target``.
+            heuristic_priority: The heuristic to prioritize when comparing between synthesis results
+                and comparing the original block to the best synthesis output. The valid options are
+                `"estimated_fidelity"` which will pick the value with the minimal tuple
+                `(estimated_error, two_q_gate_count, total_gate_count)`, `"two_q_count" which will minimize
+                the tuple `(two_q_gate_count, estimated_error, total_gate_count)` or `"gate_count"` which
+                will minimize the tuple `(total_gate_count, estimated_error, two_q_gate_count)`. The same
+                values are used between each priority it's just the order of importance. For example,
+                if two potential synthesis outcomes for a given block:
+
+                    * Output A: 2 two qubit gates, an estimated fidelity of 0.98, and 8 total gates versus
+                    * Output B: 3 two qubit gates, an estimated fidelity of 0.99, and 6 total gates.
+
+                The priority will matter, using `"estimated_fidelity"` or `"gate_count"` will pick output B,
+                while if `two_q_count` was selected then output A would be used. If this argument is not
+                specified Qiskit will chose one of the valid heuristic priorities, the specific
+                heuristic used is not guaranteed if not chosen and may change between releases.
         """
 
         super().__init__()
         self._target = target
         self._approximation_degree = approximation_degree
+        if heuristic_priority is None:
+            self._heuristic_priority = HeuristicPriority.TwoQGate
+        elif heuristic_priority == "estimated_fidelity":
+            self._heuristic_priority = HeuristicPriority.EstimatedFidelity
+        elif heuristic_priority == "gate_count":
+            self._heuristic_priority = HeuristicPriority.TotalGate
+        elif heuristic_priority == "two_q_count":
+            self._heuristic_priority = HeuristicPriority.TwoQGate
+        else:
+            raise ValueError(
+                f"Invalid value for heuristic_priority: {heuristic_priority}. Valid choices are: 'two_q_count', 'gate_count', and 'estimated_fidelity'"
+            )
 
     @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        result = two_qubit_unitary_peephole_optimize(dag, self._target, self._approximation_degree)
+        result = two_qubit_unitary_peephole_optimize(
+            dag, self._target, self._approximation_degree, self._heuristic_priority
+        )
         if result is None:
             return dag
         return result

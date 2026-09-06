@@ -246,6 +246,10 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(qc, result_qc)
 
+    def test_invalid_heuristic_priority(self):
+        with self.assertRaises(ValueError):
+            TwoQubitPeepholeOptimization(target=GenericBackendV2(5), heuristic_priority="not-real")
+
     def test_two_qubit_identity_with_target(self):
         """Test input single qubit identity works with target."""
         qc = QuantumCircuit(2)
@@ -606,9 +610,12 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             ECRGate(),
         ],
         add_noise=[True, False],
-        name="{gate}_{target_gate}_noise={add_noise}",
+        heuristic_priority=[None, "two_q_count", "estimated_fidelity", "gate_count"],
+        name="{gate}_{target_gate}_noise={add_noise}_heuristic_priority={heuristic_priority}",
     )
-    def test_two_qubit_parametrized_gates_basis_decomp_target(self, gate, target_gate, add_noise):
+    def test_two_qubit_parametrized_gates_basis_decomp_target(
+        self, gate, target_gate, add_noise, heuristic_priority
+    ):
         """Test the synthesis of a circuit containing a 2-qubit parametrized gate
         on a target with a CX gate"""
         theta = Parameter("θ")
@@ -629,7 +636,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.append(gate, [0, 1])
 
-        peephole = TwoQubitPeepholeOptimization(target)
+        peephole = TwoQubitPeepholeOptimization(target, heuristic_priority=heuristic_priority)
         transpiled_circuit = peephole(qc)
 
         legacy_path = PassManager(
@@ -667,10 +674,11 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             RYYGate,
         ],
         add_noise=[True, False],
-        name="{gate}_{target_gate_cls}_noise={add_noise}",
+        heuristic_priority=[None, "two_q_count", "estimated_fidelity", "gate_count"],
+        name="{gate}_{target_gate_cls}_noise={add_noise}_heuristic_priority={heuristic_priority}",
     )
     def test_two_qubit_parametrized_gates_controlled_u_target(
-        self, gate, target_gate_cls, add_noise
+        self, gate, target_gate_cls, add_noise, heuristic_priority
     ):
         """Test the synthesis of a circuit containing a 2-qubit parametrized gate
         on a target with a RZZ gate"""
@@ -693,7 +701,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             target.add_instruction(target_gate)
         qc = QuantumCircuit(2)
         qc.append(gate, [0, 1])
-        peephole = TwoQubitPeepholeOptimization(target)
+        peephole = TwoQubitPeepholeOptimization(target, heuristic_priority=heuristic_priority)
         transpiled_circuit = peephole(qc)
         legacy_path = PassManager(
             [
@@ -760,15 +768,18 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             ["p", "sx"],
             ["u", "u1", "u2", "u3", "rz", "sx", "x", "ry", "rx", "r", "p"],
         ],
-        name="{target_2q_gates}_{target_1q_gates}",
+        heuristic_priority=[None, "two_q_count", "estimated_fidelity", "gate_count"],
+        name="{target_2q_gates}_{target_1q_gates}_heuristic_priority={heuristic_priority}",
     )
-    def test_random_circuit(self, target_2q_gates, target_1q_gates):
+    def test_random_circuit(self, target_2q_gates, target_1q_gates, heuristic_priority):
         cmap = CouplingMap.from_grid(2, 3)
         basis_gates = target_1q_gates + target_2q_gates
         backend = GenericBackendV2(
             cmap.size(), basis_gates=basis_gates, seed=2024, coupling_map=cmap
         )
-        peephole = TwoQubitPeepholeOptimization(backend.target)
+        peephole = TwoQubitPeepholeOptimization(
+            backend.target, heuristic_priority=heuristic_priority
+        )
         qc = random_circuit(cmap.size(), 79, max_operands=2, seed=12345_42)
         qc = transpile(qc, target=backend.target, optimization_level=0, seed_transpiler=2025)
         result = peephole(qc)
