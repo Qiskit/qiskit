@@ -1915,14 +1915,14 @@ impl SymbolExpr {
                                         }
                                         // (lv - X) - (rv + X)  ->  (lv-rv) - 2*X = t - 2*X
                                         (BinaryOp::Sub, BinaryOp::Add) => {
-                                            let doubled_minus = _mul(
+                                            let mdoubled = _mul(
                                                 SymbolExpr::Value(Value::Int(-2)),
                                                 l_rhs.as_ref().clone(),
                                             );
                                             return Some(if t.is_zero() {
-                                                doubled_minus
+                                                mdoubled
                                             } else {
-                                                _add(t, doubled_minus)
+                                                _add(t, mdoubled)
                                             });
                                         }
                                         // (lv + X) - (rv - X)  ->  (lv-rv) + 2*X = t + 2*X

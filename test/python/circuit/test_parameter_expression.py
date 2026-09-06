@@ -1120,7 +1120,8 @@ class TestParameterExpression(QiskitTestCase):
     )
     def test_structurally_equal(self, left, right, expected):
         self.assertStructurallyEqualResult(left, right, expected)
-    def test_add_with_shared_terms(self):
+
+    def test_add_optimization_with_shared_terms(self):
         """Add of expressions with shared terms and opposite sign should cancel."""
 
         x = Parameter("x")
@@ -1143,7 +1144,7 @@ class TestParameterExpression(QiskitTestCase):
 
         self._assert_simplifies(cases, operator.add)
 
-    def test_sub_with_shared_terms(self):
+    def test_sub_optimization_with_shared_terms(self):
         """Sub of expressions with shared terms and same sign should cancel."""
 
         x = Parameter("x")
