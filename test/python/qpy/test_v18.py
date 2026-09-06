@@ -24,6 +24,7 @@ from qiskit.circuit import (
     QuantumRegister,
 )
 from qiskit.circuit.classical import expr
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider.generic_backend_v2 import GenericBackendV2
@@ -35,7 +36,7 @@ from qiskit.transpiler.coupling import CouplingMap
 from test import QiskitTestCase
 
 
-def _dump(qc: QuantumCircuit, version: int) -> bytes:
+def _dump(qc: QuantumCircuit, version: int | None = None) -> bytes:
     buf = io.BytesIO()
     dump(qc, buf, version=version)
     return buf.getvalue()
@@ -107,6 +108,33 @@ class TestV17VsV18(QiskitTestCase):
         with qc.for_loop((1, 4, 9)):
             qc.h(0)
         self.assertNotEqual(_dump(qc, 17), _dump(qc, 18))
+
+    def test_custom_gate_dump_is_deterministic(self):
+        class MyGate(Gate):
+            def __init__(self):
+                super().__init__("my_gate", 1, [])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.h(0)
+                self.definition = qc
+
+        # Start with baseline:
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        self.assertEqual(
+            _dump(qc),
+            _dump(qc),
+            "Dumping same circuit (no custom gate) should produce the same dump",
+        )
+
+        # Now with custom gate:
+        qc.append(MyGate(), [0])
+        self.assertEqual(
+            _dump(qc),
+            _dump(qc),
+            "Dumping same circuit (with custom gate) should produce the same dump",
+        )
 
     def test_switch_case_labels_bytes_differ_v17_vs_v18(self):
         """v17 and v18 serialise SwitchCase integer labels in different byte order."""
