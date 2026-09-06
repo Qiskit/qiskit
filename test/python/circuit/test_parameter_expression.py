@@ -19,6 +19,7 @@ import pickle
 import copy
 import functools
 import itertools
+import operator
 
 from test import combine
 from test import QiskitTestCase
@@ -1054,7 +1055,7 @@ class TestParameterExpression(QiskitTestCase):
         value = 1.234
 
         for terms in [add_sub_terms, pow_terms, rpow_terms, mul_terms, rdiv_terms, div_terms]:
-            for lhs, rhs in itertools.combinations(terms, 2):
+            for lhs, rhs in itertools.permutations(terms, 2):
                 with self.subTest(lhs=lhs, rhs=rhs):
                     reference = getattr(lhs.bind({x: value}), method)(rhs.bind({x: value}))
                     expression = getattr(lhs, method)(rhs)
@@ -1119,3 +1120,74 @@ class TestParameterExpression(QiskitTestCase):
     )
     def test_structurally_equal(self, left, right, expected):
         self.assertStructurallyEqualResult(left, right, expected)
+    def test_add_with_shared_terms(self):
+        """Add of expressions with shared terms and opposite sign should cancel."""
+
+        x = Parameter("x")
+
+        # (label, lhs, rhs, expected_repr)
+        cases = [
+            # plain symbol cancellation
+            ("(x) + (-x)", x, -x, "0"),
+            ("(-x) + (x)", -x, x, "0"),
+            # shared symbol cancels when sign is opposite
+            ("(x+1) + (x+2)", x + 1, x + 2, "3 + 2*x"),
+            ("(x+1) + (x-1)", x + 1, x - 1, "2*x"),
+            ("(-x+1) + (-x+2)", -x + 1, -x + 2, "3 - 2*x"),
+            ("(-x+1) + (-x-1)", -x + 1, -x - 1, "(-2)*x"),
+            ("(-x+1) + (x+2)", -x + 1, x + 2, "3"),
+            ("(-x+1) + (x-1)", -x + 1, x - 1, "0"),
+            ("(x+1) + (-x+1)", x + 1, -x + 1, "2"),
+            ("(x+1) + (-x-1)", x + 1, -x - 1, "0"),
+        ]
+
+        self._assert_simplifies(cases, operator.add)
+
+    def test_sub_with_shared_terms(self):
+        """Sub of expressions with shared terms and same sign should cancel."""
+
+        x = Parameter("x")
+
+        # (label, lhs, rhs, expected_repr)
+        cases = [
+            # plain symbol cancellation
+            ("(x) - (x)", x, x, "0"),
+            # shared symbol cancels when sign is equal
+            ("(x+1) - (x-1)", x + 1, x - 1, "2"),
+            ("(x+1) - (x+1)", x + 1, x + 1, "0"),
+            ("(-x+1) - (-x-1)", -x + 1, -x - 1, "2"),
+            ("(-x+1) - (-x+1)", -x + 1, -x + 1, "0"),
+            ("(x+1) - (-x+3)", x + 1, -x + 3, "-2 + 2*x"),
+            ("(x+1) - (-x+1)", x + 1, -x + 1, "2*x"),
+            ("(-x+1) - (x+2)", -x + 1, x + 2, "-1 - 2*x"),
+            ("(-x+1) - (x+1)", -x + 1, x + 1, "(-2)*x"),
+        ]
+
+        self._assert_simplifies(cases, operator.sub)
+
+    def _assert_simplifies(self, cases, op):
+        """Check that each ``op(lhs, rhs)`` simplifies as expected, and that
+        the results is arithmetically correct.
+
+        ``cases`` is a list of ``(label, lhs, rhs, expected)`` tuples.
+        """
+
+        params = sorted(
+            {q for _, lhs, rhs, _ in cases for q in lhs.parameters | rhs.parameters},
+            key=lambda q: q.name,
+        )
+        bind = {p: float(i) for i, p in enumerate(params, start=1)}
+
+        for name, lhs, rhs, expected in cases:
+            with self.subTest(name):
+                expr = op(lhs, rhs)
+
+                # simplified as expected
+                self.assertEqual(str(expr), expected)
+
+                # simplified expression is arithmetically correct
+                lhs_bind = {p: v for p, v in bind.items() if p in lhs.parameters}
+                rhs_bind = {p: v for p, v in bind.items() if p in rhs.parameters}
+                reference = op(lhs.bind(lhs_bind), rhs.bind(rhs_bind))
+                expr_bind = {p: v for p, v in bind.items() if p in expr.parameters}
+                self.assertAlmostEqual(float(expr.bind(expr_bind).numeric()), float(reference))
