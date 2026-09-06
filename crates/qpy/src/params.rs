@@ -9,7 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use crate::value::ValueEndian;
+use crate::value::{QPYGlobalData, ValueEndian};
 use binrw::Endian;
 use num_complex::Complex64;
 use qiskit_circuit::operations::Param;
@@ -240,7 +240,8 @@ fn pack_parameter_replay_entry(
 
 pub(crate) fn unpack_parameter_expression(
     pack: &formats::ParameterExpressionPack,
-    qpy_data: &mut QPYReadData<'_>,
+    qpy_data: &mut QPYReadData,
+    qpy_global_data: &mut QPYGlobalData,
 ) -> Result<ParameterExpression, QpyError> {
     let uuid_map = pack.symbol_table_data.iter().try_fold(
         HashMap::new(),
@@ -449,6 +450,7 @@ pub(crate) fn unpack_parameter_expression(
                             item.item_type,
                             &item.item_bytes,
                             qpy_data,
+                            qpy_global_data,
                             ValueEndian::Big,
                         )?)?;
                         Ok((sym, replacement))
@@ -523,7 +525,7 @@ pub(crate) fn pack_parameter_vector(
 /// definitions of this vector that we've seen.
 pub(crate) fn unpack_parameter_vector(
     pack: &formats::ParameterVectorElementPack,
-    qpy_data: &mut QPYReadData<'_>,
+    qpy_data: &mut QPYReadData,
 ) -> Result<Symbol, QpyError> {
     let pack = match pack {
         formats::ParameterVectorElementPack::V18(formats::ParameterVectorElementV18Pack {

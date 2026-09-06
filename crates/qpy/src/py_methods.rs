@@ -46,6 +46,7 @@ use crate::circuit_writer::standard_instruction_class_name;
 use crate::error::QpyError;
 use crate::formats;
 use crate::params::generic_value_to_param;
+use crate::value::QPYGlobalData;
 use crate::value::{
     BitType, CircuitInstructionType, GenericValue, ModifierType, ParamRegisterValue, QPYReadData,
     QPYWriteData, ValueEndian, ValueType, deserialize_with_args, load_value,
@@ -602,11 +603,16 @@ pub fn unpack_py_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
     label: Option<&String>,
-    qpy_data: &mut QPYReadData<'_>,
+    qpy_data: &mut QPYReadData,
+    qpy_global_data: &mut QPYGlobalData,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
     let name = instruction.gate_class_name.clone();
-    let mut instruction_values =
-        get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
+    let mut instruction_values = get_instruction_values(
+        instruction,
+        qpy_data,
+        qpy_global_data,
+        ValueEndian::LittleForV17AndBelow,
+    )?;
     let mut py_params: Vec<Bound<PyAny>> = instruction_values
         .iter()
         .map(|value| -> Result<_, QpyError> {
@@ -655,8 +661,8 @@ pub fn unpack_py_instruction(
             gate_class.call1(PyTuple::new(py, args)?)?
         }
         "IfElseOp" | "WhileLoopOp" => {
-            let condition =
-                unpack_condition(&instruction.condition, qpy_data)?.ok_or_else(|| {
+            let condition = unpack_condition(&instruction.condition, qpy_data, qpy_global_data)?
+                .ok_or_else(|| {
                     QpyError::MissingData(
                         "This control flow gate requires a condition parameter".to_string(),
                     )
@@ -760,15 +766,20 @@ pub fn unpack_custom_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
     label: Option<&String>,
-    qpy_data: &mut QPYReadData<'_>,
+    qpy_data: &mut QPYReadData,
+    qpy_global_data: &mut QPYGlobalData,
     custom_instructions_map: &HashMap<String, CustomCircuitInstructionData>,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
     let name = instruction.gate_class_name.clone();
     let custom_instruction = custom_instructions_map.get(&name).ok_or_else(|| {
         QpyError::MissingData("Custom instruction data not found for {name}".to_string())
     })?;
-    let instruction_values =
-        get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
+    let instruction_values = get_instruction_values(
+        instruction,
+        qpy_data,
+        qpy_global_data,
+        ValueEndian::LittleForV17AndBelow,
+    )?;
     let py_params: Vec<Bound<PyAny>> = instruction_values
         .iter()
         .map(|value| -> Result<_, QpyError> {
@@ -831,8 +842,12 @@ pub fn unpack_custom_instruction(
                 (bool,),
             >(&custom_instruction.base_gate_raw, (false,))?
             .0;
-            let base_gate =
-                unpack_instruction(&packed_base_gate, custom_instructions_map, qpy_data)?;
+            let base_gate = unpack_instruction(
+                &packed_base_gate,
+                custom_instructions_map,
+                qpy_data,
+                qpy_global_data,
+            )?;
             // If open controls, we need to discard the control suffix when setting the name.
             if instruction.ctrl_state < (1u32 << instruction.num_ctrl_qubits) - 1 {
                 gate_class_name = match gate_class_name.rfind('_') {
@@ -869,8 +884,12 @@ pub fn unpack_custom_instruction(
                 (bool,),
             >(&custom_instruction.base_gate_raw, (false,))?
             .0;
-            let base_gate =
-                unpack_instruction(&packed_base_gate, custom_instructions_map, qpy_data)?;
+            let base_gate = unpack_instruction(
+                &packed_base_gate,
+                custom_instructions_map,
+                qpy_data,
+                qpy_global_data,
+            )?;
             let params = qpy_data
                 .circuit_data
                 .unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
@@ -898,7 +917,8 @@ pub fn unpack_custom_instruction(
 pub fn deserialize_pauli_evolution_gate(
     py: Python,
     data: &Bytes,
-    qpy_data: &mut QPYReadData<'_>,
+    qpy_data: &mut QPYReadData,
+    qpy_global_data: &mut QPYGlobalData,
 ) -> Result<Py<PyAny>, QpyError> {
     let json = py.import("json")?;
     let evo_synth_library = py.import("qiskit.synthesis.evolution")?;
@@ -956,6 +976,7 @@ pub fn deserialize_pauli_evolution_gate(
                     ValueType::NumpyObject,
                     &sparse_pauli_op_pack.data,
                     qpy_data,
+                    qpy_global_data,
                     ValueEndian::Big,
                 )?;
                 if let GenericValue::NumpyObject(op_raw_data) = data {
@@ -989,6 +1010,7 @@ pub fn deserialize_pauli_evolution_gate(
         packed_data.time_type,
         &packed_data.time_data,
         qpy_data,
+        qpy_global_data,
         ValueEndian::Big,
     )?;
     let py_time: Py<PyAny> = match time {

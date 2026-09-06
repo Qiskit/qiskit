@@ -31,6 +31,7 @@ use crate::circuit_writer::{pack_circuit, pack_layout};
 use crate::error::QpyError;
 use crate::formats::{LayoutV2Pack, QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
+use crate::value::QPYGlobalData;
 use crate::value::{
     ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
     serialize_with_args,
@@ -329,16 +330,17 @@ pub fn load_qpy(
                 raw_circuit,
                 (qpy_file_header.qpy_version,),
             )?;
-            let mut qubit_uid_table = HashMap::new();
-            let mut clbit_uid_table = HashMap::new();
+            let mut qpy_global_data = QPYGlobalData {
+                qubit_uid_table: HashMap::new(),
+                clbit_uid_table: HashMap::new(),
+            };
             let circuit_data = unpack_circuit(
                 &packed_circuit,
                 qpy_file_header.qpy_version,
                 use_symengine,
                 annotation_handler.child()?,
                 caller,
-                &mut qubit_uid_table,
-                &mut clbit_uid_table,
+                &mut qpy_global_data,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -355,8 +357,10 @@ pub fn load_qpy(
                 inner: (qpy_file_header.qpy_version,),
             },
         )?;
-        let mut qubit_uid_table = HashMap::new();
-        let mut clbit_uid_table = HashMap::new();
+        let mut qpy_global_data = QPYGlobalData {
+            qubit_uid_table: HashMap::new(),
+            clbit_uid_table: HashMap::new(),
+        };
         for packed_circuit in packed_qpy_circuits {
             let circuit_data = unpack_circuit(
                 &packed_circuit,
@@ -364,8 +368,7 @@ pub fn load_qpy(
                 use_symengine,
                 annotation_handler.child()?,
                 caller,
-                &mut qubit_uid_table,
-                &mut clbit_uid_table,
+                &mut qpy_global_data,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,

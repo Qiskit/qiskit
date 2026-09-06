@@ -614,8 +614,8 @@ corresponding index in the circuit, and is one of:
     }
 
 For a bit that is not part of any register, ``uid`` is an identifier that is unique within the
-payload being deserialized. It is used to recognize when the same anonymous bit is referenced
-more than one place in the payload -- for example, a bit shared between a circuit and the body
+circuit being deserialized. It is used to recognize when the same anonymous bit is referenced
+more than one place within that circuit -- for example, a bit shared between a circuit and the body
 of one of its control-flow instructions. Those references are reconstructed with same uid,
 representing the same object.
 
