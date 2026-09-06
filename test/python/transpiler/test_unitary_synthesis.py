@@ -155,18 +155,6 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         self.assertNotIn("unitary", out.count_ops())
         self.assertTrue(Operator(qc).equiv(out))
 
-    def test_empty_target_defaults_to_u_cx(self):
-        """An empty Target() is not usable, so the pass falls back to [u, cx]."""
-        qc = QuantumCircuit(1)
-        unitary = np.array(
-            [[1.0, 0.0], [0.0, np.exp(1j * np.pi / 6)]],
-            dtype=complex,
-        )
-        qc.unitary(unitary, [0])
-        out = UnitarySynthesis(target=Target())(qc)
-        self.assertEqual(out.count_ops(), {"u": 1})
-        self.assertTrue(Operator(qc).equiv(out))
-
     @data(
         ["u3", "cx"],
         ["u1", "u2", "u3", "cx"],

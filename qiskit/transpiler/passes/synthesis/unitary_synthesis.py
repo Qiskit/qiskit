@@ -156,8 +156,9 @@ class UnitarySynthesis(TransformationPass):
         if target is not None:
             self._coupling_map = target.build_coupling_map()
             self._basis_gates = set(target.operation_names)
-        # Default continuous basis when there is no usable target or loose basis.
-        if self._target is None and not self._basis_gates:
+        # Default continuous basis only when no target argument was supplied and the loose
+        # basis is empty. An explicitly passed empty Target() must keep no-constraints behavior.
+        if target is None and not self._basis_gates:
             self._basis_gates = {"u", "cx"}
         if synth_gates:
             self._synth_gates = synth_gates

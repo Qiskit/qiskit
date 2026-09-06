@@ -1105,21 +1105,6 @@ fn conjugate_with_swaps(mut m: ArrayViewMut2<Complex64>) {
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 }
 
-/// Default continuous basis used when neither `basis_gates` nor `target` is provided.
-///
-/// An empty loose basis must not be treated as Clifford+T (vacuous `Iterator::all`).
-const DEFAULT_LOOSE_BASIS: &[&str] = &["u", "cx"];
-
-fn loose_basis_gates(basis_gates: &HashSet<String>) -> IndexSet<&str> {
-    let mut basis_gates_set: IndexSet<&str> = if basis_gates.is_empty() {
-        DEFAULT_LOOSE_BASIS.iter().copied().collect()
-    } else {
-        basis_gates.iter().map(String::as_str).collect()
-    };
-    basis_gates_set.sort();
-    basis_gates_set
-}
-
 /// Python entry point to [run_unitary_synthesis].
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
@@ -1146,11 +1131,12 @@ pub fn py_unitary_synthesis(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let basis_gates_set: IndexSet<&str>;
+    let mut basis_gates_set: IndexSet<&str>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
-            basis_gates_set = loose_basis_gates(&basis_gates);
+            basis_gates_set = basis_gates.iter().map(String::as_str).collect();
+            basis_gates_set.sort();
             QpuConstraint::Loose {
                 basis_gates: &basis_gates_set,
                 coupling: &coupling_edges,
@@ -1223,11 +1209,12 @@ pub fn py_synthesize_unitary_matrix(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let basis_gates_set: IndexSet<&str>;
+    let mut basis_gates_set: IndexSet<&str>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
-            basis_gates_set = loose_basis_gates(&basis_gates);
+            basis_gates_set = basis_gates.iter().map(String::as_str).collect();
+            basis_gates_set.sort();
             QpuConstraint::Loose {
                 basis_gates: &basis_gates_set,
                 coupling: &coupling_edges,
