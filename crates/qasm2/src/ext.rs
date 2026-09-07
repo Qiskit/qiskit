@@ -11,6 +11,9 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
+use std::sync::Arc;
+
+use crate::error::ParseError;
 
 /// Information about a custom instruction that Python space is able to construct to pass down to
 /// us.
@@ -72,18 +75,35 @@ impl ClassicalBuiltinExt {
     }
 }
 
-#[derive(Clone, Debug)]
+/// A pure-Rust callable type for custom classical functions.
+pub type ClassicalFn = Arc<dyn Fn(&[f64]) -> Result<f64, ParseError> + Send + Sync>;
+
+/// A classical callable used during expression constant-folding in the qasm2 parser.
+#[derive(Clone)]
 pub enum ClassicalCallableExt {
     /// An extension to OpenQASM 2 that's built into Qiskit.
     Builtin(ClassicalBuiltinExt),
-    /// A callable Python object.
-    Py { num_params: usize, ob: Py<PyAny> },
+    /// A user-supplied callable wrapped in an Arc closure.
+    Custom { num_params: usize, f: ClassicalFn },
 }
+
 impl ClassicalCallableExt {
     pub fn num_params(&self) -> usize {
         match self {
             Self::Builtin(builtin) => builtin.num_params(),
-            Self::Py { num_params, ob: _ } => *num_params,
+            Self::Custom { num_params, .. } => *num_params,
+        }
+    }
+
+    pub fn call(&self, params: &[f64]) -> Result<f64, ParseError> {
+        match self {
+            Self::Builtin(builtin) => builtin.call(params).map_err(|expected| {
+                ParseError::new(format!(
+                    "argument mismatch: expected {expected}, got {}",
+                    params.len()
+                ))
+            }),
+            Self::Custom { f, .. } => f(params),
         }
     }
 }
@@ -105,14 +125,31 @@ pub struct CustomClassical {
 impl CustomClassical {
     #[new]
     #[pyo3(text_signature = "(name, num_params, callable, /)")]
-    fn __new__(name: String, num_params: usize, callable: Py<PyAny>) -> Self {
-        Self {
+    fn __new__(name: String, num_params: usize, callable: Py<PyAny>) -> PyResult<Self> {
+        let lift_pyerr = |err| {
+            ParseError::with_source(
+                "caught exception when constant folding with user-defined function",
+                err,
+            )
+        };
+        // Capture Py<PyAny> inside the Arc<dyn Fn> closure so ClassicalCallableExt itself
+        // has no pyo3 type in its definition.
+        let f: ClassicalFn = Arc::new(move |params: &[f64]| {
+            Python::attach(|py| {
+                let py_args = pyo3::types::PyTuple::new(py, params).map_err(lift_pyerr)?;
+                let result = callable.call1(py, py_args).map_err(lift_pyerr)?;
+                result.extract::<f64>(py).map_err(|e| {
+                    ParseError::with_source(
+                        "user-defined function returned non-float during constant folding",
+                        e,
+                    )
+                })
+            })
+        });
+        Ok(Self {
             name,
-            callable: ClassicalCallableExt::Py {
-                num_params,
-                ob: callable,
-            },
-        }
+            callable: ClassicalCallableExt::Custom { num_params, f },
+        })
     }
 
     /// Get a list of all the custom classical instructions that are built into Qiskit, but not part

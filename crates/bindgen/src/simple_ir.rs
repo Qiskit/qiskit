@@ -67,7 +67,7 @@ impl Enum {
             .iter()
             .map(|variant| -> anyhow::Result<_> {
                 let Some(ir::Literal::Expr(discriminant)) = &variant.discriminant else {
-                    bail!("unhandled discriminant: {:?}", &variant.discriminant);
+                    bail!("unhandled discriminant: {:?}", variant.discriminant);
                 };
                 Ok(EnumVariant {
                     name: variant.name.clone(),

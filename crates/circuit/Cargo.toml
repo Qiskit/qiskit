@@ -14,7 +14,7 @@ workspace = true
 
 [dependencies]
 qiskit-util = { workspace = true, features = ["py"] }
-qiskit-quantum-info.workspace = true
+qiskit-quantum-info = { workspace = true, features = ["python"] }
 rayon.workspace = true
 foldhash.workspace = true
 rustworkx-core.workspace = true
@@ -63,6 +63,3 @@ features = ["nalgebra"]
 
 [features]
 cache_pygates = []
-
-[dev-dependencies]
-pyo3 = { workspace = true, features = ["auto-initialize"] }

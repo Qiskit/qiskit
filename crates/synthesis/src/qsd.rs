@@ -669,12 +669,11 @@ fn apply_a2(
         .iter()
         .enumerate()
         .filter_map(|(idx, inst)| {
-            if matches!(inst.op.view(), OperationRef::Unitary(_)) {
-                if let Some(ref label) = inst.label {
-                    if label.as_str() == "qsd2q" {
-                        return Some(idx);
-                    }
-                }
+            if matches!(inst.op.view(), OperationRef::Unitary(_))
+                && let Some(ref label) = inst.label
+                && label.as_str() == "qsd2q"
+            {
+                return Some(idx);
             }
             None
         })

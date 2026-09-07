@@ -288,6 +288,7 @@ pub enum OperationRef<'a> {
     PauliProductMeasurement(&'a PauliProductMeasurement),
     PauliProductRotation(&'a PauliProductRotation),
     CustomOperation(&'a dyn CustomOperation),
+    Store(&'a Store),
 }
 
 impl Operation for OperationRef<'_> {
@@ -302,6 +303,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.name(),
             Self::PauliProductRotation(rotation) => rotation.name(),
             Self::CustomOperation(operation) => operation.name(),
+            Self::Store(store) => store.name(),
         }
     }
     #[inline]
@@ -315,6 +317,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
             Self::PauliProductRotation(rotation) => rotation.num_qubits(),
             Self::CustomOperation(operation) => operation.num_qubits(),
+            Self::Store(store) => store.num_qubits(),
         }
     }
     #[inline]
@@ -328,6 +331,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
             Self::PauliProductRotation(rotation) => rotation.num_clbits(),
             Self::CustomOperation(operation) => operation.num_clbits(),
+            Self::Store(store) => store.num_clbits(),
         }
     }
     #[inline]
@@ -341,6 +345,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
             Self::PauliProductRotation(rotation) => rotation.num_params(),
             Self::CustomOperation(operation) => operation.num_params(),
+            Self::Store(store) => store.num_params(),
         }
     }
     #[inline]
@@ -354,6 +359,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
             Self::PauliProductRotation(rotation) => rotation.directive(),
             Self::CustomOperation(operation) => operation.directive(),
+            Self::Store(store) => store.directive(),
         }
     }
 }
@@ -800,6 +806,7 @@ impl Operation for ControlFlowInstruction {
 pub enum ControlFlowView<'a, T> {
     Box {
         duration: Option<&'a BoxDuration>,
+        annotations: &'a [Py<PyAny>],
         body: &'a T,
     },
     BreakLoop,
@@ -845,9 +852,10 @@ impl<'a, T> ControlFlowView<'a, T> {
         let view = match &cf.control_flow {
             ControlFlow::Box {
                 duration,
-                annotations: _,
+                annotations,
             } => Self::Box {
                 duration: duration.as_ref(),
+                annotations: annotations.as_slice(),
                 body: &blocks[block_ids[0]],
             },
             ControlFlow::BreakLoop => Self::BreakLoop,
@@ -1916,6 +1924,76 @@ impl PartialEq for PauliProductMeasurement {
 }
 
 impl Eq for PauliProductMeasurement {}
+
+/// A manual storage of some classical value to a classical memory location
+#[derive(Debug, Clone, PartialEq)]
+pub struct Store {
+    lvalue: expr::Expr,
+    rvalue: expr::Expr,
+}
+
+impl Store {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        if let Some(label) = label {
+            Ok(imports::STORE
+                .get_bound(py)
+                .call1((self.lvalue.clone(), self.rvalue.clone(), label))?
+                .unbind())
+        } else {
+            Ok(imports::STORE
+                .get_bound(py)
+                .call1((self.lvalue.clone(), self.rvalue.clone()))?
+                .unbind())
+        }
+    }
+
+    /// Get an immutable borrow to the lvalue of this Store operation
+    pub fn lvalue(&self) -> &expr::Expr {
+        &self.lvalue
+    }
+
+    /// Get an immutable borrow to the rvalue of this Store operation
+    pub fn rvalue(&self) -> &expr::Expr {
+        &self.rvalue
+    }
+
+    /// Create a new Store operation
+    ///
+    /// The `lvalue` argument must be a valid lvalue (typically a var)
+    /// and the `rvalue` argument must be a valid value for that
+    /// storage location. This is a raw interface that has no input
+    /// checking done by this function to validate these constraints.
+    /// If they are violated you will create an invalid Store operation
+    /// that will potentially corrupt the [`CircuitData`] or [`DAGCircuit`]
+    /// objects when they are added. This is primarily intended to be used
+    /// when created the rust source of truth from a user created object
+    /// in Python (which has the input validation).
+    pub fn new(lvalue: expr::Expr, rvalue: expr::Expr) -> Self {
+        Self { lvalue, rvalue }
+    }
+}
+
+impl Operation for Store {
+    fn name(&self) -> &str {
+        "store"
+    }
+
+    fn num_qubits(&self) -> u32 {
+        0
+    }
+
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+
+    fn num_params(&self) -> u32 {
+        0
+    }
+
+    fn directive(&self) -> bool {
+        true
+    }
+}
 
 /// Private module with especific traits that allow for the implementation
 /// of non dyn-compatible traits for [`CustomOperation`]. Namely [`PartialEq`]

@@ -20,10 +20,12 @@ jobs:
           # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: "3.14"
+      - name: Install Rust
+        run: rustup toolchain install --profile minimal --no-self-update
 
       - name: Install dependencies
         run: tools/install_ubuntu_docs_dependencies.sh

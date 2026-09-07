@@ -161,7 +161,7 @@ static int test_op_types_roundtrip(void) {
     }
 
     for (size_t op = QkBinaryOpType_BitAnd; op <= QkBinaryOpType_Div; op++) {
-        QkUnaryOpType expected_op = (QkUnaryOpType)op;
+        QkBinaryOpType expected_op = (QkBinaryOpType)op;
 
         expr = inner_test_binary_expr_ops(expected_op);
 

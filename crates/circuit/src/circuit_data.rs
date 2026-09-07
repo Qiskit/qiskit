@@ -125,9 +125,7 @@ impl From<CircuitDataError> for PyErr {
             CircuitDataError::AddObjectRegistry(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
-            CircuitDataError::RegisterNameExists(name) => {
-                CircuitError::new_err(format!("register name {name} already exists"))
-            }
+            CircuitDataError::RegisterNameExists(e) => e.into(),
             CircuitDataError::BitExceedsCapacity(bit_type, bit_index) => CircuitError::new_err(
                 format!("{bit_type} at index {bit_index} exceds circuit capacity."),
             ),
@@ -1313,7 +1311,8 @@ impl CircuitData {
                     | OperationRef::Unitary(_)
                     | OperationRef::PauliProductMeasurement(_)
                     | OperationRef::PauliProductRotation(_)
-                    | OperationRef::CustomOperation(_) => {
+                    | OperationRef::CustomOperation(_)
+                    | OperationRef::Store(_) => {
                         // TODO: `PauliProductRotation` actually stores a `Param` inside itself,
                         // which this code does not account for.  We most likely need to make an
                         // `OperationRefMut` in order to modify that without cloning the whole
@@ -1920,10 +1919,10 @@ where
     } else if let Ok(sequence) = specifier.extract::<PySequenceIndex>() {
         match sequence {
             PySequenceIndex::Int(index) => {
-                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len()) {
-                    if let Some(bit) = bit_sequence.get(index).cloned() {
-                        return Ok(vec![bit]);
-                    }
+                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len())
+                    && let Some(bit) = bit_sequence.get(index).cloned()
+                {
+                    return Ok(vec![bit]);
                 }
                 Err(CircuitError::new_err(format!(
                     "Index {specifier} out of range for size {}.",
@@ -2038,10 +2037,10 @@ fn for_each_symbol_use_in_control_flow(
             };
             for symbol in body.parameters() {
                 // Skip the loop variable itself — it is runtime-bound.
-                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param {
-                    if symbol == loop_symbol {
-                        continue;
-                    }
+                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param
+                    && symbol == loop_symbol
+                {
+                    continue;
                 }
                 action(symbol, usage)?;
             }
@@ -2551,6 +2550,7 @@ impl PyCircuitData {
                     OperationRef::CustomOperation(custom_operation) => {
                         BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
+                    OperationRef::Store(store) => store.clone().into(),
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -2579,6 +2579,7 @@ impl PyCircuitData {
                     OperationRef::CustomOperation(custom_operation) => {
                         BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
+                    OperationRef::Store(store) => store.clone().into(),
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
