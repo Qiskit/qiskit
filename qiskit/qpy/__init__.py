@@ -595,6 +595,18 @@ starting index of the register. The indices are then the range of length
 ``size`` from that starting index. For example, if the starting index is 5
 and the ``size`` is 10 the indices are 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
 
+Changes to CUSTOM_INSTRUCTION names
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From version 11 till 17, the names of ``CUSTOM_INSTRUCTION`` blocks were suffixed with a
+random UUID hexadecimal string (e.g. ``"my_gate_b3ecab5b4d6a4eb6bc2b2dbf18d83e1e"``), as
+described in :ref:`qpy_version_11`.  Because the UUID was generated for every
+:func:`.dump` call, repeated dumps of the same circuit produced different byte streams —
+QPY output was not deterministic.
+
+From version 18 the UUID suffix is replaced by a counter that is reset
+at the start of each :func:`.dump` call (e.g. ``"my_gate_0"``).
+
 .. _qpy_version_17:
 
 Version 17
@@ -1923,8 +1935,9 @@ Version 3 of the QPY format is identical to :ref:`qpy_version_2` except that it 
 a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`
 natively in QPY. To accomplish this the :ref:`qpy_custom_definition` struct now supports
 a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
-Enties in the custom instructions tables have unique name generated that start with the
-string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reserved
+Entries in the custom instructions tables have unique name generated that starts with the
+string ``"###PauliEvolutionGate_"`` followed by a uuid string (versions 11–17) or a
+counter (version 18+, see :ref:`qpy_version_18`). This gate name is reserved
 in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with a definition
 set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
 as follows:

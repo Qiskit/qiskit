@@ -286,6 +286,7 @@ fn pack_instruction(
                         py,
                         &instruction.op,
                         &gate_class_name(py, &instruction.op)?,
+                        qpy_data,
                     )
                 })?
     {
@@ -1377,14 +1378,13 @@ pub(crate) fn pack_circuit(
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,
 ) -> Result<formats::QPYCircuit, QpyError> {
-    let mut qpy_data = QPYWriteData {
+    let mut qpy_data = QPYWriteData::new(
         caller,
         circuit_data,
         version,
-        standalone_var_indices: HashMap::new(),
-        parameter_vectors: Default::default(),
+        HashMap::new(),
         annotation_handler,
-    };
+    );
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
     let header = pack_circuit_header(extra.name, extra.metadata, &mut qpy_data)?;
     // CalibrationsPack was dropped in v18; for v13-17 write an empty block (pulse
