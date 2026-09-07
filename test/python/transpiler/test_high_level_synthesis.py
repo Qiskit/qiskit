@@ -843,23 +843,20 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         for q in range(num_qubits):
             self.assertEqual(tracker.is_qubit_clean(q), q not in gate_qubits)
 
-    def test_if_else_tracking(self):
+    def test_no_clean_ancillas_after_if_else(self):
         """
-        Test that the pass correctly tracks qubits states for if-else operations.
+        Test that the pass correctly tracks qubit states after if-else operations.
         Regression test for gh-16859.
         """
-
-        # HLS would mark qubit 4 as clean at the end of the true block.
-        true_body = QuantumCircuit(5)
-        true_body.reset(4)
-
-        false_body = QuantumCircuit(5)
-        false_body.mcx([0, 1, 2], 3)
 
         qc = QuantumCircuit(5, 1)
         qc.h([0, 1, 2, 3, 4])
 
-        qc.if_else((0, True), true_body, false_body, [0, 1, 2, 3, 4], [])
+        with qc.if_test((0, True)) as else_:
+            # HLS would mark qubit 4 as clean at the end of this true block
+            qc.reset(4)
+        with else_:
+            qc.mcx([0, 1, 2], 3)
 
         dag = circuit_to_dag(qc)
 
@@ -871,6 +868,139 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         hls_config = HLSConfig(mcx=["1_clean_kg24"])
         transpiled = HighLevelSynthesis(hls_config=hls_config).run(dag)
         self.assertIn("mcx", transpiled.count_ops())
+
+    def test_qubit_states_after_if_else(self):
+        """
+        Test that the internal qubit tracking mechanism correctly tracks qubit states
+        after an if-else operation.
+        """
+
+        # Create a quantum circuit with if/else
+        qc = QuantumCircuit(4, 1)
+        with qc.if_test((0, True)) as else_:
+            qc.x(2)
+        with else_:
+            qc.z(0)
+
+        # Initialize high-level-synthesis data
+        hls_config = HLSConfig()
+        hls_plugin_manager = HighLevelSynthesisPluginManager()
+        hls_op_names = set(hls_plugin_manager.plugins_by_op.keys())
+        target = Target.from_configuration(basis_gates=["cx", "u"])
+        hls_data = HighLevelSynthesisData(
+            hls_config=hls_config,
+            hls_plugin_manager=hls_plugin_manager,
+            coupling_map=None,
+            target=target,
+            equivalence_library=std_eqlib,
+            hls_op_names=hls_op_names,
+            device_insts={"cx", "u"},
+            use_physical_indices=False,
+            min_qubits=0,
+            unroll_definitions=True,
+            optimize_clifford_t=False,
+        )
+
+        # Initialize qubit tracker: qubits 0, 1, 2 are clean; 3 is dirty
+        tracker = QubitTracker(4, True)
+        tracker.set_dirty([3])
+
+        _ = synthesize_circuit(qc._data, list(range(4)), hls_data, tracker)
+
+        # Expected: 1 is clean; 0, 2, 4 are dirty
+        expected_clean = {0: False, 1: True, 2: False, 3: False}
+        for q, should_be_clean in expected_clean.items():
+            self.assertEqual(tracker.is_qubit_clean(q), should_be_clean)
+
+    def test_qubit_states_after_if_without_else(self):
+        """
+        Test that the internal qubit tracking mechanism correctly tracks qubit states
+        after an if operation.
+        """
+
+        # Create a quantum circuit with if/else
+        qc = QuantumCircuit(4, 1)
+        with qc.if_test((0, True)):
+            qc.reset(2)
+
+        # Initialize high-level-synthesis data
+        hls_config = HLSConfig()
+        hls_plugin_manager = HighLevelSynthesisPluginManager()
+        hls_op_names = set(hls_plugin_manager.plugins_by_op.keys())
+        target = Target.from_configuration(basis_gates=["cx", "u"])
+        hls_data = HighLevelSynthesisData(
+            hls_config=hls_config,
+            hls_plugin_manager=hls_plugin_manager,
+            coupling_map=None,
+            target=target,
+            equivalence_library=std_eqlib,
+            hls_op_names=hls_op_names,
+            device_insts={"cx", "u"},
+            use_physical_indices=False,
+            min_qubits=0,
+            unroll_definitions=True,
+            optimize_clifford_t=False,
+        )
+
+        # Initialize qubit tracker: qubits 1, 3 are clean; qubits 0, 2 are dirty
+        tracker = QubitTracker(4, True)
+        tracker.set_dirty([0, 2])
+
+        _ = synthesize_circuit(qc._data, list(range(4)), hls_data, tracker)
+
+        # Expected: qubits 1, 3 are clean; qubits 0, 2 are dirty
+        expected_clean = {0: False, 1: True, 2: False, 3: True}
+        for q, should_be_clean in expected_clean.items():
+            self.assertEqual(tracker.is_qubit_clean(q), should_be_clean)
+
+    def test_qubit_states_after_switch(self):
+        """
+        Test that the internal qubit tracking mechanism correctly tracks qubit states
+        after a switch.
+        """
+
+        # Create a quantum circuit with a switch statement
+        qubits = [Qubit(), Qubit(), Qubit(), Qubit()]
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubits, creg)
+        with qc.switch(expr.bit_and(creg, 2)) as case:
+            with case(0):
+                qc.x(0)
+            with case(1):
+                qc.x(2)
+            with case(2):
+                qc.h(0)
+            with case(3):
+                qc.h(3)
+
+        # Initialize high-level-synthesis data
+        hls_config = HLSConfig()
+        hls_plugin_manager = HighLevelSynthesisPluginManager()
+        hls_op_names = set(hls_plugin_manager.plugins_by_op.keys())
+        target = Target.from_configuration(basis_gates=["cx", "u"])
+        hls_data = HighLevelSynthesisData(
+            hls_config=hls_config,
+            hls_plugin_manager=hls_plugin_manager,
+            coupling_map=None,
+            target=target,
+            equivalence_library=std_eqlib,
+            hls_op_names=hls_op_names,
+            device_insts={"cx", "u"},
+            use_physical_indices=False,
+            min_qubits=0,
+            unroll_definitions=True,
+            optimize_clifford_t=False,
+        )
+
+        # Initialize qubit tracker: qubits 0, 1, 2, 3 are clean
+        tracker = QubitTracker(4, True)
+
+        _ = synthesize_circuit(qc._data, list(range(4)), hls_data, tracker)
+
+        # Expected: qubits 1 is clean; qubits 0, 2, 3 are dirty
+        expected_clean = {0: False, 1: True, 2: False, 3: False}
+        for q, should_be_clean in expected_clean.items():
+            self.assertEqual(tracker.is_qubit_clean(q), should_be_clean)
 
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):
