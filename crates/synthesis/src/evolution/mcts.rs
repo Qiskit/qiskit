@@ -136,10 +136,10 @@ fn cx_count_with_swaps(gate_seq: &GateSequence) -> usize {
     // and so also considers SWAP gates.
     gate_seq
         .iter()
-        .map(|(gate, _, _)| match gate {
-            StandardGate::CX => 1,
-            StandardGate::Swap => 3,
-            _ => 0,
+        .filter_map(|(gate, _, _)| match gate {
+            StandardGate::CX => Some(1),
+            StandardGate::Swap => Some(3),
+            _ => None,
         })
         .sum()
 }
