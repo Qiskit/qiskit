@@ -187,7 +187,8 @@ class TestCircuitToInstruction(QiskitTestCase):
         qc.global_phase = 2 * p
         qc.rx(q, 0)
 
-        inst = circuit_to_instruction(qc, parameter_map={p: 0.3, q: 0.5})
+        parameter_map = {p: 0.3, q: 0.5}
+        inst = circuit_to_instruction(qc, parameter_map=parameter_map)
 
         # The substituted instruction must have no remaining parameters,
         # neither in its ``params`` nor inside the hidden ``definition``.
@@ -198,7 +199,8 @@ class TestCircuitToInstruction(QiskitTestCase):
         # And it must be usable downstream without raising on unbound params.
         outer = QuantumCircuit(1)
         outer.append(inst, [0])
-        Operator(outer)  # would raise on unbound parameter without the fix
+        # This deliberately avoids `equiv` because we're testing the phase.
+        self.assertEqual(Operator(outer), Operator(qc.assign_parameters(parameter_map)))
 
     def test_zero_operands(self):
         """Test that an instruction can be created, even if it has zero operands."""
