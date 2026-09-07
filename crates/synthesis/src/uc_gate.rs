@@ -19,11 +19,11 @@ use pyo3::wrap_pyfunction;
 use std::collections::BTreeSet;
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
-use nalgebra::{Matrix2, MatrixView2, Vector2};
-use numpy::PyReadonlyArray2;
-
 use crate::diagonal::diagonal_gate_circuit;
 use crate::qsd::append;
+use nalgebra::{Matrix2, MatrixView2, Vector2};
+use numpy::PyReadonlyArray2;
+use pyo3::exceptions::PyValueError;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::Param;
@@ -252,10 +252,12 @@ pub fn dec_ucg(
     let gates: Vec<Matrix2<Complex64>> = single_qubit_gates
         .into_iter()
         .map(|x| {
-            let res: MatrixView2<Complex64> = x.try_as_matrix().unwrap();
-            res.into_owned()
+            let res: Option<MatrixView2<Complex64>> = x.try_as_matrix();
+            res.map(|m| m.into_owned()).ok_or_else(|| {
+                PyValueError::new_err("expected a 2x2 unitary matrix for each single-qubit gate")
+            })
         })
-        .collect();
+        .collect::<PyResult<Vec<_>>>()?;
     let (circuit, diag) =
         dec_ucg_inner(gates, num_qubits, up_to_diagonal, mux_simp).map_err(PyErr::from)?;
     let qc = circuit.into_py_quantum_circuit(py)?;

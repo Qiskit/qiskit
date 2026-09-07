@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::Python;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
@@ -44,10 +45,10 @@ pub(crate) fn diagonal_gate_circuit(
         let target_qubit = num_qubits - num_act_qubits;
         let ucrz = get_ucrz(num_act_qubits, &mut angles_rz, true)?;
 
-        let quibit_map: Vec<Qubit> = (0..num_act_qubits)
+        let qubit_map: Vec<Qubit> = (0..num_act_qubits)
             .map(|q| Qubit((q + target_qubit) as u32))
             .collect();
-        append(&mut circuit, ucrz, &quibit_map)?;
+        append(&mut circuit, ucrz, &qubit_map)?;
         n /= 2;
     }
     circuit.add_global_phase(&Param::Float(diag_phases[0]))?;
@@ -55,8 +56,15 @@ pub(crate) fn diagonal_gate_circuit(
 }
 
 #[pyfunction]
-pub fn synth_diagonal(py: Python, diag_pahses: Vec<f64>, num_qubits: u32) -> PyResult<Py<PyAny>> {
-    let mut phases = diag_pahses;
+pub fn synth_diagonal(py: Python, diag_phases: Vec<f64>, num_qubits: u32) -> PyResult<Py<PyAny>> {
+    let expected = 1u64 << num_qubits;
+    let got = diag_phases.len();
+    if got as u64 != expected {
+        return Err(PyValueError::new_err(format!(
+            "expected {expected} diagonal phases for {num_qubits} qubits, got {got}"
+        )));
+    }
+    let mut phases = diag_phases;
     let circuit = diagonal_gate_circuit(&mut phases, num_qubits as usize).map_err(PyErr::from)?;
     let qc = circuit.into_py_quantum_circuit(py)?;
     qc.setattr("name", "diagonal")?;
@@ -66,4 +74,27 @@ pub fn synth_diagonal(py: Python, diag_pahses: Vec<f64>, num_qubits: u32) -> PyR
 pub fn diagonal(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(synth_diagonal, m)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::diagonal_gate_circuit;
+    use approx::abs_diff_eq;
+    use ndarray::Array2;
+    use num_complex::Complex64;
+
+    use crate::matrix::sim::sim_unitary_circuit;
+
+    #[test]
+    fn test_diagonal_gate_circuit_synthesizes_diagonal() {
+        let phases = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8];
+        let circuit = diagonal_gate_circuit(&mut phases.to_vec(), 3).unwrap();
+        let unitary = sim_unitary_circuit(&circuit).unwrap();
+
+        let mut expected = Array2::zeros((8, 8));
+        for (index, phase) in phases.iter().enumerate() {
+            expected[[index, index]] = Complex64::new(0.0, *phase).exp();
+        }
+        assert!(abs_diff_eq!(unitary, expected, epsilon = 1e-12));
+    }
 }

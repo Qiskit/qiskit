@@ -85,3 +85,35 @@ fn decompose_uc_rotations(
 fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
     [(angle_1 + angle_2) / 2., (angle_1 - angle_2) / 2.]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::get_ucrz;
+    use approx::abs_diff_eq;
+    use ndarray::Array2;
+    use num_complex::Complex64;
+
+    use crate::matrix::sim::sim_unitary_circuit;
+
+    #[test]
+    fn test_get_ucrz_all_synthesizes_controlled_rz() {
+        let angles = [0.2, 0.6];
+        let circuit = get_ucrz(2, &mut angles.to_vec(), true).unwrap();
+        let unitary = sim_unitary_circuit(&circuit).unwrap();
+
+        let mut expected = Array2::zeros((4, 4));
+        for (control, angle) in angles.iter().enumerate() {
+            expected[[2 * control, 2 * control]] = Complex64::new(0.0, -angle / 2.0).exp();
+            expected[[2 * control + 1, 2 * control + 1]] = Complex64::new(0.0, angle / 2.0).exp();
+        }
+        assert!(abs_diff_eq!(unitary, expected, epsilon = 1e-12));
+    }
+
+    #[test]
+    fn test_get_ucrz_without_final_cx() {
+        let mut angles = vec![0.2, 0.6];
+        let circuit = get_ucrz(2, &mut angles, false).unwrap();
+
+        assert_eq!(circuit.data().len(), 3);
+    }
+}
