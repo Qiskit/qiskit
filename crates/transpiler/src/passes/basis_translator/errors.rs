@@ -12,7 +12,7 @@
 
 use pyo3::PyErr;
 use qiskit_circuit::{
-    circuit_data::CircuitError, error::DAGCircuitError,
+    circuit_data::CircuitDataError, dag_circuit::DAGError,
     parameter::parameter_expression::ParameterError,
 };
 use thiserror::Error;
@@ -32,27 +32,17 @@ pub enum BasisTranslatorError {
         BasisTranslator#translation-errors"
     ]]
     TargetMissingEquivalence { basis: String, expanded: String },
-    // TODO: Use rust native CircuitError
-    #[error[
-        "{0}"
-    ]]
-    BasisCircuitError(String),
-    // TODO: Use rust native DAGCircuitError
-    #[error[
-    "{0}"
-    ]]
-    BasisDAGCircuitError(String),
     #[error[
         "BasisTranslator did not map {0}"
-    ]]
+        ]]
     ApplyTranslationMappingError(String),
     #[error[
         "Translation num_params not equal to op num_params. \
-            Op: {:?} {} Translation: {:?}\n{:?}",
-            node_params,
-            node_name,
-            target_params,
-            target_dag
+        Op: {:?} {} Translation: {:?}\n{:?}",
+        node_params,
+        node_name,
+        target_params,
+        target_dag
     ]]
     ReplaceNodeParamMismatch {
         node_params: String,
@@ -66,15 +56,21 @@ pub enum BasisTranslatorError {
     ReplaceNodeGlobalPhaseComplex(String),
     #[error(transparent)]
     BasisParameterError(#[from] ParameterError),
+    #[error(transparent)]
+    Circuit(#[from] CircuitDataError),
+    #[error(transparent)]
+    DAGCircuit(#[from] DAGError),
+    #[error(transparent)]
+    PyGateError(PyErr),
 }
 
 impl From<BasisTranslatorError> for PyErr {
     fn from(value: BasisTranslatorError) -> Self {
         match value {
-            BasisTranslatorError::BasisCircuitError(_) => CircuitError::new_err(value.to_string()),
-            BasisTranslatorError::BasisDAGCircuitError(message) => {
-                DAGCircuitError::new_err(message)
-            }
+            BasisTranslatorError::Circuit(err) => err.into(),
+            BasisTranslatorError::DAGCircuit(err) => err.into(),
+            BasisTranslatorError::BasisParameterError(err) => err.into(),
+            BasisTranslatorError::PyGateError(py_err) => py_err,
             _ => TranspilerError::new_err(value.to_string()),
         }
     }
