@@ -369,18 +369,18 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         creg = ClassicalRegister(1, "c")
 
         # Qubit order: [loose_q, qreg[0], qreg[1]]
-        source = QuantumCircuit([loose_q], qreg, creg)
+        circuit = QuantumCircuit([loose_q], qreg, creg)
+        circuit.x(qreg[1])
+        circuit.swap(qreg[0], qreg[1])
+        circuit.measure(qreg[0], creg[0])
 
-        source.x(qreg[1])
-        source.swap(qreg[0], qreg[1])
-        source.measure(qreg[0], creg[0])
+        expected = QuantumCircuit([loose_q], qreg, creg)
+        expected.x(qreg[1])
+        expected.measure(qreg[1], creg[0])
 
-        output = PassManager([OptimizeSwapBeforeMeasure()]).run(source.copy())
-        measurement = next(
-            instruction for instruction in output.data if instruction.operation.name == "measure"
-        )
-        measured_qubit_index = output.find_bit(measurement.qubits[0]).index
-        self.assertEqual(measured_qubit_index, 2)
+        after = PassManager([OptimizeSwapBeforeMeasure()]).run(circuit)
+
+        self.assertEqual(expected, after)
 
 
 if __name__ == "__main__":
