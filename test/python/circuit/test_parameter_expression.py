@@ -970,8 +970,6 @@ class TestParameterExpression(QiskitTestCase):
             actual = gradient.bind({p: val})
             self.assertAlmostEqual(actual, 2 / (1 + gval**2), places=10)
 
-<<<<<<< HEAD
-=======
     def test_simplify_multi_parameter_cancellation(self):
         """Test that simplify() handles cancellation across multiple parameters."""
         a = Parameter("a")
@@ -1024,7 +1022,6 @@ class TestParameterExpression(QiskitTestCase):
 
         self.assertEqual(p, p.simplify())
 
->>>>>>> bc5caea (Accumulate add/sub in `SymbolExpr` on the fly (#16753))
     @ddt.data("__add__", "__sub__")
     def test_optimization_same_symbol(self, method):
         """Test optimizations with the same symbol."""
