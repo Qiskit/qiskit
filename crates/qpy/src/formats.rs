@@ -16,7 +16,8 @@ use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    ProgramType, QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding, ValueType,
+    ProgramType, QPYReadData, QPYWriteData, RegisterType, StringU16Pack, SymbolicEncoding,
+    ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -79,6 +80,42 @@ pub struct QPYCircuit {
     pub layout: LayoutV2Pack,
 }
 
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import (version: u8))]
+struct CircuitHeaderV19Pack {
+    // global circuit data
+    pub circuit_name: StringU16Pack,
+    pub global_phase: GlobalPhasePack,
+    pub num_qubits: u32,
+    pub num_clbits: u32,
+    pub num_instructions: u64,
+    pub num_vars: u32,
+
+    // register data
+    #[bw(calc = registers.len() as u32)]
+    pub num_registers: u32,
+    #[br(count = num_registers, args { inner: (version,) })]
+    pub registers: Vec<RegisterPack>,
+
+    // interner data
+    #[bw(calc = qubit_interner.len() as u32)]
+    pub qubit_interner_size: u32,
+    #[bw(calc = clbit_interner.len() as u32)]
+    pub clbit_interner_size: u32,
+    #[br(count = qubit_interner_size as usize)]
+    pub qubit_interner: Vec<InternerEntry>,
+    #[br(count = clbit_interner_size as usize)]
+    pub clbit_interner: Vec<InternerEntry>,
+
+    // byte-encoded metadata from an external source
+    #[bw(calc = metadata.len() as u64)]
+    pub metadata_size: u64,
+    #[br(count = metadata_size)]
+    pub metadata: Bytes,
+}
+
 // The header contains the global data of the circuit: name, global phase;
 // number of qubits, clbits, instructions and vars;
 // register data, metadata (as serialized bytes)
@@ -136,16 +173,16 @@ pub struct CircuitInstructionV19Pack {
 
     #[br(args(operation))]
     pub operation_data: OperationData,
-    
+
     // Get param size from OperationData during decoding (it's either static from rust definition
     // or dynamic in the body)
     #[bw(calc = params.len() as u16)]
     pub num_parameters: u16,
     #[br(count = num_parameters as usize)]
     pub params: Vec<ParamDataPack>,
-    
+
     pub annotations: Option<InstructionsAnnotationPack>,
-    
+
     #[bw(calc = label.len() as u16)]
     pub label_size: u16,
     #[br(count = label_size as usize, try_map = String::from_utf8)]
@@ -225,7 +262,29 @@ pub struct ControlledGatePack {
 pub struct ControlFlowPack {
     // placeholder
 }
+#[binrw]
+#[derive(Debug)]
+pub struct InternerEntry {
+    // placeholder
+}
 
+// The global phase is either a float or a parameter
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum GlobalPhasePack {
+    #[brw(magic = b'f')]
+    Float(f64),
+
+    #[brw(magic = b'p')]
+    Parameter(ParameterSymbolPack),
+
+    #[brw(magic = b'v')]
+    ParameterVectorElement(ParameterVectorElementPack),
+
+    #[brw(magic = b'e')]
+    ParameterExpression(ParameterExpressionPack),
+}
 
 // The data for a specific instruction in the circuit, for QPY versions until QPY18
 // Each instruction has a name, an optional label,

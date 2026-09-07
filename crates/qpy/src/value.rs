@@ -79,6 +79,20 @@ impl QpyCaller {
     }
 }
 
+// Easy string storage when the string size is u16
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct StringU16Pack {
+    #[br(temp)]
+    #[bw(calc = value.len() as u16)]
+    size: u16,
+
+    #[br(count = size, try_map = String::from_utf8)]
+    #[bw(map = |value| value.as_bytes())]
+    pub value: String,
+}
+
 /// Endianness selector for QPY value serialization and deserialization.
 ///
 /// QPY's format spec requires big-endian (network byte order) for all values.
