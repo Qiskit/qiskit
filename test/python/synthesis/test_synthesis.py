@@ -672,6 +672,85 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
             a = Ud(np.pi / 4, np.pi / 8, 0)
             self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
+    def test_two_qubit_weyl_decomposition_near_degenerate_m2(self):
+        """Regression test for https://github.com/Qiskit/qiskit/issues/4159.
+
+        These matrices, taken from user reports on the issue, sit close enough to a
+        symmetric point of the Weyl chamber that the two-real-eigenvalue "M2" matrix at
+        the core of the decomposition has (near-)degenerate eigenvalues. Previously the
+        only diagonalization strategy tried was a fixed sequence of 100 random real
+        linear combinations of M2's real and imaginary parts, each checked against an
+        exact `1e-13` tolerance; for these inputs, every one of those combinations
+        inherited the same near-degeneracy (it cannot be avoided by choosing different
+        random coefficients when the underlying eigenvalues are themselves nearly
+        equal), so the decomposition unconditionally raised `QiskitError`.
+        """
+        matrices = [
+            # https://github.com/Qiskit/qiskit/issues/4159#issuecomment-2635472538
+            np.array(
+                [
+                    [
+                        -0.001850233987449401 + 0.0018502339874494661j,
+                        0.49999657662239466 + 0.4999965766224098j,
+                        -0.001850233987449466 - 0.001850233987449402j,
+                        -0.49999657662241 + 0.4999965766223946j,
+                    ],
+                    [
+                        -0.44072377714686684 - 0.44072377714685324j,
+                        -0.23614095844951105 + 0.236140958449508j,
+                        -0.44072377714685346 + 0.4407237771468669j,
+                        0.23614095844950803 + 0.2361409584495112j,
+                    ],
+                    [
+                        0.2361409584495594 + 0.23614095844955216j,
+                        -0.44072377714677746 + 0.44072377714677247j,
+                        0.2361409584495523 - 0.23614095844955943j,
+                        0.4407237771467725 + 0.4407237771467777j,
+                    ],
+                    [
+                        -0.49999657662249597 + 0.499996576622502j,
+                        -0.0018502339874498202 - 0.0018502339874495377j,
+                        -0.499996576622502 - 0.4999965766224962j,
+                        0.0018502339874495383 - 0.0018502339874498202j,
+                    ],
+                ]
+            ),
+            # https://github.com/Qiskit/qiskit/issues/4159#issuecomment-2933313231, the
+            # least precisely unitary of the reported inputs (about 1e-9 off), so it
+            # additionally exercises the fallback that accepts a best-effort
+            # diagonalization when no candidate reaches the exact tolerance.
+            np.array(
+                [
+                    [
+                        0.6722131811420843 + 0.09452506680507206j,
+                        0.7075931451760403 + 0.196230468465914j,
+                        5.681296541384782e-10 - 9.621138583843416e-11j,
+                        3.307540509026264e-10 - 2.1612778497242494e-9j,
+                    ],
+                    [
+                        0.7216230638474672 + 0.13584773309886666j,
+                        -0.6450258764520663 - 0.21153525783613172j,
+                        9.898797586949043e-10 - 3.977632221779342e-10j,
+                        1.375154806614058e-10 - 2.038777090046669e-9j,
+                    ],
+                    [
+                        1.0517074761473222e-9 - 3.967380894295217e-10j,
+                        3.156039428800239e-10 - 2.4983353930758583e-10j,
+                        0.18339809633518522 - 0.7337990977531457j,
+                        0.38346675493722177 + 0.5299596871200533j,
+                    ],
+                    [
+                        -2.2585057568535944e-9 + 1.9658794932827343e-9j,
+                        1.3354719029003632e-10 + 1.3142849758873588e-10j,
+                        0.11052571942646373 - 0.6447387762627752j,
+                        -0.4881403628954051 - 0.57776722527244j,
+                    ],
+                ]
+            ),
+        ]
+        for matrix in matrices:
+            self.check_two_qubit_weyl_decomposition(matrix, tolerance=1.0e-7)
+
     def test_two_qubit_weyl_decomposition_a00(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,0,0)"""
         for aaa in (

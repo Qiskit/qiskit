@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use approx::abs_diff_eq;
 use num_complex::{Complex, Complex64, ComplexFloat};
 use smallvec::SmallVec;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI, TAU};
@@ -344,6 +343,72 @@ impl Specialization {
     }
 }
 
+/// Tolerance used to decide that two eigenvalues of `Re(M2)` are close enough that
+/// picking an eigenvector basis for them independently of `Im(M2)` is unsafe.  It only
+/// needs to be small compared to the generic O(1) spacing between distinct Weyl
+/// coordinates, while comfortably covering the floating-point-noise-scale near-degeneracies
+/// (typically 1e-9 or smaller) that provoke https://github.com/Qiskit/qiskit/issues/4159.
+const CLUSTER_DEGENERACY_TOL: f64 = 1.0e-7;
+
+/// Deterministically find a real orthogonal `P` that simultaneously diagonalizes the
+/// real-symmetric matrices `A = Re(M2)` and `B = Im(M2)` of a complex-symmetric unitary
+/// `M2`, i.e. attempt to solve `M2 = P D P^T`.
+///
+/// `A` and `B` commute exactly when `M2` is exactly unitary, so in exact arithmetic any
+/// eigenbasis of `A` that is refined within degenerate eigenspaces by also diagonalizing
+/// `B` there will simultaneously diagonalize both. In floating point, `M2` is only
+/// unitary up to the caller's own precision, so `A` and `B` only approximately commute.
+/// The randomized loop below picks a single random real combination of `A` and `B` and
+/// diagonalizes that instead; but if two eigenvalues of `M2` are themselves nearly equal
+/// (which happens for many circuits built from a handful of standard gates, see the
+/// issue above), then every real combination has a near-tied pair of eigenvalues there
+/// too, no matter the random coefficients chosen, so retrying with new random
+/// coefficients can never resolve the ambiguity. Explicitly clustering the eigenvalues of
+/// `A` and re-diagonalizing `B` restricted to each near-degenerate cluster targets
+/// exactly this failure mode instead of leaving it to chance.
+fn cluster_diagonalize_m2(m2: &Matrix4<Complex64>) -> Matrix4<f64> {
+    let a = m2.map(|z| z.re);
+    let b = m2.map(|z| z.im);
+
+    let eig = nalgebra::linalg::SymmetricEigen::new(a);
+    let mut order: [usize; 4] = [0, 1, 2, 3];
+    order.sort_by(|&i, &j| eig.eigenvalues[i].partial_cmp(&eig.eigenvalues[j]).unwrap());
+
+    // Group `order` into runs of consecutive (now sorted) indices whose eigenvalues are
+    // within `CLUSTER_DEGENERACY_TOL` of their run's starting eigenvalue.
+    let mut clusters: Vec<Vec<usize>> = Vec::new();
+    for idx in order {
+        let same_cluster = clusters.last().is_some_and(|cluster: &Vec<usize>| {
+            let anchor = cluster[0];
+            (eig.eigenvalues[idx] - eig.eigenvalues[anchor]).abs() <= CLUSTER_DEGENERACY_TOL
+        });
+        if same_cluster {
+            clusters.last_mut().unwrap().push(idx);
+        } else {
+            clusters.push(vec![idx]);
+        }
+    }
+
+    let mut p = Matrix4::<f64>::zeros();
+    for cluster in &clusters {
+        if cluster.len() == 1 {
+            let idx = cluster[0];
+            p.set_column(idx, &eig.eigenvectors.column(idx));
+            continue;
+        }
+        let k = cluster.len();
+        // The columns of `A`'s eigenbasis spanning this near-degenerate eigenspace.
+        let v = nalgebra::DMatrix::<f64>::from_fn(4, k, |r, c| eig.eigenvectors[(r, cluster[c])]);
+        let b_sub = v.transpose() * b * &v;
+        let sub_eig = nalgebra::linalg::SymmetricEigen::new(b_sub);
+        let refined = &v * sub_eig.eigenvectors;
+        for (c, &idx) in cluster.iter().enumerate() {
+            p.set_column(idx, &refined.column(c));
+        }
+    }
+    p
+}
+
 /// Convert a MatrixView4 as a MatRef without copies.
 #[inline]
 fn matrixview4_to_faer<T: nalgebra::Scalar + Copy>(mat: MatrixView4<T>) -> MatRef<T> {
@@ -496,13 +561,36 @@ impl TwoQubitWeylDecomposition {
         // for real-symmetric `A` and `B`, and as
         //   M2^+ @ M2 = A^2 + B^2 + i [A, B] = 1
         // we must have `A` and `B` commute, and consequently they are simultaneously diagonalizable.
-        // Mixing them together _should_ account for any degeneracy problems, but it's not
-        // guaranteed, so we repeat it a little bit.  The fixed seed is to make failures
-        // deterministic; the value is not important.
-        let mut state = Pcg64Mcg::seed_from_u64(2023);
         let mut found = false;
         let mut d: Vector4<Complex64> = Vector4::zeros();
         let mut p: Matrix4<Complex64> = Matrix4::zeros();
+        // Track the least-bad candidate seen across every attempt below, in case none of
+        // them hits the strict tolerance exactly (see the fallback after the loop).
+        let mut best_residual = f64::INFINITY;
+        let mut best_p: Matrix4<Complex64> = Matrix4::zeros();
+        let mut best_d: Vector4<Complex64> = Vector4::zeros();
+        let mut consider = |p_inner: Matrix4<Complex64>,
+                            found: &mut bool,
+                            p: &mut Matrix4<Complex64>,
+                            d: &mut Vector4<Complex64>| {
+            let d_inner: Vector4<Complex64> = (p_inner.transpose() * m2 * p_inner).diagonal();
+            let diag_d: Matrix4<Complex64> = Matrix4::from_diagonal(&d_inner);
+            let compare = p_inner * diag_d * p_inner.transpose();
+            let residual = (compare - m2).iter().map(|z| z.norm()).fold(0.0, f64::max);
+            if residual < best_residual {
+                best_residual = residual;
+                best_p = p_inner;
+                best_d = d_inner;
+            }
+            if residual <= 1.0e-13 {
+                *p = p_inner;
+                *d = d_inner;
+                *found = true;
+            }
+        };
+
+        // The fixed seed is to make failures deterministic; the value is not important.
+        let mut state = Pcg64Mcg::seed_from_u64(2023);
         for i in 0..100 {
             let rand_a: f64;
             let rand_b: f64;
@@ -525,15 +613,48 @@ impl TwoQubitWeylDecomposition {
             let res = temp.U();
             let p_inner: Matrix4<Complex64> =
                 Matrix4::from_fn(|i, j| Complex64::new(res[(i, j)], 0.));
-            let d_inner: Vector4<Complex64> = (p_inner.transpose() * m2 * p_inner).diagonal();
-            let diag_d: Matrix4<Complex64> = Matrix4::from_diagonal(&d_inner);
-
-            let compare = p_inner * diag_d * p_inner.transpose();
-            found = abs_diff_eq!(compare, m2, epsilon = 1.0e-13);
+            consider(p_inner, &mut found, &mut p, &mut d);
             if found {
-                p = p_inner;
-                d = d_inner;
                 break;
+            }
+        }
+
+        // Only if every one of the 100 random trials above failed to exactly diagonalize
+        // `M2`, fall back to a deterministic, degeneracy-aware diagonalization that
+        // specifically targets inputs whose own eigenvalues are nearly degenerate -- the
+        // recurring cause of diagonalization failures reported at
+        // https://github.com/Qiskit/qiskit/issues/4159, and a case no amount of retrying
+        // the randomized search above can resolve (see `cluster_diagonalize_m2`'s doc
+        // comment). It is deliberately tried only as a last resort, after the loop above:
+        // for inputs that the classic algorithm already handles fine, it produces a
+        // simultaneous eigenbasis related to the classic one by an arbitrary rotation
+        // within each exactly-degenerate eigenspace, which -- although equally valid --
+        // can propagate into which specialization gets detected and how efficiently the
+        // resulting single-qubit gates simplify, so it should not preempt an
+        // already-successful classic result.
+        if !found {
+            let p_inner: Matrix4<Complex64> = cluster_diagonalize_m2(&m2).map(|v| c64(v, 0.));
+            consider(p_inner, &mut found, &mut p, &mut d);
+        }
+
+        if !found {
+            // None of the candidates above diagonalized `M2` to the exacting `1e-13`
+            // tolerance. That tolerance is tighter than many real inputs' own distance
+            // from being exactly unitary (which is bounded by the precision of whatever
+            // floating-point computation produced them upstream, and is often no better
+            // than 1e-9 or so), so demanding it unconditionally makes this fail on inputs
+            // that have no better decomposition available in the first place. Instead,
+            // fall back to the best candidate found, as long as its residual is small
+            // enough that it's overwhelmingly likely to reflect exactly this kind of
+            // input imprecision rather than an actual bug. `calculated_fidelity` below
+            // independently re-derives the achieved fidelity from this same candidate, so
+            // a fallback that is a poor fit still gets caught there (with a much more
+            // informative error) rather than silently returned.
+            const FALLBACK_TOL: f64 = 1.0e-6;
+            if best_residual < FALLBACK_TOL {
+                p = best_p;
+                d = best_d;
+                found = true;
             }
         }
         if !found {

@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Fixed a long-standing failure in :class:`.TwoQubitWeylDecomposition` (and everything
+    built on it, including :class:`.TwoQubitBasisDecomposer` and the
+    :class:`.UnitarySynthesis` transpiler pass) where certain two-qubit unitaries raised
+    ``QiskitError: 'TwoQubitWeylDecomposition: failed to diagonalize M2'``. This happened
+    for inputs whose canonical (Weyl) coordinates sit close to a symmetric point of the
+    Weyl chamber, which is common for circuits built from a small number of standard
+    gates (for example Trotterized time-evolution circuits, or circuits made of several
+    Clifford gates). Previously, the only diagonalization strategy tried was a fixed
+    sequence of 100 random real linear combinations of the decomposition's internal
+    ``M2`` matrix, each checked against an exact tolerance; for these inputs, every
+    combination inherited the same near-degeneracy, which no amount of retrying with
+    different random coefficients could resolve. The decomposition now additionally
+    tries a deterministic, degeneracy-aware diagonalization as a fallback, and accepts
+    the most accurate candidate found when none reaches the exact tolerance but the
+    achieved fidelity is otherwise unaffected.
+    Fixed `#4159 <https://github.com/Qiskit/qiskit/issues/4159>`__.
