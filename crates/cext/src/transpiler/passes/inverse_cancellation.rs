@@ -49,13 +49,13 @@ use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 /// # Example
 ///
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(2, 2);
-///     uint32_t qargs[1] = {0};
-///     qk_circuit_gate(qc, QkGate_X, qargs, NULL);
-///     qk_circuit_gate(qc, QkGate_H, qargs, NULL);
-///     qk_circuit_gate(qc, QkGate_H, qargs, NULL);
-///     qk_circuit_gate(qc, QkGate_Y, qargs, NULL);
-///     qk_transpiler_pass_standalone_inverse_cancellation(qc);
+/// QkCircuit *qc = qk_circuit_new(2, 2);
+/// uint32_t qargs[1] = {0};
+/// qk_circuit_gate(qc, QkGate_X, qargs, NULL);
+/// qk_circuit_gate(qc, QkGate_H, qargs, NULL);
+/// qk_circuit_gate(qc, QkGate_H, qargs, NULL);
+/// qk_circuit_gate(qc, QkGate_Y, qargs, NULL);
+/// qk_transpiler_pass_standalone_inverse_cancellation(qc);
 /// ```
 ///
 /// # Safety

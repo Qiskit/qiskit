@@ -2140,8 +2140,8 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     The following plugin option directly influences this plugin:
 
     * optimization_level: The optimization level used to select the synthesis
-        algorithm. Higher levels generate potentially more optimized circuits,
-        at the expense of longer transpilation time.
+      algorithm. Higher levels generate potentially more optimized circuits,
+      at the expense of longer transpilation time.
 
     """
 
@@ -2177,7 +2177,7 @@ class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
     The following plugin option can be set:
 
     * preserve_order: If ``False``, allow re-ordering the Pauli terms in the Hamiltonian to
-        reduce the circuit depth of the decomposition.
+      reduce the circuit depth of the decomposition.
 
     """
 
@@ -2214,15 +2214,15 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
     The plugin supports the following additional options:
 
     * optimize_count (bool): if `True` the synthesis algorithm will try to optimize
-        the 2-qubit gate count; and if `False` then the 2-qubit depth.
+      the 2-qubit gate count; and if `False` then the 2-qubit depth.
     * preserve_order (bool): whether the order of paulis should be preserved, up to
-        commutativity.
+      commutativity.
     * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
     * upto_phase (bool): if `True`, the global phase of the returned circuit may
-        differ from the global phase of the given pauli network.
+      differ from the global phase of the given pauli network.
     * resynth_clifford_method (int): describes the strategy to synthesize the final
-        Clifford operator. Allowed values are `0` (naive approach), `1` (qiskit
-        greedy synthesis), `2` (rustiq isometry synthesis).
+      Clifford operator. Allowed values are `0` (naive approach), `1` (qiskit
+      greedy synthesis), `2` (rustiq isometry synthesis).
 
     References:
         1. Timothée Goubault de Brugière and Simon Martiel,
@@ -2315,15 +2315,15 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
     The plugin supports the following additional options:
 
     * preserve_order (bool): Preserve the order of Pauli rotations, up to
-        commutativity.
+      commutativity.
     * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
     * upto_phase (bool): if `True`, the returned circuit may differ from the input by
-        a global phase.
+      a global phase.
     * num_simulations (int): Number of Monte Carlo simulations to perform. This value
-        must be at least 1.
+      must be at least 1.
     * max_parallel_simulations (int | None): Maximum number of simulations that can be
-        performed in parallel. If integer, this value must be at least 1. The value of
-        `None` means "unlimited".
+      performed in parallel. If integer, this value must be at least 1. The value of
+      `None` means "unlimited".
 
     References:
         1. Mulundano Machiya, Matt Menickelly, Paul Hovland, Ji Liu,
