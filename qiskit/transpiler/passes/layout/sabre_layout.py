@@ -12,6 +12,8 @@
 
 """Layout selection using the SABRE bidirectional search approach from Li et al."""
 
+from __future__ import annotations
+
 import copy
 import logging
 import time
@@ -26,8 +28,9 @@ from qiskit.transpiler.passes.layout.enlarge_with_ancilla import EnlargeWithAnci
 from qiskit.transpiler.passes.layout.apply_layout import ApplyLayout
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.basepasses import BasePass, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.target import Target, _FakeTarget
 from qiskit._accelerate.sabre import sabre_layout_and_routing, Heuristic, SetScaling
 from qiskit.utils import default_num_processes
@@ -102,28 +105,30 @@ class SabreLayout(TransformationPass):
 
     def __init__(
         self,
-        coupling_map,
-        routing_pass=None,
-        seed=None,
-        max_iterations=3,
-        swap_trials=None,
-        layout_trials=None,
-        skip_routing=False,
+        coupling_map: CouplingMap | Target,
+        routing_pass: BasePass | None = None,
+        seed: int | None = None,
+        max_iterations: int = 3,
+        swap_trials: int | None = None,
+        layout_trials: int | None = None,
+        skip_routing: bool = False,
+        add_heuristic_layouts: bool = True,
+        seed_starting_layouts: int | None = None,
     ):
         """SabreLayout initializer.
 
         Args:
-            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
-            routing_pass (BasePass): the routing pass to use while iterating.
+            coupling_map: directed graph representing a coupling map.
+            routing_pass: the routing pass to use while iterating.
                 If specified this pass operates as an :class:`~.AnalysisPass` and
                 will only populate the ``layout`` field in the property set and
                 the input dag is returned unmodified. This argument is mutually
                 exclusive with the ``swap_trials`` and the ``layout_trials``
                 arguments and if this is specified at the same time as either
                 argument an error will be raised.
-            seed (int): seed for setting a random first trial layout.
-            max_iterations (int): number of forward-backward iterations.
-            swap_trials (int): The number of trials to run of
+            seed: seed for setting a random first trial layout.
+            max_iterations: number of forward-backward iterations.
+            swap_trials: The number of trials to run of
                 :class:`~.SabreSwap` for each iteration. This is equivalent to
                 the ``trials`` argument on :class:`~.SabreSwap`. If this is not
                 specified (and ``routing_pass`` isn't set) by default the number
@@ -133,7 +138,7 @@ class SabreLayout(TransformationPass):
                 on the number of trials run. This option is mutually exclusive
                 with the ``routing_pass`` argument and an error will be raised
                 if both are used.
-            layout_trials (int): The number of random seed trials to run
+            layout_trials: The number of random seed trials to run
                 layout with. When > 1 the trial that results in the output with
                 the fewest swap gates will be selected. If this is not specified
                 (and ``routing_pass`` is not set) then the number of local
@@ -142,11 +147,16 @@ class SabreLayout(TransformationPass):
                 will be raised if both are used. An additional 3 or 4 trials
                 depending on the ``coupling_map`` value are run with common layouts
                 on top of the random trial count specified by this value.
-            skip_routing (bool): If this is set ``True`` and ``routing_pass`` is not used
+            skip_routing: If this is set ``True`` and ``routing_pass`` is not used
                 then routing will not be applied to the output circuit.  Only the layout
                 will be set in the property set. This is a tradeoff to run custom
                 routing with multiple layout trials, as using this option will cause
                 SabreLayout to run the routing stage internally but not use that result.
+            add_heuristic_layouts: If this is set to ``False``, no heuristic
+                starting layouts are used.
+            seed_starting_layouts: Specifies seeds used to evaluate the additional
+                trials given in ``sabre_starting_layouts`` of the property set.
+                If ``None``, the seeds are set according to ``seed``.
 
         Raises:
             TranspilerError: If both ``routing_pass`` and ``swap_trials`` or
@@ -180,6 +190,8 @@ class SabreLayout(TransformationPass):
         self.swap_trials = default_num_processes() if swap_trials is None else swap_trials
         self.layout_trials = default_num_processes() if layout_trials is None else layout_trials
         self.skip_routing = skip_routing
+        self.add_heuristic_layouts = add_heuristic_layouts
+        self.seed_starting_layouts = seed_starting_layouts
 
     @property
     def coupling_map(self):
@@ -283,6 +295,8 @@ class SabreLayout(TransformationPass):
             seed=self.seed,
             partial_layouts=starting_layouts,
             skip_routing=self.skip_routing,
+            add_heuristic_layouts=self.add_heuristic_layouts,
+            seed_partial_layouts=self.seed_starting_layouts,
         )
         sabre_stop = time.perf_counter()
         logger.debug(

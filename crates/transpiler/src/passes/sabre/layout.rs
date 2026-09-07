@@ -40,7 +40,7 @@ use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
+#[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false, add_heuristic_layouts=true, seed_partial_layouts=None))]
 pub fn sabre_layout_and_routing(
     dag: &mut DAGCircuit,
     target: &Target,
@@ -51,12 +51,15 @@ pub fn sabre_layout_and_routing(
     seed: Option<u64>,
     partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
     skip_routing: bool,
+    add_heuristic_layouts: bool,
+    seed_partial_layouts: Option<u64>,
 ) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
     let Some(num_physical_qubits) = target.num_qubits else {
         return Err(TranspilerError::new_err(
             "given 'Target' was not initialized with a qubit count",
         ));
     };
+
     let num_physical_qubits = num_physical_qubits as usize;
     if partial_layouts
         .iter()
@@ -84,6 +87,8 @@ pub fn sabre_layout_and_routing(
         .map(|_| Vec::new())
         .collect::<Vec<_>>();
     let seeds = |count| {
+        // Random seeds for starting layouts (this include random layouts chosen by Sabre,
+        // heuristic layouts and optionally additional starting layouts).
         match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
             None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
@@ -146,29 +151,44 @@ pub fn sabre_layout_and_routing(
                 dag,
                 heuristic,
             };
+
+            if add_heuristic_layouts {
+                collect_heuristic_layouts(&mut starting_layouts, problem, allow_parallel);
+            }
+            let num_random_and_heuristic_layouts = starting_layouts.len();
+            let num_partial_layouts = partial_layouts.len();
             starting_layouts.extend(partial_layouts);
-            add_heuristic_layouts(&mut starting_layouts, problem, allow_parallel);
+
+            let starting_seeds = match seed_partial_layouts {
+                Some(seed_for_partial_layouts) => {
+                    let mut random_seeds = seeds(num_random_and_heuristic_layouts);
+                    random_seeds.extend(std::iter::repeat_n(
+                        seed_for_partial_layouts,
+                        num_partial_layouts,
+                    ));
+                    random_seeds
+                }
+                None => seeds(starting_layouts.len()),
+            };
             let num_layout_trials = starting_layouts.len();
-            let (_, result) = CondIterator::new(
-                seeds(num_layout_trials),
-                allow_parallel && num_layout_trials > 1,
-            )
-            .enumerate()
-            .map(|(index, seed)| {
-                (
-                    index,
-                    layout_trial(
-                        problem,
-                        seed,
-                        max_iterations,
-                        num_swap_trials,
-                        allow_parallel && num_swap_trials > 1,
-                        &starting_layouts[index],
-                    ),
-                )
-            })
-            .min_by_key(|(index, result)| (result.swap_count(), *index))
-            .expect("should have at least one layout trial");
+            let (_, result) =
+                CondIterator::new(starting_seeds, allow_parallel && num_layout_trials > 1)
+                    .enumerate()
+                    .map(|(index, seed)| {
+                        (
+                            index,
+                            layout_trial(
+                                problem,
+                                seed,
+                                max_iterations,
+                                num_swap_trials,
+                                allow_parallel && num_swap_trials > 1,
+                                &starting_layouts[index],
+                            ),
+                        )
+                    })
+                    .min_by_key(|(index, result)| (result.swap_count(), *index))
+                    .expect("should have at least one layout trial");
             let num_swaps = result.swap_count();
             let out = dag.physical_empty_like_with_capacity(
                 num_physical_qubits,
@@ -220,6 +240,11 @@ pub fn sabre_layout_and_routing(
                     sub_from_full[full.index()] = PhysicalQubit::new(sub as u32);
                 }
                 let mut starting_layouts = starting_layouts.clone();
+                if add_heuristic_layouts {
+                    collect_heuristic_layouts(&mut starting_layouts, sub_problem, allow_parallel);
+                }
+                let num_random_and_heuristic_layouts = starting_layouts.len();
+                let num_partial_layouts = partial_layouts.len();
                 for partial in partial_layouts.iter() {
                     let assigned_physical = |v: &VirtualQubit| {
                         partial
@@ -253,28 +278,37 @@ pub fn sabre_layout_and_routing(
                         .collect::<PyResult<Vec<_>>>()?;
                     starting_layouts.push(mapped_partial);
                 }
-                add_heuristic_layouts(&mut starting_layouts, sub_problem, allow_parallel);
+                let starting_seeds = match seed_partial_layouts {
+                    Some(seed_for_partial_layouts) => {
+                        let mut random_seeds = seeds(num_random_and_heuristic_layouts);
+                        random_seeds.extend(std::iter::repeat_n(
+                            seed_for_partial_layouts,
+                            num_partial_layouts,
+                        ));
+
+                        random_seeds
+                    }
+                    None => seeds(starting_layouts.len()),
+                };
                 let num_layout_trials = starting_layouts.len();
-                let (_, result) = CondIterator::new(
-                    seeds(num_layout_trials),
-                    allow_parallel && num_layout_trials > 1,
-                )
-                .enumerate()
-                .map(|(index, seed)| {
-                    (
-                        index,
-                        layout_trial(
-                            sub_problem,
-                            seed,
-                            max_iterations,
-                            num_swap_trials,
-                            allow_parallel && num_layout_trials == 1,
-                            &starting_layouts[index],
-                        ),
-                    )
-                })
-                .min_by_key(|(index, result)| (result.swap_count(), *index))
-                .expect("should have at least one layout trial");
+                let (_, result) =
+                    CondIterator::new(starting_seeds, allow_parallel && num_layout_trials > 1)
+                        .enumerate()
+                        .map(|(index, seed)| {
+                            (
+                                index,
+                                layout_trial(
+                                    sub_problem,
+                                    seed,
+                                    max_iterations,
+                                    num_swap_trials,
+                                    allow_parallel && num_layout_trials == 1,
+                                    &starting_layouts[index],
+                                ),
+                            )
+                        })
+                        .min_by_key(|(index, result)| (result.swap_count(), *index))
+                        .expect("should have at least one layout trial");
                 for ((_, sub_phys), virt) in result
                     .initial_layout
                     .iter_virtual()
@@ -443,7 +477,7 @@ fn compute_dense_starting_layout(
 
 /// Add any extra starting layouts we want to try by default, based on best guesses of what might
 /// work well.
-fn add_heuristic_layouts(
+fn collect_heuristic_layouts(
     starting_layouts: &mut Vec<Vec<Option<PhysicalQubit>>>,
     problem: RoutingProblem,
     run_in_parallel: bool,
