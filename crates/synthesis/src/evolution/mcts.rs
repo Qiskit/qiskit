@@ -280,7 +280,7 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                         .append_cx(mapped_qubits[0].index(), mapped_qubits[1].index());
                 }
                 _ => {
-                    panic!("should only have s/sx/h/cx gates");
+                    unreachable!("chunks only contain s/sx/h/cx gates");
                 }
             }
 
