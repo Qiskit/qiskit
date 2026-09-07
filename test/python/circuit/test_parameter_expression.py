@@ -17,6 +17,7 @@ import math
 import unittest
 import pickle
 import copy
+import functools
 import itertools
 
 from test import combine
@@ -969,6 +970,61 @@ class TestParameterExpression(QiskitTestCase):
             actual = gradient.bind({p: val})
             self.assertAlmostEqual(actual, 2 / (1 + gval**2), places=10)
 
+<<<<<<< HEAD
+=======
+    def test_simplify_multi_parameter_cancellation(self):
+        """Test that simplify() handles cancellation across multiple parameters."""
+        a = Parameter("a")
+        b = Parameter("b")
+        expr = a + b - a - b
+        simplified = expr.simplify()
+        self.assertEqual(simplified.parameters, set())
+        self.assertEqual(simplified.numeric(), 0)
+
+    def test_simplify_no_cancellation(self):
+        """Test that simplify() leaves non-cancelling expressions intact."""
+        a = Parameter("a")
+        b = Parameter("b")
+        expr = a + b
+        self.assertEqual(expr, expr.simplify())
+
+    @ddt.data("__add__", "__sub__", "__mul__", "__truediv__")
+    def test_accumulation(self, meth):
+        """Test on-the-fly accumulation of numerical values.
+
+        Regression test of
+        """
+        symbol = Parameter("p")
+        values = [(i + 1) / 11 for i in range(50)]
+
+        def accumulator(total, value):
+            return getattr(total, meth)(value)
+
+        expression = functools.reduce(accumulator, [symbol] + values)
+        if meth == "__truediv__":
+            prod = functools.reduce(lambda total, value: total * value, values)
+            reference = symbol / prod
+        elif meth == "__sub__":
+            summed = functools.reduce(lambda total, value: total + value, values)
+            reference = symbol - summed
+        else:
+            accumulated = functools.reduce(accumulator, values)
+            reference = accumulator(symbol, accumulated)
+
+        self.assertEqual(reference, expression)
+
+    def test_huge_addition(self):
+        """Test additions are simplified on the fly (aka. simpliflied).
+
+        Regression test of #16676.
+        """
+        p = Parameter("p")
+        for _ in range(int(1e6)):
+            p += 3.14
+
+        self.assertEqual(p, p.simplify())
+
+>>>>>>> bc5caea (Accumulate add/sub in `SymbolExpr` on the fly (#16753))
     @ddt.data("__add__", "__sub__")
     def test_optimization_same_symbol(self, method):
         """Test optimizations with the same symbol."""
