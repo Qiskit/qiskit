@@ -199,6 +199,15 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.6.0
+     - 13, 14, 15, 16, 17, 18
+     - 18
+   * - 2.5.2
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.5.1
+     - 13, 14, 15, 16, 17
+     - 17
    * - 2.5.0
      - 13, 14, 15, 16, 17
      - 17
@@ -476,6 +485,48 @@ Version 18 also corrects the encoding of integer and float ``INSTRUCTION_PARAM``
 to big-endian byte order, consistent with the rest of the QPY specification. In versions
 1–17 these were mistakenly written in little-endian.
 
+PARAMETER_VECTOR_TABLE
+~~~~~~~~~~~~~~~~~~~~~~
+Version 18 stores each :class:`.ParameterVector` once per circuit payload and has its elements refer
+to it by index, instead of repeating the vector's identity in every element.
+
+The circuit payload gains a ``PARAMETER_VECTOR_TABLE`` immediately after the annotation headers, before the custom instruction definitions:
+
+.. code-block:: c
+
+    struct {
+        uint16_t num_vectors;
+    }
+
+followed by ``num_vectors`` entries of
+
+.. code-block:: c
+
+    struct {
+        uint16_t vector_name_size;
+        uint64_t vector_size;
+        char     uuid[16];        // the vector's root UUID
+    }
+
+each immediately followed by ``vector_name_size`` utf8 bytes of the vector's name.
+
+A :ref:`PARAMETER_VECTOR_ELEMENT <qpy_param_vector>` is correspondingly reduced to a reference:
+
+.. code-block:: c
+
+    struct {
+        uint16_t vector_index;    // index into PARAMETER_VECTOR_TABLE
+        uint64_t index;           // index of this element within that vector
+    }
+
+The element's own UUID is no longer stored, because it is the vector's root UUID plus the element's
+index -- the relationship the reader has always used to recover the owning vector.  An element
+therefore costs 10 bytes rather than 34 plus the length of the vector name, at the cost of two bytes
+per circuit for the count when a circuit uses no parameter vectors at all.
+
+A nested payload -- a control-flow block, or a custom instruction definition -- carries its own
+table, so that each circuit remains decodable on its own.
+
 New ParamRegisterPack
 ~~~~~~~~~~~~~~~~~~~~~
 Version 18 replaces the encoding of a `Register` payload, which stores either a whole
@@ -502,6 +553,59 @@ identifying which of the two it is:
 The register name needs no length of its own because the enclosing field already delimits the
 payload: ``conditional_reg_name_size`` for a condition, and the ``INSTRUCTION_PARAM`` header's
 ``size`` for a parameter.
+
+Version 18 also narrows the bit-term elements of the `SPARSE_OBSERVABLE` payload from `"!H"`
+(``uint16_t``) to `"!B"` (``uint8_t``).
+
+The values of :class:`.SparseObservable.BitTerm` always fit in a single byte, so the wider type
+stored a byte of padding for every bit term.  A version 18 payload is therefore one byte smaller
+per bit term than the equivalent version 17 payload.  No other field of `SPARSE_OBSERVABLE`
+changes, and the meaning of `bitterm_data_len` is unaffected because it counts elements rather
+than bytes.
+
+Changes to REGISTER_PACK
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The representation of registers defined in :ref:`qpy_registers` and updated in :ref:`qpy_version_4`)
+in QPY has changed in Version 18. The first change is the type of register
+index mapping array from ``int64_t`` to ``uint32_t`` (which is what it was prior to QPY v4). The original
+change to ``int64_t`` was done to enable using -1 as a sentinel value for a bit not in the circuit. This
+is not actually needed as we can use the max value of a ``uint32_t`` (4294967295) as the sentinel value.
+In version 18 values of 4294967295 should be treated as -1 was in previous QPY and the bit in that array
+position is not in the circuit.
+
+The :ref:`qpy_registers` header format has also been updated to
+
+.. code-block:: c
+
+    struct {
+        char type;
+        _Bool standalone;
+        uint32_t size;
+        uint16_t name_size;
+        _bool in_circuit;
+        char register_attachment;
+    }
+
+With the addition of the additional byte at the end of the struct for the
+``register_attachment`` field. If this value is 1 this indicates a contiguous
+register attached to a circuit. This will make the array following the
+name with the bit indices be a length of 1 and that contains the
+starting index of the register. The indices are then the range of length
+``size`` from that starting index. For example, if the starting index is 5
+and the ``size`` is 10 the indices are 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
+
+Changes to CUSTOM_INSTRUCTION names
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From version 11 till 17, the names of ``CUSTOM_INSTRUCTION`` blocks were suffixed with a
+random UUID hexadecimal string (e.g. ``"my_gate_b3ecab5b4d6a4eb6bc2b2dbf18d83e1e"``), as
+described in :ref:`qpy_version_11`.  Because the UUID was generated for every
+:func:`.dump` call, repeated dumps of the same circuit produced different byte streams —
+QPY output was not deterministic.
+
+From version 18 the UUID suffix is replaced by a counter that is reset
+at the start of each :func:`.dump` call (e.g. ``"my_gate_0"``).
 
 .. _qpy_version_17:
 
@@ -542,14 +646,15 @@ The `SPARSE_OBSERVABLE` format represents an instance of a :class:`.SparseObserv
   }
 
 which is immediately followed by the number of qubits and then the data arrays of the
-coefficients, bit terms, indices, and boundaries of the observable. The format specifies the
-number of bytes each array occupies. The number of elements can be calculated by dividing
-the number of bytes by the size of each element.
+coefficients, bit terms, indices, and boundaries of the observable. Each of the four ``*_len``
+fields is the number of **elements** in the corresponding array, not the number of bytes it
+occupies; multiply by the size of the element type to get the byte length.
 
  * Each coefficient is stored as two consecutive `"!d"` elements, first the real and then
-   the imaginary part.
- * The bit term elements are of type `"!H"` and represents the `u8` value of the
-   :class:`.SparseObservable.BitTerm`
+   the imaginary part, so ``coeff_data_len`` is twice the number of coefficients.
+ * The bit term elements are of type `"!H"` and represent the `u8` value of the
+   :class:`.SparseObservable.BitTerm`.  From :ref:`version 18 <qpy_version_18>` onwards these
+   are stored as `"!B"` instead.
  * The indices elements are of type `"!I"`.
  * The boundaries elements are of type `"!Q"`.
 
@@ -1327,6 +1432,12 @@ Where a value of ``-1`` indicates ``None`` (as in no register is associated
 with the bit). Following each ``INITIAL_LAYOUT_BIT`` struct is ``register_size``
 bytes for a ``utf8`` encoded string for the register name.
 
+.. note::
+
+    From version 18, anonymous qubits (``index == -1``) omit the ``register_size``
+    field entirely — the struct is just a single ``int32_t``. Named qubits are
+    unchanged.
+
 Following the initial layout there is ``input_mapping_size`` array of
 ``uint32_t`` integers representing the positions of the physical bit from the
 initial layout. This enables constructing a list of virtual bits where the
@@ -1824,8 +1935,9 @@ Version 3 of the QPY format is identical to :ref:`qpy_version_2` except that it 
 a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`
 natively in QPY. To accomplish this the :ref:`qpy_custom_definition` struct now supports
 a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
-Enties in the custom instructions tables have unique name generated that start with the
-string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reserved
+Entries in the custom instructions tables have unique name generated that starts with the
+string ``"###PauliEvolutionGate_"`` followed by a uuid string (versions 11–17) or a
+counter (version 18+, see :ref:`qpy_version_18`). This gate name is reserved
 in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with a definition
 set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
 as follows:
@@ -1902,6 +2014,12 @@ defined as:
 
 which is immediately followed by ``vector_name_size`` utf8 bytes representing
 the parameter's vector name.
+
+.. versionchanged:: QPY 18
+
+    The vector is stored once in the circuit's ``PARAMETER_VECTOR_TABLE`` and this payload became a
+    reference to it, ``uint16_t vector_index`` followed by ``uint64_t index``, with no name, size or
+    UUID of its own.  See :ref:`qpy_version_18`.
 
 .. _qpy_param_expr_v3:
 

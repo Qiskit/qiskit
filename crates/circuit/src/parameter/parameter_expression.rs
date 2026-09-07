@@ -855,20 +855,13 @@ impl PyParameterExpression {
     #[new]
     #[pyo3(signature = (name_map, expr))]
     pub fn py_new(name_map: HashMap<String, PyParameter>, expr: String) -> PyResult<Self> {
-        // We first parse the expression and then update the symbols with the ones
-        // the user provided. The replacement relies on the names to match.
-        // This is hacky and we likely want a more reliably conversion from a SymPy object,
-        // if we decide we want to continue supporting this.
-        let expr = parse_expression(&expr)
-            .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
         let symbol_map: HashMap<String, Symbol> = name_map
             .iter()
             .map(|(string, param)| (string.clone(), Symbol::clone(&param.0)))
             .collect();
-
-        let replaced_expr = symbol_expr::replace_symbol(&expr, &symbol_map);
-
-        let inner = ParameterExpression::new(replaced_expr, symbol_map);
+        let expr = parse_expression(&expr, &|name| symbol_map.get(name).cloned())
+            .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
+        let inner = ParameterExpression::new(expr, symbol_map);
         Ok(Self { inner })
     }
 
