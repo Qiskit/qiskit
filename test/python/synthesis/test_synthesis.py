@@ -55,7 +55,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
 )
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
@@ -418,6 +418,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
     def test_special_U3(self):
         """Special cases of U3"""
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), "U3", {})
+        self.check_oneq_special_cases(U3Gate(0.0, np.pi, -np.pi).to_matrix(), "U3", {})
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), "U3", {"u3": 1})
         self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.2, 0.0).to_matrix(), "U3", {"u3": 1})
         self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.0, 0.2).to_matrix(), "U3", {"u3": 1})
@@ -426,6 +427,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
     def test_special_U(self):
         """Special cases of U"""
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), "U", {})
+        self.check_oneq_special_cases(U3Gate(0.0, np.pi, -np.pi).to_matrix(), "U", {})
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), "U", {"u": 1})
         self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.2, 0.0).to_matrix(), "U", {"u": 1})
         self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.0, 0.2).to_matrix(), "U", {"u": 1})
@@ -1124,6 +1126,18 @@ class TestTwoQubitDecompose(CheckDecompositions):
         unitary = Operator(qc).data
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
+
+    def test_cx_decomposition_no_identity_one_qubit_gates(self):
+        """Decomposing CX in the CX basis should give a bare CX, with no identity 1q gates."""
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+
+        for euler_basis in ("U", "U3"):
+            with self.subTest(euler_basis=euler_basis):
+                decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis=euler_basis)
+                decomposed = decomposer(CXGate().to_matrix())
+
+                self.assertEqual(decomposed, expected)
 
     def test_cx_equivalence_2cx(self, seed=2):
         """Check circuits with  2 cx gates locally equivalent to some circuit with 2 cx."""

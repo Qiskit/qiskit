@@ -102,6 +102,7 @@ pub fn circuit_to_dag(
         qubit_indices,
         clbit_indices,
     )
+    .map_err(Into::into)
 }
 
 /// Convert a :class:`.DAGCircuit` to a :class:`.PyCircuitData`.
@@ -115,10 +116,11 @@ pub fn py_dag_to_circuit(
     copy_operations: bool,
 ) -> Result<PyCircuitData, CircuitDataError> {
     if copy_operations {
-        Python::attach(|py| PyCircuitData::from_dag_ref_deepcopy(py, dag))
+        Python::attach(|py| CircuitData::from_dag_ref_deepcopy(py, dag))
     } else {
-        CircuitData::from_dag_ref(dag).map(Into::into)
+        CircuitData::from_dag_ref(dag)
     }
+    .map(PyCircuitData::from)
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {

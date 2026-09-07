@@ -20,6 +20,7 @@ onto a device with this coupling.
 """
 
 import math
+import warnings
 
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
@@ -68,7 +69,13 @@ class CouplingMap:
         self._is_symmetric = None
 
         if couplinglist is not None:
-            self.graph.extend_from_edge_list([tuple(x) for x in couplinglist])
+            edges = []
+            for src, dst in couplinglist:
+                if src == dst:
+                    warnings.warn(_loopback_warning(src), stacklevel=2)
+                    continue
+                edges.append((src, dst))
+            self.graph.extend_from_edge_list(edges)
 
     def size(self):
         """Return the number of physical qubits in this graph."""
@@ -114,6 +121,9 @@ class CouplingMap:
         src (int): source physical qubit
         dst (int): destination physical qubit
         """
+        if src == dst:
+            warnings.warn(_loopback_warning(src), stacklevel=2)
+            return
         if src not in self.physical_qubits:
             self.add_physical_qubit(src)
         if dst not in self.physical_qubits:
@@ -231,13 +241,7 @@ class CouplingMap:
         """
         Convert uni-directional edges into bi-directional.
         """
-        # TODO: replace with PyDiGraph.make_symmetric() after rustworkx
-        # 0.13.0 is released.
-        edges = self.get_edges()
-        edge_set = set(edges)
-        for src, dest in edges:
-            if (dest, src) not in edge_set:
-                self.graph.add_edge(dest, src, None)
+        self.graph.make_symmetric()
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
@@ -506,3 +510,7 @@ class CouplingMap:
         """
 
         return graphviz_draw(self.graph, method=method)
+
+
+def _loopback_warning(src: int) -> Warning:
+    return UserWarning(f"qubits cannot be coupled to themselves: ignoring edge ({src}, {src})")

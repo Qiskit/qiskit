@@ -14,9 +14,12 @@
 
 from __future__ import annotations
 
+import typing
+
 from qiskit.circuit import Gate
 
-from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+if typing.TYPE_CHECKING:
+    from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
 
 
 class BitFlipOracleGate(Gate):
@@ -64,6 +67,8 @@ class BitFlipOracleGate(Gate):
             label: A label for the gate to display in visualizations. Per default, the label is
                 set to display the textual representation of the boolean expression (truncated if needed)
         """
+        from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+
         if label is None:
             if isinstance(expression, str):
                 label = (expression[:15] + "...") if len(expression) > 15 else expression
@@ -130,5 +135,7 @@ class BitFlipOracleGate(Gate):
         Returns:
             BitFlipOracleGate: A quantum gate with a bit-flip oracle.
         """
+        from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+
         expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)

@@ -184,7 +184,7 @@ fn optimize_clifford_t_1q(
 
     let apply_ty = if basis_gates.is_some_and(|gates| !gates.contains(&StandardGate::SX)) {
         |(sequence, flip): (&mut Vec<StandardGate>, bool)| {
-            sequence.push(StandardGate::S);
+            sequence.push(StandardGate::Sdg);
             sequence.push(StandardGate::H);
             sequence.push(if flip {
                 StandardGate::Tdg
@@ -192,7 +192,7 @@ fn optimize_clifford_t_1q(
                 StandardGate::T
             });
             sequence.push(StandardGate::H);
-            sequence.push(StandardGate::Sdg);
+            sequence.push(StandardGate::S);
         }
     } else {
         |(sequence, flip): (&mut Vec<StandardGate>, bool)| {
