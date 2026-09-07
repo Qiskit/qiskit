@@ -1042,3 +1042,13 @@ class TestParameterExpression(QiskitTestCase):
                     expression = getattr(lhs, method)(rhs)
 
                     self.assertEqual(reference, expression.bind({x: value}))
+
+    def test_sub_sub(self):
+        """Regression test for two nested subtractions with numeric values."""
+        x, y = Parameter("x"), Parameter("y")
+        expr1 = x + y
+        sub1 = expr1 - 1.0
+        sub2 = sub1 - 2.0
+
+        expected = x + y - 3.0
+        self.assertEqual(expected, sub2)
