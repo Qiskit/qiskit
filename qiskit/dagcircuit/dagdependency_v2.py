@@ -339,7 +339,7 @@ class _DAGDependencyV2:
         """Get the set of "op" nodes with the given name."""
         named_nodes = []
         for node in self._multi_graph.nodes():
-            if node.op.name in names:
+            if node.name in names:
                 named_nodes.append(node)
         return named_nodes
 

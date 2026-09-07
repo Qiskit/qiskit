@@ -515,6 +515,16 @@ class TestLinearFunctions(QiskitTestCase):
             linear_function = LinearFunction(linear_circuit)
             self.assertTrue(Operator(linear_function.repeat(2)), operator @ operator)
 
+    def test_inverse(self):
+        """Test correctness of the ``inverse`` method."""
+        mat = [[1, 0, 0], [1, 1, 0], [1, 1, 1]]
+        inverse_mat = [[1, 0, 0], [1, 1, 0], [0, 1, 1]]
+
+        linear_function = LinearFunction(mat)
+        inverse_linear_function = linear_function.inverse()
+        expected_inverse_linear_function = LinearFunction(inverse_mat)
+        self.assertTrue(np.array_equal(inverse_linear_function, expected_inverse_linear_function))
+
 
 if __name__ == "__main__":
     unittest.main()

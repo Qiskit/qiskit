@@ -17,8 +17,8 @@ pub(crate) type TwoQubitSequenceVec = Vec<(PackedOperation, SmallVec<[f64; 3]>, 
 
 #[derive(Clone, Debug)]
 pub struct TwoQubitGateSequence {
-    pub(crate) gates: TwoQubitSequenceVec,
-    pub(crate) global_phase: f64,
+    pub gates: TwoQubitSequenceVec,
+    pub global_phase: f64,
 }
 
 impl TwoQubitGateSequence {

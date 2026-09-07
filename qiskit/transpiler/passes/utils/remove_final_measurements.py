@@ -35,7 +35,7 @@ def calc_final_ops(dag: DAGCircuit, final_op_names: set[str]) -> list[DAGOpNode]
         if not isinstance(node, DAGOpNode):
             continue
 
-        if node.op.name == "barrier":
+        if node.name == "barrier":
             # Barrier is final if all children are final, so we track
             # how many times we still need to encounter each barrier
             # via a child node.

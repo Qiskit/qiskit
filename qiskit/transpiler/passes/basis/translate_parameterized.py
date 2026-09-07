@@ -161,9 +161,9 @@ def _is_supported(node: DAGOpNode, supported_gates: list[str], target: Target | 
     If the target is provided, check using the target, otherwise the supported_gates are used.
     """
     if target is not None:
-        return target.instruction_supported(node.op.name)
+        return target.instruction_supported(node.name)
 
-    return node.op.name in supported_gates
+    return node.name in supported_gates
 
 
 def _instruction_to_dag(op: Instruction) -> DAGCircuit:

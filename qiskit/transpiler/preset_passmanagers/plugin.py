@@ -167,7 +167,10 @@ import stevedore
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.passmanager_config import (
+    PassManagerCliffordTConfig,
+    PassManagerConfig,
+)
 
 
 class PassManagerStagePlugin(abc.ABC):
@@ -190,6 +193,33 @@ class PassManagerStagePlugin(abc.ABC):
             pass_manager_config: A configuration object that defines all the target device
                 specifications and any user specified options to :func:`~.transpile` or
                 :func:`~.generate_preset_pass_manager`
+            optimization_level: The optimization level of the transpilation, if set this
+                should be used to set values for any tunable parameters to trade off runtime
+                for potential optimization. Valid values should be ``0``, ``1``, ``2``, or ``3``
+                and the higher the number the more optimization is expected.
+
+        Returns:
+            the :class:`.PassManager` to run, or ``None`` if nothing is needed for this
+            configuration (for example, an optimization plugin might return ``None`` at
+            ``optimization_level=0``).
+        """
+
+
+class PassManagerCliffordTStagePlugin(abc.ABC):
+    """A ``PassManagerCliffordTStagePlugin`` is a plugin interface object for defining
+    stages in :func:`~.generate_preset_clifford_t_pass_manager`.
+    """
+
+    @abc.abstractmethod
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ) -> PassManager | None:
+        """This method is designed to return a :class:`~.PassManager` for the stage this implements
+
+        Args:
+            pass_manager_config: A configuration object that defines all the target device
+                specifications and any user specified options to
+                :func:`~.generate_preset_clifford_t_pass_manager`.
             optimization_level: The optimization level of the transpilation, if set this
                 should be used to set values for any tunable parameters to trade off runtime
                 for potential optimization. Valid values should be ``0``, ``1``, ``2``, or ``3``

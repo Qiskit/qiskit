@@ -39,13 +39,13 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
     approximation_degree: f64,
     force_consolidate: bool,
 ) {
+    // SAFETY: Per documentation, the pointer is not null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let target = unsafe {
-        if target.is_null() {
-            None
-        } else {
-            Some(const_ptr_as_ref(target))
-        }
+    let target = if target.is_null() {
+        None
+    } else {
+        // SAFETY: Per documentation, the pointer is not null and aligned.
+        Some(unsafe { const_ptr_as_ref(target) })
     };
     let approximation_degree = if approximation_degree.is_nan() {
         1.0
