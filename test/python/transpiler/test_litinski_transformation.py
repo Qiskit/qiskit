@@ -631,6 +631,20 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation(use_ppr=True)(qc)
         self.assertEqual(qc, qct)
 
+    def test_ppr_with_32_qubits(self):
+        """Test the Litinski transformation pass on a non-Clifford PPR with 32+ qubits,
+        which is the threshold at which the Hilbert-space dimension overflows u32.
+        """
+        num_qubits = 32
+        pauli_str = "X" * num_qubits
+        qc = QuantumCircuit(num_qubits, num_qubits)
+        qc.append(PauliProductRotationGate(Pauli(pauli_str), angle=0.1), range(num_qubits))
+        qc.measure(range(num_qubits), range(num_qubits))
+        qct = LitinskiTransformation(use_ppr=True)(qc)
+        op_names = [inst.operation.name for inst in qct.data]
+        self.assertEqual(op_names.count("pauli_product_rotation"), 1)
+        self.assertEqual(op_names.count("pauli_product_measurement"), num_qubits)
+
     def test_on_circuits_with_ppr_ppm(self):
         """Test the Litinski transformation pass on a more complex with Clifford gates,
         T gates and Z-measures.
