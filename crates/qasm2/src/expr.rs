@@ -232,7 +232,12 @@ pub fn evaluate(
                     BinaryKind::Add => lhs + rhs,
                     BinaryKind::Subtract => lhs - rhs,
                     BinaryKind::Multiply => lhs * rhs,
-                    BinaryKind::Divide => lhs / rhs,
+                    BinaryKind::Divide => {
+                        if rhs == 0.0 {
+                            return Err(ParseError::new("cannot divide by zero".to_owned()));
+                        }
+                        lhs / rhs
+                    }
                     BinaryKind::Power => {
                         if lhs < 0.0 && rhs.fract() != 0.0 {
                             return Err(ParseError::new(format!(
