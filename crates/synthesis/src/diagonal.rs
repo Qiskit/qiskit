@@ -22,6 +22,11 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::Param;
 
+/// Synthesize a `CircuitData` implementing a diagonal gate with phases `diag_phases`,
+/// via recursive UCRZ decomposition (see [`get_ucrz`]). Follows [1]. `diag_phases` is
+/// consumed/overwritten as scratch space during the recursion.
+///
+/// [1]: https://arxiv.org/pdf/quant-ph/0406176.pdf
 pub(crate) fn diagonal_gate_circuit(
     diag_phases: &mut [f64],
     num_qubits: usize,
@@ -55,6 +60,8 @@ pub(crate) fn diagonal_gate_circuit(
     Ok(circuit)
 }
 
+/// Python-exposed entry point for synthesizing a `DiagonalGate`. `diag_phases` must have
+/// exactly `2^num_qubits` entries.
 #[pyfunction]
 pub fn synth_diagonal(py: Python, diag_phases: Vec<f64>, num_qubits: u32) -> PyResult<Py<PyAny>> {
     let expected = 1u64 << num_qubits;

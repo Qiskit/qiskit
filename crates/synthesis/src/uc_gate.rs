@@ -133,7 +133,9 @@ fn demultiplex_single_uc(
     let v = d * u.adjoint() * r.adjoint() * b;
     [v, u, r]
 }
-
+/// Expand a diagonal that was computed over a simplified (reduced-control) UCGate back
+/// to the full `2^num_qubits` size, by duplicating entries along the qubits that were
+/// dropped from `new_ctrl` during simplification.
 fn expand_diagonal(mut diag: Vec<Complex64>, new_ctrl: &[u32], num_qubits: u32) -> Vec<Complex64> {
     let active: Vec<u32> = new_ctrl.iter().map(|&x| num_qubits - x).collect();
     for i in 0..num_qubits {
@@ -154,6 +156,7 @@ fn expand_diagonal(mut diag: Vec<Complex64>, new_ctrl: &[u32], num_qubits: u32) 
     diag
 }
 
+/// Append a single-qubit unitary `mat` acting on `qubit` to `circuit` as a `UnitaryGate`.
 fn push_1q_unitary(
     circuit: &mut CircuitData,
     mat: Matrix2<Complex64>,
@@ -170,6 +173,15 @@ fn push_1q_unitary(
     Ok(())
 }
 
+/// Recursively decompose a uniformly controlled one-qubit gate (`single_qubit_gates`,
+/// indexed by the bitstring of control values) into a `CircuitData` of single-qubit
+/// gates and CX gates, following the method in [1].
+///
+/// If `up_to_diagonal` is false, the trailing diagonal is folded back into the circuit
+/// via [`diagonal_gate_circuit`]. If `mux_simp` is true, [`simplify`] is used first to
+/// drop controls the gate list doesn't actually depend on.
+///
+/// [1]: https://arxiv.org/pdf/quant-ph/0410066.pdf
 fn dec_ucg_inner(
     single_qubit_gates: Vec<Matrix2<Complex64>>,
     num_qubits: u32,
@@ -241,6 +253,9 @@ fn dec_ucg_inner(
     Ok((circuit, diagonal))
 }
 
+/// Python-exposed entry point for decomposing a uniformly controlled one-qubit gate
+/// (`UCGate`). See [`dec_ucg_inner`] for the algorithm; this wrapper only converts the
+/// input matrices from NumPy and the output circuit to a `QuantumCircuit`.
 #[pyfunction]
 pub fn dec_ucg(
     py: Python,
@@ -265,6 +280,14 @@ pub fn dec_ucg(
     Ok((qc.unbind(), diag))
 }
 
+/// Find and drop control qubits that `gate_list` doesn't actually depend on, using
+/// repeated-block detection (see [`repetition_search`]). Based on [1].
+///
+/// # Returns
+///
+/// `(surviving_controls, simplified_gate_list)`
+///
+/// [1]: https://arxiv.org/abs/2409.05618
 fn simplify(
     gate_list: &[Matrix2<Complex64>],
     num_ctrls: u32,
@@ -285,6 +308,13 @@ fn simplify(
     (new_ctrl, new_mux)
 }
 
+/// Detect, for each power-of-two block size `d`, whether `mux` is made of repeated
+/// blocks of that size — meaning the control bit at that position can be dropped.
+/// Confirmed repetitions are nulled out in `mux_copy`.
+///
+/// # Returns
+///
+/// `(removed_controls, simplified_gate_list)`
 fn repetition_search(
     mux: &[Matrix2<Complex64>],
     num_ctrls: u32,
@@ -325,6 +355,8 @@ fn repetition_search(
     (nc, new_mux)
 }
 
+/// Check whether the block of `d` gates starting at `base` equals the block starting at
+/// `base + d`; if so, null out the duplicate entries in `mux_copy` and return `true`.
 fn repetition_verify(
     mut base: usize,
     d: usize,
@@ -346,6 +378,11 @@ fn repetition_verify(
     true
 }
 
+/// Recursively demultiplex `single_qubit_gates` one control at a time via
+/// [`demultiplex_single_uc`], accumulating the trailing diagonal that the caller
+/// (`dec_ucg_inner`) still needs to fold in. See [1].
+///
+/// [1]: https://arxiv.org/pdf/quant-ph/0410066.pdf
 fn dec_ucg_help(single_qubit_gates: &mut [Matrix2<Complex64>], num_qubits: u32) -> Vec<Complex64> {
     let mut diag: Vec<Complex64> = vec![Complex64::ONE; 2_usize.pow(num_qubits)];
     let num_controls = num_qubits - 1;
@@ -413,6 +450,7 @@ fn dec_ucg_help(single_qubit_gates: &mut [Matrix2<Complex64>], num_qubits: u32) 
     diag
 }
 
+/// Register this module's Python-exposed functions (`dec_ucg`).
 pub fn uc_gate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(dec_ucg, m)?)?;
     Ok(())
