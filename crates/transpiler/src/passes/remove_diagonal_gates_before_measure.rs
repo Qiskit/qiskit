@@ -12,9 +12,21 @@
 
 /// Remove diagonal gates (including diagonal 2Q gates) before a measurement.
 use pyo3::prelude::*;
+use rayon::prelude::*;
+use rustworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::visit::NodeIndexable;
+
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::Operation;
+use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
+use qiskit_circuit::operations::StandardInstruction;
+use qiskit_util::getenv_use_multiple_threads;
+
+// This value was determined experimentally by looking for the runtime
+// crossover point between running serially and running in parallel. You can
+// see the analysis of this at:
+// https://github.com/Qiskit/qiskit/pull/14723#issuecomment-4410093594
+const PARALLEL_THRESHOLD: usize = 50_000;
 
 /// Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
 /// Args:
@@ -24,70 +36,78 @@ use qiskit_circuit::operations::StandardGate;
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
 pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
-    static DIAGONAL_1Q_GATES: [StandardGate; 8] = [
-        StandardGate::RZ,
-        StandardGate::Z,
-        StandardGate::T,
-        StandardGate::S,
-        StandardGate::Tdg,
-        StandardGate::Sdg,
-        StandardGate::U1,
-        StandardGate::Phase,
-    ];
-    static DIAGONAL_2Q_GATES: [StandardGate; 7] = [
-        StandardGate::CZ,
-        StandardGate::CRZ,
-        StandardGate::CU1,
-        StandardGate::RZZ,
-        StandardGate::CPhase,
-        StandardGate::CS,
-        StandardGate::CSdg,
-    ];
-    static DIAGONAL_3Q_GATES: [StandardGate; 1] = [StandardGate::CCZ];
-
-    let mut nodes_to_remove = Vec::new();
-    for (index, inst) in dag.op_nodes(true) {
-        if inst.op.name() == "measure" {
-            let predecessor = (dag.quantum_predecessors(index))
-                .next()
-                .expect("index is an operation node, so it must have a predecessor.");
-
-            match &dag[predecessor] {
-                NodeType::Operation(pred_inst) => match pred_inst.op.try_standard_gate() {
-                    Some(gate) => {
-                        if DIAGONAL_1Q_GATES.contains(&gate) {
-                            nodes_to_remove.push(predecessor);
-                        } else if DIAGONAL_2Q_GATES.contains(&gate)
-                            || DIAGONAL_3Q_GATES.contains(&gate)
-                        {
-                            let mut successors = dag.quantum_successors(predecessor);
-                            if successors.all(|s| {
-                                let node_s = &dag.dag()[s];
-                                if let NodeType::Operation(inst_s) = node_s {
-                                    inst_s.op.name() == "measure"
-                                } else {
-                                    false
-                                }
-                            }) {
-                                nodes_to_remove.push(predecessor);
-                            }
-                        }
-                    }
-                    None => {
-                        continue;
-                    }
-                },
-                _ => {
-                    continue;
+    if !dag.get_op_counts().contains_key("measure") {
+        return;
+    }
+    let run_in_parallel = getenv_use_multiple_threads();
+    let is_measure = |index: NodeIndex| -> bool {
+        let Some(NodeType::Operation(inst)) = dag.dag().node_weight(index) else {
+            return false;
+        };
+        matches!(
+            inst.op.view(),
+            OperationRef::StandardInstruction(StandardInstruction::Measure)
+        )
+    };
+    let process_node = |index: NodeIndex| -> Option<NodeIndex> {
+        if !is_measure(index) {
+            return None;
+        }
+        let predecessor = dag
+            .quantum_predecessors(index)
+            .next()
+            .expect("index is an operation node, so it must have a predecessor.");
+        let NodeType::Operation(ref pred_inst) = dag[predecessor] else {
+            return None;
+        };
+        match pred_inst.op.try_standard_gate()? {
+            StandardGate::RZ
+            | StandardGate::Z
+            | StandardGate::T
+            | StandardGate::S
+            | StandardGate::Tdg
+            | StandardGate::Sdg
+            | StandardGate::U1
+            | StandardGate::Phase => Some(predecessor),
+            StandardGate::CZ
+            | StandardGate::CRZ
+            | StandardGate::CU1
+            | StandardGate::RZZ
+            | StandardGate::CPhase
+            | StandardGate::CS
+            | StandardGate::CSdg
+            | StandardGate::CCZ => {
+                let mut successors = dag.quantum_successors(predecessor);
+                let Some(succ) = successors.next() else {
+                    unreachable!("All op nodes must have a successor");
+                };
+                // For de-duplication only add a multi-qubit gate if the
+                // first successor is the measurement we're tracking
+                if succ != index {
+                    None
+                } else {
+                    successors.all(is_measure).then_some(predecessor)
                 }
             }
-        }
-    }
 
-    for node_to_remove in nodes_to_remove {
-        if dag.dag().node_weight(node_to_remove).is_some() {
-            dag.remove_op_node(node_to_remove);
+            _ => None,
         }
+    };
+
+    let nodes_to_remove: Vec<NodeIndex> = if run_in_parallel && dag.num_ops() >= PARALLEL_THRESHOLD
+    {
+        (0..dag.dag().node_bound())
+            .into_par_iter()
+            .filter_map(|index| process_node(NodeIndex::new(index)))
+            .collect()
+    } else {
+        dag.op_nodes(false)
+            .filter_map(|(index, _)| process_node(index))
+            .collect()
+    };
+
+    for node in nodes_to_remove {
+        dag.remove_op_node(node);
     }
 }
 
