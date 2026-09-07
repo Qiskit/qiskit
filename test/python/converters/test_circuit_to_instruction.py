@@ -179,11 +179,7 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(str(inst.definition[3].operation.params[0]), "gamma + phi")
 
     def test_parameter_map_applies_to_global_phase(self):
-        """Regression test for #16181: ``parameter_map`` must be applied to
-        ``definition.global_phase``, not just to the gate parameters in the
-        definition.  Otherwise an unbound :class:`.Parameter` can remain hidden
-        inside the instruction's definition and break consumers such as
-        :class:`.Operator`."""
+        """Regression test for #16181."""
         p = Parameter("p")
         q = Parameter("q")
 
