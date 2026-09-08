@@ -258,12 +258,40 @@ mod tests {
 
     #[test]
     fn test_pauli_only_2() {
-        todo!()
-    }
+        let terms = &[
+            (c64(0.0, -0.5), "XY"),
+            (c64(2.0, 0.0), "II"),
+            (c64(-15.1, 0.0), "ZX"),
+            (c64(0.0, 7.0), "XX"),
+        ];
+        let obs = create_obs(terms);
+        let res = obs.to_matrix().expect("no errors");
 
-    #[test]
-    fn test_pauli_only_3() {
-        todo!()
+        let data = &[
+            // Row 1
+            c64(2.0, 0.0),
+            c64(-15.1, 0.0),
+            c64(0.0, 0.0),
+            c64(-0.5, 7.0),
+            // Row 2
+            c64(-15.1, 0.0),
+            c64(2.0, 0.0),
+            c64(0.5, 7.0),
+            c64(0.0, 0.0),
+            // Row 3
+            c64(0.0, 0.0),
+            c64(-0.5, 7.0),
+            c64(2.0, 0.0),
+            c64(15.1, 0.0),
+            // Row 4
+            c64(0.5, 7.0),
+            c64(0.0, 0.0),
+            c64(15.1, 0.0),
+            c64(2.0, 0.0),
+        ];
+
+        let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
+        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
     }
 
     #[test]
