@@ -234,7 +234,7 @@ impl Param {
     pub fn py_deepcopy<'py>(
         &self,
         py: Python<'py>,
-        memo: Option<&Bound<'py, PyDict>>,
+        memo: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Self> {
         match self {
             Param::Float(f) => Ok(Param::Float(*f)),
@@ -1267,7 +1267,7 @@ pub fn radd_param(param1: Param, param2: Param) -> Param {
 /// It contains the methods for managing the Python aspect
 pub trait PythonOperation: Sized {
     /// Copy this operation, including a Python-space deep copy
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self>;
+    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyAny>>) -> PyResult<Self>;
 
     /// Copy this operation, including a Python-space call to `copy` on the `Operation` subclass.
     fn py_copy(&self, py: Python) -> PyResult<Self>;
@@ -1329,7 +1329,7 @@ pub struct PyInstruction {
 }
 
 impl PythonOperation for PyInstruction {
-    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+    fn py_deepcopy(&self, py: Python, memo: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let deepcopy = imports::DEEPCOPY.get_bound(py);
         Ok(PyInstruction {
             ob: deepcopy.call1((&self.ob, memo))?.unbind(),
