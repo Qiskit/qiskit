@@ -1224,8 +1224,10 @@ impl PyParameterExpression {
     /// Are these two expressions exactly structurally equal?
     ///
     /// This is a faster and stricter form of the standard ``==`` relationship, but does not take
-    /// simplifications into account.  All expressions that are :meth:`structurally_equal` are all
-    /// ``==`` to each other, but the reverse is not true.
+    /// simplifications into account.  Almost all expressions that are :meth:`structurally_equal`
+    /// are all ``==`` to each other, but the reverse is not true.  (In the presence of ``nan``
+    /// values, :meth:`structurally_equal` can sometimes return ``True`` when ``==`` compares
+    /// ``False``.)
     ///
     /// This function is most useful in internal tests of the :class:`ParameterExpression` logic.
     ///

@@ -4471,8 +4471,7 @@ mod test {
         );
         assert!(!extend_lhs(left_mid, 5).eq_exact(&extend_lhs(right_mid, 5)));
 
-        // Failure on a left edge of a deep right tree.
-        // Failure in a middle right edge of a deep left tree.
+        // Failure on a middle left edge of a deep right tree.
         let shared_base = extend_rhs(right.clone(), 5);
         let left_mid = extend_rhs(
             SymbolExpr::Binary {
