@@ -18,7 +18,7 @@ use num_complex::Complex64;
 
 use super::{BitTerm, MatrixError, SparseTermView};
 
-pub fn create_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError> {
+pub fn create_matrix_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError> {
     if num_qubits == 0 {
         return Err(MatrixError::ZeroQubits);
     }
@@ -36,10 +36,17 @@ pub fn create_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>, MatrixErr
     Ok(matrix)
 }
 
+/// bit-compressed pauli string. each pauli term adds to one column per row.
+/// provides an efficient way to compute the term's column index and sign.
 struct PauliTerm {
-    coeff: Complex64,
-    x: u32,
-    z: u32,
+    /// coefficient including phase
+    phase_coeff: Complex64,
+    /// mapping of qubit index to enabled X or Y operation. lowest order bit is
+    /// qubit 0. is Y if X and Z are enabled for an index.
+    x_qubit_ops: u32,
+    /// mapping of qubit index to enabled Z or Y operation. lowest order bit is
+    /// qubit 0. is Y if X and Z are enabled for an index.
+    z_qubit_ops: u32,
 }
 
 pub fn add_term(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
@@ -52,25 +59,25 @@ pub fn add_term(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
 
 fn maybe_compress_pauli(term: &SparseTermView) -> Option<PauliTerm> {
     let mut pauli = PauliTerm {
-        coeff: term.coeff,
-        x: 0,
-        z: 0,
+        phase_coeff: term.coeff,
+        x_qubit_ops: 0,
+        z_qubit_ops: 0,
     };
 
     for (bit_term, qubit_idx) in term.bit_terms.iter().zip(term.indices) {
-        let set_qubit_op = |qubit_ops: &mut u32| *qubit_ops |= 1 << qubit_idx;
+        let enable_op = |qubit_ops: &mut u32| *qubit_ops |= 1 << qubit_idx;
 
         match bit_term {
             BitTerm::X => {
-                set_qubit_op(&mut pauli.x);
+                enable_op(&mut pauli.x_qubit_ops);
             }
             BitTerm::Y => {
-                set_qubit_op(&mut pauli.x);
-                set_qubit_op(&mut pauli.z);
-                pauli.coeff *= -Complex64::i();
+                enable_op(&mut pauli.x_qubit_ops);
+                enable_op(&mut pauli.z_qubit_ops);
+                pauli.phase_coeff *= -Complex64::i();
             }
             BitTerm::Z => {
-                set_qubit_op(&mut pauli.z);
+                enable_op(&mut pauli.z_qubit_ops);
             }
             _ => return None,
         }
@@ -81,12 +88,12 @@ fn maybe_compress_pauli(term: &SparseTermView) -> Option<PauliTerm> {
 
 fn add_term_pauli(matrix: &mut Array2<Complex64>, term: &PauliTerm) {
     for (i, mut row) in matrix.rows_mut().into_iter().enumerate() {
-        let qubit_col = i ^ term.x as usize;
+        let qubit_col = i ^ term.x_qubit_ops as usize;
 
-        if (i as u32 & term.z).count_ones().is_multiple_of(2) {
-            row[qubit_col] += term.coeff;
+        if (i as u32 & term.z_qubit_ops).count_ones().is_multiple_of(2) {
+            row[qubit_col] += term.phase_coeff;
         } else {
-            row[qubit_col] -= term.coeff;
+            row[qubit_col] -= term.phase_coeff;
         }
     }
 }

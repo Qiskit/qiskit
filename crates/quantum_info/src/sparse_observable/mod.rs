@@ -1300,7 +1300,7 @@ impl SparseObservable {
     /// Returns an error if the total number of matrix elements would exceed
     /// [`usize::MAX`] or the number of qubits is 0.
     pub fn to_matrix(&self) -> Result<Array2<Complex64>, MatrixError> {
-        let mut matrix = matrix::create_with_zeros(self.num_qubits)?;
+        let mut matrix = matrix::create_matrix_with_zeros(self.num_qubits)?;
 
         for term in self.iter() {
             matrix::add_term(&mut matrix, &term)
