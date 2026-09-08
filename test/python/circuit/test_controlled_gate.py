@@ -738,10 +738,10 @@ class TestControlledGate(QiskitTestCase):
 
     def test_mcry_defaults_to_vchain(self):
         """Test mcry defaults to the v-chain mode if sufficient work qubits are provided."""
-        circuit = QuantumCircuit(5)
-        control_qubits = circuit.qubits[:3]
-        target_qubit = circuit.qubits[3]
-        additional_qubits = circuit.qubits[4:]
+        circuit = QuantumCircuit(6)
+        control_qubits = circuit.qubits[:4]
+        target_qubit = circuit.qubits[4]
+        additional_qubits = circuit.qubits[5:]
         circuit.mcry(0.2, control_qubits, target_qubit, additional_qubits)
 
         # If the v-chain mode is selected, all qubits are used. If the noancilla mode would be

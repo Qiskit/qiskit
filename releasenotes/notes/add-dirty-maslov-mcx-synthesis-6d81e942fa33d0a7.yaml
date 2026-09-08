@@ -9,7 +9,8 @@ features_synthesis:
 
     The clean-ancilla :func:`.synth_mcx_n_clean_m15` implementation now also uses
     :math:`\lceil(k - 2) / 2\rceil` ancillas instead of :math:`k - 2`, without
-    changing its T or CX counts.
+    changing its T or CX counts. This also allows :meth:`.QuantumCircuit.mcry`
+    to automatically select its basic mode with fewer clean ancillas.
 features_transpiler:
   - |
     Added the ``mcx.n_dirty_m15`` high-level synthesis plugin. The default MCX
