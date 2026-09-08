@@ -613,7 +613,7 @@ from qiskit.synthesis.arithmetic import (
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
-from qiskit.quantum_info.operators import Clifford
+from qiskit.quantum_info import Clifford, SparsePauliOp, SparseObservable
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
@@ -2186,8 +2186,6 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             # actual PauliEvolutionGate
             return None
 
-        from qiskit.quantum_info import SparsePauliOp, SparseObservable
-
         # The synthesis function synth_pauli_network_rustiq does not support SparseObservables,
         # so we need to convert them to SparsePauliOps.
         if isinstance(high_level_object.operator, SparsePauliOp):
@@ -2285,8 +2283,6 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
             # Don't do anything if a gate is called "evolution" but is not an
             # actual PauliEvolutionGate
             return None
-
-        from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
         # The synthesis function synth_pauli_network_mcts does not support SparseObservables,
         # so we need to convert them to SparsePauliOps.

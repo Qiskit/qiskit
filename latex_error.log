@@ -1,7 +1,7 @@
 This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex)
  restricted \write18 enabled.
 entering extended mode
-(/var/folders/33/22f0qgm575d80_f_l4r643k80000gn/T/tmpe0_jxum6/circuit.tex
+(/var/folders/33/22f0qgm575d80_f_l4r643k80000gn/T/tmpdvjnqg2n/circuit.tex
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
 
@@ -17,5 +17,5 @@ Enter file name:
 l.2 ^^M
        
 !  ==> Fatal error occurred, no output PDF file produced!
-Transcript written on /var/folders/33/22f0qgm575d80_f_l4r643k80000gn/T/tmpe0_jx
-um6/circuit.log.
+Transcript written on /var/folders/33/22f0qgm575d80_f_l4r643k80000gn/T/tmpdvjnq
+g2n/circuit.log.
