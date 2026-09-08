@@ -46,26 +46,26 @@ use qiskit_transpiler::target::Target;
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(2);
-///     uint32_t current_num_qubits = qk_target_num_qubits(target);
-///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         double inst_error = 0.0090393 * (current_num_qubits - i);
-///         double inst_duration = 0.020039;
-///         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
-///     }
-///     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-///     QkCircuit *qc = qk_circuit_new(2, 0);
-///     QkComplex64 c0 = {0., 0.};
-///     QkComplex64 c1 = {1., 0.};
-///     QkComplex64 unitary[16] = {c1, c0, c0, c0,  // row 0
-///                                c0, c1, c0, c0,  // row 1
-///                                c0, c0, c1, c0,  // row 2
-///                                c0, c0, c0, c1}; // row 3
-///     uint32_t qargs[2] = {0, 1};
-///     qk_circuit_unitary(qc, unitary, qargs, 2, false);
-///     qk_transpiler_pass_standalone_unitary_synthesis(qc, target, 0, 1.0);
+/// QkTarget *target = qk_target_new(2);
+/// uint32_t current_num_qubits = qk_target_num_qubits(target);
+/// QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+/// for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     double inst_error = 0.0090393 * (current_num_qubits - i);
+///     double inst_duration = 0.020039;
+///     qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// }
+/// QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// QkComplex64 c0 = {0., 0.};
+/// QkComplex64 c1 = {1., 0.};
+/// QkComplex64 unitary[16] = {c1, c0, c0, c0,  // row 0
+///                            c0, c1, c0, c0,  // row 1
+///                            c0, c0, c1, c0,  // row 2
+///                            c0, c0, c0, c1}; // row 3
+/// uint32_t qargs[2] = {0, 1};
+/// qk_circuit_unitary(qc, unitary, qargs, 2, false);
+/// qk_transpiler_pass_standalone_unitary_synthesis(qc, target, 0, 1.0);
 /// ```
 ///
 /// # Safety

@@ -182,6 +182,36 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             PhaseGate(val), num_ctrl_qubits, bound_circuit, clean_ancillas=False
         )
 
+    def test_mcp_noaux_v24_with_expr_param(self):
+        """Test synth_mcp_noaux_v24 works correctly with a parameter expression."""
+        a, b = Parameter("a"), Parameter("b")
+        val_a, val_b = 0.456, 0.123
+        circuit = synth_mcp_noaux_v24(3, phase=2 * a + b)
+        bound_circuit = circuit.assign_parameters({a: val_a, b: val_b})
+        self.assertSynthesisCorrect(
+            PhaseGate(2 * val_a + val_b), 3, bound_circuit, clean_ancillas=False
+        )
+
+    def test_mcp_noaux_default_with_expr_param(self):
+        """Test synth_mcp_noaux_default works correctly with a parameter expression."""
+        a, b = Parameter("a"), Parameter("b")
+        val_a, val_b = 0.456, 0.123
+        circuit = synth_mcp_noaux_default(3, phase=2 * a + b)
+        bound_circuit = circuit.assign_parameters({a: val_a, b: val_b})
+        self.assertSynthesisCorrect(
+            PhaseGate(2 * val_a + val_b), 3, bound_circuit, clean_ancillas=False
+        )
+
+    def test_mcp_noaux_sp22_with_expr_param(self):
+        """Test synth_mcp_noaux_sp22 works correctly with a parameter expression."""
+        a, b = Parameter("a"), Parameter("b")
+        val_a, val_b = 0.456, 0.123
+        circuit = synth_mcp_noaux_sp22(3, phase=2 * a + b)
+        bound_circuit = circuit.assign_parameters({a: val_a, b: val_b})
+        self.assertSynthesisCorrect(
+            PhaseGate(2 * val_a + val_b), 3, bound_circuit, clean_ancillas=False
+        )
+
     @data(0, 1, 2, 3, 4, 5, 6)
     def test_mcx_n_dirty_i15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 by comparing synthesized and expected matrices."""

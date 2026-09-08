@@ -15,15 +15,28 @@
 import io
 import struct
 
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import (
+    Qubit,
+    ClassicalRegister,
+    Parameter,
+    ParameterVector,
+    QuantumCircuit,
+    QuantumRegister,
+)
 from qiskit.circuit.classical import expr
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.compiler.transpiler import transpile
+from qiskit.providers.fake_provider.generic_backend_v2 import GenericBackendV2
 from qiskit.qpy import dump, load
 from qiskit.qpy import formats
 from qiskit.qpy.exceptions import QpyError
+from qiskit.quantum_info import SparseObservable, SparsePauliOp
+from qiskit.transpiler.coupling import CouplingMap
 from test import QiskitTestCase
 
 
-def _dump(qc: QuantumCircuit, version: int) -> bytes:
+def _dump(qc: QuantumCircuit, version: int | None = None) -> bytes:
     buf = io.BytesIO()
     dump(qc, buf, version=version)
     return buf.getvalue()
@@ -34,18 +47,40 @@ class TestV17VsV18(QiskitTestCase):
 
     def test_v18_smaller_than_v17_by_calibration_header(self):
         """v18 output is exactly 2 bytes smaller than v17 (CalibrationsPack removed)."""
-        qc = QuantumCircuit(2)
+        # Use raw bits because register sizes also shrink in QPY v18
+        qubits = [Qubit(), Qubit()]
+        qc = QuantumCircuit(qubits)
         qc.h(0)
         qc.cx(0, 1)
 
         size17 = len(_dump(qc, 17))
         size18 = len(_dump(qc, 18))
         cal_header_size = struct.calcsize(formats.CALIBRATION_PACK)  # 2 bytes
+        empty_vector_table_size = struct.calcsize("!H")  # the num_vectors count alone
 
         self.assertEqual(
             size17 - size18,
-            cal_header_size,
-            f"Expected v18 to be {cal_header_size} bytes smaller than v17, "
+            cal_header_size - empty_vector_table_size,
+            f"Expected v18 to differ from v17 by "
+            f"{cal_header_size - empty_vector_table_size} bytes, "
+            f"got v17={size17} v18={size18} diff={size17 - size18}",
+        )
+
+    def test_v18_smaller_than_v17_for_anonymous_qbits(self):
+        """v18 output is exactly 1 bytes smaller than v17."""
+        # anonymous qubit
+        qubits = [Qubit()]
+        qc = QuantumCircuit(qubits)
+        qc.h(0)
+        backend = GenericBackendV2(num_qubits=2, coupling_map=CouplingMap.from_line(2), seed=42)
+        tqc = transpile(qc, backend, optimization_level=0)
+
+        size17 = len(_dump(tqc, 17))
+        size18 = len(_dump(tqc, 18))
+
+        self.assertTrue(
+            size17 - size18 > 0,
+            f"Expected v18 to be smaller than v17, "
             f"got v17={size17} v18={size18} diff={size17 - size18}",
         )
 
@@ -73,6 +108,33 @@ class TestV17VsV18(QiskitTestCase):
         with qc.for_loop((1, 4, 9)):
             qc.h(0)
         self.assertNotEqual(_dump(qc, 17), _dump(qc, 18))
+
+    def test_custom_gate_dump_is_deterministic(self):
+        class MyGate(Gate):
+            def __init__(self):
+                super().__init__("my_gate", 1, [])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.h(0)
+                self.definition = qc
+
+        # Start with baseline:
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        self.assertEqual(
+            _dump(qc),
+            _dump(qc),
+            "Dumping same circuit (no custom gate) should produce the same dump",
+        )
+
+        # Now with custom gate:
+        qc.append(MyGate(), [0])
+        self.assertEqual(
+            _dump(qc),
+            _dump(qc),
+            "Dumping same circuit (with custom gate) should produce the same dump",
+        )
 
     def test_switch_case_labels_bytes_differ_v17_vs_v18(self):
         """v17 and v18 serialise SwitchCase integer labels in different byte order."""
@@ -170,3 +232,136 @@ class TestV18RegisterParam(QiskitTestCase):
         data[start + 1 : start + 5] = b"zzzz"  # same length, so no size field to fix up
         with self.assertRaises(QpyError):
             load(io.BytesIO(bytes(data)))
+
+
+class TestV18SparseObservable(QiskitTestCase):
+    """``SPARSE_OBSERVABLE`` payloads, whose bit terms narrowed from ``uint16_t`` to ``uint8_t``.
+
+    QPY gained :class:`.SparseObservable` in v17 and v18 narrowed the stored bit terms, so between
+    them these two versions cover both encodings.
+
+    Only those two are covered, for two independent reasons.  The Rust writer is the only one that
+    emits QPY >= 17 (``QPY_RUST_WRITE_MIN_VERSION``), and a payload written by one implementation
+    cannot currently be read by the other, because the two codecs disagree over whether the
+    ``*_data_len`` fields hold a byte length or an element count.  Separately, asking for a version
+    below 17 does not raise: the writer emits a v17-shaped element into the older payload, which no
+    reader can then parse.
+    """
+
+    # TODO - the cross-implementation half of this is bug #16722; once that is fixed these can also
+    # be covered by the writer/reader matrix in test_roundtrip.py.
+    VERSIONS = (17, 18)
+
+    def _assert_roundtrips(self, circuit):
+        """The circuit survives a dump/load at each version that can express it."""
+        for version in self.VERSIONS:
+            with self.subTest(version=version):
+                self.assertEqual(load(io.BytesIO(_dump(circuit, version)))[0], circuit)
+
+    def test_evolutiongate_sparse_observable(self):
+        """An evolution gate over a SparseObservable round-trips under both bit-term widths.
+
+        The operator uses every :class:`.SparseObservable.BitTerm` variant, so the full value range
+        of that field is exercised.
+        """
+        op = SparseObservable.from_list(
+            [
+                ("XIII", 0.1),
+                ("YIII", 0.2),
+                ("ZIII", 0.3),
+                ("+III", 0.4),
+                ("-III", 0.5),
+                ("rIII", 0.6),
+                ("lIII", 0.7),
+                ("0III", 0.8),
+                ("1III", 0.9),
+            ]
+        )
+        qc = QuantumCircuit(op.num_qubits)
+        qc.append(PauliEvolutionGate(op, time=0.3), qc.qubits)
+        self._assert_roundtrips(qc)
+
+    def test_evolutiongate_mixed_operators(self):
+        """An evolution gate over a list mixing SparseObservable and SparsePauliOp."""
+        op1 = SparseObservable.from_list([("XIX", 0.1), ("ZIZ", 0.3)])
+        op2 = SparsePauliOp.from_list([("ZZI", 1), ("XIX", -0.1)])
+        evo = PauliEvolutionGate([op1, op2], time=0.5)
+        qc = QuantumCircuit(evo.num_qubits)
+        qc.append(evo, qc.qubits)
+        self._assert_roundtrips(qc)
+
+
+class TestV18ParameterVectorTable(QiskitTestCase):
+    """From v18 a ``ParameterVector`` is stored once per payload and its elements point at it.
+
+    Up to v17 every element repeated the vector's name and size, plus a UUID that is the vector's own
+    offset by the element index.
+    """
+
+    @staticmethod
+    def _vector_circuit(name="v", length=3):
+        """A circuit applying one rotation per element of a single vector."""
+        vector = ParameterVector(name, length)
+        circuit = QuantumCircuit(1, name="vector_circuit")
+        for parameter in vector:
+            circuit.rx(parameter, 0)
+        return circuit, vector
+
+    def test_element_shrinks_by_expected_amount(self):
+        """An element costs 10 bytes at v18 against 34 plus the vector name at v17.
+
+        Measured by differencing twice: once between v17 and v18 for a given circuit, then between two
+        vector lengths.  Everything that does not scale with the number of elements -- the gate that
+        carries each one, the table, the calibration header -- cancels out.
+        """
+        extra = 10
+        short, _ = self._vector_circuit(length=1)
+        long, _ = self._vector_circuit(length=1 + extra)
+
+        saving = (len(_dump(long, 17)) - len(_dump(long, 18))) - (
+            len(_dump(short, 17)) - len(_dump(short, 18))
+        )
+        self.assertEqual(saving, extra * ((34 + len("v")) - 10))
+
+    def test_roundtrip_preserves_vector_identity(self):
+        """Reloaded elements belong to one vector, with the original name, length and UUIDs."""
+        circuit, vector = self._vector_circuit(length=4)
+        reloaded = load(io.BytesIO(_dump(circuit, 18)))[0]
+        self.assertEqual(reloaded, circuit)
+
+        elements = [instruction.operation.params[0] for instruction in reloaded.data]
+        vectors = {element.vector for element in elements}
+        self.assertEqual(len(vectors), 1)
+        reloaded_vector = vectors.pop()
+        self.assertEqual(reloaded_vector.name, vector.name)
+        self.assertEqual(len(reloaded_vector), len(vector))
+        self.assertEqual([element.uuid for element in elements], [p.uuid for p in vector])
+
+    def test_two_vectors_stay_distinct(self):
+        """Two vectors get separate table entries and do not collapse into one."""
+        first, second = ParameterVector("a", 2), ParameterVector("b", 2)
+        circuit = QuantumCircuit(1)
+        for parameter in list(first) + list(second):
+            circuit.rx(parameter, 0)
+
+        reloaded = load(io.BytesIO(_dump(circuit, 18)))[0]
+        self.assertEqual(reloaded, circuit)
+        names = {instruction.operation.params[0].vector.name for instruction in reloaded.data}
+        self.assertEqual(names, {"a", "b"})
+
+    def test_element_inside_an_expression_roundtrips(self):
+        """A vector element reached through a parameter expression uses the table too."""
+        vector, theta = ParameterVector("w", 2), Parameter("theta")
+        circuit = QuantumCircuit(2)
+        circuit.rx(vector[0] + theta, 0)
+        circuit.ry(vector[1] * 2, 1)
+        self.assertEqual(load(io.BytesIO(_dump(circuit, 18)))[0], circuit)
+
+    def test_element_inside_a_control_flow_block_roundtrips(self):
+        """A nested payload carries its own table, so a block's elements resolve independently."""
+        vector = ParameterVector("n", 2)
+        circuit = QuantumCircuit(1, 1)
+        circuit.rx(vector[0], 0)
+        with circuit.if_test((circuit.clbits[0], True)):
+            circuit.rx(vector[1], 0)
+        self.assertEqual(load(io.BytesIO(_dump(circuit, 18)))[0], circuit)
