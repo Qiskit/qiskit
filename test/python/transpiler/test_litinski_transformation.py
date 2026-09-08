@@ -643,7 +643,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation(use_ppr=True)(qc)
         op_counts = qct.count_ops()
         self.assertEqual(op_counts.get("pauli_product_rotation", 0), 1)
-        self.assertEqual(op_counts.get("pauli_product_measurement", 0), num_qubits)        
+        self.assertEqual(op_counts.get("pauli_product_measurement", 0), num_qubits)
 
     def test_on_circuits_with_ppr_ppm(self):
         """Test the Litinski transformation pass on a more complex with Clifford gates,
