@@ -53,45 +53,50 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
     def test_state_ket_basis_z(self):
         """Test state_to_latex with z basis (default)."""
         from qiskit.visualization.state_visualization import state_to_latex
-        
+
         sv = Statevector.from_label("0")
         latex_default = state_to_latex(sv)
         latex_z = state_to_latex(sv, ket_basis="z")
         # default should be same as explicit z basis
         self.assertEqual(latex_default, latex_z)
-        self.assertIn("|0", latex_z)
+        self.assertEqual(latex_z, r" |0\rangle")
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_x(self):
-        """Test state_to_latex with x basis."""
+        """Test state_to_latex with x basis relabels the kets to |+>, |->."""
         from qiskit.visualization.state_visualization import state_to_latex
-        
-        sv = Statevector.from_label("0")
-        latex_x = state_to_latex(sv, ket_basis="x")
-        # |0> in X-basis should show as superposition (|0>+|1>)/sqrt(2)
-        self.assertIn("|0", latex_x)
-        self.assertIn("|1", latex_x)
-        # expecting \frac{\sqrt{2}}{2} |0\rangle+\frac{\sqrt{2}}{2} |1\rangle
-        self.assertIn(r"\frac", latex_x)
+
+        # |0> in the X basis is (|+> + |->)/sqrt(2)
+        latex_x = state_to_latex(Statevector.from_label("0"), ket_basis="x")
+        self.assertEqual(
+            latex_x,
+            r"\frac{\sqrt{2}}{2} |+\rangle+\frac{\sqrt{2}}{2} |-\rangle",
+        )
+        # An X eigenstate collapses to a single ket in the X basis.
+        self.assertEqual(state_to_latex(Statevector.from_label("+"), ket_basis="x"), r" |+\rangle")
+        self.assertEqual(state_to_latex(Statevector.from_label("-"), ket_basis="x"), r" |-\rangle")
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_y(self):
-        """Test state_to_latex with y basis."""
+        """Test state_to_latex with y basis relabels the kets to |+i>, |-i>."""
         from qiskit.visualization.state_visualization import state_to_latex
-        
-        sv = Statevector.from_label("0")
-        latex_y = state_to_latex(sv, ket_basis="y")
-        # y-basis should have imaginary components
-        # expecting \frac{\sqrt{2}}{2} |0\rangle- \frac{\sqrt{2} i}{2} |1\rangle
-        self.assertIn("i", latex_y)
-        self.assertIn("|0", latex_y)
-        self.assertIn("|1", latex_y)
+
+        # |0> in the Y basis is (|+i> + |-i>)/sqrt(2)
+        latex_y = state_to_latex(Statevector.from_label("0"), ket_basis="y")
+        self.assertEqual(
+            latex_y,
+            r"\frac{\sqrt{2}}{2} |+i\rangle+\frac{\sqrt{2}}{2} |-i\rangle",
+        )
+        # A Y eigenstate collapses to a single ket in the Y basis
+        # ('r' is |+i> = (|0> + i|1>)/sqrt(2), 'l' is |-i>).
+        self.assertEqual(state_to_latex(Statevector.from_label("r"), ket_basis="y"), r" |+i\rangle")
+        self.assertEqual(state_to_latex(Statevector.from_label("l"), ket_basis="y"), r" |-i\rangle")
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_h(self):
         """Test state_to_latex with h basis (alias for x)."""
         from qiskit.visualization.state_visualization import state_to_latex
-        
+
         sv = Statevector.from_label("0")
         latex_x = state_to_latex(sv, ket_basis="x")
         latex_h = state_to_latex(sv, ket_basis="h")
@@ -99,14 +104,37 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         self.assertEqual(latex_x, latex_h)
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
+    def test_state_ket_basis_multiqubit(self):
+        """Test state_to_latex relabels each qubit for multi-qubit states."""
+        from qiskit.visualization.state_visualization import state_to_latex
+
+        # |01> in the X basis expands to four equally-weighted X-basis kets.
+        latex_x = state_to_latex(Statevector.from_label("01"), ket_basis="x")
+        self.assertEqual(
+            latex_x,
+            r"\frac{1}{2} |++\rangle- \frac{1}{2} |+-\rangle"
+            r"+\frac{1}{2} |-+\rangle- \frac{1}{2} |--\rangle",
+        )
+
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_invalid(self):
         """Test state_to_latex with invalid basis raises error."""
         from qiskit.visualization.state_visualization import state_to_latex
-        from qiskit.exceptions import VisualizationError
-        
+        from qiskit.visualization.exceptions import VisualizationError
+
         sv = Statevector.from_label("0")
         with self.assertRaises(VisualizationError):
             state_to_latex(sv, ket_basis="invalid")
+
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
+    def test_state_ket_basis_non_qubit(self):
+        """Test a non-'z' basis on a non-qubit state raises a clear error."""
+        from qiskit.visualization.state_visualization import state_to_latex
+        from qiskit.visualization.exceptions import VisualizationError
+
+        qutrit = Statevector([1, 0, 0], dims=(3,))
+        with self.assertRaises(VisualizationError):
+            state_to_latex(qutrit, ket_basis="x")
 
 
 if __name__ == "__main__":
