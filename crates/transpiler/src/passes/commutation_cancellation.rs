@@ -109,12 +109,14 @@ struct CancellationSetKey {
 #[pyfunction(name = "cancel_commutations")]
 #[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
 fn py_cancel_commutations(
+    py: Python,
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<Vec<String>>,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    cancel_commutations(dag, commutation_checker, basis_gates, approximation_degree)
+    // Release the GIL, otherwise rayon workers deadlock when they need it for Python-defined gates.
+    py.detach(|| cancel_commutations(dag, commutation_checker, basis_gates, approximation_degree))
         .map_err(Into::into)
 }
 

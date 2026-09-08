@@ -167,8 +167,9 @@ pub fn py_analyze_commutations(
     //   * The commuting nodes per wire: {wire: [commuting_nodes_1, commuting_nodes_2, ...]}
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
+    // Release the GIL, otherwise rayon workers deadlock when they need it for Python-defined gates.
     let (commutation_set, node_indices) =
-        analyze_commutations(dag, commutation_checker, approximation_degree)?;
+        py.detach(|| analyze_commutations(dag, commutation_checker, approximation_degree))?;
 
     let out_dict = PyDict::new(py);
 
