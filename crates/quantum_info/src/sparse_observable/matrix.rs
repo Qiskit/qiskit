@@ -219,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn test_paulis() {
+    fn test_pauli_only_1() {
         let terms = &[
             (c64(-3.0, 0.0), "XI"),
             (c64(0.0, 4.4), "YZ"),
@@ -253,11 +253,21 @@ mod tests {
         ];
 
         let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
-        assert_abs_diff_eq!(res, exp, epsilon = 0.0001);
+        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
     }
 
     #[test]
-    fn test_paulis_and_projectors() {
+    fn test_pauli_only_2() {
+        todo!()
+    }
+
+    #[test]
+    fn test_pauli_only_3() {
+        todo!()
+    }
+
+    #[test]
+    fn test_with_projectors_1() {
         let terms = &[
             (c64(0.5, -1.0), "X+"),
             (c64(8.1, 0.0), "Y-"),
@@ -270,7 +280,24 @@ mod tests {
         let res = obs.to_matrix().expect("no errors");
 
         let exp = obs.as_paulis().to_matrix().expect("no errors");
-        assert_abs_diff_eq!(res, exp, epsilon = 0.0001);
+        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
+    }
+
+    #[test]
+    fn test_with_projectors_2() {
+        let terms = &[
+            (c64(0.5, -1.0), "-X"),
+            (c64(8.1, 0.0), "+Y"),
+            (c64(0.7, -0.1), "lZ"),
+            (c64(9.1, 0.0), "rI"),
+            (c64(2.0, 0.0), "1X"),
+            (c64(0.5, 0.0), "0X"),
+        ];
+        let obs = create_obs(terms);
+        let res = obs.to_matrix().expect("no errors");
+
+        let exp = obs.as_paulis().to_matrix().expect("no errors");
+        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
     }
 
     #[test]
