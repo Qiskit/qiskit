@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::cmp::Reverse;
-
 use bytemuck::zeroed_vec;
 use ndarray::{Array2, ArrayView2, linalg::kron};
 use num_complex::Complex64;
@@ -41,10 +39,10 @@ pub fn create_matrix_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>, Ma
 struct PauliTerm {
     /// coefficient including phase
     phase_coeff: Complex64,
-    /// mapping of qubit index to enabled X or Y operation. lowest order bit is
+    /// mapping of qubit index to enabled X or Y operation. the rightmost bit is
     /// qubit 0. is Y if X and Z are enabled for an index.
     x_qubit_ops: u32,
-    /// mapping of qubit index to enabled Z or Y operation. lowest order bit is
+    /// mapping of qubit index to enabled Z or Y operation. the rightmost bit is
     /// qubit 0. is Y if X and Z are enabled for an index.
     z_qubit_ops: u32,
 }
@@ -100,10 +98,6 @@ fn add_term_pauli(matrix: &mut Array2<Complex64>, term: &PauliTerm) {
 
 fn add_term_kron(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
     let n = matrix.nrows().trailing_zeros();
-    let m = term.indices.len();
-
-    let mut order: Vec<usize> = (0..m).collect();
-    order.sort_unstable_by_key(|&idx| Reverse(term.indices[idx]));
 
     let mut local = Array2::from_elem((1, 1), term.coeff);
     for term in term.bit_terms {
@@ -287,6 +281,44 @@ mod tests {
             c64(0.0, 0.0),
             c64(15.1, 0.0),
             c64(2.0, 0.0),
+        ];
+
+        let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
+        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
+    }
+
+    #[test]
+    fn test_pauli_only_3() {
+        let terms = &[
+            (c64(0.0, 0.0), "XY"),
+            (c64(1.5, 0.0), "YX"),
+            (c64(0.0, -9.1), "ZX"),
+            (c64(2.0, 0.0), "YZ"),
+        ];
+        let obs = create_obs(terms);
+        let res = obs.to_matrix().expect("no errors");
+
+        let data = &[
+            // Row 1
+            c64(0.0, 0.0),
+            c64(0.0, -9.1),
+            c64(0.0, -2.0),
+            c64(0.0, -1.5),
+            // Row 2
+            c64(0.0, -9.1),
+            c64(0.0, 0.0),
+            c64(0.0, -1.5),
+            c64(0.0, 2.0),
+            // Row 3
+            c64(0.0, 2.0),
+            c64(0.0, 1.5),
+            c64(0.0, 0.0),
+            c64(0.0, 9.1),
+            // Row 4
+            c64(0.0, 1.5),
+            c64(0.0, -2.0),
+            c64(0.0, 9.1),
+            c64(0.0, 0.0),
         ];
 
         let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
