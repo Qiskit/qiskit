@@ -1533,7 +1533,7 @@ impl State {
             match qarg {
                 Operand::Single(qubit) => {
                     bc.push(Some(InternalBytecode::Reset { qubit }));
-                    Ok(0)
+                    Ok(1)
                 }
                 Operand::Range(size, start) => {
                     bc.extend((0..size).map(|offset| {
