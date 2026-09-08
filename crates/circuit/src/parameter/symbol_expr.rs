@@ -1488,31 +1488,24 @@ impl SymbolExpr {
                                 if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                     let t = SymbolExpr::Value(lv + rv);
                                     match (op, rop) {
-                                        (BinaryOp::Add, BinaryOp::Add) => {
-                                            // (lv + X) + (rv + X)  ->  (lv+rv) + 2*X = t + 2*X
-                                            let doubled = _mul(
-                                                SymbolExpr::Value(Value::Int(2)),
+                                        // (lv + X) + (rv + X)  ->  t + 2*X
+                                        // (lv - X) + (rv - X)  ->  t - 2*X
+                                        (BinaryOp::Add, BinaryOp::Add)
+                                        | (BinaryOp::Sub, BinaryOp::Sub) => {
+                                            let two_signed =
+                                                if matches!(op, BinaryOp::Add) { 2 } else { -2 };
+                                            let doubled_signed = _mul(
+                                                SymbolExpr::Value(Value::Int(two_signed)),
                                                 l_rhs.as_ref().clone(),
                                             );
                                             return Some(if t.is_zero() {
-                                                doubled
+                                                doubled_signed
                                             } else {
-                                                _add(t, doubled)
+                                                _add(t, doubled_signed)
                                             });
                                         }
-                                        (BinaryOp::Sub, BinaryOp::Sub) => {
-                                            // (lv - X) + (rv - X)  ->  (lv+rv) - 2*X = t - 2*X
-                                            let mdoubled: SymbolExpr = _mul(
-                                                SymbolExpr::Value(Value::Int(-2)),
-                                                l_rhs.as_ref().clone(),
-                                            );
-                                            return Some(if t.is_zero() {
-                                                mdoubled
-                                            } else {
-                                                _add(t, mdoubled)
-                                            });
-                                        }
-                                        // (lv +- X) + (rv -+ X)  ->  the X terms cancel: (lv+rv) = t
+                                        // (lv + X) + (rv - X)  ->  X canceled -> (lv+rv) = t
+                                        // (lv - X) + (rv + X)  ->  X canceled -> (lv+rv) = t
                                         (BinaryOp::Sub, BinaryOp::Add)
                                         | (BinaryOp::Add, BinaryOp::Sub) => {
                                             return Some(t);
@@ -1541,8 +1534,8 @@ impl SymbolExpr {
                                     }
                                 }
                             }
-                            // (X / lv) + (Y / rv) where X == +-Y
-                            //   ->  (rv*X + lv*Y) / (lv*rv)
+                            // (X / lv) + (Y / rv) ->  (rv*X + lv*Y) / (lv*rv)
+                            // only when X == +-Y, so add_opt collapses (rv*X + lv*Y) into a single term
                             (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Div, BinaryOp::Div) = (op, rop)
                                     && (l_lhs.expand().string_id() == r_lhs.expand().string_id()
@@ -1558,8 +1551,8 @@ impl SymbolExpr {
                                     };
                                 }
                             }
-                            // (lv * X) + (Y / rv) where X == +-Y: rewrite the Div as a Mul
-                            //   ->  (lv * X) + ((1/rv) * Y), then retry
+                            // (lv * X) + (Y / rv) ->  (lv * X) + ((1/rv) * Y)
+                            // rewrite Div as Mul when X == +-Y so add_opt collapses them into a single term
                             (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop)
                                     && (l_rhs.expand().string_id() == r_lhs.expand().string_id()
@@ -1575,8 +1568,8 @@ impl SymbolExpr {
                                     }
                                 }
                             }
-                            // (X / lv) + (rv * Y) where X == +-Y: rewrite the Div as a Mul
-                            //   ->  ((1/lv) * X) + (rv * Y), then retry
+                            // (X / lv) + (rv * Y) -> ((1/lv) * X) + (rv * Y)
+                            // rewrite Div as Mul when X == +-Y so add_opt collapses them into a single term
                             (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
                                 if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop)
                                     && (l_lhs.expand().string_id() == r_rhs.expand().string_id()
@@ -1908,33 +1901,26 @@ impl SymbolExpr {
                                 if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                     let t = SymbolExpr::Value(lv - rv);
                                     match (op, rop) {
-                                        // (lv +- X) - (rv +- X)  ->  the X terms cancel: (lv-rv) = t
+                                        // (lv + X) - (rv + X)  ->  X canceled -> (lv-rv) = t
+                                        // (lv - X) - (rv - X)  ->  X canceled -> (lv-rv) = t
                                         (BinaryOp::Add, BinaryOp::Add)
                                         | (BinaryOp::Sub, BinaryOp::Sub) => {
                                             return Some(t);
                                         }
                                         // (lv - X) - (rv + X)  ->  (lv-rv) - 2*X = t - 2*X
-                                        (BinaryOp::Sub, BinaryOp::Add) => {
-                                            let mdoubled = _mul(
-                                                SymbolExpr::Value(Value::Int(-2)),
-                                                l_rhs.as_ref().clone(),
-                                            );
-                                            return Some(if t.is_zero() {
-                                                mdoubled
-                                            } else {
-                                                _add(t, mdoubled)
-                                            });
-                                        }
                                         // (lv + X) - (rv - X)  ->  (lv-rv) + 2*X = t + 2*X
-                                        (BinaryOp::Add, BinaryOp::Sub) => {
-                                            let doubled = _mul(
-                                                SymbolExpr::Value(Value::Int(2)),
+                                        (BinaryOp::Sub, BinaryOp::Add)
+                                        | (BinaryOp::Add, BinaryOp::Sub) => {
+                                            let two_signed =
+                                                if matches!(op, BinaryOp::Sub) { -2 } else { 2 };
+                                            let doubled_signed = _mul(
+                                                SymbolExpr::Value(Value::Int(two_signed)),
                                                 l_rhs.as_ref().clone(),
                                             );
                                             return Some(if t.is_zero() {
-                                                doubled
+                                                doubled_signed
                                             } else {
-                                                _add(t, doubled)
+                                                _add(t, doubled_signed)
                                             });
                                         }
                                         // (lv * X) - (rv * X)  ->  (lv-rv) * X = t * X
@@ -1961,8 +1947,8 @@ impl SymbolExpr {
                                     }
                                 }
                             }
-                            // (X / lv) - (Y / rv) where X == +-Y
-                            //   ->  (rv*X - lv*Y) / (lv*rv)
+                            // (X / lv) - (Y / rv) -> (rv*X - lv*Y) / (lv*rv)
+                            // only when X == +-Y, so sub_opt collapses rv*X - lv*Y into a single term
                             (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Div, BinaryOp::Div) = (op, rop)
                                     && (l_lhs.expand().string_id() == r_lhs.expand().string_id()
@@ -1978,8 +1964,8 @@ impl SymbolExpr {
                                     };
                                 }
                             }
-                            // (lv * X) - (Y / rv) where X == +-Y: rewrite the Div as a Mul
-                            //   ->  (lv * X) - ((1/rv) * Y), then retry
+                            // (lv * X) - (Y / rv) ->  (lv * X) - ((1/rv) * Y)
+                            // rewrite the Div as a Mul only when X == +-Y so sub_opt collapses them
                             (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop)
                                     && (l_rhs.expand().string_id() == r_lhs.expand().string_id()
@@ -1995,8 +1981,8 @@ impl SymbolExpr {
                                     }
                                 }
                             }
-                            // (X / lv) - (rv * Y) where X == +-Y: rewrite the Div as a Mul
-                            //   ->  ((1/lv) * X) - (rv * Y), then retry
+                            // (X / lv) - (rv * Y) -> ((1/lv) * X) - (rv * Y)
+                            // rewrite the Div as a Mul only when X == +-Y so sub_opt collapses them
                             (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
                                 if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop)
                                     && (l_lhs.expand().string_id() == r_rhs.expand().string_id()
