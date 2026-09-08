@@ -23,6 +23,7 @@ use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
 use crate::circuit_data::{CircuitData, PyCircuitData};
+use crate::classical::expr;
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
@@ -30,7 +31,7 @@ use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
     OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
+    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -912,6 +913,16 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                 params: Some(Parameters::Params(smallvec![angle])),
                 label: extract_label()?,
             });
+        } else if ob_name == "store" {
+            let params = get_params()?;
+            let lhs: expr::Expr = params.get_item(0)?.extract()?;
+            let rhs: expr::Expr = params.get_item(1)?.extract()?;
+            let store = Box::new(Store::new(lhs, rhs));
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_store(store),
+                params: None,
+                label: extract_label()?,
+            });
         }
 
         let Some(kind) = PyOpKind::from_type(ob_type.as_borrowed())? else {
@@ -1011,6 +1022,7 @@ pub fn extract_params<T: CircuitBlock>(
             let params: SmallVec<[Param; 3]> = params.extract()?;
             Some(Parameters::Params(params))
         }
+        OperationRef::Store(_) => None,
     })
 }
 

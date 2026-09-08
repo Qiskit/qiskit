@@ -1421,6 +1421,7 @@ pub unsafe extern "C" fn qk_circuit_instruction_kind(
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
         OperationRef::PyCustom(_) | OperationRef::CustomOperation(_) => COperationKind::Unknown,
+        OperationRef::Store(_) => COperationKind::Unknown,
     }
 }
 

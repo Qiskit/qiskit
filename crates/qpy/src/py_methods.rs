@@ -35,7 +35,6 @@ use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKin
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 use qiskit_quantum_info::sparse_observable::{BitTerm, PySparseObservable, SparseObservable};
-use uuid::Uuid;
 
 use crate::bytes::Bytes;
 use crate::circuit_reader::{
@@ -53,6 +52,7 @@ use crate::value::{
 };
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
+pub const STORE_INSTR_CLASS_NAME: &str = "Store";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
 pub const PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME: &str = "PauliProductRotationGate";
 
@@ -71,13 +71,14 @@ fn is_python_gate(
     }
 }
 
-/// custom gates have unique UUID attached to their name
+/// custom gates have unique gate_id attached to their name
 /// this method recognizes whether we have such a gate and returns a unique name for it
 /// since custom gates are implemented in python, this is a heavy python-space function
 pub(crate) fn recognize_custom_operation(
     py: Python,
     op: &PackedOperation,
     name: &String,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<Option<String>, QpyError> {
     let library = py.import("qiskit.circuit.library")?;
     let circuit_mod = py.import("qiskit.circuit")?;
@@ -91,16 +92,16 @@ pub(crate) fn recognize_custom_operation(
         || name == "Instruction"
         || is_python_gate(py, op, imports::BLUEPRINT_CIRCUIT.get_bound(py))?
     {
-        // Assign a uuid to each instance of a custom operation
+        // Assign a gate_id to each instance of a custom operation
         let new_name = if !["ucrx_dg", "ucry_dg", "ucrz_dg"].contains(&op.name()) {
-            format!("{}_{}", op.name(), Uuid::new_v4().as_simple())
+            format!("{}_{}", op.name(), qpy_data.next_custom_gate_id())
         } else {
             // ucr*_dg gates can have different numbers of parameters,
-            // the uuid is appended to avoid storing a single definition
+            // the gate_id is appended to avoid storing a single definition
             // in circuits with multiple ucr*_dg gates. For legacy reasons
-            // the uuid is stored in a different format as this was done
+            // the gate_id is stored in a different format as this was done
             // prior to QPY 11.
-            format!("{}_{}", op.name(), Uuid::new_v4())
+            format!("{}_{}", op.name(), qpy_data.next_custom_gate_id())
         };
         return Ok(Some(new_name));
     }
@@ -108,11 +109,18 @@ pub(crate) fn recognize_custom_operation(
     if ["ControlledGate", "AnnotatedOperation"].contains(&name.as_str())
         || is_python_gate(py, op, imports::MCMT_GATE.get_bound(py))?
     {
-        return Ok(Some(format!("{}_{}", op.name(), Uuid::new_v4())));
+        return Ok(Some(format!(
+            "{}_{}",
+            op.name(),
+            qpy_data.next_custom_gate_id()
+        )));
     }
 
     if is_python_gate(py, op, imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
-        return Ok(Some(format!("###PauliEvolutionGate_{}", Uuid::new_v4())));
+        return Ok(Some(format!(
+            "###PauliEvolutionGate_{}",
+            qpy_data.next_custom_gate_id()
+        )));
     }
 
     Ok(None)
@@ -190,7 +198,7 @@ pub(crate) fn py_deserialize_numpy_object(py: Python, data: &Bytes) -> Result<Py
 
 fn pack_sparse_pauli_op(
     operator: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::PauliDataPack, QpyError> {
     if operator.is_instance_of::<PySparseObservable>() {
         let py_sparse_observable: PyRef<PySparseObservable> = operator
@@ -240,7 +248,7 @@ fn pack_sparse_pauli_op(
 
 pub(crate) fn py_pack_pauli_evolution_gate(
     evolution_gate: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::PauliEvolutionDefPack, QpyError> {
     let py = evolution_gate.py();
     let operators = evolution_gate.getattr("operator")?;
@@ -302,6 +310,7 @@ pub(crate) fn gate_class_name(py: Python, op: &PackedOperation) -> Result<String
             Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
         }
         OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+        OperationRef::Store(_store) => Ok(STORE_INSTR_CLASS_NAME.to_string()),
         OperationRef::CustomOperation(_) => {
             Err(PyTypeError::new_err("Custom gates from rust are not classes.").into())
         }
@@ -483,7 +492,7 @@ pub(crate) fn py_convert_from_generic_value(
 // Not to be confused with Parameter, which is an atom of ParameterExpression
 pub(crate) fn py_pack_param(
     py_object: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
     endian: ValueEndian,
 ) -> Result<formats::GenericDataPack, QpyError> {
     let value = py_convert_to_generic_value(py_object)?;
