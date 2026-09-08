@@ -2004,7 +2004,7 @@ pub trait CustomOperation:
 
     /// If the instance is a gate, returns the unitary matrix that represents it,
     /// if the parameters are correct. Otherwise, it returns None.
-    fn to_matrix(
+    fn matrix(
         &self,
         _params: &[Param],
     ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
@@ -2190,7 +2190,7 @@ mod test_custom_operations {
             .ok()
         }
 
-        fn to_matrix(
+        fn matrix(
             &self,
             params: &[Param],
         ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
@@ -2220,7 +2220,7 @@ mod test_custom_operations {
             true
         }
 
-        fn to_matrix(
+        fn matrix(
             &self,
             params: &[Param],
         ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
@@ -2326,11 +2326,11 @@ mod test_custom_operations {
 
         assert!(gate.is_unitary());
 
-        let matrix_res = gate.to_matrix(&[]);
+        let matrix_res = gate.matrix(&[]);
         let matrix_exp = aview2(&H_GATE);
         assert!(matches!(matrix_res, Ok(Some(matrix)) if matrix == matrix_exp));
 
-        let matrix_res = gate.to_matrix(&[Param::Float(PI)]);
+        let matrix_res = gate.matrix(&[Param::Float(PI)]);
         assert!(matches!(matrix_res, Ok(None)));
 
         let circuit = gate.definition(&[]).expect("Circuit should exist.");
@@ -2364,7 +2364,7 @@ mod test_custom_operations {
         assert_eq!(gate_as_h.num_qubits(), 1);
         assert!(gate_as_h.is_unitary());
         assert!(matches!(
-            gate_as_h.to_matrix(&[]),
+            gate_as_h.matrix(&[]),
             Ok(Some(matrix)) if matrix == aview2(&H_GATE).to_owned()
         ));
 
@@ -2481,7 +2481,7 @@ mod test_custom_operations {
         let labeled_rz = ParametrizedAndLabeled::new(Some("rz"));
         let theta: Param = (PI / 4.0).into();
 
-        let Ok(Some(matrix)) = labeled_rz.to_matrix(&[theta]) else {
+        let Ok(Some(matrix)) = labeled_rz.matrix(&[theta]) else {
             panic!("Matrix should exist");
         };
         // Compare matrices
@@ -2492,7 +2492,7 @@ mod test_custom_operations {
         ));
 
         // Compare null case
-        assert!(matches!(labeled_rz.to_matrix(&[]), Ok(None)));
+        assert!(matches!(labeled_rz.matrix(&[]), Ok(None)));
     }
 
     // Test inversed gate
