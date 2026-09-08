@@ -624,6 +624,33 @@ mod tests {
     }
 
     #[test]
+    fn keeps_trailing_resets() {
+        // `parse_next` returns as soon as a statement reports that it emitted an instruction, and
+        // `circuit_from_string` drains its buffer only then, so a statement that under-reports how
+        // much it emitted is silently dropped when nothing follows it in the program.
+        for (program, expected) in [
+            ("qreg q[1];\nreset q[0];\n", 1),
+            ("qreg q[1];\nreset q[0];\nreset q[0];\n", 2),
+            (
+                "include \"qelib1.inc\";\nqreg q[1];\nx q[0];\nreset q[0];\n",
+                2,
+            ),
+        ] {
+            let circuit = crate::circuit_from_string(program.to_owned(), vec![], &[], &[], false)
+                .expect("the program is valid OpenQASM 2");
+            assert_eq!(
+                circuit.data().len(),
+                expected,
+                "wrong instruction count for {program:?}"
+            );
+            assert!(matches!(
+                circuit.data().last().unwrap().op.view(),
+                OperationRef::StandardInstruction(StandardInstruction::Reset)
+            ));
+        }
+    }
+
+    #[test]
     fn builds_a_small_bell_pair_circuit() {
         // Equivalent to:
         //   qreg q[2]; creg c[2];
