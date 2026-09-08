@@ -17,6 +17,7 @@ import math
 import unittest
 import pickle
 import copy
+import functools
 import itertools
 
 from test import combine
@@ -985,6 +986,42 @@ class TestParameterExpression(QiskitTestCase):
         expr = a + b
         self.assertEqual(expr, expr.simplify())
 
+    @ddt.data("__add__", "__sub__", "__mul__", "__truediv__")
+    def test_accumulation(self, meth):
+        """Test on-the-fly accumulation of numerical values.
+
+        Regression test of
+        """
+        symbol = Parameter("p")
+        values = [(i + 1) / 11 for i in range(50)]
+
+        def accumulator(total, value):
+            return getattr(total, meth)(value)
+
+        expression = functools.reduce(accumulator, [symbol] + values)
+        if meth == "__truediv__":
+            prod = functools.reduce(lambda total, value: total * value, values)
+            reference = symbol / prod
+        elif meth == "__sub__":
+            summed = functools.reduce(lambda total, value: total + value, values)
+            reference = symbol - summed
+        else:
+            accumulated = functools.reduce(accumulator, values)
+            reference = accumulator(symbol, accumulated)
+
+        self.assertEqual(reference, expression)
+
+    def test_huge_addition(self):
+        """Test additions are simplified on the fly (aka. simpliflied).
+
+        Regression test of #16676.
+        """
+        p = Parameter("p")
+        for _ in range(int(1e6)):
+            p += 3.14
+
+        self.assertEqual(p, p.simplify())
+
     @ddt.data("__add__", "__sub__")
     def test_optimization_same_symbol(self, method):
         """Test optimizations with the same symbol."""
@@ -1005,3 +1042,13 @@ class TestParameterExpression(QiskitTestCase):
                     expression = getattr(lhs, method)(rhs)
 
                     self.assertEqual(reference, expression.bind({x: value}))
+
+    def test_sub_sub(self):
+        """Regression test for two nested subtractions with numeric values."""
+        x, y = Parameter("x"), Parameter("y")
+        expr1 = x + y
+        sub1 = expr1 - 1.0
+        sub2 = sub1 - 2.0
+
+        expected = x + y - 3.0
+        self.assertEqual(expected, sub2)
