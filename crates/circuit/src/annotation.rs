@@ -16,29 +16,12 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 
 use pyo3::exceptions::PyValueError;
-use thiserror::Error;
 
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
 use crate::annotation::custom_traits::ComparableAnnotation;
-
-/// Error conditions for the [Annotation] trait.
-#[non_exhaustive]
-#[derive(Error, Debug)]
-pub enum AnnotationError {
-    #[error("tried to recurse with annotation in namespace {0}")]
-    WrappedPythonError(String),
-}
-
-impl From<AnnotationError> for PyErr {
-    fn from(error: AnnotationError) -> Self {
-        match error {
-            AnnotationError::WrappedPythonError(e) => PyValueError::new_err(e.to_string()),
-        }
-    }
-}
 
 /// An arbitrary annotation for instructions.
 ///
@@ -74,6 +57,7 @@ impl From<AnnotationError> for PyErr {
 /// selected will not invalidate the annotation.  We expect to have more first-class support for
 /// annotations to declare their validity requirements in the future.
 #[pyclass(module = "qiskit.circuit", name = "Annotation", subclass, frozen)]
+#[derive(Debug)]
 pub struct PyAnnotation;
 #[pymethods]
 impl PyAnnotation {
@@ -110,6 +94,7 @@ impl PyAnnotation {
 /// This subclass will be used natively in Qiskit and abides by the same "namespace" semantics as
 /// its base class.
 #[pyclass(name = "NativeAnnotation", module = "qiskit.circuit", extends = PyAnnotation, frozen)]
+#[derive(Debug)]
 pub struct PyNativeAnnotation {
     inner: Arc<dyn Annotation>,
 }
@@ -126,11 +111,12 @@ impl PyNativeAnnotation {
     /// Return a new instance.
     ///
     /// This method guards against [PythonAnnotation] to avoid recursion.
-    pub fn new(inner: Arc<dyn Annotation>) -> Result<Self, AnnotationError> {
+    pub fn new(inner: Arc<dyn Annotation>) -> PyResult<Self> {
         match inner.downcast_ref::<PythonAnnotation>() {
-            Some(py_ann) => Err(AnnotationError::WrappedPythonError(
-                py_ann.namespace().to_string(),
-            )),
+            Some(py_ann) => Err(PyValueError::new_err(format!(
+                "tried to recurse with annotation in namespace {0}",
+                py_ann.namespace()
+            ))),
             None => Ok(Self { inner }),
         }
     }
@@ -258,7 +244,7 @@ pub fn create_py_annotation(annotation: &Arc<dyn Annotation>, py: Python) -> PyR
     }
     let init = match PyNativeAnnotation::new(Arc::clone(annotation)) {
         Ok(py_annotation) => PyClassInitializer::from(PyAnnotation).add_subclass(py_annotation),
-        Err(e) => return Err(e.into()),
+        Err(e) => return Err(e),
     };
     Ok(Py::new(py, init)?.into_any())
 }
