@@ -106,11 +106,9 @@ fn add_term_kron(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
     order.sort_unstable_by_key(|&idx| Reverse(term.indices[idx]));
 
     let mut local = Array2::from_elem((1, 1), term.coeff);
-    for &idx in &order {
-        local = kron(&local, &get_bit_term_matrix(term.bit_terms[idx]));
+    for term in term.bit_terms {
+        local = kron(&local, &get_bit_term_matrix(*term));
     }
-
-    let local_bit_to_qubit: Vec<u32> = order.iter().rev().map(|&idx| term.indices[idx]).collect();
 
     let support: u32 = term.indices.iter().fold(0u32, |acc, &q| acc | (1 << q));
     let identity_qubits: Vec<u32> = (0..n).filter(|q| support & (1 << q) == 0).collect();
@@ -126,8 +124,9 @@ fn add_term_kron(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
     }
 
     let scatter = |local_idx: usize| -> usize {
-        local_bit_to_qubit
+        term.indices
             .iter()
+            .rev()
             .enumerate()
             .fold(0usize, |acc, (bit_pos, &q)| {
                 acc | (((local_idx >> bit_pos) & 1) << q)
