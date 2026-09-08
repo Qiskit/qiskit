@@ -529,7 +529,7 @@ def generate_translation_passmanager(
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
-            Collect1qRuns(),
+            Collect1qRuns(include_custom_gates=True),
             ConsolidateBlocks(
                 basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
             ),
@@ -551,7 +551,7 @@ def generate_translation_passmanager(
             ),
         ]
         fix_1q = [
-            Collect1qRuns(),
+            Collect1qRuns(include_custom_gates=True),
             ConsolidateBlocks(
                 basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
             ),

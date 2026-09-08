@@ -4244,9 +4244,14 @@ impl DAGCircuit {
     }
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
-    #[pyo3(name = "collect_1q_runs")]
-    fn py_collect_1q_runs(&self, py: Python) -> PyResult<Py<PyList>> {
-        match self.collect_1q_runs() {
+    ///
+    /// Args:
+    ///     include_custom_gates (bool): if ``True``, also collect custom :class:`.Gate`
+    ///         instances that do not define a matrix directly but do have a definition,
+    ///         whose matrix can therefore still be computed from that definition.
+    #[pyo3(name = "collect_1q_runs", signature = (include_custom_gates=false))]
+    fn py_collect_1q_runs(&self, py: Python, include_custom_gates: bool) -> PyResult<Py<PyList>> {
+        match self.collect_1q_runs_inner(include_custom_gates) {
             Some(runs) => {
                 let runs_iter = runs.map(|node_indices| {
                     PyList::new(
@@ -5845,13 +5850,28 @@ impl DAGCircuit {
 
     /// Return a set of non-conditional runs of 1q "op" nodes.
     pub fn collect_1q_runs(&self) -> Option<impl Iterator<Item = Vec<NodeIndex>> + '_> {
+        self.collect_1q_runs_inner(false)
+    }
+
+    /// Return a set of non-conditional runs of 1q "op" nodes.
+    fn collect_1q_runs_inner(
+        &self,
+        include_custom_gates: bool,
+    ) -> Option<impl Iterator<Item = Vec<NodeIndex>> + '_> {
         let filter_fn = move |node_index: NodeIndex| -> Result<bool, Infallible> {
             let node = &self.dag[node_index];
             match node {
                 NodeType::Operation(inst) => Ok(inst.op.num_qubits() == 1
                     && inst.op.num_clbits() == 0
                     && !inst.is_parameterized()
-                    && (inst.op.try_standard_gate().is_some() || inst.try_matrix().is_some())),
+                    && (inst.op.try_standard_gate().is_some()
+                        || inst.try_matrix().is_some()
+                        || (include_custom_gates
+                            && inst
+                                .op
+                                .try_py_custom()
+                                .is_some_and(|py_op| py_op.kind == PyOpKind::Gate)
+                            && inst.try_definition().is_some()))),
                 _ => Ok(false),
             }
         };
