@@ -1071,6 +1071,22 @@ class TestParameterExpression(QiskitTestCase):
         expected = x + y - 3.0
         self.assertEqual(expected, sub2)
 
+    def test_deep_string_parse(self):
+        """Test that the string parser can handle very deep expressions."""
+        n = 100_000
+        a = Parameter("a")
+        expr_str = "a" + " ** a" * n
+        # This is an explicitly private constructor, but the purpose of the test is for _any_ string
+        # constructor; we can change it over to a new API if/when we expose one.
+        out = ParameterExpression({"a": a}, expr_str)
+        expected = a
+        for _ in range(n):
+            # TODO: actually this seems like a weirdness in the parser: ` ** ` should be
+            # right-associative (so it should be `a**expected`).  We have to use `**` in the test to
+            # avoid complexity explosion via attempted simplification.
+            expected = expected**a
+        self.assertStructurallyEqual(out, expected)
+
     def test_structurally_equal_simplification(self):
         x = Parameter("x")
         y = Parameter("y")
