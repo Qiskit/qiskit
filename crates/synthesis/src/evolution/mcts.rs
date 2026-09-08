@@ -193,17 +193,12 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
     // store how many times each of the 16 possible 2-qubit Paulis appear.
     let mut counts_cache: HashMap<(usize, usize), [u32; 16]> = HashMap::new();
 
-    loop {
-        let support_size = synthesis_state.support_sizes[ndx];
-
-        // We have successfully reduced this Pauli to a single-qubit rotation.
-        if support_size == 1 {
-            break;
-        }
-
-        // Loop to cycle over all qubit indices to get all combinations of control and target.
+    // On each iteration of the while-loop, the support size of the given Pauli rotation should
+    // decrease by 1. We stop iterating when the Pauli is reduced to a single-qubit rotation.
+    while synthesis_state.support_sizes[ndx] > 1 {
         let support = synthesis_state.tab.get_pauli_support(ndx);
 
+        // Loop to cycle over all qubit indices in the support to get all combinations of control and target.
         let mut best_score = (isize::MIN, isize::MIN);
         let mut best_ctrl = 0;
         let mut best_trgt = 0;
