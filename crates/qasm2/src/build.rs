@@ -446,19 +446,23 @@ fn push_gate(
     arguments: &[f64],
     qargs: &[Qubit],
 ) -> Result<(), ParseError> {
-    debug_assert_eq!(
-        qargs.len(),
-        entry.num_qubits() as usize,
-        "gate registry desync: wrong qubit count for resolved gate"
-    );
+    if qargs.len() != entry.num_qubits() as usize {
+        return Err(ParseError::new(format!(
+            "gate registry desync: resolved gate takes {} qubits, but {} were given",
+            entry.num_qubits(),
+            qargs.len(),
+        )));
+    }
     let params: Vec<Param> = arguments.iter().map(|&v| Param::Float(v)).collect();
     match entry {
         GateEntry::Standard(gate) => {
-            debug_assert_eq!(
-                arguments.len(),
-                gate.num_params() as usize,
-                "gate registry desync: wrong param count for resolved gate"
-            );
+            if arguments.len() != gate.num_params() as usize {
+                return Err(ParseError::new(format!(
+                    "gate registry desync: resolved gate takes {} parameters, but {} were given",
+                    gate.num_params(),
+                    arguments.len(),
+                )));
+            }
             circuit
                 .push_standard_gate(*gate, &params, qargs)
                 .map_err(|err| ParseError::new(format!("failed to apply gate: {err}")))
