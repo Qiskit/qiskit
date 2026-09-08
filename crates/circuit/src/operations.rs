@@ -1786,7 +1786,7 @@ impl PauliProductRotation {
             .zip(self.x.iter())
             .filter(|(z, x)| **z || **x)
             .count();
-        let dim = 2u32.pow(num_qubits as u32);
+        let dim = (num_qubits as f64).exp2();
         let tr_over_dim = if num_qubits == 0 {
             // This is an identity Pauli rotation.
             (Complex64::new(0.0, -angle / 2.)).exp()
@@ -1794,7 +1794,7 @@ impl PauliProductRotation {
             Complex64::new((angle / 2.).cos(), 0.)
         };
 
-        Some((tr_over_dim, dim as f64))
+        Some((tr_over_dim, dim))
     }
 
     /// Return a dense matrix representation of the matrix.
