@@ -2078,8 +2078,12 @@ pub trait CustomOperation:
         None
     }
 
-    /// If the instance is a gate, returns the unitary matrix that represents it,
-    /// if the parameters are correct. Otherwise, it returns None.
+    /// Returns the dense unitary matrix for the operation or `None` by default
+    /// if not applicable or unimplemented.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there was a problem creating the matrix.
     fn matrix(
         &self,
         _params: &[Param],
