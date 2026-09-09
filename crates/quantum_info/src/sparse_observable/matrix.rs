@@ -200,6 +200,17 @@ mod tests {
     }
 
     #[test]
+    fn test_zero_coeff() {
+        let terms = &[(c64(0.0, 0.0), "II")];
+        let obs = create_observable(terms);
+        let res = obs.to_matrix().expect("no errors");
+
+        let data = &[Complex64::ZERO; 16];
+        let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
+        assert_eq!(res, exp);
+    }
+
+    #[test]
     fn test_dimension_scaling() {
         const DIMS: &[usize] = &[2, 4, 8, 16, 32, 64, 128, 256];
 
@@ -221,7 +232,7 @@ mod tests {
             (c64(0.2, -0.1), "YY"),
             (c64(66.12, 0.0), "ZZ"),
         ];
-        let obs = create_obs(terms);
+        let obs = create_observable(terms);
         let res = obs.to_matrix().expect("no errors");
 
         let data = &[
@@ -259,7 +270,7 @@ mod tests {
             (c64(-15.1, 0.0), "ZX"),
             (c64(0.0, 7.0), "XX"),
         ];
-        let obs = create_obs(terms);
+        let obs = create_observable(terms);
         let res = obs.to_matrix().expect("no errors");
 
         let data = &[
@@ -297,7 +308,7 @@ mod tests {
             (c64(0.0, -9.1), "ZX"),
             (c64(2.0, 0.0), "YZ"),
         ];
-        let obs = create_obs(terms);
+        let obs = create_observable(terms);
         let res = obs.to_matrix().expect("no errors");
 
         let data = &[
@@ -328,6 +339,96 @@ mod tests {
     }
 
     #[test]
+    fn test_pauli_only_larger() {
+        let terms = &[
+            (c64(-3.0, 0.0), "XIX"),
+            (c64(0.0, 4.4), "YZX"),
+            (c64(0.2, -0.1), "YYI"),
+            (c64(66.12, 0.0), "ZZZ"),
+        ];
+        let obs = create_observable(terms);
+        let res = obs.to_matrix().expect("no errors");
+
+        let data = &[
+            // Row 1
+            c64(66.12, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(1.4, 0.0),
+            c64(-0.2, 0.1),
+            c64(0.0, 0.0),
+            // Row 2
+            c64(0.0, 0.0),
+            c64(-66.12, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(1.4, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(-0.2, 0.1),
+            // Row 3
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(-66.12, 0.0),
+            c64(0.0, 0.0),
+            c64(0.2, -0.1),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(-7.4, 0.0),
+            // Row 4
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(66.12, 0.0),
+            c64(0.0, 0.0),
+            c64(0.2, -0.1),
+            c64(-7.4, 0.0),
+            c64(0.0, 0.0),
+            // Row 5
+            c64(0.0, 0.0),
+            c64(-7.4, 0.0),
+            c64(0.2, -0.1),
+            c64(0.0, 0.0),
+            c64(-66.12, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            // Row 6
+            c64(-7.4, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(0.2, -0.1),
+            c64(0.0, 0.0),
+            c64(66.12, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            // Row 7
+            c64(-0.2, 0.1),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(1.4, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(66.12, 0.0),
+            c64(0.0, 0.0),
+            // Row 8
+            c64(0.0, 0.0),
+            c64(-0.2, 0.1),
+            c64(1.4, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(-66.12, 0.0),
+        ];
+
+        let exp = ArrayView2::from_shape((8, 8), data).expect("shape fits data");
+        assert_abs_diff_eq!(res, exp, epsilon = 1e-4);
+    }
+
+    #[test]
     fn test_with_projectors_1() {
         let terms = &[
             (c64(0.5, -1.0), "X+"),
@@ -337,7 +438,7 @@ mod tests {
             (c64(2.0, 0.0), "I0"),
             (c64(0.5, 0.0), "I1"),
         ];
-        let obs = create_obs(terms);
+        let obs = create_observable(terms);
         let res = obs.to_matrix().expect("no errors");
 
         let exp = obs.as_paulis().to_matrix().expect("no errors");
@@ -354,25 +455,14 @@ mod tests {
             (c64(2.0, 0.0), "1X"),
             (c64(0.5, 0.0), "0X"),
         ];
-        let obs = create_obs(terms);
+        let obs = create_observable(terms);
         let res = obs.to_matrix().expect("no errors");
 
         let exp = obs.as_paulis().to_matrix().expect("no errors");
         assert_abs_diff_eq!(res, exp, epsilon = TOL);
     }
 
-    #[test]
-    fn test_zero_coeff() {
-        let terms = &[(c64(0.0, 0.0), "II")];
-        let obs = create_obs(terms);
-        let res = obs.to_matrix().expect("no errors");
-
-        let data = &[Complex64::ZERO; 16];
-        let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
-        assert_eq!(res, exp);
-    }
-
-    fn create_obs(terms: &[(Complex64, &str)]) -> SparseObservable {
+    fn create_observable<S: AsRef<str>>(terms: &[(Complex64, S)]) -> SparseObservable {
         let mut num_qubits = 0;
         let mut coeffs = vec![];
         let mut bit_terms = vec![];
@@ -380,6 +470,8 @@ mod tests {
         let mut boundaries = vec![0];
 
         for (coeff, term) in terms {
+            let term = term.as_ref();
+
             num_qubits = term.len();
             coeffs.push(*coeff);
 
