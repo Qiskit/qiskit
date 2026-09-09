@@ -16,7 +16,8 @@ use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    ProgramType, QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding, ValueType,
+    ProgramType, QPYReadData, QPYWriteData, RegisterType, StringU16Pack, SymbolicEncoding,
+    ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -79,6 +80,42 @@ pub struct QPYCircuit {
     pub layout: LayoutV2Pack,
 }
 
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import (version: u8))]
+struct CircuitHeaderV19Pack {
+    // global circuit data
+    pub circuit_name: StringU16Pack,
+    pub global_phase: GlobalPhasePack,
+    pub num_qubits: u32,
+    pub num_clbits: u32,
+    pub num_instructions: u64,
+    pub num_vars: u32,
+
+    // register data
+    #[bw(calc = registers.len() as u32)]
+    pub num_registers: u32,
+    #[br(count = num_registers, args { inner: (version,) })]
+    pub registers: Vec<RegisterPack>,
+
+    // interner data
+    #[bw(calc = qubit_interner.len() as u32)]
+    pub qubit_interner_size: u32,
+    #[bw(calc = clbit_interner.len() as u32)]
+    pub clbit_interner_size: u32,
+    #[br(count = qubit_interner_size as usize)]
+    pub qubit_interner: Vec<InternerEntry>,
+    #[br(count = clbit_interner_size as usize)]
+    pub clbit_interner: Vec<InternerEntry>,
+
+    // byte-encoded metadata from an external source
+    #[bw(calc = metadata.len() as u64)]
+    pub metadata_size: u64,
+    #[br(count = metadata_size)]
+    pub metadata: Bytes,
+}
+
 // The header contains the global data of the circuit: name, global phase;
 // number of qubits, clbits, instructions and vars;
 // register data, metadata (as serialized bytes)
@@ -122,7 +159,134 @@ pub enum RegisterPack {
     V18(RegisterV18Pack),
 }
 
-// The data for a specific instruction in the circuit
+// The data for a specific instruction in the circuit, for QPY version 19 and higher
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[br(import(read_bits: bool))]
+pub struct CircuitInstructionV19Pack {
+    pub operation: CircuitOperationType,
+    // Interner index
+    pub qargs: u32,
+    // Interner index
+    pub cargs: u32,
+
+    #[br(args(operation))]
+    pub operation_data: OperationData,
+
+    // Get param size from OperationData during decoding (it's either static from rust definition
+    // or dynamic in the body)
+    #[bw(calc = params.len() as u16)]
+    pub num_parameters: u16,
+    #[br(count = num_parameters as usize)]
+    pub params: Vec<ParamDataPack>,
+
+    pub annotations: Option<InstructionsAnnotationPack>,
+
+    #[bw(calc = label.len() as u16)]
+    pub label_size: u16,
+    #[br(count = label_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub label: String,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[brw(repr = u8)]
+#[repr(u8)]
+pub enum CircuitOperationType {
+    StandardGate = 0,
+    StandardInstruction = 1,
+    Custom = 2,
+    FromPython = 3,
+    UnitaryGate = 4,
+    Controlled = 5,
+    ControlFlow = 6,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[br(import(op_type: CircuitOperationType))]
+pub enum OperationData {
+    // The value of the gate from qiskit_circuit::standard_gate::StandardGate
+    #[br(pre_assert(op_type == CircuitOperationType::StandardGate))]
+    StandardGate(u8),
+    // The value of the instruction from qiskit_circuit::operations::StandardInstruction
+    #[br(pre_assert(op_type == CircuitOperationType::StandardInstruction))]
+    StandardInstruction(u8),
+    // Index into custom gate table
+    #[br(pre_assert(op_type == CircuitOperationType::Custom))]
+    Custom(u64),
+    // Store gate class name like is done now for Python defined operations in Qiskit
+    #[br(pre_assert(op_type == CircuitOperationType::FromPython))]
+    FromPython(FromPythonPack),
+    // Store the raw npy bytes of the underlying array
+    #[br(pre_assert(op_type == CircuitOperationType::UnitaryGate))]
+    UnitaryGate(UnitaryGatePack),
+    // Store the base gate and then the extra control metadata
+    #[br(pre_assert(op_type == CircuitOperationType::Controlled))]
+    Controlled(ControlledGatePack),
+    // Store the circuit bodies and the condition explicitly in the pack
+    #[br(pre_assert(op_type == CircuitOperationType::ControlFlow))]
+    ControlFlow(ControlFlowPack),
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct ParamDataPack {
+    // placeholder; this should be an improved, nongeneric version of GenericDataPack
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct FromPythonPack {
+    // placeholder
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct UnitaryGatePack {
+    // placeholder
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct ControlledGatePack {
+    // placeholder
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct ControlFlowPack {
+    // placeholder
+}
+#[binrw]
+#[derive(Debug)]
+pub struct InternerEntry {
+    // placeholder
+}
+
+// The global phase is either a float or a parameter
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum GlobalPhasePack {
+    #[brw(magic = b'f')]
+    Float(f64),
+
+    #[brw(magic = b'p')]
+    Parameter(ParameterSymbolPack),
+
+    #[brw(magic = b'v')]
+    ParameterVectorElement(ParameterVectorElementPack),
+
+    #[brw(magic = b'e')]
+    ParameterExpression(ParameterExpressionPack),
+}
+
+// The data for a specific instruction in the circuit, for QPY versions until QPY18
 // Each instruction has a name, an optional label,
 // number of qubits ("qargs") and clbits ("cargs")
 // and a "gate_class_name" used to identify the instruction (for Python-based gates, this will be the
