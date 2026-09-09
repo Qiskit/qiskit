@@ -304,6 +304,11 @@ pub fn instruction_values_to_params(
             .map(|value| -> Result<_, QpyError> {
                 match value {
                     GenericValue::Float64(float) => Ok(Param::Float(float)),
+                    GenericValue::Int64(i64) => {
+                        // When an i64 value is found to be a parameter
+                        // turn it into a u64 as its digital footprint is the same.
+                        Ok(Param::Int(u64::try_from(i64)?))
+                    }
                     GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp)),
                     GenericValue::ParameterExpressionSymbol(symbol)
                     | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
