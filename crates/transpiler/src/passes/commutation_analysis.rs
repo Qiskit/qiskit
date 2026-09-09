@@ -51,7 +51,7 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///     node_indices = {(0, 0): 0, (1, 0): 3, (2, 0): 1, (3, 0): 1, (4, 0): 2}
 ///
 pub fn analyze_commutations(
-    dag: &mut DAGCircuit,
+    dag: &DAGCircuit,
     commutation_checker: &CommutationChecker,
     approximation_degree: f64,
 ) -> Result<(CommutationSet, NodeIndices), CommutationError> {
@@ -167,14 +167,12 @@ pub fn py_analyze_commutations(
     //   * The commuting nodes per wire: {wire: [commuting_nodes_1, commuting_nodes_2, ...]}
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
-    let (commutation_set, node_indices) = analyze_commutations(
-        py_dag.try_write()?,
-        commutation_checker,
-        approximation_degree,
-    )?;
+    // Release the GIL, otherwise rayon workers deadlock when they need it for Python-defined gates.
+    let dag = py_dag.try_read()?;
+    let (commutation_set, node_indices) =
+        py.detach(|| analyze_commutations(dag, commutation_checker, approximation_degree))?;
 
     let out_dict = PyDict::new(py);
-    let dag = py_dag.try_read()?;
     // First set the {wire: [commuting_nodes_1, ...]} bit
     for (wire_index, commutations) in commutation_set.into_iter().enumerate() {
         if commutations.is_empty() {
