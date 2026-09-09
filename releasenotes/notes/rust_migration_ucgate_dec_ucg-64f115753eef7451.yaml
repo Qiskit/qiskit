@@ -2,17 +2,8 @@
 performance:
   - |
     Improved the runtime performance of :class:`.UCGate` and :class:`.DiagonalGate` by
-    migrating their decomposition to Rust. :class:`.DiagonalGate` now reuses the same
-    shared Rust kernel that :class:`.UCGate` uses for its ``up_to_diagonal=False`` path,
-    removing a duplicate pure-Python implementation. Benchmarks comparing the Rust
-    implementation against the previous pure-Python one, across control-qubit/qubit
-    counts from 1 to 8, show:
-
-    * an **average speedup of about 15.9x** (individual cases up to ~22x) for
-      :class:`.UCGate` when synthesizing up to a diagonal gate    
-    * an **average speedup of about 11.3x** for :class:`.UCGate`'s full decomposition
-    * an **average speedup of about 2.5x** (geometric mean ~2.3x) for
-      :class:`.DiagonalGate`.
-
-    There are no API changes and no changes to circuit equivalence.
+    migrating their decomposition to Rust. Benchmarks show average speedups of **~15.9x**
+    for :class:`.UCGate` (up-to-diagonal path), **~11.3x** for :class:`.UCGate`'s full
+    decomposition, and **~2.5x** for :class:`.DiagonalGate`. There are no API or
+    circuit-equivalence changes.
     See `#16908 <https://github.com/Qiskit/qiskit/pull/16908>`__ for more details.
