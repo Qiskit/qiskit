@@ -13,7 +13,6 @@
 use crate::bytes::Bytes;
 use crate::error::{QpyError, to_binrw_error};
 use crate::expr::{read_expression, write_expression};
-use crate::formats::InternerEntry::Single;
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
@@ -64,16 +63,16 @@ pub struct QPYFileHeader {
 #[derive(Debug)]
 #[brw(import (version: u8))]
 pub struct QPYCircuit {
-    #[brw(args(version,))]
+    #[br(args(version,))]
     pub header: CircuitHeaderPack,
-    #[br(count = header.num_vars)]
+    #[br(count = header.num_vars())]
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
     #[br(if(version >= 15))]
     pub annotation_headers: Option<AnnotationHeaderStaticPack>,
     #[br(if(version >= 18))]
     pub parameter_vectors: Option<ParameterVectorTablePack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
-    #[br(count = header.num_instructions, args { inner: (version, true,) })]
+    #[br(count = header.num_instructions(), args { inner: (version, true,) })]
     pub instructions: Vec<CircuitInstructionPack>,
     #[brw(if(version < 18), args(version,))]
     pub calibrations: Option<CalibrationsPack>,
@@ -90,6 +89,43 @@ pub enum CircuitHeaderPack {
 
     #[br(pre_assert(version >= 19))]
     V19(CircuitHeaderV19Pack),
+}
+
+impl CircuitHeaderPack {
+    pub fn num_vars(&self) -> u32 {
+        match self {
+            Self::V12(header) => header.num_vars,
+            Self::V19(header) => header.num_vars,
+        }
+    }
+
+    pub fn num_instructions(&self) -> u64 {
+        match self {
+            Self::V12(header) => header.num_instructions,
+            Self::V19(header) => header.num_instructions,
+        }
+    }
+
+    pub fn num_qubits(&self) -> u32 {
+        match self {
+            Self::V12(header) => header.num_qubits,
+            Self::V19(header) => header.num_qubits,
+        }
+    }
+
+    pub fn num_clbits(&self) -> u32 {
+        match self {
+            Self::V12(header) => header.num_clbits,
+            Self::V19(header) => header.num_clbits,
+        }
+    }
+
+    pub fn registers(&self) -> &Vec<RegisterPack> {
+        match self {
+            Self::V12(header) => &header.registers,
+            Self::V19(header) => &header.registers,
+        }
+    }
 }
 
 #[binrw]
@@ -176,11 +212,9 @@ pub enum RegisterPack {
 #[br(import (version: u8, read_bits: bool))]
 pub enum CircuitInstructionPack {
     #[br(pre_assert(version <= 18))]
-    #[brw(args(version,))]
-    V2(CircuitInstructionV2Pack),
+    V2(#[br(args(read_bits))] CircuitInstructionV2Pack),
 
     #[br(pre_assert(version >= 19))]
-    #[brw(args(version,))]
     V19(CircuitInstructionV19Pack),
 }
 
@@ -188,7 +222,6 @@ pub enum CircuitInstructionPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import(read_bits: bool))]
 pub struct CircuitInstructionV19Pack {
     pub operation: CircuitOperationType,
     // Interner index

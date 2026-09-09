@@ -1065,8 +1065,8 @@ fn add_registers_and_bits(
     packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> Result<(), QpyError> {
-    let num_qubits = packed_circuit.header.num_qubits as usize;
-    let num_clbits = packed_circuit.header.num_clbits as usize;
+    let num_qubits = packed_circuit.header.num_qubits() as usize;
+    let num_clbits = packed_circuit.header.num_clbits() as usize;
     let mut qubits: Vec<Option<ShareableQubit>> = vec![None; num_qubits];
     let mut clbits: Vec<Option<ShareableClbit>> = vec![None; num_clbits];
     let mut qregs = Vec::new();
@@ -1074,7 +1074,7 @@ fn add_registers_and_bits(
 
     // first, create all owning registers and collect their bits
     let mut non_standalone_registers = Vec::new();
-    for raw_register in &packed_circuit.header.registers {
+    for raw_register in packed_circuit.header.registers() {
         match raw_register {
             formats::RegisterPack::V4(packed_register) => {
                 if packed_register.standalone == 0 {
