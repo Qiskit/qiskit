@@ -1268,10 +1268,10 @@ impl CircuitData {
                         }
                     })?
                 }
-                Param::Int(int) => {
+                Param::Int(u) => {
                     let map: HashMap<&Symbol, Value> = HashMap::from([(
                         symbol,
-                        Value::Int((*int).try_into().expect("unsigned integer is too big")),
+                        Value::Int((*u).try_into().expect("unsigned integer is too big")),
                     )]);
                     expr.bind(&map, false)?
                 }

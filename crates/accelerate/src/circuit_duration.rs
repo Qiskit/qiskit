@@ -53,7 +53,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                                         Param::ParameterExpression(_) => Err(QiskitError::new_err(
                                             "Circuit contains parameterized delays, can't compute a duration estimate with this circuit",
                                         )),
-                                        Param::Int(int) => Ok(*int as f64 * dt),
+                                        Param::Int(value) => Ok(*value as f64 * dt),
                                     }
                                 } else {
                                     Err(QiskitError::new_err(

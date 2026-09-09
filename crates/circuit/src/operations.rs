@@ -71,7 +71,7 @@ impl<'py> IntoPyObject<'py> for &Param {
                 let py_expr = PyParameterExpression::from(expr.as_ref().clone());
                 py_expr.coerce_into_py(py)?.into_bound_py_any(py)
             }
-            Param::Int(big_uint) => big_uint.into_bound_py_any(py),
+            Param::Int(value) => value.into_bound_py_any(py),
         }
     }
 }
