@@ -425,7 +425,7 @@ mod tests {
         ];
 
         let exp = ArrayView2::from_shape((8, 8), data).expect("shape fits data");
-        assert_abs_diff_eq!(res, exp, epsilon = 1e-4);
+        assert_abs_diff_eq!(res, exp, epsilon = TOL);
     }
 
     #[test]
@@ -454,6 +454,23 @@ mod tests {
             (c64(9.1, 0.0), "rI"),
             (c64(2.0, 0.0), "1X"),
             (c64(0.5, 0.0), "0X"),
+        ];
+        let obs = create_observable(terms);
+        let res = obs.to_matrix().expect("no errors");
+
+        let exp = obs.as_paulis().to_matrix().expect("no errors");
+        assert_abs_diff_eq!(res, exp, epsilon = TOL);
+    }
+
+    #[test]
+    fn test_with_projectors_larger() {
+        let terms = &[
+            (c64(0.0, -6.0), "Y-X"),
+            (c64(5.5, 0.2), "+YZ"),
+            (c64(0.0, -0.7), "lIr"),
+            (c64(1.2, 0.0), "rI-"),
+            (c64(3.0, 0.0), "1XY"),
+            (c64(0.5, 0.0), "Z0X"),
         ];
         let obs = create_observable(terms);
         let res = obs.to_matrix().expect("no errors");
