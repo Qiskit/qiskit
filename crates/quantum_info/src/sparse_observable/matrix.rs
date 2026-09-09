@@ -175,6 +175,8 @@ mod tests {
     use super::*;
     use crate::sparse_observable::SparseObservable;
 
+    const TOL: f64 = 1e-8;
+
     #[test]
     fn test_too_many_qubits() {
         let num_qubits = 0usize.count_zeros();
@@ -246,7 +248,7 @@ mod tests {
         ];
 
         let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
-        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
+        assert_abs_diff_eq!(res, exp, epsilon = TOL);
     }
 
     #[test]
@@ -284,7 +286,7 @@ mod tests {
         ];
 
         let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
-        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
+        assert_abs_diff_eq!(res, exp, epsilon = TOL);
     }
 
     #[test]
@@ -322,7 +324,7 @@ mod tests {
         ];
 
         let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
-        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
+        assert_abs_diff_eq!(res, exp, epsilon = TOL);
     }
 
     #[test]
@@ -339,7 +341,7 @@ mod tests {
         let res = obs.to_matrix().expect("no errors");
 
         let exp = obs.as_paulis().to_matrix().expect("no errors");
-        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
+        assert_abs_diff_eq!(res, exp, epsilon = TOL);
     }
 
     #[test]
@@ -356,7 +358,7 @@ mod tests {
         let res = obs.to_matrix().expect("no errors");
 
         let exp = obs.as_paulis().to_matrix().expect("no errors");
-        assert_abs_diff_eq!(res, exp, epsilon = 1e-6);
+        assert_abs_diff_eq!(res, exp, epsilon = TOL);
     }
 
     #[test]
