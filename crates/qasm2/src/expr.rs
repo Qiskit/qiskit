@@ -53,9 +53,10 @@ impl From<TokenType> for Function {
     }
 }
 
-/// An operator symbol used in the expression parsing.  This is essentially just a subset of the
-/// [TokenType] enum (albeit with resolved names) to allow for better pattern-match semantics in
-/// the Rust compiler.
+/// An operator symbol.  This is essentially just a subset of the [TokenType] enum (albeit with
+/// resolved names) to allow for better pattern-match semantics in the Rust compiler.  It is shared
+/// between the parser, which uses it to resolve precedence and to fold constants, and [evaluate],
+/// which uses it to record the pending binary operation on its work stack.
 #[derive(Clone, Copy)]
 enum Op {
     Plus,
@@ -142,19 +143,9 @@ enum Step<'a> {
     /// Pop one value, apply the builtin function, and push the result.
     Function(&'a Function),
     /// Pop two values apply the operation, and push the result.
-    Binary(BinaryKind),
+    Binary(Op),
     /// Pop the given number of values, call the classical function with them, and push the result.
     Custom(&'a ClassicalCallableExt, usize),
-}
-
-#[cfg(feature = "py")]
-#[derive(Clone, Copy)]
-enum BinaryKind {
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Power,
 }
 
 #[cfg(feature = "py")]
@@ -180,11 +171,11 @@ pub fn evaluate(
                     work.push(Step::Negate);
                     work.push(Step::Eval(inner));
                 }
-                Expr::Add(lhs, rhs) => push_binary(&mut work, BinaryKind::Add, lhs, rhs),
-                Expr::Subtract(lhs, rhs) => push_binary(&mut work, BinaryKind::Subtract, lhs, rhs),
-                Expr::Multiply(lhs, rhs) => push_binary(&mut work, BinaryKind::Multiply, lhs, rhs),
-                Expr::Divide(lhs, rhs) => push_binary(&mut work, BinaryKind::Divide, lhs, rhs),
-                Expr::Power(lhs, rhs) => push_binary(&mut work, BinaryKind::Power, lhs, rhs),
+                Expr::Add(lhs, rhs) => push_binary(&mut work, Op::Plus, lhs, rhs),
+                Expr::Subtract(lhs, rhs) => push_binary(&mut work, Op::Minus, lhs, rhs),
+                Expr::Multiply(lhs, rhs) => push_binary(&mut work, Op::Multiply, lhs, rhs),
+                Expr::Divide(lhs, rhs) => push_binary(&mut work, Op::Divide, lhs, rhs),
+                Expr::Power(lhs, rhs) => push_binary(&mut work, Op::Power, lhs, rhs),
                 Expr::Function(func, inner) => {
                     work.push(Step::Function(func));
                     work.push(Step::Eval(inner));
@@ -229,16 +220,16 @@ pub fn evaluate(
                 let rhs = values.pop().expect("a binary op has two operands");
                 let lhs = values.pop().expect("a binary op has two operands");
                 values.push(match op {
-                    BinaryKind::Add => lhs + rhs,
-                    BinaryKind::Subtract => lhs - rhs,
-                    BinaryKind::Multiply => lhs * rhs,
-                    BinaryKind::Divide => {
+                    Op::Plus => lhs + rhs,
+                    Op::Minus => lhs - rhs,
+                    Op::Multiply => lhs * rhs,
+                    Op::Divide => {
                         if rhs == 0.0 {
                             return Err(ParseError::new("cannot divide by zero".to_owned()));
                         }
                         lhs / rhs
                     }
-                    BinaryKind::Power => {
+                    Op::Power => {
                         if lhs < 0.0 && rhs.fract() != 0.0 {
                             return Err(ParseError::new(format!(
                                 "'^': negative base {lhs} with non-integer power {rhs}"
@@ -261,7 +252,7 @@ pub fn evaluate(
 }
 
 #[cfg(feature = "py")]
-fn push_binary<'a>(work: &mut Vec<Step<'a>>, op: BinaryKind, lhs: &'a Expr, rhs: &'a Expr) {
+fn push_binary<'a>(work: &mut Vec<Step<'a>>, op: Op, lhs: &'a Expr, rhs: &'a Expr) {
     work.push(Step::Binary(op));
     work.push(Step::Eval(rhs));
     work.push(Step::Eval(lhs));
