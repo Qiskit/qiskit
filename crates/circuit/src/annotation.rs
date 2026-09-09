@@ -357,21 +357,33 @@ mod test_annotation {
 
 #[cfg(test)]
 mod test_annotated_boxes {
+    use hashbrown::HashMap;
     use smallvec::smallvec;
+    use std::assert_eq;
     use std::sync::Arc;
 
-    use crate::Qubit;
     use crate::annotation::Annotation;
+    use crate::annotation::test_annotated_boxes::Decomposition::RzRx;
     use crate::circuit_data::CircuitData;
-    use crate::dag_circuit::DAGCircuit;
+    use crate::dag_circuit::{DAGCircuit, DAGError};
     use crate::instruction::Parameters;
-    use crate::operations::{ControlFlow, ControlFlowInstruction, ControlFlowView, Param};
+    use crate::operations::{
+        ControlFlow, ControlFlowInstruction, ControlFlowView, Operation, Param,
+    };
     use crate::packed_instruction::PackedOperation;
+    use crate::parameter::parameter_expression::ParameterExpression as ParameterExpr;
+    use crate::parameter::symbol_expr::Symbol;
     use crate::standard_gate::StandardGate;
+    use crate::{Block, Qubit};
 
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum Decomposition {
+        RzRx,
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
     struct Twirl {
-        twirl: String,
+        decomp: Decomposition,
     }
 
     impl Annotation for Twirl {
@@ -382,10 +394,8 @@ mod test_annotated_boxes {
 
     /// Add a [`ControlFlow::Box`] with a twirl annotation with the given name around
     /// all two-qubit operations.
-    pub fn twirl_2q(dag: &mut DAGCircuit, twirl: &str) {
-        let twirl: Arc<dyn Annotation> = Arc::new(Twirl {
-            twirl: twirl.to_string(),
-        });
+    pub fn twirl_2q(dag: &mut DAGCircuit, decomp: Decomposition) {
+        let twirl: Arc<dyn Annotation> = Arc::new(Twirl { decomp });
         let node_indices: Vec<_> = dag
             .two_qubit_ops()
             .map(|(node_idx, _)| node_idx)
@@ -419,32 +429,152 @@ mod test_annotated_boxes {
         }
     }
 
-    /// Remove any [`ControlFlow::Box`] with annotations in the given namespace.
-    pub fn remove_namespace(dag: &mut DAGCircuit, namespace: &str) {
-        let to_remove: Vec<_> = dag
+    /// Place easy gates on both sides of a box with a [Twirl] annotation where the easy gates are chosen according
+    /// to its [Decomposition].
+    pub fn insert_easy_gates(dag: &mut DAGCircuit) -> Result<(), DAGError> {
+        let mut num_params: u32 = 0;
+        let to_insert_idxs: Vec<_> = dag
             .op_nodes(false)
             .filter_map(|(node_idx, instr)| {
                 if let Some(box_op) = dag.try_view_control_flow(instr) {
-                    return match box_op {
-                        ControlFlowView::Box { annotations, .. } => {
-                            if annotations
+                    match box_op {
+                        ControlFlowView::Box {
+                            duration,
+                            annotations,
+                            ..
+                        } => {
+                            match annotations
                                 .iter()
-                                .any(|annotation| annotation.namespace().starts_with(namespace))
+                                .position(|ann| ann.namespace() == "randomization.twirl")
                             {
-                                return Some(node_idx);
+                                Some(idx) => {
+                                    let mut annotations_vec = annotations.to_vec();
+                                    let twirl = annotations_vec.remove(idx);
+                                    let twirl =
+                                        twirl.downcast_ref::<Twirl>().expect("Correct namespace.");
+
+                                    let mut new_dag = DAGCircuit::with_capacity(
+                                        dag.num_qubits(),
+                                        0,
+                                        None,
+                                        None,
+                                        None,
+                                        None,
+                                    );
+                                    for qubit in dag.qubits().objects() {
+                                        _ = new_dag.add_qubit_unchecked(qubit.clone());
+                                    }
+
+                                    let mut easy_run = match twirl.decomp {
+                                        RzRx => |new_dag: &mut DAGCircuit, qargs: &[Qubit]| {
+                                            for qarg in qargs {
+                                                _ = new_dag.apply_operation_back(
+                                                    PackedOperation::from_standard_gate(
+                                                        StandardGate::RZ,
+                                                    ),
+                                                    &[*qarg],
+                                                    &[],
+                                                    Some(Parameters::Params(smallvec![
+                                                        Param::ParameterExpression(Arc::new(
+                                                            ParameterExpr::from_symbol(
+                                                                Symbol::standalone(
+                                                                    format!("p{0}", num_params),
+                                                                    None
+                                                                )
+                                                            )
+                                                        ))
+                                                    ])),
+                                                    None,
+                                                );
+                                                num_params += 1;
+                                                _ = new_dag.apply_operation_back(
+                                                    PackedOperation::from_standard_gate(
+                                                        StandardGate::RX,
+                                                    ),
+                                                    &[*qarg],
+                                                    &[],
+                                                    Some(Parameters::Params(smallvec![
+                                                        Param::ParameterExpression(Arc::new(
+                                                            ParameterExpr::from_symbol(
+                                                                Symbol::standalone(
+                                                                    format!("p{0}", num_params),
+                                                                    None
+                                                                )
+                                                            )
+                                                        ))
+                                                    ])),
+                                                    None,
+                                                );
+                                                num_params += 1;
+                                                _ = new_dag.apply_operation_back(
+                                                    PackedOperation::from_standard_gate(
+                                                        StandardGate::RZ,
+                                                    ),
+                                                    &[*qarg],
+                                                    &[],
+                                                    Some(Parameters::Params(smallvec![
+                                                        Param::ParameterExpression(Arc::new(
+                                                            ParameterExpr::from_symbol(
+                                                                Symbol::standalone(
+                                                                    format!("p{0}", num_params),
+                                                                    None
+                                                                )
+                                                            )
+                                                        ))
+                                                    ])),
+                                                    None,
+                                                );
+                                                num_params += 1;
+                                            }
+                                        },
+                                    };
+
+                                    easy_run(&mut new_dag, dag.get_qargs(instr.qubits));
+
+                                    let new_op = PackedOperation::from_control_flow(Box::new(
+                                        ControlFlowInstruction {
+                                            control_flow: ControlFlow::Box {
+                                                duration: duration.cloned(),
+                                                annotations: annotations_vec,
+                                            },
+                                            num_qubits: instr.op.num_qubits(),
+                                            num_clbits: instr.op.num_clbits(),
+                                        },
+                                    ));
+
+                                    let new_block = new_dag
+                                        .add_block(dag.blocks()[instr.blocks_view()[0]].clone());
+                                    _ = new_dag.apply_operation_back(
+                                        new_op,
+                                        dag.get_qargs(instr.qubits),
+                                        &[],
+                                        Some(Parameters::Blocks(vec![new_block])),
+                                        None,
+                                    );
+
+                                    let mut block_mapper: HashMap<Block, Block> = HashMap::new();
+                                    block_mapper.insert(new_block, instr.blocks_view()[0]);
+
+                                    easy_run(&mut new_dag, dag.get_qargs(instr.qubits));
+
+                                    Some((node_idx, new_dag, block_mapper))
+                                }
+                                None => None,
                             }
-                            None
                         }
                         _ => None,
-                    };
+                    }
+                } else {
+                    None
                 }
-                None
             })
             .collect();
 
-        for node_idx in to_remove {
-            dag.remove_op_node(node_idx);
+        for (node_idx, other, block_mapper) in to_insert_idxs {
+            dag.substitute_node_with_dag(node_idx, &other, None, None, None, Some(&block_mapper))?;
         }
+
+        Ok(())
     }
 
     #[test]
@@ -474,7 +604,7 @@ mod test_annotated_boxes {
             DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
 
         // Twirl both CXs, this pass replaces two-qubit gates with annotated box with the operation.
-        twirl_2q(&mut dag, "twirl");
+        twirl_2q(&mut dag, Decomposition::RzRx);
 
         // This just checks that the Arc::strong_count is the same on both annotations, it should be unique.
         // The Arc from the pass is out of scope at the assert.
@@ -493,8 +623,20 @@ mod test_annotated_boxes {
             assert_eq!(2, Arc::strong_count(annotation));
         }
 
-        // Remove every box with an annotation in the namespace.
-        remove_namespace(&mut dag, "randomization");
-        assert_eq!(0, dag.op_node_indices(false).collect::<Vec<_>>().len());
+        // Consume twirl annotations to insert easy gates around the boxes.
+        insert_easy_gates(&mut dag).unwrap();
+        let op_counts = dag.get_op_counts();
+        assert!(matches!(op_counts.get("rz"), Some(16)));
+        assert!(matches!(op_counts.get("rx"), Some(8)));
+        assert!(matches!(op_counts.get("box"), Some(2)));
+
+        for op_node_idx in dag.op_node_indices(false) {
+            if let Some(control_flow) =
+                dag.try_view_control_flow(dag[op_node_idx].unwrap_operation())
+                && let ControlFlowView::Box { annotations, .. } = control_flow
+            {
+                assert_eq!(annotations.len(), 0);
+            }
+        }
     }
 }
