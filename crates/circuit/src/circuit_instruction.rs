@@ -761,7 +761,10 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                         let annotations = ob
                             .getattr(intern!(py, "annotations"))?
                             .try_iter()?
-                            .map(|a| a?.extract::<AnnotationFromPython>().map(|a| a.annotation()))
+                            .map(|a| {
+                                a?.extract::<AnnotationFromPython>()
+                                    .map(|a| a.into_annotation())
+                            })
                             .collect::<PyResult<Vec<_>>>()?;
                         ControlFlow::Box {
                             duration,

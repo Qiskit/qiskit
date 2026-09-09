@@ -256,9 +256,13 @@ pub enum AnnotationFromPython {
 }
 
 impl AnnotationFromPython {
-    pub fn annotation(self) -> Arc<dyn Annotation> {
+    /// Returns the extracted [Annotation].
+    ///
+    /// For [AnnotationFromPython::Native] this method returns the clone of the underlying [Arc], while
+    /// for [AnnotationFromPython::Python] it returns a new [Arc] around the underlying [PythonAnnotation].
+    pub fn into_annotation(self) -> Arc<dyn Annotation> {
         match self {
-            AnnotationFromPython::Native(native_annotation) => native_annotation.clone(),
+            AnnotationFromPython::Native(native_annotation) => native_annotation,
             AnnotationFromPython::Python(python_annotation) => Arc::new(python_annotation),
         }
     }
