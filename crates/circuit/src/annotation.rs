@@ -612,8 +612,7 @@ mod test_annotated_boxes {
         )
         .unwrap();
 
-        let mut dag =
-            DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let mut dag = DAGCircuit::from_circuit_data(&circuit1, false, None, None).unwrap();
 
         // Twirl both CXs, this pass replaces two-qubit gates with annotated box with the operation.
         twirl_2q(&mut dag, Decomposition::RzRx);
