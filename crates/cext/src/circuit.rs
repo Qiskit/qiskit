@@ -2417,8 +2417,8 @@ pub unsafe extern "C" fn qk_circuit_delay(
 /// A box is a control-flow construct that is entered unconditionally; its body is executed
 /// exactly once, as a single atomic unit from the perspective of the containing circuit.
 ///
-/// This function copies ``body`` upon appending it, so the caller retains ownership of the
-/// ``QkCircuit`` body and must free it with ``qk_circuit_free`` once it is no longer needed.
+/// This function takes ownership of ``body``. It is not safe to use the ``body`` pointer after
+/// calling this function; in particular, you should not attempt to clear or free it.
 ///
 /// @param circuit A pointer to the circuit to append the box to.
 /// @param body A pointer to the circuit to use as the body of the box.
@@ -2443,7 +2443,6 @@ pub unsafe extern "C" fn qk_circuit_delay(
 /// QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
 /// qk_circuit_box(qc, body, qubits, NULL, &duration);
 ///
-/// qk_circuit_free(body);
 /// qk_circuit_free(qc);
 /// ```
 ///
@@ -2456,32 +2455,28 @@ pub unsafe extern "C" fn qk_circuit_delay(
 /// If not null, ``duration`` must be a valid, aligned pointer to a ``QkDurationInfo``.
 ///
 /// Behavior is undefined if ``circuit`` or ``body`` is not a valid, non-null pointer to a
-/// ``QkCircuit``.
+/// ``QkCircuit``, or if ``body`` is not owned by the caller.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_box(
     circuit: *mut CircuitData,
-    body: *const CircuitData,
+    body: *mut CircuitData,
     qubits: *const u32,
     clbits: *const u32,
     duration: *const CDurationInfo,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let body = unsafe { const_ptr_as_ref(body) };
+    let body = unsafe { Box::from_raw(mut_ptr_as_ref(body)) };
 
     let num_qubits = body.num_qubits() as u32;
     let num_clbits = body.num_clbits() as u32;
 
     // SAFETY: Per documentation, qubits/clbits point to arrays of at least num_qubits/num_clbits
     // uint32_t elements.
-    let qargs: Vec<Qubit> = unsafe { slice_from_ptr(qubits, num_qubits as usize) }
-        .iter()
-        .map(|&q| Qubit(q))
-        .collect();
-    let cargs: Vec<Clbit> = unsafe { slice_from_ptr(clbits, num_clbits as usize) }
-        .iter()
-        .map(|&c| Clbit(c))
-        .collect();
+    let qargs: &[Qubit] =
+        bytemuck::cast_slice(unsafe { slice_from_ptr(qubits, num_qubits as usize) });
+    let cargs: &[Clbit] =
+        bytemuck::cast_slice(unsafe { slice_from_ptr(clbits, num_clbits as usize) });
 
     let duration = if duration.is_null() {
         None
@@ -2491,7 +2486,7 @@ pub unsafe extern "C" fn qk_circuit_box(
         Some(BoxDuration::Duration(info.into()))
     };
 
-    let box_block = circuit.add_block(body.clone());
+    let box_block = circuit.add_block(*body);
     let box_op = PackedOperation::from(ControlFlowInstruction {
         control_flow: ControlFlow::Box {
             duration,
@@ -2505,8 +2500,8 @@ pub unsafe extern "C" fn qk_circuit_box(
         .push_packed_operation(
             box_op,
             Some(Parameters::Blocks(vec![box_block])),
-            &qargs,
-            &cargs,
+            qargs,
+            cargs,
         )
         .unwrap();
 
@@ -2964,12 +2959,9 @@ mod test {
         };
         assert_eq!(circuit_ref.blocks()[block_ids[0]].data().len(), 2);
 
-        let body_ref = unsafe { const_ptr_as_ref(body) };
-        assert_eq!(body_ref.data().len(), 2); // The body was copied, not consumed
-
         unsafe {
+            // No need to free `body` here, as it was moved into the circuit.
             qk_circuit_free(circuit);
-            qk_circuit_free(body);
         }
     }
 }

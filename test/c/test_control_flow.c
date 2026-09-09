@@ -64,9 +64,8 @@ static QkCircuit *build_box_circuit(const QkDurationInfo *duration) {
     uint32_t box_qubits[2] = {2, 0};
     uint32_t box_clbits[1] = {1};
 
-    // `qk_circuit_box` copies `body`, so it is freed here either way.
+    // `qk_circuit_box` takes ownership of `body`, so there is no need to free it.
     QkExitCode result = qk_circuit_box(circuit, body, box_qubits, box_clbits, duration);
-    qk_circuit_free(body);
     if (result != QkExitCode_Success) {
         printf("qk_circuit_box failed with exit code %d\n", result);
         qk_circuit_free(circuit);
