@@ -511,15 +511,12 @@ impl MctsAlgorithm {
 
     /// Backpropagate estimated value from the terminal state up through the tree.
     fn backpropagate(&mut self, leaf_node_id: usize, value: usize) {
-        let mut node_id = leaf_node_id;
-        loop {
-            let node = &mut self.mcts_nodes[node_id];
+        let mut node_id = Some(leaf_node_id);
+        while let Some(id) = node_id {
+            let node = &mut self.mcts_nodes[id];
             node.ni += 1;
             node.qi += value;
-            match node.parent {
-                Some(parent) => node_id = parent,
-                None => break,
-            }
+            node_id = node.parent;
         }
     }
 
