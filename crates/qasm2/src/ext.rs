@@ -91,10 +91,13 @@ impl<'py> ClassicalEvaluator<'py> {
         Self { py }
     }
 
+    #[cfg(feature = "py")]
     pub fn eval(&self, callable: &ClassicalCallableExt, params: &[f64]) -> Result<f64, ParseError> {
-        #[cfg(feature = "py")]
-        return callable.call_attached(self.py, params);
-        #[cfg(not(feature = "py"))]
+        callable.call_attached(self.py, params)
+    }
+
+    #[cfg(not(feature = "py"))]
+    pub fn eval(&self, callable: &ClassicalCallableExt, params: &[f64]) -> Result<f64, ParseError> {
         callable.call(params)
     }
 }
