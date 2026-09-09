@@ -160,7 +160,15 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
             )
-            init.append(CommutativeCancellation())
+            init.append(
+                CommutativeCancellation(
+                    approximation_degree=(
+                        pass_manager_config.approximation_degree
+                        if pass_manager_config.approximation_degree is not None
+                        else 1.0
+                    )
+                )
+            )
             init.append(ConsolidateBlocks())
 
             # If approximation degree is None that indicates a request to approximate up to the
@@ -553,7 +561,14 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeCancellation(
+                        target=pass_manager_config.target,
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        ),
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
                 post_loop = []
@@ -572,7 +587,14 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
-                    CommutativeCancellation(target=pass_manager_config.target),
+                    CommutativeCancellation(
+                        target=pass_manager_config.target,
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        ),
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
                 post_loop = []

@@ -14,7 +14,29 @@ use crate::data_tree::{ArityMismatch, DataTree, TreeMatchError};
 use crate::tensor::{DType, Tensor, TensorType};
 use thiserror::Error;
 
-/// Errors returned when a tree-shaped argument does not match [`ProgramNode::input_types`].
+/// Destructure `$args: &[Tensor]` into the named bindings, returning
+/// [`CallInputError::WrongArity`] if the slice length does not match the pattern.
+///
+/// ```ignore
+/// crate::unpack_tensor_args!(args, [x, y]);   // expects exactly 2
+/// crate::unpack_tensor_args!(args, [x]);      // expects exactly 1
+/// ```
+#[macro_export]
+macro_rules! unpack_tensor_args {
+    ($args:ident, [$($x:ident),+]) => {
+        let [$($x),+] = $args else {
+            return Err($crate::ops::CallInputError::WrongArity {
+                expected: $crate::unpack_tensor_args!(@count $($x),+),
+                actual: $args.len(),
+            }
+            .into());
+        };
+    };
+    (@count $x:ident) => { 1usize };
+    (@count $x:ident, $($rest:ident),+) => { 1usize + $crate::unpack_tensor_args!(@count $($rest),+) };
+}
+
+/// Errors returned when a tree-shaped argument does not match [`ProgramOp::input_types`].
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum CallInputError {
     #[error("missing required input {key:?}")]
@@ -29,6 +51,9 @@ pub enum CallInputError {
         expected: String,
         actual: DType,
     },
+
+    #[error("expected {expected} total inputs, got {actual}")]
+    WrongArity { expected: usize, actual: usize },
 }
 
 impl From<TreeMatchError> for CallInputError {
@@ -42,26 +67,26 @@ impl From<TreeMatchError> for CallInputError {
 
 /// Returned by implementations with a missing call implementation when called.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
-#[error("node {0:?} does not implement call()")]
+#[error("op {0:?} does not implement call()")]
 pub struct MissingCallError(pub String);
 
 impl MissingCallError {
-    /// Construct a new [`MissingCallError`] tagged with the node's full name.
+    /// Construct a new [`MissingCallError`] tagged with the op's full name.
     pub fn new(name: impl Into<String>) -> Self {
         Self(name.into())
     }
 }
 
-/// Errors returned by [`ProgramNodeExt::call`].
+/// Errors returned by [`ProgramOpExt::call`].
 #[derive(Debug, Error)]
 pub enum CallError<E> {
     /// The input tree did not match the contract declared by `input_types()`.
     #[error(transparent)]
     Input(CallInputError),
-    /// The node's [`ProgramNode::call_flat`] returned an error.
+    /// The op's [`ProgramOp::call_flat`] returned an error.
     #[error(transparent)]
     Call(E),
-    /// The node's [`ProgramNode::call_flat`] returned a vector whose length
+    /// The op's [`ProgramOp::call_flat`] returned a vector whose length
     /// did not match the leaf count of `output_types()`.
     #[error("call_flat returned {actual} outputs, expected {expected}")]
     OutputArityMismatch { expected: usize, actual: usize },
@@ -76,14 +101,14 @@ impl<E> From<ArityMismatch> for CallError<E> {
     }
 }
 
-/// A node in a quantum program graph that transforms tensors.
-pub trait ProgramNode {
+/// An op in a quantum program graph that transforms tensors.
+pub trait ProgramOp {
     type CallError;
 
-    /// The name of this program node.
+    /// The name of this program op.
     fn name(&self) -> &str;
 
-    /// The namespace this program node belongs to.
+    /// The namespace this program op belongs to.
     fn namespace(&self) -> &str;
 
     /// The namespace and name as one string.
@@ -97,10 +122,10 @@ pub trait ProgramNode {
     /// The outputs promised on call return.
     fn output_types(&self) -> &DataTree<TensorType>;
 
-    /// Whether this program node implements the call method.
+    /// Whether this program op implements the call method.
     fn implements_call(&self) -> bool;
 
-    /// The action of this program node with flattened I/O.
+    /// The action of this program op with flattened I/O.
     ///
     /// `args` is in input-tree DFS leaf order matching `input_types()` and
     /// the returned vector is in output-tree DFS leaf order matching
@@ -112,16 +137,16 @@ pub trait ProgramNode {
     /// the leaf count of `input_types()`; callers are responsible for upholding
     /// this invariant. On the other hand, implementations should raise a call
     /// error if they find tensors that they don't like.
-    /// [`ProgramNodeExt::call`] and [`QuantumProgram::call_flat`] both do.
+    /// [`ProgramOpExt::call`] and [`QuantumProgram::call_flat`] both do.
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError>;
 }
 
-/// Extension with the wrapper over [`ProgramNode::call_flat`] whose I/O are data trees.
+/// Extension with the wrapper over [`ProgramOp::call_flat`] whose I/O are data trees.
 ///
-/// Provided via a blanket impl over every `T: ProgramNode` so that it cannot
+/// Provided via a blanket impl over every `T: ProgramOp` so that it cannot
 /// be overridden in stable Rust.
-pub trait ProgramNodeExt: ProgramNode {
-    /// The action of this program node.
+pub trait ProgramOpExt: ProgramOp {
+    /// The action of this program op.
     fn call(
         &self,
         args: &DataTree<Tensor>,
@@ -135,4 +160,4 @@ pub trait ProgramNodeExt: ProgramNode {
     }
 }
 
-impl<T: ProgramNode + ?Sized> ProgramNodeExt for T {}
+impl<T: ProgramOp + ?Sized> ProgramOpExt for T {}

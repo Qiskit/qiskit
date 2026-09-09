@@ -32,6 +32,7 @@ from .mcx_synthesis import (
     synth_mcx_n_clean_m15,
     synth_mcx_n_dirty_i15,
     synth_mcx_noaux_hp24,
+    synth_mcx_noaux_sp22,
     synth_mcx_noaux_v24,
 )
 
@@ -54,5 +55,6 @@ __all__ = [
     "synth_mcx_n_clean_m15",
     "synth_mcx_n_dirty_i15",
     "synth_mcx_noaux_hp24",
+    "synth_mcx_noaux_sp22",
     "synth_mcx_noaux_v24",
 ]

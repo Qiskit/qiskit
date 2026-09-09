@@ -15,12 +15,12 @@ license = "Apache-2.0"
 #
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
-bytemuck = "1.25"
+bytemuck = { version = "1.25", features = ["extern_crate_alloc"] }
 bitfield-struct = "0.13.0"
 indexmap.version = "2.10.0"
 hashbrown.version = "0.15.5"
 num-bigint = "0.4"
-num-complex = "0.4"
+num-complex = { version = "0.4", features = ["bytemuck"] }
 nalgebra = "0.35"
 faer = "0.24"
 numpy = "0.29"
