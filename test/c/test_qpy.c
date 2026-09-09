@@ -75,8 +75,7 @@ static int test_buffer_round_trip(void) {
         return RuntimeError;
     }
 
-    int test_result = qk_circuit_num_qubits(loaded) == 2 &&
-                              qk_circuit_num_instructions(loaded) == 1
+    int test_result = qk_circuit_num_qubits(loaded) == 2 && qk_circuit_num_instructions(loaded) == 1
                           ? Ok
                           : EqualityError;
     qk_circuit_free(loaded);
