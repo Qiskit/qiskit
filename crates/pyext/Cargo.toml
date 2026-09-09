@@ -31,7 +31,7 @@ qiskit-cext-vtable = { workspace = true, features = ["python_binding"] }
 [dependencies]
 pyo3.workspace = true
 qiskit-accelerate.workspace = true
-qiskit-circuit.workspace = true
+qiskit-circuit = { workspace = true, features = [ "py" ] }
 qiskit-circuit-library.workspace = true
 qiskit-qasm2.workspace = true
 qiskit-qasm3.workspace = true

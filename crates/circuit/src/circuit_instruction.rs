@@ -13,30 +13,54 @@
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
+#[cfg(feature = "py")]
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
+#[cfg(feature = "py")]
 use pyo3::basic::CompareOp;
+#[cfg(feature = "py")]
 use pyo3::exceptions::{PyDeprecationWarning, PyTypeError, PyValueError};
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 
+#[cfg(feature = "py")]
 use pyo3::IntoPyObjectExt;
+#[cfg(feature = "py")]
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
+#[cfg(feature = "py")]
 use pyo3::{PyResult, intern};
 
-use crate::circuit_data::{CircuitData, PyCircuitData};
+#[cfg(feature = "py")]
+use crate::annotation::AnnotationFromPython;
+use crate::circuit_data::CircuitData;
+#[cfg(feature = "py")]
+use crate::circuit_data::PyCircuitData;
 use crate::classical::expr;
+#[cfg(feature = "py")]
 use crate::dag_circuit::DAGCircuit;
+#[cfg(feature = "py")]
 use crate::duration::Duration;
+#[cfg(feature = "py")]
 use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
-use crate::instruction::{Instruction, Parameters, create_py_op};
+#[cfg(feature = "py")]
+use crate::instruction::create_py_op;
+#[cfg(feature = "py")]
+use crate::instruction::{Instruction, Parameters};
+#[cfg(feature = "py")]
 use crate::operations::{
-    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, UnitaryGate,
+    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, DelayUnit,
+    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    PyInstruction, PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store,
+    UnitaryGate,
 };
+#[cfg(feature = "py")]
 use crate::packed_instruction::PackedOperation;
+#[cfg(feature = "py")]
 use crate::parameter::parameter_expression::ParameterExpression;
+#[cfg(feature = "py")]
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
+#[cfg(feature = "py")]
 use num_complex::Complex64;
+#[cfg(feature = "py")]
 use smallvec::{SmallVec, smallvec};
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
@@ -71,6 +95,7 @@ use smallvec::{SmallVec, smallvec};
 ///     mutations of the object do not invalidate the types, nor the restrictions placed on it by
 ///     its context.  Typically this will mean, for example, that :attr:`qubits` must be a sequence
 ///     of distinct items, with no duplicates.
+#[cfg(feature = "py")]
 #[pyclass(
     freelist = 20,
     sequence,
@@ -92,6 +117,7 @@ pub struct CircuitInstruction {
     pub py_op: OnceLock<Py<PyAny>>,
 }
 
+#[cfg(feature = "py")]
 impl CircuitInstruction {
     /// Get the Python-space operation, ensuring that it is mutable from Python space (singleton
     /// gates might not necessarily satisfy this otherwise).
@@ -111,6 +137,7 @@ impl CircuitInstruction {
     }
 }
 
+#[cfg(feature = "py")]
 impl Instruction for CircuitInstruction {
     type Block = CircuitData;
 
@@ -127,6 +154,7 @@ impl Instruction for CircuitInstruction {
     }
 }
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl CircuitInstruction {
     #[new]
@@ -444,6 +472,7 @@ impl CircuitInstruction {
                                     &ParameterExpression::from_f64(*left) == right.as_ref()
                                 }
                                 Param::Obj(right) => right.bind(py).eq(left)?,
+                                Param::Int(right) => left == &(*right as f64),
                             },
                             Param::ParameterExpression(left) => match right {
                                 Param::Float(right) => {
@@ -451,8 +480,19 @@ impl CircuitInstruction {
                                 }
                                 Param::ParameterExpression(right) => left == right,
                                 Param::Obj(right) => right.bind(py).eq(left.as_ref().clone())?,
+                                Param::Int(right) => {
+                                    left.as_ref() == &ParameterExpression::try_from(*right)?
+                                }
                             },
                             Param::Obj(left) => left.bind(py).eq(right)?,
+                            Param::Int(left) => match right {
+                                Param::Float(right) => &(*left as f64) == right,
+                                Param::ParameterExpression(right) => {
+                                    &ParameterExpression::try_from(*left)? == right.as_ref()
+                                }
+                                Param::Obj(right) => right.bind(py).eq(left)?,
+                                Param::Int(right) => left == right,
+                            },
                         };
                         if !eq {
                             return Ok(false);
@@ -545,6 +585,7 @@ impl CircuitInstruction {
 /// to match the place you'll be putting the blocks.  If you want to fail the extraction if there's
 /// control-flow blocks, use `qiskit_circuit::NoBlocks`.  If you want to leave the blocks
 /// unextracted, use `Py<PyAny>`.
+#[cfg(feature = "py")]
 #[derive(Debug)]
 pub struct OperationFromPython<T> {
     pub operation: PackedOperation,
@@ -552,6 +593,7 @@ pub struct OperationFromPython<T> {
     pub label: Option<Box<String>>,
 }
 
+#[cfg(feature = "py")]
 impl<T: CircuitBlock> OperationFromPython<T> {
     /// Takes the params out of [OperationFromPython::params].
     ///
@@ -577,9 +619,11 @@ pub struct NoBlocks;
 ///
 /// This shouldn't need to be imported anywhere nor implemented by anything else; it's only intended
 /// to let the `OperationFromPython` extraction be generic.
+#[cfg(feature = "py")]
 pub trait CircuitBlock: Sized {
     fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self>;
 }
+#[cfg(feature = "py")]
 impl CircuitBlock for PyCircuitData {
     fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.borrow().clone())
@@ -587,27 +631,32 @@ impl CircuitBlock for PyCircuitData {
 }
 // TODO: in the long run we don't need to extract from python directly to CircuitData
 // But for now it's needed in assing_parameters_inner
+#[cfg(feature = "py")]
 impl CircuitBlock for CircuitData {
     fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.borrow().clone().inner)
     }
 }
+#[cfg(feature = "py")]
 impl CircuitBlock for DAGCircuit {
     fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Self::from_circuit_data(&ob.borrow().inner, false, None, None).map_err(Into::into)
     }
 }
+#[cfg(feature = "py")]
 impl CircuitBlock for NoBlocks {
     fn extract_py_block(_ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Err(PyTypeError::new_err("control-flow ops are not valid here"))
     }
 }
+#[cfg(feature = "py")]
 impl CircuitBlock for Py<PyAny> {
     fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Ok(ob.into_any().unbind())
     }
 }
 
+#[cfg(feature = "py")]
 impl<T> Instruction for OperationFromPython<T> {
     type Block = T;
 
@@ -624,6 +673,7 @@ impl<T> Instruction for OperationFromPython<T> {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> {
     type Error = PyErr;
 
@@ -757,7 +807,11 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                         } else {
                             None
                         };
-                        let annotations = ob.getattr(intern!(py, "annotations"))?.extract()?;
+                        let annotations = ob
+                            .getattr(intern!(py, "annotations"))?
+                            .try_iter()?
+                            .map(|a| a?.extract::<AnnotationFromPython>().map(|a| a.0))
+                            .collect::<PyResult<Vec<_>>>()?;
                         ControlFlow::Box {
                             duration,
                             annotations,
@@ -953,6 +1007,7 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
 
 /// Extracts a Python-space params list into an optional [Parameters] list, given
 /// the corresponding operation reference.
+#[cfg(feature = "py")]
 pub fn extract_params<T: CircuitBlock>(
     op: OperationRef,
     params: &Bound<PyAny>,
@@ -998,13 +1053,16 @@ pub fn extract_params<T: CircuitBlock>(
         OperationRef::StandardInstruction(i) => {
             match &i {
                 StandardInstruction::Barrier(_) => None,
-                StandardInstruction::Delay(_) => {
+                StandardInstruction::Delay(unit) => {
                     // If the delay's duration is a Python int, we preserve it rather than
                     // coercing it to a float (e.g. when unit is 'dt').
                     Some(Parameters::Params(
                         params
                             .try_iter()?
-                            .map(|p| Param::extract_no_coerce(p?.as_borrowed()))
+                            .map(|p| match unit {
+                                DelayUnit::DT => Param::extract_no_coerce(p?.as_borrowed()),
+                                _ => Ok(p?.extract::<Param>()?),
+                            })
                             .collect::<PyResult<_>>()?,
                     ))
                 }
@@ -1026,6 +1084,7 @@ pub fn extract_params<T: CircuitBlock>(
 }
 
 /// Convert a sequence-like Python object to a tuple.
+#[cfg(feature = "py")]
 fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bound<'py, PyTuple>> {
     let Some(seq) = seq else {
         return Ok(PyTuple::empty(py));
@@ -1051,6 +1110,7 @@ fn as_tuple<'py>(py: Python<'py>, seq: Option<Bound<'py, PyAny>>) -> PyResult<Bo
 /// Beware the `stacklevel` here doesn't work quite the same way as it does in Python as Rust-space
 /// calls are completely transparent to Python.
 #[inline]
+#[cfg(feature = "py")]
 fn warn_on_legacy_circuit_instruction_iteration(py: Python) -> PyResult<()> {
     WARNINGS_WARN
         .get_bound(py)

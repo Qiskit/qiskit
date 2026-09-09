@@ -13,11 +13,17 @@
 use crate::CapacityError;
 use hashbrown::HashMap;
 use hashbrown::hash_map::OccupiedError;
+#[cfg(feature = "py")]
 use pyo3::exceptions::{PyKeyError, PyValueError};
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyList;
 use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
+#[cfg(feature = "py")]
+use std::hash::Hasher;
+#[cfg(feature = "py")]
 use std::sync::OnceLock;
 
 /// Wrapper for Python-side objects that implements [Hash] and [Eq], allowing them to be
@@ -27,6 +33,7 @@ use std::sync::OnceLock;
 /// [Hash] trait impl.  The impl of [PartialEq] first compares the native Py pointers to determine
 /// equality. If these are not equal, only then does it call `repr()` on both sides, which has a
 /// significant performance advantage.
+#[cfg(feature = "py")]
 #[derive(Clone, Debug)]
 pub struct PyObjectAsKey {
     /// Python's `hash()` of the wrapped instance.
@@ -35,6 +42,7 @@ pub struct PyObjectAsKey {
     ob: Py<PyAny>,
 }
 
+#[cfg(feature = "py")]
 impl PyObjectAsKey {
     pub fn new(object: &Bound<PyAny>) -> Self {
         PyObjectAsKey {
@@ -59,24 +67,28 @@ impl PyObjectAsKey {
     }
 }
 
+#[cfg(feature = "py")]
 impl Hash for PyObjectAsKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write_isize(self.hash);
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> From<&'a Bound<'py, PyAny>> for PyObjectAsKey {
     fn from(value: &'a Bound<'py, PyAny>) -> Self {
         PyObjectAsKey::new(value)
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> From<Bound<'py, PyAny>> for PyObjectAsKey {
     fn from(value: Bound<'py, PyAny>) -> Self {
         PyObjectAsKey::new(&value)
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for PyObjectAsKey {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -87,6 +99,7 @@ impl<'py> IntoPyObject<'py> for PyObjectAsKey {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> IntoPyObject<'py> for &'a PyObjectAsKey {
     type Target = PyAny;
     type Output = Borrowed<'a, 'py, Self::Target>;
@@ -97,6 +110,7 @@ impl<'a, 'py> IntoPyObject<'py> for &'a PyObjectAsKey {
     }
 }
 
+#[cfg(feature = "py")]
 impl PartialEq for PyObjectAsKey {
     fn eq(&self, other: &Self) -> bool {
         self.ob.is(&other.ob)
@@ -111,6 +125,7 @@ impl PartialEq for PyObjectAsKey {
             })
     }
 }
+#[cfg(feature = "py")]
 impl Eq for PyObjectAsKey {}
 
 /// Error types for attempts to add unique objects.
@@ -132,6 +147,7 @@ impl<T: Debug, B: Debug> AddError<T, B> {
         }
     }
 }
+#[cfg(feature = "py")]
 impl<T: Debug, B: Debug> From<AddError<T, B>> for PyErr {
     fn from(val: AddError<T, B>) -> PyErr {
         match val {
@@ -151,6 +167,7 @@ impl<T: Debug> AbsentObject<T> {
         AbsentObject(format!("{:?}", self.0))
     }
 }
+#[cfg(feature = "py")]
 impl<T: Debug> From<AbsentObject<T>> for PyErr {
     fn from(val: AbsentObject<T>) -> Self {
         PyKeyError::new_err(val.to_string())
@@ -172,6 +189,7 @@ pub struct ObjectRegistry<T, B> {
     /// Maps objects to native index.
     indices: HashMap<B, T>,
     /// The objects registered, cached as a PyList.
+    #[cfg(feature = "py")]
     cached: OnceLock<Py<PyList>>,
 }
 
@@ -208,6 +226,7 @@ where
         ObjectRegistry {
             objects: Vec::with_capacity(capacity),
             indices: HashMap::with_capacity(capacity),
+            #[cfg(feature = "py")]
             cached: OnceLock::new(),
         }
     }
@@ -272,6 +291,7 @@ where
     pub fn add(&mut self, object: B) -> Result<T, AddError<T, B>> {
         let idx: u32 = self.objects.len().try_into().map_err(|_| CapacityError)?;
         // Dump the cache
+        #[cfg(feature = "py")]
         self.cached.take();
         match self.indices.try_insert(object.clone(), idx.into()) {
             Ok(_) => {
@@ -298,6 +318,7 @@ where
     }
 
     pub fn replace(&mut self, index: T, replacement: B) {
+        #[cfg(feature = "py")]
         self.cached.take();
         let to_replace = &mut self.objects[<u32 as From<T>>::from(index) as usize];
         self.indices.remove(to_replace);
@@ -311,6 +332,7 @@ where
             .map(|i| <u32 as From<T>>::from(i) as usize)
             .collect();
         indices_sorted.sort();
+        #[cfg(feature = "py")]
         self.cached.take();
         for index in indices_sorted.into_iter().rev() {
             let object = self.objects.remove(index);
@@ -330,6 +352,7 @@ where
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, T, B> ObjectRegistry<T, B>
 where
     B: Clone,
