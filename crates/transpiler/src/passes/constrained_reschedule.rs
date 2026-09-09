@@ -135,7 +135,6 @@ fn push_node_back(
                 // Try to extract as different numeric types
                 Ok(*val)
             }
-            Param::Float(f) => Ok(*f as u64),
             _ => Err(TranspilerError::new_err(
                 "The provided Delay duration is not in terms of dt.",
             )),

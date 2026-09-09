@@ -1271,7 +1271,7 @@ impl CircuitData {
                 Param::Int(u) => {
                     let map: HashMap<&Symbol, Value> = HashMap::from([(
                         symbol,
-                        Value::Int((*u).try_into().expect("unsigned integer is too big")),
+                        Value::Int((*u).try_into().map_err(|_| ParameterError::InvalidValue)?),
                     )]);
                     expr.bind(&map, false)?
                 }
