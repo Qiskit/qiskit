@@ -635,6 +635,19 @@ def _size2q(circuit: QuantumCircuit):
     """Return the number of two-qubit gates in a circuit."""
     return circuit.size(lambda x: x.operation.num_qubits == 2)
 
+
+def _is_coupling_map_all_to_all(coupling_map: CouplingMap) -> bool:
+    """Return whether the coupling map is all-to-all.
+
+    A coupling map is all-to-all if for every pair of distinct qubits
+    ``i`` and ``j`` either ``(i, j)`` or ``(j, i)`` or both are present
+    in the edge list.
+    """
+    n = coupling_map.size()
+    edges = {(min(a, b), max(a, b)) for a, b in coupling_map}
+    return len(edges) == n * (n - 1) // 2
+
+
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
     """The default clifford synthesis plugin.
 
@@ -2150,16 +2163,13 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        def is_all_to_all(coupling_map):
-            return (coupling_map is None) or (
-                coupling_map == CouplingMap.from_full(target.num_qubits)
-            )
-
         synth_object = PauliEvolutionSynthesisBasic().run(
             high_level_object, coupling_map, target, qubits, **options
         )
 
-        if options.get("optimization_level", 2) >= 2 and is_all_to_all(coupling_map):
+        if (options.get("optimization_level", 2) >= 2) and (
+            (coupling_map is None) or _is_coupling_map_all_to_all(coupling_map)
+        ):
             synth_mcts = PauliEvolutionSynthesisMcts().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
