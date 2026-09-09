@@ -14,7 +14,7 @@ use crate::TranspilerError;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::PyDAGCircuit;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 
@@ -33,10 +33,11 @@ use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 #[pyo3(signature=(dag, acquire_align, pulse_align))]
 pub fn run_instruction_duration_check(
     py: Python,
-    dag: &DAGCircuit,
+    dag: &PyDAGCircuit,
     acquire_align: u32,
     pulse_align: u32,
 ) -> PyResult<bool> {
+    let dag = dag.try_read()?;
     let num_stretches = dag.num_stretches();
 
     // Rescheduling is not necessary
