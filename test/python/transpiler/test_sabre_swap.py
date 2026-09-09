@@ -285,11 +285,11 @@ class TestSabreSwap(QiskitTestCase):
         """Test that SabreSwap doesn't reorder measurements to the same classical bit.
 
         With the particular coupling map used in this test and the 3q ccx gate, the routing would
-        invariably the measurements if the classical successors are not accurately tracked.
+        invariably reorder the measurements if the classical successors are not accurately tracked.
         Regression test of gh-7950."""
         coupling = CouplingMap([(0, 2), (2, 0), (1, 2), (2, 1)])
         qc = QuantumCircuit(3, 1)
-        qc.compose(CCXGate().definition, [0, 1, 2], [])  # Unroll CCX to 2q operations.
+        qc = qc.compose(CCXGate().definition, [0, 1, 2], [])  # Unroll CCX to 2q operations.
         qc.h(0)
         qc.barrier()
         qc.measure(0, 0)  # This measure is 50/50 between the Z states.
@@ -308,6 +308,30 @@ class TestSabreSwap(QiskitTestCase):
         # depends a little on the randomization of the pass).
         self.assertEqual(last_h.qubits, first_measure.qubits)
         self.assertNotEqual(last_h.qubits, second_measure.qubits)
+
+    def test_do_not_reorder_measurements_with_independent_predecessors(self):
+        """Test that SabreSwap doesn't reorder measurements to the same classical bit when the
+        qubits they act on have unrelated predecessors of very different routing cost.
+
+        Only the shared clbit orders these two measurements, so if the classical successors are not
+        accurately tracked the second one can overtake the first.  Regression test of gh-7950."""
+        coupling = CouplingMap.from_line(4, bidirectional=True)
+        qc = QuantumCircuit(4, 1)
+        qc.cx(0, 3)  # Far apart on the line, so this needs routing.
+        qc.cx(1, 2)  # Adjacent, so this doesn't.
+        qc.measure(0, 0)  # This measure has to happen first.
+        qc.measure(1, 0)  # This one has to overwrite it.
+        passmanager = PassManager(SabreSwap(coupling, seed=123))
+        transpiled = passmanager.run(qc)
+
+        # `final_layout` gives the virtual qubit sitting on each physical one at the end.
+        final_layout = passmanager.property_set["final_layout"]
+        measured = [
+            final_layout[transpiled.find_bit(instruction.qubits[0]).index]
+            for instruction in transpiled.data
+            if isinstance(instruction.operation, Measure)
+        ]
+        self.assertEqual(measured, [qc.qubits[0], qc.qubits[1]])
 
     def test_no_infinite_loop(self):
         """Test that the 'release value' mechanisms allow SabreSwap to make progress even on
