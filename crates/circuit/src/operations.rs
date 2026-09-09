@@ -1242,22 +1242,37 @@ pub fn clone_param(param: &Param) -> Param {
     }
 }
 
-/// Multiply a ``Param`` with a float.
+/// Multiply a [`Param`] with a float.
+///
+/// Multiplying is only supported between variants [`Param::Float`] and
+/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+///
+/// # Panics
+///
+/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
 pub fn multiply_param(param: &Param, mult: f64) -> Param {
     match param {
         Param::Float(theta) => Param::Float(theta * mult),
-        Param::Int(theta) => Param::Float(mult * (*theta as f64)),
         Param::ParameterExpression(theta) => {
             // safe to unwrap as multiplication with float does not have name conflicts
             Param::ParameterExpression(Arc::new(
                 theta.mul(&ParameterExpression::from_f64(mult)).unwrap(),
             ))
         }
-        Param::Obj(_) => unreachable!("Unsupported multiplication of a Param::Obj."),
+        Param::Obj(_) | Param::Int(_) => {
+            unreachable!("Unsupported multiplication of a Param::Obj.")
+        }
     }
 }
 
 /// Multiply two ``Param``s.
+///
+/// Multiplication is only supported between variants [`Param::Float`] and
+/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+///
+/// # Panics
+///
+/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
 pub fn multiply_params(param1: Param, param2: Param) -> Param {
     match (&param1, &param2) {
         (Param::Float(theta), Param::Float(lambda)) => Param::Float(theta * lambda),
@@ -1272,6 +1287,14 @@ pub fn multiply_params(param1: Param, param2: Param) -> Param {
     }
 }
 
+/// Adda a [`Param`] with a float.
+///
+/// Addition is only supported between variants [`Param::Float`] and
+/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+///
+/// # Panics
+///
+/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
 pub fn add_param(param: &Param, summand: f64) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta + summand),
@@ -1279,11 +1302,20 @@ pub fn add_param(param: &Param, summand: f64) -> Param {
             // safe to unwrap as addition with float does not have name conflicts
             Arc::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
         ),
-        Param::Obj(_) => unreachable!("Unsupported addition of a Param::Obj."),
-        Param::Int(int) => Param::Float(summand + (*int as f64)),
+        Param::Obj(_) | Param::Int(_) => {
+            unreachable!("Unsupported addition of a Param::Obj or Param::Int.")
+        }
     }
 }
 
+/// Adds two [`Param`] instances.
+///
+/// Addition is only supported between variants [`Param::Float`] and
+/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+///
+/// # Panics
+///
+/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
 pub fn radd_param(param1: Param, param2: Param) -> Param {
     match [&param1, &param2] {
         [param, Param::Float(float)] | [Param::Float(float), param] => add_param(param, *float),
