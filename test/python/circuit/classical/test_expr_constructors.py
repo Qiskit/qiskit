@@ -99,6 +99,53 @@ class TestExprConstructors(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "cannot represent a negative value"):
             expr.lift(-1)
 
+    def test_lift_array_sequences(self):
+        self.assertEqual(
+            expr.lift([True, False, True]),
+            expr.Value([True, False, True], types.Array(types.Bool(), 3)),
+        )
+        self.assertTrue(expr.lift([True, False, True]).const)
+        self.assertEqual(
+            expr.lift((0, 1, 2, 3)),
+            expr.Value([0, 1, 2, 3], types.Array(types.Uint(2), 4)),
+        )
+        self.assertEqual(
+            expr.lift([0.5, 1.5]),
+            expr.Value([0.5, 1.5], types.Array(types.Float(), 2)),
+        )
+        delays = [Duration.dt(1), Duration.dt(2)]
+        self.assertEqual(
+            expr.lift(delays),
+            expr.Value(delays, types.Array(types.Duration(), 2)),
+        )
+        self.assertEqual(
+            expr.lift([1, 2], types.Array(types.Uint(8), 2)),
+            expr.Value([1, 2], types.Array(types.Uint(8), 2)),
+        )
+        self.assertEqual(
+            expr.lift([], types.Array(types.Bool(), 0)),
+            expr.Value([], types.Array(types.Bool(), 0)),
+        )
+        self.assertEqual(expr.lift([True, False]), expr.lift((True, False)))
+
+    def test_lift_array_forbidden(self):
+        with self.assertRaisesRegex(TypeError, "empty sequence"):
+            expr.lift([])
+        with self.assertRaisesRegex(TypeError, "heterogeneous"):
+            expr.lift([True, 1])
+        with self.assertRaisesRegex(TypeError, "nested sequences"):
+            expr.lift([[True, False], [False, True]])
+        with self.assertRaisesRegex(TypeError, "array element"):
+            expr.lift([Clbit()])
+        with self.assertRaisesRegex(TypeError, "array element"):
+            expr.lift([ClassicalRegister(2, "c")])
+        with self.assertRaisesRegex(TypeError, "not suitable for representing a sequence"):
+            expr.lift([True, False], types.Bool())
+        with self.assertRaisesRegex(TypeError, "sequence of length"):
+            expr.lift([True], types.Array(types.Bool(), 3))
+        with self.assertRaisesRegex(TypeError, "not suitable"):
+            expr.lift([True, False], types.Array(types.Uint(8), 2))
+
     def test_cast_adds_explicit_nodes(self):
         """A specific request to add a cast in means that we should respect that in the type tree,
         even if the cast is a no-op."""
@@ -575,6 +622,52 @@ class TestExprConstructors(QiskitTestCase):
             expr.index(Duration.dt(1000), 1)
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.index(Duration.dt(1000), Duration.dt(1000))
+
+    def test_index_array(self):
+        flags = expr.Var.new("flags", types.Array(types.Bool(), 3))
+        words = expr.Var.new("words", types.Array(types.Uint(8), 4))
+        delays = expr.Var.new("delays", types.Array(types.Duration(), 2))
+        params = expr.Var.new("params", types.Array(types.Float(), 2))
+
+        self.assertEqual(
+            expr.index(flags, 0),
+            expr.Index(flags, expr.Value(0, types.Uint(1)), types.Bool()),
+        )
+        self.assertEqual(
+            expr.index(words, 1),
+            expr.Index(words, expr.Value(1, types.Uint(1)), types.Uint(8)),
+        )
+        self.assertEqual(
+            expr.index(expr.index(words, 0), 1),
+            expr.Index(
+                expr.Index(words, expr.Value(0, types.Uint(1)), types.Uint(8)),
+                expr.Value(1, types.Uint(1)),
+                types.Bool(),
+            ),
+        )
+        self.assertEqual(
+            expr.index(delays, 0),
+            expr.Index(delays, expr.Value(0, types.Uint(1)), types.Duration()),
+        )
+        self.assertEqual(
+            expr.index(params, 1),
+            expr.Index(params, expr.Value(1, types.Uint(1)), types.Float()),
+        )
+        self.assertFalse(expr.index(flags, 0).const)
+
+    def test_index_array_forbidden(self):
+        flags = expr.Var.new("flags", types.Array(types.Bool(), 3))
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(flags, False)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(flags, 1.0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(expr.lift(1.0), 0)
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(flags, Duration.dt(1))
+        # Indexing a Bool array yields Bool, which cannot be indexed again.
+        with self.assertRaisesRegex(TypeError, "invalid types"):
+            expr.index(expr.index(flags, 0), 0)
 
     @ddt.data(
         (expr.shift_left, expr.Binary.Op.SHIFT_LEFT),

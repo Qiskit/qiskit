@@ -200,6 +200,16 @@ class BitArrayType(ClassicalType):
         self.size = size
 
 
+class ArrayType(ClassicalType):
+    """Type information for a 1-D classical array: ``array[<base>, <n>]``."""
+
+    __slots__ = ("base", "dimensions")
+
+    def __init__(self, base: ClassicalType, dimensions: Sequence[int]):
+        self.base = base
+        self.dimensions = tuple(dimensions)
+
+
 class Expression(ASTNode):
     __slots__ = ()
 

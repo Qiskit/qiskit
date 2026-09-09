@@ -32,6 +32,8 @@ class TestStructurallyEquivalent(QiskitTestCase):
         expr.shift_left(expr.shift_right(255, 3), 3),
         expr.index(expr.Var.new("a", types.Uint(8)), 0),
         expr.greater(expr.Stretch.new("a"), Duration.dt(100)),
+        expr.lift([True, False, True]),
+        expr.index(expr.Var.new("arr", types.Array(types.Bool(), 3)), 1),
     )
     def test_equivalent_to_self(self, node):
         self.assertTrue(expr.structurally_equivalent(node, node))
@@ -127,6 +129,8 @@ class TestIsLValue(QiskitTestCase):
         expr.Var(Clbit(), types.Bool()),
         expr.Var(ClassicalRegister(8, "cr"), types.Uint(8)),
         expr.index(expr.Var.new("a", types.Uint(8)), 0),
+        expr.Var.new("arr", types.Array(types.Bool(), 3)),
+        expr.index(expr.Var.new("arr", types.Array(types.Uint(8), 4)), 0),
     )
     def test_happy_cases(self, lvalue):
         self.assertTrue(expr.is_lvalue(lvalue))

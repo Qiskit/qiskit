@@ -493,6 +493,10 @@ mod classical_expr {
             export_fn!(qk_var_name),
             export_fn!(qk_var_type_info),
             export_fn!(qk_stretch_name),
+            export_fn!(qk_var_array_type_info),
+            export_fn!(qk_value_array_type_info),
+            export_fn!(qk_value_array_len),
+            export_fn!(qk_value_array_element),
         ]
     });
 }

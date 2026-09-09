@@ -69,6 +69,39 @@ class TestStoreInstruction(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "an explicit cast is required.*may be lossy"):
             Store(lvalue, rvalue)
 
+    def test_store_array_element(self):
+        arr = expr.Var.new("arr", types.Array(types.Bool(), 3))
+        constructed = Store(expr.index(arr, 0), expr.lift(False))
+        self.assertEqual(constructed.lvalue, expr.index(arr, 0))
+        self.assertEqual(constructed.rvalue, expr.lift(False))
+
+        words = expr.Var.new("words", types.Array(types.Uint(8), 4))
+        constructed = Store(expr.index(words, 1), expr.Value(7, types.Uint(8)))
+        self.assertEqual(constructed.rvalue, expr.Value(7, types.Uint(8)))
+
+    def test_store_whole_array(self):
+        arr = expr.Var.new("arr", types.Array(types.Bool(), 3))
+        other = expr.Var.new("other", types.Array(types.Bool(), 3))
+        constructed = Store(arr, other)
+        self.assertEqual(constructed.lvalue, arr)
+        self.assertEqual(constructed.rvalue, other)
+
+        lifted = expr.lift([True, True, True])
+        constructed = Store(arr, lifted)
+        self.assertEqual(constructed.rvalue, lifted)
+
+    def test_rejects_array_length_mismatch(self):
+        arr = expr.Var.new("arr", types.Array(types.Bool(), 3))
+        other = expr.Var.new("other", types.Array(types.Bool(), 4))
+        with self.assertRaisesRegex(CircuitError, "no cast is possible"):
+            Store(arr, other)
+
+    def test_rejects_array_element_type_mismatch(self):
+        arr = expr.Var.new("arr", types.Array(types.Bool(), 3))
+        other = expr.Var.new("other", types.Array(types.Uint(8), 3))
+        with self.assertRaisesRegex(CircuitError, "no cast is possible"):
+            Store(arr, other)
+
 
 class TestStoreCircuit(QiskitTestCase):
     """Tests of the `QuantumCircuit.store` method and appends of `Store`."""
@@ -229,3 +262,19 @@ class TestStoreCircuit(QiskitTestCase):
         qc = QuantumCircuit(inputs=[lvalue, rvalue])
         with self.assertRaisesRegex(CircuitError, "an explicit cast is required.*may be lossy"):
             qc.store(lvalue, rvalue)
+
+    def test_store_array_on_circuit(self):
+        flags = expr.Var.new("flags", types.Array(types.Bool(), 3))
+        qc = QuantumCircuit(inputs=[flags])
+        qc.store(expr.index(flags, 0), False)
+        qc.store(flags, [True, True, True])
+        self.assertEqual(qc.data[0].operation, Store(expr.index(flags, 0), expr.lift(False)))
+        self.assertEqual(
+            qc.data[1].operation, Store(flags, expr.Value([True, True, True], flags.type))
+        )
+
+    def test_store_array_widens_uint_elements(self):
+        words = expr.Var.new("words", types.Array(types.Uint(8), 3))
+        qc = QuantumCircuit(inputs=[words])
+        qc.store(words, [1, 2, 3])
+        self.assertEqual(qc.data[-1].operation, Store(words, expr.Value([1, 2, 3], words.type)))

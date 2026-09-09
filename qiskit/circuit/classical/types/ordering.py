@@ -26,7 +26,7 @@ __all__ = [
 
 import enum
 
-from .types import Type, Bool, Duration, Float, Uint
+from .types import Type, Bool, Duration, Float, Uint, Array
 
 
 # While the type system is simple, it's overkill to represent the complete partial ordering graph of
@@ -63,11 +63,18 @@ def _order_uint_uint(left: Uint, right: Uint, /) -> Ordering:
     return Ordering.GREATER
 
 
+def _order_array_array(left: Array, right: Array, /) -> Ordering:
+    if left == right:
+        return Ordering.EQUAL
+    return Ordering.NONE
+
+
 _ORDERERS = {
     (Bool, Bool): lambda _a, _b, /: Ordering.EQUAL,
     (Uint, Uint): _order_uint_uint,
     (Float, Float): lambda _a, _b, /: Ordering.EQUAL,
     (Duration, Duration): lambda _a, _b, /: Ordering.EQUAL,
+    (Array, Array): _order_array_array,
 }
 
 
@@ -190,6 +197,12 @@ def _uint_cast(from_: Uint, to_: Uint, /) -> CastKind:
     return CastKind.DANGEROUS
 
 
+def _array_cast(from_: Array, to_: Array, /) -> CastKind:
+    if from_ == to_:
+        return CastKind.EQUAL
+    return CastKind.NONE
+
+
 _ALLOWED_CASTS = {
     (Bool, Bool): lambda _a, _b, /: CastKind.EQUAL,
     (Bool, Uint): lambda _a, _b, /: CastKind.LOSSLESS,
@@ -201,6 +214,7 @@ _ALLOWED_CASTS = {
     (Float, Uint): lambda _a, _b, /: CastKind.DANGEROUS,
     (Float, Bool): lambda _a, _b, /: CastKind.DANGEROUS,
     (Duration, Duration): lambda _a, _b, /: CastKind.EQUAL,
+    (Array, Array): _array_cast,
 }
 
 

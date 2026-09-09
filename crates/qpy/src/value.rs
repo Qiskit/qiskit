@@ -24,7 +24,7 @@ use pyo3::types::PyAny;
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
-use qiskit_circuit::classical::types::Type;
+use qiskit_circuit::classical::types::{ScalarKind, Type};
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -373,6 +373,56 @@ impl std::fmt::Display for ProgramType {
     }
 }
 
+/// Scalar ``EXPR_TYPE`` codes used as the element of a 1-D array (no nested arrays).
+#[binrw]
+#[derive(Debug, Clone, Copy)]
+pub enum ScalarExpressionType {
+    #[brw(magic = b'b')]
+    Bool,
+    #[brw(magic = b'u')]
+    Uint(u32),
+    #[brw(magic = b'f')]
+    Float,
+    #[brw(magic = b'd')]
+    Duration,
+}
+
+/// QPY payload for :class:`~.types.Array`: a scalar ``EXPR_TYPE`` followed by ``uint32_t size``.
+#[binrw]
+#[derive(Debug, Clone, Copy)]
+pub struct ArrayTypePack {
+    pub elem: ScalarExpressionType,
+    pub size: u32,
+}
+
+impl ArrayTypePack {
+    pub(crate) fn from_parts(elem: ScalarKind, elem_width: u32, size: u32) -> Self {
+        Self {
+            elem: match elem {
+                ScalarKind::Bool => ScalarExpressionType::Bool,
+                ScalarKind::Uint => ScalarExpressionType::Uint(elem_width),
+                ScalarKind::Float => ScalarExpressionType::Float,
+                ScalarKind::Duration => ScalarExpressionType::Duration,
+            },
+            size,
+        }
+    }
+
+    pub(crate) fn to_type(self) -> Type {
+        let (elem, elem_width) = match self.elem {
+            ScalarExpressionType::Bool => (ScalarKind::Bool, 0),
+            ScalarExpressionType::Uint(width) => (ScalarKind::Uint, width),
+            ScalarExpressionType::Float => (ScalarKind::Float, 0),
+            ScalarExpressionType::Duration => (ScalarKind::Duration, 0),
+        };
+        Type::Array {
+            elem,
+            elem_width,
+            size: self.size,
+        }
+    }
+}
+
 // The types of nodes inside Expressions (not to be confused with ParameterExpressions)
 #[binrw]
 #[derive(Debug)]
@@ -385,6 +435,8 @@ pub enum ExpressionType {
     Float,
     #[brw(magic = b'd')]
     Duration,
+    #[brw(magic = b'a')]
+    Array(ArrayTypePack),
 }
 
 // The scope of nodes inside Expressions (not to be confused with ParameterExpressions)
@@ -1102,6 +1154,25 @@ fn pack_expression_type(exp_type: &Type, version: u8) -> Result<ExpressionType, 
             }
         }
         Type::Uint(width) => Ok(ExpressionType::Uint(*width)),
+        Type::Array {
+            elem,
+            elem_width,
+            size,
+        } => {
+            if version >= 18 {
+                Ok(ExpressionType::Array(ArrayTypePack::from_parts(
+                    *elem,
+                    *elem_width,
+                    *size,
+                )))
+            } else {
+                Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "array-typed expressions".to_string(),
+                    version,
+                    min_version: 18,
+                })
+            }
+        }
     }
 }
 

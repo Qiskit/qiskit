@@ -29,6 +29,8 @@ QkExprNode *inner_test_unary_expr_ops(QkUnaryOpType);
 QkExprNode *inner_test_binary_expr_ops(QkBinaryOpType);
 QkExprNode *inner_test_expr_kinds_and_types(QkExprNodeKind, QkExprTypeInfo);
 QkExprNode *inner_test_value(QkExprType, bool, QkDurationInfo, double, uint64_t);
+QkExprNode *inner_test_array_value(void);
+QkExprNode *inner_test_array_var(void);
 void inned_test_old_style_vars(QkExprNode **);
 void *inner_expr_free(QkExprNode *);
 
@@ -539,6 +541,88 @@ cleanup:
     return result;
 }
 
+/*
+ * Test inspection of 1-D array values and variables.
+ */
+static int test_expr_array(void) {
+    int result = Ok;
+    QkExprNode *expr = inner_test_array_value();
+
+    const QkValue *value = qk_expr_as_value(expr);
+    QkExprTypeInfo value_type_info = qk_value_type_info(value);
+    if (value_type_info.ty != QkExprType_Array) {
+        printf("Expected Array type, got %d\n", value_type_info.ty);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (value_type_info.width != 8) {
+        printf("Expected Array element width 8, got %" PRIu32 "\n", value_type_info.width);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkArrayTypeInfo array_info = qk_value_array_type_info(value);
+    if (array_info.size != 3) {
+        printf("Expected array size 3, got %" PRIu32 "\n", array_info.size);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (array_info.elem.ty != QkExprType_Uint || array_info.elem.width != 8) {
+        printf("Expected Uint(8) elements, got ty=%d width=%" PRIu32 "\n", array_info.elem.ty,
+               array_info.elem.width);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (qk_value_array_len(value) != 3) {
+        printf("Expected array len 3, got %" PRIu32 "\n", qk_value_array_len(value));
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    const QkValue *elem = qk_value_array_element(value, 1);
+    if (qk_value_uint(elem) != 2) {
+        printf("Expected element 1 to be 2, got %" PRIu64 "\n", qk_value_uint(elem));
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    inner_expr_free(expr);
+    expr = inner_test_array_var();
+
+    const QkVar *var = qk_expr_as_var(expr);
+    QkExprTypeInfo var_type_info = qk_var_type_info(var);
+    if (var_type_info.ty != QkExprType_Array) {
+        printf("Expected Array var type, got %d\n", var_type_info.ty);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkArrayTypeInfo var_array_info = qk_var_array_type_info(var);
+    if (var_array_info.size != 3 || var_array_info.elem.ty != QkExprType_Uint ||
+        var_array_info.elem.width != 8) {
+        printf("Unexpected array var type info\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    char *name = qk_var_name(var);
+    if (name == NULL || strcmp(name, "arr") != 0) {
+        printf("Expected var name 'arr', got %s\n", name ? name : "NULL");
+        if (name)
+            qk_str_free(name);
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_str_free(name);
+
+cleanup:
+    if (expr)
+        inner_expr_free(expr);
+
+    return result;
+}
+
 int test_classical_expr(void) {
     int num_failed = 0;
 
@@ -548,6 +632,7 @@ int test_classical_expr(void) {
     num_failed += RUN_TEST(test_expr_var);
     num_failed += RUN_TEST(test_expr_stretch);
     num_failed += RUN_TEST(test_expr_value);
+    num_failed += RUN_TEST(test_expr_array);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

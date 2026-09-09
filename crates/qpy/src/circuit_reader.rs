@@ -1012,6 +1012,7 @@ fn add_standalone_vars(
             ExpressionType::Duration => classical::types::Type::Duration,
             ExpressionType::Float => classical::types::Type::Float,
             ExpressionType::Uint(val) => classical::types::Type::Uint(val),
+            ExpressionType::Array(pack) => pack.to_type(),
         };
         let uuid = u128::from_be_bytes(packed_var.uuid_bytes);
         let name = packed_var.name.clone();

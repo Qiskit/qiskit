@@ -296,6 +296,7 @@ class ExprType(TypeKeyBase):
     UINT = b"u"
     FLOAT = b"f"
     DURATION = b"d"
+    ARRAY = b"a"
 
     @classmethod
     def assign(cls, obj):
@@ -342,6 +343,7 @@ class ExprValue(TypeKeyBase):
     INT = b"i"
     FLOAT = b"f"
     DURATION = b"t"
+    ARRAY = b"a"
 
     @classmethod
     def assign(cls, obj):

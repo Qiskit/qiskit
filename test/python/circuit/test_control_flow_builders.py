@@ -2834,6 +2834,42 @@ class TestControlFlowBuilders(QiskitTestCase):
         self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_vars()), {a})
         self.assertEqual(set(base.data[-1].operation.blocks[0].iter_captured_stretches()), {c})
 
+    def test_can_capture_array_var(self):
+        flags = expr.Var.new("flags", types.Array(types.Bool(), 3))
+        words = expr.Var.new("words", types.Array(types.Uint(8), 4))
+        other = expr.Var.new("other", types.Array(types.Uint(8), 4))
+        base = QuantumCircuit(inputs=[flags, words, other])
+        with base.if_test(expr.lift(False)):
+            base.store(expr.index(flags, 0), False)
+            base.store(words, other)
+        block = base.data[-1].operation.blocks[0]
+        self.assertEqual(set(block.iter_captured_vars()), {flags, words, other})
+        self.assertEqual(base.get_var("flags"), flags)
+
+    def test_manual_capture_array_identity(self):
+        flags = expr.Var.new("flags", types.Array(types.Bool(), 3))
+        base = QuantumCircuit(inputs=[flags])
+        with base.while_loop(expr.lift(False)):
+            base.add_capture(flags)
+        captured = list(base.data[-1].operation.blocks[0].iter_captured_vars())
+        self.assertEqual(captured, [flags])
+        self.assertEqual(base.get_var("flags"), flags)
+
+    def test_add_array_var_inside_control_flow(self):
+        base = QuantumCircuit()
+        with base.if_test(expr.lift(True)):
+            flags = base.add_var("flags", [True, False, True])
+            base.store(expr.index(flags, 1), True)
+        block = base.data[-1].operation.blocks[0]
+        self.assertEqual(set(block.iter_declared_vars()), {flags})
+        self.assertEqual(flags.type, types.Array(types.Bool(), 3))
+
+    def test_cannot_add_array_input_in_scope(self):
+        base = QuantumCircuit()
+        with base.for_loop(range(3)):
+            with self.assertRaisesRegex(CircuitError, "cannot add an input variable"):
+                base.add_input("flags", types.Array(types.Bool(), 3))
+
     def test_later_blocks_do_not_inherit_captures(self):
         """Neither 'if' nor 'switch' should have later blocks inherit the captures from the earlier
         blocks, and the earlier blocks shouldn't be affected by later ones."""

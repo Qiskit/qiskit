@@ -13,12 +13,12 @@
 // methods for serialization/deserialization of Expression
 use crate::error::{QpyError, to_binrw_error};
 use crate::formats::{
-    ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
+    ArrayValuePack, ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
     ExpressionVarElementPack, ExpressionVarRegisterPack,
 };
 use crate::value::{
-    QPYReadData, QPYWriteData, clbit_at, clbit_index, creg_by_name, pack_biguint, pack_duration,
-    unpack_biguint, unpack_duration,
+    ArrayTypePack, QPYReadData, QPYWriteData, clbit_at, clbit_index, creg_by_name, pack_biguint,
+    pack_duration, unpack_biguint, unpack_duration,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, Error};
 use num_bigint::BigUint;
@@ -30,12 +30,30 @@ use qiskit_circuit::duration::Duration;
 use std::io::{Read, Seek, Write};
 
 // packed expression types implicitly contain the magic number identifying them in the qpy file
-pub(crate) fn pack_expression_type(ty: &Type) -> ExpressionTypePack {
+pub(crate) fn pack_expression_type(ty: &Type, version: u8) -> Result<ExpressionTypePack, QpyError> {
     match ty {
-        Type::Bool => ExpressionTypePack::Bool,
-        Type::Uint(width) => ExpressionTypePack::Int(*width),
-        Type::Duration => ExpressionTypePack::Duration,
-        Type::Float => ExpressionTypePack::Float,
+        Type::Bool => Ok(ExpressionTypePack::Bool),
+        Type::Uint(width) => Ok(ExpressionTypePack::Int(*width)),
+        Type::Duration => Ok(ExpressionTypePack::Duration),
+        Type::Float => Ok(ExpressionTypePack::Float),
+        Type::Array {
+            elem,
+            elem_width,
+            size,
+        } => {
+            if version < 18 {
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "array-typed expressions".to_string(),
+                    version,
+                    min_version: 18,
+                });
+            }
+            Ok(ExpressionTypePack::Array(ArrayTypePack::from_parts(
+                *elem,
+                *elem_width,
+                *size,
+            )))
+        }
     }
 }
 
@@ -45,22 +63,21 @@ pub(crate) fn unpack_expression_type(type_pack: ExpressionTypePack) -> Type {
         ExpressionTypePack::Duration => Type::Duration,
         ExpressionTypePack::Float => Type::Float,
         ExpressionTypePack::Int(width) => Type::Uint(width),
+        ExpressionTypePack::Array(pack) => pack.to_type(),
     }
 }
 
-pub(crate) fn pack_expression_value(
+fn pack_scalar_value_element(
     value: &Value,
     qpy_data: &QPYWriteData,
-) -> Result<ExpressionElementPack, QpyError> {
-    let (ty, value_pack) = match value {
-        Value::Uint { raw, ty } => {
-            match ty {
-                Type::Bool => (ty, ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // effectively truncating modulo 256
-                Type::Uint(_) => (ty, ExpressionValueElementPack::Int(pack_biguint(raw))),
-                _ => (ty, ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // TODO: should this be different?
-            }
-        }
-        Value::Float { raw, ty } => (ty, ExpressionValueElementPack::Float(*raw)),
+) -> Result<ExpressionValueElementPack, QpyError> {
+    match value {
+        Value::Uint { raw, ty } => match ty {
+            Type::Bool => Ok(ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // effectively truncating modulo 256
+            Type::Uint(_) => Ok(ExpressionValueElementPack::Int(pack_biguint(raw))),
+            _ => Ok(ExpressionValueElementPack::Bool(raw.to_bytes_le()[0])), // TODO: should this be different?
+        },
+        Value::Float { raw, .. } => Ok(ExpressionValueElementPack::Float(*raw)),
         Value::Duration(duration) => {
             if qpy_data.version < 16 && matches!(duration, Duration::ps(_)) {
                 return Err(QpyError::UnsupportedFeatureForVersion {
@@ -69,37 +86,112 @@ pub(crate) fn pack_expression_value(
                     min_version: qpy_data.version,
                 });
             }
+            Ok(ExpressionValueElementPack::Duration(pack_duration(
+                duration,
+            )))
+        }
+        Value::Array { .. } => Err(QpyError::SerializationError(
+            "nested array values are not supported in QPY".to_string(),
+        )),
+    }
+}
+
+fn unpack_scalar_value_element(
+    ty: Type,
+    value_element_pack: ExpressionValueElementPack,
+) -> Result<Value, QpyError> {
+    match value_element_pack {
+        ExpressionValueElementPack::Bool(val) => Ok(Value::Uint {
+            raw: BigUint::from_bytes_le(&[val]),
+            ty,
+        }),
+        ExpressionValueElementPack::Int(val) => Ok(Value::Uint {
+            raw: unpack_biguint(val),
+            ty,
+        }),
+        ExpressionValueElementPack::Duration(duration) => {
+            Ok(Value::Duration(unpack_duration(duration)))
+        }
+        ExpressionValueElementPack::Float(val) => Ok(Value::Float { raw: val, ty }),
+        ExpressionValueElementPack::Array(_) => Err(QpyError::DeserializationError(
+            "nested array values are not supported in QPY".to_string(),
+        )),
+    }
+}
+
+pub(crate) fn pack_expression_value(
+    value: &Value,
+    qpy_data: &QPYWriteData,
+) -> Result<ExpressionElementPack, QpyError> {
+    let (ty, value_pack) = match value {
+        Value::Array { elems, ty } => {
+            if qpy_data.version < 18 {
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "array-typed expressions".to_string(),
+                    version: qpy_data.version,
+                    min_version: 18,
+                });
+            }
+            let packed_elems = elems
+                .iter()
+                .map(|elem| pack_scalar_value_element(elem, qpy_data))
+                .collect::<Result<Vec<_>, _>>()?;
             (
-                &Type::Duration,
-                ExpressionValueElementPack::Duration(pack_duration(duration)),
+                ty,
+                ExpressionValueElementPack::Array(ArrayValuePack {
+                    elems: packed_elems,
+                }),
             )
         }
+        scalar => (
+            scalar_value_type(scalar),
+            pack_scalar_value_element(scalar, qpy_data)?,
+        ),
     };
     Ok(ExpressionElementPack::Value(
-        pack_expression_type(ty),
+        pack_expression_type(ty, qpy_data.version)?,
         value_pack,
     ))
+}
+
+fn scalar_value_type(value: &Value) -> &Type {
+    match value {
+        Value::Uint { ty, .. } | Value::Float { ty, .. } => ty,
+        Value::Duration(_) => &Type::Duration,
+        Value::Array { ty, .. } => ty,
+    }
 }
 
 pub(crate) fn unpack_expression_value(
     value_type_pack: ExpressionTypePack,
     value_element_pack: ExpressionValueElementPack,
-) -> Value {
+) -> Result<Value, QpyError> {
     let ty = unpack_expression_type(value_type_pack);
-    match value_element_pack {
-        ExpressionValueElementPack::Bool(val) => Value::Uint {
-            raw: BigUint::from_bytes_le(&[val]),
-            ty,
-        },
-        ExpressionValueElementPack::Int(val) => Value::Uint {
-            raw: unpack_biguint(val),
-            ty,
-        },
-        ExpressionValueElementPack::Duration(duration) => {
-            Value::Duration(unpack_duration(duration))
+    if let ExpressionValueElementPack::Array(array_pack) = value_element_pack {
+        let Type::Array {
+            elem,
+            elem_width,
+            size,
+        } = ty
+        else {
+            return Err(QpyError::DeserializationError(
+                "array EXPR_VALUE with a non-array EXPR_TYPE".to_string(),
+            ));
+        };
+        if array_pack.elems.len() != size as usize {
+            return Err(QpyError::DeserializationError(format!(
+                "array EXPR_VALUE has {} elements but type size is {size}",
+                array_pack.elems.len(),
+            )));
         }
-        ExpressionValueElementPack::Float(val) => Value::Float { raw: val, ty },
+        let elem_ty = Type::from_scalar(elem, elem_width);
+        let mut elems = Vec::with_capacity(array_pack.elems.len());
+        for pack in array_pack.elems {
+            elems.push(unpack_scalar_value_element(elem_ty, pack)?);
+        }
+        return Ok(Value::Array { elems, ty });
     }
+    unpack_scalar_value_element(ty, value_element_pack)
 }
 
 pub(crate) fn pack_expression_var(
@@ -130,7 +222,7 @@ pub(crate) fn pack_expression_var(
         ),
     };
     Ok(ExpressionElementPack::Var(
-        pack_expression_type(ty),
+        pack_expression_type(ty, qpy_data.version)?,
         value_pack,
     ))
 }
@@ -193,30 +285,36 @@ pub(crate) fn write_expression<W: Write + Seek>(
             .write_options(writer, endian, ())?;
         }
         Expr::Index(index_node) => {
-            ExpressionElementPack::Index(pack_expression_type(&index_node.ty)).write_options(
-                writer,
-                endian,
-                (),
-            )?;
+            ExpressionElementPack::Index(
+                pack_expression_type(&index_node.ty, qpy_data.version)
+                    .map_err(|e| to_binrw_error(writer, e))?,
+            )
+            .write_options(writer, endian, ())?;
             write_expression(&index_node.target, writer, endian, (qpy_data,))?;
             write_expression(&index_node.index, writer, endian, (qpy_data,))?;
         }
         Expr::Cast(cast_node) => {
             ExpressionElementPack::Cast(
-                pack_expression_type(&cast_node.ty),
+                pack_expression_type(&cast_node.ty, qpy_data.version)
+                    .map_err(|e| to_binrw_error(writer, e))?,
                 cast_node.implicit as u8,
             )
             .write_options(writer, endian, ())?;
             write_expression(&cast_node.operand, writer, endian, (qpy_data,))?;
         }
         Expr::Unary(unary_node) => {
-            ExpressionElementPack::Unary(pack_expression_type(&unary_node.ty), unary_node.op as u8)
-                .write_options(writer, endian, ())?;
+            ExpressionElementPack::Unary(
+                pack_expression_type(&unary_node.ty, qpy_data.version)
+                    .map_err(|e| to_binrw_error(writer, e))?,
+                unary_node.op as u8,
+            )
+            .write_options(writer, endian, ())?;
             write_expression(&unary_node.operand, writer, endian, (qpy_data,))?;
         }
         Expr::Binary(binary_node) => {
             ExpressionElementPack::Binary(
-                pack_expression_type(&binary_node.ty),
+                pack_expression_type(&binary_node.ty, qpy_data.version)
+                    .map_err(|e| to_binrw_error(writer, e))?,
                 binary_node.op as u8,
             )
             .write_options(writer, endian, ())?;
@@ -235,7 +333,8 @@ pub(crate) fn read_expression<R: Read + Seek>(
     let exp_element = ExpressionElementPack::read_options(reader, endian, ())?;
     match exp_element {
         ExpressionElementPack::Value(value_type_pack, value_element_pack) => Ok(Expr::Value(
-            unpack_expression_value(value_type_pack, value_element_pack),
+            unpack_expression_value(value_type_pack, value_element_pack)
+                .map_err(|e| to_binrw_error(reader, e))?,
         )),
         ExpressionElementPack::Var(var_type_pack, var_element_pack) => Ok(Expr::Var(
             unpack_expression_var(var_type_pack, var_element_pack, qpy_data)

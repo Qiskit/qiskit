@@ -457,9 +457,7 @@ class TestCircuitQASM3(QiskitTestCase):
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
-input float[64] _t_0_;
-input float[64] _t_1_;
-input float[64] _t_2_;
+input array[float[64], 3] t_0;
 gate rxx(p0) _gate_q_0, _gate_q_1 {
   h _gate_q_0;
   h _gate_q_1;
@@ -486,7 +484,7 @@ gate ryy(p0) _gate_q_0, _gate_q_1 {
   sx _gate_q_0;
   sx _gate_q_1;
 }
-gate PauliEvolution_0(_t_1_) _gate_q_0, _gate_q_1 {
+gate PauliEvolution_1(_t_1_) _gate_q_0, _gate_q_1 {
   ryy(2*_t_1_) _gate_q_0, _gate_q_1;
 }
 gate rzz(p0) _gate_q_0, _gate_q_1 {
@@ -494,13 +492,13 @@ gate rzz(p0) _gate_q_0, _gate_q_1 {
   rz(p0) _gate_q_1;
   cx _gate_q_0, _gate_q_1;
 }
-gate PauliEvolution_1(_t_2_) _gate_q_0, _gate_q_1 {
+gate PauliEvolution_2(_t_2_) _gate_q_0, _gate_q_1 {
   rzz(2*_t_2_) _gate_q_0, _gate_q_1;
 }
 qubit[2] q;
-PauliEvolution(_t_0_) q[0], q[1];
-PauliEvolution_0(_t_1_) q[0], q[1];
-PauliEvolution_1(_t_2_) q[0], q[1];
+PauliEvolution(t_0[0]) q[0], q[1];
+PauliEvolution_1(t_0[1]) q[0], q[1];
+PauliEvolution_2(t_0[2]) q[0], q[1];
 """
         self.assertEqual(dumps(qc), expected)
 
@@ -1946,6 +1944,71 @@ a = !a;
 b = b & 8;
 c = ~b;
 e = 7.5;
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_classical_array_export(self):
+        """1-D classical arrays declare, index, and store like the OpenQASM 3 spelling."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit(1, 1)
+        flags = qc.add_var("flags", [True, False, True])
+        delays = qc.add_input("delays", types.Array(types.Duration(), 4))
+        qc.store(expr.index(flags, 0), False)
+        qc.store(expr.index(delays, 1), Duration.dt(100))
+        qc.store(flags, [True, True, True])
+        words = qc.add_var("words", [0, 1, 2, 3])
+        qc.store(expr.index(expr.index(words, 0), 1), True)
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input array[duration, 4] delays;
+bit[1] c;
+qubit[1] q;
+array[bool, 3] flags = {true, false, true};
+array[uint[2], 4] words = {0, 1, 2, 3};
+flags[0] = false;
+delays[1] = 100dt;
+flags[0] = true;
+flags[1] = true;
+flags[2] = true;
+words[0][1] = true;
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_parameter_vector_as_input_array(self):
+        """Unbound ParameterVector elements export as one input array."""
+        theta = ParameterVector("theta", 3)
+        extra = Parameter("extra")
+        qc = QuantumCircuit(1)
+        qc.rx(theta[0], 0)
+        qc.ry(theta[1], 0)
+        qc.rz(theta[2], 0)
+        qc.p(extra, 0)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input float[64] extra;
+input array[float[64], 3] theta;
+qubit[1] q;
+rx(theta[0]) q[0];
+ry(theta[1]) q[0];
+rz(theta[2]) q[0];
+p(extra) q[0];
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_parameter_vector_declares_full_size(self):
+        theta = ParameterVector("theta", 4)
+        qc = QuantumCircuit(1)
+        qc.rx(theta[0], 0)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input array[float[64], 4] theta;
+qubit[1] q;
+rx(theta[0]) q[0];
 """
         self.assertEqual(dumps(qc), expected)
 

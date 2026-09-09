@@ -71,9 +71,11 @@ and :class:`Binary.Op` respectively.
     :members: Op
     :member-order: bysource
 
-Bit-like types (unsigned integers) can be indexed by integer types, represented by :class:`Index`.
-The result is a single bit.  The resulting expression has an associated memory location (and so can
-be used as an lvalue for :class:`.Store`, etc) if the target is also an lvalue.
+Bit-like types (unsigned integers) and 1-D :class:`~.types.Array` values can be indexed by
+unsigned integer types, represented by :class:`Index`.  Indexing a bit-like value yields a
+single bit; indexing an array yields the element type.  The resulting expression has an
+associated memory location (and so can be used as an lvalue for :class:`.Store`, etc) if the
+target is also an lvalue.
 
 .. autoclass:: Index
 
@@ -145,8 +147,8 @@ Similarly, the binary operations and relations have helper functions defined.
 .. autofunction:: mul
 .. autofunction:: div
 
-You can index into unsigned integers and bit-likes using another unsigned integer of any width.
-This includes in storing operations, if the target of the index is writeable.
+You can index into unsigned integers, bit-likes, and 1-D arrays using another unsigned integer of
+any width.  This includes in storing operations, if the target of the index is writeable.
 
 .. autofunction:: index
 

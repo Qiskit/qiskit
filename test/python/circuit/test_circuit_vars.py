@@ -580,3 +580,44 @@ class TestCircuitVars(QiskitTestCase):
 
         # When giving an `Stretch`, the match must be exact, not just the name.
         self.assertFalse(QuantumCircuit(captures=[a]).has_stretch(expr.Stretch.new("a")))
+
+    def test_add_array_var_infers_type(self):
+        qc = QuantumCircuit()
+        flags = qc.add_var("flags", [True, False, True])
+        self.assertEqual(flags.type, types.Array(types.Bool(), 3))
+        self.assertEqual(qc.data[0].operation, Store(flags, expr.lift([True, False, True])))
+        words = qc.add_var("words", [0, 1, 2, 3])
+        self.assertEqual(words.type, types.Array(types.Uint(2), 4))
+
+    def test_add_array_input_and_uninitialized(self):
+        qc = QuantumCircuit()
+        params = qc.add_input("params", types.Array(types.Uint(32), 2))
+        self.assertEqual(params.type, types.Array(types.Uint(32), 2))
+        self.assertEqual({params}, set(qc.iter_input_vars()))
+
+        scratch = expr.Var.new("scratch", types.Array(types.Bool(), 3))
+        qc2 = QuantumCircuit()
+        qc2.add_uninitialized_var(scratch)
+        self.assertEqual({scratch}, set(qc2.iter_declared_vars()))
+
+    def test_add_array_var_widens_uint_initializer(self):
+        words = expr.Var.new("words", types.Array(types.Uint(8), 3))
+        qc = QuantumCircuit()
+        qc.add_var(words, [1, 2, 3])
+        self.assertEqual(qc.data[0].operation, Store(words, expr.Value([1, 2, 3], words.type)))
+
+    def test_array_copy_preserves_var(self):
+        qc = QuantumCircuit()
+        flags = qc.add_var("flags", [True, False, True])
+        copied = qc.copy()
+        self.assertEqual(list(copied.iter_vars()), [flags])
+        self.assertEqual(copied.get_var("flags").type, types.Array(types.Bool(), 3))
+
+    def test_array_compose_preserves_var(self):
+        inner = QuantumCircuit()
+        flags = inner.add_var("flags", [True, False, True])
+        inner.store(expr.index(flags, 0), False)
+        outer = QuantumCircuit()
+        outer.compose(inner, inplace=True)
+        self.assertEqual(list(outer.iter_vars()), [flags])
+        self.assertEqual(outer.get_var("flags"), flags)

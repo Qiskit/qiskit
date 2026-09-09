@@ -2235,6 +2235,49 @@ class TestLoadFromQPY(QiskitTestCase):
         ):
             dump(qc, fptr, version=version)
 
+    def test_array_typed_vars_roundtrip(self):
+        """Test QPY roundtrip of 1-D classical array vars, stores, and indexing."""
+        from qiskit.circuit import Duration
+
+        qc = QuantumCircuit()
+        flags = qc.add_var("flags", [True, False, True])
+        words = qc.add_var("words", [0, 1, 3])
+        qc.add_input("amps", types.Array(types.Float(), 2))
+        qc.add_var("delays", [Duration.dt(1), Duration.dt(2)])
+        qc.store(expr.index(flags, 0), False)
+        qc.store(words, [1, 2, 3])
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertMinimalVarEqual(qc, new_qc)
+        self.assertEqual(new_qc.get_var("flags").type, types.Array(types.Bool(), 3))
+        self.assertEqual(new_qc.get_var("words").type, types.Array(types.Uint(2), 3))
+        self.assertEqual(new_qc.get_var("delays").type, types.Array(types.Duration(), 2))
+
+    def test_empty_array_var_roundtrip(self):
+        """Zero-length arrays are legal and must roundtrip."""
+        qc = QuantumCircuit()
+        qc.add_uninitialized_var(expr.Var.new("empty", types.Array(types.Bool(), 0)))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertMinimalVarEqual(qc, new_qc)
+        self.assertEqual(new_qc.get_var("empty").type, types.Array(types.Bool(), 0))
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 18))
+    def test_pre_v18_rejects_array_typed_expr(self, version):
+        """Test that dumping to older QPY versions rejects array-typed expressions."""
+        qc = QuantumCircuit()
+        qc.add_var("flags", [True, False])
+        with (
+            io.BytesIO() as fptr,
+            self.assertRaisesRegex(UnsupportedFeatureForVersion, "version 18 is required.*array"),
+        ):
+            dump(qc, fptr, version=version)
+
     @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 14))
     def test_pre_v14_rejects_stretch_expr(self, version):
         """Test that dumping to older QPY versions rejects duration-typed expressions."""

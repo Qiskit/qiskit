@@ -35,13 +35,15 @@ singleton instances to facilitate this.
 
 The :class:`Bool` type represents :class:`.Clbit` and the literals ``True`` and ``False``, the
 :class:`Uint` type represents :class:`.ClassicalRegister` and Python integers, the :class:`Float`
-type represents Python floats, and the :class:`Duration` type represents a duration for use in
-timing-aware circuit operations.
+type represents Python floats, the :class:`Duration` type represents a duration for use in
+timing-aware circuit operations, and the :class:`Array` type represents a 1-D array of one of those
+scalar types.
 
 .. autoclass:: Bool
 .. autoclass:: Uint
 .. autoclass:: Float
 .. autoclass:: Duration
+.. autoclass:: Array
 
 Working with types
 ==================
@@ -95,6 +97,7 @@ direction, and must be done explicitly.
 """
 
 __all__ = [
+    "Array",
     "Bool",
     "CastKind",
     "Duration",
@@ -109,5 +112,5 @@ __all__ = [
     "order",
 ]
 
-from .types import Type, Bool, Duration, Float, Uint
+from .types import Type, Array, Bool, Duration, Float, Uint
 from .ordering import Ordering, order, is_subtype, is_supertype, greater, CastKind, cast_kind

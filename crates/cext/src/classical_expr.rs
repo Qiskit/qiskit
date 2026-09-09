@@ -19,7 +19,7 @@ use qiskit_circuit::{
     bit::{ClassicalRegister, ShareableClbit},
     classical::{
         expr::{Binary, BinaryOp, Cast, Expr, Index, Stretch, Unary, UnaryOp, Value, Var},
-        types::Type,
+        types::{ScalarKind, Type},
     },
     duration::Duration,
 };
@@ -71,6 +71,8 @@ pub enum CExprType {
     Float = 2,
     /// Unsigned integer type
     Uint = 3,
+    /// 1-D array of a scalar classical type
+    Array = 4,
 }
 
 impl From<&Type> for CExprType {
@@ -80,6 +82,7 @@ impl From<&Type> for CExprType {
             Type::Duration => Self::Duration,
             Type::Float => Self::Float,
             Type::Uint(_) => Self::Uint,
+            Type::Array { .. } => Self::Array,
         }
     }
 }
@@ -90,6 +93,7 @@ impl From<&Value> for CExprType {
             Value::Duration(_) => Self::Duration,
             Value::Float { ty, .. } => Self::from(ty),
             Value::Uint { ty, .. } => Self::from(ty),
+            Value::Array { ty, .. } => Self::from(ty),
         }
     }
 }
@@ -100,7 +104,8 @@ impl From<&Value> for CExprType {
 pub struct CExprTypeInfo {
     /// The expression type
     ty: CExprType,
-    /// Bit width for the Uint expression type
+    /// Bit width for the Uint expression type. For `Array`, the element Uint width
+    /// (zero when the element type is not Uint).
     width: u32,
 }
 
@@ -111,6 +116,11 @@ impl From<CExprTypeInfo> for Type {
             CExprType::Duration => Type::Duration,
             CExprType::Float => Type::Float,
             CExprType::Uint => Type::Uint(value.width),
+            CExprType::Array => {
+                panic!(
+                    "array types require qk_var_array_type_info / qk_value_array_type_info to recover size"
+                )
+            }
         }
     }
 }
@@ -134,7 +144,44 @@ impl From<&Type> for CExprTypeInfo {
                 ty: CExprType::Uint,
                 width: *w,
             },
+            Type::Array {
+                elem, elem_width, ..
+            } => CExprTypeInfo {
+                ty: CExprType::Array,
+                width: match elem {
+                    ScalarKind::Uint => *elem_width,
+                    _ => 0,
+                },
+            },
         }
+    }
+}
+
+/// Type information for a 1-D classical array.
+///
+/// `CExprTypeInfo` cannot represent array size, so array-typed values and variables
+/// are inspected with `qk_value_array_type_info` / `qk_var_array_type_info`.
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CArrayTypeInfo {
+    /// Element type (always a scalar)
+    elem: CExprTypeInfo,
+    /// Number of elements
+    size: u32,
+}
+
+fn array_type_info(ty: &Type) -> CArrayTypeInfo {
+    let Type::Array {
+        elem,
+        elem_width,
+        size,
+    } = ty
+    else {
+        panic!("array type info requested for a non-array type")
+    };
+    CArrayTypeInfo {
+        elem: CExprTypeInfo::from(&Type::from_scalar(*elem, *elem_width)),
+        size: *size,
     }
 }
 
@@ -709,7 +756,9 @@ pub unsafe extern "C" fn qk_value_type_info(value: *const Value) -> CExprTypeInf
             ty: CExprType::Duration,
             width: 0,
         },
-        Value::Float { ty, .. } | Value::Uint { ty, .. } => CExprTypeInfo::from(ty),
+        Value::Float { ty, .. } | Value::Uint { ty, .. } | Value::Array { ty, .. } => {
+            CExprTypeInfo::from(ty)
+        }
     }
 }
 
@@ -910,13 +959,7 @@ pub unsafe extern "C" fn qk_var_type_info(var: *const Var) -> CExprTypeInfo {
         Var::Bit { .. } => &Type::Bool,
     };
 
-    CExprTypeInfo {
-        ty: CExprType::from(ty),
-        width: match ty {
-            Type::Uint(width) => *width,
-            _ => 0,
-        },
-    }
+    CExprTypeInfo::from(ty)
 }
 
 /// @ingroup QkClassicalExpressions
@@ -945,6 +988,117 @@ pub unsafe extern "C" fn qk_stretch_name(stretch: *const Stretch) -> *mut c_char
     CString::new(stretch.name.as_str())
         .expect("Stretch should have a valid name")
         .into_raw()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Return array type information for a variable.
+///
+/// Panics if ``var`` is not array-typed.
+///
+/// @param var A pointer to an array-typed variable.
+///
+/// @return A `QkArrayTypeInfo` with the scalar element type and length.
+///
+/// # Example
+/// ```c
+/// QkArrayTypeInfo info = qk_var_array_type_info(var);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``var`` is not a valid, non-null pointer to a ``QkVar``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_var_array_type_info(var: *const Var) -> CArrayTypeInfo {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let var = unsafe { const_ptr_as_ref(var) };
+    let ty = match var {
+        Var::Standalone { ty, .. } | Var::Register { ty, .. } => ty,
+        Var::Bit { .. } => panic!("qk_var_array_type_info called on a non-array var"),
+    };
+    array_type_info(ty)
+}
+
+/// @ingroup QkClassicalExpressions
+/// Return array type information for a value.
+///
+/// Panics if ``value`` is not an array value.
+///
+/// @param value A pointer to an array value.
+///
+/// @return A `QkArrayTypeInfo` with the scalar element type and length.
+///
+/// # Example
+/// ```c
+/// QkArrayTypeInfo info = qk_value_array_type_info(value);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkValue``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_array_type_info(value: *const Value) -> CArrayTypeInfo {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let value = unsafe { const_ptr_as_ref(value) };
+    let Value::Array { ty, .. } = value else {
+        panic!("qk_value_array_type_info called on a non-array value")
+    };
+    array_type_info(ty)
+}
+
+/// @ingroup QkClassicalExpressions
+/// Return the number of elements in an array value.
+///
+/// Panics if ``value`` is not an array value.
+///
+/// @param value A pointer to an array value.
+///
+/// @return The number of elements.
+///
+/// # Example
+/// ```c
+/// uint32_t n = qk_value_array_len(value);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkValue``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_array_len(value: *const Value) -> u32 {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let value = unsafe { const_ptr_as_ref(value) };
+    let Value::Array { elems, .. } = value else {
+        panic!("qk_value_array_len called on a non-array value")
+    };
+    elems.len() as u32
+}
+
+/// @ingroup QkClassicalExpressions
+/// Return a borrowed pointer to one element of an array value.
+///
+/// The returned pointer is valid for as long as ``value`` is. Panics if ``value`` is not
+/// an array value or if ``index`` is out of range.
+///
+/// @param value A pointer to an array value.
+/// @param index Zero-based element index.
+///
+/// @return A borrowed pointer to the element ``QkValue``.
+///
+/// # Example
+/// ```c
+/// const QkValue *elem = qk_value_array_element(value, 0);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkValue``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_array_element(value: *const Value, index: u32) -> *const Value {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let value = unsafe { const_ptr_as_ref(value) };
+    let Value::Array { elems, .. } = value else {
+        panic!("qk_value_array_element called on a non-array value")
+    };
+    ptr::from_ref(&elems[index as usize])
 }
 
 //////////////////////////////////////////////////////////////////
@@ -1067,6 +1221,7 @@ pub unsafe extern "C" fn inner_test_expr_kinds_and_types(
             raw: BigUint::from(0u32),
             ty: Type::Uint(*w),
         }),
+        Type::Array { .. } => panic!("inner_test_expr_kinds_and_types does not construct arrays"),
     };
 
     let var = Expr::Var(Var::Standalone {
@@ -1142,9 +1297,56 @@ pub unsafe extern "C" fn inner_test_value(
             raw: BigUint::from(u_val),
             ty: Type::Uint(4),
         },
+        CExprType::Array => panic!("inner_test_value does not construct arrays"),
     };
 
     Box::into_raw(Box::new(Expr::Value(value)))
+}
+
+/// cbindgen:qk-vtable-rules=[no-export]
+/// cbindgen:no-export
+#[allow(clippy::missing_safety_doc)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inner_test_array_value() -> *mut Expr {
+    let elem_ty = Type::Uint(8);
+    let value = Value::Array {
+        elems: vec![
+            Value::Uint {
+                raw: BigUint::from(1u32),
+                ty: elem_ty,
+            },
+            Value::Uint {
+                raw: BigUint::from(2u32),
+                ty: elem_ty,
+            },
+            Value::Uint {
+                raw: BigUint::from(3u32),
+                ty: elem_ty,
+            },
+        ],
+        ty: Type::Array {
+            elem: ScalarKind::Uint,
+            elem_width: 8,
+            size: 3,
+        },
+    };
+    Box::into_raw(Box::new(Expr::Value(value)))
+}
+
+/// cbindgen:qk-vtable-rules=[no-export]
+/// cbindgen:no-export
+#[allow(clippy::missing_safety_doc)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inner_test_array_var() -> *mut Expr {
+    Box::into_raw(Box::new(Expr::Var(Var::Standalone {
+        uuid: Uuid::new_v4().as_u128(),
+        name: "arr".to_owned(),
+        ty: Type::Array {
+            elem: ScalarKind::Uint,
+            elem_width: 8,
+            size: 3,
+        },
+    })))
 }
 
 /// cbindgen:qk-vtable-rules=[no-export]

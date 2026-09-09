@@ -14,6 +14,7 @@
 
 
 __all__ = [
+    "Array",
     "Bool",
     "Duration",
     "Float",
@@ -27,4 +28,5 @@ from qiskit._accelerate.circuit.classical.types import (
     Uint,
     Float,
     Duration,
+    Array,
 )

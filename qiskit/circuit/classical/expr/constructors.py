@@ -107,12 +107,22 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
             Var(ClassicalRegister(3, "c"), Uint(5))
             >>> expr.lift(5, types.Uint(4))
             Value(5, Uint(4))
+
+        Sequences of scalar literals lift to 1-D :class:`~.types.Array` values::
+
+            >>> expr.lift([0, 1, 2, 3])
+            Value([0, 1, 2, 3], Array(Uint(2), 4))
+            >>> expr.lift([True, False, True]).type
+            Array(Bool(), 3)
     """
     if isinstance(value, Expr):
         if type is not None:
             raise ValueError("use 'cast' to cast existing expressions, not 'lift'")
         return value
     from qiskit.circuit import Clbit, ClassicalRegister, Duration
+
+    if isinstance(value, (list, tuple)):
+        return _lift_sequence(value, type)
 
     inferred: types.Type
     if value is True or value is False or isinstance(value, Clbit):
@@ -141,6 +151,57 @@ def lift(value: typing.Any, /, type: types.Type | None = None) -> Expr:
     raise TypeError(
         f"the explicit type '{type}' is not suitable for representing '{value}';"
         f" it must be non-strict supertype of '{inferred}'"
+    )
+
+
+def _lift_sequence(value: list | tuple, type: types.Type | None) -> Expr:
+    from qiskit.circuit import Clbit, ClassicalRegister
+
+    if type is not None:
+        if type.kind is not types.Array:
+            raise TypeError(
+                f"the explicit type '{type}' is not suitable for representing a sequence"
+            )
+        if type.size != len(value):
+            raise TypeError(f"sequence of length {len(value)} cannot be represented as '{type}'")
+        elems = []
+        for item in value:
+            if isinstance(item, (list, tuple)):
+                raise TypeError("nested sequences are not supported as array elements")
+            if isinstance(item, (Clbit, ClassicalRegister, Expr)):
+                raise TypeError(
+                    f"cannot use '{item}' as an array element; only scalar literals are allowed"
+                )
+            elems.append(lift(item, type.element))
+        return Value([elem.value for elem in elems], type)
+
+    if not value:
+        raise TypeError("cannot infer a type for an empty sequence")
+
+    lifted = []
+    for item in value:
+        if isinstance(item, (list, tuple)):
+            raise TypeError("nested sequences are not supported as array elements")
+        if isinstance(item, (Clbit, ClassicalRegister, Expr)):
+            raise TypeError(
+                f"cannot use '{item}' as an array element; only scalar literals are allowed"
+            )
+        lifted.append(lift(item))
+
+    kind = lifted[0].type.kind
+    if any(elem.type.kind is not kind for elem in lifted):
+        raise TypeError("cannot lift a heterogeneous sequence to an array")
+    if kind is types.Uint:
+        elem_type = lifted[0].type
+        for elem in lifted[1:]:
+            elem_type = types.greater(elem_type, elem.type)
+    elif kind in (types.Bool, types.Float, types.Duration):
+        elem_type = lifted[0].type
+    else:
+        raise TypeError(f"cannot form an array of '{lifted[0].type}'")
+    return Value(
+        [lift(item, elem_type).value for item in value],
+        types.Array(elem_type, len(value)),
     )
 
 
@@ -553,7 +614,10 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
     """Index into the ``target`` with the given integer ``index``, lifting the values into
     :class:`Value` nodes if required.
 
-    This can be used as the target of a :class:`.Store`, if the ``target`` is itself an lvalue.
+    The target may be an unsigned integer (including a :class:`.ClassicalRegister`), in which
+    case the result is a single bit, or a 1-D :class:`~.types.Array`, in which case the result
+    has the array's element type.  This can be used as the target of a :class:`.Store`, if the
+    ``target`` is itself an lvalue.
 
     Examples:
         Index into a classical register with a literal::
@@ -564,9 +628,13 @@ def index(target: typing.Any, index: typing.Any, /) -> Expr:
             Index(Var(ClassicalRegister(8, "a"), Uint(8)), Value(3, Uint(2)), Bool())
     """
     target, index = lift(target), lift(index)
-    if target.type.kind is not types.Uint or index.type.kind is not types.Uint:
+    if index.type.kind is not types.Uint:
         raise TypeError(f"invalid types for indexing: '{target.type}' and '{index.type}'")
-    return Index(target, index, types.Bool())
+    if target.type.kind is types.Uint:
+        return Index(target, index, types.Bool())
+    if target.type.kind is types.Array:
+        return Index(target, index, target.type.element)
+    raise TypeError(f"invalid types for indexing: '{target.type}' and '{index.type}'")
 
 
 def _binary_sum(op: Binary.Op, left: typing.Any, right: typing.Any) -> Expr:

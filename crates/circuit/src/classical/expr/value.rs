@@ -14,16 +14,100 @@ use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
 use crate::duration::Duration;
 use num_bigint::BigUint;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
+use pyo3::types::{PyList, PyTuple};
 use pyo3::{IntoPyObjectExt, intern};
 
-/// A single scalar value expression.
+/// A single scalar or 1-D array value expression.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Duration(Duration),
     Float { raw: f64, ty: Type },
     Uint { raw: BigUint, ty: Type },
+    Array { elems: Vec<Value>, ty: Type },
+}
+
+impl Value {
+    /// Construct a [`Value`] from a Python object and a resolved type.
+    fn from_py(value: &Bound<PyAny>, ty: Type) -> PyResult<Self> {
+        match ty {
+            Type::Array { size, .. } => {
+                let seq = value.extract::<Vec<Bound<PyAny>>>().map_err(|_| {
+                    PyTypeError::new_err("array Value requires a sequence of scalar elements")
+                })?;
+                if seq.len() != size as usize {
+                    return Err(PyValueError::new_err(format!(
+                        "array Value has {} elements but type is '{}'",
+                        seq.len(),
+                        format_type(ty)
+                    )));
+                }
+                let Some(elem_ty) = ty.array_element() else {
+                    unreachable!("Type::Array always has an element type")
+                };
+                let mut elems = Vec::with_capacity(seq.len());
+                for item in seq {
+                    let inner = Self::from_py(&item, elem_ty)?;
+                    if matches!(inner, Value::Array { .. }) {
+                        return Err(PyTypeError::new_err(
+                            "nested arrays are not supported as Value elements",
+                        ));
+                    }
+                    elems.push(inner);
+                }
+                Ok(Value::Array { elems, ty })
+            }
+            _ => {
+                if let Ok(raw) = value.extract::<BigUint>() {
+                    Ok(Value::Uint { raw, ty })
+                } else if let Ok(raw) = value.extract::<f64>() {
+                    Ok(Value::Float { raw, ty })
+                } else {
+                    Ok(Value::Duration(value.extract()?))
+                }
+            }
+        }
+    }
+
+    fn payload_into_py(&self, py: Python) -> PyResult<Py<PyAny>> {
+        match self {
+            Value::Duration(d) => d.into_py_any(py),
+            Value::Float { raw, .. } => raw.into_py_any(py),
+            Value::Uint { raw, .. } => raw.into_py_any(py),
+            Value::Array { elems, .. } => {
+                let list = PyList::empty(py);
+                for elem in elems {
+                    list.append(elem.payload_into_py(py)?)?;
+                }
+                list.into_py_any(py)
+            }
+        }
+    }
+
+    pub fn ty(&self) -> Type {
+        match self {
+            Value::Duration(_) => Type::Duration,
+            Value::Float { ty, .. } | Value::Uint { ty, .. } | Value::Array { ty, .. } => *ty,
+        }
+    }
+}
+
+fn format_type(ty: Type) -> String {
+    match ty {
+        Type::Bool => "Bool()".to_string(),
+        Type::Duration => "Duration()".to_string(),
+        Type::Float => "Float()".to_string(),
+        Type::Uint(w) => format!("Uint({w})"),
+        Type::Array {
+            elem,
+            elem_width,
+            size,
+        } => format!(
+            "Array({}, {size})",
+            format_type(Type::from_scalar(elem, elem_width))
+        ),
+    }
 }
 
 impl<'py> IntoPyObject<'py> for Value {
@@ -45,7 +129,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Value {
     }
 }
 
-/// A single scalar value.
+/// A single scalar or 1-D array value.
 #[pyclass(
     eq,
     extends = PyExpr,
@@ -61,23 +145,18 @@ impl PyValue {
     #[new]
     #[pyo3(text_signature = "(value, type)")]
     fn new(py: Python, value: Bound<PyAny>, ty: Type) -> PyResult<Py<Self>> {
-        let value = if let Ok(raw) = value.extract::<BigUint>() {
-            Value::Uint { raw, ty }
-        } else if let Ok(raw) = value.extract::<f64>() {
-            Value::Float { raw, ty }
-        } else {
-            Value::Duration(value.extract()?)
-        };
-        Py::new(py, (PyValue(value), PyExpr(ExprKind::Value)))
+        Py::new(
+            py,
+            (
+                PyValue(Value::from_py(&value, ty)?),
+                PyExpr(ExprKind::Value),
+            ),
+        )
     }
 
     #[getter]
     fn get_value(&self, py: Python) -> PyResult<Py<PyAny>> {
-        match &self.0 {
-            Value::Duration(d) => d.into_py_any(py),
-            Value::Float { raw, .. } => raw.into_py_any(py),
-            Value::Uint { raw, .. } => raw.into_py_any(py),
-        }
+        self.0.payload_into_py(py)
     }
 
     #[getter]
@@ -87,10 +166,7 @@ impl PyValue {
 
     #[getter]
     fn get_type(&self, py: Python) -> PyResult<Py<PyAny>> {
-        match self.0 {
-            Value::Duration(_) => Type::Duration.into_py_any(py),
-            Value::Float { ty, .. } | Value::Uint { ty, .. } => ty.into_py_any(py),
-        }
+        self.0.ty().into_py_any(py)
     }
 
     fn accept<'py>(

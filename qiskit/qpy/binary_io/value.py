@@ -298,40 +298,7 @@ class _ExprWriter(expr.ExprVisitor[None]):
     def visit_value(self, node, /):
         self.file_obj.write(type_keys.Expression.VALUE)
         self._write_expr_type(node.type)
-        if node.value is True or node.value is False:
-            self.file_obj.write(type_keys.ExprValue.BOOL)
-            self.file_obj.write(
-                struct.pack(formats.EXPR_VALUE_BOOL_PACK, *formats.EXPR_VALUE_BOOL(node.value))
-            )
-        elif isinstance(node.value, int):
-            self.file_obj.write(type_keys.ExprValue.INT)
-            if node.value == 0:
-                num_bytes = 0
-                buffer = b""
-            else:
-                # This wastes a byte for `-(2 ** (8*n - 1))` for natural `n`, but they'll still
-                # decode fine so it's not worth another special case.  They'll encode to
-                # b"\xff\x80\x00\x00...", but we could encode them to b"\x80\x00\x00...".
-                num_bytes = (node.value.bit_length() // 8) + 1
-                buffer = node.value.to_bytes(num_bytes, "big", signed=True)
-            self.file_obj.write(
-                struct.pack(formats.EXPR_VALUE_INT_PACK, *formats.EXPR_VALUE_INT(num_bytes))
-            )
-            self.file_obj.write(buffer)
-        elif isinstance(node.value, float):
-            self.file_obj.write(type_keys.ExprValue.FLOAT)
-            self.file_obj.write(
-                struct.pack(formats.EXPR_VALUE_FLOAT_PACK, *formats.EXPR_VALUE_FLOAT(node.value))
-            )
-        elif isinstance(node.value, Duration):
-            if self.version < 16 and node.value.unit() == "ps":
-                raise exceptions.UnsupportedFeatureForVersion(
-                    "Duration variant 'Duration.ps'", required=16, target=self.version
-                )
-            self.file_obj.write(type_keys.ExprValue.DURATION)
-            _write_duration(self.file_obj, node.value)
-        else:
-            raise exceptions.QpyError(f"unhandled Value object '{node.value}'")
+        _write_expr_value_payload(self.file_obj, node.value, node.type, self.version)
 
     def visit_cast(self, node, /):
         self.file_obj.write(type_keys.Expression.CAST)
@@ -379,6 +346,52 @@ def _write_expr(
     node.accept(_ExprWriter(file_obj, clbit_indices, standalone_var_indices, version))
 
 
+def _write_expr_value_payload(file_obj, value, type_: types.Type, version: int):
+    """Write an ``EXPR_VALUE`` discriminator and payload (not the enclosing ``EXPRESSION``)."""
+    if type_.kind is types.Array:
+        if version < 18:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "array-typed expressions", required=18, target=version
+            )
+        if not isinstance(value, (list, tuple)):
+            raise exceptions.QpyError(f"unhandled array Value object '{value}'")
+        file_obj.write(type_keys.ExprValue.ARRAY)
+        file_obj.write(
+            struct.pack(formats.EXPR_VALUE_ARRAY_PACK, *formats.EXPR_VALUE_ARRAY(len(value)))
+        )
+        for elem in value:
+            _write_expr_value_payload(file_obj, elem, type_.element, version)
+        return
+    if value is True or value is False:
+        file_obj.write(type_keys.ExprValue.BOOL)
+        file_obj.write(struct.pack(formats.EXPR_VALUE_BOOL_PACK, *formats.EXPR_VALUE_BOOL(value)))
+    elif isinstance(value, int):
+        file_obj.write(type_keys.ExprValue.INT)
+        if value == 0:
+            num_bytes = 0
+            buffer = b""
+        else:
+            # This wastes a byte for `-(2 ** (8*n - 1))` for natural `n`, but they'll still
+            # decode fine so it's not worth another special case.  They'll encode to
+            # b"\xff\x80\x00\x00...", but we could encode them to b"\x80\x00\x00...".
+            num_bytes = (value.bit_length() // 8) + 1
+            buffer = value.to_bytes(num_bytes, "big", signed=True)
+        file_obj.write(struct.pack(formats.EXPR_VALUE_INT_PACK, *formats.EXPR_VALUE_INT(num_bytes)))
+        file_obj.write(buffer)
+    elif isinstance(value, float):
+        file_obj.write(type_keys.ExprValue.FLOAT)
+        file_obj.write(struct.pack(formats.EXPR_VALUE_FLOAT_PACK, *formats.EXPR_VALUE_FLOAT(value)))
+    elif isinstance(value, Duration):
+        if version < 16 and value.unit() == "ps":
+            raise exceptions.UnsupportedFeatureForVersion(
+                "Duration variant 'Duration.ps'", required=16, target=version
+            )
+        file_obj.write(type_keys.ExprValue.DURATION)
+        _write_duration(file_obj, value)
+    else:
+        raise exceptions.QpyError(f"unhandled Value object '{value}'")
+
+
 def _write_expr_type(file_obj, type_: types.Type, version: int):
     if type_.kind is types.Bool:
         file_obj.write(type_keys.ExprType.BOOL)
@@ -399,6 +412,16 @@ def _write_expr_type(file_obj, type_: types.Type, version: int):
                 "duration-typed expressions", required=14, target=version
             )
         file_obj.write(type_keys.ExprType.DURATION)
+    elif type_.kind is types.Array:
+        if version < 18:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "array-typed expressions", required=18, target=version
+            )
+        file_obj.write(type_keys.ExprType.ARRAY)
+        _write_expr_type(file_obj, type_.element, version)
+        file_obj.write(
+            struct.pack(formats.EXPR_TYPE_ARRAY_PACK, *formats.EXPR_TYPE_ARRAY(type_.size))
+        )
     else:
         raise exceptions.QpyError(f"unhandled Type object '{type_};")
 
@@ -726,34 +749,7 @@ def _read_expr(
         )
         return standalone_vars[payload.var_index]
     if type_key == type_keys.Expression.VALUE:
-        value_type_key = file_obj.read(formats.EXPR_VALUE_DISCRIMINATOR_SIZE)
-        if value_type_key == type_keys.ExprValue.BOOL:
-            payload = formats.EXPR_VALUE_BOOL._make(
-                struct.unpack(
-                    formats.EXPR_VALUE_BOOL_PACK, file_obj.read(formats.EXPR_VALUE_BOOL_SIZE)
-                )
-            )
-            return expr.Value(payload.value, type_)
-        if value_type_key == type_keys.ExprValue.INT:
-            payload = formats.EXPR_VALUE_INT._make(
-                struct.unpack(
-                    formats.EXPR_VALUE_INT_PACK, file_obj.read(formats.EXPR_VALUE_INT_SIZE)
-                )
-            )
-            return expr.Value(
-                int.from_bytes(file_obj.read(payload.num_bytes), "big", signed=True), type_
-            )
-        if value_type_key == type_keys.ExprValue.FLOAT:
-            payload = formats.EXPR_VALUE_FLOAT._make(
-                struct.unpack(
-                    formats.EXPR_VALUE_FLOAT_PACK, file_obj.read(formats.EXPR_VALUE_FLOAT_SIZE)
-                )
-            )
-            return expr.Value(payload.value, type_)
-        if value_type_key == type_keys.ExprValue.DURATION:
-            value = _read_duration(file_obj)
-            return expr.Value(value, type_)
-        raise exceptions.QpyError("Invalid classical-expression Value key '{value_type_key}'")
+        return expr.Value(_read_expr_value_payload(file_obj, type_), type_)
     if type_key == type_keys.Expression.CAST:
         payload = formats.EXPRESSION_CAST._make(
             struct.unpack(formats.EXPRESSION_CAST_PACK, file_obj.read(formats.EXPRESSION_CAST_SIZE))
@@ -793,6 +789,44 @@ def _read_expr(
     raise exceptions.QpyError(f"Invalid classical-expression Expr key '{type_key}'")
 
 
+def _read_expr_value_payload(file_obj, type_: types.Type):
+    """Read an ``EXPR_VALUE`` discriminator and payload."""
+    value_type_key = file_obj.read(formats.EXPR_VALUE_DISCRIMINATOR_SIZE)
+    if value_type_key == type_keys.ExprValue.ARRAY:
+        payload = formats.EXPR_VALUE_ARRAY._make(
+            struct.unpack(
+                formats.EXPR_VALUE_ARRAY_PACK, file_obj.read(formats.EXPR_VALUE_ARRAY_SIZE)
+            )
+        )
+        if type_.kind is not types.Array:
+            raise exceptions.QpyError("array EXPR_VALUE with a non-array EXPR_TYPE")
+        if payload.num_elems != type_.size:
+            raise exceptions.QpyError(
+                f"array EXPR_VALUE has {payload.num_elems} elements but type size is {type_.size}"
+            )
+        return [_read_expr_value_payload(file_obj, type_.element) for _ in range(payload.num_elems)]
+    if value_type_key == type_keys.ExprValue.BOOL:
+        payload = formats.EXPR_VALUE_BOOL._make(
+            struct.unpack(formats.EXPR_VALUE_BOOL_PACK, file_obj.read(formats.EXPR_VALUE_BOOL_SIZE))
+        )
+        return payload.value
+    if value_type_key == type_keys.ExprValue.INT:
+        payload = formats.EXPR_VALUE_INT._make(
+            struct.unpack(formats.EXPR_VALUE_INT_PACK, file_obj.read(formats.EXPR_VALUE_INT_SIZE))
+        )
+        return int.from_bytes(file_obj.read(payload.num_bytes), "big", signed=True)
+    if value_type_key == type_keys.ExprValue.FLOAT:
+        payload = formats.EXPR_VALUE_FLOAT._make(
+            struct.unpack(
+                formats.EXPR_VALUE_FLOAT_PACK, file_obj.read(formats.EXPR_VALUE_FLOAT_SIZE)
+            )
+        )
+        return payload.value
+    if value_type_key == type_keys.ExprValue.DURATION:
+        return _read_duration(file_obj)
+    raise exceptions.QpyError(f"Invalid classical-expression Value key '{value_type_key}'")
+
+
 def _read_expr_type(file_obj) -> types.Type:
     type_key = file_obj.read(formats.EXPR_TYPE_DISCRIMINATOR_SIZE)
     if type_key == type_keys.ExprType.BOOL:
@@ -806,6 +840,12 @@ def _read_expr_type(file_obj) -> types.Type:
         return types.Float()
     if type_key == type_keys.ExprType.DURATION:
         return types.Duration()
+    if type_key == type_keys.ExprType.ARRAY:
+        element = _read_expr_type(file_obj)
+        payload = formats.EXPR_TYPE_ARRAY._make(
+            struct.unpack(formats.EXPR_TYPE_ARRAY_PACK, file_obj.read(formats.EXPR_TYPE_ARRAY_SIZE))
+        )
+        return types.Array(element, payload.size)
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
 
 

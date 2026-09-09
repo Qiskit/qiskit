@@ -237,6 +237,13 @@ class BasicPrinter:
     def _visit_BitArrayType(self, node: ast.BitArrayType) -> None:
         self.stream.write(f"bit[{node.size}]")
 
+    def _visit_ArrayType(self, node: ast.ArrayType) -> None:
+        self.stream.write("array[")
+        self.visit(node.base)
+        for dim in node.dimensions:
+            self.stream.write(f", {dim}")
+        self.stream.write("]")
+
     def _visit_StringifyAndPray(self, node: ast.StringifyAndPray) -> None:
         self.stream.write(str(node.obj))
 

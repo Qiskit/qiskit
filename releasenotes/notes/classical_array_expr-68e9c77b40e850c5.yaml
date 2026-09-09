@@ -1,0 +1,25 @@
+features_c:
+  - |
+    Classical expression inspection now supports 1-D arrays.  ``QkExprType_Array``
+    is appended to :c:enum:`QkExprType`; :c:struct:`QkExprTypeInfo` is unchanged.
+    Use :c:func:`qk_var_array_type_info` and :c:func:`qk_value_array_type_info` for
+    element type and length, and :c:func:`qk_value_array_len` /
+    :c:func:`qk_value_array_element` to read array literals.  There are no C
+    constructors for arrays.
+features_circuits:
+  - |
+    Added 1-D classical arrays to the real-time expression system.  Declare an
+    array-typed standalone variable with :class:`~.types.Array`, index it with
+    :func:`~.expr.index`, and write elements or a matching whole array with
+    :meth:`.QuantumCircuit.store` / :meth:`.QuantumCircuit.add_var`.  Element
+    types are the existing scalars :class:`~.types.Bool`, :class:`~.types.Uint`,
+    :class:`~.types.Float`, and :class:`~.types.Duration`.  Nested arrays and
+    slices are not included in this release.
+
+    QPY version 18 serializes array-typed standalone variables and array
+    literals.  Dumping a circuit that contains arrays to QPY 17 or earlier
+    raises :exc:`~.qpy.UnsupportedFeatureForVersion`.
+
+    The OpenQASM 3 exporter emits ``array[<type>, <n>]`` declarations, and
+    groups an unbound :class:`.ParameterVector` into a single
+    ``input array[float[64], N]`` rather than ``N`` scalar inputs.

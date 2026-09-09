@@ -22,6 +22,9 @@ Data Types
 .. doxygenstruct:: QkExprTypeInfo
     :members:
 
+.. doxygenstruct:: QkArrayTypeInfo
+    :members:
+
 .. doxygenenum:: QkUnaryOpType
 
 .. doxygenstruct:: QkUnaryExprInfo

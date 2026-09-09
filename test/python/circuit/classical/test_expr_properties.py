@@ -32,7 +32,12 @@ class TestExprProperties(QiskitTestCase):
         self.assertIs(types.Bool(), copy.deepcopy(types.Bool()))
         self.assertIs(types.Bool(), pickle.loads(pickle.dumps(types.Bool())))
 
-    @ddt.data(types.Bool(), types.Uint(8))
+    @ddt.data(
+        types.Bool(),
+        types.Uint(8),
+        types.Array(types.Bool(), 3),
+        types.Array(types.Uint(8), 2),
+    )
     def test_types_can_be_cloned(self, obj):
         """Test that various ways of cloning a `Type` object are valid and produce equal output."""
         self.assertEqual(obj, copy.copy(obj))
@@ -65,6 +70,8 @@ class TestExprProperties(QiskitTestCase):
             ),
             types.Bool(),
         ),
+        expr.lift([True, False, True]),
+        expr.index(expr.Var.new("arr", types.Array(types.Uint(8), 4)), 0),
     )
     def test_expr_can_be_cloned(self, obj):
         """Test that various ways of cloning an `Expr` object are valid and produce equal output."""

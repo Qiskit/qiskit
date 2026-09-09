@@ -108,11 +108,7 @@ impl Expr {
             Expr::Unary(u) => u.ty,
             Expr::Binary(b) => b.ty,
             Expr::Cast(c) => c.ty,
-            Expr::Value(v) => match v {
-                Value::Duration(_) => Type::Duration,
-                Value::Float { ty, .. } => *ty,
-                Value::Uint { ty, .. } => *ty,
-            },
+            Expr::Value(v) => v.ty(),
             Expr::Var(v) => match v {
                 Var::Standalone { ty, .. } => *ty,
                 Var::Bit { .. } => Type::Bool,

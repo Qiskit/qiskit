@@ -110,6 +110,7 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CIndexExprInfo", "IndexExprInfo"),
     ("CExprType", "ExprType"),
     ("CExprTypeInfo", "ExprTypeInfo"),
+    ("CArrayTypeInfo", "ArrayTypeInfo"),
     ("CDurationType", "DurationType"),
     ("CDurationInfo", "DurationInfo"),
     ("CDurationValue", "DurationValue"),

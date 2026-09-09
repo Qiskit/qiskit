@@ -607,6 +607,35 @@ QPY output was not deterministic.
 From version 18 the UUID suffix is replaced by a counter that is reset
 at the start of each :func:`.dump` call (e.g. ``"my_gate_0"``).
 
+Changes to EXPR_TYPE
+~~~~~~~~~~~~~~~~~~~~
+
+Version 18 adds :class:`~.types.Array` as a classical expression type.  The encoding is a type
+code followed by a nested scalar ``EXPR_TYPE`` and the array length:
+
+=========================  =========  ==============================================================
+Qiskit class               Type code  Payload
+=========================  =========  ==============================================================
+:class:`~.types.Array`     ``a``      One scalar ``EXPR_TYPE`` (``b``, ``u``, ``f``, or ``d``),
+                                      then one ``uint32_t size``.
+=========================  =========  ==============================================================
+
+Nested arrays are not represented.  Dumping a circuit that contains an array-typed expression
+to QPY version 17 or earlier raises :exc:`.UnsupportedFeatureForVersion`.
+
+Changes to EXPR_VALUE
+~~~~~~~~~~~~~~~~~~~~~
+
+Array literals use a new ``EXPR_VALUE`` encoding.  The element payloads are scalar ``EXPR_VALUE``
+items (no nested arrays):
+
+===========================  =========  ============================================================
+Python type                  Type code  Payload
+===========================  =========  ============================================================
+``list``                     ``a``      One ``uint32_t num_elems``, followed by that many scalar
+                                        ``EXPR_VALUE`` encodings.
+===========================  =========  ============================================================
+
 .. _qpy_version_17:
 
 Version 17

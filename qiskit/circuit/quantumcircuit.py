@@ -3468,6 +3468,12 @@ class QuantumCircuit:
             and not isinstance(initial, bool)
         ):
             coerce_type = name_or_var.type
+        elif (
+            isinstance(name_or_var, expr.Var)
+            and name_or_var.type.kind is types.Array
+            and isinstance(initial, (list, tuple))
+        ):
+            coerce_type = name_or_var.type
         else:
             coerce_type = None
         initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
@@ -4477,11 +4483,15 @@ class QuantumCircuit:
             :meth:`add_var`
                 Create a new variable in the circuit that can be written to with this method.
         """
-        # As a convenience, lift integer-literal rvalues to the matching width.
+        # As a convenience, lift integer-literal rvalues to the matching width, and sequence
+        # rvalues to a matching array type.
         lvalue = expr.lift(lvalue)
-        rvalue_type = (
-            lvalue.type if isinstance(rvalue, int) and not isinstance(rvalue, bool) else None
-        )
+        if isinstance(rvalue, int) and not isinstance(rvalue, bool):
+            rvalue_type = lvalue.type
+        elif isinstance(rvalue, (list, tuple)) and lvalue.type.kind is types.Array:
+            rvalue_type = lvalue.type
+        else:
+            rvalue_type = None
         rvalue = expr.lift(rvalue, rvalue_type)
         return self.append(Store(lvalue, rvalue), (), (), copy=False)
 

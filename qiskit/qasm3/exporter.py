@@ -35,6 +35,7 @@ from qiskit.circuit import (
     Measure,
     Parameter,
     ParameterExpression,
+    ParameterVectorElement,
     QuantumCircuit,
     Qubit,
     Reset,
@@ -888,7 +889,30 @@ class QASM3Builder:
         as an input variable."""
         self.assert_global_scope()
         circuit = self.scope.circuit
+        emitted_vectors = set()
         for parameter in circuit.parameters:
+            if isinstance(parameter, ParameterVectorElement):
+                vector = parameter.vector
+                if vector.uuid in emitted_vectors:
+                    continue
+                if _infer_variable_declaration(circuit, parameter, ast.Identifier("dummy")) is None:
+                    # Loop-index parameters are not declared as inputs.
+                    continue
+                emitted_vectors.add(vector.uuid)
+                vector_name = self.symbols.register_variable(vector.name, vector, allow_rename=True)
+                self._global_io_declarations.append(
+                    ast.IODeclaration(
+                        ast.IOModifier.INPUT,
+                        ast.ArrayType(ast.FloatType.DOUBLE, (len(vector),)),
+                        vector_name,
+                    )
+                )
+                for i, elem in enumerate(vector):
+                    self.symbols.set_object_ident(
+                        ast.SubscriptedIdentifier(vector_name.string, ast.IntegerLiteral(i)),
+                        elem,
+                    )
+                continue
             parameter_name = self.symbols.register_variable(
                 parameter.name, parameter, allow_rename=True
             )
@@ -1054,13 +1078,30 @@ class QASM3Builder:
         # the `QuantumCircuit` API protection to produce a circuit that uses an uninitialised
         # variable, or the initial write to a variable is within a control-flow scope.  (It would be
         # easier to see the def/use chain needed to do this cleanly if we were using `DAGCircuit`.)
-        statements = [
-            ast.ClassicalDeclaration(
-                _build_ast_type(var.type),
-                self.symbols.register_variable(var.name, var, allow_rename=True),
+        # Constant array-literal initializers are an exception: OpenQASM 3 allows
+        # `array[T, N] name = {…};` at declaration, and mid-program brace assignment is not portable.
+        declared_vars = list(self.scope.circuit.iter_declared_vars())
+        array_init_stores = {
+            var: _declaring_array_store(self.scope.circuit, var)
+            for var in declared_vars
+            if var.type.kind is types.Array
+        }
+        pending_array_inits = {
+            var for var, instruction in array_init_stores.items() if instruction is not None
+        }
+        statements = []
+        for var in declared_vars:
+            initializer = None
+            init_instruction = array_init_stores.get(var)
+            if init_instruction is not None:
+                initializer = self.build_expression(init_instruction.operation.rvalue)
+            statements.append(
+                ast.ClassicalDeclaration(
+                    _build_ast_type(var.type),
+                    self.symbols.register_variable(var.name, var, allow_rename=True),
+                    initializer,
+                )
             )
-            for var in self.scope.circuit.iter_declared_vars()
-        ]
 
         for stretch in self.scope.circuit.iter_declared_stretches():
             statements.append(
@@ -1070,6 +1111,16 @@ class QASM3Builder:
             )
 
         for instruction in self.scope.circuit.data:
+            operation = instruction.operation
+            if (
+                isinstance(operation, Store)
+                and isinstance(operation.lvalue, expr.Var)
+                and operation.lvalue in pending_array_inits
+                and isinstance(operation.rvalue, expr.Value)
+                and operation.rvalue.type.kind is types.Array
+            ):
+                pending_array_inits.discard(operation.lvalue)
+                continue
             if isinstance(instruction.operation, ControlFlowOp):
                 if isinstance(instruction.operation, ForLoopOp):
                     statements.append(self.build_for_loop(instruction))
@@ -1105,12 +1156,7 @@ class QASM3Builder:
             elif isinstance(instruction.operation, Delay):
                 nodes = [self.build_delay(instruction)]
             elif isinstance(instruction.operation, Store):
-                nodes = [
-                    ast.AssignmentStatement(
-                        self.build_expression(instruction.operation.lvalue),
-                        self.build_expression(instruction.operation.rvalue),
-                    )
-                ]
+                nodes = _store_statements(self, instruction.operation)
             elif isinstance(instruction.operation, BreakLoopOp):
                 nodes = [ast.BreakStatement()]
             elif isinstance(instruction.operation, ContinueLoopOp):
@@ -1305,11 +1351,17 @@ class QASM3Builder:
         # missing, pending a new system in Terra to replace it (2022-03-07).
         if not isinstance(expression, ParameterExpression):
             return expression
+
+        def ident_name(ident):
+            if isinstance(ident, ast.SubscriptedIdentifier):
+                return f"{ident.string}[{ident.subscript.value}]"
+            return ident.string
+
         if isinstance(expression, Parameter):
-            return self.symbols.get_variable(expression).string
+            return ident_name(self.symbols.get_variable(expression))
         return expression.subs(
             {
-                param: Parameter(self.symbols.get_variable(param).string, uuid=param.uuid)
+                param: Parameter(ident_name(self.symbols.get_variable(param)), uuid=param.uuid)
                 for param in expression.parameters
             }
         )
@@ -1442,7 +1494,55 @@ def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
         return ast.FloatType.DOUBLE
     if type_.kind is types.Duration:
         return ast.DurationType()
+    if type_.kind is types.Array:
+        return ast.ArrayType(_build_ast_type(type_.element), (type_.size,))
     raise RuntimeError(f"unhandled expr type '{type_}'")
+
+
+def _declaring_array_store(circuit: QuantumCircuit, var: expr.Var):
+    """Return the declaring ``Store`` of a constant array literal for ``var``, if any."""
+    for instruction in circuit.data:
+        operation = instruction.operation
+        if not isinstance(operation, Store):
+            return None
+        uses_var = var in expr.iter_vars(operation.lvalue) or var in expr.iter_vars(
+            operation.rvalue
+        )
+        if (
+            operation.lvalue == var
+            and isinstance(operation.rvalue, expr.Value)
+            and operation.rvalue.type.kind is types.Array
+        ):
+            return instruction
+        if uses_var:
+            return None
+    return None
+
+
+def _store_statements(builder: QASM3Builder, operation: Store) -> list[ast.Statement]:
+    """Lower a :class:`.Store` to one or more OpenQASM 3 assignment statements."""
+    lvalue = operation.lvalue
+    rvalue = operation.rvalue
+    if (
+        isinstance(lvalue, expr.Var)
+        and lvalue.type.kind is types.Array
+        and isinstance(rvalue, expr.Value)
+        and rvalue.type.kind is types.Array
+    ):
+        target = builder.build_expression(lvalue)
+        return [
+            ast.AssignmentStatement(
+                ast.Index(target, ast.IntegerLiteral(i)),
+                builder.build_expression(expr.Value(elem, lvalue.type.element)),
+            )
+            for i, elem in enumerate(rvalue.value)
+        ]
+    return [
+        ast.AssignmentStatement(
+            builder.build_expression(lvalue),
+            builder.build_expression(rvalue),
+        )
+    ]
 
 
 class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
@@ -1462,8 +1562,12 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
         return self.lookup(node)
 
     def visit_value(self, node, /):
+        if node.type.kind is types.Array:
+            return ast.IndexSet(
+                [self.visit_value(expr.Value(elem, node.type.element)) for elem in node.value]
+            )
         if node.type.kind is types.Bool:
-            return ast.BooleanLiteral(node.value)
+            return ast.BooleanLiteral(bool(node.value))
         if node.type.kind is types.Uint:
             return ast.IntegerLiteral(node.value)
         if node.type.kind is types.Float:

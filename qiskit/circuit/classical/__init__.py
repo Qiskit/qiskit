@@ -18,10 +18,11 @@ Classical expressions (:mod:`qiskit.circuit.classical`)
 This module contains an exploratory representation of real-time operations on classical values
 during circuit execution.
 
-Currently, only simple expressions on bits and registers that result in a Boolean value are
-supported, and these are only valid for use in the conditions of :meth:`.QuantumCircuit.if_test`
-(:class:`.IfElseOp`) and :meth:`.QuantumCircuit.while_loop` (:class:`.WhileLoopOp`), and in the
-target of :meth:`.QuantumCircuit.switch` (:class:`.SwitchCaseOp`).
+Currently, expressions may act on bits, registers, unsigned integers, floats, durations, and 1-D
+arrays of those scalar types.  They are valid in the conditions of :meth:`.QuantumCircuit.if_test`
+(:class:`.IfElseOp`) and :meth:`.QuantumCircuit.while_loop` (:class:`.WhileLoopOp`), in the
+target of :meth:`.QuantumCircuit.switch` (:class:`.SwitchCaseOp`), and as the operands of
+:class:`.Store`.
 
 .. note::
     This is an exploratory module, and while we will commit to the standard Qiskit deprecation

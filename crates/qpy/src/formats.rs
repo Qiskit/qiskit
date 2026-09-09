@@ -15,8 +15,9 @@ use crate::error::{QpyError, to_binrw_error};
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
-    BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    ProgramType, QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding, ValueType,
+    ArrayTypePack, BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration,
+    ModifierType, ProgramType, QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding,
+    ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -1021,6 +1022,8 @@ pub enum ExpressionTypePack {
     Float,
     #[brw(magic = b'd')]
     Duration,
+    #[brw(magic = b'a')]
+    Array(ArrayTypePack),
 }
 
 // The various node types in an expression:
@@ -1084,6 +1087,20 @@ pub enum ExpressionValueElementPack {
     Float(f64),
     #[brw(magic = b't')]
     Duration(DurationPack),
+    #[brw(magic = b'a')]
+    Array(ArrayValuePack),
+}
+
+/// QPY payload for an array ``EXPR_VALUE``: ``uint32_t`` count followed by that many scalar
+/// ``EXPR_VALUE`` elements. Nested arrays are rejected by the packer.
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ArrayValuePack {
+    #[bw(calc = elems.len() as u32)]
+    pub num_elems: u32,
+    #[br(count = num_elems)]
+    pub elems: Vec<ExpressionValueElementPack>,
 }
 
 // An enum for the various duration types and their values
