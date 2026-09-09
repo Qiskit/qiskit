@@ -26,7 +26,9 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::duration::Duration;
-use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
+use qiskit_circuit::operations::{
+    ForCollection, OperationRef, Param, PyInstruction, PyOpKind, PyRange,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolVector};
@@ -211,6 +213,21 @@ pub(crate) fn pack_biguint(bigint: &BigUint) -> BigIntPack {
 pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
     BigUint::from_bytes_be(&big_int_pack.bytes)
 }
+
+impl formats::GlobalPhasePack {
+    pub(crate) fn to_param(&self, qpy_data: &mut QPYReadData) -> Result<Param, QpyError> {
+        let expression = match self {
+            Self::Float(value) => return Ok(Param::Float(*value)),
+            Self::Parameter(pack) => ParameterExpression::from_symbol(unpack_symbol(pack)),
+            Self::ParameterVectorElement(pack) => {
+                ParameterExpression::from_symbol(unpack_parameter_vector(pack, qpy_data)?)
+            }
+            Self::ParameterExpression(pack) => unpack_parameter_expression(pack, qpy_data)?,
+        };
+        Ok(Param::ParameterExpression(Arc::new(expression)))
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct ParameterVectorTableBuilder {
     /// Vector root UUID to its index in `vectors`.

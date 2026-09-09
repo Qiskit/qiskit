@@ -1347,12 +1347,15 @@ pub(crate) fn unpack_circuit(
             .annotation_handler
             .load_deserializers(annotation_deserializers_data)?;
     }
-    let global_phase = generic_value_to_param(&load_value(
-        packed_circuit.header.global_phase_type,
-        &packed_circuit.header.global_phase_data,
-        &mut qpy_data,
-        ValueEndian::Big,
-    )?)?;
+    let global_phase = match &packed_circuit.header {
+        formats::CircuitHeaderPack::V12(header) => generic_value_to_param(&load_value(
+            header.global_phase_type,
+            &header.global_phase_data,
+            &mut qpy_data,
+            ValueEndian::Big,
+        )?)?,
+        formats::CircuitHeaderPack::V19(header) => header.global_phase.to_param(&mut qpy_data)?,
+    };
     qpy_data.circuit_data.set_global_phase_param(global_phase)?;
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;

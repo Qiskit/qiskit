@@ -585,12 +585,12 @@ pub(crate) fn py_circuit_data_to_quantum_circuit(
     let py_circuit_data: PyCircuitData = circuit_data.into();
     let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &py_circuit_data)?;
     let metadata =
-        deserialize_metadata(py, &packed_circuit.header.metadata, metadata_deserializer)?;
+        deserialize_metadata(py, &packed_circuit.header.metadata(), metadata_deserializer)?;
     let circuit = imports::QUANTUM_CIRCUIT
         .get_bound(py)
         .call_method1(intern!(py, "_from_circuit_data"), (py_circuit_data,))?;
     circuit.setattr("metadata", metadata)?;
-    circuit.setattr("name", &packed_circuit.header.circuit_name)?;
+    circuit.setattr("name", &packed_circuit.header.circuit_name())?;
     if let Some(layout) = unpacked_layout {
         circuit.setattr("_layout", layout)?;
     }

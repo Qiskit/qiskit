@@ -126,6 +126,20 @@ impl CircuitHeaderPack {
             Self::V19(header) => &header.registers,
         }
     }
+
+    pub fn metadata(&self) -> &Bytes {
+        match self {
+            Self::V12(header) => &header.metadata,
+            Self::V19(header) => &header.metadata,
+        }
+    }
+
+    pub fn circuit_name(&self) -> &String {
+        match self {
+            Self::V12(header) => &header.circuit_name,
+            Self::V19(header) => &header.circuit_name.value,
+        }
+    }
 }
 
 #[binrw]
@@ -339,8 +353,7 @@ pub enum InternerEntry {
         bits: Vec<u32>,
     },
     #[brw(magic = b'a')]
-    All // for gates that operate on all qubits at once, e.g. barriers can do this
-
+    All, // for gates that operate on all qubits at once, e.g. barriers can do this
 }
 
 // The global phase is either a float or a parameter

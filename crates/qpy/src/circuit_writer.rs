@@ -899,11 +899,11 @@ fn pack_classical_register(
     }
 }
 
-fn pack_circuit_header(
+fn pack_circuit_header_v12(
     circuit_name: Option<String>,
     metadata: Bytes,
     qpy_data: &mut QPYWriteData,
-) -> Result<formats::CircuitHeaderV12Pack, QpyError> {
+) -> Result<formats::CircuitHeaderPack, QpyError> {
     let global_phase_data = pack_param_obj(
         qpy_data.circuit_data.global_phase(),
         qpy_data,
@@ -928,7 +928,7 @@ fn pack_circuit_header(
         registers,
     };
 
-    Ok(header)
+    Ok(formats::CircuitHeaderPack::V12(header))
 }
 
 fn default_layout() -> formats::LayoutV2Pack {
@@ -1386,7 +1386,7 @@ pub(crate) fn pack_circuit(
         annotation_handler,
     };
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
-    let header = pack_circuit_header(extra.name, extra.metadata, &mut qpy_data)?;
+    let header = pack_circuit_header_v12(extra.name, extra.metadata, &mut qpy_data)?;
     // CalibrationsPack was dropped in v18; for v13-17 write an empty block (pulse
     // gates were removed in Qiskit 2.0 but older format versions require the field)
     let calibrations = if version < 18 {
