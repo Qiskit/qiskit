@@ -13,6 +13,7 @@
 use crate::bytes::Bytes;
 use crate::error::{QpyError, to_binrw_error};
 use crate::expr::{read_expression, write_expression};
+use crate::formats::InternerEntry::Single;
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
@@ -64,7 +65,7 @@ pub struct QPYFileHeader {
 #[brw(import (version: u8))]
 pub struct QPYCircuit {
     #[brw(args(version,))]
-    pub header: CircuitHeaderV12Pack,
+    pub header: CircuitHeaderPack,
     #[br(count = header.num_vars)]
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
     #[br(if(version >= 15))]
@@ -72,12 +73,23 @@ pub struct QPYCircuit {
     #[br(if(version >= 18))]
     pub parameter_vectors: Option<ParameterVectorTablePack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
-    #[br(count = header.num_instructions, args { inner: (true,) })]
-    pub instructions: Vec<CircuitInstructionV2Pack>,
+    #[br(count = header.num_instructions, args { inner: (version, true,) })]
+    pub instructions: Vec<CircuitInstructionPack>,
     #[brw(if(version < 18), args(version,))]
     pub calibrations: Option<CalibrationsPack>,
     #[brw(args(version,))]
     pub layout: LayoutV2Pack,
+}
+
+#[binrw]
+#[derive(Debug)]
+#[br(import (version: u8))]
+pub enum CircuitHeaderPack {
+    #[br(pre_assert(version <= 18))]
+    V12(CircuitHeaderV12Pack),
+
+    #[br(pre_assert(version >= 19))]
+    V19(CircuitHeaderV19Pack),
 }
 
 #[binrw]
@@ -157,6 +169,19 @@ pub enum RegisterPack {
 
     #[br(pre_assert(version >= 18))]
     V18(RegisterV18Pack),
+}
+
+#[binrw]
+#[derive(Debug)]
+#[br(import (version: u8, read_bits: bool))]
+pub enum CircuitInstructionPack {
+    #[br(pre_assert(version <= 18))]
+    #[brw(args(version,))]
+    V2(CircuitInstructionV2Pack),
+
+    #[br(pre_assert(version >= 19))]
+    #[brw(args(version,))]
+    V19(CircuitInstructionV19Pack),
 }
 
 // The data for a specific instruction in the circuit, for QPY version 19 and higher
@@ -262,10 +287,27 @@ pub struct ControlledGatePack {
 pub struct ControlFlowPack {
     // placeholder
 }
+
 #[binrw]
+#[brw(big)]
 #[derive(Debug)]
-pub struct InternerEntry {
-    // placeholder
+pub enum InternerEntry {
+    #[brw(magic = b's')]
+    Single(u32),
+    #[brw(magic = b'd')]
+    Double(u32, u32),
+    #[brw(magic = b't')]
+    Triple(u32, u32, u32),
+    #[brw(magic = b'v')]
+    VariableSize {
+        #[bw(calc = bits.len() as u16)]
+        num_bits: u16,
+        #[br(count = num_bits)]
+        bits: Vec<u32>,
+    },
+    #[brw(magic = b'a')]
+    All // for gates that operate on all qubits at once, e.g. barriers can do this
+
 }
 
 // The global phase is either a float or a parameter
