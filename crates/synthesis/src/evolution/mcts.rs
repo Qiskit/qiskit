@@ -769,16 +769,10 @@ impl MctsAlgorithm {
     /// A possible follow-up: also implement Rustiq's heuristic for minimizing CX-count
     /// (by changing the internal scoring function).
     fn rollout_policy(&self, mcts_node_id: usize) -> GateSequence {
-        let num_paulis = self.num_paulis;
-
         // We are cloning this state, since are going to update it in-place.
         let mut synthesis_state = self.mcts_nodes[mcts_node_id].synthesis_state.clone();
 
-        if synthesis_state.num_processed == self.num_paulis {
-            return synthesis_state.gate_sequence.clone();
-        }
-
-        loop {
+        while synthesis_state.num_processed < self.num_paulis {
             // Compute front nodes.
             let front_nodes = compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees);
 
@@ -793,11 +787,6 @@ impl MctsAlgorithm {
 
             // Update the state by finding all Paulis that got synthesized.
             self.process_synthesized_paulis(&mut synthesis_state);
-
-            // Check if all the Paulis are processed now.
-            if synthesis_state.num_processed == num_paulis {
-                break;
-            }
         }
         synthesis_state.gate_sequence
     }
