@@ -28,6 +28,9 @@ use std::ops::Index;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
+/// The default number of characters at which barrier labels are truncated.
+pub const DEFAULT_BARRIER_LABEL_LEN: usize = 16;
+
 /// Draw the [CircuitData] object as string.
 ///
 /// # Arguments:
@@ -36,6 +39,9 @@ use unicode_width::UnicodeWidthStr;
 /// * cregbundle: If true, classical bits of classical registers are bundled into one wire.
 /// * mergewires: If true, adjacent wires are merged when rendered.
 /// * fold: If not None, applies line wrapping using the specified amount.
+/// * barrier_label_len: The number of characters to display for barrier labels. If this
+///   number is exceeded, the label is truncated at that number and '...' is appended.
+///   Use 0 to apply the default of [DEFAULT_BARRIER_LABEL_LEN] characters.
 ///
 /// # Returns:
 ///
@@ -45,10 +51,17 @@ pub fn draw_circuit(
     cregbundle: bool,
     mergewires: bool,
     fold: Option<usize>,
+    barrier_label_len: usize,
 ) -> PyResult<String> {
     let vis_mat = VisualizationMatrix::from_circuit(circuit, cregbundle)?;
 
-    let text_drawer = TextDrawer::from_visualization_matrix(&vis_mat, cregbundle);
+    let barrier_label_len = if barrier_label_len != 0 {
+        barrier_label_len
+    } else {
+        DEFAULT_BARRIER_LABEL_LEN
+    };
+    let text_drawer =
+        TextDrawer::from_visualization_matrix(&vis_mat, cregbundle, barrier_label_len);
 
     let fold = match fold {
         Some(f) => f,
@@ -213,7 +226,7 @@ enum OnWireElement<'a> {
     Control(&'a PackedInstruction),
     CPhaseEndpoint(&'a PackedInstruction),
     Swap(&'a PackedInstruction),
-    Barrier,
+    Barrier(&'a PackedInstruction),
     Reset,
 }
 
@@ -439,7 +452,8 @@ impl<'a> VisualizationLayer<'a> {
         match std_inst {
             StandardInstruction::Barrier(_) => {
                 for q in qargs {
-                    self.0[q.index()] = VisualizationElement::DirectOnWire(OnWireElement::Barrier);
+                    self.0[q.index()] =
+                        VisualizationElement::DirectOnWire(OnWireElement::Barrier(inst));
                 }
             }
             StandardInstruction::Reset => {
@@ -654,7 +668,7 @@ impl Debug for VisualizationMatrix<'_> {
                         WireInputElement::Creg(_) => "C/",
                     },
                     VisualizationElement::DirectOnWire(on_wire) => match on_wire {
-                        OnWireElement::Barrier => "░",
+                        OnWireElement::Barrier(_) => "░",
                         OnWireElement::Control(_) => "■",
                         OnWireElement::Reset => "|0>",
                         OnWireElement::Swap(_) => "x",
@@ -815,13 +829,17 @@ impl Index<usize> for TextDrawer {
 }
 
 impl TextDrawer {
-    fn from_visualization_matrix(vis_mat: &VisualizationMatrix, cregbundle: bool) -> Self {
+    fn from_visualization_matrix(
+        vis_mat: &VisualizationMatrix,
+        cregbundle: bool,
+        barrier_label_len: usize,
+    ) -> Self {
         let mut text_drawer = TextDrawer {
             wires: vec![Vec::new(); vis_mat.num_wires()],
         };
 
         for (i, layer) in vis_mat.layers.iter().enumerate() {
-            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i);
+            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i, barrier_label_len);
             for (j, wire) in layer_wires.iter().enumerate() {
                 text_drawer.wires[j].push(wire.clone());
             }
@@ -911,6 +929,17 @@ impl TextDrawer {
         }
     }
 
+    /// Truncates a label to at most `max_len` characters, appending '...' when truncation occurs.
+    fn truncate_label(label: &str, max_len: usize) -> String {
+        if label.chars().count() > max_len {
+            let mut truncated: String = label.chars().take(max_len).collect();
+            truncated.push_str("...");
+            truncated
+        } else {
+            label.to_string()
+        }
+    }
+
     /// Returns the Pauli term at input `idx` (or spaces if `idx` is None) for a PPR or PPM gate,
     /// or an empty string if `inst` is neither.
     fn try_pauli_term(idx: Option<usize>, inst: &PackedInstruction) -> &str {
@@ -947,12 +976,15 @@ impl TextDrawer {
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
         layer_ind: usize,
+        barrier_label_len: usize,
     ) -> Vec<TextWireElement> {
         let mut wires: Vec<TextWireElement> = layer
             .0
             .iter()
             .enumerate()
-            .map(|(i, element)| Self::draw_element(element, vis_mat, cregbundle, i))
+            .map(|(i, element)| {
+                Self::draw_element(element, vis_mat, cregbundle, i, barrier_label_len)
+            })
             .collect();
 
         let num_qubits = vis_mat.circuit.num_qubits();
@@ -976,6 +1008,7 @@ impl TextDrawer {
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
         wire_idx: usize,
+        barrier_label_len: usize,
     ) -> TextWireElement {
         let circuit = vis_mat.circuit;
         let (top, mid, bot);
@@ -1157,11 +1190,38 @@ impl TextDrawer {
                             ),
                         )
                     }
-                    OnWireElement::Barrier => (
-                        format!(" {} ", BARRIER),
-                        format!("{}{}{}", Q_WIRE, BARRIER, Q_WIRE),
-                        format!(" {} ", BARRIER),
-                    ),
+                    OnWireElement::Barrier(inst) => {
+                        // A barrier label is only drawn above the top-most wire of the barrier,
+                        // truncated to `barrier_label_len` characters, matching the Python
+                        // text drawer.
+                        let (minima, _) =
+                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                        let label = if wire_idx == minima {
+                            inst.label.as_deref().filter(|label| !label.is_empty())
+                        } else {
+                            None
+                        };
+                        match label {
+                            Some(label) => {
+                                let label_top =
+                                    format!(" {} ", Self::truncate_label(label, barrier_label_len));
+                                let mut label_mid = format!("{}{}{}", Q_WIRE, BARRIER, Q_WIRE);
+                                let mut label_bot = format!(" {} ", BARRIER);
+                                TextWireElement::pad_string(
+                                    &mut label_mid,
+                                    Q_WIRE,
+                                    label_top.width(),
+                                );
+                                TextWireElement::pad_string(&mut label_bot, ' ', label_top.width());
+                                (label_top, label_mid, label_bot)
+                            }
+                            None => (
+                                format!(" {} ", BARRIER),
+                                format!("{}{}{}", Q_WIRE, BARRIER, Q_WIRE),
+                                format!(" {} ", BARRIER),
+                            ),
+                        }
+                    }
                     OnWireElement::Reset => (
                         format!(" {} ", "   "),
                         format!("{}{}{}", Q_WIRE, "|0>", Q_WIRE),
@@ -1573,7 +1633,7 @@ mod tests {
     fn test_creg_bundle() {
         let circuit = basic_circuit();
 
-        let result = draw_circuit(&circuit, true, false, None).unwrap();
+        let result = draw_circuit(&circuit, true, false, None, 0).unwrap();
 
         let expected = "
       ┌───┐
@@ -1596,7 +1656,7 @@ c2: 2/══════════
     fn test_merge_wires() {
         let circuit = basic_circuit();
 
-        let result = draw_circuit(&circuit, false, true, None).unwrap();
+        let result = draw_circuit(&circuit, false, true, None, 0).unwrap();
         let expected = "
       ┌───┐
  q_0: ┤ H ├──■──
@@ -1646,7 +1706,7 @@ c2_1: ══════════
         };
         circuit.push(inst).unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
    ┌───┐┌─┐
 q: ┤ H ├┤M├
@@ -1689,7 +1749,7 @@ c: ══════╩═
             .push_standard_gate(StandardGate::H, &[], &[Qubit::new(1)])
             .unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
       ┌───┐
    q: ┤ H ├
@@ -1724,7 +1784,7 @@ cr_1: ═════
             .push_standard_gate(StandardGate::CZ, &[], &[Qubit::new(0), Qubit::new(1)])
             .unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(10)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(10), 0).unwrap();
         let expected = "
       ┌───┐     »
  q_0: ┤ H ├──■──»
@@ -1789,7 +1849,7 @@ c2_1: ══════════»
         let mut inst_clone = circuit.data()[0].clone();
         inst_clone.label = Some(Box::new("my_ch".to_string()));
         circuit.push(inst_clone).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), 0).unwrap();
         let expected = "
           ┌────────────┐┌───────────────┐
 q_0: ──■──┤0 Rxx(1.23) ├┤0 my_rxx(1.23) ├────■────
@@ -1918,7 +1978,7 @@ q_1: ┤ H ├┤1           ├┤1              ├┤ my_ch ├
             py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), 0).unwrap();
         let expected = "
           ┌─────────┐                  ┌────────────────────┐┌──────────┐»
 q_0: ─────┤ Unitary ├──────────────────┤0                   ├┤2         ├»
@@ -1972,7 +2032,7 @@ q_3: ──────────────────────┤1     
                 .collect::<Vec<Param>>();
             circuit.push_standard_gate(op, &params, &qubits).unwrap();
         }
-        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), 0).unwrap();
         let expected = "
      ┌───┐  ┌───────────┐      ┌─────┐   ┌─────┐ ┌───────────────────────┐          »
 q_0: ┤ Y ├──┤ Rx(3.141) ├──────┤ Sdg ├───┤ Tdg ├─┤ U3(3.141,3.141,3.141) ├──■───────»
@@ -2059,7 +2119,7 @@ q_4: ─────────────────────────
     fn test_global_phase() {
         let mut circuit = basic_circuit();
         circuit.set_global_phase_param(3.14.into()).unwrap();
-        let result = draw_circuit(&circuit, true, false, None).unwrap();
+        let result = draw_circuit(&circuit, true, false, None, 0).unwrap();
 
         let expected = "
 global phase: 3.14
@@ -2086,7 +2146,7 @@ c2: 2/══════════
                 ParameterExpression::from_symbol(Symbol::standalone("ϕ".to_owned(), None)),
             )))
             .unwrap();
-        let result = draw_circuit(&circuit, true, false, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, true, false, Some(80), 0).unwrap();
 
         let expected = "
 global phase: ϕ
@@ -2128,7 +2188,7 @@ c2: 2/══════════
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
      ┌─────────┐┌────────────┐┌─────────┐
 q_0: ┤0 Rxx(a) ├┤0 my_rxx(a) ├┤0 Rzx(2) ├
@@ -2215,7 +2275,7 @@ q_1: ┤1        ├┤1           ├┤1        ├
             circuit.push(inst).unwrap();
         }
 
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
           ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐ ░  ░ »
 q_0: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├─░──░─»
@@ -2292,7 +2352,7 @@ c_3: ═════════════════════════
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
      ┌─────────┐┌─────────────┐┌─────────┐
 q_0: ┤0 Rxx(ϕ) ├┤0 μου_rxx(ϕ) ├┤0 Rzx(2) ├
@@ -2333,7 +2393,7 @@ q_1: ┤1        ├┤1            ├┤1        ├
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
                ┌───────────┐            ┌──────────────┐┌─────────┐
 q_0: ──────────┤0 Rxx(🎩)  ├────────────┤0  💶🔉(🎩)   ├┤0 Rzx(2) ├
@@ -2386,7 +2446,7 @@ q_1: ┤ Ry(🎩) ├┤1         ├─┤ 💶🔉(🎩) ├─┤1          �
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, None).unwrap();
+        let result = draw_circuit(&circuit, true, true, None, 0).unwrap();
         let expected = "
 global phase: 4π/5
       ┌────────────┐ ┌────────────┐ ┌───────────────┐
@@ -2550,7 +2610,7 @@ q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) �
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, true, true, Some(80), 0).unwrap();
         let expected = "
                       ┌────────────┐┌──────────────┐
  q_0: ────────────────┤0 Z         ├┤0  Z          ├
@@ -2633,7 +2693,7 @@ q_10: ────────────────────────�
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, true, true, Some(80), 0).unwrap();
         let expected = "
       ┌───────────┐
 qr_0: ┤0 I        ├───────────────────
@@ -2668,7 +2728,7 @@ cr: 3/══════╩══════════╩══════�
 
         build(&mut circuit);
 
-        let result = draw_circuit(&circuit, false, mergewires, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, mergewires, Some(100), 0).unwrap();
         assert_eq!(result, expected);
     }
 
@@ -2765,5 +2825,147 @@ q_3: ┤ X ├─■─────────────────┤ X ├
                     .unwrap();
             },
         );
+    }
+
+    /// Builds a circuit with labeled barriers: an H gate, a barrier over all
+    /// three qubits labeled "short", a CX, and a barrier over the first two
+    /// qubits with a long label.
+    fn labeled_barrier_circuit() -> CircuitData {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
+            .unwrap();
+        let inst = PackedInstruction {
+            op: StandardInstruction::Barrier(3).into(),
+            qubits: circuit.add_qargs(&[Qubit(0), Qubit(1), Qubit(2)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: Some(Box::new("short".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        };
+        circuit.push(inst).unwrap();
+        circuit
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])
+            .unwrap();
+        let inst = PackedInstruction {
+            op: StandardInstruction::Barrier(2).into(),
+            qubits: circuit.add_qargs(&[Qubit(0), Qubit(1)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: Some(Box::new("a_very_long_barrier_label_here".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        };
+        circuit.push(inst).unwrap();
+        circuit
+    }
+
+    #[cfg(not(miri))]
+    #[test]
+    fn test_barrier_label_default_truncation() {
+        let circuit = labeled_barrier_circuit();
+        // A `barrier_label_len` of 0 selects the default of
+        // `DEFAULT_BARRIER_LABEL_LEN` characters.
+        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
+        let expected = "
+     ┌───┐ short       a_very_long_barr...
+q_0: ┤ H ├───░─────■────────────░──────────
+     └───┘   ░     │            ░
+             ░   ┌─┴─┐          ░
+q_1: ────────░───┤ X ├──────────░──────────
+             ░   └───┘          ░
+             ░
+q_2: ────────░─────────────────────────────
+             ░
+";
+        assert_eq!(result, expected.trim_start_matches('\n'));
+    }
+
+    #[cfg(not(miri))]
+    #[test]
+    fn test_barrier_label_custom_truncation() {
+        let circuit = labeled_barrier_circuit();
+        let result = draw_circuit(&circuit, false, false, Some(100), 5).unwrap();
+        let expected = "
+     ┌───┐ short       a_ver...
+q_0: ┤ H ├───░─────■──────░─────
+     └───┘   ░     │      ░
+             ░   ┌─┴─┐    ░
+q_1: ────────░───┤ X ├────░─────
+             ░   └───┘    ░
+             ░
+q_2: ────────░──────────────────
+             ░
+";
+        assert_eq!(result, expected.trim_start_matches('\n'));
+    }
+
+    #[cfg(not(miri))]
+    #[test]
+    fn test_barrier_label_on_inner_wires() {
+        // The label is drawn above the top-most wire of the barrier, which is
+        // not necessarily the first wire of the circuit.
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        let inst = PackedInstruction {
+            op: StandardInstruction::Barrier(2).into(),
+            qubits: circuit.add_qargs(&[Qubit(1), Qubit(2)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: Some(Box::new("mylabel".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        };
+        circuit.push(inst).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
+        let expected = "
+
+q_0: ─────────
+
+      mylabel
+q_1: ────░────
+         ░
+         ░
+q_2: ────░────
+         ░
+";
+        // Only strip the first newline of the raw string literal: the drawing
+        // itself starts with a blank line (the empty top row of `q_0`).
+        assert_eq!(result, expected.strip_prefix('\n').unwrap());
+    }
+
+    #[cfg(not(miri))]
+    #[test]
+    fn test_barrier_label_exact_boundary() {
+        // A label of exactly `barrier_label_len` characters is not truncated.
+        let qubits = vec![ShareableQubit::new_anonymous()];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        let inst = PackedInstruction {
+            op: StandardInstruction::Barrier(1).into(),
+            qubits: circuit.add_qargs(&[Qubit(0)]),
+            clbits: circuit.cargs_interner().get_default(),
+            params: None,
+            label: Some(Box::new("0123456789abcdef".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        };
+        circuit.push(inst).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 16).unwrap();
+        let expected = "
+      0123456789abcdef
+q_0: ────────░─────────
+             ░
+";
+        assert_eq!(result, expected.trim_start_matches('\n'));
     }
 }
