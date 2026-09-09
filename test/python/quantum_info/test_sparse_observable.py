@@ -2553,12 +2553,14 @@ class TestSparseObservable(QiskitTestCase):
         ]
         obs = SparseObservable.from_sparse_list(obs, 2).to_matrix()
 
-        spo = SparsePauliOp.from_list([
-            ("XI", -3.0),
-            ("YZ", 4.4j),
-            ("YY", 0.2 - 0.1j),
-            ("ZZ", 66.12),
-        ]).to_matrix()
+        spo = SparsePauliOp.from_list(
+            [
+                ("XI", -3.0),
+                ("YZ", 4.4j),
+                ("YY", 0.2 - 0.1j),
+                ("ZZ", 66.12),
+            ]
+        ).to_matrix()
 
         np.testing.assert_allclose(obs, spo)
 
