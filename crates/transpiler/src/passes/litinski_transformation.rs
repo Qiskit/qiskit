@@ -545,7 +545,7 @@ fn is_ppr_angle_close_to_multiple_of_pi2(
 
     // direct calculation of dim and tr_over_dim
     let num_qubits = z.iter().zip(x.iter()).filter(|(z, x)| **z || **x).count();
-    let dim = 2u32.pow(num_qubits as u32);
+    let dim = (num_qubits as f64).exp2();
     let tr_over_dim = if num_qubits == 0 {
         // This is an identity Pauli rotation.
         (Complex64::new(0.0, -theta / 2.)).exp()
@@ -553,7 +553,7 @@ fn is_ppr_angle_close_to_multiple_of_pi2(
         Complex64::new((theta / 2.).cos(), 0.)
     };
 
-    if average_gate_fidelity_below_tol(tr_over_dim, dim.into(), tol).is_some() {
+    if average_gate_fidelity_below_tol(tr_over_dim, dim, tol).is_some() {
         Some((closest_integer as i64).rem_euclid(4) as usize)
     } else {
         None
