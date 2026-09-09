@@ -927,6 +927,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             min_qubits=0,
             unroll_definitions=True,
             optimize_clifford_t=False,
+            optimization_level=2,
         )
 
         _ = synthesize_circuit(circuit._data, list(range(circuit.num_qubits)), hls_data, tracker)

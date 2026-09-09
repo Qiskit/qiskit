@@ -220,7 +220,7 @@ class HighLevelSynthesis(TransformationPass):
             qubits_initially_zero: Indicates whether the qubits are initially in the state
                 :math:`|0\rangle`. This allows the high-level-synthesis to use clean auxiliary qubits
                 (i.e. in the zero state) to synthesize an operation.
-            optimization_metric:  The optimization criterion used by synthesis plugins. The plugins may
+            optimization_metric: The optimization criterion used by synthesis plugins. The plugins may
                 use this option to choose different synthesis algorithms depending on the criterion
                 being optimized.
             optimization_level: The optimization level used by synthesis plugins. The plugins may

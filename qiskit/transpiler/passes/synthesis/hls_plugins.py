@@ -631,6 +631,10 @@ if TYPE_CHECKING:
     from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 
 
+def _size2q(circuit: QuantumCircuit):
+    """Return the number of two-qubit gates in a circuit."""
+    return circuit.size(lambda x: x.operation.num_qubits == 2)
+
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
     """The default clifford synthesis plugin.
 
@@ -2151,9 +2155,6 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
                 coupling_map == CouplingMap.from_full(target.num_qubits)
             )
 
-        def size2q(circuit):
-            return circuit.size(lambda x: x.operation.num_qubits == 2)
-
         synth_object = PauliEvolutionSynthesisBasic().run(
             high_level_object, coupling_map, target, qubits, **options
         )
@@ -2162,7 +2163,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             synth_mcts = PauliEvolutionSynthesisMcts().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
-            if size2q(synth_mcts) < size2q(synth_object):
+            if _size2q(synth_mcts) < _size2q(synth_object):
                 synth_object = synth_mcts
 
         return synth_object
