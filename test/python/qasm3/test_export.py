@@ -199,7 +199,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "qubit[2] qr;",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
-                "barrier qr[0], qr[1];",
+                "barrier;",
                 "composite_circ qr[0], qr[1];",
                 "cr[0] = measure qr[0];",
                 "cr[1] = measure qr[1];",
@@ -239,7 +239,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "qubit[2] qr;",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
-                "barrier qr[0], qr[1];",
+                "barrier;",
                 "composite_circ qr[0], qr[1];",
                 "cr[0] = measure qr[0];",
                 "cr[1] = measure qr[1];",
@@ -280,7 +280,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "qubit[2] qr;",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
-                "barrier qr[0], qr[1];",
+                "barrier;",
                 "composite_circ qr[0], qr[1];",
                 "composite_circ qr[0], qr[1];",
                 "cr[0] = measure qr[0];",
@@ -1974,7 +1974,7 @@ qubit[5] q;
 stretch a;
 stretch b;
 stretch c;
-barrier q[0], q[1], q[2], q[3], q[4];
+barrier;
 cx q[0], q[1];
 U(pi/4, 0, pi/2) q[2];
 cx q[3], q[4];
@@ -1983,7 +1983,7 @@ delay[a] q[1];
 delay[b] q[2];
 delay[c] q[3];
 delay[c] q[4];
-barrier q[0], q[1], q[2], q[3], q[4];
+barrier;
 """
         self.assertEqual(dumps(qc), expected)
 
@@ -3029,7 +3029,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
                 "qubit[2] qr;",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
-                "barrier qr[0], qr[1];",
+                "barrier;",
                 "composite_circ qr[0], qr[1];",
                 "cr[0] = measure qr[0];",
                 "cr[1] = measure qr[1];",
@@ -3069,7 +3069,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
                 "qubit[2] qr;",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
-                "barrier qr[0], qr[1];",
+                "barrier;",
                 "composite_circ qr[0], qr[1];",
                 "cr[0] = measure qr[0];",
                 "cr[1] = measure qr[1];",
@@ -3110,7 +3110,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
                 "qubit[2] qr;",
                 "h qr[0];",
                 "cx qr[0], qr[1];",
-                "barrier qr[0], qr[1];",
+                "barrier;",
                 "composite_circ qr[0], qr[1];",
                 "composite_circ qr[0], qr[1];",
                 "cr[0] = measure qr[0];",
