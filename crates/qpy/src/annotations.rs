@@ -214,7 +214,7 @@ impl AnnotationHandler {
                     .load_py(py, index, payload)?
                     .bind(py)
                     .extract::<AnnotationFromPython>()?
-                    .0)
+                    .annotation())
             }),
             Self::Native { deserializers, .. } => {
                 let text: &str = (&payload).try_into()?;

@@ -250,7 +250,19 @@ pub fn create_py_annotation(annotation: &Arc<dyn Annotation>, py: Python) -> PyR
 }
 
 /// Used to extract an instance of [Annotation].
-pub struct AnnotationFromPython(pub Arc<dyn Annotation>);
+pub enum AnnotationFromPython {
+    Native(Arc<dyn Annotation>),
+    Python(PythonAnnotation),
+}
+
+impl AnnotationFromPython {
+    pub fn annotation(self) -> Arc<dyn Annotation> {
+        match self {
+            AnnotationFromPython::Native(native_annotation) => native_annotation.clone(),
+            AnnotationFromPython::Python(python_annotation) => Arc::new(python_annotation),
+        }
+    }
+}
 
 impl<'a, 'py> FromPyObject<'a, 'py> for AnnotationFromPython {
     type Error = PyErr;
@@ -258,8 +270,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for AnnotationFromPython {
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         match ob.cast::<PyAnnotation>() {
             Ok(base) => match base.cast::<PyNativeAnnotation>() {
-                Ok(native) => Ok(Self(Arc::clone(native.get().inner()))),
-                Err(..) => Ok(Self(Arc::new(PythonAnnotation::new(ob.into())))),
+                Ok(native) => Ok(Self::Native(Arc::clone(native.get().inner()))),
+                Err(..) => Ok(Self::Python(PythonAnnotation::new(ob.into()))),
             },
             Err(e) => Err(Self::Error::from(e)),
         }
