@@ -52,9 +52,42 @@ static int test_round_trip(void) {
     return result;
 }
 
+static int test_buffer_round_trip(void) {
+    QkCircuit *source = qk_circuit_new(2, 0);
+    if (qk_circuit_gate(source, QkGate_H, (uint32_t[]){0}, NULL) != QkExitCode_Success) {
+        qk_circuit_free(source);
+        return RuntimeError;
+    }
+
+    char *buffer = NULL;
+    size_t size = 0;
+    if (qk_qpy_dump_buffer(source, &buffer, &size, 18) != QkExitCode_Success || buffer == NULL ||
+        size == 0) {
+        qk_circuit_free(source);
+        return RuntimeError;
+    }
+
+    QkCircuit *loaded = NULL;
+    QkExitCode result = qk_qpy_load_buffer(buffer, size, &loaded);
+    qk_qpy_free_buffer(buffer, size);
+    if (result != QkExitCode_Success || loaded == NULL) {
+        qk_circuit_free(source);
+        return RuntimeError;
+    }
+
+    int test_result = qk_circuit_num_qubits(loaded) == 2 &&
+                              qk_circuit_num_instructions(loaded) == 1
+                          ? Ok
+                          : EqualityError;
+    qk_circuit_free(loaded);
+    qk_circuit_free(source);
+    return test_result;
+}
+
 int test_qpy(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_round_trip);
+    num_failed += RUN_TEST(test_buffer_round_trip);
 
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
     fflush(stderr);
