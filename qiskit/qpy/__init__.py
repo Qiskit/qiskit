@@ -595,6 +595,31 @@ starting index of the register. The indices are then the range of length
 ``size`` from that starting index. For example, if the starting index is 5
 and the ``size`` is 10 the indices are 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
 
+
+New qubits_info and clbits_info arrays
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Version 18 adds two new arrays to the circuit header:
+``qubits_info`` and ``clbits_info`` . Each element describes the bit at the
+corresponding index in the circuit, and is one of:
+
+.. code-block:: c
+
+    struct {              // a bit that belongs to a register, tag == 0
+        uint8_t tag;
+    }
+
+    struct {              // an anonymous bit not owned by any register, tag == 1
+        uint8_t  tag;
+        uint64_t uid;
+    }
+
+For a bit that is not part of any register, ``uid`` is an identifier that is unique within the
+circuit being deserialized. It is used to recognize when the same anonymous bit is referenced
+more than one place within that circuit -- for example, a bit shared between a circuit and the body
+of one of its control-flow instructions. Those references are reconstructed with same uid,
+representing the same object.
+
 Changes to CUSTOM_INSTRUCTION names
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -606,6 +631,7 @@ QPY output was not deterministic.
 
 From version 18 the UUID suffix is replaced by a counter that is reset
 at the start of each :func:`.dump` call (e.g. ``"my_gate_0"``).
+
 
 .. _qpy_version_17:
 

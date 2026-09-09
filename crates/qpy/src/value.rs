@@ -21,7 +21,7 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
-use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
+use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
@@ -288,6 +288,12 @@ pub struct QPYReadData {
     pub vectors: HashMap<Uuid, Arc<SymbolVector>>,
     pub parameter_vectors: Vec<Arc<SymbolVector>>,
     pub annotation_handler: AnnotationHandler,
+}
+
+#[derive(Debug)]
+pub struct QPYGlobalData {
+    pub qubit_uid_table: HashMap<u64, ShareableQubit>,
+    pub clbit_uid_table: HashMap<u64, ShareableClbit>,
 }
 
 // this is how tags for various value types are encoded in a QPY file
@@ -666,6 +672,7 @@ pub(crate) fn load_value(
     type_key: ValueType,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
+    qpy_global_data: &mut QPYGlobalData,
     endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
     match type_key {
@@ -728,12 +735,14 @@ pub(crate) fn load_value(
                 formats::ParameterExpressionPack,
                 _,
             >(bytes, (qpy_data.version,))?;
-            let exp = unpack_parameter_expression(&parameter_expression_pack, qpy_data)?;
+            let exp =
+                unpack_parameter_expression(&parameter_expression_pack, qpy_data, qpy_global_data)?;
             Ok(GenericValue::ParameterExpression(Arc::new(exp)))
         }
         ValueType::Tuple => {
             let (elements_pack, _) = deserialize::<GenericDataSequencePack>(bytes)?;
-            let values = unpack_generic_value_sequence(elements_pack, qpy_data, endian)?;
+            let values =
+                unpack_generic_value_sequence(elements_pack, qpy_data, qpy_global_data, endian)?;
             Ok(GenericValue::Tuple(values))
         }
         ValueType::NumpyObject => Ok(GenericValue::NumpyObject(bytes.clone())),
@@ -765,6 +774,7 @@ pub(crate) fn load_value(
                 qpy_data.use_symengine,
                 qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
+                qpy_global_data,
             )?;
             Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
@@ -849,7 +859,10 @@ pub(crate) fn serialize_generic_value(
                 qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
             )?;
-            (ValueType::Circuit, serialize(&packed_circuit)?)
+            (
+                ValueType::Circuit,
+                serialize_with_args(&packed_circuit, (qpy_data.version,))?,
+            )
         }
         GenericValue::NumpyObject(bytes) => (ValueType::NumpyObject, bytes.clone()),
         GenericValue::Range(py_range) => {
@@ -888,9 +901,16 @@ pub(crate) fn pack_generic_value(
 pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
+    qpy_global_data: &mut QPYGlobalData,
     endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
-    let result = load_value(value_pack.type_key, &value_pack.data, qpy_data, endian)?;
+    let result = load_value(
+        value_pack.type_key,
+        &value_pack.data,
+        qpy_data,
+        qpy_global_data,
+        endian,
+    )?;
     Ok(result)
 }
 
@@ -900,13 +920,19 @@ pub(crate) fn unpack_generic_value(
 pub(crate) fn unpack_duration_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
+    qpy_global_data: &mut QPYGlobalData,
 ) -> Result<GenericValue, QpyError> {
     match value_pack.type_key {
         ValueType::Tuple => {
             let duration = unpack_duration(deserialize::<DurationPack>(&value_pack.data)?.0);
             Ok(GenericValue::Duration(duration))
         }
-        _ => unpack_generic_value(value_pack, qpy_data, ValueEndian::LittleForV17AndBelow), // fallback (duration can also be expression)
+        _ => unpack_generic_value(
+            value_pack,
+            qpy_data,
+            qpy_global_data,
+            ValueEndian::LittleForV17AndBelow,
+        ), // fallback (duration can also be expression)
     }
 }
 
@@ -960,12 +986,13 @@ pub(crate) fn pack_generic_value_sequence(
 pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
+    qpy_global_data: &mut QPYGlobalData,
     endian: ValueEndian,
 ) -> Result<Vec<GenericValue>, QpyError> {
     value_seqeunce_pack
         .elements
         .iter()
-        .map(|data_pack| unpack_generic_value(data_pack, qpy_data, endian))
+        .map(|data_pack| unpack_generic_value(data_pack, qpy_data, qpy_global_data, endian))
         .collect()
 }
 
