@@ -11,18 +11,18 @@
 // that they have been altered from the originals.
 
 use crate::data_tree::DataTree;
-use crate::program_node::ProgramNode;
+use crate::ops::ProgramOp;
 use crate::tensor::{Tensor, TensorType};
 use std::sync::LazyLock;
 
-// An empty data tree is the input for all store nodes.
+// An empty data tree is the input for all store ops.
 static EMPTY_DATA_TREE: LazyLock<DataTree<TensorType>> = LazyLock::new(DataTree::new);
 
-/// A program node that owns constant data and outputs it unconditionally.
+/// A program op that owns constant data and outputs it unconditionally.
 ///
 /// `Store` takes no inputs; its `call()` always returns the data it was constructed with.
-/// In a data-flow graph, `Store` nodes play the role of constants — they are wired to
-/// the input ports of computation nodes to supply fixed values.
+/// In a data-flow graph, `Store` ops play the role of constants — they are wired to
+/// the input ports of computation ops to supply fixed values.
 pub struct Store {
     /// Tensors in DFS leaf order matching `output_types`.
     leaves: Vec<Tensor>,
@@ -41,7 +41,7 @@ impl Store {
     }
 }
 
-impl ProgramNode for Store {
+impl ProgramOp for Store {
     type CallError = std::convert::Infallible;
 
     fn name(&self) -> &str {
