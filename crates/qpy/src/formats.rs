@@ -146,7 +146,7 @@ impl CircuitHeaderPack {
 #[brw(big)]
 #[derive(Debug)]
 #[brw(import (version: u8))]
-struct CircuitHeaderV19Pack {
+pub(crate) struct CircuitHeaderV19Pack {
     // global circuit data
     pub circuit_name: StringU16Pack,
     pub global_phase: GlobalPhasePack,

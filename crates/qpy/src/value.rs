@@ -508,6 +508,45 @@ pub trait FromGenericValue: Sized {
 }
 
 impl GenericValue {
+    /// Normalize a parameter expression into the most specific generic value.
+    ///
+    /// A `ParameterExpression` can represent a standalone parameter, a parameter-vector
+    /// element, or an actual expression.  Keeping that distinction here lets concrete QPY
+    /// formats reuse the classification without first serializing through `GenericDataPack`.
+    pub(crate) fn from_parameter_expression(exp: &ParameterExpression) -> Self {
+        if let Ok(symbol) = exp.try_to_symbol().map(Arc::new) {
+            match &*symbol {
+                Symbol::Standalone { .. } => Self::ParameterExpressionSymbol(symbol),
+                Symbol::Element { .. } => Self::ParameterExpressionVectorSymbol(symbol),
+            }
+        } else {
+            Self::ParameterExpression(Arc::new(exp.clone()))
+        }
+    }
+
+    pub(crate) fn pack_global_phase(
+        &self,
+        qpy_data: &mut QPYWriteData,
+    ) -> Result<formats::GlobalPhasePack, QpyError> {
+        match self {
+            Self::Float64(value) => Ok(formats::GlobalPhasePack::Float(*value)),
+            Self::ParameterExpressionSymbol(symbol) => {
+                Ok(formats::GlobalPhasePack::Parameter(pack_symbol(symbol)))
+            }
+            Self::ParameterExpressionVectorSymbol(symbol) => {
+                Ok(formats::GlobalPhasePack::ParameterVectorElement(
+                    pack_parameter_vector(symbol, qpy_data)?,
+                ))
+            }
+            Self::ParameterExpression(exp) => Ok(formats::GlobalPhasePack::ParameterExpression(
+                pack_parameter_expression(exp, qpy_data)?,
+            )),
+            _ => Err(QpyError::ConversionError(
+                "value cannot be encoded as a global phase".to_owned(),
+            )),
+        }
+    }
+
     pub(crate) fn as_typed<T: FromGenericValue>(&self) -> Option<T> {
         T::from_generic(self)
     }

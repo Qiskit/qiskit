@@ -1306,6 +1306,32 @@ pub(crate) fn unpack_circuit(
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,
 ) -> Result<CircuitData, QpyError> {
+    if version <= 18 {
+        unpack_circuit_v18(
+            packed_circuit,
+            version,
+            use_symengine,
+            annotation_handler,
+            caller,
+        )
+    } else {
+        unpack_circuit_v19(
+            packed_circuit,
+            version,
+            use_symengine,
+            annotation_handler,
+            caller,
+        )
+    }
+}
+
+fn unpack_circuit_v18(
+    packed_circuit: &QPYCircuit,
+    version: u8,
+    use_symengine: bool,
+    annotation_handler: AnnotationHandler,
+    caller: QpyCaller,
+) -> Result<CircuitData, QpyError> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut qpy_data = QPYReadData {
@@ -1354,17 +1380,40 @@ pub(crate) fn unpack_circuit(
             &mut qpy_data,
             ValueEndian::Big,
         )?)?,
-        formats::CircuitHeaderPack::V19(header) => header.global_phase.to_param(&mut qpy_data)?,
+        formats::CircuitHeaderPack::V19(_) => {
+            return Err(QpyError::InvalidFormat(
+                "QPY <= 18 circuit has a QPY 19 header".to_string(),
+            ));
+        }
     };
     qpy_data.circuit_data.set_global_phase_param(global_phase)?;
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;
     let custom_instructions = read_custom_instructions(packed_circuit, &mut qpy_data)?;
     for instruction in &packed_circuit.instructions {
+        let formats::CircuitInstructionPack::V2(instruction) = instruction else {
+            return Err(QpyError::InvalidFormat(
+                "QPY <= 18 circuit has a QPY 19 instruction".to_string(),
+            ));
+        };
         let inst = unpack_instruction(instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
     }
     Ok(qpy_data.circuit_data)
+}
+
+fn unpack_circuit_v19(
+    _packed_circuit: &QPYCircuit,
+    _version: u8,
+    _use_symengine: bool,
+    _annotation_handler: AnnotationHandler,
+    _caller: QpyCaller,
+) -> Result<CircuitData, QpyError> {
+    // TODO(QPY19): Decode CircuitHeaderPack::V19, including its bit interners, then decode each
+    // CircuitInstructionPack::V19 once the placeholder QPY 19 operation-data formats are defined.
+    Err(QpyError::DeserializationError(
+        "QPY 19 circuit decoding is not implemented yet".to_string(),
+    ))
 }
 
 // handling for non control flow gates with conditionals, for backwards compatability

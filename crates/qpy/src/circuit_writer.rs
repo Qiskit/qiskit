@@ -49,13 +49,13 @@ use crate::interface::ExtraCircuitData;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name, py_pack_param,
-    py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
+    STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name, py_convert_to_generic_value,
+    py_pack_param, py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
-    QPYWriteData, QpyCaller, RegisterType, ValueEndian, get_circuit_type_key, pack_for_collection,
-    pack_generic_value, pack_standalone_var, pack_stretch, serialize,
+    QPYWriteData, QpyCaller, RegisterType, StringU16Pack, ValueEndian, get_circuit_type_key,
+    pack_for_collection, pack_generic_value, pack_standalone_var, pack_stretch, serialize,
     serialize_param_register_value, serialize_with_args,
 };
 
@@ -931,6 +931,52 @@ fn pack_circuit_header_v12(
     Ok(formats::CircuitHeaderPack::V12(header))
 }
 
+fn pack_circuit_header_v19(
+    circuit_name: Option<String>,
+    metadata: Bytes,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::CircuitHeaderPack, QpyError> {
+    let global_phase = pack_global_phase(qpy_data.circuit_data.global_phase(), qpy_data)?;
+    let qregs = pack_quantum_registers(qpy_data.circuit_data, qpy_data.version);
+    let cregs = pack_classical_registers(qpy_data.circuit_data, qpy_data.version);
+    let mut registers = qregs;
+    registers.extend(cregs);
+    let header = formats::CircuitHeaderV19Pack {
+        circuit_name: StringU16Pack {
+            value: circuit_name.unwrap_or_default(),
+        },
+        global_phase,
+        num_qubits: qpy_data.circuit_data.num_qubits() as u32,
+        num_clbits: qpy_data.circuit_data.num_clbits() as u32,
+        num_instructions: qpy_data.circuit_data.len() as u64,
+        num_vars: qpy_data
+            .circuit_data
+            .vars_stretches_view()
+            .num_identifiers() as u32,
+        registers,
+        qubit_interner: Vec::new(),
+        clbit_interner: Vec::new(),
+        metadata,
+    };
+
+    Ok(formats::CircuitHeaderPack::V19(header))
+}
+
+fn pack_global_phase(
+    global_phase: &Param,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::GlobalPhasePack, QpyError> {
+    match global_phase {
+        Param::Float(val) => Ok(formats::GlobalPhasePack::Float(*val)),
+        Param::ParameterExpression(exp) => {
+            GenericValue::from_parameter_expression(exp).pack_global_phase(qpy_data)
+        }
+        Param::Obj(py_object) => qpy_data.caller.attach("Python parameter", |py| {
+            py_convert_to_generic_value(py_object.bind(py))?.pack_global_phase(qpy_data)
+        }),
+    }
+}
+
 fn default_layout() -> formats::LayoutV2Pack {
     formats::LayoutV2Pack {
         exists: 0,
@@ -1377,6 +1423,20 @@ pub(crate) fn pack_circuit(
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,
 ) -> Result<formats::QPYCircuit, QpyError> {
+    if version <= 18 {
+        pack_circuit_v18(circuit_data, extra, version, annotation_handler, caller)
+    } else {
+        pack_circuit_v19(circuit_data, extra, version, annotation_handler, caller)
+    }
+}
+
+fn pack_circuit_v18(
+    circuit_data: &CircuitData,
+    extra: ExtraCircuitData,
+    version: u8,
+    annotation_handler: AnnotationHandler,
+    caller: QpyCaller,
+) -> Result<formats::QPYCircuit, QpyError> {
     let mut qpy_data = QPYWriteData {
         caller,
         circuit_data,
@@ -1397,6 +1457,10 @@ pub(crate) fn pack_circuit(
         None
     };
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
+    let instructions = instructions
+        .into_iter()
+        .map(formats::CircuitInstructionPack::V2)
+        .collect();
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
     let layout = if extra.layout.is_empty() {
@@ -1428,4 +1492,30 @@ pub(crate) fn pack_circuit(
         calibrations,
         layout,
     })
+}
+
+fn pack_circuit_v19(
+    circuit_data: &CircuitData,
+    extra: ExtraCircuitData,
+    version: u8,
+    annotation_handler: AnnotationHandler,
+    caller: QpyCaller,
+) -> Result<formats::QPYCircuit, QpyError> {
+    // TODO(QPY19): Build CircuitHeaderPack::V19 and its bit interners, then encode instructions as
+    // CircuitInstructionPack::V19 once the placeholder QPY 19 operation-data formats are defined.
+
+    let mut qpy_data = QPYWriteData {
+        caller,
+        circuit_data,
+        version,
+        standalone_var_indices: HashMap::new(),
+        parameter_vectors: Default::default(),
+        annotation_handler,
+    };
+    let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
+    let header = pack_circuit_header_v19(extra.name, extra.metadata, &mut qpy_data)?;
+
+    Err(QpyError::SerializationError(
+        "QPY 19 circuit encoding is not implemented yet".to_string(),
+    ))
 }
