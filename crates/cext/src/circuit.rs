@@ -2433,18 +2433,18 @@ pub unsafe extern "C" fn qk_circuit_delay(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(2, 0);
+/// QkCircuit *qc = qk_circuit_new(2, 0);
 ///
-///     QkCircuit *body = qk_circuit_new(2, 0);
-///     uint32_t body_qubits[2] = {0, 1};
-///     qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
+/// QkCircuit *body = qk_circuit_new(2, 0);
+/// uint32_t body_qubits[2] = {0, 1};
+/// qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
 ///
-///     uint32_t qubits[2] = {1, 0};
-///     QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
-///     qk_circuit_box(qc, body, qubits, NULL, &duration);
+/// uint32_t qubits[2] = {1, 0};
+/// QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
+/// qk_circuit_box(qc, body, qubits, NULL, &duration);
 ///
-///     qk_circuit_free(body);
-///     qk_circuit_free(qc);
+/// qk_circuit_free(body);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
