@@ -28,7 +28,7 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::circuit_data::{self, CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
@@ -941,6 +941,7 @@ fn pack_circuit_header_v19(
     let cregs = pack_classical_registers(qpy_data.circuit_data, qpy_data.version);
     let mut registers = qregs;
     registers.extend(cregs);
+    let (qubit_interner, clbit_interner) = pack_interners(qpy_data);
     let header = formats::CircuitHeaderV19Pack {
         circuit_name: StringU16Pack {
             value: circuit_name.unwrap_or_default(),
@@ -954,8 +955,8 @@ fn pack_circuit_header_v19(
             .vars_stretches_view()
             .num_identifiers() as u32,
         registers,
-        qubit_interner: Vec::new(),
-        clbit_interner: Vec::new(),
+        qubit_interner,
+        clbit_interner,
         metadata,
     };
 
@@ -975,6 +976,42 @@ fn pack_global_phase(
             py_convert_to_generic_value(py_object.bind(py))?.pack_global_phase(qpy_data)
         }),
     }
+}
+
+fn pack_interners(
+    qpy_data: &mut QPYWriteData,
+) -> (Vec<formats::InternerEntry>, Vec<formats::InternerEntry>) {
+    let qubit_interner = qpy_data
+        .circuit_data
+        .qargs_interner()
+        .values()
+        .map(|bits| match bits.len() {
+            1 => formats::InternerEntry::Single(bits[0].0),
+            2 => formats::InternerEntry::Double(bits[0].0, bits[1].0),
+            3 => formats::InternerEntry::Triple(bits[0].0, bits[1].0, bits[2].0),
+            val if val == qpy_data.circuit_data.num_qubits() => formats::InternerEntry::All,
+            _ => formats::InternerEntry::VariableSize {
+                bits: bits.iter().map(|bit| bit.0).collect(),
+            },
+        })
+        .collect::<Vec<_>>();
+
+    let clbit_interner = qpy_data
+        .circuit_data
+        .cargs_interner()
+        .values()
+        .map(|bits| match bits.len() {
+            1 => formats::InternerEntry::Single(bits[0].0),
+            2 => formats::InternerEntry::Double(bits[0].0, bits[1].0),
+            3 => formats::InternerEntry::Triple(bits[0].0, bits[1].0, bits[2].0),
+            val if val == qpy_data.circuit_data.num_clbits() => formats::InternerEntry::All,
+            _ => formats::InternerEntry::VariableSize {
+                bits: bits.iter().map(|bit| bit.0).collect(),
+            },
+        })
+        .collect::<Vec<_>>();
+
+    (qubit_interner, clbit_interner)
 }
 
 fn default_layout() -> formats::LayoutV2Pack {
