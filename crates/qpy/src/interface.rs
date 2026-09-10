@@ -406,3 +406,105 @@ pub fn py_load_qpy(
         })
         .collect()
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+
+    use super::*;
+    use qiskit_circuit::Qubit;
+    use qiskit_circuit::operations::{DelayUnit, OperationRef, Param, StandardInstruction};
+    use qiskit_circuit::packed_instruction::PackedOperation;
+    use smallvec::smallvec;
+
+    /// Builds the [`ExtraCircuitData`] required to serialize a native circuit that carries no
+    /// Python-only metadata or transpiler layout.
+    fn native_extra_data(circuit: &CircuitData, name: &str, version: u8) -> ExtraCircuitData {
+        ExtraCircuitData {
+            name: Some(name.to_string()),
+            // Circuit metadata is always decoded with `json.loads`, and older Qiskit
+            // releases require the decoded value to be a dictionary.
+            metadata: "{}".into(),
+            layout: serialize(&pack_layout(None, circuit, version).unwrap()).unwrap(),
+        }
+    }
+
+    /// A circuit containing a single `Delay` measured in `dt` should survive a native
+    /// QPY dump/load round trip: the instruction, its `dt` unit, and its integer-typed
+    /// duration are all preserved.
+    #[test]
+    fn delay_in_dt_roundtrip() {
+        let version = QPY_WRITE_MIN_VERSION;
+
+        // Build a 1-qubit circuit with a `Delay` instruction of 13 dt value.
+        let circuit = CircuitData::from_packed_operations(
+            1,
+            0,
+            [Ok((
+                PackedOperation::from_standard_instruction(StandardInstruction::Delay(
+                    DelayUnit::DT,
+                )),
+                smallvec![Param::Int(13)],
+                vec![Qubit(0)],
+                Vec::with_capacity(0),
+            ))],
+            0.0.into(),
+        )
+        .unwrap();
+
+        // Round trip through the native QPY dump/load entry points.
+        let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
+        let payload = dump_qpy(vec![circuit], vec![extra], version, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None).unwrap();
+
+        // Exactly one circuit, with exactly one instruction.
+        assert_eq!(loaded.len(), 1);
+        let loaded_circuit = &loaded[0].circuit_data;
+        assert_eq!(loaded_circuit.num_qubits(), 1);
+        assert_eq!(loaded_circuit.len(), 1);
+
+        // That instruction is a `Delay` whose unit round-tripped as `dt`.
+        let inst = &loaded_circuit.data()[0];
+        let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view()
+        else {
+            panic!(
+                "expected a standard Delay instruction, got {:?}",
+                inst.op.view()
+            );
+        };
+        assert_eq!(unit, DelayUnit::DT);
+
+        // The duration parameter is preserved.
+        assert!(matches!(inst.params_view(), [Param::Int(d)] if *d == 13));
+    }
+
+    /// A duration bigger than `i64::MAX` is not currently supported by QPY
+    /// See #16972.
+    #[test]
+    fn delay_in_dt_over_limit() {
+        let version = QPY_WRITE_MIN_VERSION;
+
+        // Build a 1-qubit circuit with a `Delay` instruction of 13 dt value.
+        let circuit = CircuitData::from_packed_operations(
+            1,
+            0,
+            [Ok((
+                PackedOperation::from_standard_instruction(StandardInstruction::Delay(
+                    DelayUnit::DT,
+                )),
+                smallvec![Param::Int(u64::MAX)],
+                vec![Qubit(0)],
+                Vec::with_capacity(0),
+            ))],
+            0.0.into(),
+        )
+        .unwrap();
+
+        // Round trip through the native QPY dump/load entry points.
+        let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
+        assert!(matches!(
+            dump_qpy(vec![circuit], vec![extra], version, None, None),
+            Err(QpyError::IntConversionError(_))
+        ))
+    }
+}
