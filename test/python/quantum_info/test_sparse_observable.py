@@ -2528,6 +2528,32 @@ class TestSparseObservable(QiskitTestCase):
         zz = SparseObservable.from_sparse_list([("ZZ", [0, 1], 1)], num_qubits=2)
         self.assertTrue(zz.commutes(xxyy))
 
+    def test_to_matrix(self):
+        """Test `to_matrix` success."""
+        obs = SparseObservable.zero(2)
+        res = obs.to_matrix()
+
+        exp = np.zeros((4, 4), dtype=complex)
+        np.testing.assert_array_equal(res, exp)
+
+    def test_to_matrix_value_error(self):
+        """Test `to_matrix` error returns `ValueError`."""
+        obs = SparseObservable.zero(0)
+
+        with self.assertRaises(ValueError):
+            obs.to_matrix()
+
+    def test_to_matrix_matches_sparse_pauli_op(self):
+        """Test if `to_matrix` output matches `SparsePauliOp.to_matrix`."""
+        obs = [
+            ("1+ZX", [3, 2, 1, 0], -3.0),
+            ("YZ", [3, 0], 4.4),
+            ("r0", [1, 2], 0.1),
+        ]
+        obs = SparseObservable.from_sparse_list(obs, 4)
+        spo = SparsePauliOp.from_sparse_observable(obs)
+        np.testing.assert_allclose(obs.to_matrix(), spo.to_matrix())
+
 
 def canonicalize_term(pauli, indices, coeff):
     # canonicalize a sparse list term by sorting by indices (which is unique as
