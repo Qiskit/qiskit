@@ -27,7 +27,8 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(105, &dag::FUNCTIONS)
         .add_child(205, &param::FUNCTIONS)
         .add_child(255, &circuit_library::FUNCTIONS)
-        .add_child(305, &classical_expr::FUNCTIONS);
+        .add_child(305, &classical_expr::FUNCTIONS)
+        .add_child(380, &operations::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
@@ -140,6 +141,8 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_bit_width),
             export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
+            export_fn!(qk_circuit_add_custom_operation),
+            export_fn!(qk_circuit_get_custom_operation),
         ]
     });
 }
@@ -212,6 +215,8 @@ mod dag {
             export_fn!(qk_dag_substitute_node_with_unitary),
             export_fn!(qk_dag_global_phase),
             export_fn!(qk_dag_set_global_phase),
+            export_fn!(qk_dag_apply_custom_operation),
+            export_fn!(qk_dag_get_custom_operation),
         ]
     });
 }
@@ -249,6 +254,32 @@ mod param {
             export_fn!(qk_param_conjugate),
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
+        ]
+    });
+}
+
+mod operations {
+    use crate::impl_::prelude::*;
+    #[cfg(feature = "addr")]
+    use qiskit_cext::operations::*;
+
+    pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
+        vec![
+            export_fn!(qk_custom_operation_vtable_new),
+            export_fn!(qk_custom_operation_new),
+            export_fn!(qk_custom_operation_name),
+            export_fn!(qk_custom_operation_num_qubits),
+            export_fn!(qk_custom_operation_num_clbits),
+            export_fn!(qk_custom_operation_num_params),
+            export_fn!(qk_custom_operation_directive),
+            export_fn!(qk_custom_operation_is_unitary),
+            export_fn!(qk_custom_operation_num_ctrl_qubits),
+            export_fn!(qk_custom_operation_label),
+            export_fn!(qk_custom_operation_definition),
+            export_fn!(qk_custom_operation_eq),
+            export_fn!(qk_custom_operation_free),
+            export_fn!(qk_custom_operation_type_id),
+            export_fn!(qk_custom_operation_raw),
         ]
     });
 }

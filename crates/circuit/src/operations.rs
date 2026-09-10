@@ -2142,7 +2142,7 @@ impl dyn CustomOperation + 'static {
 /// [`PackedOperation`].
 #[derive(Debug)]
 #[repr(align(8))]
-pub(crate) struct BoxedCustomOperation(Box<dyn CustomOperation>);
+pub struct BoxedCustomOperation(Box<dyn CustomOperation>);
 
 impl Deref for BoxedCustomOperation {
     type Target = dyn CustomOperation;
