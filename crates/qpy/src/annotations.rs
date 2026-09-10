@@ -189,7 +189,7 @@ impl AnnotationHandler {
                 };
                 let Some(payload) = serializers.dump(ns, annotation) else {
                     return Err(QpyError::AnnotationError(format!(
-                        "Could not find an appropriate deserializer for namespace {ns}."
+                        "Could not find an appropriate serializer for namespace {ns}."
                     )));
                 };
                 Ok((index as u32, format!("{ns}\x00{payload}").into()))
