@@ -82,7 +82,7 @@ static int test_custom_operation_in_circuit(void) {
     struct foo_gate test_3q_op = {
         .num_qubits = 3,
         .num_clbits = 0,
-        .num_params = 1,
+        .num_params = 2,
     };
     struct foo_gate test_2q_op = {
         .num_qubits = 2,
@@ -106,7 +106,7 @@ static int test_custom_operation_in_circuit(void) {
     uint32_t qubits[3] = {0, 1, 2};
     uint32_t qubits_2[2] = {1, 2};
     uint32_t clbits_2[1] = {1};
-    QkParam *params[1] = {qk_param_from_double(3.14)};
+    QkParam *params[2] = {qk_param_from_double(3.14), qk_param_from_double(1.57)};
 
     qk_circuit_add_custom_operation(circuit, test_3q, qubits, NULL, params);
     qk_circuit_add_custom_operation(circuit, test_2q_1c, qubits_2, clbits_2, NULL);
