@@ -2808,11 +2808,16 @@ pub unsafe extern "C" fn qk_circuit_add_custom_operation(
 
     let params = (!params.is_null()).then(|| {
         let params = if !params.is_null() {
-            unsafe { std::slice::from_raw_parts(*params, op.num_params() as usize) }
+            unsafe { std::slice::from_raw_parts(params, op.num_params() as usize) }
         } else {
             Default::default()
         };
-        Parameters::Params(params.iter().cloned().collect())
+        Parameters::Params(
+            params
+                .iter()
+                .map(|param| unsafe { const_ptr_as_ref(*param) }.clone())
+                .collect(),
+        )
     });
 
     let ret = circ.push_packed_operation(op, params, qargs, cargs);
