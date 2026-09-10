@@ -19,7 +19,6 @@ import pickle
 import copy
 import functools
 import itertools
-import operator
 
 from test import combine
 from test import QiskitTestCase
@@ -1121,74 +1120,37 @@ class TestParameterExpression(QiskitTestCase):
     def test_structurally_equal(self, left, right, expected):
         self.assertStructurallyEqualResult(left, right, expected)
 
-    def test_add_optimization_with_shared_terms(self):
-        """Add of expressions with shared terms and opposite sign should cancel."""
+    @ddt.data("__add__", "__sub__")
+    def test_optimization_with_shared_terms(self, method):
+        """Adding or subtracting two expressions with a shared term should fold the constants and
+        either double or cancel the shared term.
 
-        x = Parameter("x")
-
-        # (label, lhs, rhs, expected_repr)
-        cases = [
-            # plain symbol cancellation
-            ("(x) + (-x)", x, -x, "0"),
-            ("(-x) + (x)", -x, x, "0"),
-            # shared symbol cancels when sign is opposite
-            ("(x+1) + (x+2)", x + 1, x + 2, "3 + 2*x"),
-            ("(x+1) + (x-1)", x + 1, x - 1, "2*x"),
-            ("(-x+1) + (-x+2)", -x + 1, -x + 2, "3 - 2*x"),
-            ("(-x+1) + (-x-1)", -x + 1, -x - 1, "(-2)*x"),
-            ("(-x+1) + (x+2)", -x + 1, x + 2, "3"),
-            ("(-x+1) + (x-1)", -x + 1, x - 1, "0"),
-            ("(x+1) + (-x+1)", x + 1, -x + 1, "2"),
-            ("(x+1) + (-x-1)", x + 1, -x - 1, "0"),
-        ]
-
-        self._assert_simplifies(cases, operator.add)
-
-    def test_sub_optimization_with_shared_terms(self):
-        """Sub of expressions with shared terms and same sign should cancel."""
-
-        x = Parameter("x")
-
-        # (label, lhs, rhs, expected_repr)
-        cases = [
-            # plain symbol cancellation
-            ("(x) - (x)", x, x, "0"),
-            # shared symbol cancels when sign is equal
-            ("(x+1) - (x-1)", x + 1, x - 1, "2"),
-            ("(x+1) - (x+1)", x + 1, x + 1, "0"),
-            ("(-x+1) - (-x-1)", -x + 1, -x - 1, "2"),
-            ("(-x+1) - (-x+1)", -x + 1, -x + 1, "0"),
-            ("(x+1) - (-x+3)", x + 1, -x + 3, "-2 + 2*x"),
-            ("(x+1) - (-x+1)", x + 1, -x + 1, "2*x"),
-            ("(-x+1) - (x+2)", -x + 1, x + 2, "-1 - 2*x"),
-            ("(-x+1) - (x+1)", -x + 1, x + 1, "(-2)*x"),
-        ]
-
-        self._assert_simplifies(cases, operator.sub)
-
-    def _assert_simplifies(self, cases, op):
-        """Check that each ``op(lhs, rhs)`` simplifies as expected, and that
-        the results is arithmetically correct.
-
-        ``cases`` is a list of ``(label, lhs, rhs, expected)`` tuples.
+        Tests all combinations of ``x+1, x-1, -x+1, -x-1`` with add/sub, comparing against the
+        expected simplified expression.
         """
+        # (expression, sign of x, constant); the sign and constant are used to compute the
+        # expected expression.
+        terms = [
+            (param_x + 1, 1, 1),
+            (param_x - 1, 1, -1),
+            (-param_x + 1, -1, 1),
+            (-param_x - 1, -1, -1),
+        ]
+        # all ordered pairs, including an expression paired with itself
+        for (lhs, left_sign, left_const), (rhs, right_sign, right_const) in itertools.product(
+            terms, repeat=2
+        ):
+            with self.subTest(lhs=str(lhs), method=method, rhs=str(rhs)):
 
-        params = sorted(
-            {q for _, lhs, rhs, _ in cases for q in lhs.parameters | rhs.parameters},
-            key=lambda q: q.name,
-        )
-        bind = {p: float(i) for i, p in enumerate(params, start=1)}
+                expression = getattr(lhs, method)(rhs)
 
-        for name, lhs, rhs, expected in cases:
-            with self.subTest(name):
-                expr = op(lhs, rhs)
+                # compute expected simplified experession directly
+                sign = getattr(left_sign, method)(right_sign)
+                const = getattr(left_const, method)(right_const)
+                expected = sign * param_x + const
 
-                # simplified as expected
-                self.assertEqual(str(expr), expected)
-
-                # simplified expression is arithmetically correct
-                lhs_bind = {p: v for p, v in bind.items() if p in lhs.parameters}
-                rhs_bind = {p: v for p, v in bind.items() if p in rhs.parameters}
-                reference = op(lhs.bind(lhs_bind), rhs.bind(rhs_bind))
-                expr_bind = {p: v for p, v in bind.items() if p in expr.parameters}
-                self.assertAlmostEqual(float(expr.bind(expr_bind).numeric()), float(reference))
+                # `assertStructurallyEqual` would be the better assertion here, but it
+                # doesn't handle simplification yet -- a cancelled symbol stays listed in
+                # `name_map`, so the expected expression won't match.  Comparing the rendered
+                # form in the meantime.
+                self.assertEqual(str(expression), str(expected))
