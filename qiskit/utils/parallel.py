@@ -59,7 +59,6 @@ import functools
 import multiprocessing
 import os
 import platform
-import sys
 import warnings
 from concurrent.futures import ProcessPoolExecutor
 
@@ -88,9 +87,8 @@ def _physical_cpus_assuming_twofold_smt():
 def _parallel_default():
     # We default to False on `spawn`-based multiprocessing implementations, True on everything else.
     if (set_start_method := multiprocessing.get_start_method(allow_none=True)) is None:
-        # The method hasn't been explicitly set, but it would be badly behaved of us to set it for
-        # the user, so handle platform defaults.
-        return sys.platform not in ("darwin", "win32")
+        # The method hasn't been explicitly set, disable multiprocessing
+        return False
     return set_start_method in ("fork", "forkserver")
 
 
@@ -274,6 +272,15 @@ def parallel_map(task, values, task_args=(), task_kwargs=None, num_processes=Non
 
     This will parallelise the results if the number of ``values`` is greater than one and
     :func:`should_run_in_parallel` returns ``True``.  If not, it will run in serial.
+
+    By default multiprocessing will be disabled on all supported platforms when calling this
+    function due to issues mixing it with threading. You have to explicitly opt-in to use
+    multiprocessing with this function by either explicitly calling
+    :func:`multiprocessing.set_start_method` to either ``"fork"`` or ``"forkserver"``,
+    setting the environment variable ``QISKIT_PARALLEL=TRUE``, or setting
+    ``parallel`` in your user configuration file. You can find more details
+    on these configuration options here:
+    https://quantum.cloud.ibm.com/docs/en/guides/configure-qiskit-local
 
     Args:
         task (func): Function that is to be called for each value in ``values``.
