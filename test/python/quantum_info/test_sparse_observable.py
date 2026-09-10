@@ -2546,23 +2546,13 @@ class TestSparseObservable(QiskitTestCase):
     def test_to_matrix_matches_sparse_pauli_op(self):
         """Test if `to_matrix` output matches `SparsePauliOp.to_matrix`."""
         obs = [
-            ("XI", [1, 0], -3.0),
-            ("YZ", [1, 0], 4.4j),
-            ("YY", [1, 0], 0.2 - 0.1j),
-            ("ZZ", [1, 0], 66.12),
+            ("1+ZX", [3, 2, 1, 0], -3.0),
+            ("YZ", [3, 0], 4.4),
+            ("r0", [1, 2], 0.1),
         ]
-        obs = SparseObservable.from_sparse_list(obs, 2).to_matrix()
-
-        spo = SparsePauliOp.from_list(
-            [
-                ("XI", -3.0),
-                ("YZ", 4.4j),
-                ("YY", 0.2 - 0.1j),
-                ("ZZ", 66.12),
-            ]
-        ).to_matrix()
-
-        np.testing.assert_allclose(obs, spo)
+        obs = SparseObservable.from_sparse_list(obs, 4)
+        spo = SparsePauliOp.from_sparse_observable(obs)
+        np.testing.assert_allclose(obs.to_matrix(), spo.to_matrix())
 
 
 def canonicalize_term(pauli, indices, coeff):
