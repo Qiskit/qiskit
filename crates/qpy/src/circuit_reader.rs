@@ -113,7 +113,7 @@ fn deserialize_standard_instruction(
                 if instruction.params.len() >= 2 {
                     unpack_generic_value(&instruction.params[1], qpy_data, ValueEndian::Big)
                         .ok()
-                        .and_then(|value| value.as_typed::<String>())
+                        .and_then(|value| value.as_typed::<String>().ok().flatten())
                         .and_then(|unit| {
                             qiskit_circuit::operations::DelayUnit::from_str(&unit).ok()
                         })
