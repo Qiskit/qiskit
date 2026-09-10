@@ -1264,6 +1264,7 @@ class QuantumCircuit:
         """A private constructor from rust space circuit data."""
         out = QuantumCircuit(name=name)
         out._data = data
+        out._ancillas = [bit for bit in data.qubits if isinstance(bit, AncillaQubit)]
         if legacy_qubits:
             out.ensure_physical(apply_layout=False)
         return out
