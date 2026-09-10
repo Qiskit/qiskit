@@ -2191,6 +2191,7 @@ pub struct Store {
 }
 
 impl Store {
+    #[cfg(feature = "py")]
     pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
         if let Some(label) = label {
             Ok(imports::STORE
