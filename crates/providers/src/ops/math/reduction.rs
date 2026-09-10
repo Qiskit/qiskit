@@ -11,14 +11,14 @@
 // that they have been altered from the originals.
 
 use crate::data_tree::DataTree;
-use crate::program_node::ProgramNode;
+use crate::ops::ProgramOp;
 use crate::tensor::{DType, DTypeLike, Tensor, TensorType};
 use crate::unpack_tensor_args;
 use ndarray::{ArrayBase, ArrayD, Axis, Data, IxDyn, NdFloat, Zip};
 use num_complex::Complex;
 use std::sync::LazyLock;
 
-/// Shared input type spec for reduction nodes: a single broadcastable tensor of any dtype.
+/// Shared input type spec for reduction ops: a single broadcastable tensor of any dtype.
 static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     DataTree::new_leaf(TensorType {
         dtype: DTypeLike::Var("x".into()),
@@ -27,7 +27,7 @@ static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     })
 });
 
-/// Shared output type spec for reduction nodes: a single broadcastable tensor of any dtype.
+/// Shared output type spec for reduction ops: a single broadcastable tensor of any dtype.
 static OUTPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     DataTree::new_leaf(TensorType {
         dtype: DTypeLike::Var("out".into()),
@@ -116,14 +116,14 @@ pub struct Mean {
 }
 
 impl Mean {
-    /// Construct a `Mean` node that reduces along `axis`.
+    /// Construct a `Mean` op that reduces along `axis`.
     pub fn new(axis: usize) -> Self {
         Self { axis }
     }
 }
 
-impl ProgramNode for Mean {
-    type CallError = super::MathNodeError;
+impl ProgramOp for Mean {
+    type CallError = super::MathOpError;
 
     fn name(&self) -> &str {
         "mean"
@@ -180,15 +180,15 @@ pub struct Variance {
 }
 
 impl Variance {
-    /// Construct a `Variance` node that reduces along `axis` with degrees-of-freedom
+    /// Construct a `Variance` op that reduces along `axis` with degrees-of-freedom
     /// correction `ddof`.
     pub fn new(axis: usize, ddof: f64) -> Self {
         Self { axis, ddof }
     }
 }
 
-impl ProgramNode for Variance {
-    type CallError = super::MathNodeError;
+impl ProgramOp for Variance {
+    type CallError = super::MathOpError;
 
     fn name(&self) -> &str {
         "variance"
@@ -244,15 +244,15 @@ pub struct Std {
 }
 
 impl Std {
-    /// Construct a `Std` node that reduces along `axis` with degrees-of-freedom
+    /// Construct a `Std` op that reduces along `axis` with degrees-of-freedom
     /// correction `ddof`.
     pub fn new(axis: usize, ddof: f64) -> Self {
         Self { axis, ddof }
     }
 }
 
-impl ProgramNode for Std {
-    type CallError = super::MathNodeError;
+impl ProgramOp for Std {
+    type CallError = super::MathOpError;
 
     fn name(&self) -> &str {
         "std"
@@ -304,8 +304,8 @@ impl ProgramNode for Std {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math_nodes::MathNodeError;
-    use crate::program_node::{CallError, CallInputError, ProgramNodeExt};
+    use crate::ops::math::MathOpError;
+    use crate::ops::{CallError, CallInputError, ProgramOpExt};
     use crate::tensor::{DType, Tensor};
     use ndarray::{ArrayView, ShapeBuilder, arr2};
     use num_complex::Complex;
@@ -818,7 +818,7 @@ mod tests {
         let err = Mean::new(0).call(&tree).unwrap_err();
         assert!(matches!(
             err,
-            CallError::<MathNodeError>::Input(CallInputError::ExpectedLeaf {
+            CallError::<MathOpError>::Input(CallInputError::ExpectedLeaf {
                 ref key,
             }) if key.is_empty()
         ));
@@ -831,7 +831,7 @@ mod tests {
             .unwrap_err();
         assert_eq!(
             err,
-            MathNodeError::Input(CallInputError::WrongArity {
+            MathOpError::Input(CallInputError::WrongArity {
                 expected: 1,
                 actual: 2,
             })
@@ -854,20 +854,20 @@ mod tests {
     fn test_mean_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
         let err = Mean::new(1).call_flat(&[x]).unwrap_err();
-        assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });
+        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
     }
 
     #[test]
     fn test_variance_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
         let err = Variance::new(1, 0.0).call_flat(&[x]).unwrap_err();
-        assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });
+        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
     }
 
     #[test]
     fn test_std_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
         let err = Std::new(1, 0.0).call_flat(&[x]).unwrap_err();
-        assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });
+        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
     }
 }
