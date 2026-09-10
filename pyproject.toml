@@ -149,6 +149,7 @@ clifford = "qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin:Cli
 "Multiplier.cumulative_h18" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisH18"
 "PauliEvolution.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisDefault"
 "PauliEvolution.rustiq" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisRustiq"
+"PauliEvolution.mcts" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisMcts"
 "annotated.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:AnnotatedSynthesisDefault"
 
 [project.entry-points."qiskit.transpiler.init"]

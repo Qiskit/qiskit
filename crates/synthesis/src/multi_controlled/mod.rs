@@ -12,7 +12,7 @@
 
 use mcx::{
     c3x, c4x, synth_mcp_noaux_sp22, synth_mcx_1_clean_b95, synth_mcx_n_clean_m15,
-    synth_mcx_n_dirty_i15, synth_mcx_noaux_hp24, synth_mcx_noaux_v24,
+    synth_mcx_n_dirty_i15, synth_mcx_noaux_hp24, synth_mcx_noaux_sp22,
 };
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
@@ -30,12 +30,6 @@ fn py_synth_mcx_n_dirty_i15(
     action_only: bool,
 ) -> PyResult<PyCircuitData> {
     Ok(synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only)?.into())
-}
-
-#[pyfunction]
-#[pyo3(name="synth_mcx_noaux_v24", signature = (num_controls))]
-fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<PyCircuitData> {
-    Ok(synth_mcx_noaux_v24(py, num_controls)?.into())
 }
 
 #[pyfunction]
@@ -69,14 +63,20 @@ fn py_synth_mcp_noaux_sp22(num_controls: usize, phase: Param) -> PyResult<PyCirc
     Ok(synth_mcp_noaux_sp22(num_controls, phase)?.into())
 }
 
+#[pyfunction]
+#[pyo3(name = "synth_mcx_noaux_sp22")]
+fn py_synth_mcx_noaux_sp22(num_controls: usize) -> PyResult<PyCircuitData> {
+    Ok(synth_mcx_noaux_sp22(num_controls)?.into())
+}
+
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(c3x, m)?)?;
     m.add_function(wrap_pyfunction!(c4x, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_i15, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_v24, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_hp24, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_1_clean_b95, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_sp22, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_sp22, m)?)?;
     m.add_function(wrap_pyfunction!(mcmt::mcmt_v_chain, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_clean_m15, m)?)?;
     Ok(())
