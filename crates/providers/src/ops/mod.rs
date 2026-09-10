@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod data_tree;
-pub mod ops;
-pub mod tensor;
+mod constant;
+pub mod math;
+mod program_op;
 
-pub use data_tree::{ArityMismatch, DataTree, PathEntry, TreeMatchError};
-pub use ops::{CallError, CallInputError, MissingCallError, ProgramOp, ProgramOpExt, Store};
+pub use constant::Store;
+pub use program_op::{CallError, CallInputError, MissingCallError, ProgramOp, ProgramOpExt};

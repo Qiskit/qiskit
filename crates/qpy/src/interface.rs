@@ -246,7 +246,10 @@ pub fn read_raw_circuits(
     )?;
 
     // Read circuits using offset differences to determine sizes
-    let mut circuits = Vec::with_capacity(num_programs);
+    let mut circuits = Vec::new();
+    circuits
+        .try_reserve_exact(num_programs)
+        .map_err(QpyError::AllocationError)?;
 
     for i in 0..num_programs {
         let size = if i + 1 < circuit_table.len() {
@@ -318,7 +321,10 @@ pub fn load_qpy(
         qpy_file_header.symbolic_encoding,
         SymbolicEncoding::Symengine
     );
-    let mut circuits = Vec::with_capacity(num_programs);
+    let mut circuits = Vec::new();
+    circuits
+        .try_reserve_exact(num_programs)
+        .map_err(QpyError::AllocationError)?;
     let mut cursor = Cursor::new(data as &[u8]);
     cursor.seek(std::io::SeekFrom::Start(header_size as u64))?;
     if qpy_file_header.qpy_version >= 16 {
