@@ -20,6 +20,7 @@ pub mod multi_local;
 pub mod parameter_ledger;
 pub mod pauli_evolution;
 mod pauli_feature_map;
+pub mod qdrift;
 pub mod quantum_volume;
 pub mod suzuki_trotter;
 
