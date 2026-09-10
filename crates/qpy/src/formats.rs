@@ -21,6 +21,7 @@ use crate::value::{
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
+use qiskit_circuit::operations::DelayUnit;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
@@ -287,7 +288,7 @@ pub enum OperationData {
     StandardGate(u8),
     // The value of the instruction from qiskit_circuit::operations::StandardInstruction
     #[br(pre_assert(op_type == CircuitOperationType::StandardInstruction))]
-    StandardInstruction(u8),
+    StandardInstruction(StandardInstructionData),
     // Index into custom gate table
     #[br(pre_assert(op_type == CircuitOperationType::Custom))]
     Custom(u64),
@@ -303,6 +304,26 @@ pub enum OperationData {
     // Store the circuit bodies and the condition explicitly in the pack
     #[br(pre_assert(op_type == CircuitOperationType::ControlFlow))]
     ControlFlow(ControlFlowPack),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct StandardInstructionData {
+    /// The value of `qiskit_circuit::operations::StandardInstructionType`.
+    pub discriminant: u8,
+    #[br(if(discriminant == 1), try_map = decode_optional_delay_unit)]
+    #[bw(if(*discriminant == 1), map = encode_optional_delay_unit)]
+    pub delay_unit: Option<DelayUnit>,
+}
+
+fn decode_optional_delay_unit(value: u8) -> Result<Option<DelayUnit>, String> {
+    let unit = DelayUnit::from_u8(value).ok_or_else(|| format!("invalid delay unit ({value})"))?;
+    Ok(Some(unit))
+}
+
+fn encode_optional_delay_unit(unit: &Option<DelayUnit>) -> Option<u8> {
+    unit.map(|unit| unit as u8)
 }
 
 #[binrw]

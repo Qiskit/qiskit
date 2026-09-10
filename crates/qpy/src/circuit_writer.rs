@@ -28,7 +28,7 @@ use pyo3::types::{PyAny, PyDict, PyTuple};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
-use qiskit_circuit::circuit_data::{self, CircuitData, PyCircuitData};
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
@@ -37,14 +37,15 @@ use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, LoopParam,
     Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, Store, SwitchTarget, UnitaryGate,
+    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, SwitchTarget,
+    UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::error::QpyError;
-use crate::formats::{self, VirtualQBitPack};
+use crate::formats;
 use crate::interface::ExtraCircuitData;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
@@ -110,6 +111,102 @@ fn pack_instructions(
             .collect::<Result<_, QpyError>>()?,
         custom_operations,
     ))
+}
+
+/// pack all the instructions in the circuit, returning both the packed instructions
+/// and the dictionary of custom operations generated in the process
+fn pack_instructions_19(
+    qpy_data: &mut QPYWriteData,
+) -> Result<
+    (
+        Vec<formats::CircuitInstructionV19Pack>,
+        HashMap<String, PackedOperation>,
+    ),
+    QpyError,
+> {
+    let mut custom_operations = HashMap::new();
+    let mut new_custom_operations = Vec::new();
+    let instructions = qpy_data.circuit_data.data().to_vec();
+    let mut packed_instructions = Vec::with_capacity(instructions.len());
+
+    for instruction in &instructions {
+        let qargs = instruction.qubits.index();
+        let cargs = instruction.clbits.index();
+
+        // Reuse the existing operation-specific extraction for now.  Besides avoiding two subtly
+        // different definitions of labels and annotations, this also populates the parameter-vector
+        // and custom-operation tables as required by the surrounding circuit packer.
+        let legacy = pack_instruction(
+            instruction,
+            &mut custom_operations,
+            &mut new_custom_operations,
+            qpy_data,
+        )?;
+
+        let (operation, operation_data) = match instruction.op.view() {
+            OperationRef::StandardGate(gate) => (
+                formats::CircuitOperationType::StandardGate,
+                formats::OperationData::StandardGate(gate as u8),
+            ),
+            OperationRef::StandardInstruction(inst) => (
+                formats::CircuitOperationType::StandardInstruction,
+                standard_instruction_operation_data(&inst),
+            ),
+            OperationRef::Unitary(_) => (
+                formats::CircuitOperationType::UnitaryGate,
+                formats::OperationData::UnitaryGate(formats::UnitaryGatePack {}),
+            ),
+            OperationRef::ControlFlow(_) => (
+                formats::CircuitOperationType::ControlFlow,
+                formats::OperationData::ControlFlow(formats::ControlFlowPack {}),
+            ),
+            OperationRef::PyCustom(custom) if custom.num_ctrl_qubits().unwrap_or(0) > 0 => (
+                formats::CircuitOperationType::Controlled,
+                formats::OperationData::Controlled(formats::ControlledGatePack {}),
+            ),
+            OperationRef::PyCustom(_)
+            | OperationRef::PauliProductMeasurement(_)
+            | OperationRef::PauliProductRotation(_)
+            | OperationRef::Store(_) => (
+                formats::CircuitOperationType::FromPython,
+                formats::OperationData::FromPython(formats::FromPythonPack {}),
+            ),
+            OperationRef::CustomOperation(_) => unreachable!(
+                "pack_instruction rejects compiled custom operations before QPY 19 conversion"
+            ),
+        };
+
+        let params = legacy
+            .params
+            .into_iter()
+            .map(|_| formats::ParamDataPack {})
+            .collect();
+
+        packed_instructions.push(formats::CircuitInstructionV19Pack {
+            operation,
+            qargs,
+            cargs,
+            operation_data,
+            params,
+            annotations: legacy.annotations,
+            label: legacy.label,
+        });
+    }
+
+    Ok((packed_instructions, custom_operations))
+}
+
+fn standard_instruction_operation_data(inst: &StandardInstruction) -> formats::OperationData {
+    let (inst_type, delay_unit) = match inst {
+        StandardInstruction::Barrier(_) => (StandardInstructionType::Barrier, None),
+        StandardInstruction::Delay(unit) => (StandardInstructionType::Delay, Some(unit.clone())),
+        StandardInstruction::Measure => (StandardInstructionType::Measure, None),
+        StandardInstruction::Reset => (StandardInstructionType::Reset, None),
+    };
+    formats::OperationData::StandardInstruction(formats::StandardInstructionData {
+        discriminant: inst_type as u8,
+        delay_unit,
+    })
 }
 
 pub(crate) fn pack_annotations(
@@ -1052,7 +1149,7 @@ fn pack_transpile_layout(
 ) -> Result<formats::LayoutV2Pack, QpyError> {
     let mut initial_layout_size = -1; // initial_size
     let mut input_qubit_mapping: HashMap<ShareableQubit, usize> = HashMap::new();
-    let mut initial_layout_items: Vec<VirtualQBitPack> = Vec::new();
+    let mut initial_layout_items: Vec<formats::VirtualQBitPack> = Vec::new();
     let mut extra_registers: HashSet<QuantumRegister> = HashSet::new();
     let mut extra_registers_qubits: HashSet<ShareableQubit> = HashSet::new();
 
@@ -1073,12 +1170,12 @@ fn pack_transpile_layout(
                     })?;
                     extra_registers.insert(reg.clone());
                     extra_registers_qubits.insert(qubit);
-                    VirtualQBitPack::InRegister {
+                    formats::VirtualQBitPack::InRegister {
                         index,
                         register_name: reg.name().to_string(),
                     }
                 }
-                None => VirtualQBitPack::Anonymous,
+                None => formats::VirtualQBitPack::Anonymous,
             };
             initial_layout_items.push(register_entry);
         }
@@ -1551,6 +1648,14 @@ fn pack_circuit_v19(
     };
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
     let header = pack_circuit_header_v19(extra.name, extra.metadata, &mut qpy_data)?;
+
+    let (instructions, mut custom_instructions_hash) = pack_instructions_19(&mut qpy_data)?;
+    let instructions: Vec<formats::CircuitInstructionPack> = instructions
+        .into_iter()
+        .map(formats::CircuitInstructionPack::V19)
+        .collect();
+    let custom_instructions =
+        pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
 
     Err(QpyError::SerializationError(
         "QPY 19 circuit encoding is not implemented yet".to_string(),

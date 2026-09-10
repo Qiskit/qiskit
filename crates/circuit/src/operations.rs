@@ -1016,6 +1016,21 @@ unsafe impl ::bytemuck::CheckedBitPattern for DelayUnit {
 }
 unsafe impl ::bytemuck::NoUninit for DelayUnit {}
 
+impl DelayUnit {
+    pub fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            0 => Some(Self::NS),
+            1 => Some(Self::PS),
+            2 => Some(Self::US),
+            3 => Some(Self::MS),
+            4 => Some(Self::S),
+            5 => Some(Self::DT),
+            6 => Some(Self::EXPR),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for DelayUnit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
