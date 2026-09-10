@@ -1925,6 +1925,7 @@ impl CircuitData {
 /// Helper struct for `assign_parameters` to allow use of `Param::extract_no_coerce` in
 /// PyO3-provided `FromPyObject` implementations on containers.
 #[repr(transparent)]
+#[cfg(feature = "py")]
 struct AssignParam(Param);
 #[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for AssignParam {
