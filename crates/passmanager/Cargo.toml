@@ -1,0 +1,21 @@
+[package]
+name = "qiskit-passmanager"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_passmanager"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+qiskit-circuit.workspace = true    # only needed for testing! Keep?
+qiskit-transpiler.workspace = true # only needed for testing! Keep?
+smallvec.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+hashbrown.workspace = true
