@@ -62,7 +62,9 @@ qiskit-cext-vtable = { path = "crates/cext-vtable" }
 qiskit-circuit = { path = "crates/circuit" }
 qiskit-circuit-library = { path = "crates/circuit_library" }
 qiskit-providers = { path = "crates/providers" }
-qiskit-qasm2 = { path = "crates/qasm2" }
+# Consumers name the features they need: `py` for the Python extension, `circuit` for the
+# native builder alone.
+qiskit-qasm2 = { path = "crates/qasm2", default-features = false }
 qiskit-qasm3 = { path = "crates/qasm3" }
 qiskit-qpy = { path = "crates/qpy" }
 qiskit-transpiler = { path = "crates/transpiler" }
