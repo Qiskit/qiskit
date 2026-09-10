@@ -18,7 +18,7 @@ use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{fmt, vec};
+use std::{error, fmt, vec};
 
 use crate::annotation::{Annotation, create_py_annotation};
 use crate::bit::{ClassicalRegister, ShareableClbit};
@@ -2080,11 +2080,17 @@ pub trait CustomOperation:
         None
     }
 
-    /// If the instance is a gate, returns the unitary matrix that represents it,
-    /// if the parameters are correct. Otherwise, it returns None.
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        // TODO: Make fallible.
-        None
+    /// Returns the dense unitary matrix for the operation or `None` by default
+    /// if not applicable or unimplemented.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there was a problem creating the matrix.
+    fn matrix(
+        &self,
+        _params: &[Param],
+    ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
+        Ok(None)
     }
 
     /// If the instance is a gate, returns the number of control qubits.
@@ -2227,6 +2233,8 @@ mod test_custom_operations {
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
+    use super::*;
+
     macro_rules! impl_static_operation {
         ($ty:ident; $name:expr, $qubits:expr, $clbits:expr, $params:expr, $directive:expr) => {
             impl $crate::operations::Operation for $ty {
@@ -2264,8 +2272,11 @@ mod test_custom_operations {
             .ok()
         }
 
-        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
-            params.is_empty().then_some(aview2(&H_GATE).to_owned())
+        fn matrix(
+            &self,
+            params: &[Param],
+        ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
+            Ok(params.is_empty().then_some(aview2(&H_GATE).to_owned()))
         }
 
         fn is_unitary(&self) -> bool {
@@ -2291,10 +2302,13 @@ mod test_custom_operations {
             true
         }
 
-        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+        fn matrix(
+            &self,
+            params: &[Param],
+        ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
             match params {
-                [Param::Float(theta)] => Some(aview2(&rz_gate(*theta)).to_owned()),
-                _ => None,
+                [Param::Float(theta)] => Ok(Some(aview2(&rz_gate(*theta)).to_owned())),
+                _ => Ok(None),
             }
         }
 
@@ -2395,12 +2409,11 @@ mod test_custom_operations {
         assert!(gate.is_unitary());
 
         let matrix_res = gate.matrix(&[]);
-        let matrix_exp = Some(aview2(&H_GATE));
-        assert_eq!(matrix_res.as_ref().map(|mat| mat.view()), matrix_exp);
+        let matrix_exp = aview2(&H_GATE);
+        assert!(matches!(matrix_res, Ok(Some(matrix)) if matrix == matrix_exp));
 
         let matrix_res = gate.matrix(&[Param::Float(PI)]);
-        let matrix_exp = None;
-        assert_eq!(matrix_res, matrix_exp,);
+        assert!(matches!(matrix_res, Ok(None)));
 
         let circuit = gate.definition(&[]).expect("Circuit should exist.");
         assert_eq!(circuit.len(), 1);
@@ -2432,7 +2445,10 @@ mod test_custom_operations {
         // Check that the retreived gate is still valid.
         assert_eq!(gate_as_h.num_qubits(), 1);
         assert!(gate_as_h.is_unitary());
-        assert_eq!(gate_as_h.matrix(&[]), Some(aview2(&H_GATE).to_owned()));
+        assert!(matches!(
+            gate_as_h.matrix(&[]),
+            Ok(Some(matrix)) if matrix == aview2(&H_GATE).to_owned()
+        ));
 
         // Final instance equality check.
         assert_eq!(Some(&CustomH), Some(downcast_gate))
@@ -2547,7 +2563,7 @@ mod test_custom_operations {
         let labeled_rz = ParametrizedAndLabeled::new(Some("rz"));
         let theta: Param = (PI / 4.0).into();
 
-        let Some(matrix) = labeled_rz.matrix(&[theta]) else {
+        let Ok(Some(matrix)) = labeled_rz.matrix(&[theta]) else {
             panic!("Matrix should exist");
         };
         // Compare matrices
@@ -2558,7 +2574,7 @@ mod test_custom_operations {
         ));
 
         // Compare null case
-        assert_eq!(labeled_rz.matrix(&[]), None,);
+        assert!(matches!(labeled_rz.matrix(&[]), Ok(None)));
     }
 
     // Test inversed gate

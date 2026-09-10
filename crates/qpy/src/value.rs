@@ -500,11 +500,11 @@ pub enum GenericValue {
 // we want to be able to extract the value relatively painlessly;
 // e.g. let my_bool = value.as_typed::<bool>().unwrap()
 pub trait FromGenericValue: Sized {
-    fn from_generic(value: &GenericValue) -> Option<Self>;
+    fn from_generic(value: &GenericValue) -> Result<Option<Self>, QpyError>;
 }
 
 impl GenericValue {
-    pub(crate) fn as_typed<T: FromGenericValue>(&self) -> Option<T> {
+    pub(crate) fn as_typed<T: FromGenericValue>(&self) -> Result<Option<T>, QpyError> {
         T::from_generic(self)
     }
     // reintreprets int64 and float64 as if they were given in little endian, since this is needed when encoding instruction parameters
@@ -553,20 +553,22 @@ impl GenericValue {
         }
     }
     // boolean vectors are tricky since there are several ways to encode them
-    pub(crate) fn to_boolean_vec(&self) -> Option<Vec<bool>> {
+    pub(crate) fn to_boolean_vec(&self) -> Result<Option<Vec<bool>>, QpyError> {
         match self {
             GenericValue::Tuple(elements) => elements
                 .iter()
                 .map(|val| val.as_typed::<bool>())
-                .collect::<Option<Vec<bool>>>(),
+                .collect::<Result<Option<Vec<bool>>, _>>(),
             GenericValue::NumpyObject(bytes) => {
-                let npy = NpyFile::new(Cursor::new(&bytes.0)).ok()?;
+                let Some(npy) = NpyFile::new(Cursor::new(&bytes.0)).ok() else {
+                    return Ok(None);
+                };
                 if npy.shape().len() != 1 {
-                    return None;
+                    return Ok(None);
                 }
-                npy.into_vec().ok()
+                Ok(npy.into_vec().ok())
             }
-            _ => None,
+            _ => Ok(None),
         }
     }
     pub(crate) fn numpy_array_from_boolean_vec(values: &[bool]) -> Result<Self, QpyError> {
@@ -604,11 +606,11 @@ impl GenericValue {
 macro_rules! impl_from_generic {
     ($t:ty, $variant:ident) => {
         impl FromGenericValue for $t {
-            fn from_generic(value: &GenericValue) -> Option<Self> {
-                match value {
+            fn from_generic(value: &GenericValue) -> Result<Option<Self>, QpyError> {
+                Ok(match value {
                     GenericValue::$variant(v) => Some(v.clone()),
                     _ => None,
-                }
+                })
             }
         }
     };
@@ -623,27 +625,32 @@ impl_from_generic!(Complex64, Complex64);
 
 // booleans are stored as i64 in current QPY, we should be able to convert from them
 impl FromGenericValue for bool {
-    fn from_generic(value: &GenericValue) -> Option<Self> {
-        match value {
+    fn from_generic(value: &GenericValue) -> Result<Option<Self>, QpyError> {
+        Ok(match value {
             GenericValue::Bool(val) => Some(*val),
             GenericValue::Int64(val) => Some(*val != 0),
             _ => None,
-        }
+        })
     }
 }
 
 // Extracting tuples is a little more trick; we'll use macro for the easy case of Vec<T> for a specific T
 impl<T: FromGenericValue> FromGenericValue for Vec<T> {
-    fn from_generic(value: &GenericValue) -> Option<Self> {
+    fn from_generic(value: &GenericValue) -> Result<Option<Self>, QpyError> {
         match value {
             GenericValue::Tuple(vec) => {
-                let mut out = Vec::with_capacity(vec.len());
+                let mut out = Vec::new();
+                out.try_reserve_exact(vec.len())
+                    .map_err(QpyError::AllocationError)?;
                 for item in vec {
-                    out.push(T::from_generic(item)?);
+                    let Some(val) = T::from_generic(item)? else {
+                        return Ok(None);
+                    };
+                    out.push(val);
                 }
-                Some(out)
+                Ok(Some(out))
             }
-            _ => None,
+            _ => Ok(None),
         }
     }
 }
@@ -1257,7 +1264,7 @@ mod qpy_value_tests {
         for values in [vec![], vec![false], vec![true, false, true]] {
             let value =
                 GenericValue::numpy_array_from_boolean_vec(&values).unwrap_or(GenericValue::Null);
-            assert_eq!(value.to_boolean_vec(), Some(values));
+            assert_eq!(value.to_boolean_vec().unwrap(), Some(values));
         }
     }
 

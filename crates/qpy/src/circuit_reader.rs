@@ -485,7 +485,7 @@ fn unpack_pauli_product_measurement(
         ));
     }
     let z_values = unpack_generic_value(&instruction.params[0], qpy_data, ValueEndian::Big)?;
-    let z: Vec<bool> = z_values.to_boolean_vec().ok_or_else(|| {
+    let z: Vec<bool> = z_values.to_boolean_vec()?.ok_or_else(|| {
         QpyError::InvalidParameter(format!(
             "Pauli product measurement z parameter should be a boolean or integer vector, but got {:?}",
             z_values
@@ -493,7 +493,7 @@ fn unpack_pauli_product_measurement(
     })?;
 
     let x_values = unpack_generic_value(&instruction.params[1], qpy_data, ValueEndian::Big)?;
-    let x: Vec<bool> = x_values.to_boolean_vec().ok_or_else(|| {
+    let x: Vec<bool> = x_values.to_boolean_vec()?.ok_or_else(|| {
         QpyError::InvalidParameter(format!(
             "Pauli product measurement x parameter should be a boolean or integer vector, but got {:?}",
             x_values
@@ -512,7 +512,7 @@ fn unpack_pauli_product_measurement(
             })?;
             value != 0
         }
-        _ => neg_value.as_typed::<bool>().ok_or_else(|| {
+        _ => neg_value.as_typed::<bool>()?.ok_or_else(|| {
                 QpyError::InvalidParameter(format!(
                     "Pauli product measurement neg parameter should be a boolean or integer, but got {:?}",
                     neg_value
@@ -536,13 +536,13 @@ fn unpack_pauli_product_rotation(
         ));
     }
     let z_values = unpack_generic_value(&instruction.params[0], qpy_data, ValueEndian::Big)?;
-    let z = z_values.to_boolean_vec().ok_or_else(|| {
+    let z = z_values.to_boolean_vec()?.ok_or_else(|| {
         QpyError::InvalidParameter(
             "Pauli product rotation z parameter should be a boolean vector".to_string(),
         )
     })?;
     let x_values = unpack_generic_value(&instruction.params[1], qpy_data, ValueEndian::Big)?;
-    let x = x_values.to_boolean_vec().ok_or_else(|| {
+    let x = x_values.to_boolean_vec()?.ok_or_else(|| {
         QpyError::InvalidParameter(
             "Pauli product rotation x parameter should be a boolean vector".to_string(),
         )
@@ -1068,8 +1068,16 @@ fn add_registers_and_bits(
 ) -> Result<(), QpyError> {
     let num_qubits = packed_circuit.header.num_qubits as usize;
     let num_clbits = packed_circuit.header.num_clbits as usize;
-    let mut qubits: Vec<Option<ShareableQubit>> = vec![None; num_qubits];
-    let mut clbits: Vec<Option<ShareableClbit>> = vec![None; num_clbits];
+    let mut qubits: Vec<Option<ShareableQubit>> = Vec::new();
+    qubits
+        .try_reserve_exact(num_qubits)
+        .map_err(QpyError::AllocationError)?;
+    qubits.extend((0..num_qubits).map(|_| None));
+    let mut clbits: Vec<Option<ShareableClbit>> = Vec::new();
+    clbits
+        .try_reserve_exact(num_clbits)
+        .map_err(QpyError::AllocationError)?;
+    clbits.extend((0..num_clbits).map(|_| None));
     let mut qregs = Vec::new();
     let mut cregs = Vec::new();
 
@@ -1311,7 +1319,12 @@ pub(crate) fn unpack_circuit(
     // create an empty circuit; we'll fill data as we go along
     let mut qpy_data = QPYReadData {
         caller,
-        circuit_data: CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?,
+        circuit_data: CircuitData::try_with_capacity(
+            0,
+            0,
+            instruction_capacity,
+            Param::Float(0.0),
+        )?,
         version,
         use_symengine,
         standalone_vars: HashMap::new(),

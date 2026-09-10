@@ -11,13 +11,13 @@
 // that they have been altered from the originals.
 
 use crate::data_tree::DataTree;
-use crate::program_node::{CallInputError, ProgramNode};
+use crate::ops::{CallInputError, ProgramOp};
 use crate::tensor::{DType, DTypeLike, Tensor, TensorType, broadcast_shape};
 use crate::unpack_tensor_args;
 use ndarray::Axis;
 use std::sync::LazyLock;
 
-/// Shared input type spec for binary bitwise nodes
+/// Shared input type spec for binary bitwise ops
 static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     let mut types = DataTree::with_capacity(2);
     types.insert_leaf(
@@ -58,17 +58,17 @@ fn unexpected_dtype(key: &str, actual: &Tensor) -> CallInputError {
     }
 }
 
-/// Generate a [`ProgramNode`] struct for an elementwise binary bitwise operation on `Bit` tensors.
-macro_rules! bitwise_binary_node {
-    ($name:ident, $node_name:literal, $call_fn:expr) => {
-        #[doc = concat!("Elementwise `", $node_name, "` of two broadcastable `Bit` tensors.")]
+/// Generate a [`ProgramOp`] struct for an elementwise binary bitwise operation on `Bit` tensors.
+macro_rules! bitwise_binary_op {
+    ($name:ident, $op_name:literal, $call_fn:expr) => {
+        #[doc = concat!("Elementwise `", $op_name, "` of two broadcastable `Bit` tensors.")]
         pub struct $name;
 
-        impl ProgramNode for $name {
-            type CallError = super::MathNodeError;
+        impl ProgramOp for $name {
+            type CallError = super::MathOpError;
 
             fn name(&self) -> &str {
-                $node_name
+                $op_name
             }
             fn namespace(&self) -> &str {
                 "qiskit"
@@ -97,15 +97,15 @@ macro_rules! bitwise_binary_node {
     };
 }
 
-bitwise_binary_node!(BitwiseAnd, "bitwise_and", |x, y| x & y);
-bitwise_binary_node!(BitwiseOr, "bitwise_or", |x, y| x | y);
-bitwise_binary_node!(BitwiseXor, "bitwise_xor", |x, y| x ^ y);
+bitwise_binary_op!(BitwiseAnd, "bitwise_and", |x, y| x & y);
+bitwise_binary_op!(BitwiseOr, "bitwise_or", |x, y| x | y);
+bitwise_binary_op!(BitwiseXor, "bitwise_xor", |x, y| x ^ y);
 
 /// Elementwise bitwise NOT of a broadcastable `Bit` tensor.
 pub struct BitwiseNot;
 
-impl ProgramNode for BitwiseNot {
-    type CallError = super::MathNodeError;
+impl ProgramOp for BitwiseNot {
+    type CallError = super::MathOpError;
 
     fn name(&self) -> &str {
         "bitwise_not"
@@ -141,14 +141,14 @@ pub struct Parity {
 }
 
 impl Parity {
-    /// Construct a `Parity` node that reduces along `axis`.
+    /// Construct a `Parity` op that reduces along `axis`.
     pub fn new(axis: usize) -> Self {
         Self { axis }
     }
 }
 
-impl ProgramNode for Parity {
-    type CallError = super::MathNodeError;
+impl ProgramOp for Parity {
+    type CallError = super::MathOpError;
 
     fn name(&self) -> &str {
         "parity"
@@ -181,8 +181,8 @@ impl ProgramNode for Parity {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math_nodes::MathNodeError;
-    use crate::program_node::{CallError, CallInputError, ProgramNodeExt};
+    use crate::ops::math::MathOpError;
+    use crate::ops::{CallError, CallInputError, ProgramOpExt};
     use ndarray::{arr1, arr2};
 
     fn bit(data: &[u8]) -> Tensor {
@@ -263,7 +263,7 @@ mod tests {
             .unwrap_err();
         assert_eq!(
             err,
-            MathNodeError::Input(CallInputError::UnexpectedDType {
+            MathOpError::Input(CallInputError::UnexpectedDType {
                 key: "x".to_string(),
                 expected: "Bit".to_string(),
                 actual: DType::F64,
@@ -276,7 +276,7 @@ mod tests {
         let err = BitwiseAnd.call_flat(&[bit(&[1, 0])]).unwrap_err();
         assert_eq!(
             err,
-            MathNodeError::Input(CallInputError::WrongArity {
+            MathOpError::Input(CallInputError::WrongArity {
                 expected: 2,
                 actual: 1,
             })
@@ -290,7 +290,7 @@ mod tests {
             .unwrap_err();
         assert_eq!(
             err,
-            MathNodeError::Input(CallInputError::WrongArity {
+            MathOpError::Input(CallInputError::WrongArity {
                 expected: 1,
                 actual: 2,
             })
@@ -304,7 +304,7 @@ mod tests {
             .unwrap_err();
         assert_eq!(
             err,
-            MathNodeError::Tensor(crate::tensor::TensorError::ShapeMismatch {
+            MathOpError::Tensor(crate::tensor::TensorError::ShapeMismatch {
                 lhs: vec![3],
                 rhs: vec![4],
             })
@@ -318,7 +318,7 @@ mod tests {
         let err = BitwiseNot.call(&tree).unwrap_err();
         assert!(matches!(
             err,
-            CallError::<MathNodeError>::Input(CallInputError::ExpectedLeaf {
+            CallError::<MathOpError>::Input(CallInputError::ExpectedLeaf {
                 ref key,
             }) if key.is_empty()
         ));
@@ -339,6 +339,6 @@ mod tests {
     #[test]
     fn test_parity_axis_out_of_bounds_errors() {
         let err = Parity::new(1).call_flat(&[bit(&[1, 0, 1])]).unwrap_err();
-        assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });
+        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
     }
 }

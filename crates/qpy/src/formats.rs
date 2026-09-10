@@ -412,8 +412,20 @@ impl ConditionPack {
         let condition_type = ConditionType::try_from(key).map_err(|e| to_binrw_error(reader, e))?;
         let data = match condition_type {
             ConditionType::TwoTuple => {
-                let mut buf = vec![0u8; register_size as usize];
-                reader.read_exact(&mut buf)?;
+                let mut buf = Vec::new();
+                buf.try_reserve_exact(register_size as usize).map_err(|e| {
+                    binrw::Error::Io(binrw::io::Error::new(
+                        binrw::io::ErrorKind::OutOfMemory,
+                        e.to_string(),
+                    ))
+                })?;
+                reader.take(register_size as u64).read_to_end(&mut buf)?;
+                if buf.len() != register_size as usize {
+                    return Err(binrw::Error::Io(binrw::io::Error::new(
+                        binrw::io::ErrorKind::UnexpectedEof,
+                        "Insufficient bytes in QPY for specified size",
+                    )));
+                }
                 ConditionData::Register(buf.into())
             }
             ConditionType::Expression => {
@@ -477,16 +489,24 @@ impl BinRead for VirtualQBitPack {
         } else {
             // InRegister: first value is the index; name_length is always i32
             let name_length = i32::read_options(reader, endian, ())? as usize;
-            let mut buf = vec![0u8; name_length];
-            reader.read_exact(&mut buf)?;
-            let register_name = String::from_utf8(buf).map_err(|e| binrw::Error::Custom {
-                pos: reader.stream_position().unwrap_or(0),
-                err: Box::new(e),
+            let mut buf = String::new();
+            buf.try_reserve_exact(name_length).map_err(|e| {
+                binrw::Error::Io(binrw::io::Error::new(
+                    binrw::io::ErrorKind::OutOfMemory,
+                    e.to_string(),
+                ))
             })?;
-            Ok(VirtualQBitPack::InRegister {
-                index: first as u32,
-                register_name,
-            })
+            if reader.take(name_length as u64).read_to_string(&mut buf)? == name_length {
+                Ok(VirtualQBitPack::InRegister {
+                    index: first as u32,
+                    register_name: buf,
+                })
+            } else {
+                Err(binrw::Error::Io(binrw::io::Error::new(
+                    binrw::io::ErrorKind::UnexpectedEof,
+                    "Insufficient bytes in QPY for specified size",
+                )))
+            }
         }
     }
 }
