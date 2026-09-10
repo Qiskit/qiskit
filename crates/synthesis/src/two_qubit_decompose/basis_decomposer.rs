@@ -679,8 +679,13 @@ impl TwoQubitBasisDecomposer {
         } else {
             basis_fidelity.unwrap_or(self.basis_fidelity)
         };
-        let target_decomposed =
-            TwoQubitWeylDecomposition::new_inner(unitary, Some(DEFAULT_FIDELITY), None)?;
+        // Specializing the target can discard small interactions before basis-gate selection.
+        // Disable that approximation when exact synthesis is requested.
+        let target_decomposed = TwoQubitWeylDecomposition::new_inner(
+            unitary,
+            approximate.then_some(DEFAULT_FIDELITY),
+            None,
+        )?;
         let traces = self.traces(&target_decomposed);
         let best_nbasis = _num_basis_uses.unwrap_or_else(|| {
             traces
@@ -921,8 +926,8 @@ impl TwoQubitBasisDecomposer {
     ///         representing the gate to synthesize
     ///     basis_fidelity (float): The target fidelity of the synthesis. This is a floating point
     ///         value between 1.0 and 0.0.
-    ///     approximate (bool): Whether to enable approximation. If set to false this is equivalent
-    ///         to setting basis_fidelity to 1.0.
+    ///     approximate (bool): Whether to enable approximation. If false, sets basis_fidelity
+    ///         to 1.0 and disables approximate specialization of the target Weyl decomposition.
     ///
     /// Returns:
     ///     DAGCircuit: The decomposed circuit for the given unitary.
@@ -964,8 +969,8 @@ impl TwoQubitBasisDecomposer {
     ///         representing the gate to synthesize
     ///     basis_fidelity (float): The target fidelity of the synthesis. This is a floating point
     ///         value between 1.0 and 0.0.
-    ///     approximate (bool): Whether to enable approximation. If set to false this is equivalent
-    ///         to setting basis_fidelity to 1.0.
+    ///     approximate (bool): Whether to enable approximation. If false, sets basis_fidelity
+    ///         to 1.0 and disables approximate specialization of the target Weyl decomposition.
     ///
     /// Returns:
     ///     CircuitData: The decomposed circuit for the given unitary.
