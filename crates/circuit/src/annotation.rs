@@ -190,8 +190,8 @@ impl PythonAnnotation {
         }
     }
 
-    pub fn annotation(&self, py: Python) -> Py<PyAny> {
-        self.annotation.clone_ref(py)
+    pub fn annotation_obj(&self) -> &Py<PyAny> {
+        &self.annotation
     }
 }
 
@@ -240,7 +240,7 @@ pub fn iter_namespaces(namespace: &str) -> impl Iterator<Item = &str> {
 /// creates and returns a [PyNativeAnnotation].
 pub fn create_py_annotation(annotation: &Arc<dyn Annotation>, py: Python) -> PyResult<Py<PyAny>> {
     if let Some(annotation) = annotation.downcast_ref::<PythonAnnotation>() {
-        return Ok(annotation.annotation(py));
+        return Ok(annotation.annotation_obj().clone_ref(py));
     }
     let init = match PyNativeAnnotation::new(Arc::clone(annotation)) {
         Ok(py_annotation) => PyClassInitializer::from(PyAnnotation).add_subclass(py_annotation),

@@ -172,7 +172,7 @@ impl AnnotationHandler {
                     ));
                 };
                 Ok(serialization_state
-                    .call_method1(py, "serialize", (ob.annotation(py),))?
+                    .call_method1(py, "serialize", (ob.annotation_obj().clone_ref(py),))?
                     .extract(py)?)
             }),
             Self::Native {
