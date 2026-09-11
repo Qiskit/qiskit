@@ -79,6 +79,8 @@ comparison-chain = "allow"
 # vast majority of these are debug statements that we forget about.
 print_stdout = "deny"
 print_stderr = "deny"
+# Require `<module>/mod.rs` naming instead of `<module>.rs`.  This is purely for consistent style.
+self_named_module_files = "deny"
 
 [workspace.lints.rust]
 # In Rust 2021, the bodies of `unsafe fn` may use `unsafe` functions themselves without marking
