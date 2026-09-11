@@ -160,7 +160,8 @@ impl Param {
             }
             [Self::Int(int), Self::ParameterExpression(expr)]
             | [Self::ParameterExpression(expr), Self::Int(int)] => {
-                Ok(ParameterExpression::try_from(*int).map(|i_expr| i_expr == **expr)?)
+                let int_as_val: Value = (*int).try_into()?;
+                Ok(ParameterExpression::from(int_as_val) == **expr)
             }
             [Self::Int(int), Self::Obj(obj)] | [Self::Obj(obj), Self::Int(int)] => {
                 Python::attach(|py| obj.bind(py).eq(int))

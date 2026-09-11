@@ -3628,6 +3628,15 @@ impl From<i64> for Value {
     }
 }
 
+impl TryFrom<u64> for Value {
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        let as_i64: i64 = value.try_into()?;
+        Ok(as_i64.into())
+    }
+
+    type Error = <i64 as TryFrom<u64>>::Error;
+}
+
 impl From<Complex64> for Value {
     fn from(v: Complex64) -> Self {
         if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&v.im) {

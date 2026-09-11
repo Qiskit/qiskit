@@ -13,7 +13,6 @@
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
-use std::num::TryFromIntError;
 use std::sync::{Arc, atomic};
 use thiserror::Error;
 use uuid::Uuid;
@@ -319,15 +318,7 @@ impl ParameterExpression {
 
     /// Initialize from an f64.
     pub fn from_f64(value: f64) -> Self {
-        value.into()
-    }
-
-    /// Initialize from an i64.
-    pub fn from_i64(value: i64) -> Self {
-        Self {
-            expr: SymbolExpr::Value(Value::Int(value)),
-            name_map: HashMap::new(),
-        }
+        Value::from(value).into()
     }
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
@@ -755,31 +746,13 @@ impl ParameterExpression {
     }
 }
 
-impl From<f64> for ParameterExpression {
-    fn from(value: f64) -> Self {
+impl From<Value> for ParameterExpression {
+    fn from(value: Value) -> Self {
         Self {
-            expr: SymbolExpr::Value(Value::Real(value)),
+            expr: SymbolExpr::Value(value),
             name_map: HashMap::new(),
         }
     }
-}
-
-impl From<i64> for ParameterExpression {
-    fn from(value: i64) -> Self {
-        Self {
-            expr: SymbolExpr::Value(Value::Int(value)),
-            name_map: HashMap::new(),
-        }
-    }
-}
-
-impl TryFrom<u64> for ParameterExpression {
-    fn try_from(value: u64) -> Result<Self, Self::Error> {
-        let as_i64: i64 = value.try_into()?;
-        Ok(as_i64.into())
-    }
-
-    type Error = TryFromIntError;
 }
 
 /// A parameter expression.
