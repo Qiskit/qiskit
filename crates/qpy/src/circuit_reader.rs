@@ -308,6 +308,11 @@ pub fn instruction_values_to_params(
             .map(|value| -> Result<_, QpyError> {
                 match value {
                     GenericValue::Float64(float) => Ok(Param::Float(float)),
+                    GenericValue::Int64(i64) => {
+                        // Truncates u64 to i64::MAX due to having no correct way
+                        // to preserve unsigned integers. See #16972.
+                        Ok(Param::DelayDt(u64::try_from(i64)?))
+                    }
                     GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp)),
                     GenericValue::ParameterExpressionSymbol(symbol)
                     | GenericValue::ParameterExpressionVectorSymbol(symbol) => {

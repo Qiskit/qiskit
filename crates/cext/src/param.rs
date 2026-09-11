@@ -206,8 +206,9 @@ pub unsafe extern "C" fn qk_param_str(param: *const Param) -> *mut c_char {
         Param::ParameterExpression(expr) => expr.to_string(),
         Param::Float(f) => f.to_string(),
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
+        Param::DelayDt(u) => u.to_string(),
     };
-    let out = CString::new(str.to_string()).unwrap();
+    let out = CString::new(str).unwrap();
     out.into_raw()
 }
 
@@ -998,6 +999,9 @@ pub unsafe extern "C" fn qk_param_equal(lhs: *const Param, rhs: *const Param) ->
 /// ``NAN`` is returned. Note that for ``QkParam`` representing complex values the real part is
 /// returned.
 ///
+/// If the parameter in originally an `int` instance, it will be coerced into a double, resulting
+/// in a lossy conversion.
+///
 /// @param param A pointer to the ``QkParam`` to evaluate.
 ///
 /// @return The value, if casting was successful, otherwise ``NAN``.
@@ -1032,5 +1036,6 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
         },
         Param::Float(f) => *f,
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
+        Param::DelayDt(u) => *u as f64, // Lossy conversion,
     }
 }

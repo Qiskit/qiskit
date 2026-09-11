@@ -648,7 +648,7 @@ fn replace_node(
             Param::Float(_) => dag
                 .add_global_phase(target_dag.global_phase())
                 .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string())),
-            Param::Obj(_) => Ok(()),
+            Param::Obj(_) | Param::DelayDt(_) => Ok(()),
         }?
     }
 
@@ -673,6 +673,16 @@ fn param_expr_assignment(
                 let val = Python::attach(|py| val.extract::<Value>(py))
                     .map_err(|_| ParameterError::InvalidValue)?;
                 bind_map.insert(key, val);
+            }
+            Param::DelayDt(int) => {
+                bind_map.insert(
+                    key,
+                    Value::Int(
+                        (*int)
+                            .try_into()
+                            .expect("Unsigned integer does not fit in an i64 slot."),
+                    ),
+                );
             }
         }
     }

@@ -1316,6 +1316,13 @@ impl CircuitData {
                         }
                     })?
                 }
+                Param::DelayDt(u) => {
+                    let map: HashMap<&Symbol, Value> = HashMap::from([(
+                        symbol,
+                        Value::Int((*u).try_into().map_err(|_| ParameterError::InvalidValue)?),
+                    )]);
+                    expr.bind(&map, false)?
+                }
             };
             // Param::from_expr() only errors in the python path when calling Python
             Ok(Param::from_expr(new_expr, coerce)?)
@@ -1457,7 +1464,7 @@ impl CircuitData {
                             // All "user" operations (e.g. PyOperation) use Parameters::Param.
                             let previous_param = &previous.params_view()[parameter];
                             let new_param = match previous_param {
-                                Param::Float(_) => inconsistent(),
+                                Param::Float(_) | Param::DelayDt(_) => inconsistent(),
                                 Param::ParameterExpression(expr) => {
                                     let new_param =
                                         bind_expr(expr, &symbol, value.as_ref(), false)?;
