@@ -140,6 +140,7 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_bit_width),
             export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
+            export_fn!(qk_circuit_view_instruction),
         ]
     });
 }
@@ -212,6 +213,7 @@ mod dag {
             export_fn!(qk_dag_substitute_node_with_unitary),
             export_fn!(qk_dag_global_phase),
             export_fn!(qk_dag_set_global_phase),
+            export_fn!(qk_dag_view_instruction),
         ]
     });
 }
@@ -249,6 +251,7 @@ mod param {
             export_fn!(qk_param_conjugate),
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
+            export_fn!(qk_param_type_width),
         ]
     });
 }

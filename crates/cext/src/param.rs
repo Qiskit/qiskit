@@ -12,6 +12,7 @@
 
 use num_complex::Complex64;
 use std::ffi::{CStr, CString, c_char};
+use std::mem;
 use std::sync::Arc;
 
 use crate::exit_codes::ExitCode;
@@ -1032,5 +1033,70 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
         },
         Param::Float(f) => *f,
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
+    }
+}
+
+/// @ingroup QkParam
+/// Get the size in bytes of the opaque `QkParam` type.
+///
+/// @return The size in bytes of the opaque `QkParam` type.
+///
+/// The `QkParam` type is opaque to the C API, and its width is unspecified.  You can use this value
+/// to offset `QkParam *` pointers, if you cast it to a byte-width type and back.
+///
+/// This function returns the same value on every call within any given process.  The value might
+/// change between platforms or Qiskit library versions, and may depend on the build environment of
+/// the Qiskit C API.  You must not rely on this width being any particular value without querying
+/// this function.
+///
+/// # Example
+///
+/// If given a pointer to the first `QkParam` in a contiguous array, such as in
+/// `QkCircuitInstructionView::params`, you can access subsequent elements by offsetting the
+/// pointer by a number of bytes.
+///
+/// ```c
+/// const QkParam *p;  // A pretend pointer to the first of 3 contiguous elements.
+/// const size_t el_size = qk_param_type_width();
+/// for (size_t i = 0; i < 3; i++) {
+///     // Offset the pointer by `el_size` bytes each time.
+///     p = (const QkParam *)((const char *)p + el_size);
+///
+///     char *val = qk_param_str(p);
+///     printf("%zu: %s\n", i, val);
+///     qk_str_free(val);
+/// }
+/// ```
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_param_type_width() -> usize {
+    mem::size_of::<Param>()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_param_offsetting() {
+        let params = [
+            Param::Float(1.0),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_f64(2.0))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("a".to_owned(), None),
+            ))),
+        ];
+        assert_eq!(mem::size_of::<Param>(), qk_param_type_width());
+        let base = params.as_ptr();
+        assert_eq!(
+            base.wrapping_add(2).addr(),
+            base.cast::<u8>()
+                .wrapping_add(2 * qk_param_type_width())
+                .addr()
+        );
+        let middle_ptr = base
+            .cast::<u8>()
+            .wrapping_add(qk_param_type_width())
+            .cast::<Param>();
+        assert!(params[1].eq(unsafe { &*middle_ptr }).unwrap());
     }
 }

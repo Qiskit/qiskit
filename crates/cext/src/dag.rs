@@ -26,7 +26,7 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::{Clbit, Qubit};
 
-use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
+use crate::circuit::{CBlocksMode, CInstruction, CInstructionView, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
@@ -1262,6 +1262,43 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
     );
     // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
     unsafe { instruction.write(inst) };
+}
+
+/// @ingroup QkDag
+/// Write out direct views for an instruction in the circuit.
+///
+/// This is a mirror of `qk_circuit_view_instruction`; consult its documentation for more detail and
+/// examples.
+///
+/// See also `qk_dag_get_instruction` which allocates owned versions of the output of this function.
+///
+/// @param dag The circuit to get the instruction from.
+/// @param index The index of the instruction in `dag`.
+/// @param[out] out The memory location to write the result to.
+///
+/// # Safety
+///
+/// Behavior is undefined in any of the follow situations:
+///
+/// - `dag` is not an aligned pointer to a valid `QkDag`.
+/// - `index` is not a valid instruction index in the circuit.  An index is invalid if does not
+///   correspond to an "operation node", i.e. calling `qk_dag_node_type(dag, index)` would be
+///   defined and return `QkDagNodeType_Operation`.
+/// - `out` is misaligned or not valid for a single write.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_view_instruction(
+    dag: *const DAGCircuit,
+    index: u32,
+    out: *mut CInstructionView,
+) {
+    // SAFETY: per documentation, `dag` points to valid initialized data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    //
+    let inst = &dag.dag()[NodeIndex::new(index as usize)].unwrap_operation();
+    let view =
+        CInstructionView::from_packed_instruction(inst, dag.qargs_interner(), dag.cargs_interner());
+    // SAFETY: per documentation, `out` is aligned and valid for a single write.
+    unsafe { out.write(view) };
 }
 
 /// @ingroup QkDag
