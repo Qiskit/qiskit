@@ -12,6 +12,7 @@
 
 use std::ffi::{CStr, CString, c_char};
 use std::ptr;
+use std::str::FromStr;
 
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::control_flow::CControlFlowInstruction;
@@ -767,6 +768,74 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     circuit.num_parameters()
+}
+
+/// Iterate over all the unbound parameter symbols in the circuit
+///
+/// The parameter symbols returned by this function represent unbound parameters used in a circuit's
+/// parameters (represented by ``QkParam``). These could be standalone parameters or part of a
+/// larger parametric expression. The parameter symbols returned by this function are symbol strings tied to this
+/// circuit. There could be name conflicts with other circuits but they should not be considered
+/// the same symbols. The iteration order of this function is in alphabetical order, and in circuits
+/// from Python with the Python ``ParameterVector`` type the vector elements are in numeric order
+/// (this matches the order from Python's ``QuantumCircuit.parameters``)
+///
+/// @param circuit A pointer to the circuit.
+/// @param callback A function pointer to the callback. This function will be called once for each
+/// unbound parameter in the circuit. It takes a single argument a char pointer to the nul
+/// terminated string representating an unbound parameter symbol in the circuit. If the function
+/// returns False this will break the iteration and the function will return.
+///
+/// # Example
+///
+/// ```c
+/// #include <string.h>
+/// #include <stdlib.h>
+///
+/// char **parameters = malloc(sizeof(char*) * 10);
+/// int count = 0;
+///
+/// bool callback_fn(const char *symbol) {
+///     parameters[count] = malloc(strlen(symbol) + 1);
+///     strcpy(parameters[count], symbol);
+///     count++;
+///     return true;
+/// }
+///
+/// qk_circuit_get_param_symbols(circuit, &callback_fn);
+/// for (int i = 0; i < count; i++) {
+///     free(parameters[i]);
+/// }
+/// free(parameters);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, aligned, non-null pointer to a ``QkCircuit`` or
+/// ``callback`` is not a valid, aligned, non-null function pointer that matches the signature in
+/// the header. It is undefined behavior to write to the string passed to the ``callback`` function, the string
+/// is read-only and also only lives for the duration of a single call. Once the callback returns
+/// the address passed to ``callback`` will be freed. If you need the data to persist past a single
+/// call you must copy the data. This function will panic if a circuit contains an unbound parameter
+/// symbol's string contains a nul character in it.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_get_param_symbols(
+    circuit: *const CircuitData,
+    callback: unsafe extern "C" fn(symbol: *const c_char) -> bool,
+) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    for param in circuit.parameters() {
+        let out_str = CString::from_str(param.fullname().as_ref())
+            .expect("A parameter contains a nul character");
+        // SAFETY: Per documentation the pointer is matches the expected
+        // signature and conforms to the runtime expectations.
+        unsafe {
+            if !callback(out_str.as_ptr()) {
+                break;
+            }
+        }
+    }
 }
 
 /// @ingroup QkCircuit

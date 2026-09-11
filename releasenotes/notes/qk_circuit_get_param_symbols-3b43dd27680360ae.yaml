@@ -1,0 +1,6 @@
+---
+features_c:
+  - Added a new function :c:func:`qk_circuit_get_param_symbols` that is used
+    to get the unbound parameter symbol names in a :c:type:`QkCircuit`
+    object.
+
