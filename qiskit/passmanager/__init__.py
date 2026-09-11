@@ -276,7 +276,14 @@ from .base_tasks import GenericPass, BaseController, Task
 from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 from .exceptions import PassManagerError
 
-__all__ = [
+from qiskit._accelerate.passmanager import PassManager, PassContext, CallbackType
+from .pass_interface import Pass, Callback
+
+# New, Rust-based pass manager
+# TODO Update the docstring
+__all__ = ["Callback", "CallbackType", "Pass", "PassContext", "PassManager"]
+
+__all__ += [
     "BaseController",
     "BasePassManager",
     "ConditionalController",

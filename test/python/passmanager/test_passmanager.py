@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023
+# (C) Copyright IBM 2026
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,157 +13,157 @@
 
 """Pass manager test cases."""
 
-from test.python.passmanager import PassManagerTestCase
-
-from qiskit.passmanager import GenericPass, BasePassManager
-from qiskit.passmanager.flow_controllers import DoWhileController, ConditionalController
-
-
-class RemoveFive(GenericPass):
-    def run(self, passmanager_ir):
-        return passmanager_ir.replace("5", "")
+from test import QiskitTestCase
+from qiskit.circuit import QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.passmanager import Pass, PassManager, CallbackType, Callback
+from qiskit.transpiler import Target, passes, generate_preset_pass_manager
 
 
-class AddDigit(GenericPass):
-    def run(self, passmanager_ir):
-        return passmanager_ir + "0"
+class SetLayout(Pass):
+    def __init__(self, target: Target):
+        self.target = target
+        self.properties = None
+
+    def run(self, ir, context):
+        if ir.num_qubits > self.target.num_qubits:
+            raise ValueError("Not enough qubits")
+
+        context.set("layout", list(range(ir.num_qubits)))
+        self.properties = context
+        return ir
 
 
-class CountDigits(GenericPass):
-    def run(self, passmanager_ir):
-        self.property_set["ndigits"] = len(passmanager_ir)
+class ResetComputationalQubits(Pass):
+    def run(self, ir, context):
+        if (layout := context.get("layout")) is None:
+            raise RuntimeError("'layout' not available")
+
+        ir.reset(layout)
+        return ir
 
 
-class ToyPassManager(BasePassManager):
-    def _passmanager_frontend(self, input_program, **kwargs):
-        return str(input_program)
+class CallbackTester(Callback):
+    def __init__(self, hookpoint, required_keys={}):
+        self.hookpoint = hookpoint
+        self.counter = 0
+        self.required_keys = required_keys
 
-    def _passmanager_backend(self, passmanager_ir, in_program, **kwargs):
-        return int(passmanager_ir)
+    def trigger(self, hookpoint):
+        return hookpoint == self.hookpoint
+
+    def ir_and_context(self, ir, context):
+        self.counter += 1
+        for key in self.required_keys:
+            if context.get(key, None) is None:
+                raise ValueError("Missing key: %s", key)
 
 
-class TestPassManager(PassManagerTestCase):
-    def test_single_task(self):
-        """Test case: Pass manager with a single task."""
+class CallbackPrinter(Callback):
+    def __init__(self):
+        self.pass_names = set()
 
-        task = RemoveFive()
-        data = 12345
-        pm = ToyPassManager(task)
-        expected = [r"Pass: RemoveFive - (\d*\.)?\d+ \(ms\)"]
-        with self.assertLogContains(expected):
-            out = pm.run(data)
-        self.assertEqual(out, 1234)
+    def trigger(self, hookpoint):
+        return hookpoint == CallbackType.PostPass
 
-    def test_property_set(self):
-        """Test case: Pass manager can access property set."""
+    def with_pass(self, pass_, ir, context):
+        self.pass_names.add(pass_.__class__.__name__)
 
-        task = CountDigits()
-        data = 12345
-        pm = ToyPassManager(task)
-        pm.run(data)
-        self.assertDictEqual(pm.property_set, {"ndigits": 5})
 
-    def test_do_while_controller(self):
-        """Test case: Do while controller that repeats tasks until the condition is met."""
+class CircuitToDAG(Pass):
+    def run(self, ir, context):
+        return ir.to_dag(copy_operations=False)
 
-        def _condition(property_set):
-            return property_set["ndigits"] < 7
 
-        controller = DoWhileController([AddDigit(), CountDigits()], do_while=_condition)
-        data = 12345
-        pm = ToyPassManager(controller)
-        pm.property_set["ndigits"] = 5
-        expected = [
-            r"Pass: AddDigit - (\d*\.)?\d+ \(ms\)",
-            r"Pass: CountDigits - (\d*\.)?\d+ \(ms\)",
-            r"Pass: AddDigit - (\d*\.)?\d+ \(ms\)",
-            r"Pass: CountDigits - (\d*\.)?\d+ \(ms\)",
-        ]
-        with self.assertLogContains(expected):
-            out = pm.run(data)
-        self.assertEqual(out, 1234500)
+class TestPassManager(QiskitTestCase):
+    """Pass manager tests."""
 
-    def test_conditional_controller(self):
-        """Test case: Conditional controller that run task when the condition is met."""
+    def test_pass(self):
+        """Test a simple pass setup."""
 
-        def _condition(property_set):
-            return property_set["ndigits"] > 6
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.t(1)
+        circuit.cx(0, 1)
 
-        controller = ConditionalController([RemoveFive()], condition=_condition)
-        data = [123456789, 45654, 36785554]
-        pm = ToyPassManager([CountDigits(), controller])
-        out = pm.run(data)
-        self.assertListEqual(out, [12346789, 45654, 36784])
+        target = Target(num_qubits=10)
 
-    def test_string_input(self):
-        """Test case: Running tasks once for a single string input.
+        pm = PassManager()
+        pm.push(SetLayout(target))
+        pm.push(ResetComputationalQubits())
 
-        Details:
-            When the pass manager receives a sequence of input values,
-            it duplicates itself and run the tasks on each input element in parallel.
-            If the input is string, this can be accidentally recognized as a sequence.
-        """
+        out, context = pm.run(circuit)
 
-        class StringPassManager(BasePassManager):
-            def _passmanager_frontend(self, input_program, **kwargs):
-                return input_program
+        self.assertIsInstance(out, QuantumCircuit)
+        self.assertEqual(out.count_ops().get("reset", 0), 2)
+        self.assertEqual(context.get("layout", []), [0, 1])
 
-            def _passmanager_backend(self, passmanager_ir, in_program, **kwargs):
-                return passmanager_ir
+    def test_callback(self):
+        """Test the callbacks."""
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.t(1)
+        circuit.cx(0, 1)
 
-        class Task(GenericPass):
-            def run(self, passmanager_ir):
-                return passmanager_ir
+        target = Target(num_qubits=10)
 
-        task = Task()
-        data = "12345"
-        pm = StringPassManager(task)
+        pm = PassManager()
+        pm.push(SetLayout(target))
+        pm.push(ResetComputationalQubits())
 
-        # Should be run only one time
-        expected = [r"Pass: Task - (\d*\.)?\d+ \(ms\)"]
-        with self.assertLogContains(expected):
-            out = pm.run(data)
-        self.assertEqual(out, data)
+        for hookpoint, expected_count in [(CallbackType.PostPass, 2)]:
+            with self.subTest(hookpoint=hookpoint):
+                callback = CallbackTester(hookpoint, required_keys={"layout"})
+                _, _ = pm.run(circuit, callback)
+                self.assertEqual(callback.counter, expected_count)
 
-    def test_reruns_have_clean_property_set(self):
-        """Test that re-using a pass manager produces a clean property set for the state."""
+    def test_unsupported_pass_type(self):
+        """Test an unsupported pass type raises."""
+        with self.assertRaisesRegex(TypeError, "Unsupported pass type"):
+            PassManager().push("potato salad")
 
-        sentinel = object()
+    def test_legacy_passes(self):
+        """Test calling single legacy passes."""
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.rz(0.2, 0)
+        circuit.cx(0, 1)
 
-        class CheckPropertySetClean(GenericPass):
-            def __init__(self, test_case):
-                super().__init__()
-                self.test_case = test_case
+        pm = PassManager()
+        pm.push(CircuitToDAG())
+        pm.push(passes.SynthesizeRZRotations())
 
-            def run(self, _):
-                self.test_case.assertIs(self.property_set["check_property"], None)
-                self.property_set["check_property"] = sentinel
-                self.test_case.assertIs(self.property_set["check_property"], sentinel)
+        out, _ = pm.run(circuit)
 
-        pm = ToyPassManager([CheckPropertySetClean(self)])
-        pm.run(0)
-        self.assertIs(pm.property_set["check_property"], sentinel)
-        pm.run(1)
-        self.assertIs(pm.property_set["check_property"], sentinel)
+        self.assertIsInstance(out, DAGCircuit)
+        self.assertTrue("rz" not in out.count_ops().keys())
 
-    def test_pass_returning_falsy_value_is_not_replaced(self):
-        """A pass returning a falsy output should not be overwritten."""
+    def test_legacy_pipeline(self):
+        """Test a full compiler pipeline from earlier."""
+        full_pm = generate_preset_pass_manager()
+        pm = PassManager()
+        pm.push(CircuitToDAG())
 
-        class ZeroPass(GenericPass):
-            def run(self, passmanager_ir):
-                """Return the integer ``0`` to test falsy values."""
-                del passmanager_ir
-                return 0
+        all_passes = {}
+        for i, task in enumerate(full_pm.to_flow_controller().iter_tasks(None)):
+            try:
+                pm.push(task)
+                all_passes[i] = task
+            except Exception as exc:
+                raise TypeError(f"Can't push {task}") from exc
 
-        class IntPassManager(BasePassManager):
-            def __init__(self, passes):
-                super().__init__(passes)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.rz(0.2, 0)
+        circuit.cx(0, 1)
 
-            def _passmanager_frontend(self, input_program, **kwargs):
-                return input_program
+        callback = CallbackPrinter()
+        out, _ = pm.run(circuit, callback)
+        reference = full_pm.run(circuit)
 
-            def _passmanager_backend(self, passmanager_ir, in_program, **kwargs):
-                return passmanager_ir
-
-        pm = IntPassManager([ZeroPass()])
-        self.assertEqual(pm.run(5), 0)
+        self.assertEqual(reference, out.to_circuit())
+        self.assertTrue(
+            {"HighLevelSynthesis", "UnitarySynthesis", "BasisTranslator"}.issubset(
+                callback.pass_names
+            )
+        )
