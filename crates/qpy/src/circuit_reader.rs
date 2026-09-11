@@ -170,9 +170,9 @@ pub fn unpack_condition(
 fn recognize_instruction_type(
     instruction: &formats::CircuitInstructionV2Pack,
     custom_instructions: &HashMap<String, CustomCircuitInstructionData>,
-) -> InstructionType {
+) -> Result<InstructionType, QpyError> {
     let name = instruction.gate_class_name.as_str();
-    if name == PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME {
+    Ok(if name == PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME {
         InstructionType::PauliProductMeasurement
     } else if name == PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME {
         InstructionType::PauliProductRotation
@@ -203,8 +203,17 @@ fn recognize_instruction_type(
     } else {
         // This can either be a standard gate, or something Pythonic.
         // For standard gate, we need both the gate class name to be standard, and the controls should be standard as well
-        let has_nonstandard_control = instruction.num_ctrl_qubits > 0
-            && (instruction.ctrl_state != (1 << instruction.num_ctrl_qubits) - 1);
+        let has_nonstandard_control = if instruction.num_ctrl_qubits > 0 {
+            if instruction.num_ctrl_qubits >= 32 {
+                return Err(QpyError::InvalidInstruction(format!(
+                    "Instruction has {} but at most 31 are supported",
+                    instruction.num_ctrl_qubits
+                )));
+            }
+            instruction.ctrl_state != (1 << instruction.num_ctrl_qubits) - 1
+        } else {
+            false
+        };
         let standard_gate_name =
             standard_gate_from_gate_class_name(instruction.gate_class_name.as_str()).is_some();
         if !has_nonstandard_control && standard_gate_name {
@@ -213,7 +222,7 @@ fn recognize_instruction_type(
             // it is either a python gate, a python instruction or a python operation; all treated in the same manner
             InstructionType::Python
         }
-    }
+    })
 }
 
 type InstructionBits = (Interned<[Qubit]>, Interned<[Clbit]>);
@@ -357,7 +366,7 @@ pub fn unpack_instruction(
     qpy_data: &mut QPYReadData,
 ) -> Result<PackedInstruction, QpyError> {
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
-    let instruction_type = recognize_instruction_type(instruction, custom_instructions);
+    let instruction_type = recognize_instruction_type(instruction, custom_instructions)?;
     let (op, parameter_values) = match instruction_type {
         InstructionType::StandardGate => unpack_standard_gate(instruction, qpy_data)?,
         InstructionType::StandardInstruction => unpack_standard_instruction(instruction, qpy_data)?,

@@ -253,6 +253,11 @@ pub fn read_raw_circuits(
 
     for i in 0..num_programs {
         let size = if i + 1 < circuit_table.len() {
+            if circuit_table[i] > circuit_table[i + 1] {
+                return Err(QpyError::InvalidFormat(
+                    "Circuit offset table invalid".to_string(),
+                ));
+            }
             (circuit_table[i + 1] - circuit_table[i]) as usize
         } else {
             // Last circuit: read remaining bytes
