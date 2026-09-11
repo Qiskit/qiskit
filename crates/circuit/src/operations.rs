@@ -50,11 +50,37 @@ use pyo3::{IntoPyObjectExt, Python, intern};
 // `StandardGate` definitions to be in this file.
 pub use crate::standard_gate::*;
 
+/// Represent all possible parameters that can be used on an operation
+/// for Qiskit.
+///
+/// This enumeration has 3(+1) variants:
+/// - [`Param::ParameterExpression`]: Representing an unbound parameter.
+/// - [`Param::Float`]: Represents a bound parameter with a real value
+/// associated with it.
+/// - [`Param::Int`]: Used exclusively to represent a duration in terms of
+/// `Dt` for a [`StandardInstruction::Delay`].
+/// - [`Param::Obj`]: (only used when python is involved). Represents
+/// parameters that are historically not representable in Rust.
 #[derive(Clone, Debug)]
 pub enum Param {
+    /// Represents an unbound parameter as either a symbol or an expression
+    /// comprised of a mix of symbols and numbers. This is used for when a
+    /// certain value is shared between operations in a circuit, and will
+    /// accept a value right before the circuit runs.
     ParameterExpression(Arc<ParameterExpression>),
+    /// Used exclusively to represent a duration in terms of `Dt` for a
+    /// [`StandardInstruction::Delay`]. `Dt` represents a native cycle of time
+    /// for a QPU and therefore this parameter can only represent amounts of
+    /// said magnitude.
     Int(u64),
+    /// Represents a bound parameter with a real value associated with it.
+    /// This, alongside [`Param::ParameterExpression`], is the most common
+    /// way a parameter is associated with a [`StandardGate`] in Qiskit,
+    /// since it usually represents a rotation in terms of radians and as
+    /// these are irrational numbers they are best represented by a
+    /// floating point number.
     Float(f64),
+    /// Represents parameters that are historically not representable in Rust.
     Obj(Py<PyAny>),
 }
 
