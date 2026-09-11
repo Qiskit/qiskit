@@ -523,7 +523,8 @@ class TwoQubitBasisDecomposer:
             unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
             basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
                 If given, overrides ``basis_fidelity`` given at init.
-            approximate (bool): Approximates if basis fidelities are less than 1.0.
+            approximate (bool): Whether to allow approximation. If false, ignore basis
+                infidelity and disable approximate specialization of the Weyl decomposition.
             use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
                 :class:`QuantumCircuit` when this class is called.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
