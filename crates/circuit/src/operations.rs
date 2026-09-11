@@ -56,11 +56,11 @@ pub use crate::standard_gate::*;
 /// This enumeration has 3(+1) variants:
 /// - [`Param::ParameterExpression`]: Representing an unbound parameter.
 /// - [`Param::Float`]: Represents a bound parameter with a real value
-/// associated with it.
-/// - [`Param::Int`]: Used exclusively to represent a duration in terms of
-/// `Dt` for a [`StandardInstruction::Delay`].
+///   associated with it.
+/// - [`Param::DelayDt`]: Used exclusively to represent a duration in terms of
+///   `Dt` for a [`StandardInstruction::Delay`].
 /// - [`Param::Obj`]: (only used when python is involved). Represents
-/// parameters that are historically not representable in Rust.
+///   parameters that are historically not representable in Rust.
 #[derive(Clone, Debug)]
 pub enum Param {
     /// Represents an unbound parameter as either a symbol or an expression
@@ -70,9 +70,9 @@ pub enum Param {
     ParameterExpression(Arc<ParameterExpression>),
     /// Used exclusively to represent a duration in terms of `Dt` for a
     /// [`StandardInstruction::Delay`]. `Dt` represents a native cycle of time
-    /// for a QPU and therefore this parameter can only represent amounts of
-    /// said magnitude.
-    Int(u64),
+    /// for a QPU and therefore this parameter can only represent discrete
+    /// amounts of said magnitude.
+    DelayDt(u64),
     /// Represents a bound parameter with a real value associated with it.
     /// This, alongside [`Param::ParameterExpression`], is the most common
     /// way a parameter is associated with a [`StandardGate`] in Qiskit,
@@ -97,7 +97,7 @@ impl<'py> IntoPyObject<'py> for &Param {
                 let py_expr = PyParameterExpression::from(expr.as_ref().clone());
                 py_expr.coerce_into_py(py)?.into_bound_py_any(py)
             }
-            Param::Int(value) => value.into_bound_py_any(py),
+            Param::DelayDt(value) => value.into_bound_py_any(py),
         }
     }
 }
@@ -154,16 +154,16 @@ impl Param {
             [Self::Float(_), Self::Obj(_)] => Ok(false),
             [Self::Obj(_a), Self::ParameterExpression(_b)] => Ok(false),
             [Self::ParameterExpression(_a), Self::Obj(_b)] => Ok(false),
-            [Self::Int(int), Self::Int(other_int)] => Ok(int == other_int),
-            [Self::Int(int), Self::Float(float)] | [Self::Float(float), Self::Int(int)] => {
+            [Self::DelayDt(int), Self::DelayDt(other_int)] => Ok(int == other_int),
+            [Self::DelayDt(int), Self::Float(float)] | [Self::Float(float), Self::DelayDt(int)] => {
                 Ok(float == &(*int as f64))
             }
-            [Self::Int(int), Self::ParameterExpression(expr)]
-            | [Self::ParameterExpression(expr), Self::Int(int)] => {
+            [Self::DelayDt(int), Self::ParameterExpression(expr)]
+            | [Self::ParameterExpression(expr), Self::DelayDt(int)] => {
                 let int_as_val: Value = (*int).try_into()?;
                 Ok(ParameterExpression::from(int_as_val) == **expr)
             }
-            [Self::Int(int), Self::Obj(obj)] | [Self::Obj(obj), Self::Int(int)] => {
+            [Self::DelayDt(int), Self::Obj(obj)] | [Self::Obj(obj), Self::DelayDt(int)] => {
                 Python::attach(|py| obj.bind(py).eq(int))
             }
         }
@@ -181,7 +181,7 @@ impl Param {
     /// Get an iterator over any `Symbol` instances tracked within this `Param`.
     pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol> + '_>> {
         match self {
-            Param::Float(_) | Param::Int(_) => Ok(Box::new(::std::iter::empty())),
+            Param::Float(_) | Param::DelayDt(_) => Ok(Box::new(::std::iter::empty())),
             Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols().cloned())),
             Param::Obj(obj) => {
                 Python::attach(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
@@ -226,7 +226,7 @@ impl Param {
                     } else {
                         // Only extract to integer if the value fits within an unsigned integer
                         if let Ok(unsigned) = i.try_into() {
-                            Ok(Self::Int(unsigned))
+                            Ok(Self::DelayDt(unsigned))
                         } else {
                             Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
                         }
@@ -257,7 +257,7 @@ impl Param {
         } else if ob.is_instance_of::<PyInt>() {
             // Only unsigned integers should be represented
             if let Ok(int) = ob.extract() {
-                Param::Int(int)
+                Param::DelayDt(int)
             } else {
                 Param::Obj(ob.to_owned().unbind())
             }
@@ -269,7 +269,7 @@ impl Param {
                 let Ok(int) = int.try_into() else {
                     return Ok(Param::Obj(ob.to_owned().unbind()));
                 };
-                Param::Int(int)
+                Param::DelayDt(int)
             }
             // don't get confused by the `coerce` name here -- we promise to not coerce to
             // Param::Float. But if it's complex we need to store it as an Obj.
@@ -289,7 +289,7 @@ impl Param {
             Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone()),
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
-            Param::Int(int) => Param::Int(*int),
+            Param::DelayDt(int) => Param::DelayDt(*int),
         }
     }
 
@@ -1265,18 +1265,18 @@ pub fn clone_param(param: &Param) -> Param {
         Param::Float(theta) => Param::Float(*theta),
         Param::ParameterExpression(theta) => Param::ParameterExpression(theta.clone()),
         Param::Obj(_) => unreachable!(),
-        Param::Int(int) => Param::Int(*int),
+        Param::DelayDt(int) => Param::DelayDt(*int),
     }
 }
 
 /// Multiply a [`Param`] with a float.
 ///
 /// Multiplying is only supported between variants [`Param::Float`] and
-/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+/// [`Param::ParameterExpression`]. [`Param::DelayDt`] is not currently supported.
 ///
 /// # Panics
 ///
-/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
+/// The operation will panic if any of the parameters is [`Param::DelayDt`] or [`Param::Obj`].
 pub fn multiply_param(param: &Param, mult: f64) -> Param {
     match param {
         Param::Float(theta) => Param::Float(theta * mult),
@@ -1286,7 +1286,7 @@ pub fn multiply_param(param: &Param, mult: f64) -> Param {
                 theta.mul(&ParameterExpression::from_f64(mult)).unwrap(),
             ))
         }
-        Param::Obj(_) | Param::Int(_) => {
+        Param::Obj(_) | Param::DelayDt(_) => {
             unreachable!("Unsupported multiplication of a Param::Obj.")
         }
     }
@@ -1295,11 +1295,11 @@ pub fn multiply_param(param: &Param, mult: f64) -> Param {
 /// Multiply two ``Param``s.
 ///
 /// Multiplication is only supported between variants [`Param::Float`] and
-/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+/// [`Param::ParameterExpression`]. [`Param::DelayDt`] is not currently supported.
 ///
 /// # Panics
 ///
-/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
+/// The operation will panic if any of the parameters is [`Param::DelayDt`] or [`Param::Obj`].
 pub fn multiply_params(param1: Param, param2: Param) -> Param {
     match (&param1, &param2) {
         (Param::Float(theta), Param::Float(lambda)) => Param::Float(theta * lambda),
@@ -1309,7 +1309,7 @@ pub fn multiply_params(param1: Param, param2: Param) -> Param {
             // TODO we could properly propagate the error here
             Param::ParameterExpression(Arc::new(p1.mul(p2).expect("Name conflict during mul.")))
         }
-        (Param::Int(left), Param::Int(right)) => Param::Int(left * right),
+        (Param::DelayDt(left), Param::DelayDt(right)) => Param::DelayDt(left * right),
         _ => unreachable!("Unsupported multiplication."),
     }
 }
@@ -1317,11 +1317,11 @@ pub fn multiply_params(param1: Param, param2: Param) -> Param {
 /// Adda a [`Param`] with a float.
 ///
 /// Addition is only supported between variants [`Param::Float`] and
-/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+/// [`Param::ParameterExpression`]. [`Param::DelayDt`] is not currently supported.
 ///
 /// # Panics
 ///
-/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
+/// The operation will panic if any of the parameters is [`Param::DelayDt`] or [`Param::Obj`].
 pub fn add_param(param: &Param, summand: f64) -> Param {
     match param {
         Param::Float(theta) => Param::Float(*theta + summand),
@@ -1329,8 +1329,8 @@ pub fn add_param(param: &Param, summand: f64) -> Param {
             // safe to unwrap as addition with float does not have name conflicts
             Arc::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
         ),
-        Param::Obj(_) | Param::Int(_) => {
-            unreachable!("Unsupported addition of a Param::Obj or Param::Int.")
+        Param::Obj(_) | Param::DelayDt(_) => {
+            unreachable!("Unsupported addition of a Param::Obj or Param::DelayDt.")
         }
     }
 }
@@ -1338,11 +1338,11 @@ pub fn add_param(param: &Param, summand: f64) -> Param {
 /// Adds two [`Param`] instances.
 ///
 /// Addition is only supported between variants [`Param::Float`] and
-/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+/// [`Param::ParameterExpression`]. [`Param::DelayDt`] is not currently supported.
 ///
 /// # Panics
 ///
-/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
+/// The operation will panic if any of the parameters is [`Param::DelayDt`] or [`Param::Obj`].
 pub fn radd_param(param1: Param, param2: Param) -> Param {
     match [&param1, &param2] {
         [param, Param::Float(float)] | [Param::Float(float), param] => add_param(param, *float),

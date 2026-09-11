@@ -445,7 +445,7 @@ impl CircuitInstruction {
                                     &ParameterExpression::from_f64(*left) == right.as_ref()
                                 }
                                 Param::Obj(right) => right.bind(py).eq(left)?,
-                                Param::Int(right) => left == &(*right as f64),
+                                Param::DelayDt(right) => left == &(*right as f64),
                             },
                             Param::ParameterExpression(left) => match right {
                                 Param::Float(right) => {
@@ -453,14 +453,14 @@ impl CircuitInstruction {
                                 }
                                 Param::ParameterExpression(right) => left == right,
                                 Param::Obj(right) => right.bind(py).eq(left.as_ref().clone())?,
-                                Param::Int(right) => {
+                                Param::DelayDt(right) => {
                                     let right_val: crate::parameter::symbol_expr::Value =
                                         (*right).try_into()?;
                                     left.as_ref() == &ParameterExpression::from(right_val)
                                 }
                             },
                             Param::Obj(left) => left.bind(py).eq(right)?,
-                            Param::Int(left) => match right {
+                            Param::DelayDt(left) => match right {
                                 Param::Float(right) => &(*left as f64) == right,
                                 Param::ParameterExpression(right) => {
                                     let left_val: crate::parameter::symbol_expr::Value =
@@ -468,7 +468,7 @@ impl CircuitInstruction {
                                     &ParameterExpression::from(left_val) == right.as_ref()
                                 }
                                 Param::Obj(right) => right.bind(py).eq(left)?,
-                                Param::Int(right) => left == right,
+                                Param::DelayDt(right) => left == right,
                             },
                         };
                         if !eq {

@@ -206,7 +206,7 @@ pub unsafe extern "C" fn qk_param_str(param: *const Param) -> *mut c_char {
         Param::ParameterExpression(expr) => expr.to_string(),
         Param::Float(f) => f.to_string(),
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
-        Param::Int(u) => u.to_string(),
+        Param::DelayDt(u) => u.to_string(),
     };
     let out = CString::new(str).unwrap();
     out.into_raw()
@@ -1036,6 +1036,6 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
         },
         Param::Float(f) => *f,
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
-        Param::Int(u) => *u as f64, // Lossy conversion,
+        Param::DelayDt(u) => *u as f64, // Lossy conversion,
     }
 }

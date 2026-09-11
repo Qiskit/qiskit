@@ -444,7 +444,7 @@ mod tests {
                 PackedOperation::from_standard_instruction(StandardInstruction::Delay(
                     DelayUnit::DT,
                 )),
-                smallvec![Param::Int(13)],
+                smallvec![Param::DelayDt(13)],
                 vec![Qubit(0)],
                 Vec::with_capacity(0),
             ))],
@@ -475,7 +475,7 @@ mod tests {
         assert_eq!(unit, DelayUnit::DT);
 
         // The duration parameter is preserved.
-        assert!(matches!(inst.params_view(), [Param::Int(d)] if *d == 13));
+        assert!(matches!(inst.params_view(), [Param::DelayDt(d)] if *d == 13));
     }
 
     /// A duration bigger than `i64::MAX` is not currently supported by QPY
@@ -492,7 +492,7 @@ mod tests {
                 PackedOperation::from_standard_instruction(StandardInstruction::Delay(
                     DelayUnit::DT,
                 )),
-                smallvec![Param::Int(u64::MAX)],
+                smallvec![Param::DelayDt(u64::MAX)],
                 vec![Qubit(0)],
                 Vec::with_capacity(0),
             ))],

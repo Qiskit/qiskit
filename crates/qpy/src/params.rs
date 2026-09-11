@@ -581,7 +581,7 @@ pub(crate) fn pack_param_obj(
         Param::Obj(py_object) => qpy_data.caller.attach("Python parameter", |py| {
             py_pack_param(py_object.bind(py), qpy_data, endian)
         })?,
-        Param::Int(int) => match resolved {
+        Param::DelayDt(int) => match resolved {
             // Current support requires the unsigned integer
             // to be truncates to fit within an `i64`.
             // TODO: Update this model to fully support `u64`.

@@ -1178,7 +1178,7 @@ impl<'a> QASM3Builder {
 
         let duration: DurationLiteral = match param {
             Param::Float(val) => float_to_duration_literal(*val, delay_unit)?,
-            Param::Int(val) => int_to_duration_literal(*val, delay_unit)?,
+            Param::DelayDt(val) => int_to_duration_literal(*val, delay_unit)?,
             Param::ParameterExpression(p) => match p.try_to_value(true) {
                 Ok(symbol_expr::Value::Real(val)) => float_to_duration_literal(val, delay_unit)?,
                 Ok(symbol_expr::Value::Int(val)) => {
@@ -1246,7 +1246,7 @@ impl<'a> QASM3Builder {
                         Expression::Parameter(Parameter { obj: name })
                     }
                     Param::Obj(_) => panic!("Objects not supported yet"),
-                    Param::Int(i) => {
+                    Param::DelayDt(i) => {
                         let name = i.to_string();
                         Expression::Parameter(Parameter { obj: name })
                     }
