@@ -299,28 +299,32 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         if frame == "h":
             # Heisenberg evolution C^dg.P.C.
-            # Naively, would evolve by C^dg in Schrodinger frame, but getting the
-            # phase of C^dg (in `adjoint`) is expensive (N^3). Alternatively,
-            # it can be faster to compute phase via a second Schrodinger evolution,
-            # at a cost L*N^2, where L is number of Paulis in `self`. Empirically,
-            # thresholding on N <= L gave near-optimal performance across benchmarks
-            # that went up to 250 qubits.
-            if other.num_qubits <= self._x.shape[0]:
-                other = other.adjoint()
+
+            # Pinning signs (phases) is expensive. We can pin the 2N signs of `C^dg`'s rows, or
+            # just the L signs of the result `(C^dg.P.C)`; pin whichever set is smaller. This
+            # simple threshold (2N vs L) was near-optimal for benchmarks up to 250 qubits.
+            if 2 * other.num_qubits <= self._x.shape[0]:
+                # Few qubits, many Paulis: Compute C^dg (pins signs) and evolve by it
+                other = other.adjoint()  # O(N^3)
                 return self._evolve_clifford(other, qargs=qargs, frame="s")
 
+            # Many qubits, few Paulis: Get result's signs by enforcing round-trip signs are +1,
+            # never paying for C^dg's signs. Build `inv` with ZX tableau of C^dg but wrong signs
+            # via the cheap part of `Clifford._conjugate_transpose` (at time of writing):
             inv = other.copy()
             tmp = inv.destab_x.copy()
             inv.destab_x = inv.stab_z.T
             inv.destab_z = inv.destab_z.T
             inv.stab_x = inv.stab_x.T
             inv.stab_z = tmp.T
-            # We have z and x of C^dg, but not the phase.
+            # Evolving by `inv` gives the correct ZX content of C^dg.P.C but wrong signs:
             ret = self._evolve_clifford(inv, qargs=qargs, frame="s")
-            # This evolution yields z, x of desired result but wrong phase.
-            # Fix answer by evolving this forward by C; excess phase after
-            # the round-trip should be subtracted from ret:
+            # Recover the signs by evolving back: C.(C^dg.P.C).C^dg = P. Since `ret`
+            # already has the right ZX content, evolving it forward reproduces P's ZX content
+            # exactly; only the signs can differ.
             fwd = ret._evolve_clifford(other, qargs=qargs, frame="s")
+            # Evolution merely adds to the phase (is linear), so `ret`'s phase error passes
+            # unchanged into `fwd`; read it off as `fwd.phase - self.phase` and subtract it:
             ret.phase -= fwd.phase - self.phase
             return ret
 
