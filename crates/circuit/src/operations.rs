@@ -41,7 +41,7 @@ use num_complex::{Complex64, c64};
 use smallvec::SmallVec;
 
 use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyInt, PyTuple, PyType};
 use pyo3::{IntoPyObjectExt, Python, intern};
@@ -119,9 +119,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
         Ok(if let Ok(py_expr) = b.extract::<PyParameterExpression>() {
             Param::ParameterExpression(Arc::new(py_expr.inner))
         } else if b.is_instance_of::<PyArray1<i32>>() {
+            // TODO: remove this branch when we raise the NumPy version to 2.4.
             Param::Obj(b.to_owned().unbind())
         } else if let Ok(val) = b.extract::<f64>() {
-            // TODO: remove this branch when we raise the NumPy version to 2.4.
             Param::Float(val)
         } else if let Ok(int) = b.extract::<u64>() {
             Param::Float(int as f64)
@@ -281,6 +281,33 @@ impl Param {
         } else {
             Param::Obj(ob.to_owned().unbind())
         })
+    }
+
+    /// Extracts a duration value based on its unit.
+    pub fn extract_duration(ob: Borrowed<PyAny>, unit: &DelayUnit) -> PyResult<Self> {
+        if let Ok(par_expr) = PyParameterExpression::extract(ob) {
+            if matches!(unit, DelayUnit::EXPR) {
+                return Err(PyTypeError::new_err(format!(
+                    "Expected an 'Expr' for '{}' duration unit, got {}",
+                    unit,
+                    ob.get_type().repr()?
+                )));
+            }
+            if par_expr.inner.is_int() == Some(true) && matches!(unit, DelayUnit::DT) {
+                return Err(PyTypeError::new_err(format!(
+                    "Expected an 'Int' for '{}' duration unit, got {}",
+                    unit,
+                    ob.get_type().repr()?
+                )));
+            }
+            Ok(Param::ParameterExpression(Arc::new(par_expr.inner)))
+        } else {
+            match unit {
+                DelayUnit::DT => Ok(Param::DelayDt(ob.extract()?)),
+                DelayUnit::EXPR => Ok(Param::Obj(ob.as_any().clone().unbind())),
+                _ => Ok(Param::Float(ob.extract()?)),
+            }
+        }
     }
 
     /// Clones the [Param] object safely by reference count or copying.

@@ -29,10 +29,9 @@ use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
-    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, DelayUnit,
-    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    PyInstruction, PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store,
-    UnitaryGate,
+    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
+    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
+    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -1022,10 +1021,7 @@ pub fn extract_params<T: CircuitBlock>(
                     Some(Parameters::Params(
                         params
                             .try_iter()?
-                            .map(|p| match unit {
-                                DelayUnit::DT => Param::extract_no_coerce(p?.as_borrowed()),
-                                _ => Ok(p?.extract::<Param>()?),
-                            })
+                            .map(|p| Param::extract_duration(p?.as_borrowed(), unit))
                             .collect::<PyResult<_>>()?,
                     ))
                 }
