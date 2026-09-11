@@ -73,6 +73,10 @@ macro_rules! newtype_id {
             pub fn new(value: usize) -> Self {
                 Self(value)
             }
+
+            pub fn index(&self) -> usize {
+                self.0
+            }
         }
     };
 
