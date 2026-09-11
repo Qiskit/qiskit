@@ -19,6 +19,7 @@ pub mod iqp;
 pub mod multi_local;
 pub mod parameter_ledger;
 pub mod pauli_evolution;
+pub mod pauli_evolution_gate;
 mod pauli_feature_map;
 pub mod quantum_volume;
 pub mod suzuki_trotter;
