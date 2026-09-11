@@ -999,6 +999,9 @@ pub unsafe extern "C" fn qk_param_equal(lhs: *const Param, rhs: *const Param) ->
 /// ``NAN`` is returned. Note that for ``QkParam`` representing complex values the real part is
 /// returned.
 ///
+/// If the parameter in originally an `int` instance, it will be coerced into a double, resulting
+/// in a lossy conversion.
+///
 /// @param param A pointer to the ``QkParam`` to evaluate.
 ///
 /// @return The value, if casting was successful, otherwise ``NAN``.
