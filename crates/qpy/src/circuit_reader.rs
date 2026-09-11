@@ -305,8 +305,8 @@ pub fn instruction_values_to_params(
                 match value {
                     GenericValue::Float64(float) => Ok(Param::Float(float)),
                     GenericValue::Int64(i64) => {
-                        // When an i64 value is found to be a parameter
-                        // turn it into a u64 as its digital footprint is the same.
+                        // Truncates u64 to i64::MAX due to having no correct way
+                        // to preserve unsigned integers. See #16972.
                         Ok(Param::Int(u64::try_from(i64)?))
                     }
                     GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp)),
