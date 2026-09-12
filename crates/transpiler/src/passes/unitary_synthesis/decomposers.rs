@@ -442,8 +442,7 @@ impl DecomposerCache {
         // TODO: this logic isn't really correct; we probably actually need to test if the basis set
         // permits _complete_ coverage of SU2/SO3 via SK.
         //
-        // An empty basis does not imply Clifford+T. Without this check,
-        // Iterator::all would classify it as Clifford+T vacuously.
+        // An empty basis does not imply Clifford+T.
         let permits_solovay_kitaev = || match constraint {
             QpuConstraint::Loose { basis_gates, .. } => {
                 !basis_gates.is_empty() && basis_gates.iter().copied().all(valid_clifford_t)

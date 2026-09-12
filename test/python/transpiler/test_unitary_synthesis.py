@@ -117,8 +117,8 @@ class FakeBackend5QV2(GenericBackendV2):
 class TestUnitarySynthesisBasisGates(QiskitTestCase):
     """Test UnitarySynthesis pass with basis gates."""
 
-    def test_empty_basis_gates_defaults_to_u_cx_not_solovay_kitaev(self):
-        """Empty UnitarySynthesis() uses exact [u, cx], not Clifford+T (issue #16688)."""
+    def test_empty_basis_gates_leaves_unitary(self):
+        """Empty basis/target leaves unitaries unchanged (issue #16688)."""
         qc = QuantumCircuit(1)
         unitary = np.array(
             [[1.0, 0.0], [0.0, np.exp(1j * np.pi / 6)]],
@@ -127,32 +127,20 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         qc.unitary(unitary, [0])
 
         compiled = PassManager([UnitarySynthesis()]).run(qc)
-        ops = compiled.count_ops()
-
-        self.assertEqual(ops, {"u": 1})
+        self.assertEqual(compiled.count_ops(), {"unitary": 1})
         self.assertTrue(Operator(qc).equiv(compiled))
-        self.assertNotIn("unitary", ops)
-        self.assertNotIn("h", ops)
-        self.assertNotIn("t", ops)
-        self.assertNotIn("tdg", ops)
 
-    def test_empty_basis_gates_synthesizes_1q_and_2q_exactly(self):
-        """Fallback synthesizes 1q and 2q unitaries exactly into the default basis."""
-        qc = QuantumCircuit(2)
-        qc.unitary(random_unitary(2, seed=0).data, [0])
-        qc.unitary(random_unitary(4, seed=1).data, [0, 1])
-        out = UnitarySynthesis(basis_gates=None)(qc)
-        ops = out.count_ops()
-        self.assertNotIn("unitary", ops)
-        self.assertTrue(set(ops).issubset({"u", "cx"}))
-        self.assertTrue(Operator(qc).equiv(out))
-
-    def test_empty_basis_gates_3q_removes_unitary(self):
-        """Fallback synthesizes 3q unitaries; QSD may emit intermediate gates."""
+    def test_empty_basis_gates(self):
+        """Verify when basis_gates is None, we do not synthesize unitaries."""
         qc = QuantumCircuit(3)
-        qc.unitary(random_unitary(8, seed=0).data, [0, 1, 2])
+        op_1q = random_unitary(2, seed=0)
+        op_2q = random_unitary(4, seed=0)
+        op_3q = random_unitary(8, seed=0)
+        qc.unitary(op_1q.data, [0])
+        qc.unitary(op_2q.data, [0, 1])
+        qc.unitary(op_3q.data, [0, 1, 2])
         out = UnitarySynthesis(basis_gates=None)(qc)
-        self.assertNotIn("unitary", out.count_ops())
+        self.assertEqual(out.count_ops(), {"unitary": 3})
         self.assertTrue(Operator(qc).equiv(out))
 
     @data(

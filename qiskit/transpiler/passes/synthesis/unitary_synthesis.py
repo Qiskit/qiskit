@@ -82,10 +82,10 @@ class UnitarySynthesis(TransformationPass):
         ``RAYON_NUM_THREADS=4`` would limit the thread pool to 4 threads.
 
         Args:
-            basis_gates: List of gate names to target. If this is not specified and
-                ``target`` is also not specified, defaults to ``["u", "cx"]`` (an exact
-                continuous basis). If both this and the ``target`` are specified the
-                value of ``target`` will be used and this will be ignored.
+            basis_gates: List of gate names to target. If this is
+                not specified the ``target`` argument must be used. If both this
+                and the ``target`` are specified the value of ``target`` will
+                be used and this will be ignored.
             approximation_degree: Heuristic dial used for circuit approximation
                 (1.0=no approximation, 0.0=maximal approximation). Approximation can
                 make the synthesized circuit cheaper at the cost of straying from
@@ -156,10 +156,6 @@ class UnitarySynthesis(TransformationPass):
         if target is not None:
             self._coupling_map = target.build_coupling_map()
             self._basis_gates = set(target.operation_names)
-        # Default continuous basis only when no target argument was supplied and the loose
-        # basis is empty. An explicitly passed empty Target() must keep no-constraints behavior.
-        if target is None and not self._basis_gates:
-            self._basis_gates = {"u", "cx"}
         if synth_gates:
             self._synth_gates = synth_gates
         elif pulse_optimize:
