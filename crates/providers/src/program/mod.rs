@@ -18,6 +18,6 @@ mod quantum_program;
 
 pub use program_function::{
     FunctionError, FunctionEvalError, InstructionId, InstructionRef, InstructionRole,
-    ProgramFunction, Signature, Value,
+    InstructionView, ProgramFunction, Signature, Value,
 };
 pub use quantum_program::{FunctionId, ProgramError, ProgramEvalError, QuantumProgram};

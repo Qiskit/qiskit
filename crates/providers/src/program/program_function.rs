@@ -14,7 +14,8 @@ use std::fmt;
 
 use thiserror::Error;
 
-use crate::ops::{BoxedOpError, BoxedProgramOp, ProgramOp, QISKIT, erase};
+use super::quantum_program::FunctionId;
+use crate::ops::{BoxedOpError, BoxedProgramOp, ErasedProgramOp, ProgramOp, QISKIT, erase};
 use crate::tensor::{Tensor, TensorType};
 
 /// A position within one instruction's ordered operands or results.
@@ -77,8 +78,85 @@ pub enum InstructionRole {
     Parameter,
     /// An operation, with a [`ProgramOp`].
     Op,
+    /// A call to another function of the same program.
+    Call,
     /// A function output.
     Result,
+}
+
+/// What an instruction is, and what it holds.
+///
+/// An instruction has a [`ProgramOp`] only in the [`Op`](Self::Op) case and a callee only in the
+/// [`Call`](Self::Call) case, so this answers what [`InstructionRole`] answers and hands over the
+/// payload as well.
+#[derive(Clone, Copy)]
+pub enum InstructionView<'a> {
+    /// A function input, supplied by the caller.
+    Parameter,
+    /// An operation applying this op.
+    Op(&'a (dyn ErasedProgramOp + 'static)),
+    /// A call to this function of the same program.
+    Call(FunctionId),
+    /// A function output.
+    Result,
+}
+
+impl<'a> InstructionView<'a> {
+    /// What part the instruction plays, without its payload.
+    pub fn role(self) -> InstructionRole {
+        match self {
+            Self::Parameter => InstructionRole::Parameter,
+            Self::Op(_) => InstructionRole::Op,
+            Self::Call(_) => InstructionRole::Call,
+            Self::Result => InstructionRole::Result,
+        }
+    }
+
+    fn name(self) -> &'a str {
+        match self {
+            Self::Parameter => "parameter",
+            Self::Op(op) => op.name(),
+            Self::Call(_) => "call",
+            Self::Result => "result",
+        }
+    }
+
+    fn namespace(self) -> &'a str {
+        match self {
+            Self::Parameter | Self::Call(_) | Self::Result => QISKIT,
+            Self::Op(op) => op.namespace(),
+        }
+    }
+
+    fn full_name(self) -> String {
+        match self {
+            Self::Parameter | Self::Call(_) | Self::Result => {
+                format!("{}.{}", self.namespace(), self.name())
+            }
+            Self::Op(op) => op.full_name(),
+        }
+    }
+
+    /// How many operands the instruction takes, or `None` when only the callee settles that. A call
+    /// takes one operand per parameter of the function it names.
+    fn arity(self) -> Option<usize> {
+        match self {
+            Self::Parameter => Some(0),
+            Self::Op(op) => Some(op.arity()),
+            Self::Call(_) => None,
+            Self::Result => Some(1),
+        }
+    }
+
+    fn has_builtin_eval(self) -> bool {
+        match self {
+            Self::Parameter | Self::Result => true,
+            Self::Op(op) => op.has_builtin_eval(),
+            // A call is evaluated by the program holding its callee, so a function that contains
+            // one cannot be evaluated on its own.
+            Self::Call(_) => false,
+        }
+    }
 }
 
 /// The types a function consumes and produces, positionally.
@@ -94,52 +172,18 @@ pub struct Signature {
 enum InstructionBody {
     Parameter,
     Op(BoxedProgramOp),
+    Call(FunctionId),
     Result,
 }
 
 impl InstructionBody {
-    fn name(&self) -> &str {
+    /// What this instruction is, and what it holds.
+    fn view(&self) -> InstructionView<'_> {
         match self {
-            Self::Parameter => "parameter",
-            Self::Op(op) => op.name(),
-            Self::Result => "result",
-        }
-    }
-
-    fn namespace(&self) -> &str {
-        match self {
-            Self::Parameter | Self::Result => QISKIT,
-            Self::Op(op) => op.namespace(),
-        }
-    }
-
-    fn full_name(&self) -> String {
-        match self {
-            Self::Parameter | Self::Result => format!("{}.{}", self.namespace(), self.name()),
-            Self::Op(op) => op.full_name(),
-        }
-    }
-
-    fn role(&self) -> InstructionRole {
-        match self {
-            Self::Parameter => InstructionRole::Parameter,
-            Self::Op(_) => InstructionRole::Op,
-            Self::Result => InstructionRole::Result,
-        }
-    }
-
-    fn arity(&self) -> usize {
-        match self {
-            Self::Parameter => 0,
-            Self::Op(op) => op.arity(),
-            Self::Result => 1,
-        }
-    }
-
-    fn has_builtin_eval(&self) -> bool {
-        match self {
-            Self::Parameter | Self::Result => true,
-            Self::Op(op) => op.has_builtin_eval(),
+            Self::Parameter => InstructionView::Parameter,
+            Self::Op(op) => InstructionView::Op(&**op),
+            Self::Call(callee) => InstructionView::Call(*callee),
+            Self::Result => InstructionView::Result,
         }
     }
 }
@@ -148,7 +192,7 @@ impl InstructionBody {
 struct ProgramInstruction {
     body: InstructionBody,
     /// The values this instruction consumes, in operand order. There are always
-    /// [`InstructionBody::arity`] of them, so a half-wired instruction cannot be represented, and
+    /// [`InstructionView::arity`] of them, so a half-wired instruction cannot be represented, and
     /// this is the only record of how the function is connected.
     operands: Vec<Value>,
     /// The types inference produced for this instruction's results, one per result.
@@ -177,29 +221,34 @@ impl<'a> InstructionRef<'a> {
 
     /// What part this instruction plays: an operation, or one end of the function's boundary.
     pub fn role(&self) -> InstructionRole {
-        self.instruction().body.role()
+        self.view().role()
     }
 
     /// This instruction's type name within its namespace, `add` for instance.
     pub fn name(&self) -> &'a str {
-        self.instruction().body.name()
+        self.view().name()
     }
 
     /// The namespace this instruction's type belongs to, [`QISKIT`](crate::ops::QISKIT) for an op
     /// Qiskit defines.
     pub fn namespace(&self) -> &'a str {
-        self.instruction().body.namespace()
+        self.view().namespace()
     }
 
     /// The name that categorizes this instruction and that a backend dispatches on, `qiskit.add`
     /// for instance. Allocates; [`Self::name`] and [`Self::namespace`] do not.
     pub fn full_name(&self) -> String {
-        self.instruction().body.full_name()
+        self.view().full_name()
     }
 
     /// Whether Qiskit can evaluate this instruction in-process.
     pub fn has_builtin_eval(&self) -> bool {
-        self.instruction().body.has_builtin_eval()
+        self.view().has_builtin_eval()
+    }
+
+    /// What this instruction is, and what it holds.
+    pub fn view(&self) -> InstructionView<'a> {
+        self.instruction().body.view()
     }
 
     /// The values this instruction consumes, in operand order.
@@ -256,6 +305,15 @@ pub enum FunctionError {
         #[source]
         source: BoxedOpError,
     },
+
+    /// An operand of a call does not satisfy the parameter type declared for the callee.
+    #[error("operand {operand} of the call to {callee}: expected {expected}, got {actual}")]
+    CallOperandType {
+        operand: usize,
+        callee: FunctionId,
+        expected: TensorType,
+        actual: TensorType,
+    },
 }
 
 /// Why [`ProgramFunction::eval`] could not produce results.
@@ -290,6 +348,16 @@ pub enum FunctionEvalError {
         source: BoxedOpError,
     },
 
+    /// A function reached through a call instruction failed. The chain of these leads from the
+    /// entry point to the function that could not be evaluated.
+    #[error("evaluating the call at instruction {instruction} to {callee}")]
+    CallFailed {
+        instruction: InstructionId,
+        callee: FunctionId,
+        #[source]
+        source: Box<FunctionEvalError>,
+    },
+
     /// An instruction's `eval` returned a different number of tensors than its type inference
     /// promised when it was added. This is a bug in the instruction; it cannot be caught
     /// statically, because instructions are stored type-erased.
@@ -303,9 +371,10 @@ pub enum FunctionEvalError {
 
 /// A tensor dataflow of instructions.
 ///
-/// Each instruction can have one of three roles:
+/// Each instruction can have one of four roles:
 ///  * parameter: an input to the function specifying exactly one tensor demanded at call time
 ///  * result: an output to the function specifying one tensor the function returns
+///  * call: a call to another function defined in a [`QuantumProgram`](super::QuantumProgram)
 ///  * op: some atomic operation represented as a [`ProgramOp`]
 ///
 /// Each instruction has some number of operands, and an instruction can only be added when values
@@ -316,8 +385,10 @@ pub enum FunctionEvalError {
 ///
 /// Type compatibility of values and the operands of the instructions that act on them is checked
 /// when adding the instruction. This implies that a `ProgramFunction` cannot be malformed by
-/// construction. Also by construction, this data model is SSA compliant and the stored instruction
-/// order is topological with respect to evaluation.
+/// construction. A call instruction is the exception: its contract is checked against the function
+/// it names when a [`QuantumProgram`](super::QuantumProgram) is assembled. Also by construction,
+/// this data model is SSA compliant and the stored instruction order is topological with respect to
+/// evaluation.
 pub struct ProgramFunction {
     /// Every instruction, indexed by [`InstructionId`].
     instructions: Vec<ProgramInstruction>,
@@ -399,6 +470,52 @@ impl ProgramFunction {
             .collect())
     }
 
+    /// Invoke `callee` on `operands`, returning the values it produces in result order.
+    ///
+    /// You must know the eventual function ID within a [`QuantumProgram`](super::QuantumProgram)
+    /// and its signature to call this method. Therefore, this method is most useful to callers who
+    /// are in the process of building a program. One function may be called from any number of
+    /// sites.
+    pub fn add_call(
+        &mut self,
+        callee: FunctionId,
+        signature: &Signature,
+        operands: &[Value],
+    ) -> Result<Vec<Value>, FunctionError> {
+        if operands.len() != signature.inputs.len() {
+            return Err(FunctionError::OperandArity {
+                full_name: InstructionView::Call(callee).full_name(),
+                expected: signature.inputs.len(),
+                actual: operands.len(),
+            });
+        }
+
+        for (operand, (&value, expected)) in operands.iter().zip(&signature.inputs).enumerate() {
+            let Some(actual) = self.type_of(value) else {
+                return Err(FunctionError::UnknownOperand { operand, value });
+            };
+            if !expected.admits(actual) {
+                return Err(FunctionError::CallOperandType {
+                    operand,
+                    callee,
+                    expected: expected.clone(),
+                    actual: actual.clone(),
+                });
+            }
+        }
+
+        let id = self.push(
+            InstructionBody::Call(callee),
+            operands.to_vec(),
+            signature.outputs.clone(),
+        );
+        Ok(self
+            .instruction(id)
+            .expect("the instruction was just pushed")
+            .outputs()
+            .collect())
+    }
+
     /// Declare `value` as the next result of this function.
     pub fn add_result(&mut self, value: Value) -> Result<(), FunctionError> {
         if self.type_of(value).is_none() {
@@ -416,9 +533,10 @@ impl ProgramFunction {
         operands: Vec<Value>,
         output_types: Vec<TensorType>,
     ) -> InstructionId {
-        debug_assert_eq!(
-            operands.len(),
-            body.arity(),
+        debug_assert!(
+            body.view()
+                .arity()
+                .is_none_or(|arity| operands.len() == arity),
             "an instruction stores exactly as many operands as its arity"
         );
         let id = InstructionId(self.instructions.len() as u32);
@@ -496,8 +614,10 @@ impl ProgramFunction {
 
     /// Evaluate this function against `args`, one per parameter in declaration order.
     ///
-    /// Walks the instructions in storage order, which is topological, over a single dense
-    /// environment, releasing each intermediate once its last consumer has run.
+    /// This eval method provides no mechanism to pass in external evaluation closures,
+    /// so will ultimately raise a runtime error if an instruction without a built-in evaluation
+    /// is encountered. This includes, for example, all function calls and the shot-loop
+    /// instruction.
     pub fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, FunctionEvalError> {
         // The function is monomorphic, so its declared parameter types are the only ones its
         // instructions were built for. Checking them here names the argument the caller supplied.
@@ -508,10 +628,49 @@ impl ProgramFunction {
                 full_name: instruction.full_name(),
             });
         }
+        self.walk(args, &[])
+    }
 
+    /// Evaluate this function against `args`, resolving each call instruction against `functions`.
+    ///
+    /// The caller establishes that every instruction this may reach has a built-in implementation,
+    /// and that `functions` holds the callee of every call instruction reached, since both are
+    /// properties of the whole program rather than of this function.
+    pub(super) fn eval_in(
+        &self,
+        args: &[Tensor],
+        functions: &[ProgramFunction],
+    ) -> Result<Vec<Tensor>, FunctionEvalError> {
+        self.check_argument_types(args)?;
+        self.walk(args, functions)
+    }
+
+    /// Walk the instructions in storage order, which is topological, over a single dense
+    /// environment, releasing each intermediate once its last consumer has run.
+    ///
+    /// A call's arguments are not checked against the callee's parameter types: assembling the
+    /// program established that those types admit the operand types wired to the call.
+    fn walk(
+        &self,
+        args: &[Tensor],
+        functions: &[ProgramFunction],
+    ) -> Result<Vec<Tensor>, FunctionEvalError> {
         let offsets = self.value_offsets();
         let last_use = self.last_use(&offsets);
         let flat = |value: Value| offsets[value.instruction.index()] as usize + value.slot();
+
+        // Every operand is present: it was produced by an earlier instruction, and it cannot have
+        // been released, because this instruction's use of it is at or before its last.
+        let gather = |operands: &[Value], env: &[Option<Tensor>]| -> Vec<Tensor> {
+            operands
+                .iter()
+                .map(|&value| {
+                    env[flat(value)]
+                        .clone()
+                        .expect("an operand is produced before its consumer runs")
+                })
+                .collect()
+        };
 
         let total = *offsets.last().expect("offsets always end with the total");
         let mut env: Vec<Option<Tensor>> = vec![None; total as usize];
@@ -532,19 +691,7 @@ impl ProgramFunction {
                     env[offsets[position] as usize] = Some(args[parameter].clone());
                 }
                 InstructionBody::Op(op) => {
-                    // Every operand is present: it was produced by an earlier instruction, and it
-                    // cannot have been released, because this instruction's use of it is at or
-                    // before its last.
-                    let operands: Vec<Tensor> = instruction
-                        .operands
-                        .iter()
-                        .map(|&value| {
-                            env[flat(value)]
-                                .clone()
-                                .expect("an operand is produced before its consumer runs")
-                        })
-                        .collect();
-
+                    let operands = gather(&instruction.operands, &env);
                     let results = op.eval(&operands).map_err(|source| {
                         FunctionEvalError::InstructionFailed {
                             instruction: id,
@@ -559,6 +706,24 @@ impl ProgramFunction {
                             actual: results.len(),
                         });
                     }
+                    for (slot, tensor) in results.into_iter().enumerate() {
+                        env[offsets[position] as usize + slot] = Some(tensor);
+                    }
+                }
+                InstructionBody::Call(callee) => {
+                    // Assembling the program checked this call against the function it names, so
+                    // the callee is present and its results land one per output slot.
+                    let arguments = gather(&instruction.operands, &env);
+                    let function = functions
+                        .get(callee.index())
+                        .expect("a call names a function of the program being evaluated");
+                    let results = function.walk(&arguments, functions).map_err(|source| {
+                        FunctionEvalError::CallFailed {
+                            instruction: id,
+                            callee: *callee,
+                            source: Box::new(source),
+                        }
+                    })?;
                     for (slot, tensor) in results.into_iter().enumerate() {
                         env[offsets[position] as usize + slot] = Some(tensor);
                     }
@@ -938,6 +1103,151 @@ mod test {
         assert_eq!(
             add.operand_types().collect::<Vec<_>>(),
             vec![&f64_1d(2), &f64_1d(2)]
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Calls
+    // ---------------------------------------------------------------------------
+
+    /// The signature `(F64[len]) -> (F64[len])`, which [`double_function`] in the program tests has.
+    fn double_signature(len: usize) -> Signature {
+        Signature {
+            inputs: vec![f64_1d(len)],
+            outputs: vec![f64_1d(len)],
+        }
+    }
+
+    #[test]
+    fn a_call_names_a_function_by_id_and_one_body_serves_several_sites() {
+        let callee = FunctionId::from_index(0);
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(f64_1d(2));
+        let once = function
+            .add_call(callee, &double_signature(2), &[x])
+            .unwrap();
+        assert_eq!(once.len(), 1, "one value per result the signature declares");
+        let twice = function
+            .add_call(callee, &double_signature(2), &once)
+            .unwrap()[0];
+        function.add_result(twice).unwrap();
+
+        let call = function.instruction(once[0].instruction()).unwrap();
+        assert_eq!(call.role(), InstructionRole::Call);
+        assert_eq!(call.full_name(), "qiskit.call");
+        assert!(matches!(call.view(), InstructionView::Call(named) if named == callee));
+        assert_eq!(call.operands(), &[x]);
+        assert_eq!(
+            call.output_types(),
+            &[f64_1d(2)],
+            "the declared result types are the call instruction's own"
+        );
+
+        // Both sites name the same function, and only a call instruction names one at all.
+        assert_eq!(
+            function
+                .iter_instructions()
+                .filter_map(named_callee)
+                .collect::<Vec<_>>(),
+            vec![callee, callee]
+        );
+        assert_eq!(
+            named_callee(function.instruction(x.instruction()).unwrap()),
+            None
+        );
+    }
+
+    /// The function `instruction` calls, for an instruction that calls one.
+    fn named_callee(instruction: InstructionRef<'_>) -> Option<FunctionId> {
+        match instruction.view() {
+            InstructionView::Call(callee) => Some(callee),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn a_call_operand_is_checked_against_the_parameter_declared_for_it() {
+        let callee = FunctionId::from_index(0);
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(f64_1d(2));
+
+        let Err(err) = function.add_call(callee, &double_signature(3), &[x]) else {
+            panic!("an F64[2] operand cannot fill an F64[3] parameter")
+        };
+        assert_eq!(
+            err.to_string(),
+            "operand 0 of the call to @0: expected F64[3], got F64[2]",
+            "the position, the callee, and both types are named"
+        );
+
+        let Err(err) = function.add_call(callee, &double_signature(2), &[x, x]) else {
+            panic!("a one-parameter signature takes one operand")
+        };
+        assert_eq!(err.to_string(), "qiskit.call takes 1 operand(s), got 2");
+
+        // A value from another function is unknown here, so long as this one has no instruction at
+        // its index.
+        let mut other = ProgramFunction::new();
+        other.add_parameter(f64_1d(2));
+        let stranger = other.add_parameter(f64_1d(2));
+        let Err(err) = function.add_call(callee, &double_signature(2), &[stranger]) else {
+            panic!("an operand from another function is rejected")
+        };
+        assert!(matches!(
+            err,
+            FunctionError::UnknownOperand { operand: 0, .. }
+        ));
+    }
+
+    #[test]
+    fn a_call_operand_may_be_narrower_than_the_parameter_declared_for_it() {
+        // A declared type constrains what may arrive rather than equalling it, so a true size within
+        // a bound is admitted.
+        let bounded = TensorType {
+            dtype: DType::F64,
+            shape: vec![Dim::Bounded { max: 4 }],
+        };
+        let callee = FunctionId::from_index(0);
+        let mut function = ProgramFunction::new();
+        let fixed = function.add_parameter(f64_1d(3));
+        let loose = function.add_parameter(bounded.clone());
+
+        let signature = Signature {
+            inputs: vec![bounded],
+            outputs: vec![],
+        };
+        assert!(function.add_call(callee, &signature, &[fixed]).is_ok());
+
+        // Nothing proves the size of a bounded operand is within a true size.
+        let signature = Signature {
+            inputs: vec![f64_1d(3)],
+            outputs: vec![],
+        };
+        let Err(err) = function.add_call(callee, &signature, &[loose]) else {
+            panic!("a bounded operand cannot fill a parameter of a true size")
+        };
+        assert_eq!(
+            err.to_string(),
+            "operand 0 of the call to @0: expected F64[3], got F64[<=4]"
+        );
+    }
+
+    #[test]
+    fn a_function_holding_a_call_cannot_be_evaluated_on_its_own() {
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(f64_1d(1));
+        let called = function
+            .add_call(FunctionId::from_index(0), &double_signature(1), &[x])
+            .unwrap()[0];
+        function.add_result(called).unwrap();
+
+        assert!(!function.has_builtin_eval());
+        let Err(err) = function.eval(&[Tensor::from([1.0_f64])]) else {
+            panic!("resolving a call needs the program holding its callee")
+        };
+        assert_eq!(
+            err.to_string(),
+            "instruction 1 (qiskit.call) has no built-in implementation"
         );
     }
 
