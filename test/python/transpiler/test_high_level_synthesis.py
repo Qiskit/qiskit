@@ -232,6 +232,19 @@ class OpAPluginNeedsQubits(HighLevelSynthesisPlugin):
         return qc
 
 
+class OpAPluginUsingOptimizationLevel(HighLevelSynthesis):
+    """A synthesis plugin for OpA that uses ``optimization_level``."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        optimization_level = options.get("optimization_level", None)
+        qc = QuantumCircuit(1)
+        if optimization_level == 1:
+            qc.x(0)
+        else:
+            qc.y(0)
+        return qc
+
+
 class MockPluginManager:
     """Mocks the functionality of HighLevelSynthesisPluginManager,
     without actually depending on the stevedore extension manager.
@@ -244,10 +257,11 @@ class MockPluginManager:
             "op_b.simple": OpBSimpleSynthesisPlugin,
             "op_a.needs_coupling_map": OpAPluginNeedsCouplingMap,
             "op_a.needs_qubits": OpAPluginNeedsQubits,
+            "op_a.using_opt_level": OpAPluginUsingOptimizationLevel,
         }
 
         self.plugins_by_op = {
-            "op_a": ["default", "repeat", "needs_coupling_map", "needs_qubits"],
+            "op_a": ["default", "repeat", "needs_coupling_map", "needs_qubits", "using_opt_level"],
             "op_b": ["simple"],
         }
 
@@ -824,6 +838,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             min_qubits=0,
             unroll_definitions=True,
             optimize_clifford_t=False,
+            optimization_level=2,
         )
 
         # The tracker keeps the state of each qubits in the circuit.
@@ -846,6 +861,21 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         # must be clean.
         for q in range(num_qubits):
             self.assertEqual(tracker.is_qubit_clean(q), q not in gate_qubits)
+
+    def test_optimization_level_is_passed(self):
+        """Check that HighLevelSynthesis sets optimization_level for its plugins."""
+        qc = QuantumCircuit(1)
+        qc.append(OpA(), [0])
+        mock_plugin_manager = MockPluginManager
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            config = HLSConfig(op_a=["using_opt_level"])
+            qct_opt1 = HighLevelSynthesis(hls_config=config, optimization_level=1)(qc)
+            self.assertEqual(set(qct_opt1.count_ops()), {"x"})
+            qct_opt1 = HighLevelSynthesis(hls_config=config, optimization_level=2)(qc)
+            self.assertEqual(set(qct_opt1.count_ops()), {"y"})
 
     def test_no_clean_ancillas_after_if_else(self):
         """
@@ -897,6 +927,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             min_qubits=0,
             unroll_definitions=True,
             optimize_clifford_t=False,
+            optimization_level=2,
         )
 
         _ = synthesize_circuit(circuit._data, list(range(circuit.num_qubits)), hls_data, tracker)
@@ -3171,10 +3202,11 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         """Test that "default", "rustiq" and "mcts" plugins do exist."""
         supported_plugin_names = high_level_synthesis_plugin_names("PauliEvolution")
         self.assertIn("default", supported_plugin_names)
+        self.assertIn("basic", supported_plugin_names)
         self.assertIn("rustiq", supported_plugin_names)
         self.assertIn("mcts", supported_plugin_names)
 
-    @data("default", "rustiq", "mcts")
+    @data("default", "basic", "rustiq", "mcts")
     def test_correctness(self, plugin_name):
         """Test that plugins return the correct Operator."""
         op = SparsePauliOp(["XXX", "YYY", "IZZ", "XZY"], [1, 2, 3, 4])
@@ -3194,7 +3226,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         self.assertEqual(count_rotation_gates(qct), 4)
         self.assertEqual(Operator(ref), Operator(qct))
 
-    @data("default", "rustiq", "mcts")
+    @data("default", "basic", "rustiq", "mcts")
     def test_trivial_rotations(self, plugin_name):
         """Test that plugins return the correct Operator in the presence of
         trivial (all-I) rotations.
@@ -3208,27 +3240,27 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(qct))
         self.assertEqual(count_rotation_gates(qct), 1)
 
-    def test_option_preserve_order_for_default(self):
-        """Test that option ``preserve_order`` for the default plugin has an effect
+    def test_option_preserve_order_for_basic(self):
+        """Test that option ``preserve_order`` for the basic plugin has an effect
         on the number of CX-gates in the circuit and is ``True`` by default.
         """
         op = SparsePauliOp(["IIIX", "IIXX", "IYYI", "IIZZ"], coeffs=[1, 2, 3, 4])
         qc = QuantumCircuit(6)
         qc.append(PauliEvolutionGate(op), [1, 2, 3, 4])
         with self.subTest("preserve_order_is_reset"):
-            hls_config = HLSConfig(PauliEvolution=[("default", {"preserve_order": False})])
+            hls_config = HLSConfig(PauliEvolution=[("basic", {"preserve_order": False})])
             hls_pass = HighLevelSynthesis(hls_config=hls_config)
             qct = hls_pass(qc)
             self.assertEqual(qct.depth(), 3)
             # The option preserve_order is also used in the expansion part of the synthesis
             # algorithm (e.g. Lie-Trotter). This checks that it is (reset to) ``True``.
-            hls_config = HLSConfig(PauliEvolution=[("default", {})])
+            hls_config = HLSConfig(PauliEvolution=[("basic", {})])
             hls_pass = HighLevelSynthesis(hls_config=hls_config)
             qct = hls_pass(qc)
             self.assertEqual(qct.depth(), 4)
 
     @data("rustiq", "mcts")
-    def test_option_preserve_order(self, plugin_name):
+    def test_option_preserve_order_for_rustiq_mcts(self, plugin_name):
         """
         Test that the Rustiq/Mcts option ``preserve_order`` has an
         effect on the number of CX-gates in the synthesized circuit.
@@ -3354,7 +3386,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         with self.assertRaises(QiskitError):
             synthesis_function(num_qubits=4, pauli_network=pauli_network)
 
-    @data("default", "rustiq", "mcts")
+    @data("default", "basic", "rustiq", "mcts")
     def test_on_sparse_observable(self, plugin_name):
         """Test that plugins handle operators with SparseObservables."""
         obs = SparseObservable.from_sparse_list([("1+XY", (0, 1, 2, 3), 1.5)], num_qubits=4)
@@ -3365,7 +3397,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qct = HighLevelSynthesis(hls_config=hls_config)(qc)
         self.assertEqual(Operator(qct), Operator(qc))
 
-    @data("default", "rustiq", "mcts")
+    @data("default", "basic", "rustiq", "mcts")
     def test_on_list_with_sparse_observable(self, plugin_name):
         """Test that plugins handle operators with SparseObservables."""
         pauli = Pauli("-XYZI")
