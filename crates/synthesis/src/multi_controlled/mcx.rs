@@ -559,16 +559,52 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
     }
 }
 
-/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`k - 2`
-///     clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
-///     and at most :math:`6 * k - 6` CX gates, by Maslov [1].
-///     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
-///     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
-/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls based on the paper
-/// by Maslov[1].
+/// The short relative-phase Toffoli ``RT^S`` from Maslov (2016), Figure 3, gates 2--6.
+fn rts() -> Result<CircuitData, CircuitDataError> {
+    let mut circuit = CircuitData::with_capacity(3, 0, 5, Param::Float(0.0))?;
+    add_action_gadget(&mut circuit, 1, 0, 2)?;
+    Ok(circuit)
+}
+
+/// The short special-form relative-phase Toffoli ``SRT^S`` from Maslov (2016),
+/// circuit (3), dashed.
+fn srts() -> Result<CircuitData, CircuitDataError> {
+    let mut circuit = CircuitData::with_capacity(3, 0, 9, Param::Float(0.0))?;
+    circuit.h(2)?;
+    circuit.cx(2, 1)?;
+    circuit.tdg(1)?;
+    circuit.cx(0, 1)?;
+    circuit.t(1)?;
+    circuit.cx(2, 1)?;
+    circuit.tdg(1)?;
+    circuit.cx(0, 1)?;
+    circuit.t(1)?;
+    Ok(circuit)
+}
+
+/// The short relative-phase four-qubit Toffoli ``RT4^S`` from Maslov (2016),
+/// Figure 4, dashed.
+fn rt4s() -> Result<CircuitData, CircuitDataError> {
+    let mut circuit = CircuitData::with_capacity(4, 0, 10, Param::Float(0.0))?;
+    circuit.h(3)?;
+    circuit.t(3)?;
+    circuit.cx(2, 3)?;
+    circuit.tdg(3)?;
+    circuit.h(3)?;
+    circuit.cx(0, 3)?;
+    circuit.t(3)?;
+    circuit.cx(1, 3)?;
+    circuit.tdg(3)?;
+    circuit.cx(0, 3)?;
+    Ok(circuit)
+}
+
+/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls, following
+/// Proposition 4 of Maslov (2016) [1].
 ///
-/// The method uses :math:`k - 2` clean ancillary qubits with producing a circuit with
-/// :math:`2 * k - 1` qubits and at most :math:`6 * k - 6` CX gates, by Maslov [1].
+/// The method uses :math:`\lceil(k - 2) / 2\rceil` clean ancillary qubits and produces a
+/// circuit with :math:`k + 1 + \lceil(k - 2) / 2\rceil` qubits, :math:`8 * k - 9` T gates,
+/// and :math:`6 * k - 6` CX gates.
 /// For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
 /// (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 ///
@@ -580,9 +616,9 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
 ///
 /// # References
 ///
-/// 1. Maslov., Phys. Rev. A 93, 022311 (2016),"Advantages of using
+/// 1. D. Maslov, Phys. Rev. A 93, 022311 (2016), "Advantages of using
 ///    relative-phase Toffoli gates with an application to multiple control Toffoli optimization",
-///    [arXiv:1508.03273] (https://arxiv.org/pdf/1508.03273).
+///    [arXiv:1508.03273](https://arxiv.org/abs/1508.03273).
 pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
     if num_controls == 0 {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
@@ -595,41 +631,241 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
     } else if num_controls == 2 {
         Ok(ccx())
     } else {
-        let num_qubits = 2 * num_controls - 1;
-        let num_instructions = 2 * num_controls - 3;
+        let num_ancillas = (num_controls - 1) / 2;
+        let num_qubits = num_controls + 1 + num_ancillas;
+        let num_instructions = 18 * num_controls - 21;
         let mut circuit =
             CircuitData::with_capacity(num_qubits as u32, 0, num_instructions, Param::Float(0.0))?;
-
         let target = num_controls as u32;
-        circuit.rccx(0, 1, (num_controls + 1) as u32)?;
+        let first_ancilla = (num_controls + 1) as u32;
+        let rccx_gate = rccx();
+        let rc3x_gate = rc3x();
+        let rc3x_inverse = rc3x_gate.inverse()?;
 
-        // Forward ladder
-        for j in 2..num_controls - 1 {
-            let anc_in = num_controls + j - 1;
-            let anc_out = num_controls + j;
+        // Proposition 4 starts with RT^3 for an odd number of controls and RT^4 for an
+        // even number.
+        let first_new_control = if num_controls % 2 == 1 {
+            circuit.compose(&rccx_gate, &[Qubit(0), Qubit(1), Qubit(first_ancilla)], &[])?;
+            2
+        } else {
+            circuit.compose(
+                &rc3x_gate,
+                &[Qubit(0), Qubit(1), Qubit(2), Qubit(first_ancilla)],
+                &[],
+            )?;
+            3
+        };
 
-            circuit.rccx(j as u32, anc_in as u32, anc_out as u32)?;
+        // Each subsequent RT^4 absorbs two more controls into one clean ancilla.
+        for i in 1..num_ancillas {
+            let control = first_new_control + 2 * (i - 1);
+            circuit.compose(
+                &rc3x_gate,
+                &[
+                    Qubit((num_controls + i) as u32),
+                    Qubit(control as u32),
+                    Qubit((control + 1) as u32),
+                    Qubit((num_controls + 1 + i) as u32),
+                ],
+                &[],
+            )?;
         }
 
-        // Final Toffoli
+        let final_control = first_new_control + 2 * (num_ancillas - 1);
+        debug_assert_eq!(final_control, num_controls - 1);
         circuit.ccx(
-            (num_controls - 1) as u32,
-            (2 * num_controls - 2) as u32,
+            (num_controls + num_ancillas) as u32,
+            final_control as u32,
             target,
         )?;
 
-        // Reverse ladder
-        for j in (2..num_controls - 1).rev() {
-            let anc_in = num_controls + j - 1;
-            let anc_out = num_controls + j;
-
-            circuit.rccx(j as u32, anc_in as u32, anc_out as u32)?;
+        for i in (1..num_ancillas).rev() {
+            let control = first_new_control + 2 * (i - 1);
+            circuit.compose(
+                &rc3x_inverse,
+                &[
+                    Qubit((num_controls + i) as u32),
+                    Qubit(control as u32),
+                    Qubit((control + 1) as u32),
+                    Qubit((num_controls + 1 + i) as u32),
+                ],
+                &[],
+            )?;
         }
 
-        circuit.rccx(0, 1, (num_controls + 1) as u32)?;
+        if num_controls % 2 == 1 {
+            // Inverse RCCX (RCCX is self-inverse).
+            circuit.compose(&rccx_gate, &[Qubit(0), Qubit(1), Qubit(first_ancilla)], &[])?;
+        } else {
+            circuit.compose(
+                &rc3x_inverse,
+                &[Qubit(0), Qubit(1), Qubit(2), Qubit(first_ancilla)],
+                &[],
+            )?;
+        }
 
         Ok(circuit)
     }
+}
+
+/// Synthesize a multi-controlled X gate using dirty ancillary qubits, following
+/// circuit (5) for three controls and Proposition 5 for four or more controls in
+/// Maslov (2016).
+///
+/// For three controls the construction uses one dirty ancilla and has 16 T gates and 14 CX gates.
+/// For :math:`k \ge 4` controls it uses :math:`\lceil(k - 2) / 2\rceil` dirty ancillas and has
+/// :math:`8k - 8` T gates and :math:`8k - 12` CX gates.
+///
+/// # References
+///
+/// 1. D. Maslov, *Advantages of using relative-phase Toffoli gates with an application to
+///    multiple control Toffoli optimization*, Phys. Rev. A 93, 022311 (2016),
+///    [arXiv:1508.03273](https://arxiv.org/abs/1508.03273).
+pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
+    if num_controls == 0 {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.x(0)?;
+        return Ok(circuit);
+    } else if num_controls == 1 {
+        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+        circuit.cx(0, 1)?;
+        return Ok(circuit);
+    } else if num_controls == 2 {
+        return Ok(ccx());
+    }
+
+    let srts_gate = srts()?;
+    let srts_inverse = srts_gate.inverse()?;
+    let rtl_gate = rccx();
+
+    if num_controls == 3 {
+        let mut circuit = CircuitData::with_capacity(5, 0, 36, Param::Float(0.0))?;
+        circuit.compose(&srts_gate, &[Qubit(2), Qubit(4), Qubit(3)], &[])?;
+        circuit.compose(&rtl_gate, &[Qubit(0), Qubit(1), Qubit(4)], &[])?;
+        circuit.compose(&srts_inverse, &[Qubit(2), Qubit(4), Qubit(3)], &[])?;
+        // Inverse RCCX (RCCX is self-inverse).
+        circuit.compose(&rtl_gate, &[Qubit(0), Qubit(1), Qubit(4)], &[])?;
+        return Ok(circuit);
+    }
+
+    // Maslov numbers the n-1 controls 1..n-1, the n-3 initial ancillas n..2n-4,
+    // and the target 2n-3. The RT4 replacements eliminate ancillas n, n+2, ...;
+    // compact the remaining paper indices into Qiskit's controls-target-ancillas order.
+    let n = num_controls + 1;
+    let map_qubit_idx = |original: usize| {
+        let compact = if original < n {
+            original - 1
+        } else if original == 2 * n - 3 {
+            num_controls
+        } else {
+            num_controls + 1 + (original - n) / 2
+        };
+        Qubit(compact as u32)
+    };
+
+    let num_qubits = num_controls + 1 + (num_controls - 1) / 2;
+    let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, 0, Param::Float(0.0))?;
+    let rts_gate = rts()?;
+    let rts_inverse = rts_gate.inverse()?;
+    let rt4s_gate = rt4s()?;
+    let rt4s_inverse = rt4s_gate.inverse()?;
+    let rt4l_gate = rc3x();
+    let rt4l_inverse = rt4l_gate.inverse()?;
+
+    circuit.compose(
+        &srts_gate,
+        &[
+            map_qubit_idx(n - 1),
+            map_qubit_idx(2 * n - 4),
+            map_qubit_idx(2 * n - 3),
+        ],
+        &[],
+    )?;
+
+    for forward_pass in [true, false] {
+        // Items 2 and 6 of Proposition 5, with adjacent RT^S pairs replaced by RT4^S.
+        let first_unpaired = if n % 2 == 0 {
+            circuit.compose(
+                &rts_gate,
+                &[
+                    map_qubit_idx(2 * n - 5),
+                    map_qubit_idx(n - 2),
+                    map_qubit_idx(2 * n - 4),
+                ],
+                &[],
+            )?;
+            2
+        } else {
+            1
+        };
+        for k in (first_unpaired..n - 4).step_by(2) {
+            circuit.compose(
+                &rt4s_gate,
+                &[
+                    map_qubit_idx(2 * n - 5 - k),
+                    map_qubit_idx(n - 2 - k),
+                    map_qubit_idx(n - 1 - k),
+                    map_qubit_idx(2 * n - 3 - k),
+                ],
+                &[],
+            )?;
+        }
+
+        circuit.compose(
+            if forward_pass {
+                &rt4l_gate
+            } else {
+                &rt4l_inverse
+            },
+            &[
+                map_qubit_idx(1),
+                map_qubit_idx(2),
+                map_qubit_idx(3),
+                map_qubit_idx(n + 1),
+            ],
+            &[],
+        )?;
+
+        // Items 4 and 8, using inverses of the same short relative-phase blocks.
+        for k in (2..n - 4).step_by(2) {
+            circuit.compose(
+                &rt4s_inverse,
+                &[
+                    map_qubit_idx(n - 1 + k),
+                    map_qubit_idx(k + 2),
+                    map_qubit_idx(k + 3),
+                    map_qubit_idx(n + k + 1),
+                ],
+                &[],
+            )?;
+        }
+        if n % 2 == 0 {
+            let k = n - 4;
+            circuit.compose(
+                &rts_inverse,
+                &[
+                    map_qubit_idx(n - 1 + k),
+                    map_qubit_idx(k + 2),
+                    map_qubit_idx(n + k),
+                ],
+                &[],
+            )?;
+        }
+
+        if forward_pass {
+            circuit.compose(
+                &srts_inverse,
+                &[
+                    map_qubit_idx(n - 1),
+                    map_qubit_idx(2 * n - 4),
+                    map_qubit_idx(2 * n - 3),
+                ],
+                &[],
+            )?;
+        }
+    }
+
+    Ok(circuit)
 }
 
 // The following synth_mcx_noaux_hp24 algorithm is based on the work by Huang and Palsberg.
@@ -1409,8 +1645,62 @@ mod sp22 {
 mod test {
     use crate::matrix::sim::sim_unitary_circuit;
     use approx::abs_diff_eq;
+    use qiskit_circuit::circuit_data::CircuitData;
 
-    use super::{increment_n_dirty_large, increment_n_dirty_small};
+    use super::{
+        increment_n_dirty_large, increment_n_dirty_small, synth_mcx_n_clean_m15,
+        synth_mcx_n_dirty_m15,
+    };
+
+    fn assert_mcx(circuit: &CircuitData, num_controls: usize, clean_ancillas: bool) {
+        let unitary = sim_unitary_circuit(circuit).unwrap();
+        let control_mask = (1 << num_controls) - 1;
+        let target_mask = 1 << num_controls;
+        let columns = if clean_ancillas {
+            1 << (num_controls + 1)
+        } else {
+            unitary.ncols()
+        };
+
+        for column in 0..columns {
+            let expected_row = if column & control_mask == control_mask {
+                column ^ target_mask
+            } else {
+                column
+            };
+            for row in 0..unitary.nrows() {
+                let expected = if row == expected_row { 1.0 } else { 0.0 };
+                assert!(abs_diff_eq!(
+                    unitary[(row, column)].re,
+                    expected,
+                    epsilon = 1e-10
+                ));
+                assert!(abs_diff_eq!(
+                    unitary[(row, column)].im,
+                    0.0,
+                    epsilon = 1e-10
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn test_synth_mcx_n_clean_m15() {
+        // Exercise odd and even control counts, including an RT4 ladder with two ancillas.
+        for num_controls in 3..=6 {
+            let circuit = synth_mcx_n_clean_m15(num_controls).unwrap();
+            assert_mcx(&circuit, num_controls, true);
+        }
+    }
+
+    #[test]
+    fn test_synth_mcx_n_dirty_m15() {
+        // Exercise both the three-control special case and the general RT4 construction.
+        for num_controls in 3..=4 {
+            let circuit = synth_mcx_n_dirty_m15(num_controls).unwrap();
+            assert_mcx(&circuit, num_controls, false);
+        }
+    }
 
     #[test]
     fn test_increment_n_dirty() {

@@ -1379,8 +1379,15 @@ class MCXVChain(MCXGate):
 
         else:  # use clean ancillas
 
+            from qiskit.circuit import QuantumCircuit
             from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
 
             qc = synth_mcx_n_clean_m15(self.num_ctrl_qubits)
+            if qc.num_qubits < self.num_qubits:
+                # Preserve the deprecated MCXVChain width while the underlying synthesis now
+                # needs fewer clean ancillas.
+                padded = QuantumCircuit(self.num_qubits)
+                padded.compose(qc, range(qc.num_qubits), inplace=True)
+                qc = padded
 
         self.definition = qc
