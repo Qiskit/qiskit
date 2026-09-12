@@ -775,6 +775,49 @@ class TestMCSynthesisDepth(QiskitTestCase):
         # For the exact calculation see test_synth_mcp_noaux_sp22:
         self.assertLessEqual(depth2q, 16 * num_ctrl_qubits - 24)
 
+    @data(5, 10, 25)
+    def test_synth_mcx_2_clean_kg24_depth(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_clean_kg24 circuit depth bound.
+
+        The algorithm itself uses O(log k) depth with binary-tree AND reduction (Khattar & Gidney,
+        Sec 5.2), but this test checks depth after transpilation (all gate types,
+        optimization_level=0), matching how the reference depths below were obtained from the Rust
+        implementation. Basis-gate decomposition adds overhead and can affect parallelism, so these
+        post-transpilation numbers do not themselves scale as O(log k); this is a regression guard
+        against depth blowup, not a check of the algorithm's asymptotic complexity.
+
+        Reference depths (Rust, after transpilation with optimization_level=0):
+        k=5: 70, k=10: 104, k=25: 178
+        """
+        synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        depth = transpiled_circuit.depth()  # General depth (all gates)
+
+        # Expected bounds from the reference (Rust) implementation.
+        expected = {5: 70, 10: 104, 25: 178}
+        if num_ctrl_qubits in expected:
+            self.assertLessEqual(depth, expected[num_ctrl_qubits])
+
+    @data(5, 10, 25)
+    def test_synth_mcx_2_dirty_kg24_depth(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_dirty_kg24 circuit depth bound (logarithmic with toggle detection).
+
+        Dirty variant repeats the log-depth tree reduction for toggle detection (Khattar & Gidney, Sec 5.4).
+        Depth is measured after transpilation (all gate types, optimization_level=0), matching how
+        the reference depths below were obtained from the Rust implementation.
+
+        Reference depths (Rust, after transpilation with optimization_level=0):
+        k=5: 118, k=10: 186, k=25: 334
+        """
+        synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        depth = transpiled_circuit.depth()  # General depth (all gates)
+
+        # Expected bounds from the reference (Rust) implementation.
+        expected = {5: 118, 10: 186, 25: 334}
+        if num_ctrl_qubits in expected:
+            self.assertLessEqual(depth, expected[num_ctrl_qubits])
+
 
 if __name__ == "__main__":
     unittest.main()
