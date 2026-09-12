@@ -29,7 +29,7 @@ use thiserror::Error;
 /// assert!(matches!(Name::new("12"), Err(InvalidName::OnlyDigits(_))));
 /// # Ok::<(), InvalidName>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Name(String);
 
 impl Name {
@@ -90,9 +90,9 @@ impl TryFrom<String> for Name {
 pub enum InvalidName {
     #[error("a name cannot be empty")]
     Empty,
-    #[error("a name cannot contain '.': {0:?}")]
+    #[error("name \"{0}\" contains \".\"")]
     ContainsDot(String),
-    #[error("a name cannot consist only of digits: {0:?}")]
+    #[error("name \"{0}\" cannot consist only of digits")]
     OnlyDigits(String),
 }
 
