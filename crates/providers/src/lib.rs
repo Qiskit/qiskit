@@ -19,10 +19,12 @@
 //!   fixed set of dtypes, and a [`TensorType`](tensor::TensorType) is its data-less counterpart.
 //! - [`ops`] holds the [`ProgramOp`] contract and the ops Qiskit defines. The set is open: an
 //!   op may be defined outside this crate, in its own namespace.
-//! - [`program`] holds [`ProgramFunction`], one dataflow graph. Instructions are the only entity it holds:
-//!   a [`Value`] is an output slot of the instruction producing it, and a function's parameters and
-//!   results are instructions too, so every value has a producer.
-//! - [`data_tree`] holds [`DataTree`], the container for structured values.
+//! - [`program`] holds [`QuantumProgram`], a whole computation, and the [`ProgramFunction`]s it is
+//!   made of, each of which is one dataflow graph. Instructions are the only entity a function
+//!   holds: a [`Value`] is an output slot of the instruction producing it, and a function's
+//!   parameters and results are instructions too, so every value has a producer.
+//! - [`data_tree`] holds [`DataTree`], the container for structured values. A program's inputs and
+//!   outputs arrive in one, arranged by the structures it declares, which is where all naming lives.
 
 pub mod data_tree;
 pub mod ops;
@@ -32,6 +34,6 @@ pub mod tensor;
 pub use data_tree::{ArityMismatch, DataTree, InvalidName, Name, PathEntry, TreeMatchError};
 pub use ops::{BoxedOpError, BoxedProgramOp, Constant, ErasedProgramOp, ProgramOp};
 pub use program::{
-    FunctionError, FunctionEvalError, InstructionId, InstructionRef, InstructionRole,
-    ProgramFunction, Signature, Value,
+    FunctionError, FunctionEvalError, FunctionId, InstructionId, InstructionRef, InstructionRole,
+    ProgramError, ProgramEvalError, ProgramFunction, QuantumProgram, Signature, Value,
 };
