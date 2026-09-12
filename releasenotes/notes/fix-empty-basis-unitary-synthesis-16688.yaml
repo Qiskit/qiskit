@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    :class:`.UnitarySynthesis` no longer treats an empty basis as a
+    Clifford+T-only basis. Previously, constructing the pass without
+    ``basis_gates`` or ``target`` could route 1-qubit unitaries through
+    Solovay-Kitaev approximation and expand a single unitary into tens of
+    thousands of ``h``, ``t``, and ``tdg`` gates. Such unitaries are now left
+    unchanged when no basis or target is supplied.
+    Fixes `#16688 <https://github.com/Qiskit/qiskit/issues/16688>`__.
