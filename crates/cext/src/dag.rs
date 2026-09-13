@@ -33,7 +33,6 @@ use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 use crate::circuit::unitary_from_pointer;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 
-
 /// @ingroup QkDag
 /// Construct a new empty DAG.
 ///
