@@ -16,6 +16,10 @@
 import logging
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.target import Target
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.circuit.equivalence import EquivalenceLibrary
+from qiskit.dagcircuit import DAGCircuit
 from qiskit._accelerate.basis_translator import base_run
 
 logger = logging.getLogger(__name__)
@@ -84,37 +88,52 @@ class BasisTranslator(TransformationPass):
     :ref:`custom_basis_gates` for details on adding custom equivalence rules.
     """
 
-    def __init__(self, equivalence_library, target_basis, target=None, min_qubits=0):
-        """Initialize a BasisTranslator instance.
-
-        Args:
-            equivalence_library (EquivalenceLibrary): The equivalence library
-                which will be used by the BasisTranslator pass. (Instructions in
-                this library will not be unrolled by this pass.)
-            target_basis (list[str]): Target basis names to unroll to, e.g. ``['u3', 'cx']``.
-            target (Target): The backend compilation target
-            min_qubits (int): The minimum number of qubits for operations in the input
-                dag to translate.
+    def __init__(
+        self,
+        equivalence_library: EquivalenceLibrary,
+        target_basis: list[str] | None = None,
+        target: Target | None = None,
+        min_qubits: int = 0,
+    ) -> None:
         """
+        Args:
+            equivalence_library: The equivalence library which will be used by this pass.
+                (Instructions in this library will not be unrolled by this pass.)
+            target_basis: Target basis names to unroll to, e.g. ``['u3', 'cx']``. This or
+                ``target`` must be set.
+            target: The backend compilation target. A target containing operations, or
+                ``target_basis`` must be set.
+            min_qubits: The minimum number of qubits for operations in the input
+                dag to translate.
+
+        Raises:
+            TranspilerError: If neither ``target`` nor ``target_basis`` are given.
+        """
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
+        if target is not None and len(target.operation_names) == 0:
+            target = None
+
+        if target is None and target_basis is None:
+            raise TranspilerError("A non-empty `target` or `target_basis` must be set.")
+
         super().__init__()
         self._equiv_lib = equivalence_library
         self._target_basis = target_basis
-        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
-        # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._min_qubits = min_qubits
 
-    def run(self, dag):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Translate an input DAGCircuit to the target basis.
 
         Args:
-            dag (DAGCircuit): input dag
+            dag: The input dag.
 
         Raises:
             TranspilerError: if the target basis cannot be reached
 
         Returns:
-            DAGCircuit: translated circuit.
+            The translated circuit.
         """
 
         out = base_run(
