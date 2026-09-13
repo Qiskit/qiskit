@@ -30,7 +30,7 @@ use qiskit_circuit::standard_gate::StandardGate;
 use qiskit_circuit::{Clbit, Qubit};
 
 use crate::bytecode::InternalBytecode;
-use crate::error::{ParseError, message_generic};
+use crate::error::ParseError;
 use crate::expr::{Expr, evaluate};
 use crate::ext::ClassicalEvaluator;
 use crate::parse::{ClbitId, CregId, GateId, QELIB1_STANDARD_GATES, QubitId};
@@ -224,22 +224,18 @@ impl GateRegistry {
     }
 
     fn get(&self, id: GateId) -> Result<GateEntry, ParseError> {
-        self.gates.get(id.index()).cloned().ok_or_else(|| {
-            ParseError::new(message_generic(
-                None,
-                &format!("gate id {} was not declared", id.index()),
-            ))
-        })
+        self.gates
+            .get(id.index())
+            .cloned()
+            .ok_or_else(|| ParseError::new(format!("gate id {} was not declared", id.index())))
     }
 }
 
 /// Build a [CircuitData] from a bytecode stream.  See [GateRegistry] for a caveat about custom
 /// instructions.
 ///
-/// Takes an already-materialised slice rather than the crate's usual lazily-streamed iterator
-/// (see `bytecode_from_string`/`bytecode_from_file` in `lib.rs`).  Interleaving the parse and the
-/// build, so that neither side needs the whole program resident, would mean hoisting the loop state
-/// below into a struct that survives across calls; that is left for a follow-up.
+/// The whole stream must be materialised before the build starts, unlike the Python route in
+/// `bytecode_from_string`/`bytecode_from_file`, which consumes the bytecode lazily.
 pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData, ParseError> {
     let mut circuit = CircuitData::new(None, None, Param::Float(0.0))
         .map_err(|err| ParseError::new(format!("failed to create circuit: {err}")))?;
@@ -375,10 +371,9 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
             }
             InternalBytecode::DeclareGate { name, num_qubits } => {
                 if current_body.is_some() {
-                    return Err(ParseError::new(message_generic(
-                        None,
+                    return Err(ParseError::new(
                         "nested gate declaration: missing an EndDeclareGate",
-                    )));
+                    ));
                 }
                 current_body = Some((name.clone(), *num_qubits as u32, Vec::new()));
             }
@@ -389,10 +384,7 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
             } => {
                 let entry = registry.get(*id)?;
                 let (_, _, body) = current_body.as_mut().ok_or_else(|| {
-                    ParseError::new(message_generic(
-                        None,
-                        "gate body instruction outside of a gate declaration",
-                    ))
+                    ParseError::new("gate body instruction outside of a gate declaration")
                 })?;
                 body.push(BodyInstruction::Gate {
                     entry,
@@ -402,29 +394,22 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
             }
             InternalBytecode::EndDeclareGate {} => {
                 let (name, num_qubits, body) = current_body.take().ok_or_else(|| {
-                    ParseError::new(message_generic(
-                        None,
-                        "EndDeclareGate without a matching DeclareGate",
-                    ))
+                    ParseError::new("EndDeclareGate without a matching DeclareGate")
                 })?;
                 registry.declare(name, num_qubits, Some(body));
             }
             InternalBytecode::DeclareOpaque { name, num_qubits } => {
                 if current_body.is_some() {
-                    return Err(ParseError::new(message_generic(
-                        None,
+                    return Err(ParseError::new(
                         "opaque declaration nested inside another gate declaration",
-                    )));
+                    ));
                 }
                 registry.declare(name.clone(), *num_qubits as u32, None);
             }
         }
     }
     if current_body.is_some() {
-        return Err(ParseError::new(message_generic(
-            None,
-            "unterminated gate declaration",
-        )));
+        return Err(ParseError::new("unterminated gate declaration"));
     }
 
     Ok(circuit)
@@ -528,12 +513,9 @@ fn push_conditioned(
         .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
     fill_block(&mut block)?;
 
-    let register = cregs.get(creg.index()).ok_or_else(|| {
-        ParseError::new(message_generic(
-            None,
-            &format!("creg id {} was not declared", creg.index()),
-        ))
-    })?;
+    let register = cregs
+        .get(creg.index())
+        .ok_or_else(|| ParseError::new(format!("creg id {} was not declared", creg.index())))?;
     let condition = Condition::Register(register.clone(), value.clone());
     let block_id = circuit.add_block(block);
     let control_flow = ControlFlowInstruction {
