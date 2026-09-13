@@ -260,3 +260,78 @@ impl SabreDAG {
         out_dag
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use qiskit_circuit::Clbit;
+    use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
+    use qiskit_circuit::dag_circuit::DAGCircuitBuilder;
+    use qiskit_circuit::operations::{StandardGate, StandardInstruction};
+    use qiskit_circuit::packed_instruction::PackedInstruction;
+    use rustworkx_core::petgraph::algo::has_path_connecting;
+
+    /// Two measurements writing the same clbit have to keep their order, even on different qubits.
+    /// The dependency lives on a [Wire::Clbit] edge, so [SabreDAG] only inherits it by treating
+    /// every incoming wire alike.  Regression test of gh-7950.
+    #[test]
+    fn measurements_sharing_a_clbit_are_ordered() {
+        let mut dag = DAGCircuit::new();
+        dag.add_qreg(QuantumRegister::new_owning("q".to_owned(), 4))
+            .unwrap();
+        dag.add_creg(ClassicalRegister::new_owning("c".to_owned(), 1))
+            .unwrap();
+        let mut builder = DAGCircuitBuilder::new(dag);
+
+        // Disjoint 2q gates, so nothing but the clbit can order the measurements below.
+        for (left, right) in [(0, 1), (2, 3)] {
+            let qubits = builder.insert_qargs(&[Qubit(left), Qubit(right)]);
+            builder
+                .push_back(PackedInstruction::from_standard_gate(
+                    StandardGate::CX,
+                    None,
+                    qubits,
+                ))
+                .unwrap();
+        }
+
+        let clbits = builder.insert_cargs(&[Clbit(0)]);
+        let measure = |builder: &mut DAGCircuitBuilder, qubit: u32| {
+            let qubits = builder.insert_qargs(&[Qubit(qubit)]);
+            builder
+                .push_back(PackedInstruction {
+                    op: PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+                    qubits,
+                    clbits,
+                    params: None,
+                    label: None,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: Default::default(),
+                })
+                .unwrap()
+        };
+        let first = measure(&mut builder, 0);
+        let second = measure(&mut builder, 2);
+
+        let sabre = SabreDAG::from_dag(&builder.build()).unwrap();
+        let routing_node = |dag_node: NodeIndex| {
+            sabre
+                .dag
+                .node_indices()
+                .find(|node| sabre.dag[*node].indices.contains(&dag_node))
+                .expect("both measurements should need routing decisions")
+        };
+        let first = routing_node(first);
+        let second = routing_node(second);
+
+        assert_ne!(
+            first, second,
+            "the measurements were merged into one routing node",
+        );
+        assert!(
+            has_path_connecting(&sabre.dag, first, second, None),
+            "the interaction DAG does not order the second measurement after the first",
+        );
+    }
+}
