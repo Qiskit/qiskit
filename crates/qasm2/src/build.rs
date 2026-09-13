@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use num_bigint::BigUint;
 
-use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
+use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, Register};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
@@ -35,7 +35,6 @@ use crate::expr::{Expr, evaluate};
 use crate::ext::ClassicalEvaluator;
 use crate::parse::{ClbitId, CregId, GateId, QELIB1_STANDARD_GATES, QubitId};
 
-/// Either a native gate, or a gate declared by an OQ2 `gate`/`opaque` statement.
 #[derive(Clone)]
 enum GateEntry {
     Standard(StandardGate),
@@ -51,7 +50,6 @@ impl GateEntry {
     }
 }
 
-/// A single instruction recorded from inside a `gate`/`opaque` body; see [DefinedGateTemplate].
 enum BodyInstruction {
     Gate {
         entry: GateEntry,
@@ -63,11 +61,9 @@ enum BodyInstruction {
     },
 }
 
-/// The shared "recipe" for an OQ2 `gate`/`opaque` statement, declared once and reused by every
-/// usage.  `body` is `None` for `opaque` gates, whose definition is unknown.  Body arguments are
-/// `Expr` trees rather than numbers, since they can reference this gate's *own* symbolic
-/// parameters (e.g. `gate rz(theta) q { u1(theta) q; }`); they're only evaluated to numbers once
-/// a specific usage's concrete parameters are known, in `build_definition`.
+/// Declared once per OQ2 `gate`/`opaque` statement and shared by every usage.  `body` is `None`
+/// for `opaque`.  Its arguments stay as `Expr` because they can reference this gate's own
+/// parameters (`gate rz(theta) q { u1(theta) q; }`), which only a usage can supply.
 struct DefinedGateTemplate {
     name: String,
     num_qubits: u32,
@@ -75,17 +71,12 @@ struct DefinedGateTemplate {
 }
 
 impl DefinedGateTemplate {
-    /// Body parameters are evaluated with a detached [ClassicalEvaluator]:
-    /// [CustomOperation::definition] hands us no interpreter token, and a C caller may not have
-    /// an initialised interpreter at all.  A Python custom classical function reaching here is
-    /// therefore reported as an error rather than panicking.
+    /// The evaluator is detached because [CustomOperation::definition] hands us no interpreter
+    /// token, and a C caller may have none to attach.
     ///
-    /// Returns [None] rather than an error for anything that cannot be evaluated -- a
-    /// non-[Param::Float] parameter, an out-of-range parameter index, or a classical function that
-    /// fails -- because [CustomOperation::definition] gives us no error channel.  Python's
-    /// `_DefinedGate` raises `QASM2ParseError` for the same inputs, so a gate is left without a
-    /// definition here where Python would have complained; giving this an error channel is a
-    /// follow-up.
+    /// [None] covers every failure, since [CustomOperation::definition] has no error channel, so
+    /// an unevaluable body is indistinguishable from an `opaque` gate's missing one.  Python's
+    /// `_DefinedGate` raises `QASM2ParseError` for the same inputs.
     fn build_definition(&self, params: &[Param]) -> Option<CircuitData> {
         let body = self.body.as_ref()?;
         let float_params: Vec<f64> = params
@@ -130,13 +121,11 @@ impl DefinedGateTemplate {
     }
 }
 
-/// One usage of an OQ2-defined gate: shares its recipe ([DefinedGateTemplate]) but gets its own
-/// params, matching Python's `_DefinedGate` (see `_gate_builder` in `parse.py`).
+/// One usage of an OQ2-defined gate; Python's equivalent is `_gate_builder` in `parse.py`.
 ///
-/// Deliberately doesn't cache its built definition: `CircuitData::assign_parameters_inner` rebinds
-/// a `CustomOperation`'s params via `PackedInstruction::params_mut` without touching the operation
-/// itself, so there's no hook here to invalidate a cache -- a stale one would be a silent,
-/// hard-to-find bug.
+/// Deliberately uncached: `CircuitData::assign_parameters_inner` rebinds params through
+/// `PackedInstruction::params_mut` without touching the operation, so there would be no hook to
+/// invalidate a cached definition.
 #[derive(Clone)]
 struct DefinedGate {
     template: Arc<DefinedGateTemplate>,
@@ -152,8 +141,8 @@ impl fmt::Debug for DefinedGate {
     }
 }
 
-/// Compares by template identity, not structurally (`Expr` trees aren't `PartialEq`) -- two
-/// structurally-identical `DefinedGate`s from separate `build_circuit` calls won't compare equal.
+/// By template identity, not structurally, since `Expr` isn't `PartialEq`: identical gates from
+/// separate `build_circuit` calls compare unequal.
 impl PartialEq for DefinedGate {
     fn eq(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.template, &other.template) && self.num_params == other.num_params
@@ -188,11 +177,9 @@ impl CustomOperation for DefinedGate {
     }
 }
 
-/// Maps each `GateId` to its native gate (see [GateEntry]).  Starts with `U`=0, `CX`=1, matching
-/// `State::new` in `parse.rs` -- which only holds because no caller yet supplies its own
-/// `CustomInstruction`s to the parser (unrelated to OQ2's `gate`/`opaque` statements, despite the
-/// similar name).  Adding that support later must revisit this, or gate ids will silently resolve
-/// to the wrong gate.
+/// Indexed by `GateId`, so the order must match `State::new` in `parse.rs`: `U`=0, `CX`=1, then
+/// `qelib1`.  That holds only while no caller passes the parser its own `CustomInstruction`s;
+/// supporting those must revisit this, or gate ids will silently resolve to the wrong gate.
 struct GateRegistry {
     gates: Vec<GateEntry>,
 }
@@ -231,11 +218,9 @@ impl GateRegistry {
     }
 }
 
-/// Build a [CircuitData] from a bytecode stream.  See [GateRegistry] for a caveat about custom
-/// instructions.
-///
-/// The whole stream must be materialised before the build starts, unlike the Python route in
-/// `bytecode_from_string`/`bytecode_from_file`, which consumes the bytecode lazily.
+/// Unlike the Python route in `bytecode_from_string`/`bytecode_from_file`, which consumes the
+/// bytecode lazily, the whole stream must be materialised first.  See [GateRegistry] for a caveat
+/// about custom instructions.
 pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData, ParseError> {
     let mut circuit = CircuitData::new(None, None, Param::Float(0.0))
         .map_err(|err| ParseError::new(format!("failed to create circuit: {err}")))?;
@@ -318,7 +303,7 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                     0,
                     &to_qubits(qubits),
                     &[],
-                    |block| {
+                    |block, _| {
                         let local_qargs: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
                         push_gate(block, &entry, arguments, &local_qargs)
                     },
@@ -339,12 +324,12 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                     1,
                     &to_qubits(&[*qubit]),
                     &to_clbits(&[*clbit]),
-                    |block| {
+                    |block, offset| {
                         push_standard_instruction_local(
                             block,
                             StandardInstruction::Measure,
                             &[Qubit(0)],
-                            &[Clbit(0)],
+                            &[Clbit(offset)],
                         )
                     },
                 )?;
@@ -359,7 +344,7 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                     0,
                     &to_qubits(&[*qubit]),
                     &[],
-                    |block| {
+                    |block, _| {
                         push_standard_instruction_local(
                             block,
                             StandardInstruction::Reset,
@@ -423,8 +408,6 @@ fn to_clbits(clbits: &[ClbitId]) -> Vec<Clbit> {
     clbits.iter().map(|c| Clbit(c.index() as u32)).collect()
 }
 
-/// Applies a resolved gate (native or OQ2-defined) with concrete `arguments`, either to the
-/// top-level circuit or to a block being built inside it (e.g. a conditioned or gate-body block).
 fn push_gate(
     circuit: &mut CircuitData,
     entry: &GateEntry,
@@ -489,8 +472,11 @@ fn push_standard_instruction_local(
         .map_err(|err| ParseError::new(format!("failed to apply instruction: {err}")))
 }
 
-/// Wraps a single instruction (built by `fill_block`, using block-local `Qubit(0..num_qubits)` /
-/// `Clbit(0..num_clbits)`) in `if (cregs[creg] == value) { ... }`.
+/// Wraps a single instruction in `if (cregs[creg] == value) { ... }`.
+///
+/// As in `QuantumCircuit.if_test`, the condition register's clbits come first, both on the block
+/// and in the outer `cargs`.  `fill_block` therefore addresses block-local `Qubit(0..num_qubits)`
+/// and `Clbit(offset..offset + num_clbits)`, and is handed that `offset`.
 #[allow(clippy::too_many_arguments)]
 fn push_conditioned(
     circuit: &mut CircuitData,
@@ -501,55 +487,77 @@ fn push_conditioned(
     num_clbits: u32,
     qargs: &[Qubit],
     cargs: &[Clbit],
-    fill_block: impl FnOnce(&mut CircuitData) -> Result<(), ParseError>,
+    fill_block: impl FnOnce(&mut CircuitData, u32) -> Result<(), ParseError>,
 ) -> Result<(), ParseError> {
+    let register = cregs
+        .get(creg.index())
+        .ok_or_else(|| ParseError::new(format!("creg id {} was not declared", creg.index())))?;
+    let condition_clbits: Vec<Clbit> = register
+        .bits()
+        .map(|bit| circuit.clbit_index(&bit).map(Clbit))
+        .collect::<Option<_>>()
+        .ok_or_else(|| {
+            ParseError::new(format!(
+                "creg '{}' holds a clbit that is not in the circuit",
+                register.name()
+            ))
+        })?;
+    let offset = condition_clbits.len() as u32;
+
     let mut block = CircuitData::new(None, None, Param::Float(0.0))
         .map_err(|err| ParseError::new(format!("failed to create circuit: {err}")))?;
     block
         .add_anonymous_qubits(num_qubits)
         .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
+    // `add_creg` creates the block's first `offset` clbits; the instruction's own follow.
+    block
+        .add_creg(
+            ClassicalRegister::new_owning(register.name().to_owned(), offset),
+            true,
+        )
+        .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
     block
         .add_anonymous_clbits(num_clbits)
         .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
-    fill_block(&mut block)?;
+    fill_block(&mut block, offset)?;
 
-    let register = cregs
-        .get(creg.index())
-        .ok_or_else(|| ParseError::new(format!("creg id {} was not declared", creg.index())))?;
     let condition = Condition::Register(register.clone(), value.clone());
     let block_id = circuit.add_block(block);
     let control_flow = ControlFlowInstruction {
         control_flow: ControlFlow::IfElse { condition },
         num_qubits,
-        num_clbits,
+        num_clbits: offset + num_clbits,
     };
+    let cargs: Vec<Clbit> = condition_clbits
+        .into_iter()
+        .chain(cargs.iter().copied())
+        .collect();
     circuit
         .push_packed_operation(
             PackedOperation::from(control_flow),
             Some(Parameters::Blocks(vec![block_id])),
             qargs,
-            cargs,
+            &cargs,
         )
         .map_err(|err| ParseError::new(format!("failed to apply conditioned instruction: {err}")))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::build_circuit;
-    use crate::bytecode::InternalBytecode;
-    use crate::expr::Expr;
-    use crate::parse::{ClbitId, CregId, GateId, ParamId, QubitId};
+    use crate::circuit_from_string;
     use num_bigint::BigUint;
-    use qiskit_circuit::Qubit;
+    use qiskit_circuit::circuit_data::CircuitData;
     use qiskit_circuit::operations::{
         Condition, ControlFlow, OperationRef, Param, StandardInstruction,
     };
     use qiskit_circuit::standard_gate::StandardGate;
+    use qiskit_circuit::{Clbit, Qubit};
 
-    /// The hand-written bytecode in the tests below encodes assumptions about what the parser
-    /// emits -- notably that `qelib1` index 8 is `h`, and that it lands at `GateId(2)` behind the
-    /// builtins.  Drive the real parser once so those assumptions are checked rather than assumed,
-    /// and so a parametrised `gate` body is evaluated all the way to a concrete parameter.
+    fn build(program: &str) -> CircuitData {
+        circuit_from_string(program.to_owned(), vec![], &[], &[], false)
+            .expect("the program is valid OpenQASM 2")
+    }
+
     #[test]
     fn parses_and_builds_a_program_end_to_end() {
         let program = concat!(
@@ -582,6 +590,10 @@ mod tests {
             ops[3],
             OperationRef::StandardInstruction(StandardInstruction::Measure)
         ));
+        assert_eq!(
+            circuit.get_qargs(circuit.data()[1].qubits),
+            &[Qubit(0), Qubit(1)]
+        );
 
         // `my_rz(pi/4)` should expand to `u1(2*pi/4)`, with the body expression folded in Rust.
         let OperationRef::CustomOperation(custom) = ops[2] else {
@@ -632,272 +644,81 @@ mod tests {
         }
     }
 
-    #[test]
-    fn builds_a_small_bell_pair_circuit() {
-        // Equivalent to:
-        //   qreg q[2]; creg c[2];
-        //   include "qelib1.inc"; // only "h" registered here, for a minimal test
-        //   h q[0]; CX q[0], q[1]; measure q[0] -> c[0]; measure q[1] -> c[1];
-        let bytecode = vec![
-            InternalBytecode::DeclareQreg {
-                name: "q".to_string(),
-                size: 2,
-            },
-            InternalBytecode::DeclareCreg {
-                name: "c".to_string(),
-                size: 2,
-            },
-            // qelib1 index 8 is "h"; it becomes GateId(2), right after the builtins U(0), CX(1).
-            InternalBytecode::SpecialInclude { indices: vec![8] },
-            InternalBytecode::Gate {
-                id: GateId::new(2),
-                arguments: vec![],
-                qubits: vec![QubitId::new(0)],
-            },
-            InternalBytecode::Gate {
-                id: GateId::new(1),
-                arguments: vec![],
-                qubits: vec![QubitId::new(0), QubitId::new(1)],
-            },
-            InternalBytecode::Measure {
-                qubit: QubitId::new(0),
-                clbit: ClbitId::new(0),
-            },
-            InternalBytecode::Measure {
-                qubit: QubitId::new(1),
-                clbit: ClbitId::new(1),
-            },
-        ];
-
-        let circuit = build_circuit(&bytecode).expect("all instructions are supported");
-        assert_eq!(circuit.num_qubits(), 2);
-        assert_eq!(circuit.num_clbits(), 2);
-        assert_eq!(circuit.data().len(), 4);
-
-        let ops: Vec<_> = circuit.data().iter().map(|inst| inst.op.view()).collect();
-        assert!(matches!(
-            ops[0],
-            OperationRef::StandardGate(StandardGate::H)
-        ));
-        assert!(matches!(
-            ops[1],
-            OperationRef::StandardGate(StandardGate::CX)
-        ));
-        assert!(matches!(
-            ops[2],
-            OperationRef::StandardInstruction(StandardInstruction::Measure)
-        ));
-        assert!(matches!(
-            ops[3],
-            OperationRef::StandardInstruction(StandardInstruction::Measure)
-        ));
-
-        let cx_qargs = circuit.get_qargs(circuit.data()[1].qubits);
-        assert_eq!(cx_qargs.len(), 2);
-        assert_eq!(cx_qargs[0].0, 0);
-        assert_eq!(cx_qargs[1].0, 1);
-    }
-
+    /// Swapping the outer bits for the block-local ones would still build a valid circuit, so
+    /// both numberings are asserted.
     #[test]
     fn builds_a_conditioned_gate() {
-        // Equivalent to: qreg q[2]; creg c[1]; if (c==1) CX q[0], q[1];
-        let bytecode = vec![
-            InternalBytecode::DeclareQreg {
-                name: "q".to_string(),
-                size: 2,
-            },
-            InternalBytecode::DeclareCreg {
-                name: "c".to_string(),
-                size: 1,
-            },
-            InternalBytecode::ConditionedGate {
-                id: GateId::new(1), // builtin CX
-                arguments: vec![],
-                qubits: vec![QubitId::new(0), QubitId::new(1)],
-                creg: CregId::new(0),
-                value: BigUint::from(1u32),
-            },
-        ];
-
-        let circuit = build_circuit(&bytecode).expect("all instructions are supported");
+        let circuit = build(concat!(
+            "include \"qelib1.inc\";\n",
+            "qreg q[3];\n",
+            "creg c[2];\n",
+            "if (c == 1) cx q[1], q[2];\n",
+        ));
         assert_eq!(circuit.data().len(), 1);
+        let instruction = &circuit.data()[0];
 
-        let OperationRef::ControlFlow(control_flow) = circuit.data()[0].op.view() else {
+        let OperationRef::ControlFlow(control_flow) = instruction.op.view() else {
             panic!("expected a control-flow instruction");
         };
         let ControlFlow::IfElse { condition } = &control_flow.control_flow else {
             panic!("expected an if/else");
         };
-        let Condition::Register(_, value) = condition else {
+        let Condition::Register(register, value) = condition else {
             panic!("expected a register condition");
         };
+        assert_eq!(register.name(), "c");
         assert_eq!(*value, BigUint::from(1u32));
 
-        let outer_qargs = circuit.get_qargs(circuit.data()[0].qubits);
-        assert_eq!(outer_qargs, &[Qubit(0), Qubit(1)]);
-    }
+        // Outer: the bits the statement actually named.
+        assert_eq!(circuit.get_qargs(instruction.qubits), &[Qubit(1), Qubit(2)]);
+        assert_eq!(circuit.get_cargs(instruction.clbits), &[Clbit(0), Clbit(1)]);
 
-    #[test]
-    fn builds_a_defined_gate_and_lazily_expands_it() {
-        // Equivalent to:
-        //   gate my_h q { h q; }
-        //   qreg q[1];
-        //   include "qelib1.inc"; // registers "h" as GateId(2)
-        //   my_h q[0];            // becomes GateId(3)
-        let bytecode = vec![
-            InternalBytecode::SpecialInclude { indices: vec![8] }, // "h" -> GateId(2)
-            InternalBytecode::DeclareGate {
-                name: "my_h".to_string(),
-                num_qubits: 1,
-            },
-            InternalBytecode::GateInBody {
-                id: GateId::new(2), // "h"
-                arguments: vec![],
-                qubits: vec![QubitId::new(0)],
-            },
-            InternalBytecode::EndDeclareGate {},
-            InternalBytecode::DeclareQreg {
-                name: "q".to_string(),
-                size: 1,
-            },
-            InternalBytecode::Gate {
-                id: GateId::new(3), // "my_h"
-                arguments: vec![],
-                qubits: vec![QubitId::new(0)],
-            },
-        ];
-
-        let circuit = build_circuit(&bytecode).expect("all instructions are supported");
-        assert_eq!(circuit.data().len(), 1);
-
-        let OperationRef::CustomOperation(custom) = circuit.data()[0].op.view() else {
-            panic!("expected a custom operation");
-        };
-        assert_eq!(custom.name(), "my_h");
-        assert_eq!(custom.num_qubits(), 1);
-
-        let definition = custom.definition(&[]).expect("my_h has a known definition");
-        assert_eq!(definition.data().len(), 1);
+        // Inner: renumbered from zero, with the condition register declared alongside.
+        let block = circuit.blocks()[instruction.blocks_view()[0]].clone();
+        assert_eq!(block.num_qubits(), 2);
+        assert_eq!(block.num_clbits(), 2);
+        assert_eq!(
+            block
+                .cregs()
+                .iter()
+                .map(|r| (r.name(), r.len()))
+                .collect::<Vec<_>>(),
+            vec![("c", 2)],
+        );
+        assert_eq!(block.data().len(), 1);
         assert!(matches!(
-            definition.data()[0].op.view(),
-            OperationRef::StandardGate(StandardGate::H)
+            block.data()[0].op.view(),
+            OperationRef::StandardGate(StandardGate::CX)
         ));
+        assert_eq!(
+            block.get_qargs(block.data()[0].qubits),
+            &[Qubit(0), Qubit(1)]
+        );
     }
 
     #[test]
-    fn substitutes_a_real_parameter_into_the_body() {
-        // Equivalent to:
-        //   gate my_rz(theta) q { u1(theta) q; }
-        //   qreg q[1];
-        //   include "qelib1.inc"; // registers "u1" as GateId(2)
-        //   my_rz(1.5) q[0];      // becomes GateId(3)
-        let bytecode = vec![
-            InternalBytecode::SpecialInclude { indices: vec![2] }, // "u1" -> GateId(2)
-            InternalBytecode::DeclareGate {
-                name: "my_rz".to_string(),
-                num_qubits: 1,
-            },
-            InternalBytecode::GateInBody {
-                id: GateId::new(2), // "u1"
-                arguments: vec![Expr::Parameter(ParamId::new(0))],
-                qubits: vec![QubitId::new(0)],
-            },
-            InternalBytecode::EndDeclareGate {},
-            InternalBytecode::DeclareQreg {
-                name: "q".to_string(),
-                size: 1,
-            },
-            InternalBytecode::Gate {
-                id: GateId::new(3), // "my_rz"
-                arguments: vec![1.5],
-                qubits: vec![QubitId::new(0)],
-            },
-        ];
-
-        let circuit = build_circuit(&bytecode).expect("all instructions are supported");
-        let OperationRef::CustomOperation(custom) = circuit.data()[0].op.view() else {
-            panic!("expected a custom operation");
-        };
-
-        let definition = custom
-            .definition(&[Param::Float(1.5)])
-            .expect("my_rz has a known definition");
-        assert_eq!(definition.data().len(), 1);
-        assert!(matches!(
-            definition.data()[0].op.view(),
-            OperationRef::StandardGate(StandardGate::U1)
+    fn defined_gates_expand_one_level_at_a_time() {
+        let circuit = build(concat!(
+            "include \"qelib1.inc\";\n",
+            "gate my_h q { h q; }\n",
+            "gate double_h q { my_h q; my_h q; }\n",
+            "qreg q[1];\n",
+            "double_h q[0];\n",
         ));
-        let Param::Float(value) = definition.data()[0].params_view()[0] else {
-            panic!("expected a float param");
-        };
-        assert_eq!(value, 1.5);
-    }
-
-    #[test]
-    fn recursive_defined_gate_stays_lazily_nested() {
-        // Equivalent to:
-        //   gate my_h q { h q; }
-        //   gate double_h q { my_h q; my_h q; }
-        //   qreg q[1];
-        //   include "qelib1.inc"; // registers "h" as GateId(2)
-        //   double_h q[0];        // becomes GateId(4), after my_h at GateId(3)
-        let bytecode = vec![
-            InternalBytecode::SpecialInclude { indices: vec![8] }, // "h" -> GateId(2)
-            InternalBytecode::DeclareGate {
-                name: "my_h".to_string(),
-                num_qubits: 1,
-            },
-            InternalBytecode::GateInBody {
-                id: GateId::new(2), // "h"
-                arguments: vec![],
-                qubits: vec![QubitId::new(0)],
-            },
-            InternalBytecode::EndDeclareGate {},
-            InternalBytecode::DeclareGate {
-                name: "double_h".to_string(),
-                num_qubits: 1,
-            },
-            InternalBytecode::GateInBody {
-                id: GateId::new(3), // "my_h"
-                arguments: vec![],
-                qubits: vec![QubitId::new(0)],
-            },
-            InternalBytecode::GateInBody {
-                id: GateId::new(3), // "my_h"
-                arguments: vec![],
-                qubits: vec![QubitId::new(0)],
-            },
-            InternalBytecode::EndDeclareGate {},
-            InternalBytecode::DeclareQreg {
-                name: "q".to_string(),
-                size: 1,
-            },
-            InternalBytecode::Gate {
-                id: GateId::new(4), // "double_h"
-                arguments: vec![],
-                qubits: vec![QubitId::new(0)],
-            },
-        ];
-
-        let circuit = build_circuit(&bytecode).expect("all instructions are supported");
         let OperationRef::CustomOperation(outer) = circuit.data()[0].op.view() else {
             panic!("expected a custom operation");
         };
         assert_eq!(outer.name(), "double_h");
 
-        // The outer gate's definition should contain two *nested* `my_h` custom operations,
-        // not the fully-flattened `h` gates -- expansion is lazy at each level, matching Python.
-        let outer_definition = outer
-            .definition(&[])
-            .expect("double_h has a known definition");
+        let outer_definition = outer.definition(&[]).expect("double_h has a definition");
         assert_eq!(outer_definition.data().len(), 2);
-        for inst in outer_definition.data() {
-            let OperationRef::CustomOperation(inner) = inst.op.view() else {
-                panic!("expected a nested custom operation, not an already-flattened gate");
+        for instruction in outer_definition.data() {
+            let OperationRef::CustomOperation(inner) = instruction.op.view() else {
+                panic!("expected a nested custom operation, not a flattened gate");
             };
             assert_eq!(inner.name(), "my_h");
 
-            let inner_definition = inner.definition(&[]).expect("my_h has a known definition");
+            let inner_definition = inner.definition(&[]).expect("my_h has a definition");
             assert_eq!(inner_definition.data().len(), 1);
             assert!(matches!(
                 inner_definition.data()[0].op.view(),
@@ -908,36 +729,11 @@ mod tests {
 
     #[test]
     fn opaque_gates_have_no_definition() {
-        let bytecode = vec![
-            InternalBytecode::DeclareOpaque {
-                name: "black_box".to_string(),
-                num_qubits: 1,
-            },
-            InternalBytecode::DeclareQreg {
-                name: "q".to_string(),
-                size: 1,
-            },
-            InternalBytecode::Gate {
-                id: GateId::new(2), // "black_box", after the builtins U(0), CX(1)
-                arguments: vec![],
-                qubits: vec![QubitId::new(0)],
-            },
-        ];
-
-        let circuit = build_circuit(&bytecode).expect("all instructions are supported");
+        let circuit = build("opaque black_box q;\nqreg q[1];\nblack_box q[0];\n");
         let OperationRef::CustomOperation(custom) = circuit.data()[0].op.view() else {
             panic!("expected a custom operation");
         };
+        assert_eq!(custom.name(), "black_box");
         assert!(custom.definition(&[]).is_none());
-    }
-
-    #[test]
-    fn rejects_gate_body_instruction_outside_a_declaration() {
-        let bytecode = vec![InternalBytecode::GateInBody {
-            id: GateId::new(0),
-            arguments: Vec::<Expr>::new(),
-            qubits: vec![QubitId::new(0)],
-        }];
-        assert!(build_circuit(&bytecode).is_err());
     }
 }

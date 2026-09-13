@@ -59,10 +59,8 @@ pub fn circuit_from_string(
     // its buffer into `bytecode` after each call so the buffer allocation is reused.
     let mut buffer = Vec::new();
     let mut bytecode = Vec::new();
-    while state
-        .parse_next(&mut buffer, ClassicalEvaluator::detached())?
-        .is_some()
-    {
+    let evaluator = ClassicalEvaluator::detached();
+    while state.parse_next(&mut buffer, evaluator)?.is_some() {
         bytecode.extend(buffer.drain(..).flatten());
     }
     build::build_circuit(&bytecode)
