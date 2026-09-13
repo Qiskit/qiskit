@@ -19,17 +19,20 @@ use crate::exit_codes::ExitCode;
 use crate::transpiler::target::parse_params;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType, PyDAGCircuit};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::{Clbit, Qubit};
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::dag_circuit::PyDAGCircuit;
 
 use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
+
 
 /// @ingroup QkDag
 /// Construct a new empty DAG.
