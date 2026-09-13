@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed several :mod:`qiskit.circuit.classical.expr` constructor functions
+    (such as :func:`~.expr.equal`, :func:`~.expr.less`, :func:`~.expr.add` and
+    :func:`~.expr.bit_and`) silently accepting a negative integer literal when
+    it was paired with an operand of :class:`~.types.Uint` type, for example
+    ``expr.equal(my_register, -1)``.  Previously this produced a malformed
+    :class:`~.expr.Value` node whose declared type was ``Uint`` but whose
+    stored value was a negative float, which could then propagate into
+    OpenQASM 3 export (:func:`~qiskit.qasm3.dumps`) as an invalid comparison
+    such as ``if (c == -1.0)``.  Passing a negative literal now raises a
+    ``ValueError``, matching the existing behavior of :func:`~.expr.lift`.

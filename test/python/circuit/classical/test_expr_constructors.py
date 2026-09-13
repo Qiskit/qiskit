@@ -99,6 +99,19 @@ class TestExprConstructors(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "cannot represent a negative value"):
             expr.lift(-1)
 
+    @ddt.data(expr.equal, expr.not_equal, expr.less, expr.less_equal, expr.add, expr.bit_and)
+    def test_binary_rejects_negative_literals(self, function):
+        """A negative integer literal must be rejected the same way ``lift`` rejects one directly,
+        instead of silently being coerced into a malformed 'Uint' value.  Regression test for the
+        binary-operand lifting path, which used to skip this check that `lift` already enforced."""
+        cr = ClassicalRegister(3, "c")
+        with self.assertRaisesRegex(ValueError, "cannot represent a negative value"):
+            function(cr, -1)
+        with self.assertRaisesRegex(ValueError, "cannot represent a negative value"):
+            function(-1, cr)
+        with self.assertRaisesRegex(ValueError, "cannot represent a negative value"):
+            function(-1, 5)
+
     def test_cast_adds_explicit_nodes(self):
         """A specific request to add a cast in means that we should respect that in the type tree,
         even if the cast is a no-op."""

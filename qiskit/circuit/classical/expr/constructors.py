@@ -208,6 +208,8 @@ def _lift_binary_operands(left: typing.Any, right: typing.Any) -> tuple[Expr, Ex
     position to match the other operand."""
     left_int = isinstance(left, int) and not isinstance(left, bool)
     right_int = isinstance(right, int) and not isinstance(right, bool)
+    if (left_int and left < 0) or (right_int and right < 0):
+        raise ValueError("cannot represent a negative value")
     if not (left_int or right_int):
         left = lift(left)
         right = lift(right)
