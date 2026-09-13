@@ -16,6 +16,7 @@ use compose_transforms::GateIdentifier;
 
 use basis_search::basis_search;
 use compose_transforms::compose_transforms;
+use compose_transforms::get_gates_num_params;
 use errors::BasisTranslatorError;
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
@@ -51,6 +52,9 @@ type AhashIndexMap<K, V> = IndexMap<K, V>;
 type AhashIndexSet<O> = IndexSet<O>;
 type InstMap = AhashIndexMap<GateIdentifier, BasisTransformOut>;
 type ExtraInstructionMap<'a> = AhashIndexMap<&'a PhysicalQargs, InstMap>;
+type BasisSearchCacheKey<'a> = (Vec<GateIdentifier>, Vec<&'a str>);
+type BasisSearchCache<'a> =
+    AhashIndexMap<BasisSearchCacheKey<'a>, Option<Vec<(GateIdentifier, BasisTransformIn)>>>;
 type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
 
 #[pyfunction(name = "base_run", signature = (dag, equiv_lib, min_qubits, target=None, target_basis=None))]
@@ -73,6 +77,12 @@ fn py_run_basis_translator(
     )?
     // Turn into Python DAG and restore metadata
     .map(|out_dag| PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag)))
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static BASIS_SEARCH_CALL_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static COMPOSE_TRANSFORMS_CALL_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 pub fn run_basis_translator(
@@ -153,10 +163,21 @@ pub fn run_basis_translator(
         return Ok(None);
     }
     let basis_transforms = basis_search(equiv_lib, &source_basis, &new_target_basis);
-    let mut qarg_local_basis_transforms: AhashIndexMap<
-        &PhysicalQargs,
-        Vec<(GateIdentifier, BasisTransformIn)>,
-    > = AhashIndexMap::default();
+    let mut extra_inst_map: ExtraInstructionMap<'_> = AhashIndexMap::default();
+    let mut local_search_cache: BasisSearchCache<'_> = AhashIndexMap::default();
+    let mut compose_cache: AhashIndexMap<BasisSearchCacheKey<'_>, InstMap> =
+        AhashIndexMap::default();
+    let mut gate_param_counts: AhashIndexMap<GateIdentifier, usize> = AhashIndexMap::default();
+    get_gates_num_params(dag, &mut gate_param_counts);
+    // Multiple qargs can share the exact same (local_source_basis,
+    // expanded_target) pair -- e.g. many qargs that only differ in which
+    // physical qubits they cover, but need the same translation. Without
+    // caching, basis_search (an expensive graph search) and
+    // compose_transforms would both re-run once per qargs even when the
+    // answer is identical to one already computed. local_search_cache and
+    // compose_cache below key on that pair so each unique combination is
+    // computed once and reused. See:
+    // https://github.com/Qiskit/qiskit/issues/7346
     for (qargs, local_source_basis) in qargs_local_source_basis.iter() {
         // For any multiqubit operation that contains a subset of qubits that
         // has a non-local operation, include that non-local operation in the
@@ -182,9 +203,37 @@ pub fn run_basis_translator(
                 .cloned()
                 .collect();
         }
-        let local_basis_transforms = basis_search(equiv_lib, local_source_basis, &expanded_target);
-        if let Some(local_basis_transforms) = local_basis_transforms {
-            qarg_local_basis_transforms.insert(qargs, local_basis_transforms);
+        let mut sorted_source: Vec<GateIdentifier> = local_source_basis.iter().cloned().collect();
+        sorted_source.sort_unstable();
+        let mut sorted_target: Vec<&str> = expanded_target.iter().copied().collect();
+        sorted_target.sort_unstable();
+        let cache_key = (sorted_source, sorted_target);
+
+        let local_basis_transforms = local_search_cache
+            .entry(cache_key.clone())
+            .or_insert_with(|| {
+                #[cfg(test)]
+                BASIS_SEARCH_CALL_COUNT.with(|c| c.set(c.get() + 1));
+                basis_search(equiv_lib, local_source_basis, &expanded_target)
+            });
+        if let Some(local_basis_transforms) = local_basis_transforms.as_ref() {
+            // Unlike local_search_cache above, this can't use
+            // .entry().or_insert_with(): compose_transforms returns a
+            // Result, and BasisTranslatorError does not implement Clone,
+            // so propagating its error with `?` inside a closure isn't an
+            // option here. This check-then-insert has the same effect:
+            // compute and cache once per unique cache_key, reuse on repeats.
+            if !compose_cache.contains_key(&cache_key) {
+                #[cfg(test)]
+                COMPOSE_TRANSFORMS_CALL_COUNT.with(|c| c.set(c.get() + 1));
+                let composed = compose_transforms(
+                    local_basis_transforms,
+                    local_source_basis,
+                    &gate_param_counts,
+                )?;
+                compose_cache.insert(cache_key.clone(), composed);
+            }
+            extra_inst_map.insert(qargs, compose_cache[&cache_key].clone());
         } else {
             return Err(BasisTranslatorError::TargetMissingEquivalence {
                 basis: format!("{:?}", local_source_basis),
@@ -200,17 +249,8 @@ pub fn run_basis_translator(
         });
     };
 
-    let instr_map: InstMap = compose_transforms(&basis_transforms, &source_basis, dag)?;
-    let extra_inst_map: ExtraInstructionMap = qarg_local_basis_transforms
-        .iter()
-        .map(|(qarg, transform)| -> Result<_, BasisTranslatorError> {
-            Ok((
-                *qarg,
-                compose_transforms(transform, &qargs_local_source_basis[*qarg], dag)?,
-            ))
-        })
-        .collect::<Result<_, BasisTranslatorError>>()?;
-
+    let instr_map: InstMap =
+        compose_transforms(&basis_transforms, &source_basis, &gate_param_counts)?;
     let out_dag = apply_translation(
         dag,
         &new_target_basis,
@@ -704,4 +744,416 @@ fn param_assignment_expr(
 pub fn basis_translator_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_run_basis_translator))?;
     Ok(())
+}
+
+#[cfg(all(test, not(miri)))]
+mod test_basis_translator_search_dedup {
+    use super::{BASIS_SEARCH_CALL_COUNT, COMPOSE_TRANSFORMS_CALL_COUNT, run_basis_translator};
+    use crate::equivalence::EquivalenceLibrary;
+    use crate::target::{Qargs, Target};
+    use qiskit_circuit::{
+        PhysicalQubit, Qubit, circuit_data::CircuitData, dag_circuit::DAGCircuit,
+        operations::StandardGate,
+    };
+    use qiskit_util::IndexMap;
+    use smallvec::smallvec;
+
+    #[test]
+    fn test_shared_local_basis_searched_once() {
+        let mut target = Target::new(None, Some(3), None, None, None, None, None, None, None)
+            .expect("Error while creating target");
+
+        target
+            .add_instruction(
+                StandardGate::H.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(2)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding HGate to target");
+
+        target
+            .add_instruction(
+                StandardGate::X.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(2)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding XGate to target");
+
+        let circuit: CircuitData = CircuitData::from_standard_gates(
+            3,
+            [
+                (StandardGate::Z, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::Z, smallvec![], smallvec![Qubit(2)]),
+            ],
+            0.0.into(),
+        )
+        .expect("Error while creating the circuit");
+
+        let dag = DAGCircuit::from_circuit_data(&circuit, false, None, None)
+            .expect("Error converting circuit to DAG.");
+
+        let mut equiv_lib = EquivalenceLibrary::new(None);
+        let z_equiv_circuit = CircuitData::from_standard_gates(
+            1,
+            [
+                (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::X, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+            ],
+            0.0.into(),
+        )
+        .expect("Error while creating the equivalence circuit");
+        equiv_lib
+            .add_equivalence(&StandardGate::Z.into(), &[], z_equiv_circuit)
+            .expect("Error while adding equivalence");
+
+        BASIS_SEARCH_CALL_COUNT.with(|c| c.set(0));
+        COMPOSE_TRANSFORMS_CALL_COUNT.with(|c| c.set(0));
+
+        run_basis_translator(&dag, &mut equiv_lib, 0, Some(&target), None)
+            .expect("Error while running basis translator");
+
+        let count = BASIS_SEARCH_CALL_COUNT.with(|c| c.get());
+        assert_eq!(
+            count, 1,
+            "expected basis_search to run once for the shared {{H}} basis \
+             (qubits 0 and 2), but it ran {count} times"
+        );
+
+        let compose_count = COMPOSE_TRANSFORMS_CALL_COUNT.with(|c| c.get());
+        assert_eq!(
+            compose_count, 1,
+            "expected compose_transforms to run once for the shared basis, but it ran {compose_count} times"
+        );
+    }
+
+    #[test]
+    fn test_two_distinct_bases_searched_once_each() {
+        let mut target = Target::new(None, Some(4), None, None, None, None, None, None, None)
+            .expect("Error while creating target");
+
+        target
+            .add_instruction(
+                StandardGate::H.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(2)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding HGate to target");
+
+        target
+            .add_instruction(
+                StandardGate::S.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(3)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding SGate to target");
+
+        target
+            .add_instruction(
+                StandardGate::X.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(2)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(3)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding XGate to target");
+
+        let circuit: CircuitData = CircuitData::from_standard_gates(
+            5,
+            [
+                (StandardGate::Z, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::Z, smallvec![], smallvec![Qubit(1)]),
+                (StandardGate::Z, smallvec![], smallvec![Qubit(2)]),
+                (StandardGate::Z, smallvec![], smallvec![Qubit(3)]),
+            ],
+            0.0.into(),
+        )
+        .expect("Error while creating the circuit");
+
+        let dag = DAGCircuit::from_circuit_data(&circuit, false, None, None)
+            .expect("Error converting circuit to DAG.");
+
+        let mut equiv_lib = EquivalenceLibrary::new(None);
+
+        let z_via_h_circuit = CircuitData::from_standard_gates(
+            1,
+            [
+                (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::X, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::H, smallvec![], smallvec![Qubit(0)]),
+            ],
+            0.0.into(),
+        )
+        .expect("Error while creating the H-based equivalence circuit");
+        equiv_lib
+            .add_equivalence(&StandardGate::Z.into(), &[], z_via_h_circuit)
+            .expect("Error while adding H-based equivalence");
+
+        let z_via_s_circuit = CircuitData::from_standard_gates(
+            1,
+            [
+                (StandardGate::S, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::S, smallvec![], smallvec![Qubit(0)]),
+            ],
+            0.0.into(),
+        )
+        .expect("Error while creating the S-based equivalence circuit");
+        equiv_lib
+            .add_equivalence(&StandardGate::Z.into(), &[], z_via_s_circuit)
+            .expect("Error while adding S-based equivalence");
+
+        BASIS_SEARCH_CALL_COUNT.with(|c| c.set(0));
+        COMPOSE_TRANSFORMS_CALL_COUNT.with(|c| c.set(0));
+
+        run_basis_translator(&dag, &mut equiv_lib, 0, Some(&target), None)
+            .expect("Error while running basis translator");
+
+        let count = BASIS_SEARCH_CALL_COUNT.with(|c| c.get());
+        assert_eq!(
+            count, 2,
+            "expected basis_search to run once per distinct local basis, but it ran a different number of times"
+        );
+
+        let compose_count = COMPOSE_TRANSFORMS_CALL_COUNT.with(|c| c.get());
+        assert_eq!(
+            compose_count, 2,
+            "expected compose_transforms to run once per distinct local basis, but it ran a different number of times"
+        );
+    }
+
+    #[test]
+    fn test_reversed_cx_edges_searched_once() {
+        let mut target = Target::new(None, Some(5), None, None, None, None, None, None, None)
+            .expect("Error while creating target");
+
+        target
+            .add_instruction(
+                StandardGate::CX.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1), PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(3), PhysicalQubit(2)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding CXGate to target");
+
+        target
+            .add_instruction(
+                StandardGate::Swap.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([(
+                    Qargs::Concrete(smallvec![PhysicalQubit(0), PhysicalQubit(4)]).to_owned(),
+                    None,
+                )])),
+            )
+            .expect("Error while adding SwapGate to target");
+
+        target
+            .add_instruction(
+                StandardGate::H.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(2)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(3)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding HGate to target");
+
+        let circuit: CircuitData = CircuitData::from_standard_gates(
+            5,
+            [
+                (StandardGate::CX, smallvec![], smallvec![Qubit(0), Qubit(1)]),
+                (StandardGate::CX, smallvec![], smallvec![Qubit(2), Qubit(3)]),
+            ],
+            0.0.into(),
+        )
+        .expect("Error while creating the circuit");
+
+        let dag = DAGCircuit::from_circuit_data(&circuit, false, None, None)
+            .expect("Error converting circuit to DAG.");
+
+        let mut equiv_lib = EquivalenceLibrary::new(None);
+
+        BASIS_SEARCH_CALL_COUNT.with(|c| c.set(0));
+        COMPOSE_TRANSFORMS_CALL_COUNT.with(|c| c.set(0));
+
+        run_basis_translator(&dag, &mut equiv_lib, 0, Some(&target), None)
+            .expect("Error while running basis translator");
+
+        let count = BASIS_SEARCH_CALL_COUNT.with(|c| c.get());
+        assert_eq!(
+            count, 1,
+            "expected basis_search to run once for the shared reversed-CX basis on both edges, but it ran a different number of times"
+        );
+
+        let compose_count = COMPOSE_TRANSFORMS_CALL_COUNT.with(|c| c.get());
+        assert_eq!(
+            compose_count, 1,
+            "expected compose_transforms to run once for the shared reversed-CX basis, but it ran a different number of times"
+        );
+    }
+
+    #[test]
+    fn test_failed_search_not_repeated() {
+        let mut target = Target::new(None, Some(3), None, None, None, None, None, None, None)
+            .expect("Error while creating target");
+
+        target
+            .add_instruction(
+                StandardGate::H.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(2)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding HGate to target");
+
+        target
+            .add_instruction(
+                StandardGate::X.into(),
+                None,
+                None,
+                Some(IndexMap::from_iter([
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        None,
+                    ),
+                    (
+                        Qargs::Concrete(smallvec![PhysicalQubit(2)]).to_owned(),
+                        None,
+                    ),
+                ])),
+            )
+            .expect("Error while adding XGate to target");
+
+        let circuit: CircuitData = CircuitData::from_standard_gates(
+            3,
+            [
+                (StandardGate::Z, smallvec![], smallvec![Qubit(0)]),
+                (StandardGate::Z, smallvec![], smallvec![Qubit(2)]),
+            ],
+            0.0.into(),
+        )
+        .expect("Error while creating the circuit");
+
+        let dag = DAGCircuit::from_circuit_data(&circuit, false, None, None)
+            .expect("Error converting circuit to DAG.");
+
+        // No equivalence is registered for Z, so basis_search will fail to
+        // find a translation for the shared {H, X} local basis on qubits 0
+        // and 2. The loop returns Err on the first failure, so this checks
+        // that it never even attempts qubit 2's identical cache_key.
+        let mut equiv_lib = EquivalenceLibrary::new(None);
+
+        BASIS_SEARCH_CALL_COUNT.with(|c| c.set(0));
+        COMPOSE_TRANSFORMS_CALL_COUNT.with(|c| c.set(0));
+
+        let result = run_basis_translator(&dag, &mut equiv_lib, 0, Some(&target), None);
+        assert!(
+            result.is_err(),
+            "expected an error since no Z equivalence was registered"
+        );
+
+        let count = BASIS_SEARCH_CALL_COUNT.with(|c| c.get());
+        assert_eq!(
+            count, 1,
+            "expected basis_search to run exactly once before the early \
+             return on failure, but it ran {count} times"
+        );
+    }
 }
