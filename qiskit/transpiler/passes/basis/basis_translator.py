@@ -101,25 +101,21 @@ class BasisTranslator(TransformationPass):
                 (Instructions in this library will not be unrolled by this pass.)
             target_basis: Target basis names to unroll to, e.g. ``['u3', 'cx']``. This or
                 ``target`` must be set.
-            target: The backend compilation target. A target containing operations, or
-                ``target_basis`` must be set.
+            target: The backend compilation target. This or ``target_basis`` must be set.
             min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.
 
         Raises:
             TranspilerError: If neither ``target`` nor ``target_basis`` are given.
         """
-        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
-        # not part of the official target model.
-        if target is not None and len(target.operation_names) == 0:
-            target = None
-
         if target is None and target_basis is None:
             raise TranspilerError("A non-empty `target` or `target_basis` must be set.")
 
         super().__init__()
         self._equiv_lib = equivalence_library
         self._target_basis = target_basis
+        # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
+        # not part of the official target model.
         self._target = target if target is not None and len(target.operation_names) > 0 else None
         self._min_qubits = min_qubits
 
