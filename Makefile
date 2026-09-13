@@ -39,6 +39,7 @@ lint:
 	tools/verify_images.py
 	cargo fmt --check
 	cargo clippy --all-targets -- -D warnings
+	cargo clippy -p qiskit-cext -- -D warnings
 
 style:
 	black --check qiskit test tools setup.py docs/conf.py
