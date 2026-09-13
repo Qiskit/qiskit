@@ -19,14 +19,14 @@ use crate::exit_codes::ExitCode;
 use crate::transpiler::target::parse_params;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::dag_circuit::PyDAGCircuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::{Clbit, Qubit};
-#[cfg(feature = "python_binding")]
-use qiskit_circuit::dag_circuit::PyDAGCircuit;
 
 use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
 
