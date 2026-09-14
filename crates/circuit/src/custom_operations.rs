@@ -83,24 +83,12 @@ impl CustomOperation for QFTGate {
         // ToDo: should we return `None` if the number of qubits is too large?
         // This would also prevent overflow errors when computing 1 << num_qubits.
         let size = 1usize << self.num_qubits;
-        let norm = 0.5_f64.powi(size as i32);
+        let norm = (size as f64).sqrt().recip();
         Ok(Some(Array2::from_shape_fn((size, size), |(i, j)| {
             let phase = 2.0 * PI * (i * j) as f64 / (size as f64);
             Complex64::from_polar(norm, phase)
         })))
     }
-
-    // fn create_py_op(
-    //     &self,
-    //     py: Python,
-    //     _params: Option<SmallVec<[Param; 3]>>,
-    //     _label: Option<&str>,
-    // ) -> PyResult<Py<PyAny>> {
-    //     Ok(imports::QFT_GATE
-    //         .get_bound(py)
-    //         .call1((self.num_qubits,))?
-    //         .unbind())
-    // }
 
     // ToDo:
     // Due to dependency between rust packages, we cannot take the definition from the synthesis
