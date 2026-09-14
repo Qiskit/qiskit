@@ -126,7 +126,8 @@ struct CustomOp {
 
 impl PartialEq for CustomOp {
     fn eq(&self, other: &Self) -> bool {
-        (unsafe { ((&*self.v_table).eq)(self.orig, other.orig) }) && Arc::as_ptr(&self.v_table) == Arc::as_ptr(&other.v_table)
+        (unsafe { (self.v_table.eq)(self.orig, other.orig) })
+            && Arc::as_ptr(&self.v_table) == Arc::as_ptr(&other.v_table)
     }
 }
 
@@ -135,7 +136,7 @@ unsafe impl Sync for CustomOp {}
 
 impl Operation for CustomOp {
     fn name(&self) -> &str {
-        let name = unsafe { ((&*self.v_table).name)(self.orig) };
+        let name = unsafe { (self.v_table.name)(self.orig) };
         // Safety violation on lifetimes of the name here
         // Document the lifetime bounds here, these pointers must only be borrowed.
         // C should not mutate origin while Rust is accessing it.
@@ -232,7 +233,6 @@ pub struct CustomOpVTable {
 }
 
 extern "C" fn default_num_ctrl_qubits(_slf: *const ()) -> u32 {
-    // extern C
     0
 }
 
@@ -290,16 +290,15 @@ pub struct CustomOpVtablePartial {
     is_unitary: Option<unsafe extern "C" fn(*const ()) -> bool>,
     num_ctrl_qubits: Option<unsafe extern "C" fn(*const ()) -> u32>,
     label: Option<unsafe extern "C" fn(*const ()) -> *const c_char>,
-    definition:
-        Option<unsafe extern "C" fn(*const (), *const *const Param) -> *mut CircuitData>,
+    definition: Option<unsafe extern "C" fn(*const (), *const *const Param) -> *mut CircuitData>,
     eq: Option<unsafe extern "C" fn(*const (), *const ()) -> bool>,
 }
 
-/// Represents the Vtable index of a `CustomOperation` coming from the
+/// Represents the Vtable index of a ``QkCustomOperation`` coming from the
 /// C domain.
 ///
-/// Each named index refers to a required/optional method of the `Operation``
-/// and `CustomOperation` traits.
+/// Each named index refers to a required/optional method of the `Operation`
+/// and `CustomOperation` traits in Rust.
 #[repr(u32)]
 #[derive(Debug)]
 pub enum CustomOpMethod {
@@ -376,7 +375,7 @@ impl CustomOpVTableEntry {
 ///
 /// // Build list of entries for the vtable (at least 7 required entries)
 /// QkCustomOpVTableEntry entries[7] = {
-///     {.slot = 1, .func = foo_num_qubits},
+///     {.slot = QkCustomOpMethod_NumQubits, .func = foo_num_qubits},
 ///     // ...
 ///     // End with sentinel value
 ///     {.slot = -1, .func = NULL},
@@ -433,18 +432,18 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 ///
 /// Refer to the following table to identify the correct slots.
 ///
-/// | Slot                 | Arg(s) type                    | Return type   | Index | Required |
-/// |----------------------|--------------------------------|---------------|-------|----------|
-/// | ``name``             | `const void *`                 | `char *`      |   0   |    Yes   |
-/// | ``num_qubits``       | `const void *`                 | `uint32_t`    |   1   |    Yes   |
-/// | ``num_clbits``       | `const void *`                 | `uint32_t`    |   2   |    Yes   |
-/// | ``num_params``       | `const void *`                 | `uint32_t`    |   3   |    Yes   |
-/// | ``directive``        | `const void *`                 | `bool`        |   4   |    Yes   |
-/// | ``is_unitary``       | `const void *`                 | `bool`        |   5   |    Yes   |
-/// | ``num_ctrl_qubits``  | `const void *`                 | `uint32_t`    |   6   |    No    |
-/// | ``label``            | `const void *`                 | `char *`      |   7   |    No    |
-/// | ``definition``       | `const void *`, `QkParam **`   | `QkCircuit *` |   8   |    No    |
-/// | ``eq``               | `const void *`, `const void *` | `bool`        |   9   |    No    |
+/// | Slot                 | Arg(s) type                    | Return type   |               Index                  | Required |
+/// |----------------------|--------------------------------|---------------|--------------------------------------|----------|
+/// | ``name``             | `const void *`                 | `char *`      | ``QkCustomOpMethod_Name``            |    Yes   |
+/// | ``num_qubits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumQubits``       |    Yes   |
+/// | ``num_clbits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumClbits``       |    Yes   |
+/// | ``num_params``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumParams``       |    Yes   |
+/// | ``directive``        | `const void *`                 | `bool`        | ``QkCustomOpMethod_Directive``       |    Yes   |
+/// | ``is_unitary``       | `const void *`                 | `bool`        | ``QkCustomOpMethod_IsUnitary``       |    Yes   |
+/// | ``num_ctrl_qubits``  | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumCtrlQubits``   |    No    |
+/// | ``label``            | `const void *`                 | `char *`      | ``QkCustomOpMethod_Label``           |    No    |
+/// | ``definition``       | `const void *`, `QkParam **`   | `QkCircuit *` | ``QkCustomOpMethod_Definition``      |    No    |
+/// | ``eq``               | `const void *`, `const void *` | `bool`        | ``QkCustomOpMethod_Eq``              |    No    |
 ///
 /// Each function will be seen as a `void` pointer to Rust and will be transmuted
 /// to a function pointer of the correct signature.
