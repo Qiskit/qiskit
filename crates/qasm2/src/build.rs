@@ -33,7 +33,7 @@ use crate::bytecode::InternalBytecode;
 use crate::error::ParseError;
 use crate::expr::{Expr, evaluate};
 use crate::ext::ClassicalEvaluator;
-use crate::parse::{ClbitId, CregId, GateId, QELIB1_STANDARD_GATES, QubitId};
+use crate::parse::{ClbitId, CregId, GateId, QELIB1, QubitId};
 
 #[derive(Clone)]
 enum GateEntry {
@@ -196,8 +196,7 @@ impl GateRegistry {
 
     fn extend_from_qelib1(&mut self, indices: &[usize]) {
         for &index in indices {
-            self.gates
-                .push(GateEntry::Standard(QELIB1_STANDARD_GATES[index]));
+            self.gates.push(GateEntry::Standard(QELIB1[index]));
         }
     }
 

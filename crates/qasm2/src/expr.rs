@@ -136,7 +136,6 @@ pub enum Expr {
 }
 
 /// A single pending step of the iterative evaluator
-#[cfg(feature = "circuit")]
 enum Step<'a> {
     /// Evaluate this (sub)expression, pushing its value onto the value stack.
     Eval(&'a Expr),
@@ -150,7 +149,6 @@ enum Step<'a> {
     Custom(&'a ClassicalCallableExt, usize),
 }
 
-#[cfg(feature = "circuit")]
 pub fn evaluate(
     expr: &Expr,
     params: &[f64],
@@ -253,7 +251,6 @@ pub fn evaluate(
     Ok(value)
 }
 
-#[cfg(feature = "circuit")]
 fn push_binary<'a>(work: &mut Vec<Step<'a>>, op: Op, lhs: &'a Expr, rhs: &'a Expr) {
     work.push(Step::Binary(op));
     work.push(Step::Eval(rhs));

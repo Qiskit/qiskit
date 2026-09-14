@@ -19,7 +19,7 @@ use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
 #[cfg(feature = "py")]
 use pyo3::prelude::*;
-#[cfg(feature = "circuit")]
+use qiskit_circuit::operations::Operation;
 use qiskit_circuit::standard_gate::StandardGate;
 
 use crate::bytecode::InternalBytecode;
@@ -32,38 +32,9 @@ use crate::{ClassicalCallableExt, ClassicalEvaluator, CustomClassical, CustomIns
 
 /// The number of gates that are built in to the OpenQASM 2 language.  This is U and CX.
 const N_BUILTIN_GATES: usize = 2;
-/// The "qelib1.inc" special include.  The elements of the tuple are the gate name, the number of
-/// parameters it takes, and the number of qubits it acts on.
-const QELIB1: [(&str, usize, usize); 23] = [
-    ("u3", 3, 1),
-    ("u2", 2, 1),
-    ("u1", 1, 1),
-    ("cx", 0, 2),
-    ("id", 0, 1),
-    ("x", 0, 1),
-    ("y", 0, 1),
-    ("z", 0, 1),
-    ("h", 0, 1),
-    ("s", 0, 1),
-    ("sdg", 0, 1),
-    ("t", 0, 1),
-    ("tdg", 0, 1),
-    ("rx", 1, 1),
-    ("ry", 1, 1),
-    ("rz", 1, 1),
-    ("cz", 0, 2),
-    ("cy", 0, 2),
-    ("ch", 0, 2),
-    ("ccx", 0, 3),
-    ("crz", 1, 2),
-    ("cu1", 1, 2),
-    ("cu3", 3, 2),
-];
-
-/// The native `StandardGate` for each entry of [QELIB1], in the same order.  `QELIB1[i]` and
-/// `QELIB1_STANDARD_GATES[i]` describe the same gate.
-#[cfg(feature = "circuit")]
-pub(crate) const QELIB1_STANDARD_GATES: [StandardGate; 23] = [
+/// The "qelib1.inc" special include, in file order: a gate's `GateId` is its index here, offset
+/// by the builtins.  Names and arities come from the `StandardGate`s themselves.
+pub(crate) const QELIB1: [StandardGate; 23] = [
     StandardGate::U3,
     StandardGate::U2,
     StandardGate::U1,
@@ -1632,12 +1603,12 @@ impl State {
         if filename == "qelib1.inc" {
             self.symbols.reserve(QELIB1.len());
             let mut indices = Vec::with_capacity(QELIB1.len());
-            for (i, (name, num_params, num_qubits)) in QELIB1.iter().enumerate() {
+            for (i, gate) in QELIB1.iter().enumerate() {
                 if self.define_gate(
                     Some(&include_token),
-                    name.to_string(),
-                    *num_params,
-                    *num_qubits,
+                    gate.name().to_string(),
+                    gate.num_params() as usize,
+                    gate.num_qubits() as usize,
                 )? {
                     indices.push(i);
                 }
@@ -1861,31 +1832,5 @@ impl State {
             }
         }
         Ok(None)
-    }
-}
-
-#[cfg(all(test, feature = "circuit"))]
-mod tests {
-    use super::{QELIB1, QELIB1_STANDARD_GATES};
-    use qiskit_circuit::operations::Operation;
-
-    #[test]
-    fn qelib1_standard_gates_match() {
-        assert_eq!(QELIB1.len(), QELIB1_STANDARD_GATES.len());
-        for (&(name, num_params, num_qubits), gate) in QELIB1.iter().zip(&QELIB1_STANDARD_GATES) {
-            // Arity alone would not catch a swap between `x`/`y`/`z`/`h`/`s`/`t`/`id`/`sdg`/`tdg`,
-            // which are all zero-parameter one-qubit gates.
-            assert_eq!(gate.name(), name, "name mismatch for '{name}'");
-            assert_eq!(
-                gate.num_params() as usize,
-                num_params,
-                "param count mismatch for '{name}'"
-            );
-            assert_eq!(
-                gate.num_qubits() as usize,
-                num_qubits,
-                "qubit count mismatch for '{name}'"
-            );
-        }
     }
 }

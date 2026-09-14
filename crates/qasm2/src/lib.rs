@@ -16,7 +16,6 @@ use pyo3::prelude::*;
 #[cfg(feature = "py")]
 use crate::bytecode::QASM2ParseError;
 
-#[cfg(feature = "circuit")]
 mod build;
 mod bytecode;
 mod error;
@@ -40,7 +39,6 @@ pub use self::ext::{
 ///
 /// Any `custom_classical` must be callable without an interpreter (see
 /// [ClassicalEvaluator::detached]); a Python callable here is an error, not a panic.
-#[cfg(feature = "circuit")]
 pub fn circuit_from_string(
     program: String,
     include_path: Vec<std::path::PathBuf>,
