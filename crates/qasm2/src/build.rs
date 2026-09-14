@@ -307,18 +307,15 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                 value,
             } => {
                 let entry = registry.get(*id)?;
-                let num_qubits = qubits.len() as u32;
                 push_conditioned(
                     &mut circuit,
                     &cregs,
                     *creg,
                     value,
-                    num_qubits,
-                    0,
                     &to_qubits(qubits),
                     &[],
                     |block, _| {
-                        let local_qargs: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
+                        let local_qargs: Vec<Qubit> = (0..qubits.len() as u32).map(Qubit).collect();
                         push_gate(block, &entry, arguments, &local_qargs)
                     },
                 )?;
@@ -334,8 +331,6 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                     &cregs,
                     *creg,
                     value,
-                    1,
-                    1,
                     &to_qubits(&[*qubit]),
                     &to_clbits(&[*clbit]),
                     |block, offset| {
@@ -354,8 +349,6 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                     &cregs,
                     *creg,
                     value,
-                    1,
-                    0,
                     &to_qubits(&[*qubit]),
                     &[],
                     |block, _| {
@@ -497,23 +490,17 @@ fn push_standard_instruction_local(
         .map_err(|err| ParseError::new(format!("failed to apply instruction: {err}")))
 }
 
-/// Wraps a single instruction in `if (cregs[creg] == value) { ... }`.
-///
-/// As in `QuantumCircuit.if_test`, the condition register's clbits come first, both on the block
-/// and in the outer `cargs`.  `fill_block` therefore addresses block-local `Qubit(0..num_qubits)`
-/// and `Clbit(offset..offset + num_clbits)`, and is handed that `offset`.
-#[allow(clippy::too_many_arguments)]
 fn push_conditioned(
     circuit: &mut CircuitData,
     cregs: &[ClassicalRegister],
     creg: CregId,
     value: &BigUint,
-    num_qubits: u32,
-    num_clbits: u32,
     qargs: &[Qubit],
     cargs: &[Clbit],
     fill_block: impl FnOnce(&mut CircuitData, u32) -> Result<(), ParseError>,
 ) -> Result<(), ParseError> {
+    let num_qubits = qargs.len() as u32;
+    let num_clbits = cargs.len() as u32;
     let register = cregs
         .get(creg.index())
         .ok_or_else(|| ParseError::new(format!("creg id {} was not declared", creg.index())))?;
