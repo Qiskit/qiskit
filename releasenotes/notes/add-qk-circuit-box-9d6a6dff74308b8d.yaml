@@ -1,0 +1,5 @@
+---
+features_c:
+  - |
+    Added :c:func:`qk_circuit_box`, a basic implementation for appending a ``box`` control-flow
+    instruction to a ``QkCircuit``, supporting an optional concrete duration but not annotations.
