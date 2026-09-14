@@ -69,9 +69,12 @@ bool foo_eq(const void *gate, const void *other) {
 }
 
 QkCustomOpVTableEntry entries[7] = {
-    {.slot = 0, .func = foo_name},       {.slot = 1, .func = foo_num_qubits},
-    {.slot = 2, .func = foo_num_clbits}, {.slot = 3, .func = foo_num_params},
-    {.slot = 4, .func = foo_directive},  {.slot = 5, .func = foo_is_unitary},
+    {.slot = QkCustomOpMethod_Name, .func = foo_name},
+    {.slot = QkCustomOpMethod_NumQubits, .func = foo_num_qubits},
+    {.slot = QkCustomOpMethod_NumClbits, .func = foo_num_clbits},
+    {.slot = QkCustomOpMethod_NumParams, .func = foo_num_params},
+    {.slot = QkCustomOpMethod_Directive, .func = foo_directive},
+    {.slot = QkCustomOpMethod_IsUnitary, .func = foo_is_unitary},
     {.slot = -1, .func = NULL},
 };
 

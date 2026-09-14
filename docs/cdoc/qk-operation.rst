@@ -85,6 +85,8 @@ Data Types
 .. doxygenstruct:: QkCustomOpVTableEntry
    :members:
 
+.. doxygenenum:: QkCustomOpMethod
+
 Functions
 =========
 
