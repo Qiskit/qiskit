@@ -218,18 +218,17 @@ impl CustomOperation for CustomOp {
 /// * ``definition(*const (), *const Param)`` -> ``*mut CircuitData``,
 /// * ``eq(*const (), *const ())`` -> ``bool``, to compare two operations of the same kind.
 #[derive(Debug, Clone)]
-// #[repr(C)]
 pub struct CustomOpVTable {
-    pub name: unsafe extern "C" fn(*const ()) -> *const c_char,
-    pub num_qubits: unsafe extern "C" fn(*const ()) -> u32,
-    pub num_clbits: unsafe extern "C" fn(*const ()) -> u32,
-    pub num_params: unsafe extern "C" fn(*const ()) -> u32,
-    pub directive: unsafe extern "C" fn(*const ()) -> bool,
-    pub is_unitary: unsafe extern "C" fn(*const ()) -> bool,
-    pub num_ctrl_qubits: unsafe extern "C" fn(*const ()) -> u32,
-    pub label: unsafe extern "C" fn(*const ()) -> *const c_char,
-    pub definition: unsafe extern "C" fn(*const (), *const *const Param) -> *mut CircuitData,
-    pub eq: unsafe extern "C" fn(*const (), *const ()) -> bool,
+    name: unsafe extern "C" fn(*const ()) -> *const c_char,
+    num_qubits: unsafe extern "C" fn(*const ()) -> u32,
+    num_clbits: unsafe extern "C" fn(*const ()) -> u32,
+    num_params: unsafe extern "C" fn(*const ()) -> u32,
+    directive: unsafe extern "C" fn(*const ()) -> bool,
+    is_unitary: unsafe extern "C" fn(*const ()) -> bool,
+    num_ctrl_qubits: unsafe extern "C" fn(*const ()) -> u32,
+    label: unsafe extern "C" fn(*const ()) -> *const c_char,
+    definition: unsafe extern "C" fn(*const (), *const *const Param) -> *mut CircuitData,
+    eq: unsafe extern "C" fn(*const (), *const ()) -> bool,
 }
 
 extern "C" fn default_num_ctrl_qubits(_slf: *const ()) -> u32 {
@@ -283,17 +282,17 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVTable {
 /// the first missing slot's [``CustomOpMethod``] index will be provided.
 #[derive(Debug, Clone, Default)]
 pub struct CustomOpVtablePartial {
-    pub name: Option<unsafe extern "C" fn(*const ()) -> *const c_char>,
-    pub num_qubits: Option<unsafe extern "C" fn(*const ()) -> u32>,
-    pub num_clbits: Option<unsafe extern "C" fn(*const ()) -> u32>,
-    pub num_params: Option<unsafe extern "C" fn(*const ()) -> u32>,
-    pub directive: Option<unsafe extern "C" fn(*const ()) -> bool>,
-    pub is_unitary: Option<unsafe extern "C" fn(*const ()) -> bool>,
-    pub num_ctrl_qubits: Option<unsafe extern "C" fn(*const ()) -> u32>,
-    pub label: Option<unsafe extern "C" fn(*const ()) -> *const c_char>,
-    pub definition:
+    name: Option<unsafe extern "C" fn(*const ()) -> *const c_char>,
+    num_qubits: Option<unsafe extern "C" fn(*const ()) -> u32>,
+    num_clbits: Option<unsafe extern "C" fn(*const ()) -> u32>,
+    num_params: Option<unsafe extern "C" fn(*const ()) -> u32>,
+    directive: Option<unsafe extern "C" fn(*const ()) -> bool>,
+    is_unitary: Option<unsafe extern "C" fn(*const ()) -> bool>,
+    num_ctrl_qubits: Option<unsafe extern "C" fn(*const ()) -> u32>,
+    label: Option<unsafe extern "C" fn(*const ()) -> *const c_char>,
+    definition:
         Option<unsafe extern "C" fn(*const (), *const *const Param) -> *mut CircuitData>,
-    pub eq: Option<unsafe extern "C" fn(*const (), *const ()) -> bool>,
+    eq: Option<unsafe extern "C" fn(*const (), *const ()) -> bool>,
 }
 
 /// Represents the Vtable index of a `CustomOperation` coming from the
@@ -489,9 +488,8 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     let mut vtable = CustomOpVtablePartial::default();
     let mut slot = unsafe { slots.read() };
     while slot.slot != u32::MAX {
-        use CustomOpMethod::*;
         match CustomOpMethod::try_from(slot.slot) {
-            Ok(Name) => {
+            Ok(CustomOpMethod::Name) => {
                 if vtable.name.is_some() {
                     panic!("Name slot has already been set.")
                 }
@@ -502,7 +500,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     >(slot.func)
                 })
             }
-            Ok(NumQubits) => {
+            Ok(CustomOpMethod::NumQubits) => {
                 if vtable.num_qubits.is_some() {
                     panic!("NumQubits slot has already been set.")
                 }
@@ -512,7 +510,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     )
                 })
             }
-            Ok(NumClbits) => {
+            Ok(CustomOpMethod::NumClbits) => {
                 if vtable.num_clbits.is_some() {
                     panic!("NumClbits slot has already been set.")
                 }
@@ -522,7 +520,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     )
                 })
             }
-            Ok(NumParams) => {
+            Ok(CustomOpMethod::NumParams) => {
                 if vtable.num_params.is_some() {
                     panic!("NumParams slot has already been set.")
                 }
@@ -532,7 +530,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     )
                 })
             }
-            Ok(Directive) => {
+            Ok(CustomOpMethod::Directive) => {
                 if vtable.directive.is_some() {
                     panic!("Directive slot has already been set.")
                 }
@@ -542,7 +540,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     )
                 })
             }
-            Ok(IsUnitary) => {
+            Ok(CustomOpMethod::IsUnitary) => {
                 if vtable.is_unitary.is_some() {
                     panic!("IsUnitary slot has already been set.")
                 }
@@ -552,7 +550,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     )
                 })
             }
-            Ok(NumCtrlQubits) => {
+            Ok(CustomOpMethod::NumCtrlQubits) => {
                 if vtable.num_ctrl_qubits.is_some() {
                     panic!("NumCtrlQubits slot has already been set.")
                 }
@@ -562,7 +560,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     )
                 })
             }
-            Ok(Label) => {
+            Ok(CustomOpMethod::Label) => {
                 if vtable.label.is_some() {
                     panic!("Label slot has already been set.")
                 }
@@ -573,7 +571,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     >(slot.func)
                 })
             }
-            Ok(Definition) => {
+            Ok(CustomOpMethod::Definition) => {
                 if vtable.definition.is_some() {
                     panic!("Name slot has already been set.")
                 }
@@ -584,7 +582,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     >(slot.func)
                 })
             }
-            Ok(Eq) => {
+            Ok(CustomOpMethod::Eq) => {
                 if vtable.eq.is_some() {
                     panic!("Name slot has already been set.")
                 }
