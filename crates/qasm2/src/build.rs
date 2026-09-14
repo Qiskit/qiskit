@@ -332,12 +332,12 @@ pub(crate) fn build_circuit(
                     value,
                     &to_qubits(&[*qubit]),
                     &to_clbits(&[*clbit]),
-                    |block, offset| {
+                    |block, local_cargs| {
                         push_standard_instruction_local(
                             block,
                             StandardInstruction::Measure,
                             &[Qubit(0)],
-                            &[Clbit(offset)],
+                            local_cargs,
                         )
                     },
                 )?;
@@ -496,10 +496,9 @@ fn push_conditioned(
     value: &BigUint,
     qargs: &[Qubit],
     cargs: &[Clbit],
-    fill_block: impl FnOnce(&mut CircuitData, u32) -> Result<(), ParseError>,
+    fill_block: impl FnOnce(&mut CircuitData, &[Clbit]) -> Result<(), ParseError>,
 ) -> Result<(), ParseError> {
     let num_qubits = qargs.len() as u32;
-    let num_clbits = cargs.len() as u32;
     let register = cregs
         .get(creg.index())
         .ok_or_else(|| ParseError::new(format!("creg id {} was not declared", creg.index())))?;
@@ -513,42 +512,58 @@ fn push_conditioned(
                 register.name()
             ))
         })?;
-    let offset = condition_clbits.len() as u32;
 
     let mut block = CircuitData::new(None, None, Param::Float(0.0))
         .map_err(|err| ParseError::new(format!("failed to create circuit: {err}")))?;
     block
         .add_anonymous_qubits(num_qubits)
         .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
-    // `add_creg` creates the block's first `offset` clbits; the instruction's own follow.
+    // `add_creg` creates the block's first clbits, one per bit of the condition register.
     block
         .add_creg(
-            ClassicalRegister::new_owning(register.name().to_owned(), offset),
+            ClassicalRegister::new_owning(
+                register.name().to_owned(),
+                condition_clbits.len() as u32,
+            ),
             true,
         )
         .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
-    block
-        .add_anonymous_clbits(num_clbits)
-        .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
-    fill_block(&mut block, offset)?;
+
+    let mut outer_cargs = condition_clbits;
+    let mut local_cargs = Vec::with_capacity(cargs.len());
+    for carg in cargs {
+        if let Some(local) = outer_cargs.iter().position(|held| held == carg) {
+            local_cargs.push(Clbit(local as u32));
+            continue;
+        }
+        let bit =
+            circuit.clbits().get(*carg).cloned().ok_or_else(|| {
+                ParseError::new(format!("clbit {} is not in the circuit", carg.0))
+            })?;
+        // Strict, because the block provably lacks this bit; a non-strict add would reset its
+        // register locations and so drop the creg added above.
+        local_cargs.push(
+            block.add_clbit(bit, true).map_err(|err| {
+                ParseError::new(format!("failed to build conditioned block: {err}"))
+            })?,
+        );
+        outer_cargs.push(*carg);
+    }
+    fill_block(&mut block, &local_cargs)?;
 
     let condition = Condition::Register(register.clone(), value.clone());
     let block_id = circuit.add_block(block);
     let control_flow = ControlFlowInstruction {
         control_flow: ControlFlow::IfElse { condition },
         num_qubits,
-        num_clbits: offset + num_clbits,
+        num_clbits: outer_cargs.len() as u32,
     };
-    let cargs: Vec<Clbit> = condition_clbits
-        .into_iter()
-        .chain(cargs.iter().copied())
-        .collect();
     circuit
         .push_packed_operation(
             PackedOperation::from(control_flow),
             Some(Parameters::Blocks(vec![block_id])),
             qargs,
-            &cargs,
+            &outer_cargs,
         )
         .map_err(|err| ParseError::new(format!("failed to apply conditioned instruction: {err}")))
 }
