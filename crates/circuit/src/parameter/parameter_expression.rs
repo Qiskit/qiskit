@@ -325,10 +325,7 @@ impl ParameterExpression {
 
     /// Initialize from an f64.
     pub fn from_f64(value: f64) -> Self {
-        Self {
-            expr: SymbolExpr::Value(Value::Real(value)),
-            name_map: HashMap::new(),
-        }
+        Value::from(value).into()
     }
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
@@ -753,6 +750,15 @@ impl ParameterExpression {
             }
         }
         Ok(merged)
+    }
+}
+
+impl From<Value> for ParameterExpression {
+    fn from(value: Value) -> Self {
+        Self {
+            expr: SymbolExpr::Value(value),
+            name_map: HashMap::new(),
+        }
     }
 }
 
