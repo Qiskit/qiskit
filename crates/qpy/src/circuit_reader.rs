@@ -1071,6 +1071,20 @@ fn add_standalone_vars(
     Ok(())
 }
 
+fn get_bit<'a, T>(bits: &'a [T], index: usize, err_name: &str) -> Result<&'a T, QpyError> {
+    bits.get(index)
+        .ok_or(QpyError::InvalidBit(format!("{err_name}: {index}")))
+}
+
+fn get_bit_mut<'a, T>(
+    bits: &'a mut [T],
+    index: usize,
+    err_name: &str,
+) -> Result<&'a mut T, QpyError> {
+    bits.get_mut(index)
+        .ok_or(QpyError::InvalidBit(format!("{err_name}: {index}")))
+}
+
 fn add_registers_and_bits(
     packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
@@ -1109,7 +1123,9 @@ fn add_registers_and_bits(
                             {
                                 if index >= 0 {
                                     // index can be -1, indicating this bit is not in the circuit
-                                    qubits[index as usize] = Some(qubit);
+                                    let circuit_qubit =
+                                        get_bit_mut(&mut qubits, index as usize, "Qubit")?;
+                                    *circuit_qubit = Some(qubit);
                                 }
                             }
                             if packed_register.in_circuit != 0 {
@@ -1126,7 +1142,9 @@ fn add_registers_and_bits(
                             {
                                 if index >= 0 {
                                     // index can be -1, indicating this bit is not in the circuit
-                                    clbits[index as usize] = Some(clbit);
+                                    let circuit_clbit =
+                                        get_bit_mut(&mut clbits, index as usize, "Clbit")?;
+                                    *circuit_clbit = Some(clbit);
                                 }
                             }
                             if packed_register.in_circuit != 0 {
@@ -1150,7 +1168,8 @@ fn add_registers_and_bits(
                                 let start = packed_register.start_index;
                                 for i in 0..packed_register.size {
                                     let index = start + i;
-                                    qubits[index as usize] = qreg.get(i as usize);
+                                    let qubit = get_bit_mut(&mut qubits, index as usize, "Qubit")?;
+                                    *qubit = qreg.get(i as usize);
                                 }
                             } else if packed_register.register_attachment == 0 {
                                 for (qubit, &index) in
@@ -1158,7 +1177,9 @@ fn add_registers_and_bits(
                                 {
                                     if index != u32::MAX {
                                         // index can be -1, indicating this bit is not in the circuit
-                                        qubits[index as usize] = Some(qubit);
+                                        let index_qubit =
+                                            get_bit_mut(&mut qubits, index as usize, "Qubit")?;
+                                        *index_qubit = Some(qubit);
                                     }
                                 }
                             } else {
@@ -1179,7 +1200,8 @@ fn add_registers_and_bits(
                                 let start = packed_register.start_index;
                                 for i in 0..packed_register.size {
                                     let index = start + i;
-                                    clbits[index as usize] = creg.get(i as usize);
+                                    let clbit = get_bit_mut(&mut clbits, index as usize, "Clbit")?;
+                                    *clbit = creg.get(i as usize);
                                 }
                             } else if packed_register.register_attachment == 0 {
                                 for (clbit, &index) in
@@ -1187,7 +1209,9 @@ fn add_registers_and_bits(
                                 {
                                     if index != u32::MAX {
                                         // index can be -1, indicating this bit is not in the circuit
-                                        clbits[index as usize] = Some(clbit);
+                                        let index_clbit =
+                                            get_bit_mut(&mut clbits, index as usize, "Clbit")?;
+                                        *index_clbit = Some(clbit);
                                     }
                                 }
                             } else {
@@ -1230,12 +1254,13 @@ fn add_registers_and_bits(
                         .iter()
                         .filter_map(|&index| {
                             if index >= 0 {
-                                Some(final_qubit_list[index as usize].clone())
+                                let qubit = get_bit(&final_qubit_list, index as usize, "Qubit");
+                                Some(qubit.cloned())
                             } else {
                                 None
                             }
                         })
-                        .collect();
+                        .collect::<Result<_, QpyError>>()?;
                     let qreg = QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
                     qregs.push(qreg);
                 }
@@ -1245,12 +1270,13 @@ fn add_registers_and_bits(
                         .iter()
                         .filter_map(|&index| {
                             if index >= 0 {
-                                Some(final_clbit_list[index as usize].clone())
+                                let clbit = get_bit(&final_clbit_list, index as usize, "Clbit");
+                                Some(clbit.cloned())
                             } else {
                                 None
                             }
                         })
-                        .collect();
+                        .collect::<Result<_, QpyError>>()?;
                     let creg =
                         ClassicalRegister::new_alias(Some(packed_register.name.clone()), bits);
                     cregs.push(creg);
@@ -1269,12 +1295,13 @@ fn add_registers_and_bits(
                             .iter()
                             .filter_map(|&index| {
                                 if index != u32::MAX {
-                                    Some(final_qubit_list[index as usize].clone())
+                                    let qubit = get_bit(&final_qubit_list, index as usize, "Qubit");
+                                    Some(qubit.cloned())
                                 } else {
                                     None
                                 }
                             })
-                            .collect();
+                            .collect::<Result<_, QpyError>>()?;
                         let qreg =
                             QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
                         qregs.push(qreg);
@@ -1285,12 +1312,13 @@ fn add_registers_and_bits(
                             .iter()
                             .filter_map(|&index| {
                                 if index != u32::MAX {
-                                    Some(final_clbit_list[index as usize].clone())
+                                    let clbit = get_bit(&final_clbit_list, index as usize, "Clbit");
+                                    Some(clbit.cloned())
                                 } else {
                                     None
                                 }
                             })
-                            .collect();
+                            .collect::<Result<_, QpyError>>()?;
                         let creg =
                             ClassicalRegister::new_alias(Some(packed_register.name.clone()), bits);
                         cregs.push(creg);
