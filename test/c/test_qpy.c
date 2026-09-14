@@ -26,20 +26,27 @@ static int test_round_trip(void) {
         return RuntimeError;
     }
 
-    if (qk_qpy_dump_file(source, filename, 18) != QkExitCode_Success) {
+    if (qk_qpy_dump_file(source, filename) != QkExitCode_Success) {
         printf("Unexpected error encountered in QPY test_round_trip.");
         qk_circuit_free(source);
         return RuntimeError;
     }
 
     QkCircuit *loaded = NULL;
-    QkExitCode load_result = qk_qpy_load_file(filename, &loaded);
+    QkExitCode load_result = qk_qpy_load_file(&loaded, filename);
     remove(filename);
     if (load_result != QkExitCode_Success || loaded == NULL) {
         printf("Unexpected error encountered in QPY test_round_trip.");
         qk_circuit_free(source);
         return RuntimeError;
     }
+
+    if (qk_qpy_dump_file_with_version(source, filename, 18) != QkExitCode_Success) {
+        qk_circuit_free(loaded);
+        qk_circuit_free(source);
+        return RuntimeError;
+    }
+    remove(filename);
 
     int result = Ok;
     if (qk_circuit_num_qubits(loaded) != 2 || qk_circuit_num_clbits(loaded) != 2 ||
@@ -59,16 +66,25 @@ static int test_buffer_round_trip(void) {
         return RuntimeError;
     }
 
-    char *buffer = NULL;
+    uint8_t *buffer = NULL;
     size_t size = 0;
-    if (qk_qpy_dump_buffer(source, &buffer, &size, 18) != QkExitCode_Success || buffer == NULL ||
+    if (qk_qpy_dump_buffer(source, &buffer, &size) != QkExitCode_Success || buffer == NULL ||
         size == 0) {
+        qk_circuit_free(source);
+        return RuntimeError;
+    }
+    qk_qpy_free_buffer(buffer, size);
+
+    buffer = NULL;
+    size = 0;
+    if (qk_qpy_dump_buffer_with_version(source, &buffer, &size, 18) != QkExitCode_Success ||
+        buffer == NULL || size == 0) {
         qk_circuit_free(source);
         return RuntimeError;
     }
 
     QkCircuit *loaded = NULL;
-    QkExitCode result = qk_qpy_load_buffer(buffer, size, &loaded);
+    QkExitCode result = qk_qpy_load_buffer(&loaded, buffer, size);
     qk_qpy_free_buffer(buffer, size);
     if (result != QkExitCode_Success || loaded == NULL) {
         qk_circuit_free(source);

@@ -19,8 +19,9 @@ use qiskit_circuit::circuit_data::CircuitData;
 use crate::exit_codes::ExitCode;
 use crate::pointers::check_ptr;
 
-fn dump(circuit: &CircuitData, version: u8) -> Result<Vec<u8>, ()> {
+fn dump(circuit: &CircuitData, version: Option<u8>) -> Result<Vec<u8>, ()> {
     #[cfg(feature = "python_binding")]
+    // in order to clone a circuit which contains python native data, we need the GIL
     let result =
         pyo3::Python::attach(|_| qiskit_qpy::native_dump_qpy(vec![circuit.clone()], version));
     #[cfg(not(feature = "python_binding"))]
@@ -40,24 +41,10 @@ fn load(payload: &[u8]) -> Result<CircuitData, ()> {
         })
 }
 
-/// Write one circuit to a QPY file.
-///
-/// The circuit is copied before serialization and remains owned by the caller.
-///
-/// @param circuit A valid, non-null circuit pointer.
-/// @param filename A valid, non-null, nul-terminated UTF-8 path.
-/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
-/// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
-/// pointer, or ``QkExitCode_QpyError`` for an invalid path, unsupported QPY data, or I/O failure.
-///
-/// # Safety
-/// ``circuit`` must point to a valid ``QkCircuit`` and ``filename`` must point to a valid
-/// nul-terminated string for the duration of this call.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_qpy_dump_file(
+unsafe fn dump_file_impl(
     circuit: *const CircuitData,
     filename: *const c_char,
-    version: u8,
+    version: Option<u8>,
 ) -> ExitCode {
     if let Err(error) = check_ptr(circuit) {
         return error.into();
@@ -77,6 +64,79 @@ pub unsafe extern "C" fn qk_qpy_dump_file(
     }
 }
 
+unsafe fn dump_buffer_impl(
+    circuit: *const CircuitData,
+    buffer: *mut *mut u8,
+    size: *mut usize,
+    version: Option<u8>,
+) -> ExitCode {
+    if let Err(error) = check_ptr(circuit) {
+        return error.into();
+    }
+    if let Err(error) = check_ptr(buffer) {
+        return error.into();
+    }
+    if let Err(error) = check_ptr(size) {
+        return error.into();
+    }
+    // SAFETY: upheld by the caller contract and checked for alignment/null above.
+    match dump(unsafe { &*circuit }, version) {
+        Ok(payload) => {
+            let mut payload = payload.into_boxed_slice();
+            let payload_size = payload.len();
+            let payload_ptr = payload.as_mut_ptr();
+            std::mem::forget(payload);
+            // SAFETY: the caller guarantees both output locations are writable.
+            unsafe {
+                buffer.write(payload_ptr);
+                size.write(payload_size);
+            }
+            ExitCode::Success
+        }
+        Err(()) => ExitCode::QpyError,
+    }
+}
+
+/// Write one circuit to a QPY file.
+///
+/// The circuit is copied before serialization and remains owned by the caller.
+///
+/// @param circuit A valid, non-null circuit pointer.
+/// @param filename A valid, non-null, nul-terminated UTF-8 path.
+/// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
+/// pointer, or ``QkExitCode_QpyError`` for an invalid path, unsupported QPY data, or I/O failure.
+///
+/// # Safety
+/// ``circuit`` must point to a valid ``QkCircuit`` and ``filename`` must point to a valid
+/// nul-terminated string for the duration of this call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_qpy_dump_file(
+    circuit: *const CircuitData,
+    filename: *const c_char,
+) -> ExitCode {
+    // SAFETY: this function has the same pointer requirements as the implementation.
+    unsafe { dump_file_impl(circuit, filename, None) }
+}
+
+/// Write one circuit to a QPY file using a specific format version.
+///
+/// @param circuit A valid, non-null circuit pointer.
+/// @param filename A valid, non-null, nul-terminated UTF-8 path.
+/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @return The same exit codes as ``qk_qpy_dump_file``.
+///
+/// # Safety
+/// The pointer requirements are the same as for ``qk_qpy_dump_file``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
+    circuit: *const CircuitData,
+    filename: *const c_char,
+    version: u8,
+) -> ExitCode {
+    // SAFETY: this function has the same pointer requirements as the implementation.
+    unsafe { dump_file_impl(circuit, filename, Some(version)) }
+}
+
 /// Load the first circuit from a QPY file.
 ///
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
@@ -90,8 +150,8 @@ pub unsafe extern "C" fn qk_qpy_dump_file(
 /// pointer write for the duration of this call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_load_file(
-    filename: *const c_char,
     circuit: *mut *mut CircuitData,
+    filename: *const c_char,
 ) -> ExitCode {
     if filename.is_null() {
         return ExitCode::NullPointerError;
@@ -121,7 +181,6 @@ pub unsafe extern "C" fn qk_qpy_load_file(
 /// @param circuit A valid, non-null circuit pointer.
 /// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
 /// @param size Output location for the buffer size in bytes. It is unchanged on failure.
-/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
 /// pointer, or ``QkExitCode_QpyError`` if serialization fails. The returned buffer must be
 /// released with ``qk_qpy_free_buffer``.
@@ -132,35 +191,32 @@ pub unsafe extern "C" fn qk_qpy_load_file(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_dump_buffer(
     circuit: *const CircuitData,
-    buffer: *mut *mut c_char,
+    buffer: *mut *mut u8,
+    size: *mut usize,
+) -> ExitCode {
+    // SAFETY: this function has the same pointer requirements as the implementation.
+    unsafe { dump_buffer_impl(circuit, buffer, size, None) }
+}
+
+/// Serialize one circuit into a newly allocated QPY buffer using a specific format version.
+///
+/// @param circuit A valid, non-null circuit pointer.
+/// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
+/// @param size Output location for the buffer size in bytes. It is unchanged on failure.
+/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @return The same exit codes as ``qk_qpy_dump_buffer``.
+///
+/// # Safety
+/// The pointer requirements are the same as for ``qk_qpy_dump_buffer``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
+    circuit: *const CircuitData,
+    buffer: *mut *mut u8,
     size: *mut usize,
     version: u8,
 ) -> ExitCode {
-    if let Err(error) = check_ptr(circuit) {
-        return error.into();
-    }
-    if let Err(error) = check_ptr(buffer) {
-        return error.into();
-    }
-    if let Err(error) = check_ptr(size) {
-        return error.into();
-    }
-    // SAFETY: upheld by the caller contract and checked for alignment/null above.
-    match dump(unsafe { &*circuit }, version) {
-        Ok(payload) => {
-            let mut payload = payload.into_boxed_slice();
-            let payload_size = payload.len();
-            let payload_ptr = payload.as_mut_ptr().cast::<c_char>();
-            std::mem::forget(payload);
-            // SAFETY: the caller guarantees both output locations are writable.
-            unsafe {
-                buffer.write(payload_ptr);
-                size.write(payload_size);
-            }
-            ExitCode::Success
-        }
-        Err(()) => ExitCode::QpyError,
-    }
+    // SAFETY: this function has the same pointer requirements as the implementation.
+    unsafe { dump_buffer_impl(circuit, buffer, size, Some(version)) }
 }
 
 /// Load the first circuit from a QPY buffer.
@@ -177,9 +233,9 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer(
 /// pointer write for the duration of this call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_load_buffer(
-    buffer: *const c_char,
-    size: usize,
     circuit: *mut *mut CircuitData,
+    buffer: *const u8,
+    size: usize,
 ) -> ExitCode {
     if buffer.is_null() {
         return ExitCode::NullPointerError;
@@ -207,7 +263,7 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
 /// A non-null ``buffer`` must have been returned by ``qk_qpy_dump_buffer`` with exactly this
 /// ``size`` and must not have been freed previously.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_qpy_free_buffer(buffer: *mut c_char, size: usize) {
+pub unsafe extern "C" fn qk_qpy_free_buffer(buffer: *mut u8, size: usize) {
     if !buffer.is_null() {
         // SAFETY: upheld by the caller contract; dump_buffer allocated this as a boxed slice.
         unsafe {

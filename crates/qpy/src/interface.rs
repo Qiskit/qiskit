@@ -88,6 +88,7 @@ const fn parse_version() -> (u8, u8, u8) {
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
 const QPY_READ_MIN_VERSION: u8 = 13;
 const QPY_WRITE_MIN_VERSION: u8 = 17;
+const QPY_VERSION: u8 = 18;
 
 /// Serializes native circuits into a complete binary QPY payload.
 /// # Arguments
@@ -272,7 +273,10 @@ pub fn read_raw_circuits(
 /// Serialize native circuits using empty metadata and no transpiler layout.
 ///
 /// This is a non-Python convenience interface used by the C API.
-pub fn native_dump_qpy(circuits: Vec<CircuitData>, qpy_version: u8) -> Result<Vec<u8>, QpyError> {
+pub fn native_dump_qpy(
+    circuits: Vec<CircuitData>,
+    qpy_version: Option<u8>,
+) -> Result<Vec<u8>, QpyError> {
     let extra_data = (0..circuits.len())
         .map(|_| ExtraCircuitData {
             name: None,
@@ -285,7 +289,7 @@ pub fn native_dump_qpy(circuits: Vec<CircuitData>, qpy_version: u8) -> Result<Ve
     dump_qpy(
         circuits,
         extra_data,
-        qpy_version,
+        qpy_version.unwrap_or(QPY_VERSION),
         None,
         Some(QpyCaller::Native),
     )
