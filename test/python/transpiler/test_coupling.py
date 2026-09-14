@@ -528,6 +528,52 @@ class CouplingTest(QiskitTestCase):
             coupling.add_edge(2, 2)
         self.assertEqual(set(coupling.get_edges()), {(a, b) for (a, b) in edges if a != b})
 
+    def test_ignores_duplicate_coupling(self):
+        """A repeated coupling collapses onto the existing edge instead of adding a parallel one."""
+        coupling = CouplingMap([(0, 1), (0, 1), (1, 2)])
+        self.assertEqual(coupling.get_edges(), [(0, 1), (1, 2)])
+
+        coupling.add_edge(0, 1)
+        self.assertEqual(coupling.get_edges(), [(0, 1), (1, 2)])
+
+        # The reverse direction is a distinct coupling, so it is still added.
+        coupling.add_edge(1, 0)
+        self.assertEqual(coupling.get_edges(), [(0, 1), (1, 2), (1, 0)])
+
+    def test_duplicate_coupling_symmetry(self):
+        """Duplicated couplings do not affect the symmetry of the coupling map."""
+        coupling = CouplingMap([(0, 1), (1, 0), (0, 1)])
+        self.assertTrue(coupling.is_symmetric)
+
+        coupling = CouplingMap([(0, 1), (0, 1), (1, 2)])
+        self.assertFalse(coupling.is_symmetric)
+        coupling.make_symmetric()
+        self.assertTrue(coupling.is_symmetric)
+        self.assertEqual(set(coupling.get_edges()), {(0, 1), (1, 0), (1, 2), (2, 1)})
+
+    def test_no_parallel_edges(self):
+        """No way of building a coupling map produces a graph that allows parallel edges."""
+        couplings = {
+            "empty": CouplingMap(),
+            "list": CouplingMap([(0, 1), (1, 2)]),
+            "full": CouplingMap.from_full(4),
+            "full-unidirectional": CouplingMap.from_full(4, bidirectional=False),
+            "line": CouplingMap.from_line(4),
+            "line-unidirectional": CouplingMap.from_line(4, bidirectional=False),
+            "ring": CouplingMap.from_ring(4),
+            "ring-unidirectional": CouplingMap.from_ring(4, bidirectional=False),
+            "grid": CouplingMap.from_grid(2, 3),
+            "grid-unidirectional": CouplingMap.from_grid(2, 3, bidirectional=False),
+            "heavy-hex": CouplingMap.from_heavy_hex(3),
+            "heavy-square": CouplingMap.from_heavy_square(3),
+            "hexagonal-lattice": CouplingMap.from_hexagonal_lattice(2, 2),
+        }
+        couplings["reduce"] = couplings["line"].reduce([0, 1, 2, 3])
+        couplings["component"] = couplings["line"].connected_components()[0]
+        for name, coupling in couplings.items():
+            with self.subTest(name):
+                self.assertFalse(coupling.graph.multigraph)
+
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
