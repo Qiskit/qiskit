@@ -121,12 +121,12 @@ struct CustomOp {
     /// A pointer to the original gate.
     orig: *mut (),
     /// A pointer to a vtable designed for the original gate.
-    v_table: *const CustomOpVTable,
+    v_table: Arc<CustomOpVTable>,
 }
 
 impl PartialEq for CustomOp {
     fn eq(&self, other: &Self) -> bool {
-        (unsafe { ((&*self.v_table).eq)(self.orig, other.orig) }) && self.v_table == other.v_table
+        (unsafe { ((&*self.v_table).eq)(self.orig, other.orig) }) && Arc::as_ptr(&self.v_table) == Arc::as_ptr(&other.v_table)
     }
 }
 
@@ -419,7 +419,7 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 ) -> *mut BoxedCustomOperation {
     let as_custom_op = CustomOp {
         orig: operation,
-        v_table,
+        v_table: unsafe { Arc::from_raw(v_table) },
     };
 
     Box::into_raw(Box::new(BoxedCustomOperation::from(as_custom_op)))
