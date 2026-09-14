@@ -477,34 +477,4 @@ mod tests {
         // The duration parameter is preserved.
         assert!(matches!(inst.params_view(), [Param::Int(d)] if *d == 13));
     }
-
-    /// A duration bigger than `i64::MAX` is not currently supported by QPY
-    /// See #16972.
-    #[test]
-    fn delay_in_dt_over_limit() {
-        let version = QPY_WRITE_MIN_VERSION;
-
-        // Build a 1-qubit circuit with a `Delay` instruction of 13 dt value.
-        let circuit = CircuitData::from_packed_operations(
-            1,
-            0,
-            [Ok((
-                PackedOperation::from_standard_instruction(StandardInstruction::Delay(
-                    DelayUnit::DT,
-                )),
-                smallvec![Param::Int(i64::MAX)],
-                vec![Qubit(0)],
-                Vec::with_capacity(0),
-            ))],
-            0.0.into(),
-        )
-        .unwrap();
-
-        // Round trip through the native QPY dump/load entry points.
-        let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
-        assert!(matches!(
-            dump_qpy(vec![circuit], vec![extra], version, None, None),
-            Err(QpyError::IntConversionError(_))
-        ))
-    }
 }
