@@ -295,7 +295,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
-        """Heisenberg picture evolution of a Pauli by a Clifford."""
+        """Evolve a Pauli by a Clifford (default is Heisenberg frame)."""
 
         if frame == "s":
             adj = other
@@ -316,17 +316,19 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._z[:, qargs_] = False
 
         idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
+        # Only iterate rows of `other` selected by at least one Pauli in `self`:
+        keep = np.nonzero(idx.any(axis=0))[0]
         for idx_, row in zip(
-            idx.T,
-            PauliList.from_symplectic(z=adj.z, x=adj.x, phase=2 * adj.phase),
+            idx[:, keep].T,
+            PauliList.from_symplectic(z=adj.z[keep], x=adj.x[keep], phase=2 * adj.phase[keep]),
+            strict=True,
         ):
             # most of the logic below is to properly index if self is a PauliList (2D),
             # while not trying to index if the object is just a Pauli (1D).
-            if idx_.any():
-                if np.sum(idx_) == num_paulis:
-                    ret.compose(row, qargs=qargs, inplace=True)
-                else:
-                    ret[idx_] = ret[idx_].compose(row, qargs=qargs)
+            if np.sum(idx_) == num_paulis:
+                ret.compose(row, qargs=qargs, inplace=True)
+            else:
+                ret[idx_] = ret[idx_].compose(row, qargs=qargs)
 
         return ret
 

@@ -165,7 +165,9 @@ pub trait Instruction {
             OperationRef::PyCustom(i) => i.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
             OperationRef::PauliProductRotation(ppr) => ppr.matrix(),
-            OperationRef::CustomOperation(custom) => custom.matrix(self.params_view()),
+            OperationRef::CustomOperation(custom) => {
+                custom.matrix(self.params_view()).ok().flatten()
+            }
             _ => None,
         }
     }
@@ -194,5 +196,6 @@ pub fn create_py_op(
         OperationRef::CustomOperation(custom) => {
             custom.create_py_op(py, params.map(|p| p.unwrap_params()), label)
         }
+        OperationRef::Store(store) => store.create_py_op(py, label),
     }
 }

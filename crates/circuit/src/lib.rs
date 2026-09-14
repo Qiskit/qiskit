@@ -217,6 +217,7 @@ impl From<CapacityError> for PyErr {
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<annotation::PyAnnotation>()?;
+    m.add_class::<annotation::PyNativeAnnotation>()?;
     m.add_class::<bit::PyBit>()?;
     m.add_class::<bit::PyClbit>()?;
     m.add_class::<bit::PyQubit>()?;
@@ -228,7 +229,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
 
     m.add_class::<circuit_data::PyCircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
-    m.add_class::<dag_circuit::DAGCircuit>()?;
+    m.add_class::<dag_circuit::PyDAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;
