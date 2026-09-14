@@ -12,6 +12,8 @@
 
 use ndarray::Array2;
 use num_complex::Complex64;
+use numpy::{IntoPyArray, PyArray2};
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use std::error;
 use std::f64::consts::PI;
@@ -40,6 +42,19 @@ impl QFTGate {
     pub fn num_qubits(&self) -> u32 {
         self.num_qubits
     }
+}
+
+/// Return the unitary matrix of an ``n``-qubit QFT as a NumPy array.
+#[pyfunction]
+#[pyo3(name = "qft_matrix")]
+pub fn py_qft_matrix<'py>(
+    py: Python<'py>,
+    num_qubits: u32,
+) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
+    let matrix = CustomOperation::matrix(&QFTGate::new(num_qubits), &[])
+        .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
+        .ok_or_else(|| PyRuntimeError::new_err("QFTGate has no matrix representation"))?;
+    Ok(matrix.into_pyarray(py))
 }
 
 impl Operation for QFTGate {

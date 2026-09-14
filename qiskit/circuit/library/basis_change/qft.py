@@ -15,6 +15,8 @@
 from __future__ import annotations
 import numpy as np
 
+from qiskit._accelerate.circuit import qft_matrix as _qft_matrix
+
 from qiskit.circuit.quantumcircuit import QuantumRegister, CircuitInstruction, Gate
 from qiskit.utils.deprecation import deprecate_func
 from ..blueprintcircuit import BlueprintCircuit
@@ -307,10 +309,7 @@ class QFTGate(Gate):
         """Return a numpy array for the QFTGate."""
         if copy is False:
             raise ValueError("unable to avoid copy while creating an array as requested")
-        n = self.num_qubits
-        nums = np.arange(2**n)
-        outer = np.outer(nums, nums)
-        return np.exp(2j * np.pi * outer * (0.5**n), dtype=dtype) * (0.5 ** (n / 2))
+        return np.asarray(_qft_matrix(self.num_qubits), dtype=dtype)
 
     def _define(self):
         """Provide a specific decomposition of the QFTGate into a quantum circuit."""
