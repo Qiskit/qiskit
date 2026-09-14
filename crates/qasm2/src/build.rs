@@ -231,10 +231,9 @@ impl GateRegistry {
     }
 }
 
-/// Unlike the Python route in `bytecode_from_string`/`bytecode_from_file`, which consumes the
-/// bytecode lazily, the whole stream must be materialised first.  See [GateRegistry] for a caveat
-/// about custom instructions.
-pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData, ParseError> {
+pub(crate) fn build_circuit(
+    bytecode: impl IntoIterator<Item = Result<InternalBytecode, ParseError>>,
+) -> Result<CircuitData, ParseError> {
     let mut circuit = CircuitData::new(None, None, Param::Float(0.0))
         .map_err(|err| ParseError::new(format!("failed to create circuit: {err}")))?;
     let mut registry = GateRegistry::new();
@@ -244,7 +243,7 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
     let mut current_body: Option<(String, u32, u32, Vec<BodyInstruction>)> = None;
 
     for instruction in bytecode {
-        match instruction {
+        match &instruction? {
             InternalBytecode::Gate {
                 id,
                 arguments,
