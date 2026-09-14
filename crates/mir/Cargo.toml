@@ -1,0 +1,13 @@
+[package]
+name = "qiskit-mir"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_mir"
+doctest = false
+
+[lints]
+workspace = true
