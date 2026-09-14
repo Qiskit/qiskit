@@ -1319,7 +1319,7 @@ static int instruction_view_cmp(const QkCircuitInstructionView *a,
         return ret;
     if ((ret = memcmp(a->clbits, b->clbits, sizeof(a->qubits[0]) * a->num_clbits)))
         return ret;
-    const size_t param_size = qk_param_type_width();
+    const size_t param_size = qk_param_stride();
     for (size_t i = 0; i < a->num_params; i++) {
         if (!qk_param_equal((const QkParam *)((const char *)a->params + i * param_size),
                             b_params[i])) {

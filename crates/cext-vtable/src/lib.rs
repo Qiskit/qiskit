@@ -251,7 +251,7 @@ mod param {
             export_fn!(qk_param_conjugate),
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
-            export_fn!(qk_param_type_width),
+            export_fn!(qk_param_stride),
         ]
     });
 }

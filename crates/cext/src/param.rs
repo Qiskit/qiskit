@@ -1057,7 +1057,7 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
 ///
 /// ```c
 /// const QkParam *p;  // A pretend pointer to the first of 3 contiguous elements.
-/// const size_t el_size = qk_param_type_width();
+/// const size_t el_size = qk_param_stride();
 /// for (size_t i = 0; i < 3; i++) {
 ///     // Offset the pointer by `el_size` bytes each time.
 ///     p = (const QkParam *)((const char *)p + el_size);
@@ -1068,7 +1068,7 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
 /// }
 /// ```
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_param_type_width() -> usize {
+pub extern "C" fn qk_param_stride() -> usize {
     mem::size_of::<Param>()
 }
 
@@ -1085,17 +1085,15 @@ mod test {
                 Symbol::standalone("a".to_owned(), None),
             ))),
         ];
-        assert_eq!(mem::size_of::<Param>(), qk_param_type_width());
+        assert_eq!(mem::size_of::<Param>(), qk_param_stride());
         let base = params.as_ptr();
         assert_eq!(
             base.wrapping_add(2).addr(),
-            base.cast::<u8>()
-                .wrapping_add(2 * qk_param_type_width())
-                .addr()
+            base.cast::<u8>().wrapping_add(2 * qk_param_stride()).addr()
         );
         let middle_ptr = base
             .cast::<u8>()
-            .wrapping_add(qk_param_type_width())
+            .wrapping_add(qk_param_stride())
             .cast::<Param>();
         assert!(params[1].eq(unsafe { &*middle_ptr }).unwrap());
     }

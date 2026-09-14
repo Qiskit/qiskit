@@ -1628,14 +1628,14 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// ```
 ///
 ///
-/// In order to iterate through the `params` field, you must call `qk_param_type_width` at runtime
-/// to discover the width of the `QkParam` field, and then offset the pointer by a byte offset.  For
+/// In order to iterate through the `params` field, you must call `qk_param_stride` at runtime to
+/// discover the width of the `QkParam` field, and then offset the pointer by a byte offset.  For
 /// example:
 ///
 /// ```c
 /// QkCircuitInstructionView view;
 /// qk_circuit_view_instruction(qc, 0, &view);
-/// size_t el_size = qk_param_type_width();
+/// size_t el_size = qk_param_stride();
 /// for (size_t i=0; i < view.num_params; i++) {
 ///     const QkParam *p = (const QkParam *)((const char *)view.params + i*el_size);
 ///     // ... do something with `p` ...
@@ -1650,8 +1650,8 @@ pub struct CInstructionView {
     pub qubits: *const u32,
     /// The clbits used by the instruction.
     pub clbits: *const u32,
-    /// An array of `num_params` `QkParam` instances. Offset the pointer by `qk_param_type_width`
-    /// bytes to iterate through valid `*const QkParam` instances; you cannot use regular pointer
+    /// An array of `num_params` `QkParam` instances. Offset the pointer by `qk_param_stride` bytes
+    /// to iterate through valid `*const QkParam` instances; you cannot use regular pointer
     /// arithmetic because the size of `QkParam` is not specified in the compile-time API.
     pub params: *const Param,
     /// How many bytes the non-nul-terminated UTF-8 string in `name` is.

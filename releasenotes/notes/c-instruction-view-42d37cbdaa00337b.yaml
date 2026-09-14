@@ -10,5 +10,5 @@ features_c:
     which is more performant, but requires some special handling to use the non-idiomatic data
     formats from C; see the documentation of :c:struct:`QkCircuitInstructionView`.
   - |
-    Added :c:func:`qk_param_type_width`, which returns the runtime size in bytes of the opaque
-    ``QkParam`` type.
+    Added :c:func:`qk_param_stride`, which returns the runtime size in bytes needed to offset
+    ``QkParam *`` pointers that point to contiguous arrays.
