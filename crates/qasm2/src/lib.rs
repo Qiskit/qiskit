@@ -46,22 +46,14 @@ pub fn circuit_from_string(
     custom_classical: &[CustomClassical],
     strict: bool,
 ) -> Result<qiskit_circuit::circuit_data::CircuitData, ParseError> {
-    let mut state = parse::State::new(
+    let state = parse::State::new(
         lex::TokenStream::from_string(program, strict),
         include_path,
         custom_instructions,
         custom_classical,
         strict,
     )?;
-    // `parse_next` handles a single statement, which can expand to several instructions; we drain
-    // its buffer into `bytecode` after each call so the buffer allocation is reused.
-    let mut buffer = Vec::new();
-    let mut bytecode = Vec::new();
-    let evaluator = ClassicalEvaluator::detached();
-    while state.parse_next(&mut buffer, evaluator)?.is_some() {
-        bytecode.extend(buffer.drain(..).flatten());
-    }
-    build::build_circuit(&bytecode)
+    build::build_circuit(bytecode::Iter::new(state))
 }
 
 /// Create a bytecode iterable from a string containing an OpenQASM 2 program.  The iterable will
