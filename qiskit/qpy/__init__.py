@@ -489,9 +489,9 @@ Delay units
 ~~~~~~~~~~~
 Version 18 stores the unit of a :class:`.Delay` as a second instruction parameter containing
 the unit's string representation. This parameter is removed while deserializing the instruction,
-and is not part of the parameters of the loadrd instruction.
-The parameter is omitted when the unit is :attr:`.DelayUnit.DT`, which remains the default.
+and is not part of the :attr:`~.Instruction.params` attribute of the loaded instruction
 In previous versions the unit was not stored, so all deserialized delays were interpreted as having the :attr:`.DelayUnit.DT` unit.
+This behavior is retained when the unit is :attr:`.DelayUnit.DT` and the second parameter is omitted.
 
 PARAMETER_VECTOR_TABLE
 ~~~~~~~~~~~~~~~~~~~~~~

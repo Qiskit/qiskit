@@ -1017,7 +1017,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for DelayUnit {
 unsafe impl ::bytemuck::NoUninit for DelayUnit {}
 
 impl DelayUnit {
-    pub fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &str {
         match self {
             DelayUnit::NS => "ns",
             DelayUnit::PS => "ps",
@@ -1037,7 +1037,7 @@ impl fmt::Display for DelayUnit {
 }
 
 impl FromStr for DelayUnit {
-    type Err = PyErr;
+    type Err = ();
 
     fn from_str(name: &str) -> Result<Self, Self::Err> {
         match name {
@@ -1048,9 +1048,7 @@ impl FromStr for DelayUnit {
             "s" => Ok(DelayUnit::S),
             "dt" => Ok(DelayUnit::DT),
             "expr" => Ok(DelayUnit::EXPR),
-            unknown_unit => Err(PyValueError::new_err(format!(
-                "Unit '{unknown_unit}' is invalid."
-            ))),
+            _ => Err(()),
         }
     }
 }
@@ -1059,8 +1057,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
     type Error = PyErr;
 
     fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let str: String = b.extract()?;
-        DelayUnit::from_str(&str)
+        let name: &str = b.extract()?;
+        name.parse()
+            .map_err(|_| PyValueError::new_err(format!("Unit '{name}' is invalid.")))
     }
 }
 
