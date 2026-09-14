@@ -13,7 +13,6 @@
 use ndarray::Array2;
 use num_complex::Complex64;
 use pyo3::prelude::*;
-use smallvec::SmallVec;
 use std::error;
 use std::f64::consts::PI;
 
@@ -65,6 +64,13 @@ impl Operation for QFTGate {
     }
 }
 
+pub fn create_py_op_for_qft(py: Python, qft: &QFTGate) -> PyResult<Py<PyAny>> {
+    Ok(imports::QFT_GATE
+        .get_bound(py)
+        .call1((qft.num_qubits,))?
+        .unbind())
+}
+
 impl CustomOperation for QFTGate {
     fn is_unitary(&self) -> bool {
         true
@@ -84,17 +90,17 @@ impl CustomOperation for QFTGate {
         })))
     }
 
-    fn create_py_op(
-        &self,
-        py: Python,
-        _params: Option<SmallVec<[Param; 3]>>,
-        _label: Option<&str>,
-    ) -> PyResult<Py<PyAny>> {
-        Ok(imports::QFT_GATE
-            .get_bound(py)
-            .call1((self.num_qubits,))?
-            .unbind())
-    }
+    // fn create_py_op(
+    //     &self,
+    //     py: Python,
+    //     _params: Option<SmallVec<[Param; 3]>>,
+    //     _label: Option<&str>,
+    // ) -> PyResult<Py<PyAny>> {
+    //     Ok(imports::QFT_GATE
+    //         .get_bound(py)
+    //         .call1((self.num_qubits,))?
+    //         .unbind())
+    // }
 
     // ToDo:
     // Due to dependency between rust packages, we cannot take the definition from the synthesis

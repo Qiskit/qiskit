@@ -11,9 +11,11 @@
 // that they have been altered from the originals.
 
 use crate::circuit_data::CircuitData;
+use crate::custom_operations::{QFTGate, create_py_op_for_qft};
 use crate::operations::{OperationRef, Param};
 use ndarray::Array2;
 use num_complex::Complex64;
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use smallvec::SmallVec;
 
@@ -193,9 +195,17 @@ pub fn create_py_op(
         }
         OperationRef::PyCustom(inst) => Ok(inst.ob.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
-        OperationRef::CustomOperation(custom) => {
-            custom.create_py_op(py, params.map(|p| p.unwrap_params()), label)
-        }
+        OperationRef::CustomOperation(custom) => match custom.name() {
+            "qft" => {
+                let Some(downcast_op) = custom.downcast_ref::<QFTGate>() else {
+                    panic!("Gate should be a custom gate of type QFTGate");
+                };
+                create_py_op_for_qft(py, downcast_op)
+            }
+            _ => Err(PyNotImplementedError::new_err(
+                "Custom operations from Rust cannot be exposed to Python",
+            )),
+        },
         OperationRef::Store(store) => store.create_py_op(py, label),
     }
 }

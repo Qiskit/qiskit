@@ -42,7 +42,7 @@ use num_complex::{Complex64, c64};
 use smallvec::SmallVec;
 
 use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
-use pyo3::exceptions::{PyNotImplementedError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyTuple, PyType};
 use pyo3::{IntoPyObjectExt, Python, intern};
@@ -2105,18 +2105,6 @@ pub trait CustomOperation:
 
     /// Returns whether the operation is based on a unitary matrix.
     fn is_unitary(&self) -> bool;
-
-    fn create_py_op(
-        &self,
-        _py: Python,
-        _params: Option<SmallVec<[Param; 3]>>,
-        _label: Option<&str>,
-    ) -> PyResult<Py<PyAny>> {
-        Err(PyNotImplementedError::new_err(format!(
-            "custom operation '{}' cannot be exposed to Python",
-            self.name()
-        )))
-    }
 }
 
 impl PartialEq for dyn CustomOperation {

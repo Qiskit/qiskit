@@ -24,6 +24,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
+use qiskit_circuit::instruction::create_py_op;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, StandardGate, StandardInstruction, radd_param,
 };
@@ -863,15 +864,8 @@ fn synthesize_operation(
 
     // Try to synthesize using plugins.
     if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
-        output_circuit_and_qubits = synthesize_op_using_plugins(
-            py,
-            data,
-            tracker,
-            input_qubits,
-            &op.view(),
-            params,
-            label,
-        )?;
+        output_circuit_and_qubits =
+            synthesize_op_using_plugins(py, data, tracker, input_qubits, op.view(), params, label)?;
     }
 
     // Check if present in the equivalent library.
@@ -940,31 +934,19 @@ fn synthesize_op_using_plugins(
     data: &Bound<HighLevelSynthesisData>,
     tracker: &mut QubitTracker,
     input_qubits: &[Qubit],
-    op: &OperationRef,
+    op: OperationRef,
     params: &[Param],
     label: Option<&str>,
 ) -> PyResult<Option<(CircuitData, Vec<Qubit>)>> {
     let mut output_circuit_and_qubits: Option<(CircuitData, Vec<Qubit>)> = None;
 
-    let op_py = match op {
-        OperationRef::ControlFlow(_) => panic!("control flow should not be present"),
-        OperationRef::StandardGate(standard) => standard
-            .create_py_op(py, Some(params.iter().cloned().collect()), label)?
-            .into_any(),
-        OperationRef::StandardInstruction(instruction) => instruction
-            .create_py_op(py, Some(params.iter().cloned().collect()), label)?
-            .into_any(),
-        OperationRef::PyCustom(inst) => inst.ob.clone_ref(py),
-        OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
-        OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
-        OperationRef::PauliProductRotation(rotation) => {
-            rotation.create_py_op(py, label)?.into_any()
-        }
-        OperationRef::CustomOperation(custom) => custom
-            .create_py_op(py, Some(params.iter().cloned().collect()), label)?
-            .into_any(),
-        OperationRef::Store(store) => store.create_py_op(py, label)?.into_any(),
-    };
+    let op_py = create_py_op(
+        py,
+        op,
+        Some(Parameters::Params(params.iter().cloned().collect())),
+        label,
+    )?
+    .into_any();
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS
         .get_bound(py)
