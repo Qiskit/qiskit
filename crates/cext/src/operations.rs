@@ -187,9 +187,12 @@ impl CustomOperation for CustomOp {
     }
 
     fn label(&self) -> Option<&str> {
-        unsafe { CStr::from_ptr((({ &*self.v_table }).label)(self.orig)) }
-            .to_str()
-            .ok()
+        let label = unsafe { (({ &*self.v_table }).label)(self.orig) };
+        if label.is_null() {
+            None
+        } else {
+            unsafe { CStr::from_ptr(label) }.to_str().ok()
+        }
     }
 }
 
