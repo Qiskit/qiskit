@@ -71,10 +71,30 @@ on:
 
 
 jobs:
+  config_pre:
+    name: "Configure"
+    uses: ./.github/workflows/config.yml
+
+  config:
+    # We set the Python versions to build and test using our configured values in GitHub Actions,
+    # rather than duplicating them into `pyproject.toml`.  Setting `CIBW_PROJECT_REQUIRES_PYTHON`
+    # doesn't affect the metadata of the wheel, it just overrides `cibuildwheel`'s detection of
+    # which versions of Python are supported.  We use that rather than `CIBW_BUILD` because it's
+    # easier to use that as a coarse-grained platform/ABI selector.
+    outputs:
+      requires-python: ${{ steps.output.outputs.requires-python }}
+    needs: [config_pre]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set requires-python
+        id: output
+        run: echo 'requires-python=>=${{ needs.config_pre.outputs.python-old }},<=${{ needs.config_pre.outputs.python-new }}' >> $GITHUB_OUTPUT
+
   wheels-tier-1:
     name: "Wheels / Tier 1"
     if: (inputs.wheels-tier-1 == 'default' && inputs.default-action || inputs.wheels-tier-1) == 'build'
     runs-on: ${{ matrix.os }}
+    needs: [config]
     strategy:
       fail-fast: false
       matrix:
@@ -124,6 +144,8 @@ jobs:
         run: python3 -m pip install --user -r ./.github/workflows/wheels/requirements.txt
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
+        env:
+          CIBW_PROJECT_REQUIRES_PYTHON: ${{ needs.config.outputs.requires-python }}
 
       - uses: actions/upload-artifact@v7
         with:
@@ -133,6 +155,7 @@ jobs:
     name: "Wheels / macOS x86_64"
     if: (inputs.wheels-macos-intel == 'default' && inputs.default-action || inputs.wheels-macos-intel) == 'build'
     runs-on: macos-15-intel
+    needs: [config]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -146,6 +169,8 @@ jobs:
         run: python3 -m pip install --user -r ./.github/workflows/wheels/requirements.txt
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
+        env:
+          CIBW_PROJECT_REQUIRES_PYTHON: ${{ needs.config.outputs.requires-python }}
 
       - uses: actions/upload-artifact@v7
         with:
@@ -157,6 +182,7 @@ jobs:
     name: "Wheels / Linux s390x"
     if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
     runs-on: ubuntu-24.04-s390x
+    needs: [config]
     steps:
       - uses: actions/checkout@v7
       - name: Install Rust
@@ -166,6 +192,8 @@ jobs:
         run: python3 -m pip install --user -r ./.github/workflows/wheels/requirements.txt
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
+        env:
+          CIBW_PROJECT_REQUIRES_PYTHON: ${{ needs.config.outputs.requires-python }}
 
       - uses: actions/upload-artifact@v7
         with:
@@ -176,6 +204,7 @@ jobs:
     name: "Wheels / Linux ppc64le"
     if: (inputs.wheels-linux-ppc64le == 'default' && inputs.default-action || inputs.wheels-linux-ppc64le) == 'build'
     runs-on: ubuntu-24.04-ppc64le
+    needs: [config]
     steps:
       - uses: actions/checkout@v7
       - name: Install Rust
@@ -185,6 +214,8 @@ jobs:
         run: python3 -m pip install --user -r ./.github/workflows/wheels/requirements.txt
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
+        env:
+          CIBW_PROJECT_REQUIRES_PYTHON: ${{ needs.config.outputs.requires-python }}
 
       - uses: actions/upload-artifact@v7
         with:
@@ -195,6 +226,7 @@ jobs:
     name: "sdist"
     if: (inputs.sdist == 'default' && inputs.default-action || inputs.sdist) == 'build'
     runs-on: ubuntu-latest
+    needs: [config]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
