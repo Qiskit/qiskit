@@ -276,6 +276,7 @@ fn pack_instruction(
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
     if matches!(qpy_data.caller, QpyCaller::Python)
+        && !matches!(instruction.op.view(), OperationRef::CustomOperation(_))
         && let Some(new_name) =
             qpy_data
                 .caller
