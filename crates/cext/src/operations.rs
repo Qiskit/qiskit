@@ -592,9 +592,10 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     >(slot.func)
                 })
             }
-            Err(_) => {
-                continue;
-            }
+            // We have left case this open so that if a method is removed from the
+            // `CustomOperation` API the slot will get ignored instead of triggering
+            // an error or leading to undefined behavior.
+            Err(_) => (),
         }
         slots = unsafe { slots.add(1) };
         slot = unsafe { slots.read() };
