@@ -15,7 +15,7 @@ use crate::custom_operations::{QFTGate, create_py_op_for_qft};
 use crate::operations::{OperationRef, Param};
 use ndarray::Array2;
 use num_complex::Complex64;
-use pyo3::exceptions::PyNotImplementedError;
+use pyo3::exceptions::{PyNotImplementedError, PyRuntimeError};
 use pyo3::prelude::*;
 use smallvec::SmallVec;
 
@@ -198,7 +198,9 @@ pub fn create_py_op(
         OperationRef::CustomOperation(custom) => match custom.name() {
             "qft" => {
                 let Some(downcast_op) = custom.downcast_ref::<QFTGate>() else {
-                    panic!("Gate should be a custom gate of type QFTGate");
+                    return Err(PyRuntimeError::new_err(
+                        "expected a custom operation named 'qft' to be a QFTGate",
+                    ));
                 };
                 create_py_op_for_qft(py, downcast_op)
             }

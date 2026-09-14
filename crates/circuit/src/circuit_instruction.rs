@@ -933,21 +933,14 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
             });
         } else if ob_name == "qft" {
             // ToDo: should we handle subclasses of QFTGate gates (coming from Python)?
-
-            // To ensure that this is a real QFT gate from Python and not some other custom gate also named "qft",
-            // the Python QFT gates have a `_is_rust_custom_operation` field at the class level so we can
-            // quickly identify them here without an `isinstance` check.
-            let is_qft = ob_type
-                .getattr(intern!(py, "_is_rust_custom_operation"))
+            if let Some(gate) = ob
+                .getattr(intern!(py, "_inner"))
                 .ok()
-                .and_then(|marker| marker.extract::<bool>().ok())
-                .unwrap_or(false);
-            if is_qft && extract_label()?.is_none() {
-                let num_qubits = ob.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
+                .and_then(|inner| inner.extract::<QFTGate>().ok())
+                && extract_label()?.is_none()
+            {
                 return Ok(OperationFromPython {
-                    operation: PackedOperation::from_custom_operation(Box::new(QFTGate::new(
-                        num_qubits,
-                    ))),
+                    operation: PackedOperation::from_custom_operation(Box::new(gate)),
                     params: None,
                     label: None,
                 });
