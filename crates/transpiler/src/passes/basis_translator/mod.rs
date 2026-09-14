@@ -667,14 +667,7 @@ fn param_expr_assignment(
                 bind_map.insert(key, val);
             }
             Param::Int(int) => {
-                bind_map.insert(
-                    key,
-                    Value::Int(
-                        (*int)
-                            .try_into()
-                            .expect("Unsigned integer does not fit in an i64 slot."),
-                    ),
-                );
+                bind_map.insert(key, Value::Int(*int));
             }
         }
     }

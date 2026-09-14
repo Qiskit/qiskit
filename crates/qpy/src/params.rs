@@ -587,11 +587,11 @@ pub(crate) fn pack_param_obj(
             // TODO: Update this model to fully support `u64`.
             Endian::Little => formats::GenericDataPack {
                 type_key: ValueType::Integer,
-                data: i64::try_from(*int)?.to_le_bytes().into(),
+                data: int.to_le_bytes().into(),
             },
             Endian::Big => formats::GenericDataPack {
                 type_key: ValueType::Integer,
-                data: i64::try_from(*int)?.to_be_bytes().into(),
+                data: int.to_be_bytes().into(),
             },
         },
     })

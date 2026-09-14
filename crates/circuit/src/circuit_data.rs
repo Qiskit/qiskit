@@ -1269,10 +1269,7 @@ impl CircuitData {
                     })?
                 }
                 Param::Int(u) => {
-                    let map: HashMap<&Symbol, Value> = HashMap::from([(
-                        symbol,
-                        Value::Int((*u).try_into().map_err(|_| ParameterError::InvalidValue)?),
-                    )]);
+                    let map: HashMap<&Symbol, Value> = HashMap::from([(symbol, Value::Int(*u))]);
                     expr.bind(&map, false)?
                 }
             };

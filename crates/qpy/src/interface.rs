@@ -492,7 +492,7 @@ mod tests {
                 PackedOperation::from_standard_instruction(StandardInstruction::Delay(
                     DelayUnit::DT,
                 )),
-                smallvec![Param::Int(u64::MAX)],
+                smallvec![Param::Int(i64::MAX)],
                 vec![Qubit(0)],
                 Vec::with_capacity(0),
             ))],

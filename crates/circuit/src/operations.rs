@@ -56,11 +56,11 @@ pub use crate::standard_gate::*;
 /// This enumeration has 3(+1) variants:
 /// - [`Param::ParameterExpression`]: Representing an unbound parameter.
 /// - [`Param::Float`]: Represents a bound parameter with a real value
-/// associated with it.
+///   associated with it.
 /// - [`Param::Int`]: Used exclusively to represent a duration in terms of
-/// `Dt` for a [`StandardInstruction::Delay`].
+///   `Dt` for a [`StandardInstruction::Delay`].
 /// - [`Param::Obj`]: (only used when python is involved). Represents
-/// parameters that are historically not representable in Rust.
+///   parameters that are historically not representable in Rust.
 #[derive(Clone, Debug)]
 pub enum Param {
     /// Represents an unbound parameter as either a symbol or an expression
@@ -72,7 +72,7 @@ pub enum Param {
     /// [`StandardInstruction::Delay`]. `Dt` represents a native cycle of time
     /// for a QPU and therefore this parameter can only represent amounts of
     /// said magnitude.
-    Int(u64),
+    Int(i64),
     /// Represents a bound parameter with a real value associated with it.
     /// This, alongside [`Param::ParameterExpression`], is the most common
     /// way a parameter is associated with a [`StandardGate`] in Qiskit,
@@ -160,7 +160,7 @@ impl Param {
             }
             [Self::Int(int), Self::ParameterExpression(expr)]
             | [Self::ParameterExpression(expr), Self::Int(int)] => {
-                let int_as_val: Value = (*int).try_into()?;
+                let int_as_val: Value = (*int).into();
                 Ok(ParameterExpression::from(int_as_val) == **expr)
             }
             [Self::Int(int), Self::Obj(obj)] | [Self::Obj(obj), Self::Int(int)] => {
@@ -224,12 +224,7 @@ impl Param {
                     if coerce_to_float {
                         Ok(Self::Float(i as f64)) // coerce integer to float
                     } else {
-                        // Only extract to integer if the value fits within an unsigned integer
-                        if let Ok(unsigned) = i.try_into() {
-                            Ok(Self::Int(unsigned))
-                        } else {
-                            Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
-                        }
+                        Ok(Self::Int(i))
                     }
                 }
                 Value::Real(f) => Ok(Self::Float(f)),
@@ -264,9 +259,6 @@ impl Param {
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
             if Some(true) == py_expr.inner.is_int() {
                 let Value::Int(int) = py_expr.inner.try_to_value(true)? else {
-                    return Ok(Param::Obj(ob.to_owned().unbind()));
-                };
-                let Ok(int) = int.try_into() else {
                     return Ok(Param::Obj(ob.to_owned().unbind()));
                 };
                 Param::Int(int)

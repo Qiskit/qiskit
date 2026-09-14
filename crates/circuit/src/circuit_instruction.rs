@@ -454,7 +454,7 @@ impl CircuitInstruction {
                                 Param::Obj(right) => right.bind(py).eq(left.as_ref().clone())?,
                                 Param::Int(right) => {
                                     let right_val: crate::parameter::symbol_expr::Value =
-                                        (*right).try_into()?;
+                                        (*right).into();
                                     left.as_ref() == &ParameterExpression::from(right_val)
                                 }
                             },
@@ -463,7 +463,7 @@ impl CircuitInstruction {
                                 Param::Float(right) => &(*left as f64) == right,
                                 Param::ParameterExpression(right) => {
                                     let left_val: crate::parameter::symbol_expr::Value =
-                                        (*left).try_into()?;
+                                        (*left).into();
                                     &ParameterExpression::from(left_val) == right.as_ref()
                                 }
                                 Param::Obj(right) => right.bind(py).eq(left)?,

@@ -1181,13 +1181,7 @@ impl<'a> QASM3Builder {
             Param::Int(val) => int_to_duration_literal(*val, delay_unit)?,
             Param::ParameterExpression(p) => match p.try_to_value(true) {
                 Ok(symbol_expr::Value::Real(val)) => float_to_duration_literal(val, delay_unit)?,
-                Ok(symbol_expr::Value::Int(val)) => {
-                    if let Ok(val) = val.try_into() {
-                        int_to_duration_literal(val, delay_unit)?
-                    } else {
-                        float_to_duration_literal(val as f64, delay_unit)? // Lossy conversion.
-                    }
-                }
+                Ok(symbol_expr::Value::Int(val)) => int_to_duration_literal(val, delay_unit)?,
                 _ => {
                     panic!("Failed to parse parameter value")
                 }
@@ -1368,10 +1362,15 @@ fn float_to_duration_literal(
 }
 
 fn int_to_duration_literal(
-    val: u64,
+    val: i64,
     unit: DelayUnit,
 ) -> Result<DurationLiteral, QASM3ExporterError> {
     // Any param with an integer value should only be reserved for DT
+    let val: u64 = val.try_into().map_err(|_| {
+        QASM3ExporterError::Error(format!(
+            "The Delay instruction found a negative duration: '{val}'."
+        ))
+    })?;
     match unit {
         DelayUnit::DT => Ok(DurationLiteral::from(val)),
         _ => Err(QASM3ExporterError::Error(format!(
