@@ -73,6 +73,7 @@ pub enum InternalBytecode {
     DeclareGate {
         name: String,
         num_qubits: usize,
+        num_params: usize,
     },
     GateInBody {
         id: GateId,
@@ -83,6 +84,7 @@ pub enum InternalBytecode {
     DeclareOpaque {
         name: String,
         num_qubits: usize,
+        num_params: usize,
     },
     SpecialInclude {
         indices: Vec<usize>,
@@ -165,7 +167,12 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     opcode: OpCode::DeclareCreg,
                     operands: (name, size).into_pyobject(py)?.into_any().unbind(),
                 },
-                InternalBytecode::DeclareGate { name, num_qubits } => Bytecode {
+                // `num_params` isn't forwarded: `parse.py` infers it from the call site.
+                InternalBytecode::DeclareGate {
+                    name,
+                    num_qubits,
+                    num_params: _,
+                } => Bytecode {
                     opcode: OpCode::DeclareGate,
                     operands: (name, num_qubits).into_pyobject(py)?.into_any().unbind(),
                 },
@@ -187,7 +194,11 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     opcode: OpCode::EndDeclareGate,
                     operands: ().into_pyobject(py)?.into_any().unbind(),
                 },
-                InternalBytecode::DeclareOpaque { name, num_qubits } => Bytecode {
+                InternalBytecode::DeclareOpaque {
+                    name,
+                    num_qubits,
+                    num_params: _,
+                } => Bytecode {
                     opcode: OpCode::DeclareOpaque,
                     operands: (name, num_qubits).into_pyobject(py)?.into_any().unbind(),
                 },

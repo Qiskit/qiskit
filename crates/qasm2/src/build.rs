@@ -48,6 +48,13 @@ impl GateEntry {
             GateEntry::Defined(template) => template.num_qubits,
         }
     }
+
+    fn num_params(&self) -> u32 {
+        match self {
+            GateEntry::Standard(gate) => gate.num_params(),
+            GateEntry::Defined(template) => template.num_params,
+        }
+    }
 }
 
 enum BodyInstruction {
@@ -67,6 +74,7 @@ enum BodyInstruction {
 struct DefinedGateTemplate {
     name: String,
     num_qubits: u32,
+    num_params: u32,
     body: Option<Vec<BodyInstruction>>,
 }
 
@@ -129,14 +137,13 @@ impl DefinedGateTemplate {
 #[derive(Clone)]
 struct DefinedGate {
     template: Arc<DefinedGateTemplate>,
-    num_params: u32,
 }
 
 impl fmt::Debug for DefinedGate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("DefinedGate")
             .field("name", &self.template.name)
-            .field("num_params", &self.num_params)
+            .field("num_params", &self.template.num_params)
             .finish()
     }
 }
@@ -145,7 +152,7 @@ impl fmt::Debug for DefinedGate {
 /// separate `build_circuit` calls compare unequal.
 impl PartialEq for DefinedGate {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.template, &other.template) && self.num_params == other.num_params
+        Arc::ptr_eq(&self.template, &other.template)
     }
 }
 
@@ -160,7 +167,7 @@ impl Operation for DefinedGate {
         0
     }
     fn num_params(&self) -> u32 {
-        self.num_params
+        self.template.num_params
     }
     fn directive(&self) -> bool {
         false
@@ -200,11 +207,18 @@ impl GateRegistry {
         }
     }
 
-    fn declare(&mut self, name: String, num_qubits: u32, body: Option<Vec<BodyInstruction>>) {
+    fn declare(
+        &mut self,
+        name: String,
+        num_qubits: u32,
+        num_params: u32,
+        body: Option<Vec<BodyInstruction>>,
+    ) {
         self.gates
             .push(GateEntry::Defined(Arc::new(DefinedGateTemplate {
                 name,
                 num_qubits,
+                num_params,
                 body,
             })));
     }
@@ -225,8 +239,9 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
         .map_err(|err| ParseError::new(format!("failed to create circuit: {err}")))?;
     let mut registry = GateRegistry::new();
     let mut cregs: Vec<ClassicalRegister> = Vec::new();
-    // Set while recording a `gate`/`opaque` body, between `DeclareGate` and `EndDeclareGate`.
-    let mut current_body: Option<(String, u32, Vec<BodyInstruction>)> = None;
+    // Set while recording a `gate`/`opaque` body, between `DeclareGate` and `EndDeclareGate`;
+    // the fields are the gate's name, qubit count, parameter count and body so far.
+    let mut current_body: Option<(String, u32, u32, Vec<BodyInstruction>)> = None;
 
     for instruction in bytecode {
         match instruction {
@@ -255,7 +270,7 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                 )?;
             }
             InternalBytecode::Barrier { qubits } => {
-                if let Some((_, _, body)) = current_body.as_mut() {
+                if let Some((_, _, _, body)) = current_body.as_mut() {
                     body.push(BodyInstruction::Barrier {
                         qubits: qubits.clone(),
                     });
@@ -353,13 +368,22 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                     },
                 )?;
             }
-            InternalBytecode::DeclareGate { name, num_qubits } => {
+            InternalBytecode::DeclareGate {
+                name,
+                num_qubits,
+                num_params,
+            } => {
                 if current_body.is_some() {
                     return Err(ParseError::new(
                         "nested gate declaration: missing an EndDeclareGate",
                     ));
                 }
-                current_body = Some((name.clone(), *num_qubits as u32, Vec::new()));
+                current_body = Some((
+                    name.clone(),
+                    *num_qubits as u32,
+                    *num_params as u32,
+                    Vec::new(),
+                ));
             }
             InternalBytecode::GateInBody {
                 id,
@@ -367,7 +391,7 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                 qubits,
             } => {
                 let entry = registry.get(*id)?;
-                let (_, _, body) = current_body.as_mut().ok_or_else(|| {
+                let (_, _, _, body) = current_body.as_mut().ok_or_else(|| {
                     ParseError::new("gate body instruction outside of a gate declaration")
                 })?;
                 body.push(BodyInstruction::Gate {
@@ -377,18 +401,23 @@ pub(crate) fn build_circuit(bytecode: &[InternalBytecode]) -> Result<CircuitData
                 });
             }
             InternalBytecode::EndDeclareGate {} => {
-                let (name, num_qubits, body) = current_body.take().ok_or_else(|| {
-                    ParseError::new("EndDeclareGate without a matching DeclareGate")
-                })?;
-                registry.declare(name, num_qubits, Some(body));
+                let (name, num_qubits, num_params, body) =
+                    current_body.take().ok_or_else(|| {
+                        ParseError::new("EndDeclareGate without a matching DeclareGate")
+                    })?;
+                registry.declare(name, num_qubits, num_params, Some(body));
             }
-            InternalBytecode::DeclareOpaque { name, num_qubits } => {
+            InternalBytecode::DeclareOpaque {
+                name,
+                num_qubits,
+                num_params,
+            } => {
                 if current_body.is_some() {
                     return Err(ParseError::new(
                         "opaque declaration nested inside another gate declaration",
                     ));
                 }
-                registry.declare(name.clone(), *num_qubits as u32, None);
+                registry.declare(name.clone(), *num_qubits as u32, *num_params as u32, None);
             }
         }
     }
@@ -420,24 +449,21 @@ fn push_gate(
             qargs.len(),
         )));
     }
+    if arguments.len() != entry.num_params() as usize {
+        return Err(ParseError::new(format!(
+            "gate registry desync: resolved gate takes {} parameters, but {} were given",
+            entry.num_params(),
+            arguments.len(),
+        )));
+    }
     let params: Vec<Param> = arguments.iter().map(|&v| Param::Float(v)).collect();
     match entry {
-        GateEntry::Standard(gate) => {
-            if arguments.len() != gate.num_params() as usize {
-                return Err(ParseError::new(format!(
-                    "gate registry desync: resolved gate takes {} parameters, but {} were given",
-                    gate.num_params(),
-                    arguments.len(),
-                )));
-            }
-            circuit
-                .push_standard_gate(*gate, &params, qargs)
-                .map_err(|err| ParseError::new(format!("failed to apply gate: {err}")))
-        }
+        GateEntry::Standard(gate) => circuit
+            .push_standard_gate(*gate, &params, qargs)
+            .map_err(|err| ParseError::new(format!("failed to apply gate: {err}"))),
         GateEntry::Defined(template) => {
             let defined = DefinedGate {
                 template: template.clone(),
-                num_params: arguments.len() as u32,
             };
             circuit
                 .push_packed_operation(

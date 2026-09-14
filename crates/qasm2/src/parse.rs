@@ -786,6 +786,7 @@ impl State {
         bc.push(Some(InternalBytecode::DeclareGate {
             name: name.clone(),
             num_qubits,
+            num_params,
         }));
         // The actual body of the gate.  Most of this is devolved to [Self::parse_gate_application]
         // to do the right thing.
@@ -890,6 +891,7 @@ impl State {
         bc.push(Some(InternalBytecode::DeclareOpaque {
             name: name.clone(),
             num_qubits,
+            num_params,
         }));
         self.define_gate(Some(&opaque_token), name, num_params, num_qubits)?;
         Ok(1)
