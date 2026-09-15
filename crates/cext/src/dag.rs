@@ -1912,7 +1912,7 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
 }
 
 /// @ingroup QkDag
-/// Adds a `QkCustomOperation` into the circuit.
+/// Adds a `QkCustomOperation` into the circuit, consuming the instance in the process.
 ///
 /// The addition of this `QkCustomOperation` depends on its validity and can be rejected.
 /// If the operation's vtable points to a null pointer due to any errors during construction,
