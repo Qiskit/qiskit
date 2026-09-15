@@ -262,6 +262,7 @@ mod operations {
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
         vec![
             export_fn!(qk_custom_operation_vtable_new),
+            export_fn!(qk_custom_operation_vtable_free),
             export_fn!(qk_custom_operation_new),
         ]
     });
