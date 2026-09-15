@@ -188,6 +188,7 @@ static int test_custom_operation_in_circuit(void) {
 cleanup:
     qk_circuit_instruction_clear(&inst);
     qk_circuit_free(circuit);
+    qk_custom_operation_vtable_free(foo_vtable);
 exit:
     return res;
 }
@@ -323,6 +324,7 @@ cleanup:
     qk_quantum_register_free(qreg);
     qk_classical_register_free(creg);
     qk_dag_free(circuit);
+    qk_custom_operation_vtable_free(foo_vtable);
 exit:
     return res;
 }
