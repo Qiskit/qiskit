@@ -448,10 +448,10 @@ fn linear_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, u32), Circ
 
     // Peak: where the up-sweep and down-sweep meet. Parity of k determines which qubits
     // participate. target < 0 means no distinct peak (up-sweep already reaches the end).
-    let has_peak = if k % 2 == 0 { k >= 6 } else { k >= 5 };
+    let has_peak = if k.is_multiple_of(2) { k >= 6 } else { k >= 5 };
 
     if has_peak {
-        let (a, b, peak) = if k % 2 == 0 {
+        let (a, b, peak) = if k.is_multiple_of(2) {
             (k - 3, k - 5, k - 6)
         } else {
             (k - 1, k - 4, k - 5)
