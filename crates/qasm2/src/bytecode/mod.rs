@@ -135,6 +135,7 @@ impl Iterator for Iter {
                 Ok(Some(_)) => (),
                 Ok(None) => self.exhausted = true,
                 Err(err) => {
+                    self.buffer.clear();
                     self.exhausted = true;
                     return Some(Err(err));
                 }
