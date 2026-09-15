@@ -140,6 +140,7 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_bit_width),
             export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
+            export_fn!(qk_control_flow_condition_reg_cond_biguint),
         ]
     });
 }
@@ -493,6 +494,8 @@ mod classical_expr {
             export_fn!(qk_var_name),
             export_fn!(qk_var_type_info),
             export_fn!(qk_stretch_name),
+            export_fn!(qk_value_biguint),
+            export_fn!(qk_biguint_clear),
         ]
     });
 }
