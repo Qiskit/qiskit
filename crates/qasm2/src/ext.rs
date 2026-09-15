@@ -238,3 +238,15 @@ impl CustomClassical {
         .collect()
     }
 }
+
+/// The callables themselves can't be printed, so only their arity is.
+impl std::fmt::Debug for ClassicalCallableExt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Builtin(builtin) => write!(f, "Builtin({builtin:?})"),
+            Self::Custom { num_params, .. } => write!(f, "Custom({num_params}, ..)"),
+            #[cfg(feature = "py")]
+            Self::Python { num_params, .. } => write!(f, "Python({num_params}, ..)"),
+        }
+    }
+}

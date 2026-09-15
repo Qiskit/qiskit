@@ -41,6 +41,16 @@ enum GateEntry {
     Defined(Arc<DefinedGateTemplate>),
 }
 
+impl fmt::Debug for GateEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Standard(gate) => write!(f, "Standard({gate:?})"),
+            // Named, not expanded: the template is shared by every usage.
+            Self::Defined(template) => write!(f, "Defined({:?})", template.name),
+        }
+    }
+}
+
 impl GateEntry {
     fn num_qubits(&self) -> u32 {
         match self {
@@ -57,6 +67,7 @@ impl GateEntry {
     }
 }
 
+#[derive(Debug)]
 enum BodyInstruction {
     Gate {
         entry: GateEntry,
@@ -71,6 +82,7 @@ enum BodyInstruction {
 /// Declared once per OQ2 `gate`/`opaque` statement and shared by every usage.  `body` is `None`
 /// for `opaque`.  Its arguments stay as `Expr` because they can reference this gate's own
 /// parameters (`gate rz(theta) q { u1(theta) q; }`), which only a usage can supply.
+#[derive(Debug)]
 struct DefinedGateTemplate {
     name: String,
     num_qubits: u32,
@@ -134,18 +146,9 @@ impl DefinedGateTemplate {
 /// Deliberately uncached: `CircuitData::assign_parameters_inner` rebinds params through
 /// `PackedInstruction::params_mut` without touching the operation, so there would be no hook to
 /// invalidate a cached definition.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct DefinedGate {
     template: Arc<DefinedGateTemplate>,
-}
-
-impl fmt::Debug for DefinedGate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("DefinedGate")
-            .field("name", &self.template.name)
-            .field("num_params", &self.template.num_params)
-            .finish()
-    }
 }
 
 /// By template identity, not structurally, since `Expr` isn't `PartialEq`: identical gates from
