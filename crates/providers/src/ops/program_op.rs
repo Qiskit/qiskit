@@ -17,6 +17,26 @@ use crate::tensor::{Tensor, TensorType};
 /// The [`ProgramOp::namespace`] of every op Qiskit defines.
 pub const QISKIT: &str = "qiskit";
 
+/// Destructure an op's operands into one binding each, panicking if the count is wrong.
+///
+/// The panic should be unreachable when the op is part of a
+/// [`ProgramFunction`](crate::ProgramFunction), because static analysis is done while inserting
+/// ops.
+#[macro_export]
+macro_rules! unpack_operands {
+    ($op:expr, $operands:expr, [$($name:ident),+ $(,)?]) => {
+        let operands = $operands;
+        let [$($name),+] = operands else {
+            panic!(
+                "{} expects {} operand(s), got {}",
+                $op.full_name(),
+                $op.arity(),
+                operands.len()
+            )
+        };
+    };
+}
+
 /// An atomic operation in a quantum program: a typed mapping from tensors to tensors.
 ///
 /// An op declares how many operands it takes ([`Self::arity`]) and how to derive its result types
@@ -184,4 +204,16 @@ where
     }
 
     Box::new(Erased(op))
+}
+
+#[cfg(test)]
+mod test {
+    use crate::ops::{Add, ProgramOp};
+    use crate::tensor::Tensor;
+
+    #[test]
+    #[should_panic(expected = "qiskit.add expects 2 operand(s), got 1")]
+    fn test_unpack_operands_names_the_op_and_the_arity_it_declares() {
+        let _ = Add.eval(&[Tensor::from([1.0_f64])]);
+    }
 }
