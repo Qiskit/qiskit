@@ -140,6 +140,8 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_bit_width),
             export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
+            export_fn!(qk_circuit_delay_dt),
+            export_fn!(qk_circuit_delay_unit),
         ]
     });
 }
@@ -249,6 +251,8 @@ mod param {
             export_fn!(qk_param_conjugate),
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
+            export_fn!(qk_param_as_int),
+            export_fn!(qk_param_kind),
         ]
     });
 }

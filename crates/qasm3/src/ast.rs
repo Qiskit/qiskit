@@ -118,9 +118,32 @@ pub struct BitstringLiteral {
     pub width: u32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum DurationValue {
+    Dt(u64),
+    Float(f64),
+}
+
+impl Display for DurationValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            DurationValue::Dt(u) => write!(f, "{}", u),
+            DurationValue::Float(v) => write!(f, "{}", v),
+        }
+    }
+}
+
+impl DurationValue {
+    pub fn try_float(&self) -> Option<f64> {
+        match self {
+            DurationValue::Dt(_) => None,
+            DurationValue::Float(f) => Some(*f),
+        }
+    }
+}
 #[derive(Debug, Clone)]
 pub struct DurationLiteral {
-    pub value: f64,
+    pub value: DurationValue,
     pub unit: DurationUnit,
 }
 
