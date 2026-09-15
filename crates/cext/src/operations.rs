@@ -418,6 +418,9 @@ pub unsafe extern "C" fn qk_custom_operation_new(
     operation: *mut (),
     v_table: *const CustomOpVTable,
 ) -> *mut BoxedCustomOperation {
+    unsafe {
+        Arc::increment_strong_count(v_table);
+    }
     let as_custom_op = CustomOp {
         orig: operation,
         v_table: unsafe { Arc::from_raw(v_table) },
@@ -606,4 +609,24 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     CustomOpVTable::try_from(vtable)
         .map(|x| Arc::into_raw(Arc::new(x)))
         .unwrap_or(std::ptr::null())
+}
+
+/// @ingroup QkCustomOperation
+/// Frees the `QkCustomOpVTable` pointer
+///
+/// @param v_table The pointer to a `QkCustomOpVTable` object.
+///
+/// # Safety
+///
+/// Undefined behavior may occur if `v_table` is a `NULL` or unaligned invalid pointer
+/// to a `QkCustomOpVTable`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_operation_vtable_free(v_table: *const CustomOpVTable) {
+    if !v_table.is_null() {
+        if !v_table.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.");
+        }
+        // SAFETY: The pointer is non-null and alligned and therefore readable.
+        let _ = unsafe { Arc::from_raw(v_table) };
+    }
 }
