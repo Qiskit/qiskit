@@ -269,7 +269,6 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVTable {
             num_ctrl_qubits: value.num_ctrl_qubits.unwrap_or(default_num_ctrl_qubits),
             label: value.label.unwrap_or(default_label),
             definition: value.definition.unwrap_or(default_definition),
-            // eq: value.eq.ok_or(Eq)?,
             eq: value.eq.unwrap_or(default_eq),
         })
     }
