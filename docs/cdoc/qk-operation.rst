@@ -32,7 +32,7 @@ Here's a quick example of what that looks like:
       // Define an operation with a single attribute.
       struct foo_gate {
          uint32_t num_qubits;
-      }
+      };
       // Represents the name of the operation.
       const char *FOO_NAME = "foo";
       // Design the required methods for the vtable.
@@ -51,7 +51,7 @@ Here's a quick example of what that looks like:
       // Use same logic below for required methods that have
       // fixed values.
       uint32_t foo_num_clbits(const void *gate) {
-         struct foo_gate *self = (struct foo_gate *)gate;
+         struct foo_gate *_self = (struct foo_gate *)gate;
          (void)_self;
          return 0;
       }
