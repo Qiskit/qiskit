@@ -126,8 +126,8 @@ struct CustomOp {
 
 impl PartialEq for CustomOp {
     fn eq(&self, other: &Self) -> bool {
-        (unsafe { (self.v_table.eq)(self.orig, other.orig) })
-            && Arc::as_ptr(&self.v_table) == Arc::as_ptr(&other.v_table)
+        Arc::ptr_eq(&self.v_table, &other.v_table)
+            && (unsafe { (self.v_table.eq)(self.orig, other.orig) })
     }
 }
 
