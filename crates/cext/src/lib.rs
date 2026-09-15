@@ -21,6 +21,7 @@ pub mod classical_expr;
 pub mod control_flow;
 pub mod dag;
 pub mod exit_codes;
+pub mod operations;
 pub mod param;
 pub mod sparse_observable;
 pub mod transpiler;
