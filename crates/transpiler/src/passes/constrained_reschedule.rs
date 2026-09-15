@@ -131,17 +131,16 @@ fn push_node_back(
             .first()
             .ok_or_else(|| PyValueError::new_err("Delay instruction missing duration parameter"))?;
         let duration = match param {
-            Param::Obj(val) => {
+            Param::Int(val) => {
                 // Try to extract as different numeric types
-                Python::attach(|py| val.bind(py).extract::<u64>())
+                Ok(*val)
             }
-            Param::Float(f) => Ok(*f as u64),
             _ => Err(TranspilerError::new_err(
                 "The provided Delay duration is not in terms of dt.",
             )),
         }?;
 
-        this_t0 + duration
+        this_t0 + u64::try_from(duration)?
     } else {
         this_t0
     };
