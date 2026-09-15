@@ -242,9 +242,9 @@ pub fn create_py_annotation(annotation: &Arc<dyn Annotation>, py: Python) -> PyR
     if let Some(annotation) = annotation.downcast_ref::<PythonAnnotation>() {
         return Ok(annotation.annotation_obj().clone_ref(py));
     }
-    let init = match PyNativeAnnotation::new(Arc::clone(annotation)) {
-        Ok(py_annotation) => PyClassInitializer::from(PyAnnotation).add_subclass(py_annotation),
-        Err(e) => return Err(e),
+    let init = {
+        let py_annotation = PyNativeAnnotation::new(Arc::clone(annotation))?;
+        PyClassInitializer::from(PyAnnotation).add_subclass(py_annotation)
     };
     Ok(Py::new(py, init)?.into_any())
 }
