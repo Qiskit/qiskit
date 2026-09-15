@@ -14,10 +14,11 @@
 """Translates gates to a target basis using a given equivalence library."""
 
 import logging
+import typing
 
+from collections.abc import Iterable
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.target import Target
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit.equivalence import EquivalenceLibrary
 from qiskit.dagcircuit import DAGCircuit
 from qiskit._accelerate.basis_translator import base_run
@@ -88,10 +89,28 @@ class BasisTranslator(TransformationPass):
     :ref:`custom_basis_gates` for details on adding custom equivalence rules.
     """
 
+    @typing.overload
     def __init__(
         self,
         equivalence_library: EquivalenceLibrary,
-        target_basis: list[str] | None = None,
+        target_basis: Iterable[str],
+        target: None = None,
+        min_qubits: int = 0,
+    ) -> None: ...
+
+    @typing.overload
+    def __init__(
+        self,
+        equivalence_library: EquivalenceLibrary,
+        target_basis: None = None,
+        target: Target = ...,
+        min_qubits: int = 0,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        equivalence_library: EquivalenceLibrary,
+        target_basis: Iterable[str] | None = None,
         target: Target | None = None,
         min_qubits: int = 0,
     ) -> None:
@@ -109,7 +128,7 @@ class BasisTranslator(TransformationPass):
             TranspilerError: If neither ``target`` nor ``target_basis`` are given.
         """
         if target is None and target_basis is None:
-            raise TranspilerError("A non-empty `target` or `target_basis` must be set.")
+            raise TypeError("A non-empty `target` or `target_basis` must be set.")
 
         super().__init__()
         self._equiv_lib = equivalence_library
