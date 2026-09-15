@@ -209,17 +209,17 @@ impl CustomOperation for CustomOp {
 ///
 /// * ``name(*const ())`` -> ``*const c_char``,
 /// * ``num_qubits(*const ())`` -> ``u32``,
-/// * ``num_clbits(*const ())`` -> ``u32``,
-/// * ``num_params(*const ())`` -> ``u32``,
-/// * ``directive(*const ())`` -> ``bool``,
-/// * ``is_unitary(*const ())`` -> ``bool``,
 ///
 /// There are also functional methods that are optional but
 /// implementors are expected to provide.
 ///
+/// * ``num_clbits(*const ())`` -> ``u32``,
+/// * ``num_params(*const ())`` -> ``u32``,
+/// * ``directive(*const ())`` -> ``bool``,
+/// * ``is_unitary(*const ())`` -> ``bool``,
 /// * ``num_ctrl_qubits(*const ())`` -> ``u32``,
 /// * ``label(*const ())`` ->  ``*const c_char``,
-/// * ``definition(*const (), *const Param)`` -> ``*mut CircuitData``,
+/// * ``definition(*const (), *const *const Param)`` -> ``*mut CircuitData``,
 /// * ``eq(*const (), *const ())`` -> ``bool``, to compare two operations of the same kind.
 #[derive(Debug, Clone)]
 pub struct CustomOpVTable {
@@ -235,6 +235,18 @@ pub struct CustomOpVTable {
     eq: unsafe extern "C" fn(*const (), *const ()) -> bool,
 }
 
+extern "C" fn default_num_clbits(_slf: *const ()) -> u32 {
+    0
+}
+extern "C" fn default_num_params(_slf: *const ()) -> u32 {
+    0
+}
+extern "C" fn default_directive(_slf: *const ()) -> bool {
+    false
+}
+extern "C" fn default_is_unitary(_slf: *const ()) -> bool {
+    true
+}
 extern "C" fn default_num_ctrl_qubits(_slf: *const ()) -> u32 {
     0
 }
@@ -262,10 +274,10 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVTable {
         Ok(Self {
             name: value.name.ok_or(Name)?,
             num_qubits: value.num_qubits.ok_or(NumQubits)?,
-            num_clbits: value.num_clbits.ok_or(NumClbits)?,
-            num_params: value.num_params.ok_or(NumParams)?,
-            directive: value.directive.ok_or(Directive)?,
-            is_unitary: value.is_unitary.ok_or(IsUnitary)?,
+            num_clbits: value.num_clbits.unwrap_or(default_num_clbits),
+            num_params: value.num_params.unwrap_or(default_num_params),
+            directive: value.directive.unwrap_or(default_directive),
+            is_unitary: value.is_unitary.unwrap_or(default_is_unitary),
             num_ctrl_qubits: value.num_ctrl_qubits.unwrap_or(default_num_ctrl_qubits),
             label: value.label.unwrap_or(default_label),
             definition: value.definition.unwrap_or(default_definition),
@@ -437,18 +449,18 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 ///
 /// Refer to the following table to identify the correct slots.
 ///
-/// | Slot                 | Arg(s) type                    | Return type   |               Index                  | Required |
-/// |----------------------|--------------------------------|---------------|--------------------------------------|----------|
-/// | ``name``             | `const void *`                 | `char *`      | ``QkCustomOpMethod_Name``            |    Yes   |
-/// | ``num_qubits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumQubits``       |    Yes   |
-/// | ``num_clbits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumClbits``       |    Yes   |
-/// | ``num_params``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumParams``       |    Yes   |
-/// | ``directive``        | `const void *`                 | `bool`        | ``QkCustomOpMethod_Directive``       |    Yes   |
-/// | ``is_unitary``       | `const void *`                 | `bool`        | ``QkCustomOpMethod_IsUnitary``       |    Yes   |
-/// | ``num_ctrl_qubits``  | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumCtrlQubits``   |    No    |
-/// | ``label``            | `const void *`                 | `char *`      | ``QkCustomOpMethod_Label``           |    No    |
-/// | ``definition``       | `const void *`, `QkParam **`   | `QkCircuit *` | ``QkCustomOpMethod_Definition``      |    No    |
-/// | ``eq``               | `const void *`, `const void *` | `bool`        | ``QkCustomOpMethod_Eq``              |    No    |
+/// | Slot                 | Arg(s) type                    | Return type   |               Index                  | Required |       Default       |
+/// |----------------------|--------------------------------|---------------|--------------------------------------|----------|---------------------|
+/// | ``name``             | `const void *`                 | `char *`      | ``QkCustomOpMethod_Name``            |    Yes   |        n/a          |
+/// | ``num_qubits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumQubits``       |    Yes   |        n/a          |
+/// | ``num_clbits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumClbits``       |    No    |       `0`           |
+/// | ``num_params``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumParams``       |    No    |       `0`           |
+/// | ``directive``        | `const void *`                 | `bool`        | ``QkCustomOpMethod_Directive``       |    No    |      `false`        |
+/// | ``is_unitary``       | `const void *`                 | `bool`        | ``QkCustomOpMethod_IsUnitary``       |    No    |      `true`         |
+/// | ``num_ctrl_qubits``  | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumCtrlQubits``   |    No    |       `0`           |
+/// | ``label``            | `const void *`                 | `char *`      | ``QkCustomOpMethod_Label``           |    No    |       `NULL`        |
+/// | ``definition``       | `const void *`, `QkParam **`   | `QkCircuit *` | ``QkCustomOpMethod_Definition``      |    No    |       `NULL`        |
+/// | ``eq``               | `const void *`, `const void *` | `bool`        | ``QkCustomOpMethod_Eq``              |    No    | Pointer comparison  |
 ///
 /// Each function will be seen as a `void` pointer to Rust and will be transmuted
 /// to a function pointer of the correct signature.

@@ -48,18 +48,6 @@ uint32_t foo_num_params(const void *gate) {
     struct foo_gate *self = (struct foo_gate *)gate;
     return self->num_params;
 }
-bool foo_directive(const void *gate) {
-    struct foo_gate *_self = (struct foo_gate *)gate;
-    // Void pointer.
-    (void)_self;
-    return false;
-}
-bool foo_is_unitary(const void *gate) {
-    struct foo_gate *_self = (struct foo_gate *)gate;
-    // Void pointer.
-    (void)_self;
-    return true;
-}
 bool foo_eq(const void *gate, const void *other) {
     struct foo_gate *_self = (struct foo_gate *)gate;
     struct foo_gate *_other = (struct foo_gate *)other;
@@ -68,13 +56,11 @@ bool foo_eq(const void *gate, const void *other) {
             _self->num_params == _other->num_params);
 }
 
-QkCustomOpVTableEntry entries[7] = {
+QkCustomOpVTableEntry entries[5] = {
     {.slot = QkCustomOpMethod_Name, .func = foo_name},
     {.slot = QkCustomOpMethod_NumQubits, .func = foo_num_qubits},
     {.slot = QkCustomOpMethod_NumClbits, .func = foo_num_clbits},
     {.slot = QkCustomOpMethod_NumParams, .func = foo_num_params},
-    {.slot = QkCustomOpMethod_Directive, .func = foo_directive},
-    {.slot = QkCustomOpMethod_IsUnitary, .func = foo_is_unitary},
     {.slot = -1, .func = NULL},
 };
 
