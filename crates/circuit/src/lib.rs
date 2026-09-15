@@ -19,6 +19,7 @@ pub mod circuit_drawer;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
+pub mod custom_operations;
 pub mod dag_circuit;
 pub mod dag_node;
 mod dot_utils;
@@ -244,6 +245,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<parameter::parameter_expression::PyParameterVector>()?;
     m.add_class::<parameter::parameter_expression::OpCode>()?;
     m.add_class::<parameter::parameter_expression::OPReplay>()?;
+    m.add_class::<custom_operations::QFTGate>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;
     classical::register_python(&classical_mod)?;
     m.add_submodule(&classical_mod)?;

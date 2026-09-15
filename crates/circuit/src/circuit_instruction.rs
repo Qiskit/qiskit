@@ -25,6 +25,7 @@ use pyo3::{PyResult, intern};
 use crate::annotation::AnnotationFromPython;
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
+use crate::custom_operations::QFTGate;
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
@@ -930,6 +931,20 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                 params: None,
                 label: extract_label()?,
             });
+        } else if ob_name == "qft" {
+            // ToDo: should we handle subclasses of QFTGate gates (coming from Python)?
+            if let Some(gate) = ob
+                .getattr(intern!(py, "_inner"))
+                .ok()
+                .and_then(|inner| inner.extract::<QFTGate>().ok())
+                && extract_label()?.is_none()
+            {
+                return Ok(OperationFromPython {
+                    operation: PackedOperation::from_custom_operation(Box::new(gate)),
+                    params: None,
+                    label: None,
+                });
+            }
         }
 
         let Some(kind) = PyOpKind::from_type(ob_type.as_borrowed())? else {
