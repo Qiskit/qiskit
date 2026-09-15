@@ -1925,11 +1925,11 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
 ///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
 /// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
 ///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
-/// @param params The pointer to the array of ``double`` values to use for the operation parameters.
+/// @param params The pointer to the array of ``QkParam`` values to use for the operation parameters.
 ///     This can be a null pointer if there are no parameters for ``operation`` (e.g. ``QkGate_H``).
+/// @param node The pointer to an address big enough to write the unsigned 32-bit integer index to.
 /// @param front If ``true``, the operation is applied as the first operation on the specified qubits,
 ///     rather than as the last.
-/// @param node The pointer to an address big enough to write the unsigned 32-bit integer index to.
 ///
 /// @return an ExitCode.
 ///
@@ -1976,11 +1976,7 @@ pub unsafe extern "C" fn qk_dag_apply_custom_operation(
     let cargs: &[Clbit] = bytemuck::cast_slice(clbits);
 
     let params = (!params.is_null()).then(|| {
-        let params = if !params.is_null() {
-            unsafe { std::slice::from_raw_parts(params, op.num_params() as usize) }
-        } else {
-            Default::default()
-        };
+        let params = unsafe { std::slice::from_raw_parts(params, op.num_params() as usize) };
         Parameters::Params(
             params
                 .iter()
