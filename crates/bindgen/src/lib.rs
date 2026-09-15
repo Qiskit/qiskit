@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod render;
+mod rewrite;
 pub mod simple_ir;
 
 use std::fs;
@@ -256,11 +257,12 @@ pub fn fn_attrs(func: &cbindgen::ir::Function) -> anyhow::Result<FnAttributes> {
 
 /// Generate the cbindgen bindings object for the C-extensions crate.
 pub fn generate_bindings(cext_path: impl AsRef<Path>) -> anyhow::Result<cbindgen::Bindings> {
-    cbindgen::Builder::new()
+    let mut bindings = cbindgen::Builder::new()
         .with_crate(cext_path)
         .with_config(get_config()?)
-        .generate()
-        .map_err(|e| e.into())
+        .generate()?;
+    rewrite::lift_typedefs_to_opaque_structs(&mut bindings);
+    Ok(bindings)
 }
 
 /// Install the complete stand-alone C include path into the given directory.
