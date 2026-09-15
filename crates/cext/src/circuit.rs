@@ -1615,7 +1615,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ///
 /// # Usage notes
 ///
-/// The `name` field is *not* nul-terminated, unlikely normal C strings.  It may also include
+/// The `name` field is *not* nul-terminated, unlike normal C strings.  It may also include
 /// arbitrary UTF-8 encoded data.  You cannot safely use this member with most C string functions.
 /// To do string comparisons, consider using `strncmp` with `name_len` as the limit.  To use the
 /// string in `printf`-like format specifiers, you must use the variable-width specifier form, such
