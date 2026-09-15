@@ -578,7 +578,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::Definition) => {
                 if vtable.definition.is_some() {
-                    panic!("Name slot has already been set.")
+                    panic!("Definition slot has already been set.")
                 }
                 vtable.definition = Some(unsafe {
                     std::mem::transmute::<
@@ -589,7 +589,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::Eq) => {
                 if vtable.eq.is_some() {
-                    panic!("Name slot has already been set.")
+                    panic!("Eq slot has already been set.")
                 }
                 vtable.eq = Some(unsafe {
                     std::mem::transmute::<
@@ -604,6 +604,12 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             Err(_) => (),
         }
         slots = unsafe { slots.add(1) };
+        if slots.is_null() {
+            // If by the time we reach a null item we have not yet found a sentinel
+            // value to stop reading. Assume the resulting vtable is invalid and
+            // return `NULL`
+            return null();
+        }
         slot = unsafe { slots.read() };
     }
     CustomOpVTable::try_from(vtable)
