@@ -126,7 +126,7 @@ impl DefinedGateTemplate {
                     push_gate(&mut circuit, entry, &arguments, &to_qubits(qubits)).ok()?;
                 }
                 BodyInstruction::Barrier { qubits } => {
-                    push_standard_instruction_local(
+                    push_standard_instruction(
                         &mut circuit,
                         StandardInstruction::Barrier(qubits.len() as u32),
                         &to_qubits(qubits),
@@ -259,15 +259,15 @@ pub(crate) fn build_circuit(
                 push_standard_instruction(
                     &mut circuit,
                     StandardInstruction::Measure,
-                    &[*qubit],
-                    &[*clbit],
+                    &to_qubits(&[*qubit]),
+                    &to_clbits(&[*clbit]),
                 )?;
             }
             InternalBytecode::Reset { qubit } => {
                 push_standard_instruction(
                     &mut circuit,
                     StandardInstruction::Reset,
-                    &[*qubit],
+                    &to_qubits(&[*qubit]),
                     &[],
                 )?;
             }
@@ -280,7 +280,7 @@ pub(crate) fn build_circuit(
                     push_standard_instruction(
                         &mut circuit,
                         StandardInstruction::Barrier(qubits.len() as u32),
-                        qubits,
+                        &to_qubits(qubits),
                         &[],
                     )?;
                 }
@@ -336,7 +336,7 @@ pub(crate) fn build_circuit(
                     &to_qubits(&[*qubit]),
                     &to_clbits(&[*clbit]),
                     |block, local_cargs| {
-                        push_standard_instruction_local(
+                        push_standard_instruction(
                             block,
                             StandardInstruction::Measure,
                             &[Qubit(0)],
@@ -354,7 +354,7 @@ pub(crate) fn build_circuit(
                     &to_qubits(&[*qubit]),
                     &[],
                     |block, _| {
-                        push_standard_instruction_local(
+                        push_standard_instruction(
                             block,
                             StandardInstruction::Reset,
                             &[Qubit(0)],
@@ -481,15 +481,6 @@ fn push_gate(
 }
 
 fn push_standard_instruction(
-    circuit: &mut CircuitData,
-    instruction: StandardInstruction,
-    qubits: &[QubitId],
-    clbits: &[ClbitId],
-) -> Result<(), ParseError> {
-    push_standard_instruction_local(circuit, instruction, &to_qubits(qubits), &to_clbits(clbits))
-}
-
-fn push_standard_instruction_local(
     circuit: &mut CircuitData,
     instruction: StandardInstruction,
     qubits: &[Qubit],
