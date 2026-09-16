@@ -117,6 +117,19 @@ class FakeBackend5QV2(GenericBackendV2):
 class TestUnitarySynthesisBasisGates(QiskitTestCase):
     """Test UnitarySynthesis pass with basis gates."""
 
+    def test_empty_basis_gates_leaves_unitary(self):
+        """Empty basis/target leaves unitaries unchanged (issue #16688)."""
+        qc = QuantumCircuit(1)
+        unitary = np.array(
+            [[1.0, 0.0], [0.0, np.exp(1j * np.pi / 6)]],
+            dtype=complex,
+        )
+        qc.unitary(unitary, [0])
+
+        compiled = PassManager([UnitarySynthesis()]).run(qc)
+        self.assertEqual(compiled.count_ops(), {"unitary": 1})
+        self.assertTrue(Operator(qc).equiv(compiled))
+
     def test_empty_basis_gates(self):
         """Verify when basis_gates is None, we do not synthesize unitaries."""
         qc = QuantumCircuit(3)
@@ -126,8 +139,9 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         qc.unitary(op_1q.data, [0])
         qc.unitary(op_2q.data, [0, 1])
         qc.unitary(op_3q.data, [0, 1, 2])
-        out = UnitarySynthesis(basis_gates=None, min_qubits=2)(qc)
+        out = UnitarySynthesis(basis_gates=None)(qc)
         self.assertEqual(out.count_ops(), {"unitary": 3})
+        self.assertTrue(Operator(qc).equiv(out))
 
     @data(
         ["u3", "cx"],
