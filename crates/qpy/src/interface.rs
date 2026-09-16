@@ -23,7 +23,7 @@ use pyo3::types::{PyAny, PyDict};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
-use crate::annotations::AnnotationHandler;
+use crate::annotations::{AnnotationHandler, NativeDeserializers, NativeSerializers};
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::{pack_circuit, pack_layout};
@@ -116,7 +116,11 @@ pub fn dump_qpy(
         })?;
     }
     let caller = caller.unwrap_or(QpyCaller::Native);
-    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
+        Vec::new(),
+        NativeSerializers::default(),
+        NativeDeserializers::default(),
+    ));
     if circuits.len() != extra_data.len() {
         return Err(QpyError::ConversionError(format!(
             "Expected extra data for {} circuits, got {}",
@@ -246,10 +250,18 @@ pub fn read_raw_circuits(
     )?;
 
     // Read circuits using offset differences to determine sizes
-    let mut circuits = Vec::with_capacity(num_programs);
+    let mut circuits = Vec::new();
+    circuits
+        .try_reserve_exact(num_programs)
+        .map_err(QpyError::AllocationError)?;
 
     for i in 0..num_programs {
         let size = if i + 1 < circuit_table.len() {
+            if circuit_table[i] > circuit_table[i + 1] {
+                return Err(QpyError::InvalidFormat(
+                    "Circuit offset table invalid".to_string(),
+                ));
+            }
             (circuit_table[i + 1] - circuit_table[i]) as usize
         } else {
             // Last circuit: read remaining bytes
@@ -299,7 +311,11 @@ pub fn load_qpy(
         })?;
     }
     let caller = caller.unwrap_or(QpyCaller::Native);
-    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
+        Vec::new(),
+        NativeSerializers::default(),
+        NativeDeserializers::default(),
+    ));
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
     if qpy_file_header.type_key == ProgramType::Schedule {
@@ -318,7 +334,10 @@ pub fn load_qpy(
         qpy_file_header.symbolic_encoding,
         SymbolicEncoding::Symengine
     );
-    let mut circuits = Vec::with_capacity(num_programs);
+    let mut circuits = Vec::new();
+    circuits
+        .try_reserve_exact(num_programs)
+        .map_err(QpyError::AllocationError)?;
     let mut cursor = Cursor::new(data as &[u8]);
     cursor.seek(std::io::SeekFrom::Start(header_size as u64))?;
     if qpy_file_header.qpy_version >= 16 {
