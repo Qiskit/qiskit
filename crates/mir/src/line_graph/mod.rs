@@ -33,6 +33,9 @@ use std::{mem, num, ops};
 /// [`iter_range_back`](Self::iter_range_back).  There are no mutable-reference iterators because
 /// this is near-impossible to achieve with the require random access through the graph's backing
 /// data storage.
+///
+/// The various iteration methods typically have an [`indexed`](iter::Iter::indexed) method, which
+/// attaches the [`Index`] of each node, similar to [`Iterator::enumerate`].
 #[derive(Clone, Debug)]
 pub struct LineGraph<T> {
     /// The individual slots that make up the graph.
@@ -1081,5 +1084,41 @@ mod tests {
         case(&[0, 1, 2, 3, 4, 5], true, "even, fwd first");
         case(&[0, 1, 2, 3, 4, 5, 6], false, "odd, back first");
         case(&[0, 1, 2, 3, 4, 5, 6], true, "odd, fwd first");
+    }
+
+    #[test]
+    fn indexed_iterators() {
+        let mut g = LineGraph::<u8>::new();
+        let indices = [4, 8, 1, 2, 3]
+            .into_iter()
+            .map(|w| g.push_back(w))
+            .collect::<Vec<_>>();
+
+        let indices_fwd = g
+            .iter_from(g.head().and_then(Node::next).unwrap())
+            .indexed()
+            .map(|(i, _)| i)
+            .collect::<Vec<_>>();
+        assert_eq!(&indices[1..], indices_fwd.as_slice());
+
+        let mut indices_back = g
+            .iter_range_back(g.tail().and_then(Node::prev).unwrap(), g.head_index())
+            .indexed()
+            .map(|(i, _)| i)
+            .collect::<Vec<_>>();
+        indices_back.reverse();
+        assert_eq!(&indices[1..4], indices_back.as_slice());
+
+        let indices_main = g.iter_main().indexed().map(|(i, _)| i).collect::<Vec<_>>();
+        assert_eq!(indices.as_slice(), indices_main.as_slice());
+
+        let mut indices_main_rev = g
+            .iter_main()
+            .indexed()
+            .rev()
+            .map(|(i, _)| i)
+            .collect::<Vec<_>>();
+        indices_main_rev.reverse();
+        assert_eq!(indices.as_slice(), indices_main_rev.as_slice());
     }
 }
