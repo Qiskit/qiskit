@@ -105,7 +105,7 @@ class HLSConfig:
                 all the specified methods will be considered, and the best synthesized circuit,
                 according to ``plugin_evaluation_fn`` will be chosen.
             plugin_evaluation_fn: a callable that evaluates the quality of the synthesized
-                quantum circuit in the case that ``plugin_selection="sequential"``;
+                quantum circuit in the case that ``plugin_selection="all"``;
                 a smaller value means a better circuit. If ``None``, the
                 quality of the circuit is its size (i.e. the number of gates that it contains).
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.

@@ -448,6 +448,17 @@ class TestScheduledCircuit(QiskitTestCase):
         self.assertIsInstance(res, int)
         self.assertEqual(res, 100)
 
+    def test_reset_circ(self):
+        backend = GenericBackendV2(num_qubits=2, seed=42)
+
+        circ = QuantumCircuit(1)
+        circ.reset(0)
+
+        circuit_reset = transpile(circ, backend, scheduling_method="asap")
+        res = circuit_reset.estimate_duration(backend.target, unit="dt")
+        self.assertIsInstance(res, int)
+        self.assertEqual(res, 9964)
+
     def test_estimate_duration_control_flow(self):
         backend = GenericBackendV2(num_qubits=3, seed=42, control_flow=True)
 

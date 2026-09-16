@@ -55,8 +55,5 @@ features = ["num-complex"]
 workspace = true
 features = ["rayon", "serde"]
 
-[dev-dependencies]
-pyo3 = { workspace = true, features = ["auto-initialize"] }
-
 [features]
 cache_pygates = ["qiskit-circuit/cache_pygates"]

@@ -84,7 +84,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -275,15 +275,15 @@ mod tests {
             .try_with_num_qubits(3)
             .expect("Number of qubits should not be defined.");
         let params = Some(Parameters::Params(smallvec![
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "ϴ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "φ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "λ", None, None,
-            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("ϴ".to_owned(), None)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("φ".to_owned(), None)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("λ".to_owned(), None)
+            ))),
         ]));
         target
             .add_instruction(

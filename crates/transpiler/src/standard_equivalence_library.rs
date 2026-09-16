@@ -161,8 +161,9 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
     //    ┌──────┐        ┌───────┐
     // q: ┤ P(ϴ) ├  ≡  q: ┤ U1(ϴ) ├
     //    └──────┘        └───────┘
-    let theta = Arc::new(ParameterExpression::from_symbol(Symbol::new(
-        "theta", None, None,
+    let theta = Arc::new(ParameterExpression::from_symbol(Symbol::standalone(
+        "theta".to_owned(),
+        None,
     )));
     create_standard_equivalence(
         StandardGate::Phase,
@@ -295,8 +296,9 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
     //    ┌────────┐        ┌──────────────────────┐
     // q: ┤ R(ϴ,φ) ├  ≡  q: ┤ U(ϴ,φ - π/2,π/2 - φ) ├
     //    └────────┘        └──────────────────────┘
-    let phi = Arc::new(ParameterExpression::from_symbol(Symbol::new(
-        "phi", None, None,
+    let phi = Arc::new(ParameterExpression::from_symbol(Symbol::standalone(
+        "phi".to_owned(),
+        None,
     )));
     // π/2
     let pi_div_2 = Arc::new(ParameterExpression::from_f64(PI / 2.0));
@@ -1913,8 +1915,9 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
     //    ┌──────────┐        ┌───────────┐
     // q: ┤ U(θ,ϕ,λ) ├  ≡  q: ┤ U3(θ,ϕ,λ) ├
     //    └──────────┘        └───────────┘
-    let lam = Arc::new(ParameterExpression::from_symbol(Symbol::new(
-        "lam", None, None,
+    let lam = Arc::new(ParameterExpression::from_symbol(Symbol::standalone(
+        "lam".to_owned(),
+        None,
     )));
     create_standard_equivalence(
         StandardGate::U,
@@ -1948,8 +1951,9 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
     // «     ┌──────────────────────┐┌─┴─┐┌────────────┐
     // «q_1: ┤ U(-θ/2,0,-λ/2 - ϕ/2) ├┤ X ├┤ U(θ/2,ϕ,0) ├
     // «     └──────────────────────┘└───┘└────────────┘
-    let gamma = Arc::new(ParameterExpression::from_symbol(Symbol::new(
-        "gamma", None, None,
+    let gamma = Arc::new(ParameterExpression::from_symbol(Symbol::standalone(
+        "gamma".to_owned(),
+        None,
     )));
     let lam_plus_phi = Arc::new(lam.add(&phi).unwrap());
     let lam_plus_phi_div_2 = Arc::new(
@@ -2949,8 +2953,9 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
     // ≡ ┌┴───────┴─┐├───┴┐┌─────────┐└─┬─┘├────────────┤└─┬─┘┌─┴─────┴──┐└──┬──────┬──┘┌─────────┐
     //   ┤ Rz(-π/2) ├┤ √X ├┤ Rz(π/2) ├──■──┤ Ry(-0.5*θ) ├──■──┤ Rz(-π/2) ├───┤ √Xdg ├───┤ Rz(π/2) ├
     //   └──────────┘└────┘└─────────┘     └────────────┘     └──────────┘   └──────┘   └─────────┘
-    let beta = Arc::new(ParameterExpression::from_symbol(Symbol::new(
-        "beta", None, None,
+    let beta = Arc::new(ParameterExpression::from_symbol(Symbol::standalone(
+        "beta".to_owned(),
+        None,
     )));
     let neg_beta = Arc::new(beta.mul(&ParameterExpression::from_f64(-1.0)).unwrap());
     create_standard_equivalence(

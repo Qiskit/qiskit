@@ -459,8 +459,8 @@ impl DAGInNode {
 #[pymethods]
 impl DAGInNode {
     #[new]
-    fn py_new(wire: Py<PyAny>) -> PyResult<(Self, DAGNode)> {
-        Ok((DAGInNode { wire }, DAGNode { node: None }))
+    fn py_new(wire: Py<PyAny>) -> PyClassInitializer<Self> {
+        PyClassInitializer::from(DAGNode { node: None }).add_subclass(Self { wire })
     }
 
     fn __reduce__<'py>(slf: PyRef<'py, Self>, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
@@ -517,8 +517,8 @@ impl DAGOutNode {
 #[pymethods]
 impl DAGOutNode {
     #[new]
-    fn py_new(wire: Py<PyAny>) -> PyResult<(Self, DAGNode)> {
-        Ok((DAGOutNode { wire }, DAGNode { node: None }))
+    fn py_new(wire: Py<PyAny>) -> PyClassInitializer<Self> {
+        PyClassInitializer::from(DAGNode { node: None }).add_subclass(Self { wire })
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<Py<PyAny>> {

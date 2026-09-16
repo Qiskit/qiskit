@@ -56,7 +56,7 @@ def _write_parameter(file_obj, obj):
 
 
 def _write_parameter_vec(file_obj, obj):
-    name_bytes = obj.vector._name.encode(common.ENCODE)
+    name_bytes = obj.vector.name.encode(common.ENCODE)
     file_obj.write(
         struct.pack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,

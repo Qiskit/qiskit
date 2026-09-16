@@ -11,17 +11,21 @@
 // that they have been altered from the originals.
 
 mod lookup;
+mod matrix;
 
 use hashbrown::HashSet;
 use itertools::Itertools;
 use lookup::conjugate_bitterm;
 use ndarray::Array2;
 use num_complex::Complex64;
+#[cfg(feature = "python")]
 use num_traits::Zero;
+#[cfg(feature = "python")]
 use numpy::{
     PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
+#[cfg(feature = "python")]
 use pyo3::{
     IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
@@ -30,22 +34,27 @@ use pyo3::{
     sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
 };
+#[cfg(feature = "python")]
 use qiskit_util::IndexSet;
-use std::{
-    cmp::Ordering,
-    collections::btree_map,
-    ops::{AddAssign, DivAssign, MulAssign, SubAssign},
-    sync::{Arc, RwLock, RwLockReadGuard},
-};
+#[cfg(feature = "python")]
+use qiskit_util::py::{ImportOnceCell, PySequenceIndex, SequenceIndex};
+#[cfg(feature = "python")]
+use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
+#[cfg(feature = "python")]
+use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::{cmp::Ordering, collections::btree_map};
 use thiserror::Error;
 
-use qiskit_util::py::{ImportOnceCell, PySequenceIndex, SequenceIndex};
-
+#[cfg(feature = "python")]
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
+#[cfg(feature = "python")]
 static PAULI_LIST_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "PauliList");
+#[cfg(feature = "python")]
 static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
+#[cfg(feature = "python")]
 static BIT_TERM_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+#[cfg(feature = "python")]
 static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
@@ -272,6 +281,15 @@ pub enum LabelError {
     DuplicateIndex { index: u32 },
     #[error("labels must only contain letters from the alphabet 'IXYZ+-rl01'")]
     OutsideAlphabet,
+}
+
+/// The error returned for failed matrix operations.
+#[derive(Debug, Error)]
+pub enum MatrixError {
+    #[error("{0} qubit matrix exceeds size limit")]
+    LimitExceeded(u32),
+    #[error("number of qubits is 0")]
+    ZeroQubits,
 }
 
 #[derive(Error, Debug)]
@@ -910,12 +928,12 @@ impl SparseObservable {
                 return Err(ArithmeticError::DuplicatedIndex);
             }
 
-            if let Some(&max_q) = qargs.iter().max() {
-                if max_q >= self.num_qubits {
-                    return Err(ArithmeticError::OutOfBounds(
-                        "qargs contains out-of-range qubits".to_string(),
-                    ));
-                }
+            if let Some(&max_q) = qargs.iter().max()
+                && max_q >= self.num_qubits
+            {
+                return Err(ArithmeticError::OutOfBounds(
+                    "qargs contains out-of-range qubits".to_string(),
+                ));
             }
 
             // This maps operator bit terms to observable qubits via qargs, considering
@@ -1262,6 +1280,33 @@ impl SparseObservable {
         let ab = self.compose(other).canonicalize(tol);
         let ba = other.compose(self).canonicalize(tol);
         ab == ba
+    }
+
+    /// Expand the observable into its dense matrix form.
+    ///
+    /// The reduced time complexity of this function is _O(4<sup>n</sup>)_,
+    /// where _n_ is the number of qubits. The algorithm is limited by the time
+    /// required to allocate the _2<sup>n</sup> × 2<sup>n</sup>_ matrix.
+    ///
+    /// # Warning
+    ///
+    /// The number of matrix elements scales exponentially with the number of
+    /// qubits. You risk running out of memory when the number of qubits is
+    /// sufficiently large. For example, an 8 qubit matrix uses ~4 KB of
+    /// memory, whereas 16 qubits uses ~69 GB!
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the total number of matrix elements would exceed
+    /// [`usize::MAX`] or the number of qubits is 0.
+    pub fn to_matrix(&self) -> Result<Array2<Complex64>, MatrixError> {
+        let mut matrix = matrix::create_matrix_with_zeros(self.num_qubits)?;
+
+        for term in self.iter() {
+            matrix::add_term(&mut matrix, &term)
+        }
+
+        Ok(matrix)
     }
 }
 
@@ -1808,6 +1853,7 @@ impl SparseTerm {
 #[derive(Error, Debug)]
 pub struct InnerReadError;
 
+#[cfg(feature = "python")] // Only currently used by python, remove if needed from rust
 #[derive(Error, Debug)]
 struct InnerWriteError;
 
@@ -1817,46 +1863,65 @@ impl ::std::fmt::Display for InnerReadError {
     }
 }
 
+#[cfg(feature = "python")] // Only currently used by python, remove if needed from rust
 impl ::std::fmt::Display for InnerWriteError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "Failed acquiring lock for writing.")
     }
 }
 
+#[cfg(feature = "python")]
 impl From<InnerReadError> for PyErr {
     fn from(value: InnerReadError) -> PyErr {
         PyRuntimeError::new_err(value.to_string())
     }
 }
+#[cfg(feature = "python")]
 impl From<InnerWriteError> for PyErr {
     fn from(value: InnerWriteError) -> PyErr {
         PyRuntimeError::new_err(value.to_string())
     }
 }
 
+#[cfg(feature = "python")]
 impl From<BitTermFromU8Error> for PyErr {
     fn from(value: BitTermFromU8Error) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
+
+#[cfg(feature = "python")]
 impl From<CoherenceError> for PyErr {
     fn from(value: CoherenceError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
+
+#[cfg(feature = "python")]
 impl From<LabelError> for PyErr {
     fn from(value: LabelError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
+
+#[cfg(feature = "python")]
 impl From<ArithmeticError> for PyErr {
     fn from(value: ArithmeticError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
 
+#[cfg(feature = "python")]
+impl From<MatrixError> for PyErr {
+    fn from(value: MatrixError) -> Self {
+        PyValueError::new_err(value.to_string())
+    }
+}
+
 /// The single-character string label used to represent this term in the :class:`SparseObservable`
 /// alphabet.
+
+#[cfg(feature = "python")]
 #[pyfunction]
 #[pyo3(name = "label")]
 fn bit_term_label(py: Python<'_>, slf: BitTerm) -> &Bound<'_, PyString> {
@@ -1882,6 +1947,7 @@ fn bit_term_label(py: Python<'_>, slf: BitTerm) -> &Bound<'_, PyString> {
 ///
 /// The resulting class is attached to `SparseObservable` as a class attribute, and its
 /// `__qualname__` is set to reflect this.
+#[cfg(feature = "python")]
 fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
     let terms = [
         BitTerm::X,
@@ -1928,6 +1994,7 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
 // singletons and subclasses of Python `int`.  We only use this for interaction with "high level"
 // Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
 // efficiently.
+#[cfg(feature = "python")]
 impl<'py> IntoPyObject<'py> for BitTerm {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -1958,6 +2025,7 @@ impl<'py> IntoPyObject<'py> for BitTerm {
     }
 }
 
+#[cfg(feature = "python")]
 impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
     type Error = PyErr;
 
@@ -1981,6 +2049,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
 /// A single term from a complete :class:`SparseObservable`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`SparseObservable`.
+#[cfg(feature = "python")]
 #[pyclass(
     name = "Term",
     frozen,
@@ -1991,6 +2060,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
 struct PySparseTerm {
     inner: SparseTerm,
 }
+
+#[cfg(feature = "python")]
 #[pymethods]
 impl PySparseTerm {
     // Mark the Python class as being defined "within" the `SparseObservable` class namespace.
@@ -2622,6 +2693,7 @@ impl PySparseTerm {
 /// observable generate only a small number of duplications, and like-term detection has additional
 /// costs.  If this does not fit your use cases, you can either periodically call :meth:`simplify`,
 /// or discuss further APIs with us for better building of observables.
+#[cfg(feature = "python")]
 #[pyclass(name = "SparseObservable", module = "qiskit.quantum_info", sequence)]
 #[derive(Debug)]
 pub struct PySparseObservable {
@@ -2629,6 +2701,7 @@ pub struct PySparseObservable {
     pub inner: Arc<RwLock<SparseObservable>>,
 }
 
+#[cfg(feature = "python")]
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -3897,6 +3970,31 @@ impl PySparseObservable {
         Ok(self_inner.commutes(&other_inner, tol))
     }
 
+    /// Expand the observable into its dense matrix form.
+    ///
+    /// The reduced time complexity of this function is :math:`O(4^n)` where
+    /// :math:`n` is the number of qubits. The algorithm is limited by
+    /// the time required to allocate the :math:`2^n \times 2^n` matrix.
+    ///
+    /// .. warning::
+    ///
+    ///     The number of matrix elements scales exponentially with the number of
+    ///     qubits. You risk running out of memory when the number of qubits is
+    ///     sufficiently large. For example, an 8 qubit matrix uses ~4 KB of
+    ///     memory, whereas 16 qubits uses ~69 GB!
+    ///
+    /// Returns:
+    ///     The observable represented as a dense matrix.
+    ///
+    /// Raises:
+    ///     ValueError: If the number of qubits exceeds system limits.
+    ///     ValueError: If the number of qubits is 0.
+    pub fn to_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
+        let obs = self.inner.read().map_err(|_| InnerReadError)?;
+        let matrix = obs.to_matrix()?;
+        Ok(PyArray2::from_owned_array(py, matrix))
+    }
+
     fn __len__(&self) -> PyResult<usize> {
         self.num_terms()
     }
@@ -4196,6 +4294,8 @@ impl PySparseObservable {
         py.get_type::<PySparseTerm>()
     }
 }
+
+#[cfg(feature = "python")]
 impl PySparseObservable {
     /// This is an immutable reference as opposed to a `copy`.
     pub fn as_inner(&self) -> Result<RwLockReadGuard<'_, SparseObservable>, InnerReadError> {
@@ -4203,6 +4303,8 @@ impl PySparseObservable {
         Ok(data)
     }
 }
+
+#[cfg(feature = "python")]
 impl From<SparseObservable> for PySparseObservable {
     fn from(val: SparseObservable) -> PySparseObservable {
         PySparseObservable {
@@ -4210,6 +4312,8 @@ impl From<SparseObservable> for PySparseObservable {
         }
     }
 }
+
+#[cfg(feature = "python")]
 impl<'py> IntoPyObject<'py> for SparseObservable {
     type Target = PySparseObservable;
     type Output = Bound<'py, Self::Target>;
@@ -4221,6 +4325,7 @@ impl<'py> IntoPyObject<'py> for SparseObservable {
 }
 
 /// Helper class of `ArrayView` that denotes the slot of the `SparseObservable` we're looking at.
+#[cfg(feature = "python")]
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ArraySlot {
     Coeffs,
@@ -4233,11 +4338,14 @@ enum ArraySlot {
 /// expose Python-managed wrapped pointers without introducing some form of runtime exclusion on the
 /// ability of `SparseObservable` to re-allocate in place; we can't leave dangling pointers for
 /// Python space.
+#[cfg(feature = "python")]
 #[pyclass(frozen, sequence)]
 struct ArrayView {
     base: Arc<RwLock<SparseObservable>>,
     slot: ArraySlot,
 }
+
+#[cfg(feature = "python")]
 #[pymethods]
 impl ArrayView {
     fn __repr__(&self, py: Python) -> PyResult<String> {
@@ -4425,6 +4533,7 @@ impl ArrayView {
 
 /// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
 /// if required.
+#[cfg(feature = "python")]
 fn cast_array_type<'py, T: numpy::Element>(
     py: Python<'py>,
     array: Bound<'py, PyArray1<T>>,
@@ -4457,6 +4566,7 @@ fn cast_array_type<'py, T: numpy::Element>(
 ///
 /// The purpose of this is for conversion the arithmetic operations, which should return
 /// [PyNotImplemented] if the type is not valid for coercion.
+#[cfg(feature = "python")]
 fn coerce_to_observable<'py>(
     value: &Bound<'py, PyAny>,
 ) -> PyResult<Option<Bound<'py, PySparseObservable>>> {
@@ -4475,6 +4585,8 @@ fn coerce_to_observable<'py>(
         }
     }
 }
+
+#[cfg(feature = "python")]
 pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PySparseObservable>()?;
     Ok(())

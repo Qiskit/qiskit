@@ -29,8 +29,8 @@ use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    BoxedCustomOperation, ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased,
-    PauliProductRotation, PyOpKind, PythonOperation, StandardGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowView, LoopParam, Operation, OperationRef, Param,
+    PauliBased, PauliProductRotation, PyOpKind, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -59,6 +59,8 @@ use hashbrown::{HashMap, HashSet};
 use qiskit_util::IndexMap;
 use smallvec::SmallVec;
 use thiserror::Error;
+
+use crate::error::TryReserveError;
 
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
@@ -102,6 +104,8 @@ pub enum CircuitDataError {
     InvalidParameter,
     #[error("bad type after binding for gate '{0}': '{1}'")]
     StandardGateParameterIsComplex(String, String),
+    #[error(transparent)]
+    TryReserveError(TryReserveError),
 }
 impl<T: Debug> From<object_registry::AbsentObject<T>> for CircuitDataError {
     fn from(val: object_registry::AbsentObject<T>) -> Self {
@@ -111,6 +115,12 @@ impl<T: Debug> From<object_registry::AbsentObject<T>> for CircuitDataError {
 impl<T: Debug, B: Debug> From<object_registry::AddError<T, B>> for CircuitDataError {
     fn from(val: object_registry::AddError<T, B>) -> Self {
         Self::AddObjectRegistry(val.erase_type())
+    }
+}
+
+impl From<TryReserveError> for CircuitDataError {
+    fn from(val: TryReserveError) -> Self {
+        Self::TryReserveError(val)
     }
 }
 
@@ -125,9 +135,7 @@ impl From<CircuitDataError> for PyErr {
             CircuitDataError::AddObjectRegistry(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
-            CircuitDataError::RegisterNameExists(name) => {
-                CircuitError::new_err(format!("register name {name} already exists"))
-            }
+            CircuitDataError::RegisterNameExists(e) => e.into(),
             CircuitDataError::BitExceedsCapacity(bit_type, bit_index) => CircuitError::new_err(
                 format!("{bit_type} at index {bit_index} exceds circuit capacity."),
             ),
@@ -144,6 +152,7 @@ impl From<CircuitDataError> for PyErr {
                     "bad type after binding for gate '{gate_name}': '{expr}'"
                 ))
             }
+            CircuitDataError::TryReserveError(error) => error.into(),
         }
     }
 }
@@ -780,6 +789,43 @@ impl CircuitData {
         Ok(res)
     }
 
+    /// Build an empty CircuitData object with an initially allocated instruction capacity.
+    /// This will error if the specified capacity can not be allocated.
+    pub fn try_with_capacity(
+        num_qubits: u32,
+        num_clbits: u32,
+        instruction_capacity: usize,
+        global_phase: Param,
+    ) -> Result<Self, CircuitDataError> {
+        let mut data = Vec::new();
+        data.try_reserve(instruction_capacity)
+            .map_err(TryReserveError::VecTryReserve)?;
+        let mut res = CircuitData {
+            data,
+            qargs_interner: Interner::new(),
+            cargs_interner: Interner::new(),
+            qubits: ObjectRegistry::try_with_capacity(num_qubits as usize)?,
+            clbits: ObjectRegistry::try_with_capacity(num_clbits as usize)?,
+            blocks: ControlFlowBlocks::new(),
+            param_table: ParameterTable::new(),
+            global_phase: Param::Float(0.0),
+            qregs: RegisterData::new(),
+            cregs: RegisterData::new(),
+            qubit_indices: BitLocator::try_with_capacity(num_qubits as usize)?,
+            clbit_indices: BitLocator::try_with_capacity(num_clbits as usize)?,
+            vars_stretches: VarStretchContainer::new(),
+        };
+
+        // use the global phase setter to ensure parameters are registered
+        // in the parameter table
+        res.set_global_phase_param(global_phase)?;
+        res.add_anonymous_qubits(num_qubits)
+            .expect("cannot represent a too-large count");
+        res.add_anonymous_clbits(num_clbits)
+            .expect("cannot represent a too-large count");
+        Ok(res)
+    }
+
     /// Add multiple new anonymous qubits.
     ///
     /// This can only fail due to circuit capacity issues, since new anonymous qubits are guaranteed
@@ -1188,13 +1234,13 @@ impl CircuitData {
         &self.cregs
     }
 
-    /// Returns an immutable view of the qubit locations of the [DAGCircuit]
+    /// Returns an immutable view of the qubit locations of the [CircuitData]
     #[inline(always)]
     pub fn qubit_indices(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
         &self.qubit_indices
     }
 
-    /// Returns an immutable view of the clbit locations of the [DAGCircuit]
+    /// Returns an immutable view of the clbit locations of the [CircuitData]
     #[inline(always)]
     pub fn clbit_indices(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
         &self.clbit_indices
@@ -1313,7 +1359,8 @@ impl CircuitData {
                     | OperationRef::Unitary(_)
                     | OperationRef::PauliProductMeasurement(_)
                     | OperationRef::PauliProductRotation(_)
-                    | OperationRef::CustomOperation(_) => {
+                    | OperationRef::CustomOperation(_)
+                    | OperationRef::Store(_) => {
                         // TODO: `PauliProductRotation` actually stores a `Param` inside itself,
                         // which this code does not account for.  We most likely need to make an
                         // `OperationRefMut` in order to modify that without cloning the whole
@@ -1920,10 +1967,10 @@ where
     } else if let Ok(sequence) = specifier.extract::<PySequenceIndex>() {
         match sequence {
             PySequenceIndex::Int(index) => {
-                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len()) {
-                    if let Some(bit) = bit_sequence.get(index).cloned() {
-                        return Ok(vec![bit]);
-                    }
+                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len())
+                    && let Some(bit) = bit_sequence.get(index).cloned()
+                {
+                    return Ok(vec![bit]);
                 }
                 Err(CircuitError::new_err(format!(
                     "Index {specifier} out of range for size {}.",
@@ -2038,7 +2085,9 @@ fn for_each_symbol_use_in_control_flow(
             };
             for symbol in body.parameters() {
                 // Skip the loop variable itself — it is runtime-bound.
-                if loop_param.as_ref() == Some(&symbol) {
+                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param
+                    && symbol == loop_symbol
+                {
                     continue;
                 }
                 action(symbol, usage)?;
@@ -2549,6 +2598,7 @@ impl PyCircuitData {
                     OperationRef::CustomOperation(custom_operation) => {
                         BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
+                    OperationRef::Store(store) => store.clone().into(),
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -2577,6 +2627,7 @@ impl PyCircuitData {
                     OperationRef::CustomOperation(custom_operation) => {
                         BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
+                    OperationRef::Store(store) => store.clone().into(),
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -3491,7 +3542,7 @@ mod test {
         let other = qc.clone();
         check(&qc, &other);
         let roundtrip = py_dag_to_circuit(
-            &DAGCircuit::from_circuit_data(&qc, false, None, None, None, None)?,
+            &DAGCircuit::from_circuit_data(&qc, false, None, None)?.into(),
             false,
         )?;
         check(&qc, &roundtrip);

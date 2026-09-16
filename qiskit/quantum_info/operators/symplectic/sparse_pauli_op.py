@@ -43,7 +43,6 @@ from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
-
 if TYPE_CHECKING:
     from qiskit.transpiler.layout import TranspileLayout
 
@@ -63,6 +62,12 @@ class SparsePauliOp(LinearOp):
     using the :attr:`~SparsePauliOp.paulis` attribute. The coefficients
     are stored as a complex Numpy array vector and can be accessed using
     the :attr:`~SparsePauliOp.coeffs` attribute.
+
+    .. note::
+
+        Pauli strings are read right-to-left: the rightmost character is qubit 0
+        and the leftmost is qubit :math:`N-1`.  For example, ``SparsePauliOp("ZII")``
+        applies ``Z`` to qubit 2, not qubit 0.
 
     .. rubric:: Data type of coefficients
 
@@ -496,10 +501,14 @@ class SparsePauliOp(LinearOp):
         if self.coeffs.dtype == object:
 
             def to_complex(coeff):
-                if not hasattr(coeff, "sympify"):
+                if not hasattr(coeff, "numeric"):
                     return coeff
-                sympified = coeff.sympify()
-                return complex(sympified) if sympified.is_Number else np.nan
+                # simplify() collapses cancellations like a + b - a - b to 0,
+                # so numeric() can evaluate them without needing sympy.
+                try:
+                    return complex(coeff.simplify().numeric(strict=False))
+                except TypeError:
+                    return np.nan
 
             non_zero = np.logical_not(
                 np.isclose([to_complex(x) for x in self.coeffs], 0, atol=atol, rtol=rtol)
