@@ -2443,6 +2443,9 @@ dependencies = [
 [[package]]
 name = "qiskit-mir"
 version = "2.6.0-dev"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "qiskit-passmanager"
