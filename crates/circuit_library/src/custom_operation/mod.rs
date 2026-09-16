@@ -1,1 +1,1 @@
-mod pauli_evolution;
+pub mod pauli_evolution;

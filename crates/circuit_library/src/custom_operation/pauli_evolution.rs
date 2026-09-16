@@ -25,7 +25,7 @@ pub enum PauliEvolutionError {
     #[error("time is python object")]
     TimeIsPython,
     #[error("operator has 0 qubits")]
-    ZeroQubits,
+    Zero,
 }
 
 /// Time-evolution of a hermitian operator.
@@ -48,7 +48,7 @@ impl PauliEvolution {
         if matches!(time, Param::Obj(_)) {
             Err(PauliEvolutionError::TimeIsPython)
         } else if operator.num_qubits() == 0 {
-            Err(PauliEvolutionError::ZeroQubits)
+            Err(PauliEvolutionError::Zero)
         } else {
             Ok(Self {
                 operator,
@@ -67,7 +67,7 @@ impl PauliEvolution {
         &self.time.0
     }
 
-    /// Decomposes `PauliEvolution` into its raw components: `(operator, time)`.
+    /// Decomposes `PauliEvolution` into its raw components.
     pub fn into_parts(self) -> PauliEvolutionParts {
         PauliEvolutionParts {
             operator: self.operator,
@@ -156,7 +156,7 @@ mod tests {
     fn test_zero_qubits() {
         let obs = SparseObservable::new(0, vec![], vec![], vec![], vec![0]).expect("is coherent");
         let res = PauliEvolution::new(obs, Param::Float(3.0));
-        assert!(matches!(res, Err(PauliEvolutionError::ZeroQubits)))
+        assert!(matches!(res, Err(PauliEvolutionError::Zero)))
     }
 
     #[test]
