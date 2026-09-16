@@ -17,12 +17,8 @@
 use core::f64;
 
 use hashbrown::HashMap;
-#[cfg(feature = "py")]
-use pyo3::prelude::*;
 use std::ops::ControlFlow;
 
-#[cfg(feature = "py")]
-use crate::bytecode;
 use crate::error::{
     ParseError, Position, message_bad_eof, message_generic, message_incorrect_requirement,
 };
@@ -57,23 +53,10 @@ impl From<TokenType> for Function {
     }
 }
 
-#[cfg(feature = "py")]
-impl From<Function> for bytecode::UnaryOpCode {
-    fn from(value: Function) -> Self {
-        match value {
-            Function::Cos => Self::Cos,
-            Function::Exp => Self::Exp,
-            Function::Ln => Self::Ln,
-            Function::Sin => Self::Sin,
-            Function::Sqrt => Self::Sqrt,
-            Function::Tan => Self::Tan,
-        }
-    }
-}
-
-/// An operator symbol used in the expression parsing.  This is essentially just a subset of the
-/// [TokenType] enum (albeit with resolved names) to allow for better pattern-match semantics in
-/// the Rust compiler.
+/// An operator symbol.  This is essentially just a subset of the [TokenType] enum (albeit with
+/// resolved names) to allow for better pattern-match semantics in the Rust compiler.  It is shared
+/// between the parser, which uses it to resolve precedence and to fold constants, and [evaluate],
+/// which uses it to record the pending binary operation on its work stack.
 #[derive(Clone, Copy)]
 enum Op {
     Plus,
@@ -150,78 +133,129 @@ pub enum Expr {
     CustomFunction(ClassicalCallableExt, Vec<Expr>),
 }
 
+/// A single pending step of the iterative evaluator
 #[cfg(feature = "py")]
-impl<'py> IntoPyObject<'py> for Expr {
-    type Target = PyAny; // the Python type
-    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
-    type Error = PyErr;
+enum Step<'a> {
+    /// Evaluate this (sub)expression, pushing its value onto the value stack.
+    Eval(&'a Expr),
+    /// Pop one value, negate it, and push the result.
+    Negate,
+    /// Pop one value, apply the builtin function, and push the result.
+    Function(&'a Function),
+    /// Pop two values apply the operation, and push the result.
+    Binary(Op),
+    /// Pop the given number of values, call the classical function with them, and push the result.
+    Custom(&'a ClassicalCallableExt, usize),
+}
 
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(match self {
-            Expr::Constant(value) => bytecode::ExprConstant { value }
-                .into_pyobject(py)?
-                .into_any(),
-            Expr::Parameter(index) => bytecode::ExprArgument { index }
-                .into_pyobject(py)?
-                .into_any(),
-            Expr::Negate(expr) => bytecode::ExprUnary {
-                opcode: bytecode::UnaryOpCode::Negate,
-                argument: expr.into_pyobject(py)?.unbind(),
+#[cfg(feature = "py")]
+pub fn evaluate(
+    expr: &Expr,
+    params: &[f64],
+    evaluator: ClassicalEvaluator<'_>,
+) -> Result<f64, ParseError> {
+    let mut work = vec![Step::Eval(expr)];
+    let mut values = Vec::<f64>::new();
+
+    while let Some(step) = work.pop() {
+        match step {
+            Step::Eval(expr) => match expr {
+                Expr::Constant(value) => values.push(*value),
+                Expr::Parameter(index) => {
+                    let value = params.get(index.index()).copied().ok_or_else(|| {
+                        ParseError::new("gate parameter index out of range".to_owned())
+                    })?;
+                    values.push(value);
+                }
+                Expr::Negate(inner) => {
+                    work.push(Step::Negate);
+                    work.push(Step::Eval(inner));
+                }
+                Expr::Add(lhs, rhs) => push_binary(&mut work, Op::Plus, lhs, rhs),
+                Expr::Subtract(lhs, rhs) => push_binary(&mut work, Op::Minus, lhs, rhs),
+                Expr::Multiply(lhs, rhs) => push_binary(&mut work, Op::Multiply, lhs, rhs),
+                Expr::Divide(lhs, rhs) => push_binary(&mut work, Op::Divide, lhs, rhs),
+                Expr::Power(lhs, rhs) => push_binary(&mut work, Op::Power, lhs, rhs),
+                Expr::Function(func, inner) => {
+                    work.push(Step::Function(func));
+                    work.push(Step::Eval(inner));
+                }
+                Expr::CustomFunction(callable, exprs) => {
+                    work.push(Step::Custom(callable, exprs.len()));
+                    // Pushed in reverse so that they pop (and so evaluate) left-to-right, leaving
+                    // the values on the stack in argument order.
+                    work.extend(exprs.iter().rev().map(Step::Eval));
+                }
+            },
+            Step::Negate => {
+                let value = values.pop().expect("negation has one operand");
+                values.push(-value);
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Add(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Add,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
+            Step::Function(func) => {
+                let value = values.pop().expect("a function has one operand");
+                values.push(match func {
+                    Function::Cos => value.cos(),
+                    Function::Exp => value.exp(),
+                    Function::Ln => {
+                        if value <= 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'ln' is undefined for non-positive {value}"
+                            )));
+                        }
+                        value.ln()
+                    }
+                    Function::Sin => value.sin(),
+                    Function::Sqrt => {
+                        if value < 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'sqrt' is undefined for negative {value}"
+                            )));
+                        }
+                        value.sqrt()
+                    }
+                    Function::Tan => value.tan(),
+                });
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Subtract(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Subtract,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
+            Step::Binary(op) => {
+                let rhs = values.pop().expect("a binary op has two operands");
+                let lhs = values.pop().expect("a binary op has two operands");
+                values.push(match op {
+                    Op::Plus => lhs + rhs,
+                    Op::Minus => lhs - rhs,
+                    Op::Multiply => lhs * rhs,
+                    Op::Divide => {
+                        if rhs == 0.0 {
+                            return Err(ParseError::new("cannot divide by zero".to_owned()));
+                        }
+                        lhs / rhs
+                    }
+                    Op::Power => {
+                        if lhs < 0.0 && rhs.fract() != 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'^': negative base {lhs} with non-integer power {rhs}"
+                            )));
+                        }
+                        lhs.powf(rhs)
+                    }
+                });
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Multiply(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Multiply,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
+            Step::Custom(callable, num_args) => {
+                let args = values.split_off(values.len() - num_args);
+                values.push(evaluator.eval(callable, &args)?);
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Divide(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Divide,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Power(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Power,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Function(func, expr) => bytecode::ExprUnary {
-                opcode: func.into(),
-                argument: expr.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::CustomFunction(callable, exprs) => bytecode::ExprCustom {
-                callable,
-                arguments: exprs
-                    .into_iter()
-                    .map(|arg| arg.into_pyobject(py).map(|obj| obj.unbind()))
-                    .collect::<Result<Vec<_>, _>>()?,
-            }
-            .into_pyobject(py)?
-            .into_any(),
-        })
+        }
     }
+
+    let value = values.pop().expect("the expression evaluates to one value");
+    debug_assert!(values.is_empty());
+    Ok(value)
+}
+
+#[cfg(feature = "py")]
+fn push_binary<'a>(work: &mut Vec<Step<'a>>, op: Op, lhs: &'a Expr, rhs: &'a Expr) {
+    work.push(Step::Binary(op));
+    work.push(Step::Eval(rhs));
+    work.push(Step::Eval(lhs));
 }
 
 /// Calculate the binding power of an [Op] when used in a prefix position.  Returns [None] if the
