@@ -97,6 +97,7 @@ unsafe fn dump_buffer_impl(
     }
 }
 
+/// @ingroup QkQpy
 /// Write one circuit to a QPY file.
 ///
 /// The circuit is copied before serialization and remains owned by the caller.
@@ -118,6 +119,7 @@ pub unsafe extern "C" fn qk_qpy_dump_file(
     unsafe { dump_file_impl(circuit, filename, None) }
 }
 
+/// @ingroup QkQpy
 /// Write one circuit to a QPY file using a specific format version.
 ///
 /// @param circuit A valid, non-null circuit pointer.
@@ -137,6 +139,7 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
     unsafe { dump_file_impl(circuit, filename, Some(version)) }
 }
 
+/// @ingroup QkQpy
 /// Load the first circuit from a QPY file.
 ///
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
@@ -176,6 +179,7 @@ pub unsafe extern "C" fn qk_qpy_load_file(
     }
 }
 
+/// @ingroup QkQpy
 /// Serialize one circuit into a newly allocated QPY buffer.
 ///
 /// @param circuit A valid, non-null circuit pointer.
@@ -198,6 +202,7 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer(
     unsafe { dump_buffer_impl(circuit, buffer, size, None) }
 }
 
+/// @ingroup QkQpy
 /// Serialize one circuit into a newly allocated QPY buffer using a specific format version.
 ///
 /// @param circuit A valid, non-null circuit pointer.
@@ -219,6 +224,7 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
     unsafe { dump_buffer_impl(circuit, buffer, size, Some(version)) }
 }
 
+/// @ingroup QkQpy
 /// Load the first circuit from a QPY buffer.
 ///
 /// @param buffer A valid buffer containing ``size`` bytes of QPY data.
@@ -254,6 +260,7 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
     }
 }
 
+/// @ingroup QkQpy
 /// Free a buffer returned by ``qk_qpy_dump_buffer``.
 ///
 /// @param buffer A buffer returned by ``qk_qpy_dump_buffer``, or null.
