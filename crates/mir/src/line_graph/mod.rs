@@ -12,6 +12,8 @@
 
 //! Definition of the base [`LineGraph`] data structure.
 
+pub mod iter;
+
 use std::{mem, num, ops};
 
 /// A graph that supports only "lines", and whose indices are stable under node removal.
@@ -23,6 +25,14 @@ use std::{mem, num, ops};
 /// and [`push_back`](Self::push_back) modify this "main sequence".  It is permissible to add
 /// "orphan" sequences, initialized with [`push_orphan`](Self::push_orphan), which will not appear
 /// in the main-sequence iteration.
+///
+/// # Iteration
+///
+/// There are several supported iteration methods on the graph for shared references, such as
+/// [`iter_from`](Self::iter_from), [`iter_main`](Self::iter_main) and
+/// [`iter_range_back`](Self::iter_range_back).  There are no mutable-reference iterators because
+/// this is near-impossible to achieve with the require random access through the graph's backing
+/// data storage.
 #[derive(Clone, Debug)]
 pub struct LineGraph<T> {
     /// The individual slots that make up the graph.
@@ -321,6 +331,72 @@ impl<T> LineGraph<T> {
             // The leaked free slot is never fillable, so doesn't count to capacity.
             .checked_sub(1)
             .expect("capacity should always include a leaked free slot")
+    }
+
+    /// Iterate over data nodes starting from (and including) `idx`, in successor order.
+    ///
+    /// This is identical to [`iter_range(idx, None)`](Self::iter_range).  If you need the whole
+    /// main sequence, try [`iter_main`](Self::iter_main).
+    ///
+    /// This returns an empty iterator if `idx` is not a valid data node.
+    #[inline]
+    pub fn iter_from(&self, idx: Index) -> iter::Iter<'_, T, iter::Successors> {
+        iter::Iter::new(self, idx, None)
+    }
+
+    /// Iterate over data nodes starting from `from` (inclusive), until the sequence ends or the
+    /// next index would be `to` (a half-open range), following the successor edges.
+    ///
+    /// If you need a double-inclusive iterator, use `self.data(to).and_then(|n| n.next())` as the
+    /// bound instead.
+    ///
+    /// The iteration is empty if `idx` is not a valid data node.  It is not an error if `to` is not
+    /// reachable from `from`, the iteration will just run to the end of the sequence.
+    #[inline]
+    pub fn iter_range(
+        &self,
+        from: Index,
+        to: Option<Index>,
+    ) -> iter::Iter<'_, T, iter::Successors> {
+        iter::Iter::new(self, from, to)
+    }
+
+    /// Iterate over data nodes starting from (and including) `idx`, in predecessor order.
+    ///
+    /// This is identical to [`iter_range_back(idx, None)`](Self::iter_range_back).  If you need the
+    /// whole main sequence, try [`self.iter_main().rev()`](Self::iter_main).
+    ///
+    /// This returns an empty iterator if `idx` is not a valid data node.
+    #[inline]
+    pub fn iter_back_from(&self, idx: Index) -> iter::Iter<'_, T, iter::Predecessors> {
+        iter::Iter::new(self, idx, None)
+    }
+
+    /// Iterate over data nodes starting from `from` (inclusive), until the sequence ends or the
+    /// next index would be `to` (a half-open range), following the predecessor edges.
+    ///
+    /// If you need a double-inclusive iterator, use `self.data(to).and_then(|n| n.prev())` as the
+    /// bound instead.
+    ///
+    /// The iteration is empty if `idx` is not a valid data node.  It is not an error if `to` is not
+    /// reachable from `from`, the iteration will just run to the end of the sequence.
+    #[inline]
+    pub fn iter_range_back(
+        &self,
+        from: Index,
+        to: Option<Index>,
+    ) -> iter::Iter<'_, T, iter::Predecessors> {
+        iter::Iter::new(self, from, to)
+    }
+
+    /// Iterate over the entire main sequence, following successors.
+    ///
+    /// This will not include any orphan sequences.  The resulting iterator implements
+    /// [`DoubleEndedIterator`], so you can iterate the main sequence following predecessors using
+    /// its [`rev`](Iterator::rev) method.
+    #[inline]
+    pub fn iter_main(&self) -> iter::IterMain<'_, T> {
+        iter::IterMain::new(self)
     }
 }
 
@@ -829,5 +905,181 @@ mod tests {
             indices_again.as_slice(),
             "pushing after removes should re-use the indices (in arbitrary order)"
         );
+    }
+
+    #[test]
+    fn iter_basic() {
+        let weights = [0, 1, 2, 3, 4, 5];
+        let mut g = LineGraph::<u8>::new();
+        for weight in weights {
+            g.push_back(weight);
+        }
+
+        let main_fwd = g.iter_main().map(|n| *n.weight()).collect::<Vec<_>>();
+        assert_eq!(weights.as_slice(), main_fwd.as_slice());
+        let mut main_rev = g.iter_main().rev().map(|n| *n.weight()).collect::<Vec<_>>();
+        main_rev.reverse();
+        assert_eq!(weights.as_slice(), main_rev.as_slice());
+
+        let from_head = g
+            .iter_from(g.head_index().unwrap())
+            .map(|n| *n.weight())
+            .collect::<Vec<_>>();
+        assert_eq!(weights.as_slice(), from_head.as_slice());
+
+        let mut from_tail = g
+            .iter_back_from(g.tail_index().unwrap())
+            .map(|n| *n.weight())
+            .collect::<Vec<_>>();
+        from_tail.reverse();
+        assert_eq!(weights.as_slice(), from_tail.as_slice());
+
+        let range_fwd = g
+            .iter_range(
+                g.head().and_then(Node::next).unwrap(),
+                g.tail().and_then(Node::prev),
+            )
+            .map(|n| *n.weight())
+            .collect::<Vec<_>>();
+        assert_eq!(&weights[1..4], range_fwd.as_slice());
+
+        let mut range_back = g
+            .iter_range_back(
+                g.tail().and_then(Node::prev).unwrap(),
+                g.head().and_then(Node::next),
+            )
+            .map(|n| *n.weight())
+            .collect::<Vec<_>>();
+        range_back.reverse();
+        assert_eq!(&weights[2..5], range_back.as_slice());
+    }
+
+    #[test]
+    fn iter_from_allows_orphans() {
+        let mut g = LineGraph::<u8>::new();
+        let head_idx = g.push_orphan(0);
+        let mid_idx = g.insert_after(head_idx, 1);
+        let tail_idx = g.insert_after(mid_idx, 2);
+
+        let fwd = g
+            .iter_from(head_idx)
+            .map(|n| *n.weight())
+            .collect::<Vec<_>>();
+        assert_eq!([0, 1, 2].as_slice(), fwd.as_slice());
+        let back = g
+            .iter_back_from(tail_idx)
+            .map(|n| *n.weight())
+            .collect::<Vec<_>>();
+        assert_eq!([2, 1, 0].as_slice(), back.as_slice());
+    }
+
+    #[test]
+    fn iter_range_empty_range() {
+        let mut g = LineGraph::<u8>::new();
+        g.push_back(0);
+        let mid = g.push_back(1);
+        g.push_back(2);
+
+        assert_eq!(g.iter_range(mid, Some(mid)).count(), 0);
+        assert_eq!(g.iter_range_back(mid, Some(mid)).count(), 0);
+    }
+
+    #[test]
+    fn iterators_ignore_invalid_indices() {
+        let weights = [0, 1, 2, 3, 4];
+        let mut g = LineGraph::<u8>::new();
+        for weight in weights {
+            g.push_back(weight);
+        }
+        let bad_head = g.head_index().unwrap();
+        g.remove(bad_head);
+        let bad_tail = g.tail_index().unwrap();
+        g.remove(bad_tail);
+
+        assert_eq!(g.iter_from(bad_head).count(), 0);
+        assert_eq!(g.iter_from(bad_tail).count(), 0);
+        assert_eq!(g.iter_back_from(bad_head).count(), 0);
+        assert_eq!(g.iter_back_from(bad_tail).count(), 0);
+        assert_eq!(g.iter_range(bad_head, None).count(), 0);
+        assert_eq!(g.iter_range_back(bad_tail, None).count(), 0);
+
+        let from_head = g
+            .iter_range(g.head_index().unwrap(), Some(bad_head))
+            .map(|n| *n.weight())
+            .collect::<Vec<_>>();
+        assert_eq!(&weights[1..4], from_head.as_slice());
+
+        let mut from_tail = g
+            .iter_range_back(g.tail_index().unwrap(), Some(bad_tail))
+            .map(|n| *n.weight())
+            .collect::<Vec<_>>();
+        from_tail.reverse();
+        assert_eq!(&weights[1..4], from_tail.as_slice());
+    }
+
+    #[test]
+    fn iterators_work_on_empty() {
+        let g = LineGraph::<u8>::new();
+        let idx = Index::new(123).unwrap();
+        assert_eq!(g.iter_from(idx).count(), 0);
+        assert_eq!(g.iter_back_from(idx).count(), 0);
+        assert_eq!(g.iter_range(idx, None).count(), 0);
+        assert_eq!(g.iter_range_back(idx, None).count(), 0);
+        assert_eq!(g.iter_main().count(), 0);
+        assert_eq!(g.iter_main().rev().count(), 0);
+    }
+
+    #[test]
+    fn iter_main_ignores_orphans() {
+        let mut g = LineGraph::<u8>::new();
+        g.push_orphan(10);
+        assert_eq!(g.iter_main().count(), 0);
+        assert_eq!(g.iter_main().rev().count(), 0);
+
+        g.push_back(5);
+        assert_eq!(
+            g.iter_main()
+                .map(|n| *n.weight())
+                .collect::<Vec<_>>()
+                .as_slice(),
+            &[5]
+        );
+        assert_eq!(
+            g.iter_main()
+                .rev()
+                .map(|n| *n.weight())
+                .collect::<Vec<_>>()
+                .as_slice(),
+            &[5]
+        );
+    }
+
+    #[test]
+    fn iter_main_double_ended_interleave() {
+        fn case(weights: &[u8], fwd_first: bool, desc: &str) {
+            let mut g = LineGraph::with_capacity(weights.len());
+            for weight in weights {
+                g.push_back(*weight);
+            }
+
+            let mut fwd = Vec::new();
+            let mut back = Vec::new();
+            let mut iter = g.iter_main();
+            if fwd_first {
+                fwd.push(*iter.next().unwrap().weight());
+            }
+            // This is just a loop with two exit conditions.
+            None::<std::convert::Infallible> = (|| loop {
+                back.push(*iter.next_back()?.weight());
+                fwd.push(*iter.next()?.weight());
+            })();
+            fwd.extend(back.drain(..).rev());
+
+            assert_eq!(weights, fwd.as_slice(), "{desc}");
+        }
+        case(&[0, 1, 2, 3, 4, 5], false, "even, back first");
+        case(&[0, 1, 2, 3, 4, 5], true, "even, fwd first");
+        case(&[0, 1, 2, 3, 4, 5, 6], false, "odd, back first");
+        case(&[0, 1, 2, 3, 4, 5, 6], true, "odd, fwd first");
     }
 }
