@@ -25,6 +25,20 @@ mod sealed {
     pub trait Direction<T> {
         fn next(n: &Node<T>) -> Option<Index>;
     }
+
+    /// Trait that powers the [`Indexed`](super::Indexed) iterator combinator.
+    pub trait NextIndex {
+        /// Get the tentative index of the next node to be emitted.  If this is `None`, the iterator
+        /// terminates.  This is allowed to be `Some` even if the iterator doesn't emit the node.
+        fn next_index(&self) -> Option<Index>;
+    }
+    /// Trait that powers the [`Indexed`](super::Indexed) iterator combinator for
+    /// [`DoubleEndedIterator`].
+    pub trait NextIndexBack {
+        /// Get the tentative index of the next node to be emitted.  If this is `None`, the iterator
+        /// terminates.  This is allowed to be `Some` even if the iterator doesn't emit the node.
+        fn next_index_back(&self) -> Option<Index>;
+    }
 }
 /// Marker object for use with iterators that indicates we're walking following the successors.
 pub struct Successors;
@@ -39,6 +53,18 @@ impl<T> sealed::Direction<T> for Predecessors {
     fn next(n: &Node<T>) -> Option<Index> {
         n.prev()
     }
+}
+
+macro_rules! impl_indexed {
+    () => {
+        /// Create an iterator which gives the current node index as well as the node itself.
+        ///
+        /// This is analogous to [`Iterator::enumerate`].
+        #[inline]
+        pub fn indexed(self) -> Indexed<Self> {
+            Indexed(self)
+        }
+    };
 }
 
 /// An iterator that walks the graph from a given index until a given one (exclusive), or the end of
@@ -71,6 +97,8 @@ impl<'a, T, D: sealed::Direction<T>> Iter<'a, T, D> {
             dir: PhantomData,
         }
     }
+
+    impl_indexed! {}
 }
 impl<'a, T, D: sealed::Direction<T>> Iterator for Iter<'a, T, D> {
     type Item = &'a Node<T>;
@@ -96,6 +124,11 @@ impl<'a, T, D: sealed::Direction<T>> Iterator for Iter<'a, T, D> {
     }
 }
 impl<T, D: sealed::Direction<T>> std::iter::FusedIterator for Iter<'_, T, D> {}
+impl<T, D: sealed::Direction<T>> sealed::NextIndex for Iter<'_, T, D> {
+    fn next_index(&self) -> Option<Index> {
+        self.cur
+    }
+}
 
 /// An iterator that walks the complete main sequence of the graph.
 ///
@@ -118,6 +151,8 @@ impl<'a, T> IterMain<'a, T> {
             seen: 0,
         }
     }
+
+    impl_indexed! {}
 }
 impl<'a, T> Iterator for IterMain<'a, T> {
     type Item = &'a Node<T>;
@@ -167,3 +202,43 @@ impl<'a, T> DoubleEndedIterator for IterMain<'a, T> {
     }
 }
 impl<'a, T> std::iter::FusedIterator for IterMain<'a, T> {}
+impl<T> sealed::NextIndex for IterMain<'_, T> {
+    fn next_index(&self) -> Option<Index> {
+        self.cur_front
+    }
+}
+impl<T> sealed::NextIndexBack for IterMain<'_, T> {
+    fn next_index_back(&self) -> Option<Index> {
+        self.cur_back
+    }
+}
+
+#[derive(Debug)]
+pub struct Indexed<I>(I);
+impl<I> Iterator for Indexed<I>
+where
+    I: Iterator + sealed::NextIndex,
+{
+    type Item = (Index, I::Item);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let idx = self.0.next_index()?;
+        self.0.next().map(|x| (idx, x))
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+impl<I> DoubleEndedIterator for Indexed<I>
+where
+    I: DoubleEndedIterator + sealed::NextIndex + sealed::NextIndexBack,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let idx = self.0.next_index_back()?;
+        self.0.next_back().map(|x| (idx, x))
+    }
+}
+impl<I> std::iter::FusedIterator for Indexed<I> where
+    I: Iterator + sealed::NextIndex + std::iter::FusedIterator
+{
+}
