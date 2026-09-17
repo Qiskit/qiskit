@@ -376,71 +376,6 @@ impl PassManager {
         self.try_push_task(task)
     }
 
-    /// Try and remove a task.
-    ///
-    /// Returns the removed task and verifies the types are still compatible after removal.
-    pub fn try_remove_task(&mut self, index: usize) -> Result<Task, PassManagerError> {
-        if index >= self.tasks.len() {
-            return Err(PassManagerError::IndexError {
-                index,
-                len: self.tasks.len(),
-            });
-        }
-
-        if index > 0 && index < self.tasks.len() - 1 {
-            let (Some((_, before)), Some((after, _))) = (
-                self.tasks[index - 1].io_types(),
-                self.tasks[index + 1].io_types(),
-            ) else {
-                return Err(PassManagerError::EmptyTask);
-            };
-            if before != after {
-                return Err(PassManagerError::IncompatibleTypes);
-            }
-        }
-        let task = self.tasks.remove(index);
-
-        Ok(task)
-    }
-
-    /// Try and insert a task at an index.
-    ///
-    /// This pushes the task at `index` to `index + 1` and shifts all subsequent ones by one.
-    /// If `index` equals [Self::num_tasks], the task is appended at the end.
-    pub fn try_insert_task(&mut self, index: usize, task: Task) -> Result<(), PassManagerError> {
-        if index > self.tasks.len() {
-            return Err(PassManagerError::IndexError {
-                index,
-                len: self.tasks.len(),
-            });
-        }
-
-        if !self.tasks.is_empty() {
-            let Some((in_type, out_type)) = task.io_types() else {
-                return Err(PassManagerError::EmptyTask);
-            };
-            if index > 0 {
-                let Some((_, before)) = self.tasks[index - 1].io_types() else {
-                    return Err(PassManagerError::EmptyTask);
-                };
-                if before != in_type {
-                    return Err(PassManagerError::IncompatibleTypes);
-                }
-            }
-            if index < self.tasks.len() - 1 {
-                let Some((after, _)) = self.tasks[index + 1].io_types() else {
-                    return Err(PassManagerError::EmptyTask);
-                };
-                if out_type != after {
-                    return Err(PassManagerError::IncompatibleTypes);
-                }
-            }
-        }
-
-        self.tasks.insert(index, task);
-        Ok(())
-    }
-
     /// Get a reference to a [Task] at a given index.
     pub fn get_task(&self, index: usize) -> Option<&Task> {
         self.tasks.get(index)
@@ -599,21 +534,6 @@ mod test {
         }
     }
 
-    struct DagToCircuit {}
-
-    impl Pass for DagToCircuit {
-        type InputIR = DAGCircuit;
-        type OutputIR = CircuitData;
-
-        fn run(
-            &self,
-            ir: Self::InputIR,
-            _context: &mut PassContext,
-        ) -> anyhow::Result<Self::OutputIR> {
-            Ok(CircuitData::from_dag_ref(&ir)?)
-        }
-    }
-
     struct CounterCallback {
         counter: Rc<Cell<usize>>,
         hookpoint: CallbackType,
@@ -747,46 +667,6 @@ mod test {
 
             assert_eq!(expected_count, callback.counter.get())
         }
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_insertion() -> Result<(), PassManagerError> {
-        let make_dag_task = || Task::Transformation(Box::new(RemoveIdentities {}));
-        let make_circ_task = || Task::Transformation(Box::new(CountT {}));
-
-        let mut pm = PassManager::new();
-        pm.try_insert_task(0, make_dag_task())?;
-        pm.try_insert_task(1, make_dag_task())?;
-        pm.try_insert_task(0, make_dag_task())?;
-
-        assert!(matches!(
-            pm.try_insert_task(1, make_circ_task()),
-            Err(PassManagerError::IncompatibleTypes)
-        ));
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_removal() -> Result<(), PassManagerError> {
-        let mut pm = PassManager::new();
-        pm.try_push_pass(Box::new(RemoveIdentities {}))?;
-        pm.try_push_pass(Box::new(RemoveIdentities {}))?;
-        pm.try_push_pass(Box::new(DagToCircuit {}))?;
-        pm.try_push_pass(Box::new(CountT {}))?;
-
-        assert!(matches!(
-            pm.try_remove_task(2),
-            Err(PassManagerError::IncompatibleTypes)
-        ));
-
-        pm.try_remove_task(3)?;
-        pm.try_remove_task(2)?;
-        pm.try_remove_task(0)?;
-
-        assert_eq!(pm.num_tasks(), 1);
 
         Ok(())
     }
