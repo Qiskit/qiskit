@@ -14,7 +14,7 @@
 //!
 //! Functions in this module answer questions about what promotion and broadcasting
 //! *would* do for a given pair of operand types, so a caller can understand expected
-//! behaviour without actual tensors instantiated.
+//! behavior without actual tensors instantiated.
 
 use super::broadcast::align_axes;
 use super::{DType, Dim, TensorError};

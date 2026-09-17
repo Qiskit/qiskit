@@ -67,7 +67,7 @@ where
 {
     let out_shape = broadcast_shape(a.shape(), b.shape())?;
     let out_ix = IxDyn(&out_shape);
-    let a_bc = a.broadcast(out_ix.clone()).expect("broadcast failed");
-    let b_bc = b.broadcast(out_ix).expect("broadcast failed");
+    let a_bc = a.broadcast(out_ix.clone()).expect("broadcast_shape should have validated broadacast");
+    let b_bc = b.broadcast(out_ix).expect("broadcast_shape should have validated broadcast");
     Ok(Zip::from(a_bc).and(b_bc).map_collect(op).into_shared())
 }
