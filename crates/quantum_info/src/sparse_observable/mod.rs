@@ -2796,7 +2796,8 @@ impl PySparseObservable {
     ///         >>> assert obs == obs.copy()
     ///         >>> assert obs is not obs.copy()
     fn copy(&self) -> PyResult<Self> {
-        Ok(self.inner.clone().into())
+        let obs = self.inner.clone();
+        Ok(obs.into())
     }
 
     /// The number of qubits the operator acts on.
@@ -2819,9 +2820,9 @@ impl PySparseObservable {
     /// The coefficients of each abstract term in in the sum.  This has as many elements as terms in
     /// the sum.
     #[getter]
-    fn get_coeffs(slf_: Py<Self>) -> ArrayView {
+    fn get_coeffs(slf: Py<Self>) -> ArrayView {
         ArrayView {
-            base: slf_.clone(),
+            base: slf.clone(),
             slot: ArraySlot::Coeffs,
         }
     }
@@ -2829,9 +2830,9 @@ impl PySparseObservable {
     /// A flat list of single-qubit terms.  This is more naturally a list of lists, but is stored
     /// flat for memory usage and locality reasons, with the sublists denoted by `boundaries.`
     #[getter]
-    fn get_bit_terms(slf_: Py<Self>) -> ArrayView {
+    fn get_bit_terms(slf: Py<Self>) -> ArrayView {
         ArrayView {
-            base: slf_.clone(),
+            base: slf.clone(),
             slot: ArraySlot::BitTerms,
         }
     }
@@ -2845,9 +2846,9 @@ impl PySparseObservable {
     ///     If writing to this attribute from Python space, you *must* ensure that you only write in
     ///     indices that are term-wise sorted.
     #[getter]
-    fn get_indices(slf_: Py<Self>) -> ArrayView {
+    fn get_indices(slf: Py<Self>) -> ArrayView {
         ArrayView {
-            base: slf_.clone(),
+            base: slf.clone(),
             slot: ArraySlot::Indices,
         }
     }
@@ -2858,9 +2859,9 @@ impl PySparseObservable {
     /// unspecified qubit indices are implicitly the identity.  This is one item longer than
     /// :attr:`coeffs`, since ``boundaries[0]`` is always an explicit zero (for algorithmic ease).
     #[getter]
-    fn get_boundaries(slf_: Py<Self>) -> ArrayView {
+    fn get_boundaries(slf: Py<Self>) -> ArrayView {
         ArrayView {
-            base: slf_.clone(),
+            base: slf.clone(),
             slot: ArraySlot::Boundaries,
         }
     }
@@ -3203,8 +3204,8 @@ impl PySparseObservable {
     ///         A constructor of :class:`.SparsePauliOp` that can convert a
     ///         :class:`SparseObservable` in the :class:`.SparsePauliOp` dense Pauli representation.
     fn as_paulis(&self) -> PyResult<Self> {
-        let inner = self.inner.as_paulis();
-        Ok(inner.into())
+        let obs = self.inner.as_paulis();
+        Ok(obs.into())
     }
 
     /// Express the observable in terms of a sparse list format.
@@ -3503,8 +3504,8 @@ impl PySparseObservable {
         signature = (/, tol=1e-8),
     )]
     fn simplify(&self, tol: f64) -> PyResult<Self> {
-        let simplified = self.inner.canonicalize(tol);
-        Ok(simplified.into())
+        let obs = self.inner.canonicalize(tol);
+        Ok(obs.into())
     }
 
     /// Calculate the adjoint of this observable.
@@ -3522,7 +3523,8 @@ impl PySparseObservable {
     ///         >>> right = SparseObservable.from_list([("XY+-", -1j)])
     ///         >>> assert left.adjoint() == right
     fn adjoint(&self) -> PyResult<Self> {
-        Ok(self.inner.adjoint().into())
+        let obs = self.inner.adjoint();
+        Ok(obs.into())
     }
 
     /// Calculate the matrix transposition of this observable.
@@ -3543,7 +3545,8 @@ impl PySparseObservable {
     ///         >>> obs = SparseObservable([("III", 1j), ("Yrl", 0.5)])
     ///         >>> assert obs.transpose() == SparseObservable([("III", 1j), ("Ylr", -0.5)])
     fn transpose(&self) -> PyResult<Self> {
-        Ok(self.inner.transpose().into())
+        let obs = self.inner.transpose();
+        Ok(obs.into())
     }
 
     /// Calculate the complex conjugation of this observable.
@@ -3566,7 +3569,8 @@ impl PySparseObservable {
     ///         >>> obs = SparseObservable([("III", 1j), ("Yrl", 0.5)])
     ///         >>> assert obs.conjugate() == SparseObservable([("III", -1j), ("Ylr", -0.5)])
     fn conjugate(&self) -> PyResult<Self> {
-        Ok(self.inner.conjugate().into())
+        let obs = self.inner.conjugate();
+        Ok(obs.into())
     }
 
     /// Tensor product of two observables.
@@ -3820,6 +3824,10 @@ impl PySparseObservable {
             )));
         }
 
+        let base = &self.inner;
+        let u_obs = Self::from_pauli(other)?;
+        let u_inner = &u_obs.inner;
+
         let qargs_vec = if let Some(qargs) = qargs {
             let vec = qargs
                 .try_iter()?
@@ -3830,10 +3838,8 @@ impl PySparseObservable {
             None
         };
 
-        let u_obs = Self::from_pauli(other)?;
-        let out = self
-            .inner
-            .evolve(&u_obs.inner, qargs_vec.as_deref())
+        let out = base
+            .evolve(u_inner, qargs_vec.as_deref())
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
 
         out.into_pyobject(py)
@@ -4013,17 +4019,15 @@ impl PySparseObservable {
         out.into_bound_py_any(py)
     }
 
-    fn __eq__(slf: Bound<Self>, other: Bound<PyAny>) -> PyResult<bool> {
-        // this is also important to check before trying to read both slf and other
-        if slf.is(&other) {
-            return Ok(true);
-        }
-        let Ok(other) = other.cast_into::<Self>() else {
-            return Ok(false);
+    fn __eq__(&self, other: &Bound<PyAny>) -> PyResult<bool> {
+        let is_eq = if let Ok(Some(other)) = coerce_to_observable(other) {
+            let other = other.borrow();
+            self.inner == other.inner
+        } else {
+            false
         };
-        let slf = slf.borrow();
-        let other = other.borrow();
-        Ok(slf.inner.eq(&other.inner))
+
+        Ok(is_eq)
     }
 
     fn __repr__(&self) -> PyResult<String> {
