@@ -68,10 +68,8 @@ pub enum Param {
     /// certain value is shared between operations in a circuit, and will
     /// accept a value right before the circuit runs.
     ParameterExpression(Arc<ParameterExpression>),
-    /// Used exclusively to represent a duration in terms of `Dt` for a
-    /// [`StandardInstruction::Delay`]. `Dt` represents a native cycle of time
-    /// for a QPU and therefore this parameter can only represent amounts of
-    /// said magnitude.
+    /// Used for parameters that must only be integers.  For example, the
+    /// `Delay::DT` unit requires this, but gate angles must use `Float`.
     Int(i64),
     /// Represents a bound parameter with a real value associated with it.
     /// This, alongside [`Param::ParameterExpression`], is the most common
@@ -80,7 +78,7 @@ pub enum Param {
     /// these are irrational numbers they are best represented by a
     /// floating point number.
     Float(f64),
-    /// Represents parameters that are historically not representable in Rust.
+    /// Represents Python parameters with no special Rust handling.
     Obj(Py<PyAny>),
 }
 
@@ -123,8 +121,6 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
             Param::Obj(b.to_owned().unbind())
         } else if let Ok(val) = b.extract::<f64>() {
             Param::Float(val)
-        } else if let Ok(int) = b.extract::<u64>() {
-            Param::Float(int as f64)
         } else {
             Param::Obj(b.to_owned().unbind())
         })
@@ -1306,7 +1302,7 @@ pub fn multiply_param(param: &Param, mult: f64) -> Param {
             ))
         }
         Param::Obj(_) | Param::Int(_) => {
-            unreachable!("Unsupported multiplication of a Param::Obj.")
+            panic!("Unsupported multiplication of a Param::Obj.")
         }
     }
 }
@@ -1329,7 +1325,7 @@ pub fn multiply_params(param1: Param, param2: Param) -> Param {
             Param::ParameterExpression(Arc::new(p1.mul(p2).expect("Name conflict during mul.")))
         }
         (Param::Int(left), Param::Int(right)) => Param::Int(left * right),
-        _ => unreachable!("Unsupported multiplication."),
+        _ => panic!("Unsupported multiplication."),
     }
 }
 
@@ -1349,7 +1345,7 @@ pub fn add_param(param: &Param, summand: f64) -> Param {
             Arc::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
         ),
         Param::Obj(_) | Param::Int(_) => {
-            unreachable!("Unsupported addition of a Param::Obj or Param::Int.")
+            panic!("Unsupported addition of a Param::Obj or Param::Int.")
         }
     }
 }
