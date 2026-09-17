@@ -32,6 +32,8 @@ mod params;
 mod py_methods;
 mod value;
 
+pub use interface::{native_dump_qpy, native_load_qpy};
+
 /// Internal module supplying the QPY capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
 pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {

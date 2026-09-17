@@ -1,0 +1,33 @@
+---
+features_c:
+  - |
+    Added QPY serialization and deserialization to the C API.
+    A :c:struct:`QkCircuit` can now be serialized in the latest QPY
+    version either to a buffer with :c:func:`qk_qpy_dump_buffer` 
+    or saved to a file with :c:func:`qk_qpy_dump_file`.
+    Both functions have an alternative `*_with_version` variant 
+    that allows specifying the QPY version to used in serialization.
+
+    A circuit can be deserialized from a buffer or file 
+    with :c:func:`qk_qpy_load_buffer` and :c:func:`qk_qpy_load_file`
+    (the version is handled automatically; no need for variants).
+    
+    In order to free the buffer returned by :c:func:`qk_qpy_dump_buffer` 
+    and :c:func:`qk_qpy_dump_buffer_with_version`,
+    the user must call :c:func:`qk_qpy_free_buffer`.
+        
+    The new functions are:
+
+    * :c:func:`qk_qpy_dump_file`
+    * :c:func:`qk_qpy_dump_file_with_version`
+    * :c:func:`qk_qpy_load_file`
+    * :c:func:`qk_qpy_dump_buffer`
+    * :c:func:`qk_qpy_dump_buffer_with_version`
+    * :c:func:`qk_qpy_load_buffer`
+    * :c:func:`qk_qpy_free_buffer`
+
+    Currently, the C API only supports handling on circuit at a time,
+    so QPY saving results in a file containing a single circuit,
+    and reading QPY data containing multiple circuits will only return 
+    the first circuit.
+    
