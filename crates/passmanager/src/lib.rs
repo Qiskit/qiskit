@@ -116,7 +116,7 @@ impl<'a> PassContext<'a> {
         // The local registry takes precedence.
         self.updates
             .get(key)
-            .or_else(|| self.global_context.data.get(key).map(|value| value as _))
+            .or_else(|| self.global_context.data.get(key).map(|value| value.as_ref()))
     }
 }
 
