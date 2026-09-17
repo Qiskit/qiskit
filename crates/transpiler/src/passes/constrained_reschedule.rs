@@ -131,9 +131,7 @@ fn push_node_back(
             .first()
             .ok_or_else(|| PyValueError::new_err("Delay instruction missing duration parameter"))?;
         let duration = match param {
-            Param::Int(val) => {
-                Ok(*val)
-            }
+            Param::Int(val) => Ok(*val),
             _ => Err(TranspilerError::new_err(
                 "The provided Delay duration is not in terms of dt.",
             )),

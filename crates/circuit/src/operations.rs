@@ -246,7 +246,6 @@ impl Param {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
         } else if ob.is_instance_of::<PyInt>() {
-            // Only unsigned integers should be represented
             if let Ok(int) = ob.extract() {
                 Param::Int(int)
             } else {
@@ -1309,12 +1308,14 @@ pub fn multiply_param(param: &Param, mult: f64) -> Param {
 
 /// Multiply two ``Param``s.
 ///
-/// Multiplication is only supported between variants [`Param::Float`] and
-/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+/// Multiplication is supported between variants [`Param::Float`] and
+/// [`Param::ParameterExpression`]. Multiplying [`Param::Int`] by anything
+/// other than another [`Param::Int`] instance will result in a panic.
 ///
 /// # Panics
 ///
-/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
+/// The operation will panic if any of the parameters is [`Param::Obj`] or
+/// if a [`Param::Int`] instance is multiplied by a different variant.
 pub fn multiply_params(param1: Param, param2: Param) -> Param {
     match (&param1, &param2) {
         (Param::Float(theta), Param::Float(lambda)) => Param::Float(theta * lambda),
@@ -1353,11 +1354,13 @@ pub fn add_param(param: &Param, summand: f64) -> Param {
 /// Adds two [`Param`] instances.
 ///
 /// Addition is only supported between variants [`Param::Float`] and
-/// [`Param::ParameterExpression`]. [`Param::Int`] is not currently supported.
+/// [`Param::ParameterExpression`]. Adding [`Param::Int`] with anything
+/// other than another [`Param::Int`] instance will result in a panic.
 ///
 /// # Panics
 ///
-/// The operation will panic if any of the parameters is [`Param::Int`] or [`Param::Obj`].
+/// The operation will panic if any of the parameters is [`Param::Obj`] or
+/// if a [`Param::Int`] instance is added to a different variant.
 pub fn radd_param(param1: Param, param2: Param) -> Param {
     match [&param1, &param2] {
         [param, Param::Float(float)] | [Param::Float(float), param] => add_param(param, *float),
@@ -1370,6 +1373,7 @@ pub fn radd_param(param1: Param, param2: Param) -> Param {
                 theta.add(lambda).expect("Name conflict during add."),
             ))
         }
+        [Param::Int(left), Param::Int(right)] => Param::Int(*left + right),
         _ => unreachable!("Unsupported addition."),
     }
 }
