@@ -1104,7 +1104,7 @@ pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -
         Param::Int(int) => unsafe { value.write(*int) },
         _ => return false,
     }
-    return true;
+    true
 }
 
 #[repr(u8)]
