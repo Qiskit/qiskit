@@ -141,6 +141,7 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_bit_width),
             export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
+            export_fn!(qk_circuit_view_instruction),
             export_fn!(qk_circuit_add_custom_operation),
         ]
     });
@@ -159,6 +160,8 @@ mod circuit_library {
             export_fn!(suzuki_trotter::qk_circuit_library_suzuki_trotter),
             export_fn!(pbc::qk_pauli_product_rotation_clear),
             export_fn!(pbc::qk_pauli_product_measurement_clear),
+            export_fn!(n_local::qk_circuit_library_n_local),
+            export_fn!(n_local::qk_circuit_library_n_local_settings_default),
         ]
     });
 }
@@ -212,6 +215,7 @@ mod dag {
             export_fn!(qk_dag_substitute_node_with_unitary),
             export_fn!(qk_dag_global_phase),
             export_fn!(qk_dag_set_global_phase),
+            export_fn!(qk_dag_view_instruction),
             export_fn!(qk_dag_apply_custom_operation),
         ]
     });
@@ -250,6 +254,7 @@ mod param {
             export_fn!(qk_param_conjugate),
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
+            export_fn!(qk_param_stride),
         ]
     });
 }
@@ -307,6 +312,7 @@ mod sparse_observable {
             export_fn!(qk_obs_to_python, feature = "python_binding"),
             export_fn!(qk_obs_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_obs_convert_from_python, feature = "python_binding"),
+            export_fn!(qk_obs_with_capacity),
         ]
     });
 }

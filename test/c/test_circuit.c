@@ -200,6 +200,35 @@ static int test_circuit_copy_empty_like(void) {
     return Ok;
 }
 
+static int test_barrier_null_ptr(void) {
+    int ret = Ok;
+    const uint32_t num_qubits = 16;
+    QkCircuitInstruction a_inst, b_inst;
+    QkCircuit *a = qk_circuit_new(num_qubits, 0);
+    QkCircuit *b = qk_circuit_copy_empty_like(a, QkVarsMode_Alike, QkBlocksMode_Keep);
+
+    uint32_t *all_qubits = malloc(num_qubits * sizeof(*all_qubits));
+    for (uint32_t i = 0; i < num_qubits; i++)
+        all_qubits[i] = i;
+
+    qk_circuit_barrier(a, all_qubits, num_qubits);
+    qk_circuit_barrier(b, NULL, 0);
+    qk_circuit_get_instruction(a, 0, &a_inst);
+    qk_circuit_get_instruction(b, 0, &b_inst);
+    if (num_qubits != a_inst.num_qubits || a_inst.num_qubits != b_inst.num_qubits ||
+        memcmp(a_inst.qubits, all_qubits, num_qubits * sizeof(*all_qubits)) ||
+        memcmp(b_inst.qubits, all_qubits, num_qubits * sizeof(*all_qubits))) {
+        ret = EqualityError;
+    }
+
+    qk_circuit_instruction_clear(&a_inst);
+    qk_circuit_instruction_clear(&b_inst);
+    qk_circuit_free(a);
+    qk_circuit_free(b);
+    free(all_qubits);
+    return ret;
+}
+
 static int test_no_gate_1000_bits(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
@@ -1190,7 +1219,7 @@ static int test_circuit_draw(void) {
     QkPauliProductMeasurement ppm = {z, x, 4, true};
     qk_circuit_pauli_product_measurement(circuit, &ppm, qubits, 0);
 
-    QkCircuitDrawerConfig config = {false, true, 80};
+    QkCircuitDrawerConfig config = {false, true, 80, 0};
 
     char *circ_str = qk_circuit_draw(circuit, &config);
 
@@ -1297,6 +1326,110 @@ static int test_circuit_global_phase(void) {
 cleanup:
     qk_circuit_free(qc);
     return result;
+}
+
+/** Compare two instruction views for equality.  The field `b->params` is
+ *  ignored, and replaced by the indirect `b_params`.
+ */
+static int instruction_view_cmp(const QkCircuitInstructionView *a,
+                                const QkCircuitInstructionView *b, const QkParam *const *b_params) {
+    int ret = 0;
+    if (a->name_len != b->name_len)
+        return a->name_len < b->name_len ? -1 : 1;
+    if (a->num_qubits != b->num_qubits)
+        return a->num_qubits < b->num_qubits ? -1 : 1;
+    if (a->num_clbits != b->num_clbits)
+        return a->num_clbits < b->num_clbits ? -1 : 1;
+    if (a->num_params != b->num_params)
+        return a->num_params < b->num_params ? -1 : 1;
+    if ((ret = strncmp(a->name, b->name, a->name_len)))
+        return ret;
+    if ((ret = memcmp(a->qubits, b->qubits, sizeof(a->qubits[0]) * a->num_qubits)))
+        return ret;
+    if ((ret = memcmp(a->clbits, b->clbits, sizeof(a->qubits[0]) * a->num_clbits)))
+        return ret;
+    const size_t param_size = qk_param_stride();
+    for (size_t i = 0; i < a->num_params; i++) {
+        if (!qk_param_equal((const QkParam *)((const char *)a->params + i * param_size),
+                            b_params[i])) {
+            return 1;
+        }
+    }
+    return ret;
+}
+
+static int test_circuit_view_instruction(void) {
+    int res = Ok;
+    QkCircuitInstructionView view, expected;
+    uint32_t args[2] = {0, 1};
+
+    QkCircuit *qc = qk_circuit_new(2, 2);
+    QkParam *params[3] = {
+        qk_param_from_double(1.0),
+        qk_param_new_symbol("a"),
+        qk_param_new_symbol("b"),
+    };
+
+    qk_circuit_gate(qc, QkGate_H, args, NULL);
+    qk_circuit_view_instruction(qc, 0, &view);
+    expected = (QkCircuitInstructionView){"h", args, NULL, NULL, 1, 1, 0, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'h'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_parameterized_gate(qc, QkGate_U, args, (const QkParam *const *)params);
+    qk_circuit_view_instruction(qc, 1, &view);
+    expected = (QkCircuitInstructionView){"u", args, NULL, NULL, 1, 1, 0, 3};
+    if (instruction_view_cmp(&view, &expected, (const QkParam *const *)params)) {
+        printf("%s: failed on 'u'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_gate(qc, QkGate_CX, args, NULL);
+    qk_circuit_view_instruction(qc, 2, &view);
+    expected = (QkCircuitInstructionView){"cx", args, NULL, NULL, 2, 2, 0, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'cx'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_barrier(qc, args, 2);
+    qk_circuit_view_instruction(qc, 3, &view);
+    expected = (QkCircuitInstructionView){"barrier", args, NULL, NULL, 7, 2, 0, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'barrier'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_measure(qc, 0, 0);
+    qk_circuit_view_instruction(qc, 4, &view);
+    expected = (QkCircuitInstructionView){"measure", args, args, NULL, 7, 1, 1, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'measure 0'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_measure(qc, 1, 1);
+    qk_circuit_view_instruction(qc, 5, &view);
+    expected = (QkCircuitInstructionView){"measure", &args[1], &args[1], NULL, 7, 1, 1, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'measure 1'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    for (size_t i = 0; i < sizeof(params) / sizeof(params[0]); i++) {
+        qk_param_free(params[i]);
+    }
+    qk_circuit_free(qc);
+    return res;
 }
 
 /**
@@ -1656,6 +1789,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_copy);
     num_failed += RUN_TEST(test_circuit_copy_with_instructions);
     num_failed += RUN_TEST(test_circuit_copy_empty_like);
+    num_failed += RUN_TEST(test_barrier_null_ptr);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
     num_failed += RUN_TEST(test_get_gate_counts);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);
@@ -1674,6 +1808,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_instruction_params_ownership);
     num_failed += RUN_TEST(test_parameterized_circuit);
     num_failed += RUN_TEST(test_circuit_global_phase);
+    num_failed += RUN_TEST(test_circuit_view_instruction);
     num_failed += RUN_TEST(test_circuit_to_dag);
     num_failed += RUN_TEST(test_pbc_instructions);
     num_failed += RUN_TEST(test_estimate_fidelity);

@@ -183,12 +183,17 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisNoAuxV24`
       - :math:`0`
       - :math:`0`
-      - quadratic number of CX gates
+      - quadratic number of CX gates :math:`8 k^2+O(k)`
+    * - ``"noaux_sp22"``
+      - :class:`~.MCXSynthesisNoAuxSP22`
+      - :math:`0`
+      - :math:`0`
+      - quadratic number of CX gates :math:`4 k^2+O(k)`
     * - ``"noaux_hp24"``
       - :class:`~.MCXSynthesisNoAuxHP24`
       - :math:`0`
       - :math:`0`
-      - linear number of CX gates; use instead of ``"noaux_v24"`` or ``"gray_code"`` for :math:`k>5`
+      - linear number of CX gates; use instead of ``"noaux_sp22"`` or ``"noaux_v24"`` or ``"gray_code"`` for :math:`k>32`
     * - ``"n_clean_m15"``
       - :class:`~.MCXSynthesisNCleanM15`
       - :math:`k-2`
@@ -235,6 +240,7 @@ not sufficient, the corresponding synthesis method will return `None`.
 
    MCXSynthesisGrayCode
    MCXSynthesisNoAuxV24
+   MCXSynthesisNoAuxSP22
    MCXSynthesisNoAuxHP24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
@@ -354,6 +360,10 @@ Pauli Evolution Synthesis
       - use the synthesis method from `Rustiq circuit synthesis library
         <https://github.com/smartiel/rustiq-core>`_
       - all-to-all
+    * - ``"mcts"``
+      - :class:`~.PauliEvolutionSynthesisMcts`
+      - use the Monte Carlo Tree Synthesis (MCTS) method
+      - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
       - use a diagonalizing Clifford per Pauli term
@@ -364,6 +374,7 @@ Pauli Evolution Synthesis
 
    PauliEvolutionSynthesisDefault
    PauliEvolutionSynthesisRustiq
+   PauliEvolutionSynthesisMcts
 
 
 Modular Adder Synthesis
@@ -583,11 +594,16 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_sp22,
     synth_mcx_noaux_hp24,
     synth_mcmt_vchain,
     synth_mcmt_xgate,
 )
-from qiskit.synthesis.evolution import ProductFormula, synth_pauli_network_rustiq
+from qiskit.synthesis.evolution import (
+    ProductFormula,
+    synth_pauli_network_rustiq,
+    synth_pauli_network_mcts,
+)
 from qiskit.synthesis.arithmetic import (
     adder_ripple_c04,
     adder_qft_d00,
@@ -597,7 +613,7 @@ from qiskit.synthesis.arithmetic import (
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
-from qiskit.quantum_info.operators import Clifford
+from qiskit.quantum_info import Clifford, SparsePauliOp, SparseObservable
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
@@ -1447,6 +1463,46 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class MCXSynthesisNoAuxSP22(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled :class:`.XGate` based on the
+    implementation for :class:`.MCPhaseGate`, which is in turn based on the
+    paper by da Silva et al. [1] and the implementation in qclib [2].
+
+    See [1, 2] for details.
+
+    This plugin name is ``mcx.noaux_sp22`` which can be used as the key on
+    an :class:`.HLSConfig` object to use this method with :class:`.HighLevelSynthesis`.
+
+    For a multi-controlled :class:`.XGate` with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is quadratic in
+    :math:`k`.
+
+    References:
+
+    [1] A. J. da Silva and D. K. Park,
+    Linear-depth quantum circuits for multiqubit controlled gates,
+    `Phys. Rev. A 106, 042602
+    <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
+
+    [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_noaux_sp22(num_ctrl_qubits)
+        return decomposition
+
+
 class MCXSynthesisNoAuxHP24(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate based on the
     paper by Huang and Palsberg.
@@ -1522,8 +1578,8 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
                 MCXSynthesisNCleanM15,
                 MCXSynthesisNDirtyI15,
                 (
-                    MCXSynthesisNoAuxV24
-                    if high_level_object.num_ctrl_qubits <= 5
+                    MCXSynthesisNoAuxSP22
+                    if high_level_object.num_ctrl_qubits <= 32
                     else MCXSynthesisNoAuxHP24
                 ),
             ]
@@ -1539,8 +1595,8 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
                 MCXSynthesis1DirtyKG24,
                 MCXSynthesis1CleanB95,
                 (
-                    MCXSynthesisNoAuxV24
-                    if high_level_object.num_ctrl_qubits <= 5
+                    MCXSynthesisNoAuxSP22
+                    if high_level_object.num_ctrl_qubits <= 32
                     else MCXSynthesisNoAuxHP24
                 ),
             ]
@@ -2072,7 +2128,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     The following plugin option can be set:
 
     * preserve_order: If ``False``, allow re-ordering the Pauli terms in the Hamiltonian to
-        reduce the circuit depth of the decomposition.
+      reduce the circuit depth of the decomposition.
 
     """
 
@@ -2107,15 +2163,15 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
     The plugin supports the following additional options:
 
     * optimize_count (bool): if `True` the synthesis algorithm will try to optimize
-        the 2-qubit gate count; and if `False` then the 2-qubit depth.
+      the 2-qubit gate count; and if `False` then the 2-qubit depth.
     * preserve_order (bool): whether the order of paulis should be preserved, up to
-        commutativity.
+      commutativity.
     * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
     * upto_phase (bool): if `True`, the global phase of the returned circuit may
-        differ from the global phase of the given pauli network.
+      differ from the global phase of the given pauli network.
     * resynth_clifford_method (int): describes the strategy to synthesize the final
-        Clifford operator. Allowed values are `0` (naive approach), `1` (qiskit
-        greedy synthesis), `2` (rustiq isometry synthesis).
+      Clifford operator. Allowed values are `0` (naive approach), `1` (qiskit
+      greedy synthesis), `2` (rustiq isometry synthesis).
 
     References:
         1. Timothée Goubault de Brugière and Simon Martiel,
@@ -2129,8 +2185,6 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             # Don't do anything if a gate is called "evolution" but is not an
             # actual PauliEvolutionGate
             return None
-
-        from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
         # The synthesis function synth_pauli_network_rustiq does not support SparseObservables,
         # so we need to convert them to SparsePauliOps.
@@ -2188,6 +2242,105 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+
+        algo.preserve_order = original_preserve_order
+        return synth_object
+
+
+class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
+    """Synthesize a :class:`.PauliEvolutionGate` using Monte Carlo Tree Search (MCTS).
+
+    This plugin name is registered under the name ``"PauliEvolution.mcts"``, which can
+    be used as the key on an :class:`~.HLSConfig` object to use this method with
+    :class:`~.HighLevelSynthesis`.
+
+    The synthesis algorithm is described in [1].
+
+    On large circuits, this synthesis method may require a significant runtime.
+
+    The plugin supports the following additional options:
+
+    * preserve_order (bool): Preserve the order of Pauli rotations, up to
+      commutativity.
+    * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
+    * upto_phase (bool): if `True`, the returned circuit may differ from the input by
+      a global phase.
+    * num_simulations (int): Number of Monte Carlo simulations to perform. This value
+      must be at least 1.
+    * max_parallel_simulations (int | None): Maximum number of simulations that can be
+      performed in parallel. If integer, this value must be at least 1. The value of
+      `None` means "unlimited".
+
+    References:
+        1. Mulundano Machiya, Matt Menickelly, Paul Hovland, Ji Liu,
+           *MonteQ: A Monte Carlo Tree Search Based Quantum Circuit Synthesis Framework*,
+           `arXiv:2604.19029 <https://arxiv.org/abs/2604.19029>`_
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, PauliEvolutionGate):
+            # Don't do anything if a gate is called "evolution" but is not an
+            # actual PauliEvolutionGate
+            return None
+
+        # The synthesis function synth_pauli_network_mcts does not support SparseObservables,
+        # so we need to convert them to SparsePauliOps.
+        if isinstance(high_level_object.operator, SparsePauliOp):
+            pauli_op = high_level_object.operator
+
+        elif isinstance(high_level_object.operator, SparseObservable):
+            pauli_op = SparsePauliOp.from_sparse_observable(high_level_object.operator)
+
+        elif isinstance(high_level_object.operator, list):
+            pauli_op = []
+            for op in high_level_object.operator:
+                if isinstance(op, SparseObservable):
+                    pauli_op.append(SparsePauliOp.from_sparse_observable(op))
+                else:
+                    pauli_op.append(op)
+
+        else:
+            raise TranspilerError("Invalid PauliEvolutionGate.")
+
+        evo = PauliEvolutionGate(
+            pauli_op,
+            time=high_level_object.time,
+            label=high_level_object.label,
+            synthesis=high_level_object.synthesis,
+        )
+        algo = evo.synthesis
+
+        if not isinstance(algo, ProductFormula):
+            warnings.warn(
+                "Cannot apply MCTS if the evolution synthesis does not implement ``expand``. ",
+                stacklevel=2,
+                category=RuntimeWarning,
+            )
+            return None
+
+        original_preserve_order = algo.preserve_order
+        if "preserve_order" in options:
+            algo.preserve_order = options["preserve_order"]
+
+        num_qubits = evo.num_qubits
+        pauli_network = algo.expand(evo)
+        preserve_order = options.get("preserve_order", True)
+        upto_clifford = options.get("upto_clifford", False)
+        upto_phase = options.get("upto_phase", False)
+        num_simulations = options.get("num_simulations", 1)
+        max_parallel_simulations = options.get("max_parallel_simulations", None)
+
+        synth_object = synth_pauli_network_mcts(
+            num_qubits=num_qubits,
+            pauli_network=pauli_network,
+            preserve_order=preserve_order,
+            upto_clifford=upto_clifford,
+            upto_phase=upto_phase,
+            num_simulations=num_simulations,
+            max_parallel_simulations=max_parallel_simulations,
+        )
+        algo.preserve_order = original_preserve_order
         algo.preserve_order = original_preserve_order
         return synth_object
 

@@ -38,7 +38,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_litinski_transformation(
 ) {
     // SAFETY: The user guarantees the pointer is safe to read.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
+    let dag = DAGCircuit::from_circuit_data(circuit, false, None, None)
         .expect("Internal Circuit -> DAG conversion failed");
 
     // For now, run Litinski transformation with no approximation (to avoid C API change).

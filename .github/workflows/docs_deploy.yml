@@ -24,6 +24,8 @@ jobs:
         name: Install Python
         with:
           python-version: "3.14"
+      - name: Install Rust
+        run: rustup toolchain install --profile minimal --no-self-update
 
       - name: Install dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
