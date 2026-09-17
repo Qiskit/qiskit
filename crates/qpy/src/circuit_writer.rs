@@ -56,8 +56,8 @@ use crate::py_methods::{
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
     QPYWriteData, QpyCaller, RegisterType, StringU16Pack, ValueEndian, get_circuit_type_key,
-    pack_for_collection, pack_generic_value, pack_standalone_var, pack_stretch, serialize,
-    serialize_param_register_value, serialize_with_args,
+    pack_array_type, pack_for_collection, pack_generic_value, pack_standalone_var, pack_stretch,
+    serialize, serialize_param_register_value, serialize_with_args,
 };
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
@@ -152,9 +152,11 @@ fn pack_instructions_19(
                 formats::CircuitOperationType::StandardInstruction,
                 standard_instruction_operation_data(&inst),
             ),
-            OperationRef::Unitary(_) => (
+            OperationRef::Unitary(gate) => (
                 formats::CircuitOperationType::UnitaryGate,
-                formats::OperationData::UnitaryGate(formats::UnitaryGatePack {}),
+                formats::OperationData::UnitaryGate(formats::UnitaryGatePack {
+                    matrix: pack_array_type(&gate.array)?,
+                }),
             ),
             OperationRef::ControlFlow(_) => (
                 formats::CircuitOperationType::ControlFlow,
@@ -688,6 +690,7 @@ fn pack_unitary_gate(
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // unitary gates are special since they are uniquely determined by a matrix, which is not
     // a "parameter", strictly speaking, but is treated as such when serializing
+    // this was changed in QPY19; this method is for QPY18 and less
 
     let matrix = unitary_gate.matrix().ok_or_else(|| {
         QpyError::InvalidParameter("Could not read matrix for unitary gate".to_string())
@@ -1656,8 +1659,31 @@ fn pack_circuit_v19(
         .collect();
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
-
-    Err(QpyError::SerializationError(
-        "QPY 19 circuit encoding is not implemented yet".to_string(),
-    ))
+    let layout = if extra.layout.is_empty() {
+        default_layout()
+    } else {
+        crate::value::deserialize_with_args::<formats::LayoutV2Pack, (u8,)>(
+            &extra.layout,
+            (version,),
+        )?
+        .0
+    };
+    let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
+        .annotation_handler
+        .dump_serializers()?
+        .into_iter()
+        .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
+        .collect();
+    let annotation_headers = Some(formats::AnnotationHeaderStaticPack { state_headers });
+    let parameter_vectors = Some(qpy_data.parameter_vectors.to_pack());
+    Ok(formats::QPYCircuit {
+        header,
+        standalone_vars,
+        annotation_headers,
+        parameter_vectors,
+        custom_instructions,
+        instructions,
+        calibrations: None, // calibrations are not present in QPY 19
+        layout,
+    })
 }

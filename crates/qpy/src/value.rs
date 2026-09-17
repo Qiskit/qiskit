@@ -27,7 +27,7 @@ use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{
-    ForCollection, OperationRef, Param, PyInstruction, PyOpKind, PyRange,
+    ArrayType, ForCollection, OperationRef, Param, PyInstruction, PyOpKind, PyRange,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -48,6 +48,7 @@ use crate::params::{
 };
 use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
 
+use nalgebra::{Matrix2, Matrix4};
 use ndarray::Array2;
 use npyz::{NpyFile, WriterBuilder};
 use num_bigint::BigUint;
@@ -93,6 +94,52 @@ pub struct StringU16Pack {
     #[br(count = size, try_map = String::from_utf8)]
     #[bw(map = |value| value.as_bytes())]
     pub value: String,
+}
+
+// Packing for Complex64 numbers to avoid serializing them into bytes
+#[binrw]
+#[brw(big)]
+#[derive(Clone, Copy, Debug)]
+pub struct Complex64Pack {
+    re: f64,
+    im: f64,
+}
+
+// For matrices occurring in quantum computing, the most common sizes are 2x2 and 4x4
+// It's more compact to handle this case separately
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum Complex64MatrixPack {
+    #[brw(magic = b'o')]
+    OneQubit([Complex64Pack; 4]),
+    #[brw(magic = b't')]
+    TwoQubit([Complex64Pack; 16]),
+    #[brw(magic = b'g')]
+    GeneralMatrix(Complex64GeneralMatrixPack),
+}
+
+// A struct for general-size matrix
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct Complex64GeneralMatrixPack {
+    rows: u32,
+    cols: u32,
+
+    #[bw(ignore)]
+    #[br(
+        temp,
+        try_calc = rows
+            .checked_mul(cols)
+            .and_then(|count| usize::try_from(count).ok())
+            .ok_or("matrix dimensions exceed the supported size")
+    )]
+    count: usize, // temp field to enable raising error if we overflow
+
+    #[br(count = count)]
+    values: Vec<Complex64Pack>,
 }
 
 /// Endianness selector for QPY value serialization and deserialization.
@@ -1289,11 +1336,127 @@ pub(crate) fn creg_by_name(
         })
 }
 
+pub fn pack_array_type(array: &ArrayType) -> Result<Complex64MatrixPack, QpyError> {
+    match array {
+        ArrayType::OneQ(matrix) => {
+            let values = std::array::from_fn(|index| {
+                let value = matrix[(index / 2, index % 2)];
+                Complex64Pack {
+                    re: value.re,
+                    im: value.im,
+                }
+            });
+            Ok(Complex64MatrixPack::OneQubit(values))
+        }
+        ArrayType::TwoQ(matrix) => {
+            let values = std::array::from_fn(|index| {
+                let value = matrix[(index / 4, index % 4)];
+                Complex64Pack {
+                    re: value.re,
+                    im: value.im,
+                }
+            });
+            Ok(Complex64MatrixPack::TwoQubit(values))
+        }
+        ArrayType::NDArray(matrix) => {
+            let [rows, cols] = matrix.shape().try_into().map_err(|_| {
+                QpyError::SerializationError("matrix must be two-dimensional".into())
+            })?;
+            let values = (0..rows)
+                .flat_map(|row| {
+                    let matrix = &matrix;
+                    (0..cols).map(move |col| {
+                        let value = matrix[(row, col)];
+                        Complex64Pack {
+                            re: value.re,
+                            im: value.im,
+                        }
+                    })
+                })
+                .collect();
+            let matrix_pack = Complex64GeneralMatrixPack {
+                rows: u32::try_from(rows)?,
+                cols: u32::try_from(cols)?,
+                values,
+            };
+            Ok(Complex64MatrixPack::GeneralMatrix(matrix_pack))
+        }
+    }
+}
+
+pub fn unpack_array_type(matrix: Complex64MatrixPack) -> Result<ArrayType, QpyError> {
+    match matrix {
+        Complex64MatrixPack::OneQubit(values) => {
+            let values = values.map(|value| Complex64::new(value.re, value.im));
+            Ok(ArrayType::OneQ(Matrix2::from_row_slice(&values)))
+        }
+        Complex64MatrixPack::TwoQubit(values) => {
+            let values = values.map(|value| Complex64::new(value.re, value.im));
+            Ok(ArrayType::TwoQ(Matrix4::from_row_slice(&values)))
+        }
+        Complex64MatrixPack::GeneralMatrix(matrix) => {
+            let rows = usize::try_from(matrix.rows)?;
+            let cols = usize::try_from(matrix.cols)?;
+            let values = matrix
+                .values
+                .into_iter()
+                .map(|value| Complex64::new(value.re, value.im))
+                .collect();
+            let matrix = Array2::from_shape_vec((rows, cols), values).map_err(|error| {
+                QpyError::DeserializationError(format!("invalid matrix dimensions: {error}"))
+            })?;
+            Ok(ArrayType::NDArray(matrix))
+        }
+    }
+}
+
 #[cfg(test)]
 // Tests are allowed to unwrap; the crate-level deny exists for the deserializer, not for fixtures.
 #[allow(clippy::unwrap_used)]
 mod qpy_value_tests {
     use super::*;
+
+    #[test]
+    fn array_type_pack_roundtrip() -> Result<(), QpyError> {
+        let one_qubit = Matrix2::from_row_slice(&[
+            Complex64::new(1.0, 2.0),
+            Complex64::new(3.0, 4.0),
+            Complex64::new(5.0, 6.0),
+            Complex64::new(7.0, 8.0),
+        ]);
+        let ArrayType::OneQ(unpacked) =
+            unpack_array_type(pack_array_type(ArrayType::OneQ(one_qubit))?)?
+        else {
+            return Err(QpyError::DeserializationError(
+                "expected a one-qubit matrix".into(),
+            ));
+        };
+        assert_eq!(unpacked, one_qubit);
+
+        let two_qubit =
+            Matrix4::from_fn(|row, col| Complex64::new((row * 4 + col) as f64, (row + col) as f64));
+        let ArrayType::TwoQ(unpacked) =
+            unpack_array_type(pack_array_type(ArrayType::TwoQ(two_qubit))?)?
+        else {
+            return Err(QpyError::DeserializationError(
+                "expected a two-qubit matrix".into(),
+            ));
+        };
+        assert_eq!(unpacked, two_qubit);
+
+        let general = Array2::from_shape_fn((3, 5), |(row, col)| {
+            Complex64::new((row * 5 + col) as f64, (row + col) as f64)
+        });
+        let ArrayType::NDArray(unpacked) =
+            unpack_array_type(pack_array_type(ArrayType::NDArray(general.clone()))?)?
+        else {
+            return Err(QpyError::DeserializationError(
+                "expected a general matrix".into(),
+            ));
+        };
+        assert_eq!(unpacked, general);
+        Ok(())
+    }
 
     #[test]
     fn boolean_vec_numpy_object_roundtrip() {

@@ -15,9 +15,9 @@ use crate::error::{QpyError, to_binrw_error};
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
-    BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    ProgramType, QPYReadData, QPYWriteData, RegisterType, StringU16Pack, SymbolicEncoding,
-    ValueType,
+    BitType, CircuitInstructionType, Complex64MatrixPack, ExpressionType, ExpressionVarDeclaration,
+    ModifierType, ProgramType, QPYReadData, QPYWriteData, RegisterType, StringU16Pack,
+    SymbolicEncoding, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -86,10 +86,10 @@ pub struct QPYCircuit {
 #[br(import (version: u8))]
 pub enum CircuitHeaderPack {
     #[br(pre_assert(version <= 18))]
-    V12(CircuitHeaderV12Pack),
+    V12(#[br(args(version,))] CircuitHeaderV12Pack),
 
     #[br(pre_assert(version >= 19))]
-    V19(CircuitHeaderV19Pack),
+    V19(#[br(args(version,))] CircuitHeaderV19Pack),
 }
 
 impl CircuitHeaderPack {
@@ -341,7 +341,7 @@ pub struct FromPythonPack {
 #[binrw]
 #[derive(Debug)]
 pub struct UnitaryGatePack {
-    // placeholder
+    pub matrix: Complex64MatrixPack,
 }
 
 #[binrw]
