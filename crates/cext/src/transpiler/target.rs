@@ -45,18 +45,9 @@ use smallvec::{SmallVec, smallvec};
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
-    let target = Target::new(
-        None,
-        Some(num_qubits),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
-    .unwrap();
+    let target = Target::new()
+        .try_with_num_qubits(num_qubits)
+        .expect("Number of qubits should not be defined.");
     Box::into_raw(Box::new(target))
 }
 
