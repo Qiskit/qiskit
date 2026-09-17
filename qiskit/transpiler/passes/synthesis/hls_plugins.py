@@ -631,11 +631,6 @@ if TYPE_CHECKING:
     from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 
 
-def _size2q(circuit: QuantumCircuit):
-    """Return the number of two-qubit gates in a circuit."""
-    return circuit.size(lambda x: x.operation.num_qubits == 2)
-
-
 def _is_coupling_map_all_to_all(coupling_map: CouplingMap) -> bool:
     """Return whether the coupling map is all-to-all.
 
@@ -2141,6 +2136,19 @@ class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
         )
 
 
+def _cx_size_for_pauli_evo(circuit: QuantumCircuit):
+    """Return the number of CX-gates in a circuit produces by one of PauliEvolution synthesis
+    algorithm. In addition to CX-gates, the basic algorithm can produce two-qubit rxx, ryy, rzz
+    and rzx rotations, while rustiq and mcts can produce swaps.
+    """
+    ops = circuit.count_ops()
+    return (
+        ops.get("cx", 0)
+        + 2 * (ops.get("rxx", 0) + ops.get("ryy", 0) + ops.get("rzz", 0) + ops.get("rzx", 0))
+        + 3 * ops.get("swap", 0)
+    )
+
+
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
@@ -2173,7 +2181,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             synth_mcts = PauliEvolutionSynthesisMcts().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
-            if _size2q(synth_mcts) < _size2q(synth_object):
+            if _cx_size_for_pauli_evo(synth_mcts) < _cx_size_for_pauli_evo(synth_object):
                 synth_object = synth_mcts
 
         return synth_object
