@@ -2468,6 +2468,10 @@ impl PyDAGCircuit {
                                     OperationRef::PauliProductRotation(op_a),
                                     OperationRef::PauliProductRotation(op_b),
                                 ] => Ok((op_a == op_b) && check_args()),
+                                [
+                                    OperationRef::CustomOperation(op_a),
+                                    OperationRef::CustomOperation(op_b),
+                                ] => Ok((op_a == op_b) && check_args()),
                                 [OperationRef::Store(store_a), OperationRef::Store(store_b)] => {
                                     Ok(store_a == store_b)
                                 }
@@ -2639,6 +2643,9 @@ impl PyDAGCircuit {
                 (OperationRef::Unitary(left), OperationRef::Unitary(right)) => Ok(left == right),
                 (OperationRef::PyCustom(left), OperationRef::PyCustom(right)) => {
                     Python::attach(|py| left.ob.bind(py).eq(&right.ob))
+                }
+                (OperationRef::CustomOperation(left), OperationRef::CustomOperation(right)) => {
+                    Ok(left == right)
                 }
                 _ => Ok(false),
             }
