@@ -1085,12 +1085,15 @@ pub extern "C" fn qk_param_stride() -> usize {
 /// returned.
 ///
 /// @param param A pointer to the ``QkParam`` to evaluate.
+/// @param value A pointer to a ``int32_t`` to write the resulting value.
 ///
 /// @return The value, if casting was successful, otherwise ``INT64_MAX``.
 ///
 /// # Safety
 ///
 /// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
+/// The behavior is undefined if ``value`` is not a valid, non-null pointer to an address that
+/// can hold an `int32_t` instance.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
@@ -1098,9 +1101,11 @@ pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -
 
     match param {
         Param::ParameterExpression(expr) => match expr.try_to_value(true) {
+            // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an `int32_t`.
             Ok(Value::Int(v)) => unsafe { value.write(v) },
             _ => return false,
         },
+        // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an `int32_t`.
         Param::Int(int) => unsafe { value.write(*int) },
         _ => return false,
     }
