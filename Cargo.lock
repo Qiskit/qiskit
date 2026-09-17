@@ -2387,6 +2387,7 @@ dependencies = [
  "crossterm",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
+ "indexmap",
  "itertools 0.15.0",
  "lexical-core",
  "lexical-write-float",

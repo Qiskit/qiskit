@@ -13,7 +13,7 @@
 // Methods for QPY serialization working directly with Python-based data
 use binrw::Endian;
 use hashbrown::HashMap;
-use numpy::{Complex64, IntoPyArray};
+use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
@@ -692,18 +692,22 @@ pub fn unpack_py_instruction(
                 QpyError::InvalidParameter("BoxOp missing duration parameter".to_string())
             })?;
             let annotations = match &instruction.annotations {
-                Some(annotation_pack) => annotation_pack
-                    .annotations
-                    .iter()
-                    .map(|annotation| {
-                        qpy_data
-                            .annotation_handler
-                            .load(annotation.namespace_index, annotation.payload.clone())
-                    })
-                    .collect::<Result<_, QpyError>>()?,
-                None => Vec::new(),
+                Some(annotation_pack) => PyList::new(
+                    py,
+                    annotation_pack
+                        .annotations
+                        .iter()
+                        .map(|annotation| {
+                            qpy_data.annotation_handler.load_py(
+                                py,
+                                annotation.namespace_index,
+                                annotation.payload.clone(),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, QpyError>>()?,
+                )?,
+                None => PyList::empty(py),
             }
-            .into_pyarray(py)
             .into_any();
             let kwargs = [
                 ("unit", unit),
@@ -922,7 +926,9 @@ pub fn deserialize_pauli_evolution_gate(
                 let num_qubits = sparse_observable_pack.num_qubits;
                 let coeffs = sparse_observable_pack
                     .coeff_data
-                    .chunks_exact(2)
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
                     .map(|c| Complex64::new(c[0], c[1]))
                     .collect();
                 let bit_terms = sparse_observable_pack
