@@ -1,0 +1,7 @@
+---
+upgrade_circuits:
+  - |
+    When adding a :class:`.Delay` to a :class:`.QuantumCircuit`, if the delay is in
+    `Dt` units, the maximum allowed duration is `(1<<63)-1` (or 9223372036854775807).
+    This is due to Qiskit now using a 64-bit signed integer to represent durations
+    in terms of `Dt` as a parameter.
