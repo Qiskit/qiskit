@@ -254,13 +254,30 @@ pub struct CircuitInstructionV19Pack {
     #[br(count = num_parameters as usize)]
     pub params: Vec<ParamDataPack>,
 
+    // Whether the following optional fields are present.
+    #[bw(calc =
+        if annotations.is_some() { extra_fields_flag_parts::ANNOTATIONS } else { 0 }
+        | if label.is_some() { extra_fields_flag_parts::LABEL } else { 0 }
+    )]
+    pub extra_fields_flag: u8,
+    #[br(if(has_v19_annotations(extra_fields_flag)))]
     pub annotations: Option<InstructionsAnnotationPack>,
+    #[br(if(has_label(extra_fields_flag)))]
+    pub label: Option<StringU16Pack>,
+}
 
-    #[bw(calc = label.len() as u16)]
-    pub label_size: u16,
-    #[br(count = label_size as usize, try_map = String::from_utf8)]
-    #[bw(map = |s| s.as_bytes())]
-    pub label: String,
+/// Bit masks for optional fields in a QPY 19 circuit instruction.
+pub mod extra_fields_flag_parts {
+    pub const ANNOTATIONS: u8 = 0b1000_0000;
+    pub const LABEL: u8 = 0b0100_0000;
+}
+
+fn has_v19_annotations(extra_fields_flag: u8) -> bool {
+    extra_fields_flag & extra_fields_flag_parts::ANNOTATIONS != 0
+}
+
+fn has_label(extra_fields_flag: u8) -> bool {
+    extra_fields_flag & extra_fields_flag_parts::LABEL != 0
 }
 
 #[binrw]

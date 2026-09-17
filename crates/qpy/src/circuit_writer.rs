@@ -183,7 +183,9 @@ fn pack_instructions_19(
             .into_iter()
             .map(|_| formats::ParamDataPack {})
             .collect();
-
+        let label = (!legacy.label.is_empty()).then_some(StringU16Pack {
+            value: legacy.label,
+        });
         packed_instructions.push(formats::CircuitInstructionV19Pack {
             operation,
             qargs,
@@ -191,7 +193,7 @@ fn pack_instructions_19(
             operation_data,
             params,
             annotations: legacy.annotations,
-            label: legacy.label,
+            label,
         });
     }
 
