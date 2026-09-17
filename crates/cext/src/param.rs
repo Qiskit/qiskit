@@ -1092,19 +1092,19 @@ pub extern "C" fn qk_param_stride() -> usize {
 ///
 /// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_param_as_int(param: *const Param) -> i64 {
+pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let param = unsafe { const_ptr_as_ref(param) };
 
     match param {
         Param::ParameterExpression(expr) => match expr.try_to_value(true) {
-            Ok(Value::Int(v)) => v,
-            _ => i64::MAX,
+            Ok(Value::Int(v)) => unsafe { value.write(v) },
+            _ => return false,
         },
-        Param::Float(_) => i64::MAX,
-        Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
-        Param::Int(int) => *int,
+        Param::Int(int) => unsafe { value.write(*int) },
+        _ => return false,
     }
+    return true;
 }
 
 #[repr(u8)]
