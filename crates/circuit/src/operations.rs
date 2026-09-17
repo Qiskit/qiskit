@@ -18,8 +18,9 @@ use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{fmt, vec};
+use std::{error, fmt, vec};
 
+use crate::annotation::{Annotation, create_py_annotation};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
@@ -546,7 +547,7 @@ impl<'py> IntoPyObject<'py> for LoopParam {
 pub enum ControlFlow {
     Box {
         duration: Option<BoxDuration>,
-        annotations: Vec<Py<PyAny>>,
+        annotations: Vec<Arc<dyn Annotation>>,
     },
     BreakLoop,
     ContinueLoop,
@@ -568,88 +569,6 @@ pub enum ControlFlow {
 }
 
 impl ControlFlowInstruction {
-    /// Check if another control flow operations is equivalent to this one.
-    ///
-    /// This can be removed and [ControlFlowInstruction] can be made to implement [PartialEq]
-    /// instead once `annotations` gets moved to the instruction.
-    pub fn py_eq(&self, py: Python, other: &ControlFlowInstruction) -> PyResult<bool> {
-        if self.num_qubits != other.num_qubits || self.num_clbits != other.num_clbits {
-            return Ok(false);
-        }
-        match &self.control_flow {
-            ControlFlow::Box {
-                duration: self_duration,
-                annotations: self_annotations,
-            } => match &other.control_flow {
-                ControlFlow::Box {
-                    duration: other_duration,
-                    annotations: other_annotations,
-                } => {
-                    if self_duration != other_duration
-                        || self_annotations.len() != other_annotations.len()
-                    {
-                        return Ok(false);
-                    }
-                    for (a, b) in self_annotations.iter().zip(other_annotations) {
-                        if !a.bind(py).eq(b)? {
-                            return Ok(false);
-                        }
-                    }
-                    Ok(true)
-                }
-                _ => Ok(false),
-            },
-            ControlFlow::BreakLoop => match &other.control_flow {
-                ControlFlow::BreakLoop => Ok(true),
-                _ => Ok(false),
-            },
-            ControlFlow::ContinueLoop => match &other.control_flow {
-                ControlFlow::ContinueLoop => Ok(true),
-                _ => Ok(false),
-            },
-            ControlFlow::ForLoop {
-                collection: self_collection,
-                loop_param: self_loop_param,
-            } => match &other.control_flow {
-                ControlFlow::ForLoop {
-                    collection: other_collection,
-                    loop_param: other_loop_param,
-                } => Ok(self_collection == other_collection && self_loop_param == other_loop_param),
-                _ => Ok(false),
-            },
-            ControlFlow::IfElse {
-                condition: self_condition,
-            } => match &other.control_flow {
-                ControlFlow::IfElse {
-                    condition: other_condition,
-                } => Ok(self_condition == other_condition),
-                _ => Ok(false),
-            },
-            ControlFlow::Switch {
-                target: self_target,
-                label_spec: self_label_spec,
-                cases: self_cases,
-            } => match &other.control_flow {
-                ControlFlow::Switch {
-                    target: other_target,
-                    label_spec: other_label_spec,
-                    cases: other_cases,
-                } => Ok(self_cases == other_cases
-                    && self_target == other_target
-                    && self_label_spec == other_label_spec),
-                _ => Ok(false),
-            },
-            ControlFlow::While {
-                condition: self_condition,
-            } => match &other.control_flow {
-                ControlFlow::While {
-                    condition: other_condition,
-                } => Ok(self_condition == other_condition),
-                _ => Ok(false),
-            },
-        }
-    }
-
     pub fn create_py_op(
         &self,
         py: Python,
@@ -686,7 +605,13 @@ impl ControlFlowInstruction {
                         duration,
                         unit,
                         label,
-                        PyTuple::new(py, annotations)?,
+                        PyTuple::new(
+                            py,
+                            annotations
+                                .iter()
+                                .map(|a| create_py_annotation(a, py))
+                                .collect::<PyResult<Vec<_>>>()?,
+                        )?,
                     ),
                 )
             }
@@ -763,6 +688,83 @@ impl ControlFlowInstruction {
     }
 }
 
+impl PartialEq for ControlFlowInstruction {
+    /// Check if another control flow operations is equivalent to this one.
+    fn eq(&self, other: &ControlFlowInstruction) -> bool {
+        if self.num_qubits != other.num_qubits || self.num_clbits != other.num_clbits {
+            return false;
+        }
+        match &self.control_flow {
+            ControlFlow::Box {
+                duration: self_duration,
+                annotations: self_annotations,
+            } => match &other.control_flow {
+                ControlFlow::Box {
+                    duration: other_duration,
+                    annotations: other_annotations,
+                } => {
+                    if self_duration != other_duration
+                        || self_annotations.len() != other_annotations.len()
+                    {
+                        return false;
+                    }
+                    for (a, b) in self_annotations.iter().zip(other_annotations) {
+                        if a != b {
+                            return false;
+                        }
+                    }
+                    true
+                }
+                _ => false,
+            },
+            ControlFlow::BreakLoop => matches!(&other.control_flow, ControlFlow::BreakLoop),
+            ControlFlow::ContinueLoop => matches!(&other.control_flow, ControlFlow::ContinueLoop),
+            ControlFlow::ForLoop {
+                collection: self_collection,
+                loop_param: self_loop_param,
+            } => match &other.control_flow {
+                ControlFlow::ForLoop {
+                    collection: other_collection,
+                    loop_param: other_loop_param,
+                } => self_collection == other_collection && self_loop_param == other_loop_param,
+                _ => false,
+            },
+            ControlFlow::IfElse {
+                condition: self_condition,
+            } => match &other.control_flow {
+                ControlFlow::IfElse {
+                    condition: other_condition,
+                } => self_condition == other_condition,
+                _ => false,
+            },
+            ControlFlow::Switch {
+                target: self_target,
+                label_spec: self_label_spec,
+                cases: self_cases,
+            } => match &other.control_flow {
+                ControlFlow::Switch {
+                    target: other_target,
+                    label_spec: other_label_spec,
+                    cases: other_cases,
+                } => {
+                    self_cases == other_cases
+                        && self_target == other_target
+                        && self_label_spec == other_label_spec
+                }
+                _ => false,
+            },
+            ControlFlow::While {
+                condition: self_condition,
+            } => match &other.control_flow {
+                ControlFlow::While {
+                    condition: other_condition,
+                } => self_condition == other_condition,
+                _ => false,
+            },
+        }
+    }
+}
+
 impl Operation for ControlFlowInstruction {
     fn name(&self) -> &str {
         match &self.control_flow {
@@ -806,7 +808,7 @@ impl Operation for ControlFlowInstruction {
 pub enum ControlFlowView<'a, T> {
     Box {
         duration: Option<&'a BoxDuration>,
-        annotations: &'a [Py<PyAny>],
+        annotations: &'a [Arc<dyn Annotation>],
         body: &'a T,
     },
     BreakLoop,
@@ -1786,7 +1788,7 @@ impl PauliProductRotation {
             .zip(self.x.iter())
             .filter(|(z, x)| **z || **x)
             .count();
-        let dim = 2u32.pow(num_qubits as u32);
+        let dim = (num_qubits as f64).exp2();
         let tr_over_dim = if num_qubits == 0 {
             // This is an identity Pauli rotation.
             (Complex64::new(0.0, -angle / 2.)).exp()
@@ -1794,7 +1796,7 @@ impl PauliProductRotation {
             Complex64::new((angle / 2.).cos(), 0.)
         };
 
-        Some((tr_over_dim, dim as f64))
+        Some((tr_over_dim, dim))
     }
 
     /// Return a dense matrix representation of the matrix.
@@ -2078,11 +2080,17 @@ pub trait CustomOperation:
         None
     }
 
-    /// If the instance is a gate, returns the unitary matrix that represents it,
-    /// if the parameters are correct. Otherwise, it returns None.
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        // TODO: Make fallible.
-        None
+    /// Returns the dense unitary matrix for the operation or `None` by default
+    /// if not applicable or unimplemented.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if there was a problem creating the matrix.
+    fn matrix(
+        &self,
+        _params: &[Param],
+    ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
+        Ok(None)
     }
 
     /// If the instance is a gate, returns the number of control qubits.
@@ -2225,6 +2233,8 @@ mod test_custom_operations {
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
+    use super::*;
+
     macro_rules! impl_static_operation {
         ($ty:ident; $name:expr, $qubits:expr, $clbits:expr, $params:expr, $directive:expr) => {
             impl $crate::operations::Operation for $ty {
@@ -2262,8 +2272,11 @@ mod test_custom_operations {
             .ok()
         }
 
-        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
-            params.is_empty().then_some(aview2(&H_GATE).to_owned())
+        fn matrix(
+            &self,
+            params: &[Param],
+        ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
+            Ok(params.is_empty().then_some(aview2(&H_GATE).to_owned()))
         }
 
         fn is_unitary(&self) -> bool {
@@ -2289,10 +2302,13 @@ mod test_custom_operations {
             true
         }
 
-        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+        fn matrix(
+            &self,
+            params: &[Param],
+        ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
             match params {
-                [Param::Float(theta)] => Some(aview2(&rz_gate(*theta)).to_owned()),
-                _ => None,
+                [Param::Float(theta)] => Ok(Some(aview2(&rz_gate(*theta)).to_owned())),
+                _ => Ok(None),
             }
         }
 
@@ -2393,12 +2409,11 @@ mod test_custom_operations {
         assert!(gate.is_unitary());
 
         let matrix_res = gate.matrix(&[]);
-        let matrix_exp = Some(aview2(&H_GATE));
-        assert_eq!(matrix_res.as_ref().map(|mat| mat.view()), matrix_exp);
+        let matrix_exp = aview2(&H_GATE);
+        assert!(matches!(matrix_res, Ok(Some(matrix)) if matrix == matrix_exp));
 
         let matrix_res = gate.matrix(&[Param::Float(PI)]);
-        let matrix_exp = None;
-        assert_eq!(matrix_res, matrix_exp,);
+        assert!(matches!(matrix_res, Ok(None)));
 
         let circuit = gate.definition(&[]).expect("Circuit should exist.");
         assert_eq!(circuit.len(), 1);
@@ -2430,7 +2445,10 @@ mod test_custom_operations {
         // Check that the retreived gate is still valid.
         assert_eq!(gate_as_h.num_qubits(), 1);
         assert!(gate_as_h.is_unitary());
-        assert_eq!(gate_as_h.matrix(&[]), Some(aview2(&H_GATE).to_owned()));
+        assert!(matches!(
+            gate_as_h.matrix(&[]),
+            Ok(Some(matrix)) if matrix == aview2(&H_GATE).to_owned()
+        ));
 
         // Final instance equality check.
         assert_eq!(Some(&CustomH), Some(downcast_gate))
@@ -2545,7 +2563,7 @@ mod test_custom_operations {
         let labeled_rz = ParametrizedAndLabeled::new(Some("rz"));
         let theta: Param = (PI / 4.0).into();
 
-        let Some(matrix) = labeled_rz.matrix(&[theta]) else {
+        let Ok(Some(matrix)) = labeled_rz.matrix(&[theta]) else {
             panic!("Matrix should exist");
         };
         // Compare matrices
@@ -2556,7 +2574,7 @@ mod test_custom_operations {
         ));
 
         // Compare null case
-        assert_eq!(labeled_rz.matrix(&[]), None,);
+        assert!(matches!(labeled_rz.matrix(&[]), Ok(None)));
     }
 
     // Test inversed gate

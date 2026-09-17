@@ -60,6 +60,8 @@ use qiskit_util::IndexMap;
 use smallvec::SmallVec;
 use thiserror::Error;
 
+use crate::error::TryReserveError;
+
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 /// This struct models the error conditions that can be raised from the
@@ -102,6 +104,8 @@ pub enum CircuitDataError {
     InvalidParameter,
     #[error("bad type after binding for gate '{0}': '{1}'")]
     StandardGateParameterIsComplex(String, String),
+    #[error(transparent)]
+    TryReserveError(TryReserveError),
 }
 impl<T: Debug> From<object_registry::AbsentObject<T>> for CircuitDataError {
     fn from(val: object_registry::AbsentObject<T>) -> Self {
@@ -111,6 +115,12 @@ impl<T: Debug> From<object_registry::AbsentObject<T>> for CircuitDataError {
 impl<T: Debug, B: Debug> From<object_registry::AddError<T, B>> for CircuitDataError {
     fn from(val: object_registry::AddError<T, B>) -> Self {
         Self::AddObjectRegistry(val.erase_type())
+    }
+}
+
+impl From<TryReserveError> for CircuitDataError {
+    fn from(val: TryReserveError) -> Self {
+        Self::TryReserveError(val)
     }
 }
 
@@ -142,6 +152,7 @@ impl From<CircuitDataError> for PyErr {
                     "bad type after binding for gate '{gate_name}': '{expr}'"
                 ))
             }
+            CircuitDataError::TryReserveError(error) => error.into(),
         }
     }
 }
@@ -765,6 +776,43 @@ impl CircuitData {
             cregs: RegisterData::new(),
             qubit_indices: BitLocator::with_capacity(num_qubits as usize),
             clbit_indices: BitLocator::with_capacity(num_clbits as usize),
+            vars_stretches: VarStretchContainer::new(),
+        };
+
+        // use the global phase setter to ensure parameters are registered
+        // in the parameter table
+        res.set_global_phase_param(global_phase)?;
+        res.add_anonymous_qubits(num_qubits)
+            .expect("cannot represent a too-large count");
+        res.add_anonymous_clbits(num_clbits)
+            .expect("cannot represent a too-large count");
+        Ok(res)
+    }
+
+    /// Build an empty CircuitData object with an initially allocated instruction capacity.
+    /// This will error if the specified capacity can not be allocated.
+    pub fn try_with_capacity(
+        num_qubits: u32,
+        num_clbits: u32,
+        instruction_capacity: usize,
+        global_phase: Param,
+    ) -> Result<Self, CircuitDataError> {
+        let mut data = Vec::new();
+        data.try_reserve(instruction_capacity)
+            .map_err(TryReserveError::VecTryReserve)?;
+        let mut res = CircuitData {
+            data,
+            qargs_interner: Interner::new(),
+            cargs_interner: Interner::new(),
+            qubits: ObjectRegistry::try_with_capacity(num_qubits as usize)?,
+            clbits: ObjectRegistry::try_with_capacity(num_clbits as usize)?,
+            blocks: ControlFlowBlocks::new(),
+            param_table: ParameterTable::new(),
+            global_phase: Param::Float(0.0),
+            qregs: RegisterData::new(),
+            cregs: RegisterData::new(),
+            qubit_indices: BitLocator::try_with_capacity(num_qubits as usize)?,
+            clbit_indices: BitLocator::try_with_capacity(num_clbits as usize)?,
             vars_stretches: VarStretchContainer::new(),
         };
 
@@ -3494,7 +3542,7 @@ mod test {
         let other = qc.clone();
         check(&qc, &other);
         let roundtrip = py_dag_to_circuit(
-            &DAGCircuit::from_circuit_data(&qc, false, None, None, None, None)?,
+            &DAGCircuit::from_circuit_data(&qc, false, None, None)?.into(),
             false,
         )?;
         check(&qc, &roundtrip);

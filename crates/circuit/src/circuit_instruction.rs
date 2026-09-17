@@ -22,6 +22,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
+use crate::annotation::AnnotationFromPython;
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::dag_circuit::DAGCircuit;
@@ -594,8 +595,7 @@ impl CircuitBlock for CircuitData {
 }
 impl CircuitBlock for DAGCircuit {
     fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
-        Self::from_circuit_data(&ob.borrow().inner, false, None, None, None, None)
-            .map_err(Into::into)
+        Self::from_circuit_data(&ob.borrow().inner, false, None, None).map_err(Into::into)
     }
 }
 impl CircuitBlock for NoBlocks {
@@ -758,7 +758,14 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                         } else {
                             None
                         };
-                        let annotations = ob.getattr(intern!(py, "annotations"))?.extract()?;
+                        let annotations = ob
+                            .getattr(intern!(py, "annotations"))?
+                            .try_iter()?
+                            .map(|a| {
+                                a?.extract::<AnnotationFromPython>()
+                                    .map(|a| a.into_annotation())
+                            })
+                            .collect::<PyResult<Vec<_>>>()?;
                         ControlFlow::Box {
                             duration,
                             annotations,

@@ -253,7 +253,7 @@ pub unsafe extern "C" fn qk_quantum_register_circuit_bits(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     qreg.iter().enumerate().for_each(|(i, qubit)| {
-        let mapped_qubit = circuit.qubit_index(&qubit).map_or(u32::MAX, |q| q);
+        let mapped_qubit = circuit.qubit_index(&qubit).unwrap_or(u32::MAX);
         // SAFETY: Per documentation, out_bits is aligned and has at least qreg.len() elements
         unsafe { out_bits.add(i).write(mapped_qubit) };
     });
@@ -434,7 +434,7 @@ pub unsafe extern "C" fn qk_classical_register_circuit_bits(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     creg.iter().enumerate().for_each(|(i, clbit)| {
-        let mapped_clbit = circuit.clbit_index(&clbit).map_or(u32::MAX, |c| c);
+        let mapped_clbit = circuit.clbit_index(&clbit).unwrap_or(u32::MAX);
         // SAFETY: Per documentation, out_bits is aligned and has at least creg.len() elements
         unsafe { out_bits.add(i).write(mapped_clbit) };
     });
@@ -2526,7 +2526,7 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None, None, None)
+    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None)
         .expect("Error occurred while converting CircuitData to DAGCircuit");
 
     Box::into_raw(Box::new(dag))

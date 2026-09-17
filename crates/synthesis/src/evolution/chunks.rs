@@ -38,13 +38,14 @@ use qiskit_circuit::operations::StandardGate;
 // For efficiency, the following table stores 2-qubit Pauli support sizes.
 // For example, for 2-qubit Pauli ZI with index 4, its support size
 // is given by PAULI_SUPPORT_SIZES[4] = 1.
-pub static PAULI_SUPPORT_SIZES: [usize; 16] = [0, 1, 1, 1, 1, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2];
+pub(crate) static PAULI_SUPPORT_SIZES: [usize; 16] =
+    [0, 1, 1, 1, 1, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2];
 
 // A "chunk" is a small 2-qubit Clifford circuit constisting of some
 // single-qubit Clifford gates followed either by CX(0, 1) or CX(1, 0).
 // There are 18 chunks of interest, numbered 0..18, see reference [1]
 // above.
-pub const ALL_CHUNKS: [&[(StandardGate, &[usize])]; 18] = [
+pub(crate) const ALL_CHUNKS: [&[(StandardGate, &[usize])]; 18] = [
     &[(StandardGate::CX, &[0, 1])],
     &[(StandardGate::CX, &[1, 0])],
     &[(StandardGate::H, &[1]), (StandardGate::CX, &[0, 1])],
@@ -126,7 +127,7 @@ pub const ALL_CHUNKS: [&[(StandardGate, &[usize])]; 18] = [
 // This is the corresponding table using 2-qubit Pauli indices.
 // CHUNK_CONJUGATION_TABLE[chunk_idx][pauli_pair_idx] represents
 // the index of the 2-qubit Pauli we obtain by conjugation.
-pub static CHUNK_CONJUGATION_TABLE: [[usize; 16]; 18] = [
+pub(crate) static CHUNK_CONJUGATION_TABLE: [[usize; 16]; 18] = [
     [0, 5, 2, 7, 4, 1, 6, 3, 10, 15, 8, 13, 14, 11, 12, 9],
     [0, 1, 10, 11, 5, 4, 15, 14, 8, 9, 2, 3, 13, 12, 7, 6],
     [0, 2, 5, 7, 4, 6, 1, 3, 10, 8, 15, 13, 14, 12, 11, 9],
@@ -149,7 +150,7 @@ pub static CHUNK_CONJUGATION_TABLE: [[usize; 16]; 18] = [
 
 // Precomputed change in support size for every (chunk, 2-qubit Pauli) pair
 // (a negative value means the conjugation reduces the support).
-pub static SUPPORT_DELTA: [[i8; 16]; 18] = build_support_delta();
+pub(crate) static SUPPORT_DELTA: [[i8; 16]; 18] = build_support_delta();
 
 const fn build_support_delta() -> [[i8; 16]; 18] {
     let mut table = [[0i8; 16]; 18];
@@ -169,7 +170,7 @@ const fn build_support_delta() -> [[i8; 16]; 18] {
 
 // For efficiency, we also precompute which conjugations reduce
 // the size of the support set of a given 2-qubit Pauli.
-pub static REDUCING_CHUNKS: [&[usize]; 16] = [
+pub(crate) static REDUCING_CHUNKS: [&[usize]; 16] = [
     &[],
     &[],
     &[],
