@@ -3515,6 +3515,67 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             with self.assertRaises(QiskitError):
                 _ = hls_pass(qc)
 
+    @data(
+        (["XX"], 2, [(0, 1), (1, 0)], "basic"),
+        (["XX", "XZ"], 0, [(0, 1), (1, 0)], "basic"),
+        (["XX", "XZ"], 1, [(0, 1), (1, 0)], "basic"),
+        (["XX", "XZ"], 2, [(0, 1), (1, 0)], "mcts"),
+        (["XX", "XZ"], 3, [(0, 1), (1, 0)], "mcts"),
+        (["XX", "XZ"], 2, [(0, 1)], "mcts"),
+        (["XX", "XZ"], 2, [(1, 0)], "mcts"),
+        (["XX", "XZ"], 2, [], "basic"),
+    )
+    @unpack
+    def test_default_chooses_correct_plugin(
+        self, pauli_terms, optimization_level, edge_list, expected
+    ):
+        """Test that the default plugin chooses the expected synthesis method (basic or mcts)."""
+        op = SparsePauliOp(pauli_terms)
+        qc = QuantumCircuit(op.num_qubits)
+        qc.append(PauliEvolutionGate(op), qc.qubits)
+
+        basis_gates = ["cx", "rz", "sx"]
+
+        coupling_map = CouplingMap()
+        for qubit in range(qc.num_qubits):
+            coupling_map.add_physical_qubit(qubit)
+        coupling_map.graph.extend_from_edge_list(edge_list)
+
+        # Transpile the circuit with each of the following plugins: basic, mcts, default
+        hls_basic = HLSConfig(PauliEvolution=[("basic", {})])
+        hls_mcts = HLSConfig(PauliEvolution=[("mcts", {})])
+        hls_default = HLSConfig(PauliEvolution=[("default", {})])
+        qct_basic = HighLevelSynthesis(
+            basis_gates=basis_gates,
+            equivalence_library=std_eqlib,
+            optimization_level=optimization_level,
+            coupling_map=coupling_map,
+            hls_config=hls_basic,
+        )(qc)
+        qct_mcts = HighLevelSynthesis(
+            basis_gates=basis_gates,
+            equivalence_library=std_eqlib,
+            optimization_level=optimization_level,
+            coupling_map=coupling_map,
+            hls_config=hls_mcts,
+        )(qc)
+        qct_default = HighLevelSynthesis(
+            basis_gates=basis_gates,
+            equivalence_library=std_eqlib,
+            optimization_level=optimization_level,
+            coupling_map=coupling_map,
+            hls_config=hls_default,
+        )(qc)
+
+        # The basic and the mcts synthesis methods should produce different results
+        self.assertNotEqual(qct_basic, qct_mcts)
+
+        # The default result should with the expected one
+        if expected == "basic":
+            self.assertEqual(qct_default, qct_basic)
+        else:
+            self.assertEqual(qct_default, qct_mcts)
+
 
 class TestAnnotatedSynthesisPlugins(QiskitTestCase):
     """Tests related to plugins for AnnotatedOperation."""
