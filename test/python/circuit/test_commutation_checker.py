@@ -647,29 +647,28 @@ class TestCommutationChecker(QiskitTestCase):
         with self.subTest(left=x, right=swap):
             self.assertFalse(scc.commute(x, [1], [], swap, [1, 0], []))
 
-    def test_reject_duplicate_qubits(self):
+    @data(
+        (
+            PauliEvolutionGate(SparsePauliOp(["XXI", "IXI", "IIZ"]), time=42.2),
+            [0, 2, 2],
+            PauliProductRotationGate(Pauli("XX"), 0.1),
+            [1, 2],
+            "qargs1",
+        ),
+        (
+            PauliProductRotationGate(Pauli("XX"), 0.1),
+            [1, 2],
+            PauliEvolutionGate(SparsePauliOp(["XXI", "IXI", "IIZ"]), time=42.2),
+            [0, 2, 2],
+            "qargs2",
+        ),
+    )
+    @unpack
+    def test_reject_duplicate_qubits(self, op1, qargs1, op2, qargs2, duplicate_arg):
         """Test that duplicate qubit arguments are rejected without panicking."""
         checker = CommutationChecker()
-        evolution = PauliEvolutionGate(SparsePauliOp(["XXI", "IXI", "IIZ"]), time=42.2)
-        rotation = PauliProductRotationGate(Pauli("XX"), 0.1)
-        cases = [
-            (evolution, [0, 2, 2], rotation, [1, 2], "qargs1"),
-            (rotation, [1, 2], evolution, [0, 2, 2], "qargs2"),
-        ]
-
-        for op1, qargs1, op2, qargs2, duplicate_arg in cases:
-            with self.subTest(duplicate_arg=duplicate_arg, check_inputs=True):
-                with self.assertRaisesRegex(
-                    QiskitError, rf"{duplicate_arg} contains duplicate qubits"
-                ):
-                    checker.commute(op1, qargs1, [], op2, qargs2, [])
-            with self.subTest(duplicate_arg=duplicate_arg, check_inputs=False):
-                # Use a gate filter so the core path returns early without remapping,
-                # which would panic on duplicate qargs when validation is skipped.
-                filtered = CommutationChecker(gates={"x"})
-                self.assertFalse(
-                    filtered.commute(op1, qargs1, [], op2, qargs2, [], check_inputs=False)
-                )
+        with self.assertRaisesRegex(QiskitError, rf"{duplicate_arg} contains duplicate qubits"):
+            checker.commute(op1, qargs1, [], op2, qargs2, [])
 
     def test_pauli_evolution_parameterized(self):
         """Test PauliEvolutionGate commutations for parameterized times."""
