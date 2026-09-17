@@ -689,15 +689,32 @@ fn pack_py_instruction(
         }
     };
 
+    let gate_class_name = qpy_data.caller.attach("Python defined instruction", |py| {
+        py_inst.class_name(py).map_err(QpyError::from)
+    })?;
+
+    let mut extras_key = 0;
+
+    if gate_class_name == "StatePreparation" {
+        let is_inverse = qpy_data.caller.attach(
+            "StatePreparation inverse flag",
+            |py| -> Result<bool, QpyError> {
+                Ok(py_inst.ob.bind(py).getattr("_inverse")?.extract::<bool>()?)
+            },
+        )?;
+
+        if is_inverse {
+            extras_key |= formats::extras_key_parts::STATE_PREPARATION_INVERSE;
+        }
+    }
+
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: py_inst.num_qubits(),
         num_cargs: py_inst.num_clbits(),
-        extras_key: 0,
+        extras_key,
         num_ctrl_qubits: py_inst.num_ctrl_qubits().unwrap_or(0),
         ctrl_state: py_inst.ctrl_state().unwrap_or(0),
-        gate_class_name: qpy_data.caller.attach("Python defined instruction", |py| {
-            py_inst.class_name(py).map_err(QpyError::from)
-        })?,
+        gate_class_name,
         label: Default::default(),
         condition: Default::default(),
         bit_data: Default::default(),

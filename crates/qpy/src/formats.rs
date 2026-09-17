@@ -172,9 +172,11 @@ pub struct CircuitInstructionV2Pack {
 }
 
 // To save space, the extras key encoded data about the existence of annotations
-// in its msb, and about the type of condition (Two-tuple, Expression or None) in the two lsbs.
+// in its msb, the second msb records whether there is an inverse StatePreparation
+// and about the type of condition (Two-tuple, Expression or None) in the two lsbs.
 pub mod extras_key_parts {
     pub const ANNOTATIONS: u8 = 0b1000_0000;
+    pub const STATE_PREPARATION_INVERSE: u8 = 0b0100_0000;
     pub const CONDITIONAL: u8 = 0b0000_0011;
 }
 
