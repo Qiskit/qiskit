@@ -1219,11 +1219,16 @@ static int test_delay_instruction(void) {
         printf("Expected 'Int' typed param %u found (%u).\n", QkParamKind_Int, param_kind);
         goto instr_cleanup;
     }
-    uint64_t dt_delay_val = qk_param_as_int(instr.params[0]);
+    int64_t dt_delay_val = -1;
 
+    if (!qk_param_as_int(instr.params[0], &dt_delay_val)) {
+        result = EqualityError;
+        printf("Incorrect non-integer value found for 'dt' unit duration.\n");
+        goto instr_cleanup;
+    }
     if (dt_delay_val != 145) {
         result = EqualityError;
-        printf("Expected 'dt' (145) delay value, found %" PRIu64 ".\n", dt_delay_val);
+        printf("Expected 'dt' (145) delay value, found %" PRIi64 ".\n", dt_delay_val);
         goto instr_cleanup;
     }
 
