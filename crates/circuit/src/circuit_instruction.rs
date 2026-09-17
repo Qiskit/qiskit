@@ -444,7 +444,7 @@ impl CircuitInstruction {
                                     &ParameterExpression::from_f64(*left) == right.as_ref()
                                 }
                                 Param::Obj(right) => right.bind(py).eq(left)?,
-                                Param::Int(right) => left == &(*right as f64),
+                                Param::Int(_) => false,
                             },
                             Param::ParameterExpression(left) => match right {
                                 Param::Float(right) => {
@@ -460,7 +460,7 @@ impl CircuitInstruction {
                             },
                             Param::Obj(left) => left.bind(py).eq(right)?,
                             Param::Int(left) => match right {
-                                Param::Float(right) => &(*left as f64) == right,
+                                Param::Float(_) => false,
                                 Param::ParameterExpression(right) => {
                                     let left_val: crate::parameter::symbol_expr::Value =
                                         (*left).into();
