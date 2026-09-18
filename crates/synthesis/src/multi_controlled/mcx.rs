@@ -910,14 +910,14 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
     }
 }
 
-/// The short relative-phase Toffoli ``RT^S`` from Maslov (2016), Figure 3, gates 2--6.
+/// The short relative-phase Toffoli ``RTS`` from Maslov (2016), Figure 3, gates 2--6.
 fn rts() -> Result<CircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(3, 0, 5, Param::Float(0.0))?;
     add_action_gadget(&mut circuit, 1, 0, 2)?;
     Ok(circuit)
 }
 
-/// The short special-form relative-phase Toffoli ``SRT^S`` from Maslov (2016),
+/// The short special-form relative-phase Toffoli ``SRTS`` from Maslov (2016),
 /// circuit (3), dashed.
 fn srts() -> Result<CircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(3, 0, 9, Param::Float(0.0))?;
@@ -933,7 +933,7 @@ fn srts() -> Result<CircuitData, CircuitDataError> {
     Ok(circuit)
 }
 
-/// The short relative-phase four-qubit Toffoli ``RT4^S`` from Maslov (2016),
+/// The short relative-phase four-qubit Toffoli ``RT4S`` from Maslov (2016),
 /// Figure 4, dashed.
 fn rt4s() -> Result<CircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(4, 0, 10, Param::Float(0.0))?;
@@ -993,7 +993,7 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
         let rc3x_gate = rc3x();
         let rc3x_inverse = rc3x_gate.inverse()?;
 
-        // Proposition 4 starts with RT^3 for an odd number of controls and RT^4 for an
+        // Proposition 4 starts with RT3 for an odd number of controls and RT4 for an
         // even number.
         let first_new_control = if num_controls % 2 == 1 {
             circuit.compose(&rccx_gate, &[Qubit(0), Qubit(1), Qubit(first_ancilla)], &[])?;
@@ -1007,7 +1007,7 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
             3
         };
 
-        // Each subsequent RT^4 absorbs two more controls into one clean ancilla.
+        // Each subsequent RT4 absorbs two more controls into one clean ancilla.
         for i in 1..num_ancillas {
             let control = first_new_control + 2 * (i - 1);
             circuit.compose(
@@ -1134,7 +1134,7 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
     )?;
 
     for forward_pass in [true, false] {
-        // Items 2 and 6 of Proposition 5, with adjacent RT^S pairs replaced by RT4^S.
+        // Items 2 and 6 of Proposition 5, with adjacent RTS pairs replaced by RT4S.
         let first_unpaired = if n % 2 == 0 {
             circuit.compose(
                 &rts_gate,
