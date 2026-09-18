@@ -1115,14 +1115,14 @@ pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -
 #[repr(u8)]
 /// Represents the type of a ``QkParam`` instance.
 pub enum ParamKind {
-    /// Represents a real floating point parameter.
-    Real = 0,
-    /// Represents an unbound parameter symbol.
-    ParameterExpression = 1,
-    /// Represents a parameter that can only be represented by an integer. Usually a duration in terms of `Dt`.
-    Int = 2,
     /// Represents an unknown parameter.
-    Unknown = 3,
+    Unknown = 0,
+    /// Represents a real floating point parameter.
+    Real = 1,
+    /// Represents an unbound parameter symbol.
+    ParameterExpression = 2,
+    /// Represents a parameter that can only be represented by an integer. Usually a duration in terms of `Dt`.
+    Int = 3,
 }
 
 /// @ingroup QkParam
