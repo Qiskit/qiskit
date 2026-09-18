@@ -17,8 +17,7 @@ use thiserror::Error;
 use super::tensor_type::fmt_shape;
 use super::{DType, Dim};
 
-/// Errors returned by [`Tensor`](super::Tensor) operations and by the rules in
-/// [`rules`](super::rules).
+/// Errors returned by [`Tensor`](super::Tensor) operations and by the type-level rules.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum TensorError {
     /// The two operand tensors have different dtypes or a dtype that does not support the op.

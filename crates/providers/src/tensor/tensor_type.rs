@@ -14,8 +14,8 @@
 
 use std::fmt;
 
-use super::DTypeLike;
-use super::rules;
+use super::broadcast::align_axes;
+use super::{DTypeLike, TensorError};
 
 /// A tensor axis dimension.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -25,7 +25,7 @@ pub enum Dim {
     /// A dimension whose size is not known until run time, but is provably at most `max`.
     ///
     /// An operation that needs the true size at build time demands it through
-    /// [`rules::require_static`].
+    /// [`require_static`].
     Bounded { max: usize },
 }
 
@@ -44,6 +44,50 @@ pub(super) fn fmt_shape(shape: &[Dim]) -> String {
     format!("[{}]", dims.join(", "))
 }
 
+/// Require every axis of `shape` to be [`Dim::Fixed`], returning their sizes.
+///
+/// Operations should use this helper whenever they require the true size rather than a bound.
+pub fn require_static(shape: &[Dim]) -> Result<Vec<usize>, TensorError> {
+    shape
+        .iter()
+        .map(|dim| match dim {
+            Dim::Fixed(n) => Ok(*n),
+            Dim::Bounded { .. } => Err(TensorError::DynamicDim {
+                shape: shape.to_vec(),
+            }),
+        })
+        .collect()
+}
+
+/// Compute the type-level NumPy-style broadcast shape for two operand shapes.
+///
+/// This is the [`Dim`]-level counterpart of [`broadcast_shape`](super::broadcast_shape), predicting
+/// a result shape from operand shapes with no tensor data in hand. Over fixed axes the rules are
+/// exactly `broadcast_shape`'s:
+///
+/// - `Fixed(1)` broadcasts against anything.
+/// - `Fixed(m)` against `Fixed(n)` with `m != n`, neither of them `1`, is
+///   [`TensorError::DimShapeMismatch`].
+///
+/// A [`Dim::Bounded`] axis passes through where it meets a size of `1`, including the implicit `1`s
+/// that pad the shorter shape. Anywhere else it would have to be compared against the size it meets,
+/// which needs its true size, so it is [`TensorError::DynamicDim`].
+pub fn broadcast_dims(a: &[Dim], b: &[Dim]) -> Result<Vec<Dim>, TensorError> {
+    align_axes(a, b, Dim::Fixed(1))
+        .map(|pair| match pair {
+            (Dim::Fixed(1), y) => Ok(y),
+            (x, Dim::Fixed(1)) => Ok(x),
+            (Dim::Fixed(m), Dim::Fixed(n)) if m == n => Ok(Dim::Fixed(m)),
+            (Dim::Bounded { .. }, _) => Err(TensorError::DynamicDim { shape: a.to_vec() }),
+            (_, Dim::Bounded { .. }) => Err(TensorError::DynamicDim { shape: b.to_vec() }),
+            _ => Err(TensorError::DimShapeMismatch {
+                lhs: a.to_vec(),
+                rhs: b.to_vec(),
+            }),
+        })
+        .collect()
+}
+
 /// A specification of a tensor without any data.
 #[derive(Debug, Clone)]
 pub struct TensorType {
@@ -58,7 +102,7 @@ pub struct TensorType {
 impl TensorType {
     /// Return the dimension of every axis, or `None` if any is only bounded above.
     pub fn concrete_shape(&self) -> Option<Vec<usize>> {
-        rules::require_static(&self.shape).ok()
+        require_static(&self.shape).ok()
     }
 }
 
@@ -95,5 +139,111 @@ mod test {
     fn test_dim_display() {
         assert_eq!(Dim::Fixed(4000).to_string(), "4000");
         assert_eq!(Dim::Bounded { max: 2 }.to_string(), "<=2");
+    }
+
+    #[test]
+    fn test_require_static() {
+        assert_eq!(
+            require_static(&[Dim::Fixed(3), Dim::Fixed(8)]).unwrap(),
+            vec![3, 8]
+        );
+        assert!(require_static(&[]).unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_require_static_rejects_bounded_and_reports_the_shape() {
+        let shape = [Dim::Fixed(3), Dim::Bounded { max: 16 }];
+        let err = require_static(&shape).unwrap_err();
+        assert_eq!(
+            err,
+            TensorError::DynamicDim {
+                shape: shape.to_vec()
+            }
+        );
+        assert_eq!(
+            err.to_string(),
+            "shape [3, <=16] has an axis whose size is only bounded above, \
+             where a true size is required"
+        );
+    }
+
+    #[test]
+    fn test_broadcast_dims_compatible() {
+        // [2, 3] against [3] -> [2, 3], mirroring broadcast_shape.
+        assert_eq!(
+            broadcast_dims(&[Dim::Fixed(2), Dim::Fixed(3)], &[Dim::Fixed(3)]).unwrap(),
+            vec![Dim::Fixed(2), Dim::Fixed(3)]
+        );
+
+        // Scalar broadcast: [4] against [1] -> [4].
+        assert_eq!(
+            broadcast_dims(&[Dim::Fixed(4)], &[Dim::Fixed(1)]).unwrap(),
+            vec![Dim::Fixed(4)]
+        );
+
+        // Differing ranks: the missing leading axes act as Fixed(1).
+        let a = vec![Dim::Fixed(2), Dim::Fixed(1), Dim::Fixed(3)];
+        assert_eq!(broadcast_dims(&a, &[Dim::Fixed(3)]).unwrap(), a);
+    }
+
+    #[test]
+    fn test_broadcast_dims_incompatible_reports_both_operands() {
+        let a = [Dim::Fixed(3)];
+        let b = [Dim::Fixed(4)];
+        let err = broadcast_dims(&a, &b).unwrap_err();
+        assert_eq!(
+            err,
+            TensorError::DimShapeMismatch {
+                lhs: a.to_vec(),
+                rhs: b.to_vec()
+            }
+        );
+        assert_eq!(
+            err.to_string(),
+            "shapes [3] and [4] are not broadcast-compatible"
+        );
+    }
+
+    #[test]
+    fn test_broadcast_dims_forwards_a_bounded_axis() {
+        let bounded = Dim::Bounded { max: 8 };
+
+        // A size of 1 stretches against a bounded axis, which passes its bound through.
+        assert_eq!(
+            broadcast_dims(&[bounded], &[Dim::Fixed(1)]).unwrap(),
+            vec![bounded]
+        );
+        assert_eq!(
+            broadcast_dims(&[Dim::Fixed(1)], &[bounded]).unwrap(),
+            vec![bounded]
+        );
+
+        // So do the implicit 1s that pad the shorter shape.
+        assert_eq!(
+            broadcast_dims(&[bounded, Dim::Fixed(3)], &[Dim::Fixed(3)]).unwrap(),
+            vec![bounded, Dim::Fixed(3)]
+        );
+    }
+
+    #[test]
+    fn test_broadcast_dims_rejects_a_compared_bounded_axis() {
+        // A bounded axis meeting a size it would have to be compared against needs its true size:
+        // another bounded axis, or a fixed size other than 1.
+        let fixed = vec![Dim::Fixed(5)];
+        let bounded = vec![Dim::Bounded { max: 8 }];
+        for (a, b, at_fault) in [
+            (&bounded, &fixed, &bounded),
+            (&fixed, &bounded, &bounded),
+            (&bounded, &bounded, &bounded),
+        ] {
+            let err = broadcast_dims(a, b).unwrap_err();
+            assert_eq!(
+                err,
+                TensorError::DynamicDim {
+                    shape: at_fault.clone()
+                },
+                "for {a:?} against {b:?}"
+            );
+        }
     }
 }

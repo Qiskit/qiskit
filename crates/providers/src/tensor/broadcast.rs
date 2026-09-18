@@ -19,7 +19,7 @@ use super::TensorError;
 /// Pair up the axes of two shapes, right-aligned, padding the shorter one with `pad`.
 ///
 /// This is the axis correspondence NumPy-style broadcasting uses, shared by [`broadcast_shape`] and
-/// [`broadcast_dims`](super::rules::broadcast_dims) so that the two agree on which axes meet.
+/// [`broadcast_dims`](super::broadcast_dims) so that the two agree on which axes meet.
 pub(super) fn align_axes<'a, T: Copy>(
     a: &'a [T],
     b: &'a [T],
