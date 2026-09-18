@@ -6,10 +6,12 @@ features_synthesis:
     three or four controls and :math:`\lceil(k - 2) / 2\rceil` ancillas for larger
     gates.
 
+  - |
     The clean-ancilla :func:`.synth_mcx_n_clean_m15` implementation now also uses
     :math:`\lceil(k - 2) / 2\rceil` ancillas instead of :math:`k - 2`, without
-    changing its T or CX counts. This also allows :meth:`.QuantumCircuit.mcry`
-    to automatically select its basic mode with fewer clean ancillas.
+    changing its T or CX counts. Thus, :meth:`.QuantumCircuit.mcry` with
+    ``mode=None`` can automatically select ``basic`` mode when at least
+    :math:`\lceil(k - 2) / 2\rceil` clean ancillas are available.
 features_transpiler:
   - |
     Added the ``mcx.n_dirty_m15`` high-level synthesis plugin. The default MCX
