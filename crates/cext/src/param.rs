@@ -1037,7 +1037,7 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
         },
         Param::Float(f) => *f,
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
-        Param::Int(u) => *u as f64, // Lossy conversion,
+        Param::Int(_) => f64::NAN,
     }
 }
 
@@ -1075,6 +1075,82 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_param_stride() -> usize {
     mem::size_of::<Param>()
+}
+
+/// Attempt casting the ``QkParam`` as ``int64_t``. This will be helpful in the case a user
+/// is retrieving a parameter representing the duration of a delay instruction in units of `Dt`.
+///
+/// If the parameter could not be cast to a ``int64_t``, because there were unbound parameters,
+/// ``INT64_MAX`` is returned. Note that for ``QkParam`` representing complex values the real part is
+/// returned.
+///
+/// @param param A pointer to the ``QkParam`` to evaluate.
+/// @param value A pointer to a ``int32_t`` to write the resulting value.
+///
+/// @return The value, if casting was successful, otherwise ``INT64_MAX``.
+///
+/// # Safety
+///
+/// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
+/// The behavior is undefined if ``value`` is not a valid, non-null pointer to an address that
+/// can hold an `int32_t` instance.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -> bool {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let param = unsafe { const_ptr_as_ref(param) };
+
+    // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an `int32_t`.
+    param_try_int(param)
+        .inspect(|param| unsafe { value.write(*param) })
+        .is_some()
+}
+
+/// Quickly returns the integer value of a `Param` if stores one or evaluates to one.
+fn param_try_int(param: &Param) -> Option<i64> {
+    match param {
+        Param::ParameterExpression(expr) => match expr.try_to_value(true) {
+            Ok(Value::Int(v)) => Some(v),
+            _ => None,
+        },
+        Param::Int(int) => Some(*int),
+        _ => None,
+    }
+}
+
+#[repr(u8)]
+/// Represents the type of a ``QkParam`` instance.
+pub enum ParamKind {
+    /// Represents an unknown parameter.
+    Unknown = 0,
+    /// Represents a real floating point parameter.
+    Real = 1,
+    /// Represents an unbound parameter symbol.
+    ParameterExpression = 2,
+    /// Represents a parameter that can only be represented by an integer. Usually a duration in terms of `Dt`.
+    Int = 3,
+}
+
+/// @ingroup QkParam
+/// Returns the associated type of the ``QkParam`` instance via the ``QkParamKind`` enumeration.
+///
+/// @param param A pointer to the ``QkParam`` to evaluate.
+///
+/// @return The associated type with the parameter.
+///
+/// # Safety
+///
+/// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_param_kind(param: *const Param) -> ParamKind {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let param = unsafe { const_ptr_as_ref(param) };
+
+    match param {
+        Param::ParameterExpression(_) => ParamKind::ParameterExpression,
+        Param::Int(_) => ParamKind::Int,
+        Param::Float(_) => ParamKind::Real,
+        _ => ParamKind::Unknown,
+    }
 }
 
 #[cfg(test)]
