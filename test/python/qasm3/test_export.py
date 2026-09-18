@@ -779,7 +779,7 @@ c[1] = measure q[1];
                 "qubit[2] qr;",
                 "stretch s;",
                 "stretch t;",
-                "delay[100ms] qr[0];",
+                "delay[100.0ms] qr[0];",
                 "delay[100.0ms] qr[0];",
                 "delay[0.002ns] qr[1];",
                 "delay[s / 2.0] qr[1];",
