@@ -11,8 +11,9 @@
 // that they have been altered from the originals.
 
 use mcx::{
-    c3x, c4x, synth_mcp_noaux_sp22, synth_mcx_1_clean_b95, synth_mcx_n_clean_m15,
-    synth_mcx_n_dirty_i15, synth_mcx_n_dirty_m15, synth_mcx_noaux_hp24, synth_mcx_noaux_sp22,
+    c3x, c4x, synth_mcp_noaux_sp22, synth_mcx_1_clean_b95, synth_mcx_1_kg24, synth_mcx_2_kg24,
+    synth_mcx_n_clean_m15, synth_mcx_n_dirty_i15, synth_mcx_n_dirty_m15, synth_mcx_noaux_hp24,
+    synth_mcx_noaux_sp22,
 };
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
@@ -36,6 +37,18 @@ fn py_synth_mcx_n_dirty_i15(
 #[pyo3(name="synth_mcx_n_dirty_m15", signature = (num_controls))]
 fn py_synth_mcx_n_dirty_m15(num_controls: usize) -> PyResult<PyCircuitData> {
     Ok(synth_mcx_n_dirty_m15(num_controls)?.into())
+}
+
+#[pyfunction]
+#[pyo3(name="synth_mcx_1_kg24", signature = (num_controls, clean))]
+fn py_synth_mcx_1_kg24(num_controls: usize, clean: bool) -> PyResult<PyCircuitData> {
+    Ok(synth_mcx_1_kg24(num_controls, clean)?.into())
+}
+
+#[pyfunction]
+#[pyo3(name="synth_mcx_2_kg24", signature = (num_controls, clean))]
+fn py_synth_mcx_2_kg24(num_controls: usize, clean: bool) -> PyResult<PyCircuitData> {
+    Ok(synth_mcx_2_kg24(num_controls, clean)?.into())
 }
 
 #[pyfunction]
@@ -82,6 +95,8 @@ pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_m15, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_hp24, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_1_clean_b95, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcx_1_kg24, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcx_2_kg24, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_sp22, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_sp22, m)?)?;
     m.add_function(wrap_pyfunction!(mcmt::mcmt_v_chain, m)?)?;

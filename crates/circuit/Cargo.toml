@@ -27,6 +27,7 @@ thiserror.workspace = true
 itertools.workspace = true
 nalgebra.workspace = true
 uuid.workspace = true
+stacker = "0.1"
 nom.workspace = true
 nom-unicode.workspace = true
 nom-language.workspace = true
@@ -36,6 +37,7 @@ ahash = "0.8.12"
 unicode-segmentation = "1.13"
 lexical-core = "1.0.6"
 lexical-write-float = "1.0.6"
+indexmap.workspace = true
 
 [dependencies.pyo3]
 workspace = true
