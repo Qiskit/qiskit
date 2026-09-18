@@ -249,6 +249,9 @@ impl Param {
             if let Ok(int) = ob.extract() {
                 Param::Int(int)
             } else {
+                // This catch leaves bigints as Python objects, rather than coercing them. We may
+                // decide to change this, and have tighter limits once we have specialized uses of
+                // `extract_no_coerce` so we can be more sure of the context.
                 Param::Obj(ob.to_owned().unbind())
             }
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
