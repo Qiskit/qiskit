@@ -43,10 +43,13 @@ pub enum Tensor {
 }
 
 /// Cast an array of a real numeric type to any supported dtype.
+///
+/// A cast to `Bit` compares against zero, like NumPy's cast to `bool`. A `Bit` tensor holds only 0
+/// or 1, so truncating `2.5` to `2` would produce values the bitwise operations cannot read.
 macro_rules! cast_real {
     ($arr:expr, $src:ty, $target:expr) => {
         match $target {
-            DType::Bit => Tensor::Bit($arr.mapv(|x: $src| x as u8).into_shared()),
+            DType::Bit => Tensor::Bit($arr.mapv(|x: $src| u8::from(x != 0 as $src)).into_shared()),
             DType::U8 => Tensor::U8($arr.mapv(|x: $src| x as u8).into_shared()),
             DType::U16 => Tensor::U16($arr.mapv(|x: $src| x as u16).into_shared()),
             DType::U32 => Tensor::U32($arr.mapv(|x: $src| x as u32).into_shared()),
@@ -666,6 +669,21 @@ mod test {
         } else {
             panic!("expected C64 tensor");
         }
+    }
+
+    #[test]
+    fn test_cast_to_bit_tests_against_zero() {
+        // Any non-zero value becomes 1, so a Bit tensor never holds anything else.
+        let t = Tensor::from([0.0_f64, 0.5, 1.0, 2.5, -3.0]);
+        let Tensor::Bit(bits) = t.cast(DType::Bit) else {
+            panic!("expected Bit tensor")
+        };
+        assert_eq!(bits.as_slice().unwrap(), &[0, 1, 1, 1, 1]);
+
+        let Tensor::Bit(bits) = Tensor::from([0_i32, 7, -7]).cast(DType::Bit) else {
+            panic!("expected Bit tensor")
+        };
+        assert_eq!(bits.as_slice().unwrap(), &[0, 1, 1]);
     }
 
     #[test]
