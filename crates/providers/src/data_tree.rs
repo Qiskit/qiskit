@@ -86,7 +86,7 @@ impl TryFrom<String> for Name {
 }
 
 /// Returned when a string cannot be used as a [`Name`].
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub enum InvalidName {
     #[error("a name cannot be empty")]
     Empty,
@@ -108,7 +108,7 @@ pub enum PathEntry<'a> {
 
 /// Returned by [`DataTree::unflatten`] when the supplied value count doesn't
 /// match the template's leaf count.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 #[error("unflatten: expected {expected} values, got {actual}")]
 pub struct ArityMismatch {
     pub expected: usize,
@@ -120,7 +120,7 @@ pub struct ArityMismatch {
 ///
 /// The `path` field is rendered as a dotted string (e.g. `"x.0.creg"`),
 /// built lazily at the point of error construction.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub enum TreeMatchError {
     /// The path is missing in `data`, or descends through a leaf.
     #[error("missing path {path}")]
@@ -1338,22 +1338,22 @@ mod test {
         template.insert_leaf(name("y"), 0);
         // 2 leaves; passing 1 value
         let err = template.unflatten(vec![42]).unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
             ArityMismatch {
                 expected: 2,
                 actual: 1
             }
-        );
+        ));
         // 2 leaves; passing 3 values
         let err = template.unflatten(vec![1, 2, 3]).unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
             ArityMismatch {
                 expected: 2,
                 actual: 3
             }
-        );
+        ));
     }
 
     #[test]
@@ -1375,12 +1375,10 @@ mod test {
         let mut data = DataTree::new();
         data.insert_leaf(name("x"), 1);
         let err = template.flatten_against(&data).unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
-            TreeMatchError::MissingPath {
-                path: "y".to_string(),
-            }
-        );
+            TreeMatchError::MissingPath { path } if path == "y"
+        ));
     }
 
     #[test]
@@ -1392,12 +1390,10 @@ mod test {
         data.insert_leaf(name("x"), 1);
         data.insert_branch(name("y"), DataTree::<i32>::new());
         let err = template.flatten_against(&data).unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
-            TreeMatchError::ExpectedLeaf {
-                path: "y".to_string(),
-            }
-        );
+            TreeMatchError::ExpectedLeaf { path } if path == "y"
+        ));
     }
 
     #[test]
@@ -1442,19 +1438,19 @@ mod test {
 
     #[test]
     fn test_name_rejects_dots_digits_and_emptiness() {
-        assert_eq!(Name::new(""), Err(InvalidName::Empty));
-        assert_eq!(
+        assert!(matches!(Name::new(""), Err(InvalidName::Empty)));
+        assert!(matches!(
             Name::new("a.b"),
-            Err(InvalidName::ContainsDot("a.b".to_string()))
-        );
-        assert_eq!(
+            Err(InvalidName::ContainsDot(name)) if name == "a.b"
+        ));
+        assert!(matches!(
             Name::new("0"),
-            Err(InvalidName::OnlyDigits("0".to_string()))
-        );
-        assert_eq!(
+            Err(InvalidName::OnlyDigits(name)) if name == "0"
+        ));
+        assert!(matches!(
             Name::new("007"),
-            Err(InvalidName::OnlyDigits("007".to_string()))
-        );
+            Err(InvalidName::OnlyDigits(name)) if name == "007"
+        ));
     }
 
     #[test]
@@ -1538,7 +1534,10 @@ mod test {
     #[test]
     fn test_mapping_rejects_an_invalid_name() {
         let result = DataTree::mapping([("a.b", DataTree::Leaf(1))]);
-        assert_eq!(result, Err(InvalidName::ContainsDot("a.b".to_string())));
+        assert!(matches!(
+            result,
+            Err(InvalidName::ContainsDot(name)) if name == "a.b"
+        ));
     }
 
     #[test]
