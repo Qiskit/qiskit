@@ -13,6 +13,8 @@
 //! The container for structured values: a leaf, or a branch of ordered children each of which may
 //! optionally have a name.
 
+use std::fmt;
+
 use hashbrown::HashMap;
 use std::borrow::Borrow;
 use thiserror::Error;
@@ -1114,6 +1116,40 @@ impl<T: PartialEq> PartialEq for DataTree<T> {
     }
 }
 
+impl fmt::Display for DataTree<()> {
+    /// Render a [structure](DataTree::structure) as a skeleton: a leaf as `_`, a branch as its
+    /// children in brackets, each prefixed by its name where it has one.
+    ///
+    /// # Example
+    /// ```rust
+    /// use qiskit_providers::{DataTree, InvalidName};
+    /// let tree = DataTree::mapping([
+    ///     ("counts", DataTree::sequence([DataTree::Leaf(1), DataTree::Leaf(2)])),
+    ///     ("shots", DataTree::Leaf(3)),
+    /// ])?;
+    /// assert_eq!(tree.structure().to_string(), "[counts: [_, _], shots: _]");
+    /// # Ok::<(), InvalidName>(())
+    /// ```
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self::Branch(_) = self else {
+            return f.write_str("_");
+        };
+        // A branch is bracketed whether or not its children are named, since it may mix the two and
+        // so is neither a sequence nor a mapping.
+        f.write_str("[")?;
+        for (position, (name, child)) in self.iter_children().enumerate() {
+            if position > 0 {
+                f.write_str(", ")?;
+            }
+            if let Some(name) = name {
+                write!(f, "{}: ", name.as_str())?;
+            }
+            write!(f, "{child}")?;
+        }
+        f.write_str("]")
+    }
+}
+
 /// Whether a path segment addresses a child by position rather than by name.
 fn is_positional(segment: &str) -> bool {
     !segment.is_empty() && segment.bytes().all(|byte| byte.is_ascii_digit())
@@ -1552,6 +1588,16 @@ mod test {
             tree.structure(),
             tree.map_leaves(|value| *value as f64).structure()
         );
+    }
+
+    #[test]
+    fn test_structure_renders_names_positions_and_nesting() {
+        assert_eq!(
+            mixed_tree().structure().to_string(),
+            "[x: [y: _, yy: _, [_, _, _, _]], z: _]"
+        );
+        assert_eq!(DataTree::Leaf(1).structure().to_string(), "_");
+        assert_eq!(DataTree::<i32>::new().structure().to_string(), "[]");
     }
 
     #[test]
