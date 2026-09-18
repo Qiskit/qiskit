@@ -405,6 +405,8 @@ def _read_instruction(
     standalone_vars,
     annotation_state,
 ):
+    state_preparation_inverse = False
+
     if version < 5:
         instruction = formats.CIRCUIT_INSTRUCTION._make(
             struct.unpack(
@@ -426,6 +428,9 @@ def _read_instruction(
         conditional_key = type_keys.Condition(instruction.extras_key & 0b11)
         has_annotations = bool(
             instruction.extras_key & type_keys.InstructionExtraFlags.HAS_ANNOTATIONS
+        )
+        state_preparation_inverse = bool(
+            instruction.extras_key & type_keys.InstructionExtraFlags.STATE_PREPARATION_INVERSE
         )
 
     gate_name = file_obj.read(instruction.name_size).decode(common.ENCODE)
@@ -592,15 +597,19 @@ def _read_instruction(
             gate = IfElseOp(condition, body)
     else:
         if gate_name in {"Initialize", "StatePreparation"}:
+            kwargs = (
+                {"inverse": state_preparation_inverse} if gate_name == "StatePreparation" else {}
+            )
+
             if isinstance(params[0], str):
                 # the params are the labels of the initial state
-                gate = gate_class("".join(label for label in params))
+                gate = gate_class("".join(label for label in params), **kwargs)
             elif instruction.num_parameters == 1:
                 # the params is the integer indicating which qubits to initialize
-                gate = gate_class(int(params[0].real), instruction.num_qargs)
+                gate = gate_class(int(params[0].real), instruction.num_qargs, **kwargs)
             else:
                 # the params represent a list of complex amplitudes
-                gate = gate_class(params)
+                gate = gate_class(params, **kwargs)
         elif gate_name in {
             "UCRXGate",
             "UCRYGate",
@@ -1074,6 +1083,8 @@ def _write_instruction(
                 instruction.operation._condition[0], index_map, version
             )
             condition_value = int(instruction.operation._condition[1])
+    if gate_class_name == "StatePreparation" and instruction.operation._inverse:
+        extra_type |= type_keys.InstructionExtraFlags.STATE_PREPARATION_INVERSE
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label", None)

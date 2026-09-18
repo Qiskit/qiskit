@@ -139,6 +139,7 @@ class InstructionExtraFlags(IntFlag):
     """If an instruction has extra payloads associated with it."""
 
     HAS_ANNOTATIONS = 0b1000_0000
+    STATE_PREPARATION_INVERSE = 0b0100_0000
 
 
 class Container(TypeKeyBase):

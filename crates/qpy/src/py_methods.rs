@@ -625,7 +625,7 @@ pub fn unpack_py_instruction(
     let gate_class = get_python_gate_class(py, &instruction.gate_class_name)?;
     // some gates need special treatment for their parameters prior to python-space initialization
     let mut gate_object = match name.as_str() {
-        "Initialize" | "StatePreparation" => {
+        "Initialize" => {
             if py_params[0].is_instance_of::<PyString>() {
                 // the params are the labels of the initial state
                 let label = py_params
@@ -642,6 +642,25 @@ pub fn unpack_py_instruction(
             } else {
                 // the params represent a list of complex amplitudes
                 gate_class.call1((py_params,))?
+            }
+        }
+        "StatePreparation" => {
+            let inverse =
+                instruction.extras_key & formats::extras_key_parts::STATE_PREPARATION_INVERSE != 0;
+            let kwargs = [("inverse", inverse)].into_py_dict(py)?;
+            if py_params[0].is_instance_of::<PyString>() {
+                let state_label = py_params
+                    .iter()
+                    .map(|param| param.extract())
+                    .collect::<PyResult<Vec<String>>>()?
+                    .join("");
+                gate_class.call((state_label,), Some(&kwargs))?
+            } else if py_params.len() == 1 {
+                let real_param: f64 = py_params[0].getattr("real")?.extract()?;
+                let qubits_to_initialize = real_param as u32;
+                gate_class.call((qubits_to_initialize, instruction.num_qargs), Some(&kwargs))?
+            } else {
+                gate_class.call((py_params,), Some(&kwargs))?
             }
         }
         "QFTGate" => {

@@ -18,7 +18,7 @@ import uuid
 from ddt import ddt, idata, unpack
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Duration
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, StatePreparation
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
@@ -185,6 +185,21 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_inverse_state_preparation(self, version, write_with, read_with):
+        """Test inverse StatePreparation passes roundtrip."""
+        state_preparation = StatePreparation([0.5, 0.5j, -0.5, -0.5j]).inverse()
+
+        circuit = QuantumCircuit(2)
+        circuit.append(state_preparation, range(2))
+
+        self.assert_roundtrip_equal(
+            circuit,
+            version=version,
+            read_with=read_with,
+            write_with=write_with,
+        )
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_parameter_expression(self, version, write_with, read_with):
