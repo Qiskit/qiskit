@@ -22,5 +22,5 @@ upgrade_misc:
     extra overhead and complexities associated with it and you'll need to enable
     multiprocessing with spawn using the other two options), set the environment
     variable ``QISKIT_PARALLEL=TRUE``, or set ``parallel`` to ``True`` in
-    your `user configuration file <https://quantum.cloud.ibm.com/docs/en/guides/configure-qiskit-local#user-configuration-file>`__.
+    your `user configuration file <https://quantum.cloud.ibm.com/docs/guides/configure-qiskit-local#user-configuration-file>`__.
 

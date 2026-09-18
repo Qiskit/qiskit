@@ -85,7 +85,7 @@ def _physical_cpus_assuming_twofold_smt():
 
 
 def _parallel_default():
-    # We default to False on `spawn`-based multiprocessing implementations, True on everything else.
+    # We default to False on all platforms, unless parallelism is explicitly requested of fork-based implementations.
     if (set_start_method := multiprocessing.get_start_method(allow_none=True)) is None:
         # The method hasn't been explicitly set, disable multiprocessing
         return False
@@ -280,7 +280,7 @@ def parallel_map(task, values, task_args=(), task_kwargs=None, num_processes=Non
     setting the environment variable ``QISKIT_PARALLEL=TRUE``, or setting
     ``parallel`` in your user configuration file. You can find more details
     on these configuration options here:
-    https://quantum.cloud.ibm.com/docs/en/guides/configure-qiskit-local
+    https://quantum.cloud.ibm.com/docs/guides/configure-qiskit-local
 
     Args:
         task (func): Function that is to be called for each value in ``values``.
