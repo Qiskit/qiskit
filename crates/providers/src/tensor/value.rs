@@ -16,7 +16,7 @@ use ndarray::{ArcArrayD, ArrayD};
 use num_complex::{Complex32, Complex64};
 
 use super::broadcast::{broadcast_elementwise, broadcast_shape};
-use super::{DType, DTypeLike, Dim, TensorError, TensorType};
+use super::{DType, Dim, TensorError, TensorType};
 
 /// A tensor of one of the supported dtypes.
 ///
@@ -128,10 +128,29 @@ impl Tensor {
     /// Return the [`TensorType`] that describes this tensor's dtype and concrete shape.
     pub fn tensor_type(&self) -> TensorType {
         TensorType {
-            dtype: DTypeLike::Concrete(self.dtype()),
+            dtype: self.dtype(),
             shape: self.shape().iter().map(|&n| Dim::Fixed(n)).collect(),
-            broadcastable: false,
         }
+    }
+
+    /// Whether this tensor satisfies `ty`.
+    ///
+    /// A type is a constraint on a value rather than an equality against [`Self::tensor_type`],
+    /// which only ever reports fixed axes: a [`Dim::Fixed`] axis admits exactly its size, while a
+    /// [`Dim::Bounded`] axis admits any size up to and including its bound. A tensor's shape is
+    /// how much of it means something, so a consumer that sizes its storage from the bound instead
+    /// is free to hold more.
+    pub fn matches(&self, ty: &TensorType) -> bool {
+        self.dtype() == ty.dtype
+            && self.shape().len() == ty.shape.len()
+            && self
+                .shape()
+                .iter()
+                .zip(&ty.shape)
+                .all(|(&size, dim)| match *dim {
+                    Dim::Fixed(n) => size == n,
+                    Dim::Bounded { max } => size <= max,
+                })
     }
 
     /// Element-wise power with NumPy-style broadcasting.
@@ -411,6 +430,42 @@ impl std::ops::Rem for Tensor {
         &self % &rhs
     }
 }
+
+/// Define an element-wise bitwise method on [`Tensor`] over `Bit` operands.
+///
+/// Bitwise operations are defined for `Bit` alone, so these are separate from
+/// [`impl_tensor_binop`], whose arms cover the numeric dtypes and not `Bit`. As there, the operand
+/// shapes are pre-validated with [`broadcast_shape`] so that the underlying ndarray operator, which
+/// broadcasts but panics on a shape mismatch, cannot panic.
+macro_rules! impl_tensor_bitop {
+    ($method:ident, $op:tt, $op_name:literal) => {
+        impl Tensor {
+            #[doc = concat!(
+                "Element-wise `",
+                $op_name,
+                "` of two `Bit` tensors, with NumPy-style broadcasting.\n\n",
+                "Returns [`TensorError::DTypeMismatch`] unless both operands are `Bit`, and ",
+                "[`TensorError::ShapeMismatch`] if the shapes are not broadcast-compatible."
+            )]
+            pub fn $method(&self, rhs: &Tensor) -> Result<Tensor, TensorError> {
+                broadcast_shape(self.shape(), rhs.shape())?;
+                match (self, rhs) {
+                    (Tensor::Bit(a), Tensor::Bit(b)) => Ok(Tensor::Bit((a $op b).into_shared())),
+                    _ => Err(TensorError::DTypeMismatch {
+                        op: $op_name,
+                        lhs: self.dtype(),
+                        rhs: rhs.dtype(),
+                    }),
+                }
+            }
+        }
+    };
+}
+
+impl_tensor_bitop!(bitand_tensor, &, "bitand");
+impl_tensor_bitop!(bitor_tensor, |, "bitor");
+impl_tensor_bitop!(bitxor_tensor, ^, "bitxor");
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -492,22 +547,63 @@ mod test {
     #[test]
     fn test_tensor_type() {
         let t = Tensor::from([1.0f64, 2.0, 3.0]);
-        let tt = t.tensor_type();
-        assert!(
-            matches!(tt.dtype, DTypeLike::Concrete(DType::F64)),
-            "expected Concrete(F64)"
+        assert_eq!(
+            t.tensor_type(),
+            TensorType {
+                dtype: DType::F64,
+                shape: vec![Dim::Fixed(3)],
+            }
         );
-        assert_eq!(tt.shape, vec![Dim::Fixed(3)]);
-        assert!(!tt.broadcastable);
 
         let arr = ndarray::Array::from_shape_vec(IxDyn(&[2, 4]), vec![0i16; 8]).unwrap();
         let t = Tensor::from(arr);
-        let tt = t.tensor_type();
-        assert!(
-            matches!(tt.dtype, DTypeLike::Concrete(DType::I16)),
-            "expected Concrete(I16)"
+        assert_eq!(
+            t.tensor_type(),
+            TensorType {
+                dtype: DType::I16,
+                shape: vec![Dim::Fixed(2), Dim::Fixed(4)],
+            }
         );
-        assert_eq!(tt.shape, vec![Dim::Fixed(2), Dim::Fixed(4)]);
+    }
+
+    #[test]
+    fn test_matches_its_own_type() {
+        let t = Tensor::from([1.0f64, 2.0, 3.0]);
+        assert!(t.matches(&t.tensor_type()));
+    }
+
+    #[test]
+    fn test_matches_rejects_a_different_dtype_rank_or_size() {
+        let t = Tensor::from([1.0f64, 2.0, 3.0]);
+        for shape in [
+            vec![Dim::Fixed(2)],
+            vec![Dim::Fixed(3), Dim::Fixed(1)],
+            vec![],
+        ] {
+            assert!(
+                !t.matches(&TensorType {
+                    dtype: DType::F64,
+                    shape: shape.clone(),
+                }),
+                "for shape {shape:?}"
+            );
+        }
+        assert!(!t.matches(&TensorType {
+            dtype: DType::F32,
+            shape: vec![Dim::Fixed(3)],
+        }));
+    }
+
+    #[test]
+    fn test_matches_a_bounded_axis_up_to_its_bound() {
+        let bounded = |max| TensorType {
+            dtype: DType::F64,
+            shape: vec![Dim::Bounded { max }],
+        };
+        let t = Tensor::from([1.0f64, 2.0, 3.0]);
+        assert!(t.matches(&bounded(4)));
+        assert!(t.matches(&bounded(3)));
+        assert!(!t.matches(&bounded(2)));
     }
 
     // -----------------------------------------------------------------------
