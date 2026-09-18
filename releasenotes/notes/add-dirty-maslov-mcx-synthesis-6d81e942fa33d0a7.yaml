@@ -4,8 +4,7 @@ features_synthesis:
     Added :func:`.synth_mcx_n_dirty_m15`, which implements Maslov's
     Clifford+T-friendly dirty-ancilla MCX construction. It uses one ancilla for
     three or four controls and :math:`\lceil(k - 2) / 2\rceil` ancillas for larger
-    gates. This provides an option with exact T gates when dirty ancillas are
-    available, avoiding approximation of arbitrary phase rotations.
+    gates.
 
     The clean-ancilla :func:`.synth_mcx_n_clean_m15` implementation now also uses
     :math:`\lceil(k - 2) / 2\rceil` ancillas instead of :math:`k - 2`, without
