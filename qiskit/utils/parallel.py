@@ -168,11 +168,10 @@ def should_run_in_parallel(num_processes: int | None = None) -> bool:
     """Decide whether a multiprocessing function should spawn subprocesses for parallelization.
 
     In particular, this is how :func:`parallel_map` decides whether to use multiprocessing or not.
-    The ``num_processes`` argument alone does not enforce parallelism; by default, Qiskit will only
-    use process-based parallelism when a ``fork``-like process spawning start method is in effect.
-    You can override this decision either by setting the :mod:`multiprocessing` start method you
-    use, setting the ``QISKIT_PARALLEL`` environment variable to ``"TRUE"``, or setting
-    ``parallel = true`` in your user settings file.
+    The ``num_processes`` argument alone does not enforce parallelism; by default, Qiskit disables
+    process-based parallelism by default. It can enabled by explicitly setting a ``fork``-like
+    :mod:`multiprocessing` start method, setting the ``QISKIT_PARALLEL`` environment variable to
+    ``"TRUE"``, or setting ``parallel = true`` in your user settings file.
 
     This function includes two context managers that can be used to temporarily modify the return
     value of this function:
