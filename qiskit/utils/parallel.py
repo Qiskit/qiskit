@@ -86,10 +86,7 @@ def _physical_cpus_assuming_twofold_smt():
 
 def _parallel_default():
     # We default to False on all platforms, unless parallelism is explicitly requested of fork-based implementations.
-    if (set_start_method := multiprocessing.get_start_method(allow_none=True)) is None:
-        # The method hasn't been explicitly set, disable multiprocessing
-        return False
-    return set_start_method in ("fork", "forkserver")
+    return multiprocessing.get_start_method(allow_none=True) in ("fork", "forkserver")
 
 
 @functools.cache
