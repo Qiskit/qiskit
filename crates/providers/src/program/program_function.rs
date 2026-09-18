@@ -837,6 +837,9 @@ impl ProgramFunction {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
     use super::*;
     use crate::ops::{Add, Constant, Mean};
     use crate::tensor::{DType, Dim};
@@ -1629,6 +1632,67 @@ mod test {
             "the offending instruction is named"
         );
         assert_eq!(full_name, "vendor.elsewhere");
+    }
+
+    /// An instruction that counts how often it has been evaluated, which is how a test observes
+    /// whether a walk ran at all.
+    #[derive(Clone)]
+    struct Tally(Arc<AtomicUsize>);
+
+    impl ProgramOp for Tally {
+        type Error = std::convert::Infallible;
+
+        fn name(&self) -> &str {
+            "tally"
+        }
+
+        fn namespace(&self) -> &str {
+            "vendor"
+        }
+
+        fn arity(&self) -> usize {
+            1
+        }
+
+        fn has_builtin_eval(&self) -> bool {
+            true
+        }
+
+        fn infer_output_types(
+            &self,
+            inputs: &[TensorType],
+        ) -> Result<Vec<TensorType>, Self::Error> {
+            Ok(vec![inputs[0].clone()])
+        }
+
+        fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Ok(args.to_vec())
+        }
+    }
+
+    #[test]
+    fn a_function_that_needs_a_backend_evaluates_nothing_at_all() {
+        // Locality is settled before the walk starts, so a function that has to be handed on has not
+        // produced any intermediates by the time it says so.
+        let evaluations = Arc::new(AtomicUsize::new(0));
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(f64_1d(1));
+        let counted = function
+            .add_op(Tally(Arc::clone(&evaluations)), &[x])
+            .unwrap()[0];
+        let out = function.add_op(Elsewhere, &[counted]).unwrap()[0];
+        function.add_result(out).unwrap();
+
+        assert!(matches!(
+            function.eval(&[Tensor::from([1.0_f64])]),
+            Err(FunctionEvalError::NoBuiltinEval { .. })
+        ));
+        assert_eq!(
+            evaluations.load(Ordering::Relaxed),
+            0,
+            "the instruction ahead of the one needing a backend never ran"
+        );
     }
 
     #[test]
