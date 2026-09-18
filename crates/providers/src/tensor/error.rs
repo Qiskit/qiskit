@@ -18,7 +18,7 @@ use super::tensor_type::fmt_shape;
 use super::{DType, Dim};
 
 /// Errors returned by tensor operations.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub enum TensorError {
     /// The two operand tensors have different dtypes.
     #[error("dtype mismatch in Tensor::{op}: lhs={lhs}, rhs={rhs}")]

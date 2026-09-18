@@ -81,7 +81,11 @@ macro_rules! cast_real {
     };
 }
 
-/// Cast an array of a complex type to a complex dtype (panics for real targets).
+/// Cast an array of a complex type to a complex dtype.
+///
+/// # Panics
+///
+/// Panics for real targets.
 macro_rules! cast_complex {
     ($arr:expr, $target:expr) => {
         match $target {
@@ -429,9 +433,7 @@ mod test {
         assert_ne!(Tensor::Bit(bits.clone()), Tensor::U8(bits));
     }
 
-    // -----------------------------------------------------------------------
-    // Construction, dtype, shape
-    // -----------------------------------------------------------------------
+    // Construction, dtype, shape.
 
     #[test]
     fn test_from_slice() {
@@ -513,9 +515,7 @@ mod test {
         assert_eq!(tt.shape, vec![Dim::Fixed(2), Dim::Fixed(4)]);
     }
 
-    // -----------------------------------------------------------------------
-    // cast
-    // -----------------------------------------------------------------------
+    // The cast method.
 
     #[test]
     fn test_cast_identity() {
@@ -585,9 +585,7 @@ mod test {
         let _ = t.cast(DType::F64);
     }
 
-    // -----------------------------------------------------------------------
-    // pow
-    // -----------------------------------------------------------------------
+    // The pow method.
 
     #[test]
     fn test_pow_float() {
@@ -633,9 +631,7 @@ mod test {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Arithmetic operators
-    // -----------------------------------------------------------------------
+    // Arithmetic operators.
 
     #[test]
     fn test_add() {
@@ -791,9 +787,7 @@ mod test {
         ));
     }
 
-    // -----------------------------------------------------------------------
-    // Broadcasting
-    // -----------------------------------------------------------------------
+    // Broadcasting.
 
     #[test]
     fn test_arithmetic_broadcast() {
@@ -850,9 +844,7 @@ mod test {
         let _ = &a + &b;
     }
 
-    // -----------------------------------------------------------------------
-    // Per-dtype binop, pow, and cast dispatch coverage
-    // -----------------------------------------------------------------------
+    // Per-dtype binop, pow, and cast dispatch coverage.
 
     #[test]
     fn test_binops_dtype_dispatch() {
@@ -973,10 +965,12 @@ mod test {
 
     #[test]
     fn test_negative_exponent_returns_err() {
-        let err = Tensor::from([2_i64])
-            .pow(&Tensor::from([-1_i64]))
-            .unwrap_err();
-        assert_eq!(err, TensorError::NegativeExponent { dtype: DType::I64 });
+        assert!(matches!(
+            Tensor::from([2_i64])
+                .pow(&Tensor::from([-1_i64]))
+                .unwrap_err(),
+            TensorError::NegativeExponent { dtype: DType::I64 }
+        ));
     }
 
     #[test]

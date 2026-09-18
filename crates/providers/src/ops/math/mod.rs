@@ -23,7 +23,7 @@ use crate::tensor::TensorError;
 use thiserror::Error;
 
 /// Errors returned by [`crate::ops::ProgramOp`] implementations in this module.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub enum MathOpError {
     /// The input tree did not match the contract declared by `input_types`.
     #[error(transparent)]

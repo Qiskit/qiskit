@@ -265,26 +265,26 @@ mod tests {
         let err = BitwiseAnd
             .call_flat(&[Tensor::from([1.0_f64]), bit(&[1])])
             .unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
             MathOpError::Input(CallInputError::UnexpectedDType {
-                key: "x".to_string(),
-                expected: "Bit".to_string(),
+                key,
+                expected,
                 actual: DType::F64,
-            })
-        );
+            }) if key == "x" && expected == "Bit"
+        ));
     }
 
     #[test]
     fn test_bitwise_and_wrong_arity_errors() {
         let err = BitwiseAnd.call_flat(&[bit(&[1, 0])]).unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
             MathOpError::Input(CallInputError::WrongArity {
                 expected: 2,
                 actual: 1,
             })
-        );
+        ));
     }
 
     #[test]
@@ -292,13 +292,13 @@ mod tests {
         let err = BitwiseNot
             .call_flat(&[bit(&[1, 0]), bit(&[0, 1])])
             .unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
             MathOpError::Input(CallInputError::WrongArity {
                 expected: 1,
                 actual: 2,
             })
-        );
+        ));
     }
 
     #[test]
@@ -306,13 +306,11 @@ mod tests {
         let err = BitwiseAnd
             .call_flat(&[bit(&[1, 0, 1]), bit(&[1, 0, 1, 1])])
             .unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
-            MathOpError::Tensor(crate::tensor::TensorError::ShapeMismatch {
-                lhs: vec![3],
-                rhs: vec![4],
-            })
-        );
+            MathOpError::Tensor(crate::tensor::TensorError::ShapeMismatch { lhs, rhs })
+                if lhs == [3] && rhs == [4]
+        ));
     }
 
     #[test]
@@ -343,6 +341,6 @@ mod tests {
     #[test]
     fn test_parity_axis_out_of_bounds_errors() {
         let err = Parity::new(1).call_flat(&[bit(&[1, 0, 1])]).unwrap_err();
-        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
+        assert!(matches!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 }));
     }
 }

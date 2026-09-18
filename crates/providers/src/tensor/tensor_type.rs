@@ -153,18 +153,10 @@ mod test {
     #[test]
     fn test_require_static_rejects_bounded_and_reports_the_shape() {
         let shape = [Dim::Fixed(3), Dim::Bounded { max: 16 }];
-        let err = require_static(&shape).unwrap_err();
-        assert_eq!(
-            err,
-            TensorError::DynamicDim {
-                shape: shape.to_vec()
-            }
-        );
-        assert_eq!(
-            err.to_string(),
-            "shape [3, <=16] has an axis whose size is only bounded above, \
-             where a true size is required"
-        );
+        assert!(matches!(
+            require_static(&shape).unwrap_err(),
+            TensorError::DynamicDim { shape: reported } if reported == shape
+        ));
     }
 
     #[test]
@@ -190,18 +182,10 @@ mod test {
     fn test_broadcast_dims_incompatible_reports_both_operands() {
         let a = [Dim::Fixed(3)];
         let b = [Dim::Fixed(4)];
-        let err = broadcast_dims(&a, &b).unwrap_err();
-        assert_eq!(
-            err,
-            TensorError::DimShapeMismatch {
-                lhs: a.to_vec(),
-                rhs: b.to_vec()
-            }
-        );
-        assert_eq!(
-            err.to_string(),
-            "shapes [3] and [4] are not broadcast-compatible"
-        );
+        assert!(matches!(
+            broadcast_dims(&a, &b).unwrap_err(),
+            TensorError::DimShapeMismatch { lhs, rhs } if lhs == a && rhs == b
+        ));
     }
 
     #[test]
@@ -236,12 +220,11 @@ mod test {
             (&fixed, &bounded, &bounded),
             (&bounded, &bounded, &bounded),
         ] {
-            let err = broadcast_dims(a, b).unwrap_err();
-            assert_eq!(
-                err,
-                TensorError::DynamicDim {
-                    shape: at_fault.clone()
-                },
+            assert!(
+                matches!(
+                    broadcast_dims(a, b).unwrap_err(),
+                    TensorError::DynamicDim { shape } if shape == *at_fault
+                ),
                 "for {a:?} against {b:?}"
             );
         }

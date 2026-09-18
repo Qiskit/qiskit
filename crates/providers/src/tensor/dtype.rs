@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! The element type of a tensor, and the rule that promotes a pair of them.
+//! The element type of a tensor, and various associated rules.
 
 use std::fmt;
 
