@@ -42,6 +42,18 @@ pub enum Tensor {
     Bit(ArcArrayD<u8>), // bool
 }
 
+/// The error raised when an `op` has no implementation for some type(s).
+///
+/// Operands of different dtypes are a [`TensorError::DTypeMismatch`], and a pair that shares a
+/// dtype the op does not implement is a [`TensorError::UnsupportedDType`].
+fn dtype_error(op: &'static str, lhs: DType, rhs: DType) -> TensorError {
+    if lhs == rhs {
+        TensorError::UnsupportedDType { op, dtype: lhs }
+    } else {
+        TensorError::DTypeMismatch { op, lhs, rhs }
+    }
+}
+
 /// Cast an array of a real numeric type to any supported dtype.
 macro_rules! cast_real {
     ($arr:expr, $src:ty, $target:expr) => {
@@ -138,8 +150,9 @@ impl Tensor {
     ///
     /// An integer result wraps on overflow. Returns [`TensorError::NegativeExponent`] if an
     /// exponent of a signed integer dtype is negative, [`TensorError::DTypeMismatch`] if the
-    /// operands have different dtypes (or a dtype that does not support `pow`), and
-    /// [`TensorError::ShapeMismatch`] if the shapes are not broadcast-compatible.
+    /// operands have different dtypes, [`TensorError::UnsupportedDType`] if they share a dtype
+    /// that does not support `pow`, and [`TensorError::ShapeMismatch`] if the shapes are not
+    /// broadcast-compatible.
     pub fn pow(&self, rhs: &Tensor) -> Result<Tensor, TensorError> {
         /// Raise a signed integer tensor to a non-negative exponent.
         macro_rules! signed_pow {
@@ -180,11 +193,7 @@ impl Tensor {
             (Tensor::U64(a), Tensor::U64(b)) => {
                 broadcast_elementwise(a, b, |&x, &y| x.wrapping_pow(y as u32)).map(Tensor::U64)
             }
-            _ => Err(TensorError::DTypeMismatch {
-                op: "pow",
-                lhs: self.dtype(),
-                rhs: rhs.dtype(),
-            }),
+            _ => Err(dtype_error("pow", self.dtype(), rhs.dtype())),
         }
     }
 
@@ -291,9 +300,10 @@ macro_rules! impl_tensor_binop {
                 "Element-wise `",
                 $op_name,
                 "` with NumPy-style broadcasting.\n\n",
-                "Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ ",
-                "(or do not support this op), and [`TensorError::ShapeMismatch`] if ",
-                "the shapes are not broadcast-compatible."
+                "Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ, ",
+                "[`TensorError::UnsupportedDType`] if they share a dtype this op does not ",
+                "support, and [`TensorError::ShapeMismatch`] if the shapes are not ",
+                "broadcast-compatible."
             )]
             pub fn $tensor_method(&self, rhs: &Tensor) -> Result<Tensor, TensorError> {
                 broadcast_shape(self.shape(), rhs.shape())?;
@@ -326,11 +336,7 @@ macro_rules! impl_tensor_binop {
                     (Tensor::U8(a), Tensor::U8(b)) => {
                         broadcast_elementwise(a, b, |&x, &y| x.$integer(y)).map(Tensor::U8)
                     }
-                    _ => Err(TensorError::DTypeMismatch {
-                        op: $op_name,
-                        lhs: self.dtype(),
-                        rhs: rhs.dtype(),
-                    }),
+                    _ => Err(dtype_error($op_name, self.dtype(), rhs.dtype())),
                 }
             }
         }
@@ -357,9 +363,10 @@ impl_tensor_binop!(Div, div, div_tensor, /, div_or_zero, "div");
 impl Tensor {
     /// Element-wise `%` with NumPy-style broadcasting (real dtypes only).
     ///
-    /// Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ or are
-    /// not supported by this op (e.g. complex), and [`TensorError::ShapeMismatch`]
-    /// if the shapes are not broadcast-compatible.
+    /// Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ,
+    /// [`TensorError::UnsupportedDType`] if they share a dtype this op does not support (a complex
+    /// one, for instance), and [`TensorError::ShapeMismatch`] if the shapes are not
+    /// broadcast-compatible.
     pub fn rem_tensor(&self, rhs: &Tensor) -> Result<Tensor, TensorError> {
         broadcast_shape(self.shape(), rhs.shape())?;
         match (self, rhs) {
@@ -389,11 +396,7 @@ impl Tensor {
             (Tensor::U8(a), Tensor::U8(b)) => {
                 broadcast_elementwise(a, b, |&x, &y| x.rem_or_zero(y)).map(Tensor::U8)
             }
-            _ => Err(TensorError::DTypeMismatch {
-                op: "rem",
-                lhs: self.dtype(),
-                rhs: rhs.dtype(),
-            }),
+            _ => Err(dtype_error("rem", self.dtype(), rhs.dtype())),
         }
     }
 }
@@ -930,10 +933,9 @@ mod test {
         let err = a.rem_tensor(&b).unwrap_err();
         assert!(matches!(
             err,
-            TensorError::DTypeMismatch {
+            TensorError::UnsupportedDType {
                 op: "rem",
-                lhs: DType::C128,
-                rhs: DType::C128
+                dtype: DType::C128
             }
         ));
     }

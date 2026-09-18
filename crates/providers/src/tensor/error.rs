@@ -17,20 +17,23 @@ use thiserror::Error;
 use super::tensor_type::fmt_shape;
 use super::{DType, Dim};
 
-/// Errors returned by [`Tensor`](super::Tensor) operations and by the type-level rules.
+/// Errors returned by tensor operations.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum TensorError {
-    /// The two operand tensors have different dtypes or a dtype that does not support the op.
+    /// The two operand tensors have different dtypes.
     #[error("dtype mismatch in Tensor::{op}: lhs={lhs}, rhs={rhs}")]
     DTypeMismatch {
         op: &'static str,
         lhs: DType,
         rhs: DType,
     },
+    /// The operand does not support the dtype.
+    #[error("Tensor::{op} does not support dtype {dtype}")]
+    UnsupportedDType { op: &'static str, dtype: DType },
     /// The two operand shapes are not broadcast-compatible.
     #[error("shapes {lhs:?} and {rhs:?} are not broadcast-compatible")]
     ShapeMismatch { lhs: Vec<usize>, rhs: Vec<usize> },
-    /// The two operand [`Dim`] shapes are not broadcast-compatible.ß
+    /// The two operand [`Dim`] shapes are not broadcast-compatible.
     #[error(
         "shapes {} and {} are not broadcast-compatible",
         fmt_shape(lhs),
