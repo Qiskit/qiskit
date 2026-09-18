@@ -1097,21 +1097,40 @@ unsafe impl ::bytemuck::CheckedBitPattern for DelayUnit {
 }
 unsafe impl ::bytemuck::NoUninit for DelayUnit {}
 
+impl DelayUnit {
+    pub fn as_str(&self) -> &str {
+        match self {
+            DelayUnit::NS => "ns",
+            DelayUnit::PS => "ps",
+            DelayUnit::US => "us",
+            DelayUnit::MS => "ms",
+            DelayUnit::S => "s",
+            DelayUnit::DT => "dt",
+            DelayUnit::EXPR => "expr",
+        }
+    }
+}
+
 impl fmt::Display for DelayUnit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                DelayUnit::NS => "ns",
-                DelayUnit::PS => "ps",
-                DelayUnit::US => "us",
-                DelayUnit::MS => "ms",
-                DelayUnit::S => "s",
-                DelayUnit::DT => "dt",
-                DelayUnit::EXPR => "expr",
-            }
-        )
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl FromStr for DelayUnit {
+    type Err = ();
+
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        match name {
+            "ns" => Ok(DelayUnit::NS),
+            "ps" => Ok(DelayUnit::PS),
+            "us" => Ok(DelayUnit::US),
+            "ms" => Ok(DelayUnit::MS),
+            "s" => Ok(DelayUnit::S),
+            "dt" => Ok(DelayUnit::DT),
+            "expr" => Ok(DelayUnit::EXPR),
+            _ => Err(()),
+        }
     }
 }
 
@@ -1119,21 +1138,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
     type Error = PyErr;
 
     fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let str: String = b.extract()?;
-        Ok(match str.as_str() {
-            "ns" => DelayUnit::NS,
-            "ps" => DelayUnit::PS,
-            "us" => DelayUnit::US,
-            "ms" => DelayUnit::MS,
-            "s" => DelayUnit::S,
-            "dt" => DelayUnit::DT,
-            "expr" => DelayUnit::EXPR,
-            unknown_unit => {
-                return Err(PyValueError::new_err(format!(
-                    "Unit '{unknown_unit}' is invalid."
-                )));
-            }
-        })
+        let name: &str = b.extract()?;
+        name.parse()
+            .map_err(|_| PyValueError::new_err(format!("Unit '{name}' is invalid.")))
     }
 }
 
