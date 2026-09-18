@@ -1,0 +1,12 @@
+---
+features_c:
+  - :c:struct:`QkObs` now has several associated functions related to dealing with the internal
+    read/write locking of the base Rust object.  These are:
+
+    * :c:func:`qk_obs_lock_read_from_python`
+    * :c:func:`qk_obs_try_lock_read_from_python`
+    * :c:func:`qk_obs_lock_write_from_python`
+    * :c:func:`qk_obs_try_lock_write_from_python`
+
+    These ``lock`` variants all produce a new ``QkObsGuard`` lock, which must be released by calling
+    :c:func:`qk_obs_release_lock`.
