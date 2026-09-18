@@ -1099,17 +1099,22 @@ pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let param = unsafe { const_ptr_as_ref(param) };
 
+    // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an `int32_t`.
+    param_try_int(param)
+        .inspect(|param| unsafe { value.write(*param) })
+        .is_some()
+}
+
+/// Quickly returns the integer value of a `Param` if stores one or evaluates to one.
+fn param_try_int(param: &Param) -> Option<i64> {
     match param {
         Param::ParameterExpression(expr) => match expr.try_to_value(true) {
-            // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an `int32_t`.
-            Ok(Value::Int(v)) => unsafe { value.write(v) },
-            _ => return false,
+            Ok(Value::Int(v)) => Some(v),
+            _ => None,
         },
-        // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an `int32_t`.
-        Param::Int(int) => unsafe { value.write(*int) },
-        _ => return false,
+        Param::Int(int) => Some(*int),
+        _ => None,
     }
-    true
 }
 
 #[repr(u8)]
@@ -1141,17 +1146,7 @@ pub unsafe extern "C" fn qk_param_kind(param: *const Param) -> ParamKind {
     let param = unsafe { const_ptr_as_ref(param) };
 
     match param {
-        Param::ParameterExpression(expression) => match expression.try_to_value(true) {
-            Ok(Value::Int(_)) => ParamKind::Int,
-            Ok(val) => {
-                if val.is_real() {
-                    ParamKind::Real
-                } else {
-                    ParamKind::ParameterExpression
-                }
-            }
-            Err(_) => ParamKind::ParameterExpression,
-        },
+        Param::ParameterExpression(_) => ParamKind::ParameterExpression,
         Param::Int(_) => ParamKind::Int,
         Param::Float(_) => ParamKind::Real,
         _ => ParamKind::Unknown,
