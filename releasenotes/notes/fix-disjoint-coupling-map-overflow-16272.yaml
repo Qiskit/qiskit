@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue where :class:`.SabreLayout` and :class:`.SabreSwap` could panic with an
+    overflow error when constructing the coupling map from a :class:`.Target` that contains
+    fewer instruction qargs than qubits, such as a target that only defines two-qubit gates
+    on a subset of qubit pairs and no one-qubit gates.
+    Fixed `#16272 <https://github.com/Qiskit/qiskit/issues/16272>`__.
