@@ -3521,6 +3521,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         (["XX", "XZ"], 1, [(0, 1), (1, 0)], "basic"),
         (["XX", "XZ"], 2, [(0, 1), (1, 0)], "mcts"),
         (["XX", "XZ"], 3, [(0, 1), (1, 0)], "mcts"),
+        (["XX", "XZ"], 3, None, "mcts"),
         (["XX", "XZ"], 2, [(0, 1)], "mcts"),
         (["XX", "XZ"], 2, [(1, 0)], "mcts"),
         (["XX", "XZ"], 2, [], "basic"),
@@ -3536,10 +3537,13 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
 
         basis_gates = ["cx", "rz", "sx"]
 
-        coupling_map = CouplingMap()
-        for qubit in range(qc.num_qubits):
-            coupling_map.add_physical_qubit(qubit)
-        coupling_map.graph.extend_from_edge_list(edge_list)
+        if edge_list is not None:
+            coupling_map = CouplingMap()
+            for qubit in range(qc.num_qubits):
+                coupling_map.add_physical_qubit(qubit)
+            coupling_map.graph.extend_from_edge_list(edge_list)
+        else:
+            coupling_map = None
 
         # Transpile the circuit with each of the following plugins: basic, mcts, default
         hls_basic = HLSConfig(PauliEvolution=[("basic", {})])
