@@ -355,6 +355,10 @@ Pauli Evolution Synthesis
       - Plugin class
       - Description
       - Targeted connectivity
+    * - ``"basic"``
+      - :class:`~.PauliEvolutionSynthesisBasic`
+      - use a diagonalizing Clifford per Pauli term
+      - all-to-all
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
       - use the synthesis method from `Rustiq circuit synthesis library
@@ -366,13 +370,14 @@ Pauli Evolution Synthesis
       - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
-      - use a diagonalizing Clifford per Pauli term
+      - Uses the best synthesis method available.
       - all-to-all
 
 .. autosummary::
    :toctree: ../stubs/
 
    PauliEvolutionSynthesisDefault
+   PauliEvolutionSynthesisBasic
    PauliEvolutionSynthesisRustiq
    PauliEvolutionSynthesisMcts
 
@@ -624,6 +629,18 @@ from .plugin import HighLevelSynthesisPlugin
 
 if TYPE_CHECKING:
     from qiskit.circuit.quantumcircuitdata import CircuitInstruction
+
+
+def _is_coupling_map_all_to_all(coupling_map: CouplingMap) -> bool:
+    """Return whether the coupling map is all-to-all.
+
+    A coupling map is all-to-all if for every pair of distinct qubits
+    ``i`` and ``j`` either ``(i, j)`` or ``(j, i)`` or both are present
+    in the edge list.
+    """
+    n = coupling_map.size()
+    edges = {(min(a, b), max(a, b)) for a, b in coupling_map}
+    return len(edges) == n * (n - 1) // 2
 
 
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
@@ -2119,10 +2136,61 @@ class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
         )
 
 
+def _cx_size_for_pauli_evo(circuit: QuantumCircuit):
+    """Return the number of CX-gates in a circuit produces by one of PauliEvolution synthesis
+    algorithm. In addition to CX-gates, the basic algorithm can produce two-qubit rxx, ryy, rzz
+    and rzx rotations, while rustiq and mcts can produce swaps.
+    """
+    ops = circuit.count_ops()
+    return (
+        ops.get("cx", 0)
+        + 2 * (ops.get("rxx", 0) + ops.get("ryy", 0) + ops.get("rzz", 0) + ops.get("rzx", 0))
+        + 3 * ops.get("swap", 0)
+    )
+
+
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
     This plugin name is:``PauliEvolution.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    This plugin runs other implemented synthesis plugins, forwarding all options to
+    the selected plugins. The choice of which synthesis plugins to run is manually
+    determined based on experiments.
+
+    For greater control, specify :class:`~.HLSConfig` with the relevant synthesis plugins
+    directly.
+
+    The following plugin option directly influences this plugin:
+
+    * optimization_level: The optimization level used to select the synthesis
+      algorithm. Higher levels generate potentially more optimized circuits,
+      at the expense of longer transpilation time.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        synth_object = PauliEvolutionSynthesisBasic().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
+
+        if (options.get("optimization_level", 2) >= 2) and (
+            (coupling_map is None) or _is_coupling_map_all_to_all(coupling_map)
+        ):
+            synth_mcts = PauliEvolutionSynthesisMcts().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+            if _cx_size_for_pauli_evo(synth_mcts) < _cx_size_for_pauli_evo(synth_object):
+                synth_object = synth_mcts
+
+        return synth_object
+
+
+class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
+    """Synthesize a :class:`.PauliEvolutionGate` using the basic synthesis algorithm.
+
+    This plugin name is:``PauliEvolution.basic`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     The following plugin option can be set:
@@ -2407,6 +2475,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             min_qubits=0,
             unroll_definitions=data.unroll_definitions,
             optimize_clifford_t=data.optimize_clifford_t,
+            optimization_level=data.optimization_level,
         )
 
         num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))
