@@ -926,30 +926,36 @@ mod tests {
             dtype: DType::F64,
             shape: vec![Dim::Fixed(3)],
         };
-        assert_eq!(
+        assert!(matches!(
             Mean::new(1).infer_output_types(&[ty]).unwrap_err(),
             MathOpError::InvalidAxis { axis: 1, ndim: 1 }
-        );
+        ));
     }
 
     #[test]
     fn test_mean_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
-        let err = Mean::new(1).eval(&[x]).unwrap_err();
-        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
+        assert!(matches!(
+            Mean::new(1).eval(&[x]).unwrap_err(),
+            MathOpError::InvalidAxis { axis: 1, ndim: 1 }
+        ));
     }
 
     #[test]
     fn test_variance_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
-        let err = Variance::new(1, 0.0).eval(&[x]).unwrap_err();
-        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
+        assert!(matches!(
+            Variance::new(1, 0.0).eval(&[x]).unwrap_err(),
+            MathOpError::InvalidAxis { axis: 1, ndim: 1 }
+        ));
     }
 
     #[test]
     fn test_std_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
-        let err = Std::new(1, 0.0).eval(&[x]).unwrap_err();
-        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
+        assert!(matches!(
+            Std::new(1, 0.0).eval(&[x]).unwrap_err(),
+            MathOpError::InvalidAxis { axis: 1, ndim: 1 }
+        ));
     }
 }

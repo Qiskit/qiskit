@@ -20,7 +20,7 @@ use thiserror::Error;
 ///
 /// Operands are positional, so an offending one is named by index. The op itself is named by
 /// whatever wraps the error: a [`ProgramFunction`](crate::ProgramFunction) attaches its type name.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub enum MathOpError {
     /// An operand's dtype is not the single one this op accepts.
     #[error("operand {operand}: expected dtype {expected}, got {actual}")]

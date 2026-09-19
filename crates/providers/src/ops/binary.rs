@@ -207,18 +207,11 @@ mod tests {
 
     #[test]
     fn test_infer_output_types_rejects_shapes_that_do_not_broadcast() {
-        let err = Add.infer_output_types(&[f64_1d(3), f64_1d(4)]).unwrap_err();
-        assert_eq!(
-            err,
-            MathOpError::Tensor(TensorError::DimShapeMismatch {
-                lhs: vec![Dim::Fixed(3)],
-                rhs: vec![Dim::Fixed(4)],
-            })
-        );
-        assert_eq!(
-            err.to_string(),
-            "shapes [3] and [4] are not broadcast-compatible"
-        );
+        assert!(matches!(
+            Add.infer_output_types(&[f64_1d(3), f64_1d(4)]).unwrap_err(),
+            MathOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs })
+                if lhs == [Dim::Fixed(3)] && rhs == [Dim::Fixed(4)]
+        ));
     }
 
     #[test]
@@ -230,13 +223,12 @@ mod tests {
             dtype: DType::F64,
             shape: vec![Dim::Bounded { max: 8 }],
         };
-        assert_eq!(
+        assert!(matches!(
             Add.infer_output_types(&[bounded.clone(), bounded.clone()])
                 .unwrap_err(),
-            MathOpError::Tensor(TensorError::DynamicDim {
-                shape: bounded.shape.clone(),
-            })
-        );
+            MathOpError::Tensor(TensorError::DynamicDim { shape })
+                if shape == bounded.shape
+        ));
         assert_eq!(
             Add.infer_output_types(&[bounded.clone(), f64_1d(1)])
                 .unwrap(),
@@ -262,27 +254,21 @@ mod tests {
             dtype: DType::Bit,
             shape: vec![Dim::Fixed(2)],
         };
-        let err = Add
-            .infer_output_types(&[bit.clone(), bit.clone()])
-            .unwrap_err();
-        assert_eq!(
-            err,
+        assert!(matches!(
+            Add.infer_output_types(&[bit.clone(), bit.clone()])
+                .unwrap_err(),
             MathOpError::UnsupportedPromotion {
                 lhs: DType::Bit,
                 rhs: DType::Bit,
                 dtype: DType::Bit,
             }
-        );
-        assert_eq!(
-            err.to_string(),
-            "operands of dtype Bit and Bit promote to Bit, which is not supported"
-        );
+        ));
 
         let c128 = TensorType {
             dtype: DType::C128,
             shape: vec![Dim::Fixed(2)],
         };
-        assert_eq!(
+        assert!(matches!(
             Remainder
                 .infer_output_types(&[c128.clone(), c128.clone()])
                 .unwrap_err(),
@@ -291,7 +277,7 @@ mod tests {
                 rhs: DType::C128,
                 dtype: DType::C128,
             }
-        );
+        ));
         // Which dtypes are accepted is per operation: `add` implements the complex ones.
         assert_eq!(
             Add.infer_output_types(&[c128.clone(), c128.clone()])

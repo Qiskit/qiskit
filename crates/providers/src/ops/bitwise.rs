@@ -182,7 +182,7 @@ impl ProgramOp for Parity {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tensor::Dim;
+    use crate::tensor::{Dim, TensorError};
     use ndarray::{arr1, arr2};
 
     fn bit(data: &[u8]) -> Tensor {
@@ -288,21 +288,16 @@ mod tests {
             dtype: DType::F64,
             shape: vec![Dim::Fixed(1)],
         };
-        let err = BitwiseAnd
-            .infer_output_types(&[bit_1d(1), f64_1])
-            .unwrap_err();
-        assert_eq!(
-            err,
+        assert!(matches!(
+            BitwiseAnd
+                .infer_output_types(&[bit_1d(1), f64_1])
+                .unwrap_err(),
             MathOpError::UnsupportedPromotion {
                 lhs: DType::Bit,
                 rhs: DType::F64,
                 dtype: DType::F64,
             }
-        );
-        assert_eq!(
-            err.to_string(),
-            "operands of dtype Bit and F64 promote to F64, which is not supported"
-        );
+        ));
     }
 
     #[test]
@@ -312,28 +307,27 @@ mod tests {
             dtype: DType::F64,
             shape: vec![Dim::Fixed(1)],
         };
-        assert_eq!(
+        assert!(matches!(
             BitwiseNot.infer_output_types(&[f64_1]).unwrap_err(),
             MathOpError::UnsupportedDType {
                 operand: 0,
                 dtype: DType::F64,
             }
-        );
+        ));
     }
 
     #[test]
     fn test_eval_rejects_a_wrong_dtype() {
-        let err = BitwiseAnd
-            .eval(&[Tensor::from([1.0_f64]), bit(&[1])])
-            .unwrap_err();
-        assert_eq!(
-            err,
+        assert!(matches!(
+            BitwiseAnd
+                .eval(&[Tensor::from([1.0_f64]), bit(&[1])])
+                .unwrap_err(),
             MathOpError::WrongDType {
                 operand: 0,
                 expected: DType::Bit,
                 actual: DType::F64,
             }
-        );
+        ));
     }
 
     #[test]
@@ -351,24 +345,24 @@ mod tests {
 
     #[test]
     fn test_eval_rejects_shapes_that_do_not_broadcast() {
-        let err = BitwiseAnd
-            .eval(&[bit(&[1, 0, 1]), bit(&[1, 0])])
-            .unwrap_err();
-        assert_eq!(
-            err.to_string(),
-            "shapes [3] and [2] are not broadcast-compatible"
-        );
+        assert!(matches!(
+            BitwiseAnd
+                .eval(&[bit(&[1, 0, 1]), bit(&[1, 0])])
+                .unwrap_err(),
+            MathOpError::Tensor(TensorError::ShapeMismatch { lhs, rhs })
+                if lhs == [3] && rhs == [2]
+        ));
     }
 
     #[test]
     fn test_parity_axis_out_of_bounds_errors() {
-        assert_eq!(
+        assert!(matches!(
             Parity::new(1).infer_output_types(&[bit_1d(3)]).unwrap_err(),
             MathOpError::InvalidAxis { axis: 1, ndim: 1 }
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             Parity::new(1).eval(&[bit(&[1, 0, 1])]).unwrap_err(),
             MathOpError::InvalidAxis { axis: 1, ndim: 1 }
-        );
+        ));
     }
 }

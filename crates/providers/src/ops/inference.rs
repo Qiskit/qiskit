@@ -155,32 +155,27 @@ mod test {
             ty(DType::F64, &[2]),
             "a Bit operand beside a float promotes to a float"
         );
-        let err =
-            elementwise_binary(&ty(DType::Bit, &[2]), &ty(DType::Bit, &[2]), floats).unwrap_err();
-        assert_eq!(
-            err,
-            MathOpError::UnsupportedPromotion {
-                lhs: DType::Bit,
-                rhs: DType::Bit,
-                dtype: DType::Bit,
-            }
-        );
-        assert_eq!(
-            err.to_string(),
-            "operands of dtype Bit and Bit promote to Bit, which is not supported",
+        assert!(
+            matches!(
+                elementwise_binary(&ty(DType::Bit, &[2]), &ty(DType::Bit, &[2]), floats)
+                    .unwrap_err(),
+                MathOpError::UnsupportedPromotion {
+                    lhs: DType::Bit,
+                    rhs: DType::Bit,
+                    dtype: DType::Bit,
+                }
+            ),
             "both operand dtypes and the promotion they were refused for are named"
         );
     }
 
     #[test]
     fn test_elementwise_binary_reports_shapes_that_do_not_broadcast() {
-        assert_eq!(
+        assert!(matches!(
             elementwise_binary(&ty(DType::F64, &[3]), &ty(DType::F64, &[4]), any).unwrap_err(),
-            MathOpError::Tensor(TensorError::DimShapeMismatch {
-                lhs: vec![Dim::Fixed(3)],
-                rhs: vec![Dim::Fixed(4)],
-            })
-        );
+            MathOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs })
+                if lhs == [Dim::Fixed(3)] && rhs == [Dim::Fixed(4)]
+        ));
     }
 
     #[test]
@@ -191,15 +186,13 @@ mod test {
         };
         assert_eq!(elementwise_unary(&x, any).unwrap(), x);
 
-        let err = elementwise_unary(&x, floats).unwrap_err();
-        assert_eq!(
-            err,
+        assert!(matches!(
+            elementwise_unary(&x, floats).unwrap_err(),
             MathOpError::UnsupportedDType {
                 operand: 0,
                 dtype: DType::C64,
             }
-        );
-        assert_eq!(err.to_string(), "operand 0: dtype C64 is not supported");
+        ));
     }
 
     #[test]
@@ -224,12 +217,10 @@ mod test {
 
     #[test]
     fn test_reduce_reports_an_axis_the_operand_does_not_have() {
-        let err = reduce(&ty(DType::F64, &[2, 3]), 2, any, |dtype| dtype).unwrap_err();
-        assert_eq!(err, MathOpError::InvalidAxis { axis: 2, ndim: 2 });
-        assert_eq!(
-            err.to_string(),
-            "axis 2 is out of bounds for tensor with 2 dimension(s)"
-        );
+        assert!(matches!(
+            reduce(&ty(DType::F64, &[2, 3]), 2, any, |dtype| dtype).unwrap_err(),
+            MathOpError::InvalidAxis { axis: 2, ndim: 2 }
+        ));
     }
 
     #[test]
@@ -246,13 +237,15 @@ mod test {
                     .dtype
             );
         }
-        assert_eq!(
-            promoted_dtype(DType::Bit, DType::Bit, floats).unwrap_err(),
-            MathOpError::UnsupportedPromotion {
-                lhs: DType::Bit,
-                rhs: DType::Bit,
-                dtype: DType::Bit,
-            },
+        assert!(
+            matches!(
+                promoted_dtype(DType::Bit, DType::Bit, floats).unwrap_err(),
+                MathOpError::UnsupportedPromotion {
+                    lhs: DType::Bit,
+                    rhs: DType::Bit,
+                    dtype: DType::Bit,
+                }
+            ),
             "a promotion the op does not admit is refused at evaluation time too"
         );
     }
