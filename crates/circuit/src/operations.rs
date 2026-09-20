@@ -19,6 +19,7 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{error, fmt, vec};
+use thiserror::Error;
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
@@ -1036,8 +1037,12 @@ impl fmt::Display for DelayUnit {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Error)]
+#[error("Unit '{0}' is invalid.")]
+pub struct InvalidDelayUnit(pub String);
+
 impl FromStr for DelayUnit {
-    type Err = ();
+    type Err = InvalidDelayUnit;
 
     fn from_str(name: &str) -> Result<Self, Self::Err> {
         match name {
@@ -1048,7 +1053,7 @@ impl FromStr for DelayUnit {
             "s" => Ok(DelayUnit::S),
             "dt" => Ok(DelayUnit::DT),
             "expr" => Ok(DelayUnit::EXPR),
-            _ => Err(()),
+            _ => Err(InvalidDelayUnit(name.to_owned())),
         }
     }
 }
@@ -1059,7 +1064,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for DelayUnit {
     fn extract(b: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let name: &str = b.extract()?;
         name.parse()
-            .map_err(|_| PyValueError::new_err(format!("Unit '{name}' is invalid.")))
+            .map_err(|err: InvalidDelayUnit| PyValueError::new_err(err.to_string()))
     }
 }
 
