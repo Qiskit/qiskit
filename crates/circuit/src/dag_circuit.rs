@@ -2123,9 +2123,7 @@ impl PyDAGCircuit {
                                     Ok(duration_eq
                                         && annotations_a.len() == annotations_b.len()
                                         && zip(annotations_a, annotations_b)
-                                            .try_fold(true, |tot, (a, b)| {
-                                                a.bind(py).eq(b).map(|res| res && tot)
-                                            })?
+                                            .fold(true, |tot, (a, b)| a.eq(b) && tot)
                                         && block_eq(body_a, body_b)?)
                                 }
                                 (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
@@ -6482,7 +6480,7 @@ impl DAGCircuit {
                 &mut self.global_phase,
                 Param::ParameterExpression(angle),
             )),
-            Param::Obj(_) => Err(DAGError::ObjGlobalPhase),
+            Param::Obj(_) | Param::Int(_) => Err(DAGError::ObjGlobalPhase),
         }
     }
 

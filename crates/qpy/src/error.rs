@@ -145,6 +145,9 @@ pub enum QpyError {
     /// A QPY feature that requires the Python runtime was used from a native caller.
     #[error("QPY feature '{0}' is only available when QPY is invoked from Python")]
     PythonOnly(&'static str),
+
+    #[error(transparent)]
+    AllocationError(std::collections::TryReserveError),
 }
 
 impl From<QpyError> for PyErr {
