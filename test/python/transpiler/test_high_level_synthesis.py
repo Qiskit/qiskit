@@ -16,7 +16,7 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import itertools
 import unittest.mock
 import numpy as np
-from ddt import ddt, data, unpack
+from ddt import ddt, data, idata, unpack
 
 from qiskit.circuit import (
     QuantumCircuit,
@@ -3579,6 +3579,41 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             self.assertEqual(qct_default, qct_basic)
         else:
             self.assertEqual(qct_default, qct_mcts)
+
+    @idata(itertools.product(["default", "basic", "rustiq", "mcts"], [False, True]))
+    @unpack
+    def test_only_expected_two_qubit_gates(self, plugin_name, upto_phase):
+        """Test that all synthesis plugins for `PauliEvolutionGate` produce circuits with
+        two-qubit gates in the list ["cx", "rxx", "ryy", "rzz", "rzx", "swap"].
+        """
+        # If this test ever fails, the circuit comparison function used in PauliEvolutionSynthesisDefault
+        # needs to be updated to account for the missing gates.
+        pauli_terms = [
+            "XII",
+            "XXI",
+            "XXX",
+            "XXZ",
+            "XYY",
+            "XZI",
+            "XZZ",
+            "XIZ",
+            "YXY",
+            "YYI",
+            "YYX",
+            "YYZ",
+        ]
+        op = SparsePauliOp(pauli_terms)
+        qc = QuantumCircuit(3)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2])
+        hls_config = HLSConfig(PauliEvolution=[plugin_name, {"upto_phase": upto_phase}])
+        qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+
+        two_qubit_gates = {
+            node.operation.name for node in qct.data if node.operation.num_qubits == 2
+        }
+        expected_gates = {"cx", "rxx", "ryy", "rzz", "rzx", "swap"}
+
+        self.assertTrue(two_qubit_gates.issubset(expected_gates))
 
 
 class TestAnnotatedSynthesisPlugins(QiskitTestCase):
