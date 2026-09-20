@@ -5,38 +5,49 @@ QPY
 ===
 
 QPY is Qiskit's portable, cross-platform binary format for storing quantum circuits. The QPY C
-API can serialize a :c:struct:`QkCircuit` to a file or an in-memory buffer and load a circuit from
-either representation. QPY data produced by this interface is compatible with the Python
-:mod:`qiskit.qpy` interface.
+API can serialize multiple :c:struct:`QkCircuit` objects to a file or an in-memory buffer and load
+all the circuits from either representation. QPY data produced by this interface is compatible
+with the Python :mod:`qiskit.qpy` interface.
 
-The C API currently reads only the first circuit from QPY data, and can save only one circuit at a time. The user is responsible for freeing any loaded circuits with
-A loaded circuit is newly allocated and must be released with :c:func:`qk_circuit_free`.
+Loaded circuits are newly allocated and must be released with
+:c:func:`qk_qpy_free_circuits`.
 
-The following example writes a Bell circuit to a file and loads it again:
+The following example writes two circuits to a file and loads them again:
 
 .. code-block:: c
 
    #include <qiskit.h>
+   #include <stddef.h>
 
    int main(void) {
-       QkCircuit *source = qk_circuit_new(2, 0);
-       qk_circuit_gate(source, QkGate_H, (uint32_t[]){0}, NULL);
-       qk_circuit_gate(source, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+       QkCircuit *bell = qk_circuit_new(2, 0);
+       qk_circuit_gate(bell, QkGate_H, (uint32_t[]){0}, NULL);
+       qk_circuit_gate(bell, QkGate_CX, (uint32_t[]){0, 1}, NULL);
 
-       if (qk_qpy_dump_file(source, "bell.qpy") != QkExitCode_Success) {
-           qk_circuit_free(source);
+       QkCircuit *plus = qk_circuit_new(1, 0);
+       qk_circuit_gate(plus, QkGate_H, (uint32_t[]){0}, NULL);
+
+       const QkCircuit *circuits[] = {bell, plus};
+
+       if (qk_qpy_dump_file(circuits, 2, "circuits.qpy") != QkExitCode_Success) {
+           qk_circuit_free(plus);
+           qk_circuit_free(bell);
            return 1;
        }
 
-       QkCircuit *loaded = NULL;
-       if (qk_qpy_load_file(&loaded, "bell.qpy") != QkExitCode_Success) {
-           qk_circuit_free(source);
+       QkCircuit **loaded = NULL;
+       size_t num_loaded = 0;
+       if (qk_qpy_load_file(&loaded, &num_loaded, "circuits.qpy") != QkExitCode_Success) {
+           qk_circuit_free(plus);
+           qk_circuit_free(bell);
            return 1;
        }
 
-       qk_circuit_free(loaded);
-       qk_circuit_free(source);
-       return 0;
+       int result = num_loaded == 2 ? 0 : 1;
+       qk_qpy_free_circuits(loaded, num_loaded);
+       qk_circuit_free(plus);
+       qk_circuit_free(bell);
+       return result;
    }
 
 The buffer variants allocate the serialized data.  Pass the returned pointer and its exact size to

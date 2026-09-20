@@ -39,6 +39,7 @@ pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(10, || {
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_free_buffer),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file_with_version),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_buffer_with_version),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_free_circuits),
     ]
 });
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
