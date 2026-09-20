@@ -99,6 +99,10 @@ class PauliEvolutionGate(Gate):
         q_1: ┤1                         ├
              └──────────────────────────┘
 
+    .. warning::
+
+        The transpiler might silently drop the ``synthesis`` strategy during optimization,
+        for example, if two Pauli evolution gates are merged.
 
     References:
 

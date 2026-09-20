@@ -19,6 +19,8 @@ use crate::exit_codes::ExitCode;
 use crate::transpiler::target::parse_params;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::dag_circuit::PyDAGCircuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
@@ -26,7 +28,7 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::{Clbit, Qubit};
 
-use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
+use crate::circuit::{CBlocksMode, CInstruction, CInstructionView, CVarsMode};
 
 use crate::circuit::unitary_from_pointer;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
@@ -1067,6 +1069,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
         OperationRef::PyCustom(_) | OperationRef::CustomOperation(_) => COperationKind::Unknown,
+        OperationRef::Store(_) => COperationKind::Unknown,
     }
 }
 
@@ -1261,6 +1264,43 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
     );
     // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
     unsafe { instruction.write(inst) };
+}
+
+/// @ingroup QkDag
+/// Write out direct views for an instruction in the circuit.
+///
+/// This is a mirror of `qk_circuit_view_instruction`; consult its documentation for more detail and
+/// examples.
+///
+/// See also `qk_dag_get_instruction` which allocates owned versions of the output of this function.
+///
+/// @param dag The circuit to get the instruction from.
+/// @param index The index of the instruction in `dag`.
+/// @param[out] out The memory location to write the result to.
+///
+/// # Safety
+///
+/// Behavior is undefined in any of the follow situations:
+///
+/// - `dag` is not an aligned pointer to a valid `QkDag`.
+/// - `index` is not a valid instruction index in the circuit.  An index is invalid if does not
+///   correspond to an "operation node", i.e. calling `qk_dag_node_type(dag, index)` would be
+///   defined and return `QkDagNodeType_Operation`.
+/// - `out` is misaligned or not valid for a single write.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_view_instruction(
+    dag: *const DAGCircuit,
+    index: u32,
+    out: *mut CInstructionView,
+) {
+    // SAFETY: per documentation, `dag` points to valid initialized data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    //
+    let inst = &dag.dag()[NodeIndex::new(index as usize)].unwrap_operation();
+    let view =
+        CInstructionView::from_packed_instruction(inst, dag.qargs_interner(), dag.cargs_interner());
+    // SAFETY: per documentation, `out` is aligned and valid for a single write.
+    unsafe { out.write(view) };
 }
 
 /// @ingroup QkDag
@@ -1834,7 +1874,7 @@ pub unsafe extern "C" fn qk_dag_to_python(dag: *mut DAGCircuit) -> *mut ::pyo3::
     let py = unsafe { ::pyo3::Python::assume_attached() };
     // SAFETY: per documentation, `dag` points to owned and valid data.
     let dag = unsafe { Box::from_raw(dag) };
-    match ::pyo3::Bound::new(py, *dag) {
+    match ::pyo3::Bound::new(py, PyDAGCircuit::from(*dag)) {
         Ok(ob) => ob.into_ptr(),
         Err(e) => {
             e.restore(py);
@@ -1871,7 +1911,13 @@ pub unsafe extern "C" fn qk_dag_borrow_from_python(
 ) -> *mut DAGCircuit {
     // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
     // valid PyObject.
-    unsafe { crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob) }
+    unsafe {
+        crate::py::borrow_map_mut::<PyDAGCircuit, DAGCircuit>(
+            ::pyo3::Python::assume_attached(),
+            ob,
+            |_py, dag| dag.try_write(),
+        )
+    }
 }
 
 /// @ingroup QkDag
@@ -1905,6 +1951,6 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
     // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
     // pointer to a PyObject, and `address` points to enough space to write a pointer.
     unsafe {
-        crate::py::convert_mut::<DAGCircuit>(::pyo3::Python::assume_attached(), object, address)
+        crate::py::convert_mut::<PyDAGCircuit>(::pyo3::Python::assume_attached(), object, address)
     }
 }

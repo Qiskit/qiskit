@@ -253,7 +253,7 @@ pub unsafe extern "C" fn qk_quantum_register_circuit_bits(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     qreg.iter().enumerate().for_each(|(i, qubit)| {
-        let mapped_qubit = circuit.qubit_index(&qubit).map_or(u32::MAX, |q| q);
+        let mapped_qubit = circuit.qubit_index(&qubit).unwrap_or(u32::MAX);
         // SAFETY: Per documentation, out_bits is aligned and has at least qreg.len() elements
         unsafe { out_bits.add(i).write(mapped_qubit) };
     });
@@ -434,7 +434,7 @@ pub unsafe extern "C" fn qk_classical_register_circuit_bits(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     creg.iter().enumerate().for_each(|(i, clbit)| {
-        let mapped_clbit = circuit.clbit_index(&clbit).map_or(u32::MAX, |c| c);
+        let mapped_clbit = circuit.clbit_index(&clbit).unwrap_or(u32::MAX);
         // SAFETY: Per documentation, out_bits is aligned and has at least creg.len() elements
         unsafe { out_bits.add(i).write(mapped_clbit) };
     });
@@ -1421,6 +1421,7 @@ pub unsafe extern "C" fn qk_circuit_instruction_kind(
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
         OperationRef::PyCustom(_) | OperationRef::CustomOperation(_) => COperationKind::Unknown,
+        OperationRef::Store(_) => COperationKind::Unknown,
     }
 }
 
@@ -1538,7 +1539,7 @@ impl CInstruction {
             .params_view()
             .iter()
             .map(|p| match p {
-                Param::Float(_) | Param::ParameterExpression(_) => {
+                Param::Float(_) | Param::ParameterExpression(_) | Param::Int(_) => {
                     Some(Box::into_raw(Box::new(p.clone())))
                 }
                 _ => None,
@@ -1566,6 +1567,8 @@ impl CInstruction {
 /// This function allocates memory internally for the provided ``QkCircuitInstruction``
 /// and thus you are responsible for calling ``qk_circuit_instruction_clear`` to
 /// free it.
+///
+/// See also [`qk_circuit_view_instruction`], which is the non-allocating version of this function.
 ///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
@@ -1603,6 +1606,161 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
     );
     // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
     unsafe { instruction.write(inst) };
+}
+
+/// A non-owning view of a `QkCircuit` or `QkDag` instruction.
+///
+/// This represents all the same information as a `QkCircuitInstruction`, but all the pointer-typed
+/// fields are raw views onto data borrowed from the respective `QkCircuit` or `QkDag`.  All
+/// pointers are invalidated by any mutation or freeing of the underlying object.
+///
+/// As the data is all borrowed from the native Rust representations without allocation, there are
+/// various complications to accessing the data from C.  See the "Usage notes" section below for
+/// detail.
+///
+/// This is typically created by `qk_circuit_view_instruction` and `qk_dag_view_instruction`.
+///
+/// It is undefined behavior to mutate any data pointed to by this struct.
+///
+/// # Usage notes
+///
+/// The `name` field is *not* nul-terminated, unlike normal C strings.  It may also include
+/// arbitrary UTF-8 encoded data.  You cannot safely use this member with most C string functions.
+/// To do string comparisons, consider using `strncmp` with `name_len` as the limit.  To use the
+/// string in `printf`-like format specifiers, you must use the variable-width specifier form, such
+/// as:
+///
+/// ```c
+/// QkCircuitInstructionView view;
+/// qk_circuit_view_instruction(qc, 0, &view);
+/// printf("name: '%*s'\n", view.name_len, view.name);
+/// ```
+///
+///
+/// In order to iterate through the `params` field, you must call `qk_param_stride` at runtime to
+/// discover the width of the `QkParam` field, and then offset the pointer by a byte offset.  For
+/// example:
+///
+/// ```c
+/// QkCircuitInstructionView view;
+/// qk_circuit_view_instruction(qc, 0, &view);
+/// size_t el_size = qk_param_stride();
+/// for (size_t i=0; i < view.num_params; i++) {
+///     const QkParam *p = (const QkParam *)((const char *)view.params + i*el_size);
+///     // ... do something with `p` ...
+/// }
+/// ```
+#[repr(C)]
+pub struct CInstructionView {
+    /// The `name_len` UTF-8 encoded bytes that represent the instruction name.  This is not
+    /// nul-terminated; you must take care to use functions like `strncmp` bounded by `name_len`
+    pub name: *const c_char,
+    /// The qubits used by the instruction.
+    pub qubits: *const u32,
+    /// The clbits used by the instruction.
+    pub clbits: *const u32,
+    /// An array of `num_params` `QkParam` instances. Offset the pointer by `qk_param_stride` bytes
+    /// to iterate through valid `*const QkParam` instances; you cannot use regular pointer
+    /// arithmetic because the size of `QkParam` is not specified in the compile-time API.
+    pub params: *const Param,
+    /// How many bytes the non-nul-terminated UTF-8 string in `name` is.
+    pub name_len: usize,
+    /// The number of elements of `qubits`.
+    pub num_qubits: u32,
+    /// The number of elements of `clbits`.
+    pub num_clbits: u32,
+    /// The number of elements of `params`.
+    pub num_params: usize,
+}
+impl CInstructionView {
+    /// Create a new instruction from a [`PackedInstruction`].
+    ///
+    /// The result directly views onto data owned by the instruction and the two interners; from
+    /// Rust, logically its lifetime is tied to the lifetimes of the input.
+    pub(crate) fn from_packed_instruction(
+        packed: &PackedInstruction,
+        qargs_interner: &Interner<[Qubit]>,
+        cargs_interner: &Interner<[Clbit]>,
+    ) -> Self {
+        let name = packed.op.name().as_bytes();
+        // `c_char` is either `i8` or `u8` on all supported platforms.
+        let name = bytemuck::cast_slice::<u8, c_char>(name);
+        let qargs = qargs_interner.get(packed.qubits);
+        let cargs = cargs_interner.get(packed.clbits);
+        let params = packed.params_view();
+        Self {
+            name: name.as_ptr(),
+            name_len: name.len(),
+            qubits: bytemuck::cast_slice(qargs).as_ptr(),
+            num_qubits: qargs
+                .len()
+                .try_into()
+                .expect("qargs are unique and each qubit is u32"),
+            clbits: bytemuck::cast_slice(cargs).as_ptr(),
+            num_clbits: cargs
+                .len()
+                .try_into()
+                .expect("cargs are unique and each qubit is u32"),
+            params: params.as_ptr(),
+            num_params: params.len(),
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+/// Write out direct views for an instruction in the circuit.
+///
+/// See `QkCircuitInstructionView` for details on the stored information.  All pointers in the
+/// `QkCircuitInstructionView` are borrowed from `circuit`, and are invalidated by mutating or
+/// freeing the circuit in any way.
+///
+/// You typically allocate space for this view in the calling stack, and must not free or mutate any
+/// of the pointers or the data they point to.
+///
+/// See also [`qk_circuit_get_instruction`] which allocates owned versions of the output of this
+/// function.
+///
+/// @param circuit The circuit to get the instruction from.
+/// @param index The index of the instruction in `circuit`.
+/// @param[out] out The memory location to write the result to.
+///
+/// # Example
+///
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(1, 1);
+/// qk_circuit_measure(qc, 0, 0);
+///
+/// QkCircuitInstructionView view;
+/// qk_circuit_view_instruction(qc, 0, &view);
+/// printf("name: '%.*s'\n", view.name_len, view.name);
+/// ```
+///
+/// This prints "name: 'measure'" to standard output.
+///
+/// # Safety
+///
+/// Behavior is undefined in any of the follow situations:
+///
+/// - `circuit` is not an aligned pointer to a valid `QkCircuit`.
+/// - `index` is not a valid instruction index in the circuit.
+/// - `out` is misaligned or not valid for a single write.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_view_instruction(
+    circuit: *const CircuitData,
+    index: usize,
+    out: *mut CInstructionView,
+) {
+    // SAFETY: per documentation, `circuit` points to valid initialized data.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    // SAFETY: per documentation, `index` is within bounds of the circuit.
+    let inst = unsafe { &circuit.data().get_unchecked(index) };
+    let inst = CInstructionView::from_packed_instruction(
+        inst,
+        circuit.qargs_interner(),
+        circuit.cargs_interner(),
+    );
+    // SAFETY: per documentation, `out` is aligned and valid for a single write.
+    unsafe { out.write(inst) };
 }
 
 /// @ingroup QkCircuit
@@ -2419,6 +2577,10 @@ pub struct CircuitDrawerConfig {
     /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
     /// wrapping altogether.
     fold: usize,
+    /// Sets the number of characters to display for barrier labels. If
+    /// this number is exceeded, the label is truncated at that number and
+    /// '...' is appended. Use 0 to apply the default of 16 characters.
+    barrier_label_len: usize,
 }
 
 /// @ingroup QkCircuit
@@ -2430,6 +2592,7 @@ pub struct CircuitDrawerConfig {
 ///     * ``bundle_cregs = true``
 ///     * ``merge_wires = true``
 ///     * ``fold = 0``
+///     * ``barrier_label_len = 16``
 ///
 /// @return A pointer to a null-terminated string containing the circuit representation.
 ///     You must use ``qk_str_free`` to release the allocated memory when done.
@@ -2443,7 +2606,7 @@ pub struct CircuitDrawerConfig {
 /// qk_circuit_measure(circuit, 0, 0);
 /// qk_circuit_measure(circuit, 1, 0);
 ///
-/// QkCircuitDrawerConfig config = {false, true, 0};
+/// QkCircuitDrawerConfig config = {false, true, 0, 16};
 ///
 /// char *circ_str = qk_circuit_draw(circuit, &config);
 ///
@@ -2465,7 +2628,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let (bundle_cregs, merge_wires, fold) = if !config.is_null() {
+    let (bundle_cregs, merge_wires, fold, barrier_label_len) = if !config.is_null() {
         // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
         let config = unsafe { const_ptr_as_ref(config) };
         (
@@ -2476,12 +2639,14 @@ pub unsafe extern "C" fn qk_circuit_draw(
             } else {
                 None
             },
+            config.barrier_label_len,
         )
     } else {
-        (true, true, None)
+        (true, true, None, 0)
     };
 
-    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+    let circuit_str =
+        draw_circuit(circuit, bundle_cregs, merge_wires, fold, barrier_label_len).unwrap();
 
     CString::new(circuit_str).unwrap().into_raw()
 }
@@ -2518,7 +2683,7 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None, None, None)
+    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None)
         .expect("Error occurred while converting CircuitData to DAGCircuit");
 
     Box::into_raw(Box::new(dag))
