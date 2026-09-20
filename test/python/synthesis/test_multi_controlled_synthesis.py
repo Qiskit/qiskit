@@ -66,6 +66,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_clean_m15,
     synth_mcx_n_dirty_i15,
     synth_mcx_noaux_hp24,
+    synth_mcx_noaux_sp22,
     synth_mcx_noaux_v24,
 )
 from qiskit.transpiler import generate_preset_pass_manager
@@ -181,6 +182,36 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             PhaseGate(val), num_ctrl_qubits, bound_circuit, clean_ancillas=False
         )
 
+    def test_mcp_noaux_v24_with_expr_param(self):
+        """Test synth_mcp_noaux_v24 works correctly with a parameter expression."""
+        a, b = Parameter("a"), Parameter("b")
+        val_a, val_b = 0.456, 0.123
+        circuit = synth_mcp_noaux_v24(3, phase=2 * a + b)
+        bound_circuit = circuit.assign_parameters({a: val_a, b: val_b})
+        self.assertSynthesisCorrect(
+            PhaseGate(2 * val_a + val_b), 3, bound_circuit, clean_ancillas=False
+        )
+
+    def test_mcp_noaux_default_with_expr_param(self):
+        """Test synth_mcp_noaux_default works correctly with a parameter expression."""
+        a, b = Parameter("a"), Parameter("b")
+        val_a, val_b = 0.456, 0.123
+        circuit = synth_mcp_noaux_default(3, phase=2 * a + b)
+        bound_circuit = circuit.assign_parameters({a: val_a, b: val_b})
+        self.assertSynthesisCorrect(
+            PhaseGate(2 * val_a + val_b), 3, bound_circuit, clean_ancillas=False
+        )
+
+    def test_mcp_noaux_sp22_with_expr_param(self):
+        """Test synth_mcp_noaux_sp22 works correctly with a parameter expression."""
+        a, b = Parameter("a"), Parameter("b")
+        val_a, val_b = 0.456, 0.123
+        circuit = synth_mcp_noaux_sp22(3, phase=2 * a + b)
+        bound_circuit = circuit.assign_parameters({a: val_a, b: val_b})
+        self.assertSynthesisCorrect(
+            PhaseGate(2 * val_a + val_b), 3, bound_circuit, clean_ancillas=False
+        )
+
     @data(0, 1, 2, 3, 4, 5, 6)
     def test_mcx_n_dirty_i15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 by comparing synthesized and expected matrices."""
@@ -242,6 +273,14 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
     def test_mcx_gray_code(self, num_ctrl_qubits: int):
         """Test synth_mcx_gray_code by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_gray_code(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
+
+    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
+    def test_mcx_noaux_sp22(self, num_ctrl_qubits: int):
+        """Test synth_mcx_noaux_sp22 by comparing synthesized and expected matrices."""
+        synthesized_circuit = synth_mcx_noaux_sp22(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
@@ -485,20 +524,23 @@ class TestMCSynthesisCounts(QiskitTestCase):
         expected_cx_count = 16 * (num_ctrl_qubits + 1) - 40
         self.assertLessEqual(cx_count, expected_cx_count)
 
-    @data(5, 10, 15)
+    @data(10, 15, 20)
+    def test_synth_mcx_noaux_sp22(self, num_ctrl_qubits: int):
+        """Test synth_mcx_noaux_sp22 bound on CX count."""
+        synthesized_circuit = synth_mcx_noaux_sp22(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        # The bound from the documentation of synth_mcx_noaux_sp22
+        self.assertLessEqual(cx_count, 4 * num_ctrl_qubits**2 - 4 * num_ctrl_qubits + 2)
+
+    @data(10, 15, 20)
     def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 bound on CX count."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # The algorithm synth_mcx_noaux_v24 is based on the synthesis of MCPhase,
-        # which is defined using a sequence of MCRZ gates:
-        # MCPhase(n) is defined using one MCRZ(1), one MCRZ(2), ..., one MCRZ(n).
-        # The bound below follows using the bound of 16*(k+1)-40 for MCRZ(k) and summing
-        # the resulting arithmetic progression:
-        #   sum_{k=1}^n (16*(k+1)-40) = sum_{k=1}^n (16*k - 24) =
-        #     16*n*(n+1)/2 - 24*n = 8n^2 - 16*n.
-        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
+        # The bound from the documentation of synth_mcp_noaux_v24
+        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits - 60)
 
     @data(25, 30, 35, 40, 45, 50, 55, 60)
     def test_mcx_noaux_hp24_cx_count(self, num_ctrl_qubits: int):
@@ -541,11 +583,11 @@ class TestMCSynthesisCounts(QiskitTestCase):
         )
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # The bounds should be the same as for synth_mcx_noaux_v24
-        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits)
+        # The bounds should be the same as for synth_mcx_noaux_sp22
+        self.assertLessEqual(cx_count, 4 * num_ctrl_qubits**2 - 4 * num_ctrl_qubits + 2)
 
     @combine(
-        num_ctrl_qubits=[5, 10, 15],
+        num_ctrl_qubits=[10, 15, 20],
         annotated=[False, True],
     )
     def test_mcu_noaux_cx_count(self, num_ctrl_qubits: int, annotated: bool):
@@ -559,10 +601,10 @@ class TestMCSynthesisCounts(QiskitTestCase):
         )
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # The synthesis of MCX(n) uses two MCRZ(n), one MCRY(n), and one MCPhase(n-1).
+        # The synthesis of MCU(n) uses two MCRZ(n), one MCRY(n), and one MCPhase(n-1).
         # Thus the number of CX-gate should be upper-bounded by
-        # 3*(16 * (n + 1) - 40) + (8 * (n-1)^2 - 16 * (n-1))
-        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 + 16 * num_ctrl_qubits - 96)
+        # 3 * (16 * (n + 1) - 40) + 8 * (n - 1) ** 2 - 16 * (n -1) - 60
+        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 + 16 * num_ctrl_qubits - 108)
 
     @combine(
         num_ctrl_qubits=[1, 2, 3, 4, 5, 6, 7, 8],
@@ -603,7 +645,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
 
         if isinstance(base_gate, (XGate, YGate, ZGate, HGate)):
             # MCX gate and other locally equivalent multi-controlled gates
-            expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 136, 7: 192, 8: 264}
+            expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 82, 6: 122, 7: 170, 8: 226}
         elif isinstance(
             base_gate, (PhaseGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate, U1Gate)
         ):
@@ -723,6 +765,58 @@ class TestMCSynthesisDepth(QiskitTestCase):
         transpiled_circuit = self.pm.run(synthesized_circuit)
         depth2q = transpiled_circuit.depth(filter_function=lambda x: x.operation.num_qubits == 2)
         self.assertLessEqual(depth2q, 16 * num_ctrl_qubits - 24)
+
+    @data(10, 15, 20)
+    def test_synth_mcx_noaux_sp22(self, num_ctrl_qubits: int):
+        """Test synth_mcx_noaux_sp22 bound on depth."""
+        synthesized_circuit = synth_mcx_noaux_sp22(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        depth2q = transpiled_circuit.depth(filter_function=lambda x: x.operation.num_qubits == 2)
+        # For the exact calculation see test_synth_mcp_noaux_sp22:
+        self.assertLessEqual(depth2q, 16 * num_ctrl_qubits - 24)
+
+    @data(5, 10, 25)
+    def test_synth_mcx_2_clean_kg24_depth(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_clean_kg24 circuit depth bound.
+
+        The algorithm itself uses O(log k) depth with binary-tree AND reduction (Khattar & Gidney,
+        Sec 5.2), but this test checks depth after transpilation (all gate types,
+        optimization_level=0), matching how the reference depths below were obtained from the Rust
+        implementation. Basis-gate decomposition adds overhead and can affect parallelism, so these
+        post-transpilation numbers do not themselves scale as O(log k); this is a regression guard
+        against depth blowup, not a check of the algorithm's asymptotic complexity.
+
+        Reference depths (Rust, after transpilation with optimization_level=0):
+        k=5: 70, k=10: 104, k=25: 178
+        """
+        synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        depth = transpiled_circuit.depth()  # General depth (all gates)
+
+        # Expected bounds from the reference (Rust) implementation.
+        expected = {5: 70, 10: 104, 25: 178}
+        if num_ctrl_qubits in expected:
+            self.assertLessEqual(depth, expected[num_ctrl_qubits])
+
+    @data(5, 10, 25)
+    def test_synth_mcx_2_dirty_kg24_depth(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_dirty_kg24 circuit depth bound (logarithmic with toggle detection).
+
+        Dirty variant repeats the log-depth tree reduction for toggle detection (Khattar & Gidney, Sec 5.4).
+        Depth is measured after transpilation (all gate types, optimization_level=0), matching how
+        the reference depths below were obtained from the Rust implementation.
+
+        Reference depths (Rust, after transpilation with optimization_level=0):
+        k=5: 118, k=10: 186, k=25: 334
+        """
+        synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        depth = transpiled_circuit.depth()  # General depth (all gates)
+
+        # Expected bounds from the reference (Rust) implementation.
+        expected = {5: 118, 10: 186, 25: 334}
+        if num_ctrl_qubits in expected:
+            self.assertLessEqual(depth, expected[num_ctrl_qubits])
 
 
 if __name__ == "__main__":

@@ -157,6 +157,8 @@ mod circuit_library {
             export_fn!(suzuki_trotter::qk_circuit_library_suzuki_trotter),
             export_fn!(pbc::qk_pauli_product_rotation_clear),
             export_fn!(pbc::qk_pauli_product_measurement_clear),
+            export_fn!(n_local::qk_circuit_library_n_local),
+            export_fn!(n_local::qk_circuit_library_n_local_settings_default),
         ]
     });
 }
@@ -290,6 +292,7 @@ mod sparse_observable {
             export_fn!(qk_obs_to_python, feature = "python_binding"),
             export_fn!(qk_obs_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_obs_convert_from_python, feature = "python_binding"),
+            export_fn!(qk_obs_with_capacity),
         ]
     });
 }

@@ -22,7 +22,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp, SparseObservable
 from qiskit.circuit.classical import expr
 from qiskit.synthesis import LieTrotter
 from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_RUST_WRITE_MIN_VERSION, QPY_VERSION
@@ -44,6 +44,9 @@ def all_qpy_combinations(min_version):
             for read_with in (
                 ("Python", "Rust") if version >= QPY_RUST_READ_MIN_VERSION else ("Python",)
             )
+            # Python writer/reader are not supported for v >= QPY_RUST_WRITE_MIN_VERSION
+            if not (version >= QPY_RUST_WRITE_MIN_VERSION and write_with == "Python")
+            if not (version >= QPY_RUST_WRITE_MIN_VERSION and read_with == "Python")
         )(unpack(func))
 
     return wrapper
@@ -282,4 +285,17 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc = QuantumCircuit(1)
         with qc.for_loop((2, 5, (1 << 60))) as _:
             qc.x(0)
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(17)
+    def test_evolutiongate_sparse_observable(self, version, write_with, read_with):
+        """Test loading a circuit with an evolution gate over a SparseObservable works.
+
+        ``SparseObservable`` support was added to QPY in version 17.
+        """
+        op = SparseObservable.from_list([("XIX", 0.1), ("ZIZ", 0.3)])
+        evo = PauliEvolutionGate(op, time=2, synthesis=LieTrotter(reps=2))
+
+        qc = QuantumCircuit(op.num_qubits)
+        qc.append(evo, range(op.num_qubits))
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)

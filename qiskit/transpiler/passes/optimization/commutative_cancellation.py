@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
+
+from __future__ import annotations
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.commutation_library import StandardGateCommutations
 
@@ -92,8 +95,15 @@ class CommutativeCancellation(TransformationPass):
     pairs of arbitrary gates, not just this pass's fixed self-inverse/rotation sets.
     """
 
-    def __init__(self, basis_gates=None, target=None):
+    def __init__(
+        self,
+        basis_gates=None,
+        target=None,
+        approximation_degree: float = 1.0,
+    ):
         """
+        CommutativeCancellation initializer.
+
         Args:
             basis_gates (list[str]): Specifies which gate to use when writing back a
                 merged same-axis rotation result. The pass looks for ``rz``, ``p``, or
@@ -108,6 +118,10 @@ class CommutativeCancellation(TransformationPass):
                 above — as a source of gate names for choosing the merged-rotation
                 output gate. When both ``basis_gates`` and ``target`` are provided,
                 ``target`` takes precedence and ``basis_gates`` is ignored entirely.
+            approximation_degree: The threshold used in the average gate fidelity
+                computation to decide whether pairs of gates can be considered as
+                canceling or commuting. A floating point value between 0 and 1,
+                where ``1.0`` means no approximation (default).
         """
         super().__init__()
         if basis_gates:
@@ -115,6 +129,7 @@ class CommutativeCancellation(TransformationPass):
         else:
             self.basis = set()
         self.target = target
+        self._approximation_degree = approximation_degree
         if target is not None:
             self.basis = set(target.operation_names)
 
@@ -141,6 +156,9 @@ class CommutativeCancellation(TransformationPass):
             DAGCircuit: the optimized DAG.
         """
         commutation_cancellation.cancel_commutations(
-            dag, self._commutation_checker, sorted(self.basis)
+            dag,
+            self._commutation_checker,
+            sorted(self.basis),
+            self._approximation_degree,
         )
         return dag

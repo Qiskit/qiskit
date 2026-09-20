@@ -344,7 +344,7 @@ def load(
         )
     use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
     if use_rust:
-        return _qpy.load(file_obj, metadata_deserializer, version, annotation_factories)
+        return _qpy.load(file_obj, metadata_deserializer, annotation_factories)
 
     if version < 10:
         data = formats.FILE_HEADER._make(
