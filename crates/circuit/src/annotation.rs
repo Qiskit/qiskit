@@ -242,9 +242,9 @@ pub fn create_py_annotation(annotation: &Arc<dyn Annotation>, py: Python) -> PyR
     if let Some(annotation) = annotation.downcast_ref::<PythonAnnotation>() {
         return Ok(annotation.annotation_obj().clone_ref(py));
     }
-    let init = match PyNativeAnnotation::new(Arc::clone(annotation)) {
-        Ok(py_annotation) => PyClassInitializer::from(PyAnnotation).add_subclass(py_annotation),
-        Err(e) => return Err(e),
+    let init = {
+        let py_annotation = PyNativeAnnotation::new(Arc::clone(annotation))?;
+        PyClassInitializer::from(PyAnnotation).add_subclass(py_annotation)
     };
     Ok(Py::new(py, init)?.into_any())
 }
@@ -434,6 +434,8 @@ mod test_annotated_boxes {
                 dag.get_cargs(instruction.clbits),
                 None,
                 None,
+                #[cfg(feature = "cache_pygates")]
+                None,
             );
             let block = dag.add_block(body);
             _ = dag.substitute_op(
@@ -501,6 +503,8 @@ mod test_annotated_boxes {
                                                         ))
                                                     ])),
                                                     None,
+                                                    #[cfg(feature = "cache_pygates")]
+                                                    None,
                                                 );
                                                 num_params += 1;
                                                 _ = new_dag.apply_operation_back(
@@ -520,6 +524,8 @@ mod test_annotated_boxes {
                                                         ))
                                                     ])),
                                                     None,
+                                                    #[cfg(feature = "cache_pygates")]
+                                                    None,
                                                 );
                                                 num_params += 1;
                                                 _ = new_dag.apply_operation_back(
@@ -538,6 +544,8 @@ mod test_annotated_boxes {
                                                             )
                                                         ))
                                                     ])),
+                                                    None,
+                                                    #[cfg(feature = "cache_pygates")]
                                                     None,
                                                 );
                                                 num_params += 1;
@@ -565,6 +573,8 @@ mod test_annotated_boxes {
                                         dag.get_qargs(instr.qubits),
                                         &[],
                                         Some(Parameters::Blocks(vec![new_block])),
+                                        None,
+                                        #[cfg(feature = "cache_pygates")]
                                         None,
                                     );
 
