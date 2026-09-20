@@ -3604,27 +3604,22 @@ impl PyDAGCircuit {
 
         // Accept either a single `type`, or an iterable of `type`s.  We keep the types alive by
         // storing owned references.
-        let (op_types, all_requested_nonstandard): (Option<Vec<Py<PyType>>>, bool) = match op {
-            None => (None, true),
+        let op_types: Option<Vec<Py<PyType>>> = match op {
+            None => None,
             Some(obj) => {
                 if obj.is_instance_of::<PyType>() {
                     let ty = obj.cast::<PyType>()?;
-                    let nonstandard = ty.getattr(intern!(py, "_standard_gate")).ok().is_none();
-                    (Some(vec![ty.clone().unbind()]), nonstandard)
+                    Some(vec![ty.clone().unbind()])
                 } else {
                     // Try to interpret the object as an iterable of types.
                     let iter = obj.try_iter()?;
                     let mut types: Vec<Py<PyType>> = Vec::new();
-                    let mut all_nonstandard = true;
                     for item in iter {
                         let item = item?;
                         let ty = item.cast::<PyType>()?;
-                        if ty.getattr(intern!(py, "_standard_gate")).ok().is_some() {
-                            all_nonstandard = false;
-                        }
                         types.push(ty.clone().unbind());
                     }
-                    (Some(types), all_nonstandard)
+                    Some(types)
                 }
             }
         };
@@ -3634,12 +3629,6 @@ impl PyDAGCircuit {
                     continue;
                 }
                 if let Some(op_types) = &op_types {
-                    // This catch is to avoid Python-space operation creation for most uses of
-                    // `op`; we're usually just looking for control-flow ops, and standard gates
-                    // aren't control-flow ops.
-                    if all_requested_nonstandard && packed.op.try_standard_gate().is_some() {
-                        continue;
-                    }
                     // Match any requested type.
                     let mut matched = false;
                     for op_type in op_types {
