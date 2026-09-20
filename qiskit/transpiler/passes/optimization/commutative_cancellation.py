@@ -43,14 +43,25 @@ class CommutativeCancellation(TransformationPass):
       A total angle that is a multiple of :math:`2\pi` removes all of them entirely
       (up to global phase), so inverse pairs like ``t`` + ``tdg`` cancel out naturally.
 
-      For Z-rotations, the pass needs to know which gate family to use for the result.
-      It checks in order: (1) a ``rz``, ``p``, or ``u1`` already in the circuit,
-      (2) the first of those found in ``basis_gates``/``target``. If neither is found,
-      Z-rotation merging is skipped entirely.
+      For Z-rotations, the pass determines which gate family to use for the merged result.
+      It first looks for ``rz``, ``p``, or ``u1`` gates already in the circuit,
+      in that order. If none are found, it checks ``target`` and then ``basis_gates``
+      (if ``target`` is not provided), using the same order. If no suitable gate is found,
+      Z-rotation merging is skipped.
 
       For X-rotations, merging always happens. The result is written as ``x`` (if the
       total is a multiple of :math:`\pi` and ``x`` is available), ``sx`` (if a multiple
       of :math:`\pi/2` and ``sx`` is available), or ``rx(total_angle)`` otherwise.
+
+    The ``approximation_degree`` argument (default ``1.0``) controls how strictly
+    commutativity is checked: it sets a tolerance of ``max(1e-12, 1 - approximation_degree)``
+    on the average gate fidelity between :math:`AB` and :math:`BA`, so gates within
+    that tolerance are treated as commuting. Lowering it below ``1.0`` groups more
+    gates together at the cost of a small unitary error.
+
+    This is a separate tolerance from the ``1e-5`` cutoff used when deciding whether
+    a merged rotation's total angle is close enough to a multiple of :math:`2\pi`
+    to drop it entirely.
 
     Y-rotations are not merged: ``ry`` does not commute with ``cx``, so runs of it are
     left for other optimization passes. Gates with symbolic (:class:`~.Parameter`)
@@ -91,8 +102,9 @@ class CommutativeCancellation(TransformationPass):
             optimized = CommutativeCancellation()(qc)
             optimized.count_ops()  # {'z': 1}
 
-    See also :class:`.CommutativeInverseCancellation`, which cancels commuting inverse
-    pairs of arbitrary gates, not just this pass's fixed self-inverse/rotation sets.
+    See also :class:`.CommutativeOptimization`, which unifies and extends this pass's
+    functionality together with :class:`.CommutativeInverseCancellation` — cancelling
+    commuting inverse pairs beyond this pass's fixed self-inverse/rotation sets.
     """
 
     def __init__(
