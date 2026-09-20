@@ -17,7 +17,7 @@ use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations;
 use qiskit_circuit::operations::{Param, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_synthesis::pauli_evolution::sparse_term_evolution;
+use qiskit_synthesis::pauli_evolution::{CXStructure, sparse_term_evolution};
 use smallvec::smallvec;
 
 /// Implement a Pauli evolution circuit.
@@ -90,9 +90,15 @@ pub fn py_pauli_evolution(
         vec![],
     );
 
+    let cx_structure = if do_fountain {
+        CXStructure::Fountain
+    } else {
+        CXStructure::Chain
+    };
+
     let evos = paulis.iter().enumerate().zip(indices).zip(times).flat_map(
         |(((i, pauli), qubits), time)| {
-            let as_packed = sparse_term_evolution(pauli, qubits, time, false, do_fountain).map(Ok);
+            let as_packed = sparse_term_evolution(pauli, qubits, time, false, cx_structure).map(Ok);
             // this creates an iterator containing a barrier only if required, otherwise it is empty
             let maybe_barrier = (insert_barriers && i < (num_paulis - 1))
                 .then_some(Ok(barrier.clone()))
