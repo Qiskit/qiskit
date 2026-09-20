@@ -32,7 +32,6 @@ use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 #[pyfunction]
 #[pyo3(signature=(dag, acquire_align, pulse_align))]
 pub fn run_instruction_duration_check(
-    py: Python,
     dag: &PyDAGCircuit,
     acquire_align: u32,
     pulse_align: u32,
@@ -61,7 +60,9 @@ pub fn run_instruction_duration_check(
                 ));
             }
             let duration = match param {
-                Param::Obj(val) => val.bind(py).extract::<u32>(),
+                Param::Int(val) => u32::try_from(*val).map_err(|_| {
+                    TranspilerError::new_err("The provided Delay duration is too large for u32.")
+                }),
                 _ => Err(TranspilerError::new_err(
                     "The provided Delay duration is not in terms of dt.",
                 )),
