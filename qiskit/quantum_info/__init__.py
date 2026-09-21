@@ -96,6 +96,8 @@ Utility Functions
 Random
 ======
 
+See also :mod:`qiskit.quantum_info.random`.
+
 .. autofunction:: random_statevector
 .. autofunction:: random_density_matrix
 .. autofunction:: random_unitary
