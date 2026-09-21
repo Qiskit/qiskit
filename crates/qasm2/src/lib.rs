@@ -30,12 +30,7 @@ pub use self::ext::{
     CustomInstruction,
 };
 
-/// Parse an OpenQASM 2 program into a [CircuitData][qiskit_circuit::circuit_data::CircuitData],
-/// with no involvement from Python.
-///
-/// This is the native counterpart to `bytecode_from_string`: instead of handing a bytecode stream
-/// to `qiskit/qasm2/parse.py` to interpret, the bytecode is consumed by the Rust builder in
-/// `build.rs`.  `qiskit.qasm2.loads` still takes the Python route, so the two are independent.
+/// Parse an OpenQASM 2 program directly into a [CircuitData][qiskit_circuit::circuit_data::CircuitData].
 ///
 /// Any `custom_classical` must be callable without an interpreter (see
 /// [ClassicalEvaluator::detached]); a Python callable here is an error, not a panic.
