@@ -39,6 +39,9 @@ pub fn run_instruction_duration_check(
     let dag = dag.try_read()?;
     let num_stretches = dag.num_stretches();
 
+    let acquire_align = i64::from(acquire_align);
+    let pulse_align = i64::from(pulse_align);
+
     // Rescheduling is not necessary
     if (acquire_align == 1 && pulse_align == 1) || num_stretches != 0 {
         return Ok(false);
@@ -60,13 +63,13 @@ pub fn run_instruction_duration_check(
                 ));
             }
             let duration = match param {
-                Param::Int(val) => u32::try_from(*val).map_err(|_| {
-                    TranspilerError::new_err("The provided Delay duration is too large for u32.")
-                }),
-                _ => Err(TranspilerError::new_err(
-                    "The provided Delay duration is not in terms of dt.",
-                )),
-            }?;
+                Param::Int(val) => *val,
+                _ => {
+                    return Err(TranspilerError::new_err(
+                        "The provided Delay duration is not an integer.",
+                    ));
+                }
+            };
 
             if !(duration % acquire_align == 0 || duration % pulse_align == 0) {
                 return Ok(true);
