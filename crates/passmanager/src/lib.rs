@@ -31,19 +31,19 @@ pub struct PassManagerContext {
     /// this data and after pass execution this global state is updated.
     data: HashMap<String, Box<dyn Any>>,
 }
+impl PassManagerContext {
+    fn new() -> Self {
+        Self::default()
+    }
 
-/// Context information provided to the passes.
-#[derive(Debug)]
-pub struct PassContext<'a> {
-    /// A reference to the global execution environment.
-    global_context: &'a PassManagerContext,
-
-    /// Whether the pass changed the IR or not. If this is `false`, the pass manager
-    /// can assume that no changes to IR have been made and potentially perform optimizations.
-    pub has_changed: bool,
-
-    /// A local cache of new data.
-    updates: ContextUpdates,
+    fn update(&mut self, mut updates: ContextUpdates) {
+        for (key, value) in updates.insertions.drain() {
+            self.data.insert(key, value);
+        }
+        for key in updates.deletions.iter() {
+            self.data.remove(key);
+        }
+    }
 }
 
 /// A private struct representing the context updates performed. As long as this contains only
@@ -56,7 +56,6 @@ struct ContextUpdates {
     /// Keys to delete from the global context.
     deletions: HashSet<String>,
 }
-
 impl ContextUpdates {
     fn insert(&mut self, key: String, value: Box<dyn Any>) {
         self.deletions.remove(&key);
@@ -73,19 +72,18 @@ impl ContextUpdates {
     }
 }
 
-impl PassManagerContext {
-    fn new() -> Self {
-        Self::default()
-    }
+/// Context information provided to the passes.
+#[derive(Debug)]
+pub struct PassContext<'a> {
+    /// A reference to the global execution environment.
+    global_context: &'a PassManagerContext,
 
-    fn update(&mut self, mut updates: ContextUpdates) {
-        for (key, value) in updates.insertions.drain() {
-            self.data.insert(key, value);
-        }
-        for key in updates.deletions.iter() {
-            self.data.remove(key);
-        }
-    }
+    /// Whether the pass changed the IR or not. If this is `false`, the pass manager
+    /// can assume that no changes to IR have been made and potentially perform optimizations.
+    pub has_changed: bool,
+
+    /// A local cache of new data.
+    updates: ContextUpdates,
 }
 
 impl<'a> PassContext<'a> {
