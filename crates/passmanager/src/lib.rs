@@ -10,13 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod pass;
+
 use anyhow::Context;
 use hashbrown::{HashMap, HashSet};
 use std::{
     any::{self, Any},
-    borrow, fmt, hash, marker,
+    borrow, fmt, hash,
 };
-use thiserror::Error;
+
+pub use pass::*;
 
 /// The pass manager execution environment.
 ///
@@ -193,104 +196,6 @@ impl hash::Hash for DynTypeId<'_> {
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         self.compare_key().hash(state)
     }
-}
-
-/// The base behavior for compiler passes written in first-party Rust code.
-///
-/// This is the component that pass authors actually need to implement.
-pub trait StaticPass<In, Out = In>: Send + Sync + Sized + 'static
-where
-    In: Send + Sync + 'static,
-    Out: Send + Sync + 'static,
-{
-    /// Run the pass.
-    fn run(&self, ir: Box<In>, context: &mut PassContext) -> anyhow::Result<Box<Out>>;
-
-    /// Turn this object into the full type-erased version.
-    ///
-    /// If the base structure implements [`StaticPass`] for more than one pair of input and output
-    /// types, you might need to call this as something like
-    /// ```ignore
-    /// <MyImplementer as StaticPass<In, Out>>::into_pass(ob)
-    /// ```
-    fn into_pass(self) -> Box<dyn Pass> {
-        Box::new(StaticPassOb {
-            ob: self,
-            phantom: marker::PhantomData,
-        })
-    }
-}
-
-/// Type-system wrapper object to move the `In` and `Out` IR types of `StaticPass` into a concrete
-/// object.
-///
-/// Storing the "associated types" as separate phantom markers in this object lets us have base Rust
-/// structs that implement [`StaticPass`] for more than one input/output pair.  We still need to
-/// have a fully monomorphised object to hold the type parameters when we do `impl Pass for
-/// SomeObject`, because otherwise that implementation would overlap for _all_ the `StaticPass`
-/// implementations of the base object.
-struct StaticPassOb<T, In, Out = In> {
-    ob: T,
-    phantom: marker::PhantomData<(In, Out)>,
-}
-impl<P, In, Out> Pass for StaticPassOb<P, In, Out>
-where
-    In: Send + Sync + 'static,
-    Out: Send + Sync + 'static,
-    P: StaticPass<In, Out>,
-{
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn ir_id_in(&self) -> DynTypeId<'_> {
-        DynTypeId::of::<In>()
-    }
-    fn ir_id_out(&self) -> DynTypeId<'_> {
-        DynTypeId::of::<Out>()
-    }
-    fn name(&self) -> &str {
-        any::type_name::<P>()
-    }
-    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> Result<Box<dyn Any>, PassError> {
-        let ir = ir.downcast::<In>().map_err(|_| PassError::Conversion)?;
-        self.ob
-            .run(ir, context)
-            .map(|out| out as Box<dyn Any>)
-            .map_err(PassError::Runtime)
-    }
-}
-
-/// Errors returned by individual pass implementations.
-#[derive(Error, Debug)]
-pub enum PassError {
-    /// The given input type failed to cast to the right type dynamically.
-    #[error("failed to cast to expected input type")]
-    Conversion,
-    /// An arbitrary error during processing of the pass.
-    #[error(transparent)]
-    Runtime(#[from] anyhow::Error),
-}
-
-/// A type-erased version of the [Pass] trait. This is required to store passes with different
-/// associated types in the generic [Task::Transformation] variant.
-pub trait Pass: Send + Sync {
-    /// Cast the pass to Any to allow downcasting to a target type.
-    fn as_any(&self) -> &dyn Any;
-    /// Return the type ID of the IR expected on input.
-    fn ir_id_in(&self) -> DynTypeId<'_>;
-    /// Return the type ID of the IR that is emitted by the pass.
-    fn ir_id_out(&self) -> DynTypeId<'_>;
-    /// A human-readable name for the pass.
-    ///
-    /// This is primarily for debugging purposes.
-    fn name(&self) -> &str;
-    /// Run the pass.
-    ///
-    /// In general, the [`PassManager`] construction logic will have validated the pipeline, so `ir`
-    /// should typically cast correctly into the desired object.  However, badly behaved passes
-    /// might have lied about their output types, or this trait may be called outside the context of
-    /// the [`PassManager`].
-    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> Result<Box<dyn Any>, PassError>;
 }
 
 /// A task in Qiskit's compiler framework.
