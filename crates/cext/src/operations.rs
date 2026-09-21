@@ -230,28 +230,28 @@ pub struct CustomOpVTable {
     eq: unsafe extern "C" fn(*const c_void, *const c_void) -> bool,
 }
 
-extern "C" fn default_num_clbits(_slf: *const c_void) -> u32 {
+extern "C" fn default_num_clbits(_op: *const c_void) -> u32 {
     0
 }
-extern "C" fn default_num_params(_slf: *const c_void) -> u32 {
+extern "C" fn default_num_params(_op: *const c_void) -> u32 {
     0
 }
-extern "C" fn default_directive(_slf: *const c_void) -> bool {
+extern "C" fn default_directive(_op: *const c_void) -> bool {
     false
 }
-extern "C" fn default_is_unitary(_slf: *const c_void) -> bool {
+extern "C" fn default_is_unitary(_op: *const c_void) -> bool {
     true
 }
-extern "C" fn default_num_ctrl_qubits(_slf: *const c_void) -> u32 {
+extern "C" fn default_num_ctrl_qubits(_op: *const c_void) -> u32 {
     0
 }
 
-extern "C" fn default_label(_slf: *const c_void) -> *const c_char {
+extern "C" fn default_label(_op: *const c_void) -> *const c_char {
     null()
 }
 
 extern "C" fn default_definition(
-    _slf: *const c_void,
+    _op: *const c_void,
     _params: *const *const Param,
 ) -> *mut CircuitData {
     null_mut()
