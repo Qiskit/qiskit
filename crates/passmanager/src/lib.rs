@@ -244,6 +244,14 @@ impl Task {
     }
 }
 
+/// Allow implicit conversion of [`Pass`] implementations to [`Task`] for use with [`PassManager`]
+/// construction functions.
+impl<T: AnyPass + 'static> From<T> for Task {
+    fn from(val: T) -> Self {
+        Self::Transformation(Box::new(val))
+    }
+}
+
 /// Qiskit's pass manager.
 #[derive(Default, Debug)]
 pub struct PassManager {
@@ -327,29 +335,27 @@ impl PassManager {
 
     /// Try push a [Task] to the pass manager. Returns an error if the types are not
     /// compatible.
-    pub fn try_push_task(&mut self, task: Task) -> Result<(), PassManagerError> {
-        // Check that the task types are compatible, if there's an existing task and if
-        // neither of the tasks are empty.
-        if let Some(last_task) = self.tasks.last() {
-            let Some((_, out_type)) = last_task.io_types() else {
-                return Err(PassManagerError::EmptyTask);
-            };
-            let Some((in_type, _)) = task.io_types() else {
-                return Err(PassManagerError::EmptyTask);
-            };
-            if in_type != out_type {
-                return Err(PassManagerError::IncompatibleTypes);
+    pub fn try_push_task(&mut self, task: impl Into<Task>) -> Result<(), PassManagerError> {
+        // Non-generic core of the function.
+        fn inner(slf: &mut PassManager, task: Task) -> Result<(), PassManagerError> {
+            // Check that the task types are compatible, if there's an existing task and if
+            // neither of the tasks are empty.
+            if let Some(last_task) = slf.tasks.last() {
+                let Some((_, out_type)) = last_task.io_types() else {
+                    return Err(PassManagerError::EmptyTask);
+                };
+                let Some((in_type, _)) = task.io_types() else {
+                    return Err(PassManagerError::EmptyTask);
+                };
+                if in_type != out_type {
+                    return Err(PassManagerError::IncompatibleTypes);
+                }
             }
+            slf.tasks.push(task);
+            Ok(())
         }
-        self.tasks.push(task);
-        Ok(())
-    }
 
-    /// Try push a pass to the pass manager, which will automatically wrap into a
-    /// [Task::Transformation]. Returns an error if the types are not compatible.
-    pub fn try_push_pass(&mut self, pass: Box<dyn AnyPass>) -> Result<(), PassManagerError> {
-        let task = Task::Transformation(pass);
-        self.try_push_task(task)
+        inner(self, task.into())
     }
 
     /// Get a reference to a [Task] at a given index.
@@ -408,7 +414,6 @@ mod test {
     use super::*;
     use qiskit_circuit::{
         Qubit,
-        bit::ShareableQubit,
         circuit_data::CircuitData,
         dag_circuit::DAGCircuit,
         operations::{Param, StandardGate},
@@ -416,7 +421,7 @@ mod test {
     use qiskit_transpiler::passes::run_remove_identity_equiv;
 
     #[derive(Clone, Debug)]
-    struct RemoveIdentities {}
+    struct RemoveIdentities;
 
     impl Pass for RemoveIdentities {
         type InputIR = DAGCircuit;
@@ -433,7 +438,7 @@ mod test {
     }
 
     #[derive(Clone, Debug)]
-    struct CountT {}
+    struct CountT;
 
     impl Pass for CountT {
         type InputIR = CircuitData;
@@ -486,10 +491,10 @@ mod test {
         let dag_type = TypeId::of::<DAGCircuit>();
         let circ_type = TypeId::of::<CircuitData>();
 
-        let make_dag_pass = || Task::Transformation(Box::new(RemoveIdentities {}));
+        let make_dag_pass = || Task::Transformation(Box::new(RemoveIdentities));
         assert_eq!(make_dag_pass().io_types().unwrap(), (dag_type, dag_type));
 
-        let circ_pass = Task::Transformation(Box::new(CountT {}));
+        let circ_pass = Task::Transformation(Box::new(CountT));
         assert_eq!(circ_pass.io_types().unwrap(), (circ_type, circ_type));
 
         let infinity = Task::Loop {
@@ -520,10 +525,8 @@ mod test {
 
     #[test]
     fn test_pass() -> Result<(), PassManagerError> {
-        let pass = RemoveIdentities {};
-
         let mut pm = PassManager::new();
-        pm.try_push_pass(Box::new(pass))?;
+        pm.try_push_task(RemoveIdentities)?;
 
         let mut qc = CircuitData::with_capacity(1, 0, 2, Param::Float(0.0)).unwrap();
         qc.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
@@ -540,15 +543,11 @@ mod test {
     }
 
     #[test]
-    fn test_incompatible_types() -> Result<(), PassManagerError> {
-        let pass1 = RemoveIdentities {};
-        let pass2 = CountT {};
-
+    fn test_incompatible_types() {
         let mut pm = PassManager::new();
-        pm.try_push_pass(Box::new(pass1))?;
-        let result = pm.try_push_pass(Box::new(pass2));
+        pm.try_push_task(RemoveIdentities).unwrap();
+        let result = pm.try_push_task(CountT);
         assert!(matches!(result, Err(PassManagerError::IncompatibleTypes)));
-        Ok(())
     }
 
     #[test]
@@ -567,7 +566,7 @@ mod test {
         let stages = Task::Stages(vec![("one_and_only".to_string(), make_task())]);
 
         let mut pm = PassManager::new();
-        pm.try_push_task(make_task())?;
+        pm.try_push_task(RemoveIdentities)?;
         pm.try_push_task(group)?;
         pm.try_push_task(loop_task)?;
         pm.try_push_task(switch)?;
@@ -596,19 +595,18 @@ mod test {
 
     #[test]
     fn test_pass_context() -> anyhow::Result<()> {
-        let qubits: Vec<ShareableQubit> = (0..3).map(|_| ShareableQubit::new_anonymous()).collect();
-        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.))?;
         let num_t = 50;
-        for i in 0..num_t {
+        let mut circuit = CircuitData::with_capacity(3, 0, num_t, Param::Float(0.))?;
+        for i in 0..num_t as u32 {
             circuit.push_standard_gate(StandardGate::T, &[], &[Qubit(i % 3)])?;
             circuit.push_standard_gate(StandardGate::H, &[], &[Qubit(i % 3)])?;
         }
 
         let mut pm = PassManager::new();
-        pm.try_push_pass(Box::new(CountT {}))?;
-        pm.try_push_pass(Box::new(CheckTCount {
-            expected_t_count: num_t as usize,
-        }))?;
+        pm.try_push_task(CountT)?;
+        pm.try_push_task(CheckTCount {
+            expected_t_count: num_t,
+        })?;
 
         let (_, context) = pm.run::<_, CircuitData>(circuit)?;
         let t_count = context
@@ -617,7 +615,7 @@ mod test {
             .expect("Failed to retrieve `t_count`")
             .downcast_ref::<usize>()
             .expect("Downcasting failed");
-        assert_eq!(*t_count, num_t as usize);
+        assert_eq!(*t_count, num_t);
 
         Ok(())
     }
