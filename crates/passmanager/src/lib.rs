@@ -72,15 +72,20 @@ impl ContextUpdates {
     }
 }
 
-/// Context information provided to the passes.
+/// Mutable context information for the pass to interact with the execution pipeline.
+///
+/// This object is used for two-way information transfer; passes can set flags like `ir_modified` to
+/// pass information back to the executing pipeline, or can get/set items in the pipeline's context
+/// to pass information between passes.
 #[derive(Debug)]
 pub struct PassContext<'a> {
     /// A reference to the global execution environment.
     global_context: &'a PassManagerContext,
 
-    /// Whether the pass changed the IR or not. If this is `false`, the pass manager
-    /// can assume that no changes to IR have been made and potentially perform optimizations.
-    pub has_changed: bool,
+    /// Whether the pass changed the IR or not.  This defaults to `true`, but passes may set it to
+    /// `false` to indicate that they didn't modify the IR.  The pass-manager execution environment
+    /// can use that information to optimize caching.
+    pub ir_modified: bool,
 
     /// A local cache of new data.
     updates: ContextUpdates,
@@ -90,13 +95,9 @@ impl<'a> PassContext<'a> {
     fn spawn(global_context: &'a PassManagerContext) -> Self {
         Self {
             global_context,
-            has_changed: true,
+            ir_modified: true,
             updates: ContextUpdates::default(),
         }
-    }
-
-    fn into_updates(self) -> ContextUpdates {
-        self.updates
     }
 
     /// Set a new entry in the pass context.
@@ -313,7 +314,7 @@ impl PassManager {
         for task in self.tasks.iter() {
             let mut pass_context = PassContext::spawn(&context);
             ir = execute_task(task, ir, &mut pass_context)?;
-            let updates = pass_context.into_updates();
+            let PassContext { updates, .. } = pass_context;
             context.update(updates);
         }
         Ok((ir, context))
