@@ -539,7 +539,7 @@ mod test {
             .unwrap();
         qc.push_standard_gate(StandardGate::RX, &[Param::Float(0.0)], &[Qubit(0)])
             .unwrap();
-        let dag = DAGCircuit::from_circuit_data(&qc, false, None, None, None, None).unwrap();
+        let dag = DAGCircuit::from_circuit_data(&qc, false, None, None).unwrap();
 
         let (out, _) = pm.run::<_, DAGCircuit>(dag).unwrap();
         let ops = out.count_ops(false).unwrap();

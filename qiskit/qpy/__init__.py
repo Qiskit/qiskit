@@ -485,6 +485,48 @@ Version 18 also corrects the encoding of integer and float ``INSTRUCTION_PARAM``
 to big-endian byte order, consistent with the rest of the QPY specification. In versions
 1–17 these were mistakenly written in little-endian.
 
+PARAMETER_VECTOR_TABLE
+~~~~~~~~~~~~~~~~~~~~~~
+Version 18 stores each :class:`.ParameterVector` once per circuit payload and has its elements refer
+to it by index, instead of repeating the vector's identity in every element.
+
+The circuit payload gains a ``PARAMETER_VECTOR_TABLE`` immediately after the annotation headers, before the custom instruction definitions:
+
+.. code-block:: c
+
+    struct {
+        uint16_t num_vectors;
+    }
+
+followed by ``num_vectors`` entries of
+
+.. code-block:: c
+
+    struct {
+        uint16_t vector_name_size;
+        uint64_t vector_size;
+        char     uuid[16];        // the vector's root UUID
+    }
+
+each immediately followed by ``vector_name_size`` utf8 bytes of the vector's name.
+
+A :ref:`PARAMETER_VECTOR_ELEMENT <qpy_param_vector>` is correspondingly reduced to a reference:
+
+.. code-block:: c
+
+    struct {
+        uint16_t vector_index;    // index into PARAMETER_VECTOR_TABLE
+        uint64_t index;           // index of this element within that vector
+    }
+
+The element's own UUID is no longer stored, because it is the vector's root UUID plus the element's
+index -- the relationship the reader has always used to recover the owning vector.  An element
+therefore costs 10 bytes rather than 34 plus the length of the vector name, at the cost of two bytes
+per circuit for the count when a circuit uses no parameter vectors at all.
+
+A nested payload -- a control-flow block, or a custom instruction definition -- carries its own
+table, so that each circuit remains decodable on its own.
+
 New ParamRegisterPack
 ~~~~~~~~~~~~~~~~~~~~~
 Version 18 replaces the encoding of a `Register` payload, which stores either a whole
@@ -552,6 +594,18 @@ name with the bit indices be a length of 1 and that contains the
 starting index of the register. The indices are then the range of length
 ``size`` from that starting index. For example, if the starting index is 5
 and the ``size`` is 10 the indices are 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
+
+Changes to CUSTOM_INSTRUCTION names
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From version 11 till 17, the names of ``CUSTOM_INSTRUCTION`` blocks were suffixed with a
+random UUID hexadecimal string (e.g. ``"my_gate_b3ecab5b4d6a4eb6bc2b2dbf18d83e1e"``), as
+described in :ref:`qpy_version_11`.  Because the UUID was generated for every
+:func:`.dump` call, repeated dumps of the same circuit produced different byte streams —
+QPY output was not deterministic.
+
+From version 18 the UUID suffix is replaced by a counter that is reset
+at the start of each :func:`.dump` call (e.g. ``"my_gate_0"``).
 
 .. _qpy_version_17:
 
@@ -1378,6 +1432,12 @@ Where a value of ``-1`` indicates ``None`` (as in no register is associated
 with the bit). Following each ``INITIAL_LAYOUT_BIT`` struct is ``register_size``
 bytes for a ``utf8`` encoded string for the register name.
 
+.. note::
+
+    From version 18, anonymous qubits (``index == -1``) omit the ``register_size``
+    field entirely — the struct is just a single ``int32_t``. Named qubits are
+    unchanged.
+
 Following the initial layout there is ``input_mapping_size`` array of
 ``uint32_t`` integers representing the positions of the physical bit from the
 initial layout. This enables constructing a list of virtual bits where the
@@ -1875,8 +1935,9 @@ Version 3 of the QPY format is identical to :ref:`qpy_version_2` except that it 
 a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`
 natively in QPY. To accomplish this the :ref:`qpy_custom_definition` struct now supports
 a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
-Enties in the custom instructions tables have unique name generated that start with the
-string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reserved
+Entries in the custom instructions tables have unique name generated that starts with the
+string ``"###PauliEvolutionGate_"`` followed by a uuid string (versions 11–17) or a
+counter (version 18+, see :ref:`qpy_version_18`). This gate name is reserved
 in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with a definition
 set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
 as follows:
@@ -1953,6 +2014,12 @@ defined as:
 
 which is immediately followed by ``vector_name_size`` utf8 bytes representing
 the parameter's vector name.
+
+.. versionchanged:: QPY 18
+
+    The vector is stored once in the circuit's ``PARAMETER_VECTOR_TABLE`` and this payload became a
+    reference to it, ``uint16_t vector_index`` followed by ``uint64_t index``, with no name, size or
+    UUID of its own.  See :ref:`qpy_version_18`.
 
 .. _qpy_param_expr_v3:
 
