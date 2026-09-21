@@ -2702,6 +2702,7 @@ pub struct PySparseObservable {
     inner: SparseObservable,
 }
 
+#[cfg(feature = "python")]
 impl PySparseObservable {
     pub fn inner(&self) -> &SparseObservable {
         &self.inner
