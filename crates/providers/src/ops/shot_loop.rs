@@ -135,7 +135,7 @@ fn leading_axes(parameters: usize, operand: &TensorType) -> Option<&[Dim]> {
 }
 
 /// Errors returned by [`ShotLoop`].
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub enum ShotLoopError {
     /// A classical register's name cannot name a slot of the result.
     #[error("circuit {circuit}: {source}")]
@@ -173,7 +173,7 @@ mod test {
 
     use super::*;
     use crate::ops::Mean;
-    use crate::program::{ProgramFunction, QuantumProgram};
+    use crate::program::{ProgramEvalError, ProgramFunction, QuantumProgram};
 
     /// A circuit taking `parameters` parameters and holding `registers` as `(name, width)` pairs.
     ///
@@ -300,14 +300,16 @@ mod test {
             "the parameter axis of a circuit taking no parameters is empty, not absent"
         );
         let no_axis = ty(DType::F64, &[4]);
-        assert_eq!(
-            op.infer_output_types(std::slice::from_ref(&no_axis))
-                .unwrap_err(),
-            ShotLoopError::ParameterType {
-                circuit: 0,
-                parameters: 0,
-                actual: no_axis,
-            },
+        assert!(
+            matches!(
+                op.infer_output_types(std::slice::from_ref(&no_axis))
+                    .unwrap_err(),
+                ShotLoopError::ParameterType {
+                    circuit: 0,
+                    parameters: 0,
+                    actual,
+                } if actual == no_axis
+            ),
             "the trailing axis is the parameter axis, and four values are not none"
         );
     }
@@ -318,12 +320,15 @@ mod test {
         let ok = ty(DType::F64, &[0]);
 
         // Both the shape a circuit's values must have and the type supplied are named.
-        assert_eq!(
+        assert!(matches!(
             op.infer_output_types(&[ok.clone(), ty(DType::F64, &[3])])
-                .unwrap_err()
-                .to_string(),
-            "circuit 1: expected a floating-point tensor of shape [..., 2], got F64[3]"
-        );
+                .unwrap_err(),
+            ShotLoopError::ParameterType {
+                circuit: 1,
+                parameters: 2,
+                actual,
+            } if actual == ty(DType::F64, &[3])
+        ));
         // A dtype that is not floating point, a rank too low to carry a parameter axis, and a
         // parameter axis whose size is not known are each refused the same way.
         for operand in [
@@ -335,15 +340,15 @@ mod test {
                 shape: vec![Dim::Bounded { max: 2 }],
             },
         ] {
-            assert_eq!(
+            assert!(matches!(
                 op.infer_output_types(&[ok.clone(), operand.clone()])
                     .unwrap_err(),
                 ShotLoopError::ParameterType {
                     circuit: 1,
                     parameters: 2,
-                    actual: operand,
-                }
-            );
+                    actual,
+                } if actual == operand
+            ));
         }
     }
 
@@ -355,24 +360,33 @@ mod test {
         else {
             panic!("a register named \"0\" could not be addressed in the result")
         };
-        assert_eq!(
-            digits.to_string(),
-            "circuit 1: name \"0\" cannot consist only of digits"
-        );
+        assert!(matches!(
+            digits,
+            ShotLoopError::RegisterName {
+                circuit: 1,
+                source: InvalidName::OnlyDigits(name),
+            } if name == "0"
+        ));
 
         let Err(dotted) = ShotLoop::new(vec![circuit(0, &[("a.b", 1)])], 8) else {
             panic!("a register named \"a.b\" could not be addressed in the result")
         };
-        assert_eq!(dotted.to_string(), "circuit 0: name \"a.b\" contains \".\"");
+        assert!(matches!(
+            dotted,
+            ShotLoopError::RegisterName {
+                circuit: 0,
+                source: InvalidName::ContainsDot(name),
+            } if name == "a.b"
+        ));
     }
 
     #[test]
     fn test_eval_has_no_in_process_implementation() {
         let op = ShotLoop::new(vec![circuit(0, &[("c", 1)])], 8).unwrap();
-        assert_eq!(
+        assert!(matches!(
             op.eval(&[Tensor::from(&[] as &[f64])]).unwrap_err(),
             ShotLoopError::NoBuiltinEval
-        );
+        ));
     }
 
     #[test]
@@ -433,9 +447,12 @@ mod test {
         let Err(err) = program.eval(inputs) else {
             panic!("a program containing a shot loop cannot be evaluated in process")
         };
-        assert_eq!(
-            err.to_string(),
-            "@0 instruction 2 (qiskit.shot_loop) has no built-in implementation",
+        assert!(
+            matches!(
+                err,
+                ProgramEvalError::NoBuiltinEval { full_name, .. }
+                    if full_name == "qiskit.shot_loop"
+            ),
             "the op a backend is needed for is named"
         );
     }

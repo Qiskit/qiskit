@@ -1179,16 +1179,32 @@ mod test {
         let Err(err) = function.add_call(callee, &double_signature(3), &[x]) else {
             panic!("an F64[2] operand cannot fill an F64[3] parameter")
         };
-        assert_eq!(
-            err.to_string(),
-            "operand 0 of the call to @0: expected F64[3], got F64[2]",
+        assert!(
+            matches!(
+                err,
+                FunctionError::CallOperandType {
+                    operand: 0,
+                    callee,
+                    expected,
+                    actual,
+                } if callee == FunctionId::from_index(0)
+                    && expected == f64_1d(3)
+                    && actual == f64_1d(2)
+            ),
             "the position, the callee, and both types are named"
         );
 
         let Err(err) = function.add_call(callee, &double_signature(2), &[x, x]) else {
             panic!("a one-parameter signature takes one operand")
         };
-        assert_eq!(err.to_string(), "qiskit.call takes 1 operand(s), got 2");
+        assert!(matches!(
+            err,
+            FunctionError::OperandArity {
+                full_name,
+                expected: 1,
+                actual: 2,
+            } if full_name == "qiskit.call"
+        ));
 
         // A value from another function is unknown here, so long as this one has no instruction at
         // its index.
@@ -1231,10 +1247,17 @@ mod test {
         let Err(err) = function.add_call(callee, &signature, &[loose]) else {
             panic!("a bounded operand cannot fill a parameter of a true size")
         };
-        assert_eq!(
-            err.to_string(),
-            "operand 0 of the call to @0: expected F64[3], got F64[<=4]"
-        );
+        assert!(matches!(
+            err,
+            FunctionError::CallOperandType {
+                operand: 0,
+                callee,
+                expected,
+                actual,
+            } if callee == FunctionId::from_index(0)
+                && expected == f64_1d(3)
+                && actual.shape == [Dim::Bounded { max: 4 }]
+        ));
     }
 
     #[test]
@@ -1250,10 +1273,10 @@ mod test {
         let Err(err) = function.eval(&[Tensor::from([1.0_f64])]) else {
             panic!("resolving a call needs the program holding its callee")
         };
-        assert_eq!(
-            err.to_string(),
-            "instruction 1 (qiskit.call) has no built-in implementation"
-        );
+        assert!(matches!(
+            err,
+            FunctionEvalError::NoBuiltinEval { full_name, .. } if full_name == "qiskit.call"
+        ));
     }
 
     // ---------------------------------------------------------------------------
