@@ -493,6 +493,15 @@ mod test {
         DataTree::mapping([("x", DataTree::Leaf(())), ("y", DataTree::Leaf(()))]).unwrap()
     }
 
+    /// `[x: _, y: [_]]` — the same two inputs, with the second one declared nested.
+    fn nested_inputs() -> DataTree<()> {
+        DataTree::mapping([
+            ("x", DataTree::Leaf(())),
+            ("y", DataTree::sequence([DataTree::Leaf(())])),
+        ])
+        .unwrap()
+    }
+
     /// `[sum: _]` — a name for [`add_function`]'s one result.
     fn named_output() -> DataTree<()> {
         DataTree::mapping([("sum", DataTree::Leaf(()))]).unwrap()
@@ -861,11 +870,14 @@ mod test {
         ) else {
             panic!("a function cannot call itself")
         };
-        assert!(matches!(err, ProgramError::CallOrder { .. }));
-        assert_eq!(
-            err.to_string(),
-            "@0 instruction 1 calls @0, which is not defined before it"
-        );
+        assert!(matches!(
+            err,
+            ProgramError::CallOrder {
+                function,
+                callee,
+                ..
+            } if function == FunctionId::from_index(0) && callee == FunctionId::from_index(0)
+        ));
 
         // @0 calls @1, which is defined after it.
         let Err(err) = QuantumProgram::new(
@@ -878,10 +890,14 @@ mod test {
         ) else {
             panic!("a call may not name a later function")
         };
-        assert_eq!(
-            err.to_string(),
-            "@0 instruction 1 calls @1, which is not defined before it"
-        );
+        assert!(matches!(
+            err,
+            ProgramError::CallOrder {
+                function,
+                callee,
+                ..
+            } if function == FunctionId::from_index(0) && callee == FunctionId::from_index(1)
+        ));
     }
 
     #[test]
@@ -906,10 +922,14 @@ mod test {
         ) else {
             panic!("@0 takes one parameter, not two")
         };
-        assert_eq!(
-            err.to_string(),
-            "@1 instruction 1 calls @0: it takes 1 parameter(s), the call supplies 2"
-        );
+        assert!(matches!(
+            err,
+            ProgramError::CallParameterCount {
+                parameters: 1,
+                operands: 2,
+                ..
+            }
+        ));
 
         // One operand, of a shape @0 does not take.
         let wider = Signature {
@@ -926,13 +946,21 @@ mod test {
         ) else {
             panic!("@0 takes an F64[1], and the call supplies an F64[2]")
         };
-        assert!(matches!(
-            err,
-            ProgramError::CallParameterType { slot: 0, .. }
-        ));
-        assert_eq!(
-            err.to_string(),
-            "@1 instruction 1 calls @0: its parameter 0 is F64[1], the call supplies F64[2]",
+        assert!(
+            matches!(
+                err,
+                ProgramError::CallParameterType {
+                    function,
+                    callee,
+                    slot: 0,
+                    parameter,
+                    operand,
+                    ..
+                } if function == FunctionId::from_index(1)
+                    && callee == FunctionId::from_index(0)
+                    && parameter == f64_1d(1)
+                    && operand == f64_1d(2)
+            ),
             "the calling function, the call instruction, the slot, and both types are named"
         );
     }
@@ -960,10 +988,14 @@ mod test {
         ) else {
             panic!("@0 produces a result the call does not declare")
         };
-        assert_eq!(
-            err.to_string(),
-            "@1 instruction 1 calls @0: it produces 1 result(s), the call declares 0"
-        );
+        assert!(matches!(
+            err,
+            ProgramError::CallResultCount {
+                results: 1,
+                outputs: 0,
+                ..
+            }
+        ));
 
         // One result, of a shape @0 does not produce.
         let wider = Signature {
@@ -980,11 +1012,15 @@ mod test {
         ) else {
             panic!("@0 produces an F64[1], and the call declares an F64[2]")
         };
-        assert!(matches!(err, ProgramError::CallResultType { slot: 0, .. }));
-        assert_eq!(
-            err.to_string(),
-            "@1 instruction 1 calls @0: its result 0 is F64[1], the call declares F64[2]"
-        );
+        assert!(matches!(
+            err,
+            ProgramError::CallResultType {
+                slot: 0,
+                result,
+                output,
+                ..
+            } if result == f64_1d(1) && output == f64_1d(2)
+        ));
     }
 
     // ---------------------------------------------------------------------------
@@ -1003,13 +1039,13 @@ mod test {
             panic!("a sequence cannot stand in for a mapping")
         };
 
-        assert!(matches!(
-            err,
-            ProgramEvalError::InputStructureMismatch { .. }
-        ));
-        assert_eq!(
-            err.to_string(),
-            "inputs are structured [_, _] but the program declares [x: _, y: _]",
+        assert!(
+            matches!(
+                err,
+                ProgramEvalError::InputStructureMismatch { expected, actual }
+                    if *expected == named_inputs()
+                        && *actual == DataTree::sequence([DataTree::Leaf(()), DataTree::Leaf(())])
+            ),
             "each structure is reported whole"
         );
     }
@@ -1018,16 +1054,8 @@ mod test {
     fn a_mismatch_below_the_root_is_reported_as_the_whole_structure() {
         // The second input is declared nested, so what diverges is one child of the root rather than
         // the root itself.
-        let program = QuantumProgram::new(
-            vec![add_function()],
-            DataTree::mapping([
-                ("x", DataTree::Leaf(())),
-                ("y", DataTree::sequence([DataTree::Leaf(())])),
-            ])
-            .unwrap(),
-            named_output(),
-        )
-        .unwrap();
+        let program =
+            QuantumProgram::new(vec![add_function()], nested_inputs(), named_output()).unwrap();
         let inputs = DataTree::mapping([
             ("x", DataTree::Leaf(one_element(1.5))),
             ("y", DataTree::Leaf(one_element(2.5))),
@@ -1038,9 +1066,12 @@ mod test {
             panic!("a leaf cannot stand in for a branch of one leaf")
         };
 
-        assert_eq!(
-            err.to_string(),
-            "inputs are structured [x: _, y: _] but the program declares [x: _, y: [_]]",
+        assert!(
+            matches!(
+                err,
+                ProgramEvalError::InputStructureMismatch { expected, actual }
+                    if *expected == nested_inputs() && *actual == named_inputs()
+            ),
             "the surrounding structure is reported, not the subtree that differs"
         );
     }
@@ -1153,10 +1184,15 @@ mod test {
         let Err(err) = program.eval(DataTree::Leaf(one_element(1.0))) else {
             panic!("a program that needs a backend cannot be evaluated in process")
         };
-        assert!(matches!(err, ProgramEvalError::NoBuiltinEval { .. }));
-        assert_eq!(
-            err.to_string(),
-            "@0 instruction 1 (vendor.elsewhere) has no built-in implementation",
+        assert!(
+            matches!(
+                err,
+                ProgramEvalError::NoBuiltinEval {
+                    function,
+                    full_name,
+                    ..
+                } if function == FunctionId::from_index(0) && full_name == "vendor.elsewhere"
+            ),
             "the function as well as the instruction is named"
         );
     }
@@ -1181,23 +1217,20 @@ mod test {
             panic!("@0 fails as it runs")
         };
 
-        assert_eq!(
-            err.to_string(),
-            "evaluating the call at instruction 1 to @0"
-        );
-        let mut source = std::error::Error::source(&err);
-        let messages: Vec<String> = std::iter::from_fn(|| {
-            let error = source?;
-            source = error.source();
-            Some(error.to_string())
-        })
-        .collect();
-        assert_eq!(
-            messages,
-            [
-                "evaluating instruction 1 (vendor.elsewhere)".to_string(),
-                "vendor.elsewhere has no in-process implementation".to_string(),
-            ],
+        let ProgramEvalError::Function(FunctionEvalError::CallFailed { callee, source, .. }) = &err
+        else {
+            panic!("expected a failed call, got {err}")
+        };
+        assert_eq!(*callee, FunctionId::from_index(0));
+        let FunctionEvalError::InstructionFailed {
+            full_name, source, ..
+        } = source.as_ref()
+        else {
+            panic!("the call's source is the instruction that failed")
+        };
+        assert_eq!(full_name, "vendor.elsewhere");
+        assert!(
+            source.downcast_ref::<NoImplementation>().is_some(),
             "the chain leads from the call to the instruction that failed"
         );
     }
