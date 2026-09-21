@@ -10,11 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use anyhow::Context;
 use hashbrown::{HashMap, HashSet};
 use std::{
     any::{self, Any},
-    fmt::Debug,
-    hash, marker,
+    borrow, fmt, hash, marker,
 };
 use thiserror::Error;
 
@@ -129,6 +129,7 @@ impl<'a> PassContext<'a> {
 #[derive(Copy, Clone, Debug)]
 pub struct DynTypeId<'a> {
     static_id: any::TypeId,
+    static_name: &'static str,
     /// The dynamic components of the type information.
     ///
     /// The payload and name are logically tied to some object that creates them.  The pointer, if
@@ -143,6 +144,7 @@ impl DynTypeId<'_> {
     pub fn of<T: 'static>() -> Self {
         Self {
             static_id: any::TypeId::of::<T>(),
+            static_name: any::type_name::<T>(),
             dynamic: None,
         }
     }
@@ -151,6 +153,16 @@ impl DynTypeId<'_> {
     #[inline]
     fn compare_key(&self) -> impl Eq + hash::Hash {
         (self.static_id, self.dynamic.map(|(addr, _)| addr))
+    }
+
+    /// Describe this type.
+    pub fn describe(&self) -> borrow::Cow<'_, str> {
+        match self.dynamic {
+            Some((_addr, dyn_name)) => {
+                borrow::Cow::Owned(format!("{}[{}]", self.static_name, dyn_name))
+            }
+            None => borrow::Cow::Borrowed(self.static_name),
+        }
     }
 }
 impl<'a> DynTypeId<'a> {
@@ -239,12 +251,24 @@ where
     fn name(&self) -> &str {
         any::type_name::<P>()
     }
-    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> anyhow::Result<Box<dyn Any>> {
-        let ir = ir
-            .downcast::<In>()
-            .map_err(|_| PassManagerError::IncompatibleTypes)?;
-        self.ob.run(ir, context).map(|out| out as Box<dyn Any>)
+    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> Result<Box<dyn Any>, PassError> {
+        let ir = ir.downcast::<In>().map_err(|_| PassError::Conversion)?;
+        self.ob
+            .run(ir, context)
+            .map(|out| out as Box<dyn Any>)
+            .map_err(PassError::Runtime)
     }
+}
+
+/// Errors returned by individual pass implementations.
+#[derive(Error, Debug)]
+pub enum PassError {
+    /// The given input type failed to cast to the right type dynamically.
+    #[error("failed to cast to expected input type")]
+    Conversion,
+    /// An arbitrary error during processing of the pass.
+    #[error(transparent)]
+    Runtime(#[from] anyhow::Error),
 }
 
 /// A type-erased version of the [Pass] trait. This is required to store passes with different
@@ -252,13 +276,21 @@ where
 pub trait Pass: Send + Sync {
     /// Cast the pass to Any to allow downcasting to a target type.
     fn as_any(&self) -> &dyn Any;
-    /// Return the type ID of the input IR.
+    /// Return the type ID of the IR expected on input.
     fn ir_id_in(&self) -> DynTypeId<'_>;
-    /// Return the type ID of the output IR.
+    /// Return the type ID of the IR that is emitted by the pass.
     fn ir_id_out(&self) -> DynTypeId<'_>;
+    /// A human-readable name for the pass.
+    ///
+    /// This is primarily for debugging purposes.
     fn name(&self) -> &str;
     /// Run the pass.
-    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> anyhow::Result<Box<dyn Any>>;
+    ///
+    /// In general, the [`PassManager`] construction logic will have validated the pipeline, so `ir`
+    /// should typically cast correctly into the desired object.  However, badly behaved passes
+    /// might have lied about their output types, or this trait may be called outside the context of
+    /// the [`PassManager`].
+    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> Result<Box<dyn Any>, PassError>;
 }
 
 /// A task in Qiskit's compiler framework.
@@ -293,8 +325,8 @@ pub enum Task {
     },
 }
 
-impl Debug for Task {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Task {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Task::Transformation(p) => f.debug_tuple("Transformation").field(&p.name()).finish(),
             Task::Group(tasks) => f.debug_tuple("Group").field(tasks).finish(),
@@ -338,46 +370,42 @@ pub struct PassManager {
     tasks: Vec<Task>,
 }
 
-#[derive(Error, Debug)]
-pub enum PassManagerError {
-    #[error("Incompatible IR types")]
-    IncompatibleTypes,
-    #[error(transparent)]
-    PassError(#[from] anyhow::Error),
-    #[error("Conversion to output IR failed.")]
-    FailedOutputConversion,
-    #[error("Encountered an empty task.")]
-    EmptyTask,
-    #[error("Invalid index ({index}) for ({len}) tasks")]
-    IndexError { index: usize, len: usize },
-}
-
 impl PassManager {
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Run the pass manager on the input IR.
+    /// Run the pass manager on the input IR, and attempt to convert it to a specific output type.
     ///
     /// This is a typed helper wrapper around [`Self::run_erased`].
-    pub fn run<IRIn, IROut>(
-        &self,
-        ir: IRIn,
-    ) -> Result<(IROut, PassManagerContext), PassManagerError>
+    pub fn run<IRIn, IROut>(&self, ir: IRIn) -> anyhow::Result<(IROut, PassManagerContext)>
     where
         IRIn: 'static,
         IROut: 'static,
     {
+        if self
+            .ir_id_out()
+            .is_some_and(|expected| expected != DynTypeId::of::<IROut>())
+        {
+            anyhow::bail!("requested an output type incompatible with the pipeline");
+        }
         let (ir, context) = self.run_erased(Box::new(ir))?;
         ir.downcast::<IROut>()
             .map(|ir| (*ir, context))
-            .map_err(|_| PassManagerError::FailedOutputConversion)
+            .map_err(|_| PassError::Conversion)
+            .with_context(|| {
+                format!(
+                    "trying to convert output to {}",
+                    DynTypeId::of::<IROut>().describe()
+                )
+            })
     }
 
+    /// Run the pass manager
     pub fn run_erased(
         &self,
         mut ir: Box<dyn Any>,
-    ) -> Result<(Box<dyn Any>, PassManagerContext), PassManagerError> {
+    ) -> anyhow::Result<(Box<dyn Any>, PassManagerContext)> {
         let mut context = PassManagerContext::new();
         for task in self.tasks.iter() {
             let mut pass_context = PassContext::spawn(&context);
@@ -395,21 +423,35 @@ impl PassManager {
         self.tasks.len()
     }
 
-    /// Try push a [Task] to the pass manager. Returns an error if the types are not
-    /// compatible.
-    pub fn try_push_task(&mut self, task: Task) -> Result<(), PassManagerError> {
-        // Check that the task types are compatible, if there's an existing task and if
-        // neither of the tasks are empty.
-        if let Some(last_task) = self.tasks.last() {
-            let Some([_, out_type]) = last_task.io_types() else {
-                return Err(PassManagerError::EmptyTask);
-            };
-            let Some([in_type, _]) = task.io_types() else {
-                return Err(PassManagerError::EmptyTask);
-            };
-            if in_type != out_type {
-                return Err(PassManagerError::IncompatibleTypes);
-            }
+    /// Get the type identifier of the input of this pipeline.
+    pub fn ir_id_in(&self) -> Option<DynTypeId<'_>> {
+        // This might not just be `last` if the last task is an empty group or stage.
+        self.tasks
+            .iter()
+            .find_map(|t| t.io_types().map(|[in_, _]| in_))
+    }
+    /// Get the type identifier of the output of this pipeline.
+    pub fn ir_id_out(&self) -> Option<DynTypeId<'_>> {
+        // This might not just be `last` if the last task is an empty group or stage.
+        self.tasks
+            .iter()
+            .rev()
+            .find_map(|t| t.io_types().map(|[_, out]| out))
+    }
+
+    /// Try to push a [`Task`] onto the end of the task list.
+    ///
+    /// Fails, returning the same task back to the caller, if the types are incompatible.
+    pub fn try_push_task(&mut self, task: Task) -> Result<(), Task> {
+        let ours = self.ir_id_out();
+        let theirs = task.io_types().map(|[in_, _]| in_);
+        if let Some((ours, theirs)) = ours.zip(theirs)
+            && ours != theirs
+        {
+            // We may want to change the error type of this in the future to provide structured
+            // information about _what_ went wrong, but in the first implementation we're just doing
+            // the easy thing.
+            return Err(task);
         }
         self.tasks.push(task);
         Ok(())
@@ -418,7 +460,7 @@ impl PassManager {
     pub fn try_push_static_pass<In, Out>(
         &mut self,
         ob: impl StaticPass<In, Out>,
-    ) -> Result<(), PassManagerError>
+    ) -> Result<(), Task>
     where
         In: Send + Sync + 'static,
         Out: Send + Sync + 'static,
@@ -438,9 +480,9 @@ fn execute_task(
     task: &Task,
     mut ir: Box<dyn Any>,
     context: &mut PassContext,
-) -> Result<Box<dyn Any>, PassManagerError> {
+) -> Result<Box<dyn Any>, PassError> {
     match task {
-        Task::Transformation(pass) => pass.run(ir, context).map_err(PassManagerError::PassError),
+        Task::Transformation(pass) => pass.run(ir, context),
         Task::Group(tasks) => {
             for task in tasks.iter() {
                 ir = execute_task(task, ir, context)?;
@@ -532,7 +574,7 @@ mod test {
     }
 
     #[test]
-    fn test_io_types() -> Result<(), PassManagerError> {
+    fn test_io_types() -> Result<(), PassError> {
         let dag_type = DynTypeId::of::<DAGCircuit>();
         let circ_type = DynTypeId::of::<CircuitData>();
 
@@ -569,9 +611,9 @@ mod test {
     }
 
     #[test]
-    fn test_pass() -> Result<(), PassManagerError> {
+    fn test_pass() {
         let mut pm = PassManager::new();
-        pm.try_push_static_pass(RemoveIdentities)?;
+        pm.try_push_static_pass(RemoveIdentities).unwrap();
 
         let mut qc = CircuitData::with_capacity(1, 0, 2, Param::Float(0.0)).unwrap();
         qc.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
@@ -580,23 +622,21 @@ mod test {
             .unwrap();
         let dag = DAGCircuit::from_circuit_data(&qc, false, None, None, None, None).unwrap();
 
-        let (out, _) = pm.run::<_, DAGCircuit>(dag)?;
+        let (out, _) = pm.run::<_, DAGCircuit>(dag).unwrap();
         let ops = out.count_ops(false).unwrap();
         assert_eq!(ops.get("h"), Some(&1));
         assert_eq!(ops.get("rx"), None);
-        Ok(())
     }
 
     #[test]
     fn test_incompatible_types() {
         let mut pm = PassManager::new();
         pm.try_push_static_pass(RemoveIdentities).unwrap();
-        let result = pm.try_push_static_pass(CountT);
-        assert!(matches!(result, Err(PassManagerError::IncompatibleTypes)));
+        assert!(pm.try_push_static_pass(CountT).is_err());
     }
 
     #[test]
-    fn test_task_retrieval() -> Result<(), PassManagerError> {
+    fn test_task_retrieval() {
         let make_task = || Task::Transformation(RemoveIdentities.into_pass());
 
         let group = Task::Group(vec![make_task(), make_task()]);
@@ -611,11 +651,11 @@ mod test {
         let stages = Task::Stages(vec![("one_and_only".to_string(), make_task())]);
 
         let mut pm = PassManager::new();
-        pm.try_push_static_pass(RemoveIdentities)?;
-        pm.try_push_task(group)?;
-        pm.try_push_task(loop_task)?;
-        pm.try_push_task(switch)?;
-        pm.try_push_task(stages)?;
+        pm.try_push_static_pass(RemoveIdentities).unwrap();
+        pm.try_push_task(group).unwrap();
+        pm.try_push_task(loop_task).unwrap();
+        pm.try_push_task(switch).unwrap();
+        pm.try_push_task(stages).unwrap();
 
         assert!(matches!(pm.get_task(0), Some(Task::Transformation(_))));
 
@@ -634,26 +674,29 @@ mod test {
         } else {
             panic!("Expected a Task::Stage");
         }
-
-        Ok(())
     }
 
     #[test]
-    fn test_pass_context() -> anyhow::Result<()> {
+    fn test_pass_context() {
         let num_t = 50;
-        let mut circuit = CircuitData::with_capacity(3, 0, num_t, Param::Float(0.))?;
+        let mut circuit = CircuitData::with_capacity(3, 0, num_t, Param::Float(0.)).unwrap();
         for i in 0..num_t as u32 {
-            circuit.push_standard_gate(StandardGate::T, &[], &[Qubit(i % 3)])?;
-            circuit.push_standard_gate(StandardGate::H, &[], &[Qubit(i % 3)])?;
+            circuit
+                .push_standard_gate(StandardGate::T, &[], &[Qubit(i % 3)])
+                .unwrap();
+            circuit
+                .push_standard_gate(StandardGate::H, &[], &[Qubit(i % 3)])
+                .unwrap();
         }
 
         let mut pm = PassManager::new();
-        pm.try_push_static_pass(CountT)?;
+        pm.try_push_static_pass(CountT).unwrap();
         pm.try_push_static_pass(CheckTCount {
             expected_t_count: num_t,
-        })?;
+        })
+        .unwrap();
 
-        let (_, context) = pm.run::<_, CircuitData>(circuit)?;
+        let (_, context) = pm.run::<_, CircuitData>(circuit).unwrap();
         let t_count = context
             .data
             .get("t_count")
@@ -661,7 +704,5 @@ mod test {
             .downcast_ref::<usize>()
             .expect("Downcasting failed");
         assert_eq!(*t_count, num_t);
-
-        Ok(())
     }
 }
