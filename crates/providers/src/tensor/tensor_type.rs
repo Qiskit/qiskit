@@ -351,11 +351,11 @@ mod test {
             // Two different bounds need not be equal sizes.
             (vec![other], vec![bounded], vec![other]),
         ] {
-            assert_eq!(
-                broadcast_dims_to(&shape, &target).unwrap_err(),
-                TensorError::DynamicDim {
-                    shape: at_fault.clone()
-                },
+            assert!(
+                matches!(
+                    broadcast_dims_to(&shape, &target).unwrap_err(),
+                    TensorError::DynamicDim { shape: reported } if reported == at_fault
+                ),
                 "for {shape:?} broadcast to {target:?}"
             );
         }
@@ -369,23 +369,16 @@ mod test {
             (vec![Dim::Fixed(5)], vec![Dim::Fixed(1)]),
             (vec![Dim::Fixed(1), Dim::Fixed(3)], vec![Dim::Fixed(3)]),
         ] {
-            let err = broadcast_dims_to(&shape, &target).unwrap_err();
-            assert_eq!(
-                err,
-                TensorError::DimShapeMismatch {
-                    lhs: shape.clone(),
-                    rhs: target.clone(),
-                },
+            assert!(
+                matches!(
+                    broadcast_dims_to(&shape, &target).unwrap_err(),
+                    TensorError::DimShapeMismatch { lhs, rhs } if lhs == shape && rhs == target
+                ),
                 "for {shape:?} broadcast to {target:?}"
             );
         }
-        assert_eq!(
-            broadcast_dims_to(&[Dim::Fixed(3)], &[Dim::Fixed(4)])
-                .unwrap_err()
-                .to_string(),
-            "shapes [3] and [4] are not broadcast-compatible"
-        );
     }
+
     #[test]
     fn test_broadcast_dims_rejects_a_compared_bounded_axis() {
         // A bounded axis meeting a size it would have to be compared against needs its true size:

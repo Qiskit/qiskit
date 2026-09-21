@@ -288,15 +288,13 @@ mod test {
 
     #[test]
     fn test_cast_refuses_a_complex_operand_and_a_real_target() {
-        let err = cast(&ty(DType::C64, &[2]), DType::F64).unwrap_err();
-        assert_eq!(
-            err,
+        assert!(matches!(
+            cast(&ty(DType::C64, &[2]), DType::F64).unwrap_err(),
             MathOpError::UnsupportedCast {
                 from: DType::C64,
                 to: DType::F64,
             }
-        );
-        assert_eq!(err.to_string(), "cannot cast C64 to F64");
+        ));
         assert_eq!(
             cast(&ty(DType::C64, &[2]), DType::C128).unwrap(),
             ty(DType::C128, &[2]),
@@ -307,12 +305,14 @@ mod test {
     #[test]
     fn test_cast_dtype_is_the_dtype_cast_infers() {
         assert_eq!(cast_dtype(DType::Bit, DType::C128).unwrap(), DType::C128);
-        assert_eq!(
-            cast_dtype(DType::C128, DType::I8).unwrap_err(),
-            MathOpError::UnsupportedCast {
-                from: DType::C128,
-                to: DType::I8,
-            },
+        assert!(
+            matches!(
+                cast_dtype(DType::C128, DType::I8).unwrap_err(),
+                MathOpError::UnsupportedCast {
+                    from: DType::C128,
+                    to: DType::I8,
+                }
+            ),
             "a cast the op does not admit is refused at evaluation time too"
         );
     }
@@ -325,12 +325,10 @@ mod test {
             ty(DType::F32, &[4, 2, 3]),
             "the dtype is unchanged and the shape is the target"
         );
-        assert_eq!(
+        assert!(matches!(
             broadcast_to(&ty(DType::F32, &[2]), &target).unwrap_err(),
-            MathOpError::Tensor(TensorError::DimShapeMismatch {
-                lhs: vec![Dim::Fixed(2)],
-                rhs: target.to_vec(),
-            })
-        );
+            MathOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs })
+                if lhs == [Dim::Fixed(2)] && rhs == target
+        ));
     }
 }

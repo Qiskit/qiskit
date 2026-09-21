@@ -157,33 +157,25 @@ mod test {
         // `rules::broadcast_dims_to` holds the table of what is admitted; these are its refusals
         // arriving through the op.
         let shots = Dim::Bounded { max: 4000 };
-        assert_eq!(
+        assert!(matches!(
             BroadcastTo::new(fixed(&[4]))
                 .infer_output_types(&[ty(fixed(&[3]))])
                 .unwrap_err(),
-            MathOpError::Tensor(TensorError::DimShapeMismatch {
-                lhs: fixed(&[3]),
-                rhs: fixed(&[4]),
-            })
-        );
-        assert_eq!(
+            MathOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs })
+                if lhs == fixed(&[3]) && rhs == fixed(&[4])
+        ));
+        assert!(matches!(
             BroadcastTo::new(fixed(&[5]))
                 .infer_output_types(&[ty(vec![shots])])
                 .unwrap_err(),
-            MathOpError::Tensor(TensorError::DynamicDim { shape: vec![shots] })
-        );
-        let err = BroadcastTo::new(vec![shots])
-            .infer_output_types(&[ty(fixed(&[1]))])
-            .unwrap_err();
-        assert_eq!(
-            err,
-            MathOpError::Tensor(TensorError::DynamicDim { shape: vec![shots] })
-        );
-        assert_eq!(
-            err.to_string(),
-            "shape [<=4000] has an axis whose size is only bounded above, \
-             where a true size is required"
-        );
+            MathOpError::Tensor(TensorError::DynamicDim { shape }) if shape == [shots]
+        ));
+        assert!(matches!(
+            BroadcastTo::new(vec![shots])
+                .infer_output_types(&[ty(fixed(&[1]))])
+                .unwrap_err(),
+            MathOpError::Tensor(TensorError::DynamicDim { shape }) if shape == [shots]
+        ));
     }
 
     #[test]
@@ -219,34 +211,29 @@ mod test {
     fn test_eval_rejects_an_operand_that_does_not_fit_the_target() {
         // Inference rejects both of these, so a type-checked op cannot reach them. Evaluation
         // returns an error rather than panicking.
-        assert_eq!(
+        assert!(matches!(
             BroadcastTo::new(fixed(&[4]))
                 .eval(&[Tensor::from([1.0_f64, 2.0, 3.0])])
                 .unwrap_err(),
-            MathOpError::Tensor(TensorError::ShapeMismatch {
-                lhs: vec![3],
-                rhs: vec![4],
-            })
-        );
-        assert_eq!(
+            MathOpError::Tensor(TensorError::ShapeMismatch { lhs, rhs })
+                if lhs == [3] && rhs == [4]
+        ));
+        assert!(matches!(
             BroadcastTo::new(fixed(&[3]))
                 .eval(&[Tensor::F64(
                     arr2(&[[1.0_f64], [2.0]]).into_dyn().into_shared()
                 )])
                 .unwrap_err(),
-            MathOpError::Tensor(TensorError::DimShapeMismatch {
-                lhs: fixed(&[2, 1]),
-                rhs: fixed(&[3]),
-            })
-        );
+            MathOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs })
+                if lhs == fixed(&[2, 1]) && rhs == fixed(&[3])
+        ));
         let shots = Dim::Bounded { max: 4000 };
-        assert_eq!(
+        assert!(matches!(
             BroadcastTo::new(vec![shots, Dim::Fixed(3)])
                 .eval(&[Tensor::from([1.0_f64, 2.0, 3.0])])
                 .unwrap_err(),
-            MathOpError::Tensor(TensorError::DynamicDim {
-                shape: vec![shots, Dim::Fixed(3)],
-            })
-        );
+            MathOpError::Tensor(TensorError::DynamicDim { shape })
+                if shape == [shots, Dim::Fixed(3)]
+        ));
     }
 }

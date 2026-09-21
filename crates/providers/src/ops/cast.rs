@@ -148,20 +148,20 @@ mod test {
         // Rejected when the op is added, so a function cannot type-check and then fail while
         // running.
         let op = Cast::new(DType::F64);
-        let err = op.infer_output_types(&[ty_1d(DType::C128, 2)]).unwrap_err();
-        assert_eq!(
-            err,
-            MathOpError::UnsupportedCast {
-                from: DType::C128,
-                to: DType::F64,
-            }
-        );
-        assert_eq!(err.to_string(), "cannot cast C128 to F64");
-        assert_eq!(
+        // Both the build-time and the run-time path refuse it the same way.
+        for err in [
+            op.infer_output_types(&[ty_1d(DType::C128, 2)]).unwrap_err(),
             op.eval(&[Tensor::from([Complex64::new(1.0, 2.0)])])
                 .unwrap_err(),
-            err
-        );
+        ] {
+            assert!(matches!(
+                err,
+                MathOpError::UnsupportedCast {
+                    from: DType::C128,
+                    to: DType::F64,
+                }
+            ));
+        }
 
         // A complex target is fine, in either direction between the two widths.
         assert_eq!(

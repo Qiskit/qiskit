@@ -770,13 +770,11 @@ mod test {
     fn test_broadcast_to_a_shape_it_cannot_reach_reports_both() {
         let t = Tensor::from([1.0_f64, 2.0, 3.0]);
         for shape in [vec![4], vec![1], vec![3, 2], vec![]] {
-            let err = t.broadcast_to(&shape).unwrap_err();
-            assert_eq!(
-                err,
-                TensorError::ShapeMismatch {
-                    lhs: vec![3],
-                    rhs: shape.clone(),
-                },
+            assert!(
+                matches!(
+                    t.broadcast_to(&shape).unwrap_err(),
+                    TensorError::ShapeMismatch { lhs, rhs } if lhs == [3] && rhs == shape
+                ),
                 "for target {shape:?}"
             );
         }
