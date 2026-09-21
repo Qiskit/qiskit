@@ -22,6 +22,8 @@ use qiskit_circuit::{
     operations::{BoxedCustomOperation, CustomOperation, Operation, Param},
 };
 
+use crate::ExitCode;
+
 /// Represents a quantum operation fully defined in C.
 ///
 /// This operation object contains the minimal functionality an object
@@ -482,6 +484,8 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 ///
 /// @param slots A pointer to a list of entries delimited by an entry with
 /// a sentinel value.
+/// @param pointer A pointer to a space reserved to store a ``QkCustomOpVTable``
+/// object.
 ///
 /// @return A pointer to a constructed vtable or a null pointer if any
 /// required entries are absent.
@@ -491,19 +495,24 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 /// Behavior is undefined if a list of entries without delimiting sentinel
 /// value are provided.
 ///
+/// Undefined behavior can happen if `pointer` doesn't point to an address
+/// big enough to store a ``QkCustomOpVTable`` pointer, or if the pointer is null
+/// or unaligned.
+///
 /// Undefined behavior may also happen during transmutation if the provided
 /// function pointer does not have the correct signature.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     mut slots: *const CustomOpVTableEntry,
-) -> *const CustomOpVTable {
+    pointer: *mut *const CustomOpVTable,
+) -> ExitCode {
     let mut vtable = CustomOpVtablePartial::default();
     let mut slot = unsafe { slots.read() };
     while slot.slot != u32::MAX {
         match CustomOpMethod::try_from(slot.slot) {
             Ok(CustomOpMethod::Name) => {
                 if vtable.name.is_some() {
-                    panic!("Name slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.name = Some(unsafe {
                     std::mem::transmute::<
@@ -514,7 +523,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::NumQubits) => {
                 if vtable.num_qubits.is_some() {
-                    panic!("NumQubits slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.num_qubits = Some(unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
@@ -524,7 +533,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::NumClbits) => {
                 if vtable.num_clbits.is_some() {
-                    panic!("NumClbits slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.num_clbits = Some(unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
@@ -534,7 +543,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::NumParams) => {
                 if vtable.num_params.is_some() {
-                    panic!("NumParams slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.num_params = Some(unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
@@ -544,7 +553,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::Directive) => {
                 if vtable.directive.is_some() {
-                    panic!("Directive slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.directive = Some(unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
@@ -554,7 +563,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::IsUnitary) => {
                 if vtable.is_unitary.is_some() {
-                    panic!("IsUnitary slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.is_unitary = Some(unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
@@ -564,7 +573,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::NumCtrlQubits) => {
                 if vtable.num_ctrl_qubits.is_some() {
-                    panic!("NumCtrlQubits slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.num_ctrl_qubits = Some(unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
@@ -574,7 +583,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::Label) => {
                 if vtable.label.is_some() {
-                    panic!("Label slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.label = Some(unsafe {
                     std::mem::transmute::<
@@ -585,7 +594,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::Definition) => {
                 if vtable.definition.is_some() {
-                    panic!("Definition slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.definition = Some(unsafe {
                     std::mem::transmute::<
@@ -599,7 +608,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
             }
             Ok(CustomOpMethod::Eq) => {
                 if vtable.eq.is_some() {
-                    panic!("Eq slot has already been set.")
+                    return ExitCode::CustomOperationRepeatedSlot;
                 }
                 vtable.eq = Some(unsafe {
                     std::mem::transmute::<
@@ -617,14 +626,18 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
         if slots.is_null() {
             // If by the time we reach a null item we have not yet found a sentinel
             // value to stop reading. Assume the resulting vtable is invalid and
-            // return `NULL`
-            return null();
+            // do not write to pointer.
+            return ExitCode::CInputError;
         }
         slot = unsafe { slots.read() };
     }
-    CustomOpVTable::try_from(vtable)
-        .map(|x| Arc::into_raw(Arc::new(x)))
-        .unwrap_or(std::ptr::null())
+    if let Ok(ptr) = CustomOpVTable::try_from(vtable).map(|x| Arc::into_raw(Arc::new(x))) {
+        // SAFETY: We have established that this pointer is big enough
+        // to hold a pointer to ``QkCustomOpVTable``, and needs to be
+        // null add aligned.
+        unsafe { pointer.write(ptr) }
+    }
+    ExitCode::Success
 }
 
 /// @ingroup QkCustomOperation

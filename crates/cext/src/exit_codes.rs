@@ -72,6 +72,10 @@ pub enum ExitCode {
     ParameterError = 600,
     /// Parameter name conflict.
     ParameterNameConflict = 601,
+    /// CustomOperation error
+    CustomOperation = 700,
+    /// Repeated vtable slot error
+    CustomOperationRepeatedSlot = 701,
 }
 
 impl From<ArithmeticError> for ExitCode {
