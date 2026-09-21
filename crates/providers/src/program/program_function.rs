@@ -22,7 +22,7 @@ type Slot = u16;
 
 /// An instruction's position in the function that holds it.
 ///
-/// Ids are dense, are never reused, and are only meaningful within the function that issued them.
+/// Ids are dense, never reused, and only meaningful within the function that issued them.
 /// They are also an evaluation order: every operand of an instruction is produced by a strictly
 /// lower id.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -192,7 +192,7 @@ impl<'a> InstructionRef<'a> {
     }
 
     /// The name that categorizes this instruction and that a backend dispatches on, `qiskit.add`
-    /// for instance. Allocates; [`Self::name`] and [`Self::namespace`] do not.
+    /// for instance.
     pub fn full_name(&self) -> String {
         self.instruction().body.full_name()
     }
@@ -274,7 +274,7 @@ pub enum FunctionEvalError {
         actual: TensorType,
     },
 
-    /// The function contains an instruction Qiskit has no in-process implementation of.
+    /// The function contains an instruction Qiskit has no built-in implementation of.
     #[error("instruction {instruction} ({full_name}) has no built-in implementation")]
     NoBuiltinEval {
         instruction: InstructionId,
@@ -481,7 +481,9 @@ impl ProgramFunction {
         self.instructions.len()
     }
 
-    /// Iterate over every instruction, in topological order.
+    /// Iterate over every instruction.
+    ///
+    /// By construction, this is in topological order.
     pub fn iter_instructions(&self) -> impl Iterator<Item = InstructionRef<'_>> {
         (0..self.instructions.len() as u32).map(|id| InstructionRef {
             function: self,
@@ -673,8 +675,8 @@ impl ProgramFunction {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ops::{Add, Constant, Mean};
-    use crate::tensor::{DType, Dim};
+    use crate::ops::{Add, Constant, MathOpError, Mean};
+    use crate::tensor::{DType, Dim, TensorError};
 
     /// The type of a 1-D `F64` tensor of `len` elements.
     fn f64_1d(len: usize) -> TensorType {
@@ -953,7 +955,14 @@ mod test {
         let Err(err) = function.add_op(Add, &[x]) else {
             panic!("a one-operand add is rejected")
         };
-        assert_eq!(err.to_string(), "qiskit.add takes 2 operand(s), got 1");
+        assert!(matches!(
+            err,
+            FunctionError::OperandArity {
+                full_name,
+                expected: 2,
+                actual: 1,
+            } if full_name == "qiskit.add"
+        ));
     }
 
     #[test]
@@ -970,10 +979,10 @@ mod test {
         let Err(err) = known.add_op(Add, &[x, stranger]) else {
             panic!("an operand from another function is rejected")
         };
-        assert_eq!(
-            err.to_string(),
-            "operand 1: %1 was not produced by this function"
-        );
+        assert!(matches!(
+            err,
+            FunctionError::UnknownOperand { operand: 1, value } if value == stranger
+        ));
     }
 
     #[test]
@@ -1001,9 +1010,12 @@ mod test {
             panic!("expected a type error, got {err}")
         };
         assert_eq!(full_name, "qiskit.add", "the op is named");
-        assert_eq!(
-            source.to_string(),
-            "shapes [3] and [4] are not broadcast-compatible",
+        assert!(
+            matches!(
+                source.downcast_ref::<MathOpError>(),
+                Some(MathOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs }))
+                    if lhs == &[Dim::Fixed(3)] && rhs == &[Dim::Fixed(4)]
+            ),
             "both operand shapes are named"
         );
     }
@@ -1024,10 +1036,14 @@ mod test {
         let FunctionError::TypeError { source, .. } = &err else {
             panic!("expected a type error, got {err}")
         };
-        assert_eq!(
-            source.to_string(),
-            "operands of dtype Bit and Bit promote to Bit, which is not supported"
-        );
+        assert!(matches!(
+            source.downcast_ref::<MathOpError>(),
+            Some(MathOpError::UnsupportedPromotion {
+                lhs: DType::Bit,
+                rhs: DType::Bit,
+                dtype: DType::Bit,
+            })
+        ));
     }
 
     #[test]
@@ -1041,10 +1057,10 @@ mod test {
         let FunctionError::TypeError { source, .. } = &err else {
             panic!("expected a type error, got {err}")
         };
-        assert_eq!(
-            source.to_string(),
-            "axis 1 is out of bounds for tensor with 1 dimension(s)"
-        );
+        assert!(matches!(
+            source.downcast_ref::<MathOpError>(),
+            Some(MathOpError::InvalidAxis { axis: 1, ndim: 1 })
+        ));
     }
 
     // ---------------------------------------------------------------------------
@@ -1141,10 +1157,11 @@ mod test {
         let FunctionError::TypeError { source, .. } = &err else {
             panic!("expected a type error, got {err}")
         };
-        assert_eq!(
-            source.to_string(),
-            "shape [<=8] has an axis whose size is only bounded above, where a true size is required"
-        );
+        assert!(matches!(
+            source.downcast_ref::<MathOpError>(),
+            Some(MathOpError::Tensor(TensorError::DynamicDim { shape }))
+                if shape == &[Dim::Bounded { max: 8 }]
+        ));
     }
 
     #[test]
@@ -1180,7 +1197,13 @@ mod test {
         let Err(err) = function.eval(&[Tensor::from([1.0_f64])]) else {
             panic!("one argument for two parameters is rejected")
         };
-        assert_eq!(err.to_string(), "expected 2 argument(s), got 1");
+        assert!(matches!(
+            err,
+            FunctionEvalError::ArgumentArity {
+                expected: 2,
+                actual: 1
+            }
+        ));
     }
 
     #[test]
@@ -1191,9 +1214,15 @@ mod test {
         let Err(err) = function.eval(&[Tensor::from([1.0_f64, 2.0])]) else {
             panic!("an argument of the wrong shape is rejected")
         };
-        assert_eq!(
-            err.to_string(),
-            "argument 0: expected F64[3], got F64[2]",
+        assert!(
+            matches!(
+                err,
+                FunctionEvalError::ArgumentTypeMismatch {
+                    parameter: 0,
+                    expected,
+                    actual,
+                } if expected == f64_1d(3) && actual == f64_1d(2)
+            ),
             "both the declared and the supplied type are named"
         );
     }
@@ -1226,7 +1255,14 @@ mod test {
         let Err(err) = function.eval(&[Tensor::from([1.0_f64; 5])]) else {
             panic!("an argument past the bound is rejected")
         };
-        assert_eq!(err.to_string(), "argument 0: expected F64[<=4], got F64[5]");
+        assert!(matches!(
+            err,
+            FunctionEvalError::ArgumentTypeMismatch {
+                parameter: 0,
+                expected,
+                actual,
+            } if expected.shape == [Dim::Bounded { max: 4 }] && actual == f64_1d(5)
+        ));
     }
 
     // ---------------------------------------------------------------------------
@@ -1332,9 +1368,13 @@ mod test {
         let Err(err) = function.add_op(Elsewhere, &[x, x]) else {
             panic!("a two-operand call to a unary instruction is rejected")
         };
-        assert_eq!(
-            err.to_string(),
-            "vendor.elsewhere takes 1 operand(s), got 2"
-        );
+        assert!(matches!(
+            err,
+            FunctionError::OperandArity {
+                full_name,
+                expected: 1,
+                actual: 2,
+            } if full_name == "vendor.elsewhere"
+        ));
     }
 }
