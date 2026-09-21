@@ -168,10 +168,7 @@ impl CustomOperation for CustomOp {
 
     fn num_ctrl_qubits(&self) -> Option<std::num::NonZero<u32>> {
         let num_ctrl_qubits = unsafe { (({ &*self.v_table }).num_ctrl_qubits)(self.orig) };
-        match num_ctrl_qubits {
-            0 => None,
-            _ => Some(NonZero::new(num_ctrl_qubits).unwrap()),
-        }
+        NonZero::new(num_ctrl_qubits)
     }
 
     fn definition(&self, params: &[Param]) -> Option<CircuitData> {
