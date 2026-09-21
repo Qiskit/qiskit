@@ -119,7 +119,7 @@ use qiskit_circuit::{
 #[derive(Debug, Clone)]
 struct CustomOp {
     /// A pointer to the original gate.
-    orig: *mut (),
+    orig: *mut c_void,
     /// A pointer to a vtable designed for the original gate.
     v_table: Arc<CustomOpVTable>,
 }
@@ -207,62 +207,62 @@ impl CustomOperation for CustomOp {
 /// the following required methods for implementing the [`CustomOperation`]
 /// trait:
 ///
-/// * ``name(*const ())`` -> ``*const c_char``,
-/// * ``num_qubits(*const ())`` -> ``u32``,
+/// * ``name(*const c_void)`` -> ``*const c_char``,
+/// * ``num_qubits(*const c_void)`` -> ``u32``,
 ///
 /// There are also functional methods that are optional but
 /// implementors are expected to provide.
 ///
-/// * ``num_clbits(*const ())`` -> ``u32``,
-/// * ``num_params(*const ())`` -> ``u32``,
-/// * ``directive(*const ())`` -> ``bool``,
-/// * ``is_unitary(*const ())`` -> ``bool``,
-/// * ``num_ctrl_qubits(*const ())`` -> ``u32``,
-/// * ``label(*const ())`` ->  ``*const c_char``,
-/// * ``definition(*const (), *const *const Param)`` -> ``*mut CircuitData``,
-/// * ``eq(*const (), *const ())`` -> ``bool``, to compare two operations of the same kind.
+/// * ``num_clbits(*const c_void)`` -> ``u32``,
+/// * ``num_params(*const c_void)`` -> ``u32``,
+/// * ``directive(*const c_void)`` -> ``bool``,
+/// * ``is_unitary(*const c_void)`` -> ``bool``,
+/// * ``num_ctrl_qubits(*const c_void)`` -> ``u32``,
+/// * ``label(*const c_void)`` ->  ``*const c_char``,
+/// * ``definition(*const c_void, *const *const Param)`` -> ``*mut CircuitData``,
+/// * ``eq(*const c_void, *const c_void)`` -> ``bool``, to compare two operations of the same kind.
 #[derive(Debug, Clone)]
 pub struct CustomOpVTable {
-    name: unsafe extern "C" fn(*const ()) -> *const c_char,
-    num_qubits: unsafe extern "C" fn(*const ()) -> u32,
-    num_clbits: unsafe extern "C" fn(*const ()) -> u32,
-    num_params: unsafe extern "C" fn(*const ()) -> u32,
-    directive: unsafe extern "C" fn(*const ()) -> bool,
-    is_unitary: unsafe extern "C" fn(*const ()) -> bool,
-    num_ctrl_qubits: unsafe extern "C" fn(*const ()) -> u32,
-    label: unsafe extern "C" fn(*const ()) -> *const c_char,
-    definition: unsafe extern "C" fn(*const (), *const *const Param) -> *mut CircuitData,
-    eq: unsafe extern "C" fn(*const (), *const ()) -> bool,
+    name: unsafe extern "C" fn(*const c_void) -> *const c_char,
+    num_qubits: unsafe extern "C" fn(*const c_void) -> u32,
+    num_clbits: unsafe extern "C" fn(*const c_void) -> u32,
+    num_params: unsafe extern "C" fn(*const c_void) -> u32,
+    directive: unsafe extern "C" fn(*const c_void) -> bool,
+    is_unitary: unsafe extern "C" fn(*const c_void) -> bool,
+    num_ctrl_qubits: unsafe extern "C" fn(*const c_void) -> u32,
+    label: unsafe extern "C" fn(*const c_void) -> *const c_char,
+    definition: unsafe extern "C" fn(*const c_void, *const *const Param) -> *mut CircuitData,
+    eq: unsafe extern "C" fn(*const c_void, *const c_void) -> bool,
 }
 
-extern "C" fn default_num_clbits(_slf: *const ()) -> u32 {
+extern "C" fn default_num_clbits(_slf: *const c_void) -> u32 {
     0
 }
-extern "C" fn default_num_params(_slf: *const ()) -> u32 {
+extern "C" fn default_num_params(_slf: *const c_void) -> u32 {
     0
 }
-extern "C" fn default_directive(_slf: *const ()) -> bool {
+extern "C" fn default_directive(_slf: *const c_void) -> bool {
     false
 }
-extern "C" fn default_is_unitary(_slf: *const ()) -> bool {
+extern "C" fn default_is_unitary(_slf: *const c_void) -> bool {
     true
 }
-extern "C" fn default_num_ctrl_qubits(_slf: *const ()) -> u32 {
+extern "C" fn default_num_ctrl_qubits(_slf: *const c_void) -> u32 {
     0
 }
 
-extern "C" fn default_label(_slf: *const ()) -> *const c_char {
+extern "C" fn default_label(_slf: *const c_void) -> *const c_char {
     null()
 }
 
 extern "C" fn default_definition(
-    _slf: *const (),
+    _slf: *const c_void,
     _params: *const *const Param,
 ) -> *mut CircuitData {
     null_mut()
 }
 
-extern "C" fn default_eq(slf: *const (), other: *const ()) -> bool {
+extern "C" fn default_eq(slf: *const c_void, other: *const c_void) -> bool {
     slf.eq(&other)
 }
 
@@ -296,16 +296,17 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVTable {
 /// the first missing slot's [``CustomOpMethod``] index will be provided.
 #[derive(Debug, Clone, Default)]
 pub struct CustomOpVtablePartial {
-    name: Option<unsafe extern "C" fn(*const ()) -> *const c_char>,
-    num_qubits: Option<unsafe extern "C" fn(*const ()) -> u32>,
-    num_clbits: Option<unsafe extern "C" fn(*const ()) -> u32>,
-    num_params: Option<unsafe extern "C" fn(*const ()) -> u32>,
-    directive: Option<unsafe extern "C" fn(*const ()) -> bool>,
-    is_unitary: Option<unsafe extern "C" fn(*const ()) -> bool>,
-    num_ctrl_qubits: Option<unsafe extern "C" fn(*const ()) -> u32>,
-    label: Option<unsafe extern "C" fn(*const ()) -> *const c_char>,
-    definition: Option<unsafe extern "C" fn(*const (), *const *const Param) -> *mut CircuitData>,
-    eq: Option<unsafe extern "C" fn(*const (), *const ()) -> bool>,
+    name: Option<unsafe extern "C" fn(*const c_void) -> *const c_char>,
+    num_qubits: Option<unsafe extern "C" fn(*const c_void) -> u32>,
+    num_clbits: Option<unsafe extern "C" fn(*const c_void) -> u32>,
+    num_params: Option<unsafe extern "C" fn(*const c_void) -> u32>,
+    directive: Option<unsafe extern "C" fn(*const c_void) -> bool>,
+    is_unitary: Option<unsafe extern "C" fn(*const c_void) -> bool>,
+    num_ctrl_qubits: Option<unsafe extern "C" fn(*const c_void) -> u32>,
+    label: Option<unsafe extern "C" fn(*const c_void) -> *const c_char>,
+    definition:
+        Option<unsafe extern "C" fn(*const c_void, *const *const Param) -> *mut CircuitData>,
+    eq: Option<unsafe extern "C" fn(*const c_void, *const c_void) -> bool>,
 }
 
 /// Represents the Vtable index of a ``QkCustomOperation`` coming from the
@@ -426,7 +427,7 @@ impl CustomOpVTableEntry {
 /// Failure to comply with these conditions may result in undefined behavior.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_new(
-    operation: *mut (),
+    operation: *mut c_void,
     v_table: *const CustomOpVTable,
 ) -> *mut BoxedCustomOperation {
     unsafe {
@@ -512,7 +513,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                 vtable.name = Some(unsafe {
                     std::mem::transmute::<
                         *const c_void,
-                        unsafe extern "C" fn(*const ()) -> *const c_char,
+                        unsafe extern "C" fn(*const c_void) -> *const c_char,
                     >(slot.func)
                 })
             }
@@ -521,7 +522,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     panic!("NumQubits slot has already been set.")
                 }
                 vtable.num_qubits = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const ()) -> u32>(
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
                         slot.func,
                     )
                 })
@@ -531,7 +532,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     panic!("NumClbits slot has already been set.")
                 }
                 vtable.num_clbits = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const ()) -> u32>(
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
                         slot.func,
                     )
                 })
@@ -541,7 +542,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     panic!("NumParams slot has already been set.")
                 }
                 vtable.num_params = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const ()) -> u32>(
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
                         slot.func,
                     )
                 })
@@ -551,7 +552,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     panic!("Directive slot has already been set.")
                 }
                 vtable.directive = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const ()) -> bool>(
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
                         slot.func,
                     )
                 })
@@ -561,7 +562,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     panic!("IsUnitary slot has already been set.")
                 }
                 vtable.is_unitary = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const ()) -> bool>(
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
                         slot.func,
                     )
                 })
@@ -571,7 +572,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                     panic!("NumCtrlQubits slot has already been set.")
                 }
                 vtable.num_ctrl_qubits = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const ()) -> u32>(
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
                         slot.func,
                     )
                 })
@@ -583,7 +584,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                 vtable.label = Some(unsafe {
                     std::mem::transmute::<
                         *const c_void,
-                        unsafe extern "C" fn(*const ()) -> *const c_char,
+                        unsafe extern "C" fn(*const c_void) -> *const c_char,
                     >(slot.func)
                 })
             }
@@ -594,7 +595,10 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                 vtable.definition = Some(unsafe {
                     std::mem::transmute::<
                         *const c_void,
-                        unsafe extern "C" fn(*const (), *const *const Param) -> *mut CircuitData,
+                        unsafe extern "C" fn(
+                            *const c_void,
+                            *const *const Param,
+                        ) -> *mut CircuitData,
                     >(slot.func)
                 })
             }
@@ -605,7 +609,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
                 vtable.eq = Some(unsafe {
                     std::mem::transmute::<
                         *const c_void,
-                        unsafe extern "C" fn(*const (), *const ()) -> bool,
+                        unsafe extern "C" fn(*const c_void, *const c_void) -> bool,
                     >(slot.func)
                 })
             }
