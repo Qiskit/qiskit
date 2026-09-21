@@ -11,5 +11,8 @@
 // that they have been altered from the originals.
 
 mod data_tree;
+pub mod ops;
 pub mod tensor;
-pub use data_tree::{DataTree, PathEntry};
+
+pub use data_tree::{ArityMismatch, DataTree, PathEntry, TreeMatchError};
+pub use ops::{CallError, CallInputError, MissingCallError, ProgramOp, ProgramOpExt, Store};

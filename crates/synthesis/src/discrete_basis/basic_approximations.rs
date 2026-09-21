@@ -31,11 +31,14 @@ use super::math;
 
 #[derive(Error, Debug)]
 pub enum DiscreteBasisError {
-    #[error("Parameterized gates cannot be decomposed.")]
+    #[error("parameterized gates cannot be decomposed")]
     ParameterizedGate,
 
-    #[error("Cannot extract matrix from operation.")]
+    #[error("cannot extract matrix from operation")]
     NoMatrix,
+
+    #[error("only standard gates are allowed in GateSequence.from_gates_and_matrix")]
+    NonStandardGate,
 }
 
 impl From<DiscreteBasisError> for PyErr {
@@ -330,11 +333,9 @@ impl GateSequence {
             .iter()
             .map(|op| match op.operation.view() {
                 OperationRef::StandardGate(gate) => Ok(gate),
-                _ => Err(PyValueError::new_err(
-                    "Only standard gates are allowed in GateSequence.from_gates_and_matrix",
-                )),
+                _ => Err(DiscreteBasisError::NonStandardGate),
             })
-            .collect::<PyResult<_>>()?;
+            .collect::<Result<_, DiscreteBasisError>>()?;
 
         let matrix_so3 = matrix3_from_pyreadonly(&matrix_so3);
         Ok(Self {
@@ -484,7 +485,7 @@ impl BasicApproximations {
     /// Query the closest point to a [GateSequence].
     pub fn query(&self, matrix: &Matrix3<f64>) -> Option<&GateSequence> {
         let query_point = BasicPoint::from_matrix(matrix);
-        self.points.nearest_neighbor(&query_point).map(|point| {
+        self.points.nearest_neighbor(query_point).map(|point| {
             let index = point
                 .index
                 .expect("All registered sequences should have an index. Blame a dev.");
