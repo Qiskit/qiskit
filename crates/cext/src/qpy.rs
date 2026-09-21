@@ -30,18 +30,25 @@ unsafe fn dump(
     num_circuits: usize,
     version: Option<u8>,
 ) -> Result<Vec<u8>, ExitCode> {
-    #[cfg(feature = "python_binding")]
-    // Cloning a circuit that contains Python-native data must happen while attached.
-    let result = pyo3::Python::attach(|_| {
-        // SAFETY: this function's caller upholds the circuit-array contract.
-        let circuits = unsafe { clone_circuits(circuits, num_circuits) }?;
-        dump_circuits(circuits, version)
-    });
-    #[cfg(not(feature = "python_binding"))]
     // SAFETY: this function's caller upholds the circuit-array contract.
-    let result = unsafe { clone_circuits(circuits, num_circuits) }
-        .and_then(|circuits| dump_circuits(circuits, version));
-    result
+    unsafe { clone_circuits(circuits, num_circuits) }
+        .and_then(|circuits| dump_circuits(circuits, version))
+}
+
+#[cfg(feature = "python_binding")]
+unsafe fn dump_from_python(
+    circuits: *const *const CircuitData,
+    num_circuits: usize,
+    version: Option<u8>,
+) -> Result<Vec<u8>, ExitCode> {
+    // `CircuitData::clone` can clone `Py` references, which requires PyO3's thread-local attach
+    // guard in addition to the CPython thread being attached. The caller is required to hold the
+    // GIL, so this establishes PyO3's bookkeeping around the clone operation.
+    pyo3::Python::attach(|_| {
+        // SAFETY: this function's caller upholds the circuit-array contract.
+        unsafe { clone_circuits(circuits, num_circuits) }
+            .and_then(|circuits| dump_circuits(circuits, version))
+    })
 }
 
 fn load(payload: &[u8]) -> Result<Vec<CircuitData>, ()> {
@@ -86,6 +93,28 @@ unsafe fn dump_file_impl(
     }
 }
 
+#[cfg(feature = "python_binding")]
+unsafe fn dump_file_from_python_impl(
+    circuits: *const *const CircuitData,
+    num_circuits: usize,
+    filename: *const c_char,
+    version: Option<u8>,
+) -> ExitCode {
+    if filename.is_null() {
+        return ExitCode::NullPointerError;
+    }
+    // SAFETY: upheld by the caller contract and checked non-null above.
+    let Ok(filename) = unsafe { CStr::from_ptr(filename) }.to_str() else {
+        return ExitCode::QpyError;
+    };
+    // SAFETY: upheld by the caller contract, including attachment to Python.
+    let result = unsafe { dump_from_python(circuits, num_circuits, version) };
+    match result.and_then(|payload| fs::write(filename, payload).map_err(|_| ExitCode::QpyError)) {
+        Ok(()) => ExitCode::Success,
+        Err(error) => error,
+    }
+}
+
 unsafe fn dump_buffer_impl(
     circuits: *const *const CircuitData,
     num_circuits: usize,
@@ -117,10 +146,44 @@ unsafe fn dump_buffer_impl(
     }
 }
 
+#[cfg(feature = "python_binding")]
+unsafe fn dump_buffer_from_python_impl(
+    circuits: *const *const CircuitData,
+    num_circuits: usize,
+    buffer: *mut *mut u8,
+    size: *mut usize,
+    version: Option<u8>,
+) -> ExitCode {
+    if let Err(error) = check_ptr(buffer) {
+        return error.into();
+    }
+    if let Err(error) = check_ptr(size) {
+        return error.into();
+    }
+    // SAFETY: upheld by the caller contract, including attachment to Python.
+    match unsafe { dump_from_python(circuits, num_circuits, version) } {
+        Ok(payload) => {
+            let mut payload = payload.into_boxed_slice();
+            let payload_size = payload.len();
+            let payload_ptr = payload.as_mut_ptr();
+            std::mem::forget(payload);
+            // SAFETY: the caller guarantees both output locations are writable.
+            unsafe {
+                buffer.write(payload_ptr);
+                size.write(payload_size);
+            }
+            ExitCode::Success
+        }
+        Err(error) => error,
+    }
+}
+
 /// @ingroup QkQpy
 /// Write circuits to a QPY file.
 ///
 /// The circuits are copied before serialization and remain owned by the caller.
+/// This entry point is for native circuits only and does not interact with Python. Use
+/// ``qk_qpy_dump_file_from_python`` for circuits borrowed from Python.
 ///
 /// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
 /// @param num_circuits The number of circuit pointers in ``circuits``.
@@ -142,7 +205,37 @@ pub unsafe extern "C" fn qk_qpy_dump_file(
 }
 
 /// @ingroup QkQpy
+/// Write Python-owned circuits to a QPY file.
+///
+/// This is the Python-interoperability variant of ``qk_qpy_dump_file``. The calling thread must
+/// already be attached to a Python interpreter and hold the GIL. The function registers the call
+/// with PyO3 while cloning Python-owned data; this does not relax the caller's GIL requirement.
+///
+/// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
+/// @param num_circuits The number of circuit pointers in ``circuits``.
+/// @param filename A valid, non-null, nul-terminated UTF-8 path.
+/// @return The same exit codes as ``qk_qpy_dump_file``.
+///
+/// # Safety
+/// The pointer requirements are the same as for ``qk_qpy_dump_file``. The calling thread must be
+/// attached to a Python interpreter and hold the GIL.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_qpy_dump_file_from_python(
+    circuits: *const *const CircuitData,
+    num_circuits: usize,
+    filename: *const c_char,
+) -> ExitCode {
+    // SAFETY: this function has the same pointer and Python-attachment requirements as the
+    // implementation.
+    unsafe { dump_file_from_python_impl(circuits, num_circuits, filename, None) }
+}
+
+/// @ingroup QkQpy
 /// Write circuits to a QPY file using a specific format version.
+///
+/// This entry point is for native circuits only and does not interact with Python. Use
+/// ``qk_qpy_dump_file_with_version_from_python`` for circuits borrowed from Python.
 ///
 /// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
 /// @param num_circuits The number of circuit pointers in ``circuits``.
@@ -161,6 +254,31 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
 ) -> ExitCode {
     // SAFETY: this function has the same pointer requirements as the implementation.
     unsafe { dump_file_impl(circuits, num_circuits, filename, Some(version)) }
+}
+
+/// @ingroup QkQpy
+/// Write Python-owned circuits to a QPY file using a specific format version.
+///
+/// The calling thread must already be attached to a Python interpreter and hold the GIL. The
+/// function registers the call with PyO3 while cloning Python-owned data; this does not relax the
+/// caller's GIL requirement.
+///
+/// @return The same exit codes as ``qk_qpy_dump_file_with_version``.
+///
+/// # Safety
+/// The pointer requirements are the same as for ``qk_qpy_dump_file_with_version``. The calling
+/// thread must be attached to a Python interpreter and hold the GIL.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_qpy_dump_file_with_version_from_python(
+    circuits: *const *const CircuitData,
+    num_circuits: usize,
+    filename: *const c_char,
+    version: u8,
+) -> ExitCode {
+    // SAFETY: this function has the same pointer and Python-attachment requirements as the
+    // implementation.
+    unsafe { dump_file_from_python_impl(circuits, num_circuits, filename, Some(version)) }
 }
 
 /// @ingroup QkQpy
@@ -222,6 +340,9 @@ pub unsafe extern "C" fn qk_qpy_load_file(
 /// @ingroup QkQpy
 /// Serialize circuits into a newly allocated QPY buffer.
 ///
+/// This entry point is for native circuits only and does not interact with Python. Use
+/// ``qk_qpy_dump_buffer_from_python`` for circuits borrowed from Python.
+///
 /// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
@@ -245,7 +366,35 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer(
 }
 
 /// @ingroup QkQpy
+/// Serialize Python-owned circuits into a newly allocated QPY buffer.
+///
+/// This is the Python-interoperability variant of ``qk_qpy_dump_buffer``. The calling thread must
+/// already be attached to a Python interpreter and hold the GIL. The function registers the call
+/// with PyO3 while cloning Python-owned data; this does not relax the caller's GIL requirement.
+///
+/// @return The same exit codes as ``qk_qpy_dump_buffer``.
+///
+/// # Safety
+/// The pointer requirements are the same as for ``qk_qpy_dump_buffer``. The calling thread must be
+/// attached to a Python interpreter and hold the GIL.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_qpy_dump_buffer_from_python(
+    circuits: *const *const CircuitData,
+    num_circuits: usize,
+    buffer: *mut *mut u8,
+    size: *mut usize,
+) -> ExitCode {
+    // SAFETY: this function has the same pointer and Python-attachment requirements as the
+    // implementation.
+    unsafe { dump_buffer_from_python_impl(circuits, num_circuits, buffer, size, None) }
+}
+
+/// @ingroup QkQpy
 /// Serialize circuits into a newly allocated QPY buffer using a specific format version.
+///
+/// This entry point is for native circuits only and does not interact with Python. Use
+/// ``qk_qpy_dump_buffer_with_version_from_python`` for circuits borrowed from Python.
 ///
 /// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
 /// @param num_circuits The number of circuit pointers in ``circuits``.
@@ -266,6 +415,32 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
 ) -> ExitCode {
     // SAFETY: this function has the same pointer requirements as the implementation.
     unsafe { dump_buffer_impl(circuits, num_circuits, buffer, size, Some(version)) }
+}
+
+/// @ingroup QkQpy
+/// Serialize Python-owned circuits into a QPY buffer using a specific format version.
+///
+/// The calling thread must already be attached to a Python interpreter and hold the GIL. The
+/// function registers the call with PyO3 while cloning Python-owned data; this does not relax the
+/// caller's GIL requirement.
+///
+/// @return The same exit codes as ``qk_qpy_dump_buffer_with_version``.
+///
+/// # Safety
+/// The pointer requirements are the same as for ``qk_qpy_dump_buffer_with_version``. The calling
+/// thread must be attached to a Python interpreter and hold the GIL.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version_from_python(
+    circuits: *const *const CircuitData,
+    num_circuits: usize,
+    buffer: *mut *mut u8,
+    size: *mut usize,
+    version: u8,
+) -> ExitCode {
+    // SAFETY: this function has the same pointer and Python-attachment requirements as the
+    // implementation.
+    unsafe { dump_buffer_from_python_impl(circuits, num_circuits, buffer, size, Some(version)) }
 }
 
 /// @ingroup QkQpy
@@ -321,6 +496,10 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
 
 /// @ingroup QkQpy
 /// Free circuits returned by ``qk_qpy_load_file`` or ``qk_qpy_load_buffer``.
+///
+/// @param circuits The circuit-pointer array returned by a QPY load function, or null.
+/// @param num_circuits The number of circuit pointers in ``circuits`` returned by the QPY load
+/// function.
 ///
 /// # Safety
 /// ``circuits`` must be null, or have been returned by a QPY load function with exactly

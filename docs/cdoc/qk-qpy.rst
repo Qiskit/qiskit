@@ -12,6 +12,21 @@ with the Python :mod:`qiskit.qpy` interface.
 Loaded circuits are newly allocated and must be released with
 :c:func:`qk_qpy_free_circuits`.
 
+The standard dump functions accept native :c:struct:`QkCircuit` objects and do not interact with
+Python. Circuits borrowed from Python must instead be passed to the corresponding
+``*_from_python`` function:
+
+* :c:func:`qk_qpy_dump_file_from_python`
+* :c:func:`qk_qpy_dump_file_with_version_from_python`
+* :c:func:`qk_qpy_dump_buffer_from_python`
+* :c:func:`qk_qpy_dump_buffer_with_version_from_python`
+
+The thread calling one of these Python-specific functions must already be attached to a Python
+interpreter and hold the GIL. The functions register the call with PyO3 while cloning
+Python-owned circuit data, but callers remain responsible for all GIL coordination. In
+particular, do not call one from a child thread while another thread retains the GIL; arrange for
+the calling thread to hold the GIL before entering the function.
+
 The following example writes two circuits to a file and loads them again:
 
 .. code-block:: c

@@ -30,7 +30,7 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(305, &classical_expr::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
-pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(10, || {
+pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(15, || {
     vec![
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_load_file),
@@ -40,6 +40,22 @@ pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(10, || {
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file_with_version),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_buffer_with_version),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_free_circuits),
+        impl_::export_fn!(
+            qiskit_cext::qpy::qk_qpy_dump_file_from_python,
+            feature = "python_binding"
+        ),
+        impl_::export_fn!(
+            qiskit_cext::qpy::qk_qpy_dump_file_with_version_from_python,
+            feature = "python_binding"
+        ),
+        impl_::export_fn!(
+            qiskit_cext::qpy::qk_qpy_dump_buffer_from_python,
+            feature = "python_binding"
+        ),
+        impl_::export_fn!(
+            qiskit_cext::qpy::qk_qpy_dump_buffer_with_version_from_python,
+            feature = "python_binding"
+        ),
     ]
 });
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;

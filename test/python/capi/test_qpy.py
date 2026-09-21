@@ -37,7 +37,9 @@ class TestQpyCAPI(QiskitTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             filename = Path(tmp_dir) / "circuit.qpy"
-            result = capi.qk_qpy_dump_file(circuit_ptrs, len(circuit_ptrs), os.fsencode(filename))
+            result = capi.qk_qpy_dump_file_from_python(
+                circuit_ptrs, len(circuit_ptrs), os.fsencode(filename)
+            )
 
             self.assertEqual(result, capi.QkExitCode.Success.value.value)
             self.assertTrue(filename.is_file())
