@@ -10,10 +10,10 @@ features_c:
     that allows specifying the QPY version used for serialization.
 
     These dump functions operate on native circuits without interacting with
-    Python. Circuits borrowed from Python must use the corresponding
-    ``*_from_python`` variants. The calling thread must already be attached to
-    Python and hold the GIL when invoking these variants; callers are
-    responsible for coordinating the GIL.
+    Python. If you're using the C API in a Python extension you should use
+    the Python functions: :func:`.qpy.dump` and :func:`.qpy.load` as the
+    C API functions will return an error if Python is required to create
+    or load a QPY payload from the circuit.
 
     All circuits in a QPY stream can be deserialized from a buffer or file
     with :c:func:`qk_qpy_load_buffer` and :c:func:`qk_qpy_load_file`
@@ -43,9 +43,5 @@ features_c:
     * :c:func:`qk_qpy_load_buffer`
     * :c:func:`qk_qpy_free_buffer`
     * :c:func:`qk_qpy_free_circuits`
-    * :c:func:`qk_qpy_dump_file_from_python`
-    * :c:func:`qk_qpy_dump_file_with_version_from_python`
-    * :c:func:`qk_qpy_dump_buffer_from_python`
-    * :c:func:`qk_qpy_dump_buffer_with_version_from_python`
     * :c:func:`qk_qpy_read_min_version`
     * :c:func:`qk_qpy_write_min_version`

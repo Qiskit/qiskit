@@ -97,7 +97,7 @@ fn pack_instructions(
 > {
     let mut custom_operations = HashMap::new();
     let mut custom_new_operations = Vec::new();
-    let instructions = qpy_data.circuit_data.data().to_vec();
+    let instructions = qpy_data.circuit_data.data();
     Ok((
         instructions
             .iter()
@@ -202,6 +202,9 @@ fn pack_instruction_blocks(
     inst: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> Result<Vec<formats::GenericDataPack>, QpyError> {
+    if matches!(qpy_data.caller, QpyCaller::Native) {
+        return Err(QpyError::PythonOnly("Control Flow operations"));
+    }
     let blocks = qpy_data
         .circuit_data
         .unpack_blocks_to_circuit_parameters(inst.params.as_deref())

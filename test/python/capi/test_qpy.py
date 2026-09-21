@@ -11,11 +11,13 @@
 # that they have been altered from the originals.
 
 import ctypes
+import io
 import os
 from pathlib import Path
 import tempfile
 
 from qiskit import QuantumCircuit, capi, qpy
+from qiskit.circuit.library import PermutationGate, QFTGate, SdgGate
 from qiskit.qpy import common as qpy_common
 from test import QiskitTestCase
 
@@ -43,7 +45,7 @@ class TestQpyCAPI(QiskitTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             filename = Path(tmp_dir) / "circuit.qpy"
-            result = capi.qk_qpy_dump_file_from_python(
+            result = capi.qk_qpy_dump_file(
                 circuit_ptrs, len(circuit_ptrs), os.fsencode(filename), None
             )
 
@@ -52,6 +54,41 @@ class TestQpyCAPI(QiskitTestCase):
             with filename.open("rb") as qpy_file:
                 loaded = qpy.load(qpy_file)
 
+        self.assertEqual(loaded, [circuit, second_circuit])
+
+    def test_dump_python_circuit_data_with_buffer(self):
+        """The Python ctypes binding can dump multiple Python-owned CircuitData objects."""
+        circuit = QuantumCircuit(2, 2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.measure([0, 1], [0, 1])
+
+        second_circuit = QuantumCircuit(1)
+        second_circuit.x(0)
+
+        circuit_ptrs = (ctypes.POINTER(capi.QkCircuit) * 2)(
+            capi.qk_circuit_borrow_from_python(circuit._data),
+            capi.qk_circuit_borrow_from_python(second_circuit._data),
+        )
+        buffer = ctypes.POINTER(ctypes.c_uint8)()
+        size = ctypes.c_size_t()
+        error = ctypes.POINTER(ctypes.c_char)()
+
+        # should fail due to unsupported version
+        result = capi.qk_qpy_dump_buffer(
+            circuit_ptrs,
+            len(circuit_ptrs),
+            ctypes.byref(buffer),
+            ctypes.byref(size),
+            ctypes.byref(error),
+        )
+        self.assertEqual(result, capi.QkExitCode.Success.value.value)
+        buffer_array = ctypes.cast(buffer, ctypes.POINTER(ctypes.c_uint8 * size.value))
+        data = bytes(buffer_array.contents)
+        with io.BytesIO(data) as qpy_buf:
+            loaded = qpy.load(qpy_buf)
+
+        capi.qk_qpy_free_buffer(buffer, size)
         self.assertEqual(loaded, [circuit, second_circuit])
 
     def test_dump_error_message(self):
@@ -65,7 +102,7 @@ class TestQpyCAPI(QiskitTestCase):
         error = ctypes.POINTER(ctypes.c_char)()
 
         # should fail due to unsupported version
-        result = capi.qk_qpy_dump_buffer_with_version_from_python(
+        result = capi.qk_qpy_dump_buffer_with_version(
             circuit_ptrs,
             len(circuit_ptrs),
             ctypes.byref(buffer),
@@ -76,4 +113,106 @@ class TestQpyCAPI(QiskitTestCase):
 
         self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
         self.assertIn(b"not supported", ctypes.string_at(error))
+        capi.qk_str_free(error)
+
+    def test_python_defined_op(self):
+        circuit = QuantumCircuit(3)
+        circuit.append(PermutationGate([0, 2, 1]), range(3))
+        circuit_ptrs = (ctypes.POINTER(capi.QkCircuit) * 1)(
+            capi.qk_circuit_borrow_from_python(circuit._data)
+        )
+        buffer = ctypes.POINTER(ctypes.c_uint8)()
+        size = ctypes.c_size_t()
+        error = ctypes.POINTER(ctypes.c_char)()
+
+        # should fail due to unsupported version
+        result = capi.qk_qpy_dump_buffer(
+            circuit_ptrs,
+            len(circuit_ptrs),
+            ctypes.byref(buffer),
+            ctypes.byref(size),
+            ctypes.byref(error),
+        )
+        self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+        self.assertIn(b"is only available when QPY is invoked from Python", ctypes.string_at(error))
+        capi.qk_str_free(error)
+
+    def test_python_defined_op_with_valid_params(self):
+        circuit = QuantumCircuit(3)
+        circuit.append(QFTGate(3), range(3))
+        circuit_ptrs = (ctypes.POINTER(capi.QkCircuit) * 1)(
+            capi.qk_circuit_borrow_from_python(circuit._data)
+        )
+        buffer = ctypes.POINTER(ctypes.c_uint8)()
+        size = ctypes.c_size_t()
+        error = ctypes.POINTER(ctypes.c_char)()
+
+        # should fail due to unsupported version
+        result = capi.qk_qpy_dump_buffer(
+            circuit_ptrs,
+            len(circuit_ptrs),
+            ctypes.byref(buffer),
+            ctypes.byref(size),
+            ctypes.byref(error),
+        )
+        self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+        self.assertIn(
+            b"'Python defined instruction' is only available when QPY is invoked from Python",
+            ctypes.string_at(error),
+        )
+        capi.qk_str_free(error)
+
+    def test_python_custom_op(self):
+        circuit = QuantumCircuit(6)
+        gate = SdgGate().control(5, annotated=True)
+        circuit.append(gate, range(6))
+        circuit_ptrs = (ctypes.POINTER(capi.QkCircuit) * 1)(
+            capi.qk_circuit_borrow_from_python(circuit._data)
+        )
+        buffer = ctypes.POINTER(ctypes.c_uint8)()
+        size = ctypes.c_size_t()
+        error = ctypes.POINTER(ctypes.c_char)()
+
+        # should fail due to unsupported version
+        result = capi.qk_qpy_dump_buffer(
+            circuit_ptrs,
+            len(circuit_ptrs),
+            ctypes.byref(buffer),
+            ctypes.byref(size),
+            ctypes.byref(error),
+        )
+        self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+        self.assertIn(
+            b"'Python-defined operations' is only available when QPY is invoked from Python",
+            ctypes.string_at(error),
+        )
+        capi.qk_str_free(error)
+
+    def test_control_flow(self):
+        circuit = QuantumCircuit(2, 2)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        with circuit.if_test((circuit.clbits[0], 0)):
+            circuit.x(1)
+            circuit.measure(1, 1)
+        circuit_ptrs = (ctypes.POINTER(capi.QkCircuit) * 1)(
+            capi.qk_circuit_borrow_from_python(circuit._data)
+        )
+        buffer = ctypes.POINTER(ctypes.c_uint8)()
+        size = ctypes.c_size_t()
+        error = ctypes.POINTER(ctypes.c_char)()
+
+        # should fail due to unsupported version
+        result = capi.qk_qpy_dump_buffer(
+            circuit_ptrs,
+            len(circuit_ptrs),
+            ctypes.byref(buffer),
+            ctypes.byref(size),
+            ctypes.byref(error),
+        )
+        self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+        self.assertIn(
+            b"'Control Flow operations' is only available when QPY is invoked from Python",
+            ctypes.string_at(error),
+        )
         capi.qk_str_free(error)

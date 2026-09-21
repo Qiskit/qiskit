@@ -40,22 +40,6 @@ pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file_with_version),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_buffer_with_version),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_free_circuits),
-        impl_::export_fn!(
-            qiskit_cext::qpy::qk_qpy_dump_file_from_python,
-            feature = "python_binding"
-        ),
-        impl_::export_fn!(
-            qiskit_cext::qpy::qk_qpy_dump_file_with_version_from_python,
-            feature = "python_binding"
-        ),
-        impl_::export_fn!(
-            qiskit_cext::qpy::qk_qpy_dump_buffer_from_python,
-            feature = "python_binding"
-        ),
-        impl_::export_fn!(
-            qiskit_cext::qpy::qk_qpy_dump_buffer_with_version_from_python,
-            feature = "python_binding"
-        ),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_read_min_version),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_write_min_version),
     ]
