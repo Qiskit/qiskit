@@ -251,6 +251,21 @@ impl fmt::Debug for Task {
 
 impl Task {
     fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
+        // TODO: the implementation of `Task` as a `pub enum` means that nothing enforces the
+        // pipeline (dynamic) type safety of `Group`, `Switch` or `Stages`; these need to be
+        // enforced during construction of the `Task`.  This might motivate a swap to a structure
+        // like
+        //
+        //      enum TaskInner {
+        //          Pass(Box<dyn Pass>),
+        //          Group(Vec<Task>),
+        //          // ...
+        //      }
+        //      pub struct Task(TaskInner);
+        //      impl Task {
+        //          pub fn group(vals: Vec<Task>) -> Result<Self, Vec<Task>) {}
+        //          // ...
+        //      }
         match self {
             Task::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),
             Task::Group(group) => {
