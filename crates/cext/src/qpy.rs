@@ -19,13 +19,29 @@ use qiskit_circuit::circuit_data::CircuitData;
 use crate::exit_codes::ExitCode;
 use crate::pointers::check_ptr;
 
-fn dump(circuits: Vec<CircuitData>, version: Option<u8>) -> Result<Vec<u8>, ()> {
+fn dump_circuits(circuits: Vec<CircuitData>, version: Option<u8>) -> Result<Vec<u8>, ExitCode> {
+    qiskit_qpy::native_dump_qpy(circuits, version)
+        .map(|payload| payload.to_vec())
+        .map_err(|_| ExitCode::QpyError)
+}
+
+unsafe fn dump(
+    circuits: *const *const CircuitData,
+    num_circuits: usize,
+    version: Option<u8>,
+) -> Result<Vec<u8>, ExitCode> {
     #[cfg(feature = "python_binding")]
-    // in order to clone a circuit which contains python native data, we need the GIL
-    let result = pyo3::Python::attach(|_| qiskit_qpy::native_dump_qpy(circuits, version));
+    // Cloning a circuit that contains Python-native data must happen while attached.
+    let result = pyo3::Python::attach(|_| {
+        // SAFETY: this function's caller upholds the circuit-array contract.
+        let circuits = unsafe { clone_circuits(circuits, num_circuits) }?;
+        dump_circuits(circuits, version)
+    });
     #[cfg(not(feature = "python_binding"))]
-    let result = qiskit_qpy::native_dump_qpy(circuits, version);
-    result.map(|payload| payload.to_vec()).map_err(|_| ())
+    // SAFETY: this function's caller upholds the circuit-array contract.
+    let result = unsafe { clone_circuits(circuits, num_circuits) }
+        .and_then(|circuits| dump_circuits(circuits, version));
+    result
 }
 
 fn load(payload: &[u8]) -> Result<Vec<CircuitData>, ()> {
@@ -55,11 +71,6 @@ unsafe fn dump_file_impl(
     filename: *const c_char,
     version: Option<u8>,
 ) -> ExitCode {
-    // SAFETY: this function's caller upholds the circuit-array contract.
-    let circuits = match unsafe { clone_circuits(circuits, num_circuits) } {
-        Ok(circuits) => circuits,
-        Err(error) => return error,
-    };
     if filename.is_null() {
         return ExitCode::NullPointerError;
     }
@@ -68,10 +79,10 @@ unsafe fn dump_file_impl(
         return ExitCode::QpyError;
     };
     // SAFETY: upheld by the caller contract and checked for alignment/null above.
-    let result = dump(circuits, version);
-    match result.and_then(|payload| fs::write(filename, payload).map_err(|_| ())) {
+    let result = unsafe { dump(circuits, num_circuits, version) };
+    match result.and_then(|payload| fs::write(filename, payload).map_err(|_| ExitCode::QpyError)) {
         Ok(()) => ExitCode::Success,
-        Err(_) => ExitCode::QpyError,
+        Err(error) => error,
     }
 }
 
@@ -82,11 +93,6 @@ unsafe fn dump_buffer_impl(
     size: *mut usize,
     version: Option<u8>,
 ) -> ExitCode {
-    // SAFETY: this function's caller upholds the circuit-array contract.
-    let circuits = match unsafe { clone_circuits(circuits, num_circuits) } {
-        Ok(circuits) => circuits,
-        Err(error) => return error,
-    };
     if let Err(error) = check_ptr(buffer) {
         return error.into();
     }
@@ -94,7 +100,7 @@ unsafe fn dump_buffer_impl(
         return error.into();
     }
     // SAFETY: upheld by the caller contract and checked for alignment/null above.
-    match dump(circuits, version) {
+    match unsafe { dump(circuits, num_circuits, version) } {
         Ok(payload) => {
             let mut payload = payload.into_boxed_slice();
             let payload_size = payload.len();
@@ -107,7 +113,7 @@ unsafe fn dump_buffer_impl(
             }
             ExitCode::Success
         }
-        Err(()) => ExitCode::QpyError,
+        Err(error) => error,
     }
 }
 
