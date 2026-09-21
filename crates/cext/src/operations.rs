@@ -141,9 +141,7 @@ impl Operation for CustomOp {
         // Document the lifetime bounds here, these pointers must only be borrowed.
         // C should not mutate origin while Rust is accessing it.
         let name_parsed = unsafe { CStr::from_ptr(name) };
-        name_parsed
-            .to_str()
-            .expect("Expected a 'UTF-8' formatted string.")
+        name_parsed.to_str().unwrap_or_default()
     }
 
     fn num_qubits(&self) -> u32 {
