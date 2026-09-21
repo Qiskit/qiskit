@@ -2560,7 +2560,8 @@ pub unsafe extern "C" fn qk_circuit_delay(
 /// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
 /// @param duration The duration of the delay as an integer.
 ///
-/// @return An exit code.
+/// @return An exit code. If the duration is negative, it will return
+/// ``ExitCode_CInputError``.
 ///
 /// # Example
 /// ```c
@@ -2575,11 +2576,16 @@ pub unsafe extern "C" fn qk_circuit_delay(
 pub unsafe extern "C" fn qk_circuit_delay_dt(
     circuit: *mut CircuitData,
     qubit: u32,
-    duration: u32,
+    duration: i64,
 ) -> ExitCode {
+    // Fast path to error if a negative duration is found.
+    if duration.is_negative() {
+        return ExitCode::CInputError;
+    }
+
     let delay_unit_variant = DelayUnit::DT;
 
-    let duration_param: Param = Param::Int(duration.into());
+    let duration_param: Param = Param::Int(duration);
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
     // SAFETY: Per documentation, the pointer is non-null and aligned.

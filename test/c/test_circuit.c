@@ -1198,6 +1198,14 @@ static int test_delay_instruction(void) {
         goto instr_cleanup;
     }
 
+    // Try negative duration
+    QkExitCode delay_dt_bad_code = qk_circuit_delay_dt(qc, 1, -145);
+    if (delay_dt_bad_code != QkExitCode_CInputError) {
+        printf("Unexpected exit code with negative dt duration (-145), (%u).\n", delay_dt_bad_code);
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
     QkExitCode delay_dt_code = qk_circuit_delay_dt(qc, 1, 145);
     if (delay_dt_code != QkExitCode_Success) {
         result = RuntimeError;
