@@ -135,6 +135,10 @@ pub trait Pass: Send + Sync {
     type InputIR: 'static;
     type OutputIR: 'static;
 
+    /// A name for the pass.
+    ///
+    /// This does not need to be unique; it should just be a usable human-readable identifier.
+    fn name(&self) -> &str;
     /// Run the pass.
     ///
     /// # Args
@@ -155,6 +159,7 @@ pub trait AnyPass: Send + Sync {
     fn input_type_id(&self) -> TypeId;
     /// Return the type ID of the output IR.
     fn output_type_id(&self) -> TypeId;
+    fn name(&self) -> &str;
     /// Run the pass.
     fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> anyhow::Result<Box<dyn Any>>;
 }
@@ -172,6 +177,9 @@ impl<P: Pass + 'static> AnyPass for P {
         TypeId::of::<P::OutputIR>()
     }
 
+    fn name(&self) -> &str {
+        self.name()
+    }
     fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> anyhow::Result<Box<dyn Any>> {
         let ir = ir
             .downcast::<P::InputIR>()
@@ -216,15 +224,19 @@ pub enum Task {
 impl Debug for Task {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Task::Transformation(_) => writeln!(f, "Transformation(Box<dyn AnyPass>)"),
-            Task::Group(tasks) => writeln!(f, "Group({tasks:?}"),
-            Task::Stages(stages) => writeln!(f, "Stages({stages:?}"),
-            Task::Switch { switch, cases } => {
-                writeln!(f, "Switch {{ switch: {switch:?}, cases: {cases:?} }}")
-            }
-            Task::Loop { condition, body } => {
-                writeln!(f, "Loop {{ condition: {condition:?}, body: {body:?} }}")
-            }
+            Task::Transformation(p) => f.debug_tuple("Transformation").field(&p.name()).finish(),
+            Task::Group(tasks) => f.debug_tuple("Group").field(tasks).finish(),
+            Task::Stages(stages) => f.debug_tuple("Stages").field(stages).finish(),
+            Task::Switch { switch, cases } => f
+                .debug_struct("Switch")
+                .field("switch", switch)
+                .field("cases", cases)
+                .finish(),
+            Task::Loop { condition, body } => f
+                .debug_struct("Loop")
+                .field("condition", condition)
+                .field("body", body)
+                .finish(),
         }
     }
 }
@@ -427,6 +439,9 @@ mod test {
         type InputIR = DAGCircuit;
         type OutputIR = DAGCircuit;
 
+        fn name(&self) -> &str {
+            "RemoveIdentities"
+        }
         fn run(
             &self,
             mut ir: Self::InputIR,
@@ -444,6 +459,9 @@ mod test {
         type InputIR = CircuitData;
         type OutputIR = CircuitData;
 
+        fn name(&self) -> &str {
+            "CountT"
+        }
         fn run(
             &self,
             ir: Self::InputIR,
@@ -464,6 +482,9 @@ mod test {
         type InputIR = CircuitData;
         type OutputIR = CircuitData;
 
+        fn name(&self) -> &str {
+            "CheckTCount"
+        }
         fn run(
             &self,
             ir: Self::InputIR,
