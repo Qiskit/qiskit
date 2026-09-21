@@ -969,7 +969,7 @@ class TestDagNodeSelection(DAGTest):
         self.assertEqual(self.dag.op_nodes(op=()), [])
 
     def test_get_op_nodes_multiple_types_invalid_element(self):
-        """Non-type elements should error when filtering."""
+        """Non-type elements should error."""
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
         with self.assertRaises(TypeError):
             self.dag.op_nodes(op=(Reset, 123))
