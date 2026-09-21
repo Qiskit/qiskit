@@ -25,6 +25,10 @@ features_c:
     :c:func:`qk_qpy_load_buffer` and :c:func:`qk_qpy_load_file` must be
     released with :c:func:`qk_qpy_free_circuits`.
 
+    Each function that can fail accepts a nullable output pointer for a
+    diagnostic error string. When populated, the string contains details from
+    the underlying QPY error and must be released with :c:func:`qk_str_free`.
+
     The new functions are:
 
     * :c:func:`qk_qpy_dump_file`

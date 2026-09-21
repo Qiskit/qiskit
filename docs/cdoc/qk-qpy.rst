@@ -44,7 +44,7 @@ The following example writes two circuits to a file and loads them again:
 
        const QkCircuit *circuits[] = {bell, plus};
 
-       if (qk_qpy_dump_file(circuits, 2, "circuits.qpy") != QkExitCode_Success) {
+       if (qk_qpy_dump_file(circuits, 2, "circuits.qpy", NULL) != QkExitCode_Success) {
            qk_circuit_free(plus);
            qk_circuit_free(bell);
            return 1;
@@ -52,7 +52,7 @@ The following example writes two circuits to a file and loads them again:
 
        QkCircuit **loaded = NULL;
        size_t num_loaded = 0;
-       if (qk_qpy_load_file(&loaded, &num_loaded, "circuits.qpy") != QkExitCode_Success) {
+       if (qk_qpy_load_file(&loaded, &num_loaded, "circuits.qpy", NULL) != QkExitCode_Success) {
            qk_circuit_free(plus);
            qk_circuit_free(bell);
            return 1;
@@ -68,8 +68,11 @@ The following example writes two circuits to a file and loads them again:
 The buffer variants allocate the serialized data.  Pass the returned pointer and its exact size to
 :c:func:`qk_qpy_free_buffer` when it is no longer needed. The ``*_with_version`` variants select a
 specific output QPY format version; the native serializer currently supports writing version 17 or
-later. All functions that can fail return :c:enum:`QkExitCode`, including ``QkExitCode_QpyError`` 
-for serialization, deserialization, path, and file-I/O errors.
+later. All functions that can fail return :c:enum:`QkExitCode`, including ``QkExitCode_QpyError``
+for serialization, deserialization, path, and file-I/O errors. Their final ``error`` argument may
+be null to ignore diagnostic details. Otherwise, on a QPY error it is populated with an allocated,
+nul-terminated description that must be released with :c:func:`qk_str_free`. The output pointer is
+unchanged on success and for errors without an additional diagnostic.
 
 Functions
 =========

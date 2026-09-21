@@ -38,7 +38,7 @@ class TestQpyCAPI(QiskitTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             filename = Path(tmp_dir) / "circuit.qpy"
             result = capi.qk_qpy_dump_file_from_python(
-                circuit_ptrs, len(circuit_ptrs), os.fsencode(filename)
+                circuit_ptrs, len(circuit_ptrs), os.fsencode(filename), None
             )
 
             self.assertEqual(result, capi.QkExitCode.Success.value.value)
@@ -47,3 +47,27 @@ class TestQpyCAPI(QiskitTestCase):
                 loaded = qpy.load(qpy_file)
 
         self.assertEqual(loaded, [circuit, second_circuit])
+
+    def test_dump_error_message(self):
+        """QPY serialization errors include an owned diagnostic string."""
+        circuit = QuantumCircuit(1)
+        circuit_ptrs = (ctypes.POINTER(capi.QkCircuit) * 1)(
+            capi.qk_circuit_borrow_from_python(circuit._data)
+        )
+        buffer = ctypes.POINTER(ctypes.c_uint8)()
+        size = ctypes.c_size_t()
+        error = ctypes.POINTER(ctypes.c_char)()
+
+        # should fail due to unsupported version
+        result = capi.qk_qpy_dump_buffer_with_version_from_python(
+            circuit_ptrs,
+            len(circuit_ptrs),
+            ctypes.byref(buffer),
+            ctypes.byref(size),
+            16,
+            ctypes.byref(error),
+        )
+
+        self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+        self.assertIn(b"not supported", ctypes.string_at(error))
+        capi.qk_str_free(error)

@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ffi::{CStr, c_char};
+use std::ffi::{CStr, CString, c_char};
 use std::fs;
 use std::slice;
 
@@ -19,20 +19,46 @@ use qiskit_circuit::circuit_data::CircuitData;
 use crate::exit_codes::ExitCode;
 use crate::pointers::check_ptr;
 
-fn dump_circuits(circuits: Vec<CircuitData>, version: Option<u8>) -> Result<Vec<u8>, ExitCode> {
+enum QpyCError {
+    ExitCode(ExitCode),
+    Diagnostic(String),
+}
+
+impl From<ExitCode> for QpyCError {
+    fn from(value: ExitCode) -> Self {
+        Self::ExitCode(value)
+    }
+}
+
+fn return_error(error: *mut *mut c_char, value: QpyCError) -> ExitCode {
+    match value {
+        QpyCError::ExitCode(code) => code,
+        QpyCError::Diagnostic(message) => {
+            if !error.is_null() {
+                // A safeguard in case the error contains nuls.
+                let message = message.replace('\0', "\\0");
+                // SAFETY: the caller guarantees that a non-null `error` is valid for one write.
+                unsafe { error.write(CString::new(message).unwrap().into_raw()) };
+            }
+            ExitCode::QpyError
+        }
+    }
+}
+
+fn dump_circuits(circuits: Vec<CircuitData>, version: Option<u8>) -> Result<Vec<u8>, QpyCError> {
     qiskit_qpy::native_dump_qpy(circuits, version)
         .map(|payload| payload.to_vec())
-        .map_err(|_| ExitCode::QpyError)
+        .map_err(|err| QpyCError::Diagnostic(err.to_string()))
 }
 
 unsafe fn dump(
     circuits: *const *const CircuitData,
     num_circuits: usize,
     version: Option<u8>,
-) -> Result<Vec<u8>, ExitCode> {
+) -> Result<Vec<u8>, QpyCError> {
     // SAFETY: this function's caller upholds the circuit-array contract.
-    unsafe { clone_circuits(circuits, num_circuits) }
-        .and_then(|circuits| dump_circuits(circuits, version))
+    let circuits = unsafe { clone_circuits(circuits, num_circuits) }?;
+    dump_circuits(circuits, version)
 }
 
 #[cfg(feature = "python_binding")]
@@ -40,19 +66,19 @@ unsafe fn dump_from_python(
     circuits: *const *const CircuitData,
     num_circuits: usize,
     version: Option<u8>,
-) -> Result<Vec<u8>, ExitCode> {
+) -> Result<Vec<u8>, QpyCError> {
     // `CircuitData::clone` can clone `Py` references, which requires PyO3's thread-local attach
     // guard in addition to the CPython thread being attached. The caller is required to hold the
     // GIL, so this establishes PyO3's bookkeeping around the clone operation.
     pyo3::Python::attach(|_| {
         // SAFETY: this function's caller upholds the circuit-array contract.
-        unsafe { clone_circuits(circuits, num_circuits) }
-            .and_then(|circuits| dump_circuits(circuits, version))
+        let circuits = unsafe { clone_circuits(circuits, num_circuits) }?;
+        dump_circuits(circuits, version)
     })
 }
 
-fn load(payload: &[u8]) -> Result<Vec<CircuitData>, ()> {
-    qiskit_qpy::native_load_qpy(payload).map_err(|_| ())
+fn load(payload: &[u8]) -> Result<Vec<CircuitData>, QpyCError> {
+    qiskit_qpy::native_load_qpy(payload).map_err(|err| QpyCError::Diagnostic(err.to_string()))
 }
 
 unsafe fn clone_circuits(
@@ -77,19 +103,25 @@ unsafe fn dump_file_impl(
     num_circuits: usize,
     filename: *const c_char,
     version: Option<u8>,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     if filename.is_null() {
         return ExitCode::NullPointerError;
     }
     // SAFETY: upheld by the caller contract and checked non-null above.
     let Ok(filename) = unsafe { CStr::from_ptr(filename) }.to_str() else {
-        return ExitCode::QpyError;
+        return return_error(
+            error,
+            QpyCError::Diagnostic("filename is not valid UTF-8".into()),
+        );
     };
     // SAFETY: upheld by the caller contract and checked for alignment/null above.
     let result = unsafe { dump(circuits, num_circuits, version) };
-    match result.and_then(|payload| fs::write(filename, payload).map_err(|_| ExitCode::QpyError)) {
+    match result.and_then(|payload| {
+        fs::write(filename, payload).map_err(|err| QpyCError::Diagnostic(err.to_string()))
+    }) {
         Ok(()) => ExitCode::Success,
-        Err(error) => error,
+        Err(value) => return_error(error, value),
     }
 }
 
@@ -99,19 +131,25 @@ unsafe fn dump_file_from_python_impl(
     num_circuits: usize,
     filename: *const c_char,
     version: Option<u8>,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     if filename.is_null() {
         return ExitCode::NullPointerError;
     }
     // SAFETY: upheld by the caller contract and checked non-null above.
     let Ok(filename) = unsafe { CStr::from_ptr(filename) }.to_str() else {
-        return ExitCode::QpyError;
+        return return_error(
+            error,
+            QpyCError::Diagnostic("filename is not valid UTF-8".into()),
+        );
     };
     // SAFETY: upheld by the caller contract, including attachment to Python.
     let result = unsafe { dump_from_python(circuits, num_circuits, version) };
-    match result.and_then(|payload| fs::write(filename, payload).map_err(|_| ExitCode::QpyError)) {
+    match result.and_then(|payload| {
+        fs::write(filename, payload).map_err(|err| QpyCError::Diagnostic(err.to_string()))
+    }) {
         Ok(()) => ExitCode::Success,
-        Err(error) => error,
+        Err(value) => return_error(error, value),
     }
 }
 
@@ -121,6 +159,7 @@ unsafe fn dump_buffer_impl(
     buffer: *mut *mut u8,
     size: *mut usize,
     version: Option<u8>,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     if let Err(error) = check_ptr(buffer) {
         return error.into();
@@ -142,7 +181,7 @@ unsafe fn dump_buffer_impl(
             }
             ExitCode::Success
         }
-        Err(error) => error,
+        Err(value) => return_error(error, value),
     }
 }
 
@@ -153,6 +192,7 @@ unsafe fn dump_buffer_from_python_impl(
     buffer: *mut *mut u8,
     size: *mut usize,
     version: Option<u8>,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     if let Err(error) = check_ptr(buffer) {
         return error.into();
@@ -174,7 +214,7 @@ unsafe fn dump_buffer_from_python_impl(
             }
             ExitCode::Success
         }
-        Err(error) => error,
+        Err(value) => return_error(error, value),
     }
 }
 
@@ -188,20 +228,24 @@ unsafe fn dump_buffer_from_python_impl(
 /// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
 /// pointer, or ``QkExitCode_QpyError`` for an invalid path, unsupported QPY data, or I/O failure.
 ///
 /// # Safety
 /// Every element of ``circuits`` must point to a valid ``QkCircuit`` and ``filename`` must point
-/// to a valid nul-terminated string for the duration of this call.
+/// to a valid nul-terminated string for the duration of this call. ``error`` must be null or valid
+/// for one pointer write.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_dump_file(
     circuits: *const *const CircuitData,
     num_circuits: usize,
     filename: *const c_char,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: this function has the same pointer requirements as the implementation.
-    unsafe { dump_file_impl(circuits, num_circuits, filename, None) }
+    unsafe { dump_file_impl(circuits, num_circuits, filename, None, error) }
 }
 
 /// @ingroup QkQpy
@@ -214,6 +258,8 @@ pub unsafe extern "C" fn qk_qpy_dump_file(
 /// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_file``.
 ///
 /// # Safety
@@ -225,10 +271,11 @@ pub unsafe extern "C" fn qk_qpy_dump_file_from_python(
     circuits: *const *const CircuitData,
     num_circuits: usize,
     filename: *const c_char,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: this function has the same pointer and Python-attachment requirements as the
     // implementation.
-    unsafe { dump_file_from_python_impl(circuits, num_circuits, filename, None) }
+    unsafe { dump_file_from_python_impl(circuits, num_circuits, filename, None, error) }
 }
 
 /// @ingroup QkQpy
@@ -241,6 +288,8 @@ pub unsafe extern "C" fn qk_qpy_dump_file_from_python(
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
 /// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_file``.
 ///
 /// # Safety
@@ -251,9 +300,10 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
     num_circuits: usize,
     filename: *const c_char,
     version: u8,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: this function has the same pointer requirements as the implementation.
-    unsafe { dump_file_impl(circuits, num_circuits, filename, Some(version)) }
+    unsafe { dump_file_impl(circuits, num_circuits, filename, Some(version), error) }
 }
 
 /// @ingroup QkQpy
@@ -263,6 +313,13 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
 /// function registers the call with PyO3 while cloning Python-owned data; this does not relax the
 /// caller's GIL requirement.
 ///
+/// @param circuits A valid, non-null pointer to an array of ``num_circuits`` Python-owned circuit
+/// pointers.
+/// @param num_circuits The number of circuit pointers in ``circuits``.
+/// @param filename A valid, non-null, nul-terminated UTF-8 path.
+/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_file_with_version``.
 ///
 /// # Safety
@@ -275,10 +332,11 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version_from_python(
     num_circuits: usize,
     filename: *const c_char,
     version: u8,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: this function has the same pointer and Python-attachment requirements as the
     // implementation.
-    unsafe { dump_file_from_python_impl(circuits, num_circuits, filename, Some(version)) }
+    unsafe { dump_file_from_python_impl(circuits, num_circuits, filename, Some(version), error) }
 }
 
 /// @ingroup QkQpy
@@ -287,6 +345,8 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version_from_python(
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
 /// @param circuits Output location for a newly allocated circuit-pointer array.
 /// @param num_circuits Output location for the number of circuits in ``circuits``.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
 /// pointer, or ``QkExitCode_QpyError`` if the file cannot be read or is not supported QPY.
 /// The returned array and all its circuits must be released with
@@ -294,12 +354,14 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version_from_python(
 ///
 /// # Safety
 /// ``filename`` must point to a valid nul-terminated string; ``circuits`` and ``num_circuits`` must
-/// be valid for one write for the duration of this call.
+/// be valid for one write for the duration of this call. ``error`` must be null or valid for one
+/// pointer write.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_load_file(
     circuits: *mut *mut *mut CircuitData,
     num_circuits: *mut usize,
     filename: *const c_char,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     if filename.is_null() {
         return ExitCode::NullPointerError;
@@ -312,10 +374,13 @@ pub unsafe extern "C" fn qk_qpy_load_file(
     }
     // SAFETY: upheld by the caller contract and checked non-null above.
     let Ok(filename) = unsafe { CStr::from_ptr(filename) }.to_str() else {
-        return ExitCode::QpyError;
+        return return_error(
+            error,
+            QpyCError::Diagnostic("filename is not valid UTF-8".into()),
+        );
     };
     let result = fs::read(filename)
-        .map_err(|_| ())
+        .map_err(|err| QpyCError::Diagnostic(err.to_string()))
         .and_then(|payload| load(&payload));
     match result {
         Ok(loaded) => {
@@ -333,7 +398,7 @@ pub unsafe extern "C" fn qk_qpy_load_file(
             }
             ExitCode::Success
         }
-        Err(()) => ExitCode::QpyError,
+        Err(value) => return_error(error, value),
     }
 }
 
@@ -347,22 +412,26 @@ pub unsafe extern "C" fn qk_qpy_load_file(
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
 /// @param size Output location for the buffer size in bytes. It is unchanged on failure.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
 /// pointer, or ``QkExitCode_QpyError`` if serialization fails. The returned buffer must be
 /// released with ``qk_qpy_free_buffer``.
 ///
 /// # Safety
 /// Every element of ``circuits`` must point to a valid ``QkCircuit``. ``buffer`` and ``size`` must
-/// each be valid for one pointer-sized write for the duration of this call.
+/// each be valid for one pointer-sized write for the duration of this call. ``error`` must be null
+/// or valid for one pointer write.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_dump_buffer(
     circuits: *const *const CircuitData,
     num_circuits: usize,
     buffer: *mut *mut u8,
     size: *mut usize,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: this function has the same pointer requirements as the implementation.
-    unsafe { dump_buffer_impl(circuits, num_circuits, buffer, size, None) }
+    unsafe { dump_buffer_impl(circuits, num_circuits, buffer, size, None, error) }
 }
 
 /// @ingroup QkQpy
@@ -372,6 +441,13 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer(
 /// already be attached to a Python interpreter and hold the GIL. The function registers the call
 /// with PyO3 while cloning Python-owned data; this does not relax the caller's GIL requirement.
 ///
+/// @param circuits A valid, non-null pointer to an array of ``num_circuits`` Python-owned circuit
+/// pointers.
+/// @param num_circuits The number of circuit pointers in ``circuits``.
+/// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
+/// @param size Output location for the buffer size in bytes. It is unchanged on failure.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_buffer``.
 ///
 /// # Safety
@@ -384,10 +460,11 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_from_python(
     num_circuits: usize,
     buffer: *mut *mut u8,
     size: *mut usize,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: this function has the same pointer and Python-attachment requirements as the
     // implementation.
-    unsafe { dump_buffer_from_python_impl(circuits, num_circuits, buffer, size, None) }
+    unsafe { dump_buffer_from_python_impl(circuits, num_circuits, buffer, size, None, error) }
 }
 
 /// @ingroup QkQpy
@@ -401,6 +478,8 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_from_python(
 /// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
 /// @param size Output location for the buffer size in bytes. It is unchanged on failure.
 /// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_buffer``.
 ///
 /// # Safety
@@ -412,9 +491,10 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
     buffer: *mut *mut u8,
     size: *mut usize,
     version: u8,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: this function has the same pointer requirements as the implementation.
-    unsafe { dump_buffer_impl(circuits, num_circuits, buffer, size, Some(version)) }
+    unsafe { dump_buffer_impl(circuits, num_circuits, buffer, size, Some(version), error) }
 }
 
 /// @ingroup QkQpy
@@ -424,6 +504,14 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
 /// function registers the call with PyO3 while cloning Python-owned data; this does not relax the
 /// caller's GIL requirement.
 ///
+/// @param circuits A valid, non-null pointer to an array of ``num_circuits`` Python-owned circuit
+/// pointers.
+/// @param num_circuits The number of circuit pointers in ``circuits``.
+/// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
+/// @param size Output location for the buffer size in bytes. It is unchanged on failure.
+/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_buffer_with_version``.
 ///
 /// # Safety
@@ -437,10 +525,13 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version_from_python(
     buffer: *mut *mut u8,
     size: *mut usize,
     version: u8,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     // SAFETY: this function has the same pointer and Python-attachment requirements as the
     // implementation.
-    unsafe { dump_buffer_from_python_impl(circuits, num_circuits, buffer, size, Some(version)) }
+    unsafe {
+        dump_buffer_from_python_impl(circuits, num_circuits, buffer, size, Some(version), error)
+    }
 }
 
 /// @ingroup QkQpy
@@ -450,19 +541,23 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version_from_python(
 /// @param size The size of ``buffer`` in bytes.
 /// @param circuits Output location for a newly allocated circuit-pointer array.
 /// @param num_circuits Output location for the number of circuits in ``circuits``.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
 /// pointer, or ``QkExitCode_QpyError`` if the buffer is not supported QPY. The returned array and
 /// all its circuits must be released with ``qk_qpy_free_circuits``.
 ///
 /// # Safety
 /// ``buffer`` must be valid for reads of ``size`` bytes; ``circuits`` and ``num_circuits`` must be
-/// valid for one write for the duration of this call.
+/// valid for one write for the duration of this call. ``error`` must be null or valid for one
+/// pointer write.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_load_buffer(
     circuits: *mut *mut *mut CircuitData,
     num_circuits: *mut usize,
     buffer: *const u8,
     size: usize,
+    error: *mut *mut c_char,
 ) -> ExitCode {
     if buffer.is_null() {
         return ExitCode::NullPointerError;
@@ -490,7 +585,7 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
             }
             ExitCode::Success
         }
-        Err(()) => ExitCode::QpyError,
+        Err(value) => return_error(error, value),
     }
 }
 
