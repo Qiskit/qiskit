@@ -3587,8 +3587,8 @@ impl PyDAGCircuit {
     /// Get the list of "op" nodes in the dag.
     ///
     /// Args:
-    ///     op (Type): :class:`qiskit.circuit.Operation` subclass op nodes to
-    ///         return. If None, return all op nodes.
+    ///     op (Type | Iterable[Type]): :class:`qiskit.circuit.Operation` subclass (or iterable of
+    ///         subclasses) of op nodes to return. If None, return all op nodes.
     ///     include_directives (bool): include `barrier`, `snapshot` etc.
     ///
     /// Returns:
@@ -3597,27 +3597,48 @@ impl PyDAGCircuit {
     fn py_op_nodes(
         &self,
         py: Python,
-        op: Option<&Bound<PyType>>,
+        op: Option<&Bound<PyAny>>,
         include_directives: bool,
     ) -> PyResult<Vec<Py<PyAny>>> {
         let mut nodes = Vec::new();
-        let filter_is_nonstandard = if let Some(op) = op {
-            op.getattr(intern!(py, "_standard_gate")).ok().is_none()
-        } else {
-            true
+
+        // Accept either a single `type`, or an iterable of `type`s.  We keep the types alive by
+        // storing owned references.
+        let op_types: Option<Vec<Py<PyType>>> = match op {
+            None => None,
+            Some(obj) => {
+                if obj.is_instance_of::<PyType>() {
+                    let ty = obj.cast::<PyType>()?;
+                    Some(vec![ty.clone().unbind()])
+                } else {
+                    // Try to interpret the object as an iterable of types.
+                    let iter = obj.try_iter()?;
+                    let mut types: Vec<Py<PyType>> = Vec::new();
+                    for item in iter {
+                        let item = item?;
+                        let ty = item.cast::<PyType>()?;
+                        types.push(ty.clone().unbind());
+                    }
+                    Some(types)
+                }
+            }
         };
         for (node, weight) in self.inner.dag.node_references() {
             if let NodeType::Operation(packed) = &weight {
                 if !include_directives && packed.op.directive() {
                     continue;
                 }
-                if let Some(op_type) = op {
-                    // This middle catch is to avoid Python-space operation creation for most uses of
-                    // `op`; we're usually just looking for control-flow ops, and standard gates
-                    // aren't control-flow ops.
-                    if !(filter_is_nonstandard && packed.op.try_standard_gate().is_some())
-                        && packed.op.py_op_is_instance(op_type)?
-                    {
+                if let Some(op_types) = &op_types {
+                    // Match any requested type.
+                    let mut matched = false;
+                    for op_type in op_types {
+                        let op_type = op_type.bind(py);
+                        if packed.op.py_op_is_instance(op_type)? {
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if matched {
                         nodes.push(self.inner.unpack_into(py, node, weight)?);
                     }
                 } else {
