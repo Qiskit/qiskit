@@ -22,8 +22,6 @@ use crate::pointers::check_ptr;
 /// @ingroup QkQpy
 /// Get the oldest QPY format version readable by the loaded library.
 ///
-/// This is the runtime equivalent of Python's ``QPY_COMPATIBILITY_VERSION``.
-///
 /// @return The oldest QPY format version supported for reading.
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_qpy_read_min_version() -> u8 {
@@ -33,8 +31,10 @@ pub extern "C" fn qk_qpy_read_min_version() -> u8 {
 /// @ingroup QkQpy
 /// Get the oldest QPY format version writable by the loaded library.
 ///
-/// The C API uses the Rust QPY implementation, whose writable range can be narrower than the
-/// readable range. Use this value as the lower bound for the ``*_with_version`` dump functions.
+///  Use this value as the lower bound for the ``*_with_version`` dump functions.
+///
+/// This is the equivalent of Python's
+/// @verbatim embed:rst:inline :attr:`~.qpy.QPY_COMPATIBILITY_VERSION` @endverbatim
 ///
 /// @return The oldest QPY format version supported for writing.
 #[unsafe(no_mangle)]
