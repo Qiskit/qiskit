@@ -1,0 +1,9 @@
+---
+upgrade_qasm:
+  - |
+    The OpenQASM 2 ``id`` gate (from ``qelib1.inc``) is now imported as :class:`.IGate` instead
+    of ``U(0, 0, 0)``.  The old mapping was a workaround for Terra versions prior to 0.24, where
+    :class:`.IGate` represented a single-cycle hardware delay rather than a pure identity.  Modern
+    Qiskit treats ``IGate`` as a standard identity operation, so the two forms are equivalent.
+    Circuits that previously contained a ``U(0, 0, 0)`` instruction for every ``id`` gate will now
+    contain an :class:`.IGate` instead.

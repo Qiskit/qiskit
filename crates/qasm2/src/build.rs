@@ -454,14 +454,8 @@ fn push_gate(
     let params: Vec<Param> = arguments.iter().map(|&v| Param::Float(v)).collect();
     match entry {
         GateEntry::Standard(gate) => {
-            // Check with Jake: `parse.py` maps `qelib1`'s `id` to `U(0, 0, 0)`, not `I`, because
-            // `IGate` was a single-cycle delay before Terra 0.24.
-            let (gate, params) = match gate {
-                StandardGate::I => (StandardGate::U, vec![Param::Float(0.0); 3]),
-                _ => (*gate, params),
-            };
             circuit
-                .push_standard_gate(gate, &params, qargs)
+                .push_standard_gate(*gate, &params, qargs)
                 .map_err(|err| ParseError::new(format!("failed to apply gate: {err}")))
         }
         GateEntry::Defined(template) => {
