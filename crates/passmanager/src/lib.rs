@@ -411,11 +411,9 @@ mod test {
         bit::ShareableQubit,
         circuit_data::CircuitData,
         dag_circuit::DAGCircuit,
-        instruction::Parameters,
         operations::{Param, StandardGate},
     };
     use qiskit_transpiler::passes::run_remove_identity_equiv;
-    use smallvec::smallvec;
 
     #[derive(Clone, Debug)]
     struct RemoveIdentities {}
@@ -527,20 +525,12 @@ mod test {
         let mut pm = PassManager::new();
         pm.try_push_pass(Box::new(pass))?;
 
-        let mut dag = DAGCircuit::new();
-        let q0 = dag
-            .add_qubit_unchecked(ShareableQubit::new_anonymous())
+        let mut qc = CircuitData::with_capacity(1, 0, 2, Param::Float(0.0)).unwrap();
+        qc.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
             .unwrap();
-        dag.apply_operation_back(StandardGate::H.into(), &[q0], &[], None, None)
+        qc.push_standard_gate(StandardGate::RX, &[Param::Float(0.0)], &[Qubit(0)])
             .unwrap();
-        dag.apply_operation_back(
-            StandardGate::RX.into(),
-            &[q0],
-            &[],
-            Some(Parameters::Params(smallvec![Param::Float(0.)])),
-            None,
-        )
-        .unwrap();
+        let dag = DAGCircuit::from_circuit_data(&qc, false, None, None, None, None).unwrap();
 
         let (out, _) = pm.run::<_, DAGCircuit>(dag)?;
         let ops = out.count_ops(false).unwrap();
