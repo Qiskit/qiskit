@@ -2960,6 +2960,7 @@ pub unsafe extern "C" fn qk_circuit_add_custom_operation(
     clbits: *const u32,
     params: *mut *mut Param,
 ) -> ExitCode {
+    // SAFETY: This pointer is non-null and aligned.
     let boxed: Box<BoxedCustomOperation> = unsafe { Box::from_raw(operation) };
     let op: PackedOperation = boxed.into();
 

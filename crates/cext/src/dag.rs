@@ -2003,6 +2003,7 @@ pub unsafe extern "C" fn qk_dag_apply_custom_operation(
     node: *mut u32,
     front: bool,
 ) -> ExitCode {
+    // SAFETY: This pointer is non-null and aligned.
     let boxed: Box<BoxedCustomOperation> = unsafe { Box::from_raw(operation) };
     let op = PackedOperation::from(boxed);
 
