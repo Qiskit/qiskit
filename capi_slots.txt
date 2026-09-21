@@ -898,9 +898,12 @@ qpy = [
     "qk_qpy_dump_file_with_version_from_python",
     "qk_qpy_dump_buffer_from_python",
     "qk_qpy_dump_buffer_with_version_from_python",
-    "",
+    "qk_qpy_read_min_version",
+    "qk_qpy_write_min_version",
     "",
     "",
     "",
     "",    
+    "",   
+    "",   
 ]

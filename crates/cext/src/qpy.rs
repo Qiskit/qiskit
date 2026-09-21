@@ -19,6 +19,29 @@ use qiskit_circuit::circuit_data::CircuitData;
 use crate::exit_codes::ExitCode;
 use crate::pointers::check_ptr;
 
+/// @ingroup QkQpy
+/// Get the oldest QPY format version readable by the loaded library.
+///
+/// This is the runtime equivalent of Python's ``QPY_COMPATIBILITY_VERSION``.
+///
+/// @return The oldest QPY format version supported for reading.
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_qpy_read_min_version() -> u8 {
+    qiskit_qpy::QPY_READ_MIN_VERSION
+}
+
+/// @ingroup QkQpy
+/// Get the oldest QPY format version writable by the loaded library.
+///
+/// The C API uses the Rust QPY implementation, whose writable range can be narrower than the
+/// readable range. Use this value as the lower bound for the ``*_with_version`` dump functions.
+///
+/// @return The oldest QPY format version supported for writing.
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_qpy_write_min_version() -> u8 {
+    qiskit_qpy::QPY_WRITE_MIN_VERSION
+}
+
 enum QpyCError {
     ExitCode(ExitCode),
     Diagnostic(String),
@@ -287,7 +310,8 @@ pub unsafe extern "C" fn qk_qpy_dump_file_from_python(
 /// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
-/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @param version The QPY format version. It must be at least the value returned by
+/// ``qk_qpy_write_min_version``.
 /// @param error Optional output location for an error description. Free a returned string with
 /// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_file``.
@@ -317,7 +341,8 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
 /// pointers.
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
-/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @param version The QPY format version. It must be at least the value returned by
+/// ``qk_qpy_write_min_version``.
 /// @param error Optional output location for an error description. Free a returned string with
 /// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_file_with_version``.
@@ -477,7 +502,8 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_from_python(
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
 /// @param size Output location for the buffer size in bytes. It is unchanged on failure.
-/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @param version The QPY format version. It must be at least the value returned by
+/// ``qk_qpy_write_min_version``.
 /// @param error Optional output location for an error description. Free a returned string with
 /// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_buffer``.
@@ -509,7 +535,8 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
 /// @param num_circuits The number of circuit pointers in ``circuits``.
 /// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
 /// @param size Output location for the buffer size in bytes. It is unchanged on failure.
-/// @param version The QPY format version. Rust QPY writing currently supports version 17 or later.
+/// @param version The QPY format version. It must be at least the value returned by
+/// ``qk_qpy_write_min_version``.
 /// @param error Optional output location for an error description. Free a returned string with
 /// ``qk_str_free``.
 /// @return The same exit codes as ``qk_qpy_dump_buffer_with_version``.

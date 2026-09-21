@@ -29,6 +29,10 @@ features_c:
     diagnostic error string. When populated, the string contains details from
     the underlying QPY error and must be released with :c:func:`qk_str_free`.
 
+    Also added :c:func:`qk_qpy_read_min_version` and
+    :c:func:`qk_qpy_write_min_version`, which return the oldest QPY format
+    versions the loaded library can read and write, respectively.
+
     The new functions are:
 
     * :c:func:`qk_qpy_dump_file`
@@ -43,3 +47,5 @@ features_c:
     * :c:func:`qk_qpy_dump_file_with_version_from_python`
     * :c:func:`qk_qpy_dump_buffer_from_python`
     * :c:func:`qk_qpy_dump_buffer_with_version_from_python`
+    * :c:func:`qk_qpy_read_min_version`
+    * :c:func:`qk_qpy_write_min_version`

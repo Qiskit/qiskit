@@ -75,8 +75,8 @@ static int test_buffer_round_trip(void) {
     uint8_t *buffer = NULL;
     size_t size = 0;
     const QkCircuit *sources[] = {source, source};
-    if (qk_qpy_dump_buffer(sources, 2, &buffer, &size, NULL) != QkExitCode_Success || buffer == NULL ||
-        size == 0) {
+    if (qk_qpy_dump_buffer(sources, 2, &buffer, &size, NULL) != QkExitCode_Success ||
+        buffer == NULL || size == 0) {
         qk_circuit_free(source);
         return RuntimeError;
     }
@@ -84,7 +84,8 @@ static int test_buffer_round_trip(void) {
 
     buffer = NULL;
     size = 0;
-    if (qk_qpy_dump_buffer_with_version(sources, 2, &buffer, &size, 18, NULL) != QkExitCode_Success ||
+    if (qk_qpy_dump_buffer_with_version(sources, 2, &buffer, &size, 18, NULL) !=
+            QkExitCode_Success ||
         buffer == NULL || size == 0) {
         qk_circuit_free(source);
         return RuntimeError;
@@ -129,11 +130,16 @@ static int test_error_message(void) {
     return Ok;
 }
 
+static int test_min_versions(void) {
+    return qk_qpy_read_min_version() == 13 && qk_qpy_write_min_version() == 17 ? Ok : EqualityError;
+}
+
 int test_qpy(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_round_trip);
     num_failed += RUN_TEST(test_buffer_round_trip);
     num_failed += RUN_TEST(test_error_message);
+    num_failed += RUN_TEST(test_min_versions);
 
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
     fflush(stderr);

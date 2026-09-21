@@ -9,6 +9,12 @@ API can serialize multiple :c:struct:`QkCircuit` objects to a file or an in-memo
 all the circuits from either representation. QPY data produced by this interface is compatible
 with the Python :mod:`qiskit.qpy` interface.
 
+:c:func:`qk_qpy_read_min_version` returns the oldest QPY format version that the loaded library
+can read. This is equivalent to Python's :attr:`qiskit.qpy.QPY_COMPATIBILITY_VERSION`.
+:c:func:`qk_qpy_write_min_version` returns the oldest version that the C API can write. The two
+bounds differ because the C API uses the Rust QPY implementation, while Python can use its legacy
+implementation to write older formats.
+
 Loaded circuits are newly allocated and must be released with
 :c:func:`qk_qpy_free_circuits`.
 
@@ -67,8 +73,9 @@ The following example writes two circuits to a file and loads them again:
 
 The buffer variants allocate the serialized data.  Pass the returned pointer and its exact size to
 :c:func:`qk_qpy_free_buffer` when it is no longer needed. The ``*_with_version`` variants select a
-specific output QPY format version; the native serializer currently supports writing version 17 or
-later. All functions that can fail return :c:enum:`QkExitCode`, including ``QkExitCode_QpyError``
+specific output QPY format version; query :c:func:`qk_qpy_write_min_version` for the minimum
+supported output version. All functions that can fail return :c:enum:`QkExitCode`, including
+``QkExitCode_QpyError``
 for serialization, deserialization, path, and file-I/O errors. Their final ``error`` argument may
 be null to ignore diagnostic details. Otherwise, on a QPY error it is populated with an allocated,
 nul-terminated description that must be released with :c:func:`qk_str_free`. The output pointer is

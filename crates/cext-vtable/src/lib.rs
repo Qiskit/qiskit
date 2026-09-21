@@ -30,7 +30,7 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(305, &classical_expr::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
-pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(15, || {
+pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
     vec![
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_load_file),
@@ -56,6 +56,8 @@ pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(15, || {
             qiskit_cext::qpy::qk_qpy_dump_buffer_with_version_from_python,
             feature = "python_binding"
         ),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_read_min_version),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_write_min_version),
     ]
 });
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;

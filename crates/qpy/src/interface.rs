@@ -34,6 +34,7 @@ use crate::value::{
     ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
     serialize_with_args,
 };
+use crate::{QPY_READ_MIN_VERSION, QPY_WRITE_MIN_VERSION};
 
 use std::io::{Cursor, Seek};
 
@@ -86,8 +87,6 @@ const fn parse_version() -> (u8, u8, u8) {
 }
 
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
-const QPY_READ_MIN_VERSION: u8 = 13;
-const QPY_WRITE_MIN_VERSION: u8 = 17;
 const QPY_VERSION: u8 = 18;
 
 /// Serializes native circuits into a complete binary QPY payload.

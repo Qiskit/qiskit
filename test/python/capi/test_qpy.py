@@ -16,10 +16,16 @@ from pathlib import Path
 import tempfile
 
 from qiskit import QuantumCircuit, capi, qpy
+from qiskit.qpy import common as qpy_common
 from test import QiskitTestCase
 
 
 class TestQpyCAPI(QiskitTestCase):
+    def test_min_versions(self):
+        """The C API exposes its QPY read and write lower bounds at runtime."""
+        self.assertEqual(capi.qk_qpy_read_min_version(), qpy.QPY_COMPATIBILITY_VERSION)
+        self.assertEqual(capi.qk_qpy_write_min_version(), qpy_common.QPY_RUST_WRITE_MIN_VERSION)
+
     def test_dump_python_circuit_data(self):
         """The Python ctypes binding can dump multiple Python-owned CircuitData objects."""
         circuit = QuantumCircuit(2, 2)
