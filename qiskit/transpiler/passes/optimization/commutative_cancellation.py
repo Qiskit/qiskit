@@ -31,7 +31,7 @@ _CUTOFF_PRECISION = 1e-5
 class CommutativeCancellation(TransformationPass):
     r"""Cancel self-adjoint gates and merge rotations by exploiting commutation relations.
 
-    This pass uses commutation rules to apply the following optimizations 
+    This pass uses commutation rules to apply the following optimizations
     to a sequence of gate:
     * **Self-inverse gates** (``h, y, cx, cy, cz``): if an even number of copies
       of the *same* self-inverse gate on the *same* qubit(s) commute together, they
@@ -41,23 +41,16 @@ class CommutativeCancellation(TransformationPass):
       A total angle that is a multiple of :math:`2\pi` removes all of them entirely
       (up to global phase), so inverse pairs like ``t`` + ``tdg`` cancel out naturally.
 
+    Merging of Y-rotations is out of scope for this pass. Gates with symbolic
+    (:class:`~.Parameter`) angles are also never merged.
 
-    The ``approximation_degree`` argument (default ``1.0``) controls how strictly
-    commutativity is checked: it sets a tolerance of ``max(1e-12, 1 - approximation_degree)``
-    on the average gate fidelity between :math:`AB` and :math:`BA`, so gates within
-    that tolerance are treated as commuting. Lowering it below ``1.0`` groups more
-    gates together at the cost of a small unitary error.
+    This pass is multithreaded and will potentially launch a thread pool with threads
+    equal to the number of CPUs by default. Tune the number of threads with the
+    ``RAYON_NUM_THREADS`` environment variable, e.g. ``RAYON_NUM_THREADS=4``.
 
-    This is a separate tolerance from the ``1e-5`` cutoff used when deciding whether
-    a merged rotation's total angle is close enough to a multiple of :math:`2\pi`
-    to drop it entirely.
-
-    Y-rotations are not merged: ``ry`` does not commute with ``cx``, so runs of it are
-    left for other optimization passes. Gates with symbolic (:class:`~.Parameter`)
-    angles are never merged.
-
-    For example, the two ``cx`` gates below commute past the ``z`` gate (which acts
-    only on the control qubit) and cancel each other, leaving just the ``z``::
+    Example:
+        the two ``cx`` gates below commute past the ``z`` gate (which acts
+        only on the control qubit) and cancel each other, leaving just the ``z``::
 
                   ┌───┐              ┌───┐
         q_0: ──■──┤ Z ├──■──   ->    ┤ Z ├
@@ -65,19 +58,7 @@ class CommutativeCancellation(TransformationPass):
         q_1: ┤ X ├─────┤ X ├   ->    ──────
              └───┘     └───┘
 
-    .. note::
 
-        The gate sets eligible for cancellation are fixed (listed above) and apply
-        unconditionally to every circuit. ``basis_gates``/``target`` serve a single,
-        narrower purpose: choosing which output gate to use when writing back a merged
-        same-axis rotation, and only when the circuit itself contains no suitable gate
-        already.
-
-    This pass is multithreaded and will potentially launch a thread pool with threads
-    equal to the number of CPUs by default. Tune the number of threads with the
-    ``RAYON_NUM_THREADS`` environment variable, e.g. ``RAYON_NUM_THREADS=4``.
-
-    Example:
         .. code-block:: python
 
             from qiskit import QuantumCircuit
@@ -107,22 +88,29 @@ class CommutativeCancellation(TransformationPass):
 
         Args:
             basis_gates (list[str]): Specifies which gate to use when writing back a
-                merged same-axis rotation result. The pass looks for ``rz``, ``p``, or
-                ``u1`` (for Z-rotations) and ``x`` or ``sx`` (for X-rotations) in this
-                list. This list is only consulted when the circuit itself does not
-                already contain one of those gates — the circuit always takes
-                precedence. If neither the circuit nor this list contains a suitable
-                Z-rotation gate, Z-rotation merging is skipped entirely. Has no effect
-                on which gates are eligible for cancellation; that set is fixed.
+                merged same-axis rotation result, but only when the circuit itself does
+                not already contain a suitable gate for that — the circuit always takes
+                precedence over this list. For Z-rotations, the pass looks for ``rz``,
+                ``p``, or ``u1``; if none of those is found in the circuit or in this
+                list, Z-rotation merging is skipped entirely. For X-rotations, the pass
+                looks for ``x`` or ``sx``; if neither is found, X-rotation merging still
+                happens, just written as ``rx`` instead. Has no effect on which gates are
+                eligible for cancellation in the first place; that set is fixed.
             target (Target): The :class:`~.Target` representing the target backend.
                 Its operation names are extracted and used exactly like ``basis_gates``
                 above — as a source of gate names for choosing the merged-rotation
                 output gate. When both ``basis_gates`` and ``target`` are provided,
                 ``target`` takes precedence and ``basis_gates`` is ignored entirely.
-            approximation_degree: The threshold used in the average gate fidelity
-                computation to decide whether pairs of gates can be considered as
-                canceling or commuting. A floating point value between 0 and 1,
-                where ``1.0`` means no approximation (default).
+            approximation_degree: Threshold for treating two gates as commuting or
+                cancelling even when they only do so approximately. It sets a
+                tolerance of ``max(1e-12, 1 - approximation_degree)`` on the average
+                gate fidelity between the two gate orderings; anything within that
+                tolerance counts as commuting. The default, ``1.0``, means exact
+                commutativity (up to floating-point rounding). Lowering it below
+                ``1.0`` lets more gates be grouped and cancelled, at the cost of a
+                small unitary error. This doesn't affect the separate, fixed check for
+                whether a merged angle is close enough to 2π to drop.
+
         """
         super().__init__()
         if basis_gates:
