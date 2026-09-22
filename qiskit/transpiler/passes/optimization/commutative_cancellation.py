@@ -41,15 +41,6 @@ class CommutativeCancellation(TransformationPass):
       A total angle that is a multiple of :math:`2\pi` removes all of them entirely
       (up to global phase), so inverse pairs like ``t`` + ``tdg`` cancel out naturally.
 
-      For Z-rotations, the pass determines which gate family to use for the merged result.
-      It first looks for ``rz``, ``p``, or ``u1`` gates already in the circuit,
-      in that order. If none are found, it checks ``target`` and then ``basis_gates``
-      (if ``target`` is not provided), using the same order. If no suitable gate is found,
-      Z-rotation merging is skipped.
-
-      For X-rotations, merging always happens. The result is written as ``x`` (if the
-      total is a multiple of :math:`\pi` and ``x`` is available), ``sx`` (if a multiple
-      of :math:`\pi/2` and ``sx`` is available), or ``rx(total_angle)`` otherwise.
 
     The ``approximation_degree`` argument (default ``1.0``) controls how strictly
     commutativity is checked: it sets a tolerance of ``max(1e-12, 1 - approximation_degree)``
