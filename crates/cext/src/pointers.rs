@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::exit_codes::CInputError;
+use std::sync::Arc;
 
 /// Check the pointer is not null and is aligned.
 pub(crate) fn check_ptr<T>(ptr: *const T) -> Result<(), CInputError> {
@@ -78,4 +79,22 @@ pub(crate) unsafe fn mut_ptr_as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
     check_ptr(ptr).unwrap();
     let as_mut_ref = unsafe { ptr.as_mut() };
     as_mut_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
+}
+
+/// Clone a new [`Arc`] from a pointer.
+///
+/// The given `ptr` is only borrowed; it is valid to be given to `Arc::from_raw` (or this function)
+/// again after this function returns.
+///
+/// # Safety
+///
+/// `ptr` must be the result of a call to [`Arc<T>::into_raw`] and still be valid to pass to
+/// [`Arc::from_raw`].
+#[expect(dead_code)] // Whichever PR using this that merges first to remove.
+pub unsafe fn arc_clone_from_raw<T: ?Sized>(ptr: *const T) -> Arc<T> {
+    // SAFETY: per documentation, `ptr` is from `Arc::into_raw` and still valid.
+    unsafe { Arc::increment_strong_count(ptr) };
+    // SAFETY: per documentation, `ptr` is from `Arc::into_raw`, still valid, and we just
+    // incremented the strong count for this `from_raw` call to take ownership of.
+    unsafe { Arc::from_raw(ptr) }
 }
