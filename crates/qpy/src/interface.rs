@@ -101,8 +101,8 @@ const QPY_VERSION: u8 = 18;
 ///
 /// Returns:
 /// A `Bytes` object containing the complete QPY payload.
-pub fn dump_qpy(
-    circuits: &[&CircuitData],
+pub fn dump_qpy<'a>(
+    circuits: impl ExactSizeIterator<Item = &'a CircuitData>,
     extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
@@ -129,7 +129,6 @@ pub fn dump_qpy(
         )));
     }
     let serialized_circuits: Vec<Bytes> = circuits
-        .iter()
         .zip(extra_data)
         .map(|(circuit, extra)| {
             serialize_with_args::<QPYCircuit, (u8,)>(
@@ -219,9 +218,8 @@ pub fn py_dump_qpy(
             })
         })
         .collect::<Result<Vec<_>, QpyError>>()?;
-    let circuit_data: Vec<&CircuitData> = circuits.iter().map(|circuit| &circuit.data).collect();
     let serialized_qpy = dump_qpy(
-        &circuit_data,
+        circuits.iter().map(|circuit| &circuit.data),
         extra_data,
         version,
         Some(annotation_handler),
@@ -301,7 +299,7 @@ pub fn native_dump_qpy(
         })
         .collect();
     dump_qpy(
-        circuits,
+        circuits.iter().copied(),
         extra_data,
         qpy_version.unwrap_or(QPY_VERSION),
         None,
@@ -509,7 +507,7 @@ mod tests {
 
         // Round trip through the native QPY dump/load entry points.
         let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
-        let payload = dump_qpy(&[&circuit], vec![extra], version, None, None).unwrap();
+        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
         let loaded = load_qpy(&payload, None, None).unwrap();
 
         // Exactly one circuit, with exactly one instruction.
