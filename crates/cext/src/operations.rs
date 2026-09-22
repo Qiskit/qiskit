@@ -77,7 +77,7 @@ use crate::ExitCode;
 /// // Implement all required methods.
 ///
 /// // Build list of entries for the vtable (at least 7 required entries)
-/// QkCustomOpVTableEntry entries[7] = {
+/// QkVTableEntry entries[7] = {
 ///     {.slot = 0, .func = foo_name},
 ///     {.slot = 1, .func = foo_num_qubits},
 ///     {.slot = 2, .func = foo_num_clbits},
@@ -348,19 +348,22 @@ impl TryFrom<u32> for CustomOpMethod {
     }
 }
 
-/// Represents an entry in a ``QkCustomOpVTable``.
+/// Represents an entry in a ``VTable`` designed in Qiskit.
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct CustomOpVTableEntry {
+pub struct VTableEntry {
     /// The slot index.
     slot: u32,
+    /// Refers to possible calling conventions and feature flags set by the user.
+    flags: u32,
     /// A function pointer for the operation to use as a method.
     func: *const ::std::ffi::c_void,
 }
 
-impl CustomOpVTableEntry {
+impl VTableEntry {
     pub const SENTINEL: Self = Self {
         slot: u32::MAX,
+        flags: 0,
         func: ::std::ptr::null(),
     };
 }
@@ -386,7 +389,7 @@ impl CustomOpVTableEntry {
 /// }
 ///
 /// // Build list of entries for the vtable (at least 7 required entries)
-/// QkCustomOpVTableEntry entries[7] = {
+/// QkVTableEntry entries[7] = {
 ///     {.slot = QkCustomOpMethod_NumQubits, .func = foo_num_qubits},
 ///     // ...
 ///     // End with sentinel value
@@ -439,7 +442,7 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 }
 
 /// @ingroup QkCustomOperation
-/// Builds a ``QkCustomOpVTable`` based on a list of ``QkCustomOpVTableEntry``
+/// Builds a ``QkCustomOpVTable`` based on a list of ``QkVTableEntry``
 /// instances.
 ///
 /// The vtable is built from a collection of slots that hold an index and a
@@ -474,10 +477,10 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 /// without issues.
 ///
 /// Every list of slots should be delimited by a sentinel valued
-/// ``QkCustomOpVTableEntry`` at the end. The sentinel should look as follows:
+/// ``QkVTableEntry`` at the end. The sentinel should look as follows:
 ///
 /// ```c
-/// QkCustomOpVTableEntry sentinel = {.slot = -1, .func = NULL};
+/// QkVTableEntry sentinel = {.slot = -1, .func = NULL};
 /// ```
 ///
 /// This function will stop reading any slots located after the sentinel is found.
@@ -503,7 +506,7 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 /// function pointer does not have the correct signature.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_vtable_new(
-    mut slots: *const CustomOpVTableEntry,
+    mut slots: *const VTableEntry,
     pointer: *mut *const CustomOpVTable,
 ) -> ExitCode {
     let mut vtable = CustomOpVtablePartial::default();
