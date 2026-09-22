@@ -1077,8 +1077,8 @@ pub extern "C" fn qk_param_stride() -> usize {
     mem::size_of::<Param>()
 }
 
-/// Attempt casting the ``QkParam`` as ``int64_t``. This will be helpful in the case a user
-/// is retrieving a parameter representing the duration of a delay instruction in units of `Dt`.
+/// Attempt casting the ``QkParam`` as ``int64_t``. This is intended to be
+/// used for retrieving a parameter representing the duration of a delay instruction in units of `Dt`.
 ///
 /// If the parameter could not be cast to a ``int64_t``, because there were unbound parameters,
 /// ``INT64_MAX`` is returned. Note that for ``QkParam`` representing complex values the real part is
@@ -1120,7 +1120,7 @@ fn param_try_int(param: &Param) -> Option<i64> {
 #[repr(u8)]
 /// Represents the type of a ``QkParam`` instance.
 pub enum ParamKind {
-    /// Represents an unknown parameter.
+    /// Represents an unknown parameter that is not representable in the C API. Typically this is a parameter that is defined in Python.
     Unknown = 0,
     /// Represents a real floating point parameter.
     Real = 1,
