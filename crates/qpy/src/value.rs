@@ -12,6 +12,7 @@
 
 use std::num::NonZero;
 use std::sync::Arc;
+use std::sync::atomic;
 
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
@@ -196,6 +197,46 @@ pub(crate) fn pack_biguint(bigint: &BigUint) -> BigIntPack {
 pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
     BigUint::from_bytes_be(&big_int_pack.bytes)
 }
+#[derive(Debug, Default)]
+pub struct ParameterVectorTableBuilder {
+    /// Vector root UUID to its index in `vectors`.
+    indices: HashMap<u128, u16>,
+    vectors: Vec<Arc<SymbolVector>>,
+}
+
+impl ParameterVectorTableBuilder {
+    /// The index of `vector` in the table, adding it if this is the first element to reference it.
+    pub fn index_of(&mut self, vector: &Arc<SymbolVector>) -> Result<u16, QpyError> {
+        if let Some(index) = self.indices.get(&vector.uuid.as_u128()) {
+            return Ok(*index);
+        }
+        if self.vectors.len() >= u16::MAX as usize {
+            return Err(QpyError::ConversionError(format!(
+                "too many parameter vectors in one circuit: QPY stores at most {}",
+                u16::MAX as usize
+            )));
+        }
+        let index = self.vectors.len() as u16;
+        self.indices.insert(vector.uuid.as_u128(), index);
+        self.vectors.push(Arc::clone(vector));
+        Ok(index)
+    }
+
+    /// The collected vectors, in index order.
+    pub fn to_pack(&self) -> formats::ParameterVectorTablePack {
+        formats::ParameterVectorTablePack {
+            vectors: self
+                .vectors
+                .iter()
+                .map(|vector| formats::ParameterVectorPack {
+                    vector_size: vector.len.load(atomic::Ordering::Relaxed) as u64,
+                    uuid: *vector.uuid.as_bytes(),
+                    name: vector.name.clone(),
+                })
+                .collect(),
+        }
+    }
+}
 
 // Data that is needed globally while writing the circuit
 #[derive(Debug)]
@@ -204,7 +245,35 @@ pub struct QPYWriteData<'a> {
     pub circuit_data: &'a CircuitData,
     pub version: u8,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
+    pub parameter_vectors: ParameterVectorTableBuilder,
     pub annotation_handler: AnnotationHandler,
+    custom_gate_counter: u32,
+}
+
+impl<'a> QPYWriteData<'a> {
+    pub fn next_custom_gate_id(&mut self) -> u32 {
+        let id = self.custom_gate_counter;
+        self.custom_gate_counter += 1;
+        id
+    }
+
+    pub fn new(
+        caller: QpyCaller,
+        circuit_data: &'a CircuitData,
+        version: u8,
+        standalone_var_indices: HashMap<u128, u16>,
+        annotation_handler: AnnotationHandler,
+    ) -> Self {
+        Self {
+            caller,
+            circuit_data,
+            version,
+            standalone_var_indices,
+            parameter_vectors: ParameterVectorTableBuilder::default(),
+            annotation_handler,
+            custom_gate_counter: 0,
+        }
+    }
 }
 
 // Data that is needed globally while reading the circuit
@@ -217,6 +286,7 @@ pub struct QPYReadData {
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
     pub vectors: HashMap<Uuid, Arc<SymbolVector>>,
+    pub parameter_vectors: Vec<Arc<SymbolVector>>,
     pub annotation_handler: AnnotationHandler,
 }
 
@@ -430,11 +500,11 @@ pub enum GenericValue {
 // we want to be able to extract the value relatively painlessly;
 // e.g. let my_bool = value.as_typed::<bool>().unwrap()
 pub trait FromGenericValue: Sized {
-    fn from_generic(value: &GenericValue) -> Option<Self>;
+    fn from_generic(value: &GenericValue) -> Result<Option<Self>, QpyError>;
 }
 
 impl GenericValue {
-    pub(crate) fn as_typed<T: FromGenericValue>(&self) -> Option<T> {
+    pub(crate) fn as_typed<T: FromGenericValue>(&self) -> Result<Option<T>, QpyError> {
         T::from_generic(self)
     }
     // reintreprets int64 and float64 as if they were given in little endian, since this is needed when encoding instruction parameters
@@ -483,20 +553,22 @@ impl GenericValue {
         }
     }
     // boolean vectors are tricky since there are several ways to encode them
-    pub(crate) fn to_boolean_vec(&self) -> Option<Vec<bool>> {
+    pub(crate) fn to_boolean_vec(&self) -> Result<Option<Vec<bool>>, QpyError> {
         match self {
             GenericValue::Tuple(elements) => elements
                 .iter()
                 .map(|val| val.as_typed::<bool>())
-                .collect::<Option<Vec<bool>>>(),
+                .collect::<Result<Option<Vec<bool>>, _>>(),
             GenericValue::NumpyObject(bytes) => {
-                let npy = NpyFile::new(Cursor::new(&bytes.0)).ok()?;
+                let Some(npy) = NpyFile::new(Cursor::new(&bytes.0)).ok() else {
+                    return Ok(None);
+                };
                 if npy.shape().len() != 1 {
-                    return None;
+                    return Ok(None);
                 }
-                npy.into_vec().ok()
+                Ok(npy.into_vec().ok())
             }
-            _ => None,
+            _ => Ok(None),
         }
     }
     pub(crate) fn numpy_array_from_boolean_vec(values: &[bool]) -> Result<Self, QpyError> {
@@ -534,11 +606,11 @@ impl GenericValue {
 macro_rules! impl_from_generic {
     ($t:ty, $variant:ident) => {
         impl FromGenericValue for $t {
-            fn from_generic(value: &GenericValue) -> Option<Self> {
-                match value {
+            fn from_generic(value: &GenericValue) -> Result<Option<Self>, QpyError> {
+                Ok(match value {
                     GenericValue::$variant(v) => Some(v.clone()),
                     _ => None,
-                }
+                })
             }
         }
     };
@@ -553,27 +625,32 @@ impl_from_generic!(Complex64, Complex64);
 
 // booleans are stored as i64 in current QPY, we should be able to convert from them
 impl FromGenericValue for bool {
-    fn from_generic(value: &GenericValue) -> Option<Self> {
-        match value {
+    fn from_generic(value: &GenericValue) -> Result<Option<Self>, QpyError> {
+        Ok(match value {
             GenericValue::Bool(val) => Some(*val),
             GenericValue::Int64(val) => Some(*val != 0),
             _ => None,
-        }
+        })
     }
 }
 
 // Extracting tuples is a little more trick; we'll use macro for the easy case of Vec<T> for a specific T
 impl<T: FromGenericValue> FromGenericValue for Vec<T> {
-    fn from_generic(value: &GenericValue) -> Option<Self> {
+    fn from_generic(value: &GenericValue) -> Result<Option<Self>, QpyError> {
         match value {
             GenericValue::Tuple(vec) => {
-                let mut out = Vec::with_capacity(vec.len());
+                let mut out = Vec::new();
+                out.try_reserve_exact(vec.len())
+                    .map_err(QpyError::AllocationError)?;
                 for item in vec {
-                    out.push(T::from_generic(item)?);
+                    let Some(val) = T::from_generic(item)? else {
+                        return Ok(None);
+                    };
+                    out.push(val);
                 }
-                Some(out)
+                Ok(Some(out))
             }
-            _ => None,
+            _ => Ok(None),
         }
     }
 }
@@ -646,14 +723,18 @@ pub(crate) fn load_value(
             Ok(GenericValue::ParameterExpressionSymbol(symbol.into()))
         }
         ValueType::ParameterVector => {
-            let (parameter_vector_element_pack, _) =
-                deserialize::<formats::ParameterVectorElementPack>(bytes)?;
+            let (parameter_vector_element_pack, _) = deserialize_with_args::<
+                formats::ParameterVectorElementPack,
+                _,
+            >(bytes, (qpy_data.version,))?;
             let symbol = unpack_parameter_vector(&parameter_vector_element_pack, qpy_data)?;
             Ok(GenericValue::ParameterExpressionVectorSymbol(symbol.into()))
         }
         ValueType::ParameterExpression => {
-            let (parameter_expression_pack, _) =
-                deserialize::<formats::ParameterExpressionPack>(bytes)?;
+            let (parameter_expression_pack, _) = deserialize_with_args::<
+                formats::ParameterExpressionPack,
+                _,
+            >(bytes, (qpy_data.version,))?;
             let exp = unpack_parameter_expression(&parameter_expression_pack, qpy_data)?;
             Ok(GenericValue::ParameterExpression(Arc::new(exp)))
         }
@@ -708,7 +789,7 @@ pub(crate) fn load_biguint_value(bytes: &Bytes) -> Result<GenericValue, QpyError
 /// serializes the generic value into bytes and also returns the identifying tag
 pub(crate) fn serialize_generic_value(
     value: &GenericValue,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<(ValueType, Bytes), QpyError> {
     Ok(match value {
         GenericValue::Bool(value) => (ValueType::Bool, value.into()),
@@ -723,11 +804,17 @@ pub(crate) fn serialize_generic_value(
         }
         GenericValue::ParameterExpressionVectorSymbol(symbol) => (
             ValueType::ParameterVector,
-            serialize(&pack_parameter_vector(symbol)?)?,
+            serialize_with_args(
+                &pack_parameter_vector(symbol, qpy_data)?,
+                (qpy_data.version,),
+            )?,
         ),
         GenericValue::ParameterExpression(exp) => (
             ValueType::ParameterExpression,
-            serialize(&pack_parameter_expression(exp)?)?,
+            serialize_with_args(
+                &pack_parameter_expression(exp, qpy_data)?,
+                (qpy_data.version,),
+            )?,
         ),
         GenericValue::Tuple(values) => (
             ValueType::Tuple,
@@ -799,7 +886,7 @@ pub(crate) fn serialize_generic_value(
 // but since that's the format currently in place in QPY we don't try to optimize
 pub(crate) fn pack_generic_value(
     value: &GenericValue,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<GenericDataPack, QpyError> {
     let (type_key, data) = serialize_generic_value(value, qpy_data)?;
     Ok(GenericDataPack { type_key, data })
@@ -868,7 +955,7 @@ pub(crate) fn unpack_for_collection(value: &GenericValue) -> Result<ForCollectio
 
 pub(crate) fn pack_generic_value_sequence(
     values: &[GenericValue],
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<GenericDataSequencePack, QpyError> {
     let elements = values
         .iter()
@@ -900,7 +987,8 @@ pub(crate) fn get_circuit_type_key(
         | OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
         | OperationRef::ControlFlow(_)
-        | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
+        | OperationRef::PauliProductMeasurement(_)
+        | OperationRef::Store(_) => Ok(CircuitInstructionType::Instruction),
         OperationRef::PyCustom(PyInstruction { kind, ob, .. }) => {
             caller.attach("Python-defined operations", |py| {
                 let ob = ob.bind(py);
@@ -1176,7 +1264,7 @@ mod qpy_value_tests {
         for values in [vec![], vec![false], vec![true, false, true]] {
             let value =
                 GenericValue::numpy_array_from_boolean_vec(&values).unwrap_or(GenericValue::Null);
-            assert_eq!(value.to_boolean_vec(), Some(values));
+            assert_eq!(value.to_boolean_vec().unwrap(), Some(values));
         }
     }
 

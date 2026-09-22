@@ -23,7 +23,7 @@ use pyo3::types::{PyAny, PyDict};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
-use crate::annotations::AnnotationHandler;
+use crate::annotations::{AnnotationHandler, NativeDeserializers, NativeSerializers};
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::{pack_circuit, pack_layout};
@@ -116,7 +116,11 @@ pub fn dump_qpy(
         })?;
     }
     let caller = caller.unwrap_or(QpyCaller::Native);
-    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
+        Vec::new(),
+        NativeSerializers::default(),
+        NativeDeserializers::default(),
+    ));
     if circuits.len() != extra_data.len() {
         return Err(QpyError::ConversionError(format!(
             "Expected extra data for {} circuits, got {}",
@@ -128,13 +132,16 @@ pub fn dump_qpy(
         .iter_mut()
         .zip(extra_data)
         .map(|(circuit, extra)| {
-            serialize(&pack_circuit(
-                circuit,
-                extra,
-                qpy_version,
-                annotation_handler.child()?,
-                caller,
-            )?)
+            serialize_with_args::<QPYCircuit, (u8,)>(
+                &pack_circuit(
+                    circuit,
+                    extra,
+                    qpy_version,
+                    annotation_handler.child()?,
+                    caller,
+                )?,
+                (qpy_version,),
+            )
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
     // Since QPY doesn't use symengine anymore, we default to SymbolicEncoding::Sympy
@@ -243,10 +250,18 @@ pub fn read_raw_circuits(
     )?;
 
     // Read circuits using offset differences to determine sizes
-    let mut circuits = Vec::with_capacity(num_programs);
+    let mut circuits = Vec::new();
+    circuits
+        .try_reserve_exact(num_programs)
+        .map_err(QpyError::AllocationError)?;
 
     for i in 0..num_programs {
         let size = if i + 1 < circuit_table.len() {
+            if circuit_table[i] > circuit_table[i + 1] {
+                return Err(QpyError::InvalidFormat(
+                    "Circuit offset table invalid".to_string(),
+                ));
+            }
             (circuit_table[i + 1] - circuit_table[i]) as usize
         } else {
             // Last circuit: read remaining bytes
@@ -296,7 +311,11 @@ pub fn load_qpy(
         })?;
     }
     let caller = caller.unwrap_or(QpyCaller::Native);
-    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
+        Vec::new(),
+        NativeSerializers::default(),
+        NativeDeserializers::default(),
+    ));
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
     if qpy_file_header.type_key == ProgramType::Schedule {
@@ -315,7 +334,10 @@ pub fn load_qpy(
         qpy_file_header.symbolic_encoding,
         SymbolicEncoding::Symengine
     );
-    let mut circuits = Vec::with_capacity(num_programs);
+    let mut circuits = Vec::new();
+    circuits
+        .try_reserve_exact(num_programs)
+        .map_err(QpyError::AllocationError)?;
     let mut cursor = Cursor::new(data as &[u8]);
     cursor.seek(std::io::SeekFrom::Start(header_size as u64))?;
     if qpy_file_header.qpy_version >= 16 {
@@ -405,4 +427,76 @@ pub fn py_load_qpy(
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+
+    use super::*;
+    use qiskit_circuit::Qubit;
+    use qiskit_circuit::operations::{DelayUnit, OperationRef, Param, StandardInstruction};
+    use qiskit_circuit::packed_instruction::PackedOperation;
+    use smallvec::smallvec;
+
+    /// Builds the [`ExtraCircuitData`] required to serialize a native circuit that carries no
+    /// Python-only metadata or transpiler layout.
+    fn native_extra_data(circuit: &CircuitData, name: &str, version: u8) -> ExtraCircuitData {
+        ExtraCircuitData {
+            name: Some(name.to_string()),
+            // Circuit metadata is always decoded with `json.loads`, and older Qiskit
+            // releases require the decoded value to be a dictionary.
+            metadata: "{}".into(),
+            layout: serialize(&pack_layout(None, circuit, version).unwrap()).unwrap(),
+        }
+    }
+
+    /// A circuit containing a single `Delay` measured in `dt` should survive a native
+    /// QPY dump/load round trip: the instruction, its `dt` unit, and its integer-typed
+    /// duration are all preserved.
+    #[test]
+    fn delay_in_dt_roundtrip() {
+        let version = QPY_WRITE_MIN_VERSION;
+
+        // Build a 1-qubit circuit with a `Delay` instruction of 13 dt value.
+        let circuit = CircuitData::from_packed_operations(
+            1,
+            0,
+            [Ok((
+                PackedOperation::from_standard_instruction(StandardInstruction::Delay(
+                    DelayUnit::DT,
+                )),
+                smallvec![Param::Int(13)],
+                vec![Qubit(0)],
+                Vec::with_capacity(0),
+            ))],
+            0.0.into(),
+        )
+        .unwrap();
+
+        // Round trip through the native QPY dump/load entry points.
+        let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
+        let payload = dump_qpy(vec![circuit], vec![extra], version, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None).unwrap();
+
+        // Exactly one circuit, with exactly one instruction.
+        assert_eq!(loaded.len(), 1);
+        let loaded_circuit = &loaded[0].circuit_data;
+        assert_eq!(loaded_circuit.num_qubits(), 1);
+        assert_eq!(loaded_circuit.len(), 1);
+
+        // That instruction is a `Delay` whose unit round-tripped as `dt`.
+        let inst = &loaded_circuit.data()[0];
+        let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view()
+        else {
+            panic!(
+                "expected a standard Delay instruction, got {:?}",
+                inst.op.view()
+            );
+        };
+        assert_eq!(unit, DelayUnit::DT);
+
+        // The duration parameter is preserved.
+        assert!(matches!(inst.params_view(), [Param::Int(d)] if *d == 13));
+    }
 }

@@ -13,9 +13,11 @@ doctest = false
 workspace = true
 
 [dependencies]
-qiskit-circuit.workspace = true    # only needed for testing! Keep?
-qiskit-transpiler.workspace = true # only needed for testing! Keep?
 smallvec.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 hashbrown.workspace = true
+
+[dev-dependencies]
+qiskit-circuit.workspace = true
+qiskit-transpiler.workspace = true

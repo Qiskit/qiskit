@@ -91,6 +91,7 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CDagNodeType", "DagNodeType"),
     ("CDelayUnit", "DelayUnit"),
     ("CInstruction", "CircuitInstruction"),
+    ("CInstructionView", "CircuitInstructionView"),
     ("CInstructionProperties", "InstructionProperties"),
     ("CNeighbors", "Neighbors"),
     ("COperationKind", "OperationKind"),
