@@ -1077,6 +1077,7 @@ pub extern "C" fn qk_param_stride() -> usize {
     mem::size_of::<Param>()
 }
 
+/// @ingroup QkParam
 /// Attempt casting the ``QkParam`` as ``int64_t``. This is intended to be
 /// used for retrieving a parameter representing the duration of a delay
 /// instruction in units of ``Dt``.
