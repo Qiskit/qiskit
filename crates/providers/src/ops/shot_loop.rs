@@ -22,7 +22,7 @@ use super::{ProgramOp, QISKIT};
 use crate::data_tree::{DataTree, InvalidName};
 use crate::tensor::{DType, Dim, Tensor, TensorType};
 
-/// Run each of a set of circuits for a fixed number of shots.
+/// Run each of a vector of circuits for a fixed number of shots.
 ///
 /// There is one operand per circuit for that circuit's parameter values.
 /// For each circuit, one value is returned per classical register, keyed by register name.
