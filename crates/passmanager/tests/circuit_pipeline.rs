@@ -54,7 +54,7 @@ struct CircuitToDag;
 impl StaticPass<CircuitData, DAGCircuit> for CircuitToDag {
     fn run(&self, ir: Box<CircuitData>, _ctx: &mut PassContext) -> anyhow::Result<Box<DAGCircuit>> {
         Ok(Box::new(DAGCircuit::from_circuit_data(
-            &*ir, false, None, None,
+            &ir, false, None, None,
         )?))
     }
 }
