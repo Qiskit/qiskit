@@ -230,7 +230,9 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
 /// calling `qk_qpy_loaded_circuits_clear`.
 #[repr(C)]
 pub struct QpyLoadedCircuits {
+    /// The array of ``QkCircuit`` pointers that were loaded from the QPY payload.
     data: *mut *mut CircuitData,
+    /// The number of circuits in ``data``.
     len: usize,
 }
 
@@ -239,13 +241,12 @@ pub struct QpyLoadedCircuits {
 ///
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
 /// @param circuits Output location for loaded circuits.
-/// @param num_circuits Output location for the number of circuits in ``circuits``.
 /// @param error Optional output location for an error description. Free a returned string with
 /// ``qk_str_free``.
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
 /// pointer, or ``QkExitCode_QpyError`` if the file cannot be read or is not supported QPY.
 /// The returned array and all its circuits must be released with
-/// ``qk_qpy_free_circuits``.
+/// `qk_qpy_loaded_circuits_clear`.
 ///
 /// This function will return an error if any aspect of the circuits in the QPY payload require the
 /// Python interpreter to create the `QkCircuit` object. If you are using this function in a Python
@@ -253,9 +254,9 @@ pub struct QpyLoadedCircuits {
 /// @verbatim embed:rst:inline :func:`.qpy.dump` @endverbatim instead to avoid this limitation.
 ///
 /// # Safety
-/// ``filename`` must point to a valid nul-terminated string; ``circuits`` and ``num_circuits`` must
-/// be valid for one write for the duration of this call. ``error`` must be null or valid for one
-/// pointer write.
+/// ``filename`` must point to a valid nul-terminated string; ``circuits`` must be valid non-null,
+/// aligned valid pointer to a `QpyLoadedCircuits` or behavior is undefined. ``error`` must be null
+/// or a valid pointer to a `char` pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_load_file(
     circuits: *mut QpyLoadedCircuits,
@@ -375,7 +376,7 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
 /// ``qk_str_free``.
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
 /// pointer, or ``QkExitCode_QpyError`` if the buffer is not supported QPY. The returned array and
-/// all its circuits must be released with ``qk_qpy_free_circuits``.
+/// all its circuits must be released with `qk_qpy_loaded_circuits_clear`.
 ///
 /// This function will return
 /// an error if any aspect of the circuits in the QPY payload require the Python interpreter to create
@@ -384,9 +385,9 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
 /// this limitation.
 ///
 /// # Safety
-/// ``buffer`` must be valid for reads of ``size`` bytes; ``circuits`` and ``num_circuits`` must be
-/// valid for one write for the duration of this call. ``error`` must be null or valid for one
-/// pointer write.
+/// ``buffer`` must be valid for reads of ``size`` bytes; ``circuits`` must be valid non-null,
+/// aligned valid pointer to a `QpyLoadedCircuits` or behavior is undefined. ``error`` must be null
+/// or a valid pointer to a `char` pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_load_buffer(
     circuits: *mut QpyLoadedCircuits,
@@ -425,8 +426,6 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
 /// Free circuits returned by ``qk_qpy_load_file`` or ``qk_qpy_load_buffer``.
 ///
 /// @param circuits The pointer to the loaded circuits object populated by a QPY load function, or null.
-/// @param num_circuits The number of circuit pointers in ``circuits`` returned by the QPY load
-/// function.
 ///
 /// # Safety
 /// ``circuits`` must either be null, or valid aligned pointer to a `QkQpyLoadedCircuits`
