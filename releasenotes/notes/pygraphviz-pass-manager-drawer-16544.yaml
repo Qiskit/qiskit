@@ -1,0 +1,12 @@
+---
+features_visualization:
+  - |
+    :func:`.pass_manager_drawer` and :func:`.staged_pass_manager_drawer` now render
+    images using `pygraphviz <https://pygraphviz.github.io/>`__, which bundles the
+    Graphviz binaries as of version 2.0.  A separate manual installation of the
+    Graphviz software is no longer required to draw pass managers.
+fixes:
+  - |
+    Fixed a bug on Windows where :func:`.pass_manager_drawer` raised a
+    ``PermissionError`` during temporary-file cleanup, because the rendered image's
+    file handle was still held open while the file was being deleted.
