@@ -393,27 +393,26 @@ def _merge_two_pauli_evolutions(
 ) -> PauliEvolutionGate | None:
     """Attempt to merge two PauliEvolutionGates into one.
 
-    For ``SparsePauliOp`` operators with numeric times, the merge is allowed only when the
-    accumulated phase error is within ``tol``.  The error is bounded by
-    ``(|t1| + |t2|) * ||H1 - H2||``, where ``||H1 - H2||`` is the sum of absolute
-    coefficient differences after combining like terms.  ``simplify(atol=0, rtol=0)`` is used
-    deliberately so that the default ``simplify()`` tolerance does not zero out small
-    coefficient differences before they are measured.
+    For ``SparsePauliOp`` operators with numeric times, the merge only happens when the
+    phase error is within ``tol``. The error grows as ``(|t1| + |t2|) * ||H1 - H2||``,
+    where ``||H1 - H2||`` is the sum of absolute coefficient differences after combining
+    like terms. ``simplify(atol=0, rtol=0)`` is used here so that ``simplify()``'s own
+    default tolerance does not drop small coefficients before we get to measure them.
 
-    When time is a symbolic ``Parameter``, the check falls back to
-    ``equiv(atol=tol)``.  Note that ``equiv()`` forwards ``atol`` to ``np.allclose`` but not
-    to its internal ``simplify()`` call, so differences below ``1e-8`` are silently accepted
-    regardless of ``tol`` — see #17025.
+    When time is a symbolic ``Parameter``, the check falls back to ``equiv(atol=tol)``.
+    Keep in mind that ``equiv()`` passes ``atol`` to ``np.allclose`` but not to its
+    internal ``simplify()`` call, so differences below ``1e-8`` will pass through
+    regardless of ``tol``
 
-    For ``SparseObservable`` operators the comparison is structural after ``simplify(tol=1e-8)``,
-    so ``tol`` is not applied and differences below ``1e-8`` are silently accepted regardless
-    of time.
+    For ``SparseObservable`` operators the comparison uses ``simplify(tol=1e-8)`` followed
+    by exact equality, so ``tol`` has no effect and small differences below ``1e-8`` are
+    not caught regardless of time — see #17025.
 
     Args:
         gate1: First gate.
         gate2: Second gate.
-        tol: Allowed phase-error budget for the merge. Derived from ``approximation_degree``
-            by the caller. Default ``0.0`` means exact merge only.
+        tol: Maximum phase error allowed for the merge. Comes from ``approximation_degree``
+            in the caller. Default ``0.0`` means exact merge only.
 
     Returns:
         The merged gate, or ``None`` if the gates cannot be merged.
