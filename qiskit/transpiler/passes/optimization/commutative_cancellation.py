@@ -31,10 +31,8 @@ _CUTOFF_PRECISION = 1e-5
 class CommutativeCancellation(TransformationPass):
     r"""Cancel self-adjoint gates and merge rotations by exploiting commutation relations.
 
-    This pass removes gates that amount to the identity by using commutation rules to
-    move matching gates next to each other, then either cancelling or merging them.
-    Two kinds of simplification happen:
-
+    This pass uses commutation rules to apply the following optimizations 
+    to a sequence of gate:
     * **Self-inverse gates** (``h, y, cx, cy, cz``): if an even number of copies
       of the *same* self-inverse gate on the *same* qubit(s) commute together, they
       cancel completely; an odd number leaves a single copy behind.
