@@ -342,6 +342,19 @@ class TestCommutativeOptimization(QiskitTestCase):
         self.assertEqual(len(qct.data), 2)
         self.assertTrue(Operator(qc).equiv(Operator(qct)))
 
+    def test_merge_pauli_evolutions_symbolic_time(self):
+        """Symbolic time falls back to operator-only comparison and still merges identical operators."""
+        t = Parameter("t")
+        op = SparsePauliOp.from_list([("Z", 1.0)])
+
+        qc = QuantumCircuit(1)
+        qc.append(PauliEvolutionGate(op, time=t), [0])
+        qc.append(PauliEvolutionGate(op, time=t), [0])
+
+        qct = CommutativeOptimization()(qc)
+
+        self.assertEqual(len(qct.data), 1)
+
     def test_not_merge_pauli_evolutions(self):
         """Test that the pass merges PauliEvolutionGates when appropriate."""
         op1 = SparsePauliOp.from_list([("IZZ", 1), ("ZII", 2), ("ZIZ", 3)])

@@ -391,20 +391,35 @@ def _get_default_label(operator):
 def _merge_two_pauli_evolutions(
     gate1: PauliEvolutionGate, gate2: PauliEvolutionGate, tol: float = 0.0
 ) -> PauliEvolutionGate | None:
-    """
-    Attempts to merge two PauliEvolutionGates can be merged.
+    """Attempt to merge two PauliEvolutionGates into one.
+
+    For ``SparsePauliOp`` operators with numeric times, the merge is allowed only when the
+    accumulated phase error is within ``tol``.  The error is bounded by
+    ``(|t1| + |t2|) * ||H1 - H2||``, where ``||H1 - H2||`` is the sum of absolute
+    coefficient differences after combining like terms.  ``simplify(atol=0, rtol=0)`` is used
+    deliberately so that the default ``simplify()`` tolerance does not zero out small
+    coefficient differences before they are measured.
+
+    When time is a symbolic ``Parameter``, the check falls back to
+    ``equiv(atol=tol)``.  Note that ``equiv()`` forwards ``atol`` to ``np.allclose`` but not
+    to its internal ``simplify()`` call, so differences below ``1e-8`` are silently accepted
+    regardless of ``tol`` — see #17025.
+
+    For ``SparseObservable`` operators the comparison is structural after ``simplify(tol=1e-8)``,
+    so ``tol`` is not applied and differences below ``1e-8`` are silently accepted regardless
+    of time.
 
     Args:
-        gate1: first gate.
-        gate2: second gate.
-        tol: allowed error budget for the merge (default 0.0, i.e. exact merge only).
+        gate1: First gate.
+        gate2: Second gate.
+        tol: Allowed phase-error budget for the merge. Derived from ``approximation_degree``
+            by the caller. Default ``0.0`` means exact merge only.
 
     Returns:
+        The merged gate, or ``None`` if the gates cannot be merged.
 
-    * None if the arguments are not of type PauliEvolutionGate or cannot be merged,
-    * Combined PauliEvolutionGate otherwise.
-
-    This function is internal (used from within Rust code) and not a part of public API.
+    Note:
+        This function is internal (called from Rust) and not part of the public API.
     """
     if not isinstance(gate1, PauliEvolutionGate) or not isinstance(gate2, PauliEvolutionGate):
         return None
@@ -412,12 +427,9 @@ def _merge_two_pauli_evolutions(
     if isinstance(gate1.operator, SparseObservable) and isinstance(
         gate2.operator, SparseObservable
     ):
-        # When both operators are SparseObservables, we can compare their canonical representatives.
-        # SparseObservable comparison stays exact-only for now; tol isn't applied here.
         can_merge = gate1.operator.simplify() == gate2.operator.simplify()
 
     elif isinstance(gate1.operator, SparsePauliOp) and isinstance(gate2.operator, SparsePauliOp):
-
         try:
             t1 = float(gate1.time)
             t2 = float(gate2.time)
@@ -425,18 +437,10 @@ def _merge_two_pauli_evolutions(
             t1 = t2 = None
 
         if t1 is None or t2 is None:
-            # No numeric time to scale by; just compare the Hamiltonians directly.
-            # Note: equiv() calls to simplify() w/o arguments, and it is using it's own tolerance 1e-8
             can_merge = gate1.operator.equiv(gate2.operator, atol=tol)
         else:
-            # atol=0, rtol=0: simplify()'s own default would hide the exact
-            # small differences we're trying to catch.
             diff = (gate1.operator - gate2.operator).simplify(atol=0, rtol=0)
             coef_diff = float(np.sum(np.abs(diff.coeffs)))
-
-            # Merge error grows with time: evolving under two slightly
-            # different H's for t1+t2 total drifts from a single merged H by
-            # roughly (t1+t2) * ||H1-H2||.
             phase_error = (abs(t1) + abs(t2)) * coef_diff
             can_merge = phase_error <= tol
 
