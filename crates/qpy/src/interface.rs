@@ -443,14 +443,12 @@ pub fn py_load_qpy(
     load_qpy(&data, Some(annotation_handler), Some(QpyCaller::Python))?
         .into_iter()
         .map(|loaded| {
-            QpyCaller::Python.attach("Python circuit construction", |py| {
-                py_circuit_data_to_quantum_circuit(
-                    py,
-                    loaded.circuit_data,
-                    &loaded.packed_circuit,
-                    metadata_deserializer.as_ref().map(Bound::as_ref),
-                )
-            })
+            py_circuit_data_to_quantum_circuit(
+                py,
+                loaded.circuit_data,
+                &loaded.packed_circuit,
+                metadata_deserializer.as_ref().map(Bound::as_ref),
+            )
         })
         .collect()
 }

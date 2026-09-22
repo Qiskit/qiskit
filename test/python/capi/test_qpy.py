@@ -18,7 +18,7 @@ import tempfile
 
 from qiskit import QuantumCircuit, capi, qpy
 from qiskit.circuit.library import PermutationGate, QFTGate, SdgGate
-from qiskit.qpy import common as qpy_common
+from qiskit.qpy import dump, common as qpy_common
 from test import QiskitTestCase
 
 
@@ -136,6 +136,19 @@ class TestQpyCAPI(QiskitTestCase):
         self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
         self.assertIn(b"is only available when QPY is invoked from Python", ctypes.string_at(error))
         capi.qk_str_free(error)
+        with io.BytesIO() as buf:
+            dump(circuit, buf)
+            buffer = buf.getvalue()
+        length = len(buffer)
+        array_type = ctypes.c_ubyte * length
+        array_data = array_type.from_buffer(bytearray(buffer))
+        output = capi.QkQpyLoadedCircuits(None, 0)
+        result = capi.qk_qpy_load_buffer(
+            ctypes.byref(output), ctypes.POINTER(ctypes.c_ubyte)(array_data), length, error
+        )
+        self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+        self.assertIn(b"is only available when QPY is invoked from Python", ctypes.string_at(error))
+        capi.qk_str_free(error)
 
     def test_python_defined_op_with_valid_params(self):
         circuit = QuantumCircuit(3)
@@ -161,6 +174,21 @@ class TestQpyCAPI(QiskitTestCase):
             ctypes.string_at(error),
         )
         capi.qk_str_free(error)
+        with io.BytesIO() as buf:
+            dump(circuit, buf)
+            buffer = buf.getvalue()
+        length = len(buffer)
+        array_type = ctypes.c_ubyte * length
+        array_data = array_type.from_buffer(bytearray(buffer))
+        output = capi.QkQpyLoadedCircuits(None, 0)
+        result = capi.qk_qpy_load_buffer(
+            ctypes.byref(output), ctypes.POINTER(ctypes.c_ubyte)(array_data), length, error
+        )
+        self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+        self.assertIn(
+            b"'Python defined instructions' is only available when QPY is invoked from Python",
+            ctypes.string_at(error),
+        )
 
     def test_python_custom_op(self):
         circuit = QuantumCircuit(6)
@@ -184,6 +212,22 @@ class TestQpyCAPI(QiskitTestCase):
         self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
         self.assertIn(
             b"'Python-defined operations' is only available when QPY is invoked from Python",
+            ctypes.string_at(error),
+        )
+        capi.qk_str_free(error)
+        with io.BytesIO() as buf:
+            dump(circuit, buf)
+            buffer = buf.getvalue()
+        length = len(buffer)
+        array_type = ctypes.c_ubyte * length
+        array_data = array_type.from_buffer(bytearray(buffer))
+        output = capi.QkQpyLoadedCircuits(None, 0)
+        result = capi.qk_qpy_load_buffer(
+            ctypes.byref(output), ctypes.POINTER(ctypes.c_ubyte)(array_data), length, error
+        )
+        self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+        self.assertIn(
+            b"'Custom instructions' is only available when QPY is invoked from Python",
             ctypes.string_at(error),
         )
         capi.qk_str_free(error)
@@ -216,3 +260,19 @@ class TestQpyCAPI(QiskitTestCase):
             ctypes.string_at(error),
         )
         capi.qk_str_free(error)
+        with io.BytesIO() as buf:
+            dump(circuit, buf)
+            buffer = buf.getvalue()
+        length = len(buffer)
+        array_type = ctypes.c_ubyte * length
+        array_data = array_type.from_buffer(bytearray(buffer))
+        output = capi.QkQpyLoadedCircuits(None, 0)
+        result = capi.qk_qpy_load_buffer(
+            ctypes.byref(output), ctypes.POINTER(ctypes.c_ubyte)(array_data), length, error
+        )
+        self.assertEqual(result, capi.QkExitCode.Success.value.value)
+        self.assertEqual(output.len, 1)
+        self.assertEqual(
+            capi.qk_circuit_to_python_full(capi.qk_circuit_copy(output.data[0])), circuit
+        )
+        capi.qk_qpy_loaded_circuits_clear(output)

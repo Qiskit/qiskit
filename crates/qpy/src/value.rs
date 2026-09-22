@@ -748,7 +748,7 @@ pub(crate) fn load_value(
             let (modifier_pack, _) = deserialize::<formats::ModifierPack>(bytes)?;
             let values = qpy_data
                 .caller
-                .attach("unpack modifier", |py| -> Result<_, QpyError> {
+                .attach("AnnotatedOperation", |py| -> Result<_, QpyError> {
                     py_unpack_modifier(py, &modifier_pack)
                 })?;
             Ok(GenericValue::Modifier(values))
