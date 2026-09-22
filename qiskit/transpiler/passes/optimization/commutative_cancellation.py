@@ -29,7 +29,7 @@ _CUTOFF_PRECISION = 1e-5
 
 
 class CommutativeCancellation(TransformationPass):
-    r"""Cancel redundant gates by exploiting commutation relations.
+    r"""Cancel self-adjoint gates and merge rotations by exploiting commutation relations.
 
     This pass removes gates that amount to the identity by using commutation rules to
     move matching gates next to each other, then either cancelling or merging them.
