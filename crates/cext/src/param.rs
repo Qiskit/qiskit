@@ -997,8 +997,8 @@ pub unsafe extern "C" fn qk_param_equal(lhs: *const Param, rhs: *const Param) ->
 /// Attempt casting the ``QkParam`` as ``double``.
 ///
 /// If the parameter could not be cast to a ``double``, because there were unbound parameters,
-/// ``NAN`` is returned. Note that for ``QkParam`` representing complex values the real part is
-/// returned.
+/// ``NAN`` is returned. Note that for ``QkParam`` of the kind ``QkParamKind_ParameterExpression``
+/// representing complex values the real part is returned.
 ///
 /// If the parameter in originally an `int` instance, it will be coerced into a double, resulting
 /// in a lossy conversion.
@@ -1078,34 +1078,35 @@ pub extern "C" fn qk_param_stride() -> usize {
 }
 
 /// Attempt casting the ``QkParam`` as ``int64_t``. This is intended to be
-/// used for retrieving a parameter representing the duration of a delay instruction in units of `Dt`.
+/// used for retrieving a parameter representing the duration of a delay
+/// instruction in units of ``Dt``.
 ///
-/// If the parameter could not be cast to a ``int64_t``, because there were unbound parameters,
-/// ``INT64_MAX`` is returned. Note that for ``QkParam`` representing complex values the real part is
-/// returned.
+/// If the parameter could not be cast to a ``int64_t``, because there were
+/// unbound parameters, the pointer will not be written to and the function
+/// will return ``false``.
 ///
 /// @param param A pointer to the ``QkParam`` to evaluate.
 /// @param value A pointer to a ``int32_t`` to write the resulting value.
 ///
-/// @return The value, if casting was successful, otherwise ``INT64_MAX``.
+/// @return ``true`` if the stored value is an integer, otherwise ``false``.
 ///
 /// # Safety
 ///
 /// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
 /// The behavior is undefined if ``value`` is not a valid, non-null pointer to an address that
-/// can hold an `int32_t` instance.
+/// can hold an ``int32_t`` instance.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let param = unsafe { const_ptr_as_ref(param) };
 
-    // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an `int32_t`.
+    // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an ``int32_t``.
     param_try_int(param)
         .inspect(|param| unsafe { value.write(*param) })
         .is_some()
 }
 
-/// Quickly returns the integer value of a `Param` if stores one or evaluates to one.
+/// Quickly returns the integer value of a [``Param``] if stores one or evaluates to one.
 fn param_try_int(param: &Param) -> Option<i64> {
     match param {
         Param::ParameterExpression(expr) => match expr.try_to_value(true) {
@@ -1113,11 +1114,13 @@ fn param_try_int(param: &Param) -> Option<i64> {
             _ => None,
         },
         Param::Int(int) => Some(*int),
-        _ => None,
+        Param::Float(_) => None,
+        Param::Obj(_) => None,
     }
 }
 
 #[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Represents the type of a ``QkParam`` instance.
 pub enum ParamKind {
     /// Represents an unknown parameter that is not representable in the C API. Typically this is a parameter that is defined in Python.
@@ -1126,7 +1129,7 @@ pub enum ParamKind {
     Real = 1,
     /// Represents an unbound parameter symbol.
     ParameterExpression = 2,
-    /// Represents a parameter that can only be represented by an integer. Usually a duration in terms of `Dt`.
+    /// Represents a parameter that can only be represented by an integer. Usually a duration in terms of ``Dt``.
     Int = 3,
 }
 
@@ -1149,7 +1152,7 @@ pub unsafe extern "C" fn qk_param_kind(param: *const Param) -> ParamKind {
         Param::ParameterExpression(_) => ParamKind::ParameterExpression,
         Param::Int(_) => ParamKind::Int,
         Param::Float(_) => ParamKind::Real,
-        _ => ParamKind::Unknown,
+        Param::Obj(_) => ParamKind::Unknown,
     }
 }
 
