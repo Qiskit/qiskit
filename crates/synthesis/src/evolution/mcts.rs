@@ -136,10 +136,10 @@ fn cx_count_with_swaps(gate_seq: &GateSequence) -> usize {
     // and so also considers SWAP gates.
     gate_seq
         .iter()
-        .map(|(gate, _, _)| match gate {
-            StandardGate::CX => 1,
-            StandardGate::Swap => 3,
-            _ => 0,
+        .filter_map(|(gate, _, _)| match gate {
+            StandardGate::CX => Some(1),
+            StandardGate::Swap => Some(3),
+            _ => None,
         })
         .sum()
 }
@@ -193,17 +193,12 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
     // store how many times each of the 16 possible 2-qubit Paulis appear.
     let mut counts_cache: HashMap<(usize, usize), [u32; 16]> = HashMap::new();
 
-    loop {
-        let support_size = synthesis_state.support_sizes[ndx];
-
-        // We have successfully reduced this Pauli to a single-qubit rotation.
-        if support_size == 1 {
-            break;
-        }
-
-        // Loop to cycle over all qubit indices to get all combinations of control and target.
+    // On each iteration of the while-loop, the support size of the given Pauli rotation should
+    // decrease by 1. We stop iterating when the Pauli is reduced to a single-qubit rotation.
+    while synthesis_state.support_sizes[ndx] > 1 {
         let support = synthesis_state.tab.get_pauli_support(ndx);
 
+        // Loop to cycle over all qubit indices in the support to get all combinations of control and target.
         let mut best_score = (isize::MIN, isize::MIN);
         let mut best_ctrl = 0;
         let mut best_trgt = 0;
@@ -280,7 +275,7 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                         .append_cx(mapped_qubits[0].index(), mapped_qubits[1].index());
                 }
                 _ => {
-                    panic!("should only have s/sx/h/cx gates");
+                    unreachable!("chunks only contain s/sx/h/cx gates");
                 }
             }
 
@@ -516,15 +511,12 @@ impl MctsAlgorithm {
 
     /// Backpropagate estimated value from the terminal state up through the tree.
     fn backpropagate(&mut self, leaf_node_id: usize, value: usize) {
-        let mut node_id = leaf_node_id;
-        loop {
-            let node = &mut self.mcts_nodes[node_id];
+        let mut node_id = Some(leaf_node_id);
+        while let Some(id) = node_id {
+            let node = &mut self.mcts_nodes[id];
             node.ni += 1;
             node.qi += value;
-            match node.parent {
-                Some(parent) => node_id = parent,
-                None => break,
-            }
+            node_id = node.parent;
         }
     }
 
@@ -777,16 +769,10 @@ impl MctsAlgorithm {
     /// A possible follow-up: also implement Rustiq's heuristic for minimizing CX-count
     /// (by changing the internal scoring function).
     fn rollout_policy(&self, mcts_node_id: usize) -> GateSequence {
-        let num_paulis = self.num_paulis;
-
         // We are cloning this state, since are going to update it in-place.
         let mut synthesis_state = self.mcts_nodes[mcts_node_id].synthesis_state.clone();
 
-        if synthesis_state.num_processed == self.num_paulis {
-            return synthesis_state.gate_sequence.clone();
-        }
-
-        loop {
+        while synthesis_state.num_processed < self.num_paulis {
             // Compute front nodes.
             let front_nodes = compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees);
 
@@ -801,11 +787,6 @@ impl MctsAlgorithm {
 
             // Update the state by finding all Paulis that got synthesized.
             self.process_synthesized_paulis(&mut synthesis_state);
-
-            // Check if all the Paulis are processed now.
-            if synthesis_state.num_processed == num_paulis {
-                break;
-            }
         }
         synthesis_state.gate_sequence
     }

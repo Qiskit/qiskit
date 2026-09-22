@@ -531,10 +531,6 @@ impl PauliList {
 
     /// If the Pauli with index `pauli_idx` has support `[q]` of exactly size 1, return `Some(q)`.
     /// Return `None` otherwise.
-    ///
-    /// # Panics
-    ///
-    /// This function assumes that `pauli_idx < self.num_paulis`.
     pub fn get_pauli_support_if_size_1(&self, pauli_idx: usize) -> Option<usize> {
         let mut found: Option<usize> = None;
         for q in 0..self.num_qubits {

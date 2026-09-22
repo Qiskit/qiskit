@@ -625,6 +625,16 @@ pub(crate) fn pack_param_obj(
         Param::Obj(py_object) => qpy_data.caller.attach("Python parameter", |py| {
             py_pack_param(py_object.bind(py), qpy_data, endian)
         })?,
+        Param::Int(int) => match resolved {
+            Endian::Little => formats::GenericDataPack {
+                type_key: ValueType::Integer,
+                data: int.to_le_bytes().into(),
+            },
+            Endian::Big => formats::GenericDataPack {
+                type_key: ValueType::Integer,
+                data: int.to_be_bytes().into(),
+            },
+        },
     })
 }
 
@@ -650,7 +660,7 @@ pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyE
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::annotations::AnnotationHandler;
+    use crate::annotations::{AnnotationHandler, NativeDeserializers, NativeSerializers};
     use qiskit_circuit::circuit_data::CircuitData;
     use qiskit_circuit::operations::Param;
 
@@ -666,7 +676,11 @@ mod tests {
             parameter_vectors: (0..num_vectors)
                 .map(|index| SymbolVector::new(format!("v{index}"), 2))
                 .collect(),
-            annotation_handler: AnnotationHandler::native(),
+            annotation_handler: AnnotationHandler::native(
+                Vec::new(),
+                NativeSerializers::default(),
+                NativeDeserializers::default(),
+            ),
             caller: QpyCaller::Native,
         }
     }

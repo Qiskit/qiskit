@@ -509,6 +509,32 @@ cleanup:
     return result;
 }
 
+static int test_dag_view_instruction(void) {
+    // Mostly the combinations in the `QkInstructionView` logic is tested via `QkCircuit`, so this
+    // is just a simple smoke test.
+    int res = Ok;
+    QkCircuitInstructionView view;
+    uint32_t op_node;
+    uint32_t args[2] = {1, 0};
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    qk_circuit_gate(qc, QkGate_CX, args, NULL);
+    QkDag *dag = qk_circuit_to_dag(qc);
+    qk_circuit_free(qc);
+
+    // There's only the one op node.
+    qk_dag_topological_op_nodes(dag, &op_node);
+
+    qk_dag_view_instruction(dag, op_node, &view);
+    if (view.name_len != 2 || view.num_qubits != 2 || view.num_clbits != 0 ||
+        view.num_params != 0 || strncmp(view.name, "cx", 2) ||
+        memcmp(view.qubits, args, sizeof(args))) {
+        res = EqualityError;
+    }
+
+    qk_dag_free(dag);
+    return res;
+}
+
 static int test_dag_topological_op_nodes(void) {
     int result = Ok;
     QkDag *dag = qk_dag_new();
@@ -1387,6 +1413,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_global_phase);
     num_failed += RUN_TEST(test_op_node_bits_explicit);
     num_failed += RUN_TEST(test_dag_get_instruction);
+    num_failed += RUN_TEST(test_dag_view_instruction);
     num_failed += RUN_TEST(test_dag_topological_op_nodes);
     num_failed += RUN_TEST(test_unitary_gates);
     num_failed += RUN_TEST(test_substitute_node_with_dag);

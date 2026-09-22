@@ -138,6 +138,13 @@ impl fmt::Display for ParameterExpression {
 }
 
 impl ParameterExpression {
+    /// Exact structural equality of two expressions.
+    ///
+    /// See [`SymbolExpr::eq_exact`] for more detail.
+    pub fn eq_exact(&self, other: &Self) -> bool {
+        (self.name_map == other.name_map) && self.expr.eq_exact(&other.expr)
+    }
+
     pub fn qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::new();
         let mut unused: IndexSet<_> = self.name_map.values().cloned().collect();
@@ -318,10 +325,7 @@ impl ParameterExpression {
 
     /// Initialize from an f64.
     pub fn from_f64(value: f64) -> Self {
-        Self {
-            expr: SymbolExpr::Value(Value::Real(value)),
-            name_map: HashMap::new(),
-        }
+        Value::from(value).into()
     }
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
@@ -746,6 +750,15 @@ impl ParameterExpression {
             }
         }
         Ok(merged)
+    }
+}
+
+impl From<Value> for ParameterExpression {
+    fn from(value: Value) -> Self {
+        Self {
+            expr: SymbolExpr::Value(value),
+            name_map: HashMap::new(),
+        }
     }
 }
 
@@ -1212,6 +1225,48 @@ impl PyParameterExpression {
         } else {
             Ok(false)
         }
+    }
+
+    /// Are these two expressions exactly structurally equal?
+    ///
+    /// This is a faster and stricter form of the standard ``==`` relationship, but does not take
+    /// simplifications into account.  Almost all expressions that are :meth:`structurally_equal`
+    /// are all ``==`` to each other, but the reverse is not true.  (In the presence of ``nan``
+    /// values, :meth:`structurally_equal` can sometimes return ``True`` when ``==`` compares
+    /// ``False``.)
+    ///
+    /// This function is most useful in internal tests of the :class:`ParameterExpression` logic.
+    ///
+    /// .. note::
+    ///
+    ///     Many operations on :class:`ParameterExpression` do on-the-fly simplification as they are
+    ///     constructed, so two expressions that appear to have been constructed in different orders
+    ///     can still be internally structurally equal.
+    ///
+    /// Args:
+    ///     rhs: the other object to compare.
+    ///
+    /// Returns:
+    ///     Whether the two objects are structurally equal expressions.
+    ///
+    /// Examples:
+    ///
+    ///     Two expressions can simplify to each other when checking for equality, but not use the
+    ///     same internal structure::
+    ///
+    ///         from qiskit.circuit import Parameter
+    ///
+    ///         x, y = Parameter("x"), Parameter("y")
+    ///         left = x + y + 1
+    ///         right = 1 + y + x
+    ///         assert left == right
+    ///         assert not left.structurally_equal(right)
+    pub fn structurally_equal(&self, rhs: &Bound<PyAny>) -> bool {
+        let Ok(rhs) = rhs.cast::<Self>() else {
+            return false;
+        };
+        let rhs = rhs.borrow();
+        self.inner.eq_exact(&rhs.inner)
     }
 
     #[inline]

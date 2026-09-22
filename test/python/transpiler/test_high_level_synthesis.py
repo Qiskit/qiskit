@@ -75,7 +75,13 @@ from qiskit.synthesis.arithmetic import adder_qft_d00
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.converters import dag_to_circuit, circuit_to_dag, circuit_to_instruction
-from qiskit.transpiler import PassManager, TranspilerError, CouplingMap, Target
+from qiskit.transpiler import (
+    PassManager,
+    TranspilerError,
+    CouplingMap,
+    Target,
+    OptimizationMetric,
+)
 from qiskit.transpiler.passes.basis import BasisTranslator
 from qiskit.transpiler.passes.synthesis.plugin import (
     HighLevelSynthesisPlugin,
@@ -92,6 +98,7 @@ from qiskit.transpiler.passes.synthesis.hls_plugins import (
     MCXSynthesis1CleanB95,
     MCXSynthesisNCleanM15,
     MCXSynthesisNDirtyI15,
+    MCXSynthesisNDirtyM15,
     MCXSynthesis2CleanKG24,
     MCXSynthesis2DirtyKG24,
     MCXSynthesis1CleanKG24,
@@ -846,6 +853,130 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         # must be clean.
         for q in range(num_qubits):
             self.assertEqual(tracker.is_qubit_clean(q), q not in gate_qubits)
+
+    def test_no_clean_ancillas_after_if_else(self):
+        """
+        Test that the pass correctly tracks qubit states after if-else operations.
+        Regression test for gh-16859.
+        """
+
+        qc = QuantumCircuit(5, 1)
+        qc.h([0, 1, 2, 3, 4])
+
+        with qc.if_test((0, True)) as else_:
+            # HLS would mark qubit 4 as clean at the end of this true block
+            qc.reset(4)
+        with else_:
+            qc.mcx([0, 1, 2], 3)
+
+        dag = circuit_to_dag(qc)
+
+        # This specified MCX synthesis method requires one clean ancilla, and hence should not synthesize
+        # the MCX gate. HighLevelSynthesis is currently suboptimal when processing control-flow operations
+        # (treating all qubits as dirty) however previously the reset instruction from the if-branch
+        # set the qubit status to clean, which (incorrectly) propagated to the else-branch, and the MCX
+        # gate was (incorrectly) synthesized.
+        hls_config = HLSConfig(mcx=["1_clean_kg24"])
+        transpiled = HighLevelSynthesis(hls_config=hls_config).run(dag)
+        self.assertIn("mcx", transpiled.count_ops())
+
+    @staticmethod
+    def run_and_track_qubits(circuit: QuantumCircuit, tracker: QubitTracker):
+        """Run the internal high-level synthesis method in a specific test
+        configuration and track qubit states after applying the circuit.
+
+        Modifies tracker in place.
+        """
+
+        hls_config = HLSConfig()
+        hls_plugin_manager = HighLevelSynthesisPluginManager()
+        hls_op_names = set(hls_plugin_manager.plugins_by_op.keys())
+        target = Target.from_configuration(basis_gates=["cx", "u"])
+        hls_data = HighLevelSynthesisData(
+            hls_config=hls_config,
+            hls_plugin_manager=hls_plugin_manager,
+            coupling_map=None,
+            target=target,
+            equivalence_library=std_eqlib,
+            hls_op_names=hls_op_names,
+            device_insts={"cx", "u"},
+            use_physical_indices=False,
+            min_qubits=0,
+            unroll_definitions=True,
+            optimize_clifford_t=False,
+        )
+
+        _ = synthesize_circuit(circuit._data, list(range(circuit.num_qubits)), hls_data, tracker)
+
+    def test_qubit_states_after_if_else(self):
+        """
+        Test that the internal qubit tracking mechanism correctly tracks qubit states
+        after an if-else operation.
+        """
+
+        qc = QuantumCircuit(4, 1)
+        with qc.if_test((0, True)) as else_:
+            qc.x(2)
+        with else_:
+            qc.z(0)
+
+        # Initially: qubits 0, 1, 2 are clean; qubit 3 is dirty
+        tracker = QubitTracker(4, True)
+        tracker.set_dirty([3])
+
+        self.run_and_track_qubits(qc, tracker)
+
+        # Expected: 1 is clean; 0, 2, 3 are dirty
+        expected_clean = {0: False, 1: True, 2: False, 3: False}
+        self.assertEqual({q: tracker.is_qubit_clean(q) for q in range(4)}, expected_clean)
+
+    def test_qubit_states_after_if_without_else(self):
+        """
+        Test that the internal qubit tracking mechanism correctly tracks qubit states
+        after an if operation.
+        """
+
+        qc = QuantumCircuit(4, 1)
+        with qc.if_test((0, True)):
+            qc.reset(2)
+
+        # Initially: qubits 1, 3 are clean; qubits 0, 2 are dirty
+        tracker = QubitTracker(4, True)
+        tracker.set_dirty([0, 2])
+
+        self.run_and_track_qubits(qc, tracker)
+
+        # Expected: qubits 1, 3 are clean; qubits 0, 2 are dirty
+        expected_clean = {0: False, 1: True, 2: False, 3: True}
+        self.assertEqual({q: tracker.is_qubit_clean(q) for q in range(4)}, expected_clean)
+
+    def test_qubit_states_after_switch(self):
+        """
+        Test that the internal qubit tracking mechanism correctly tracks qubit states
+        after a switch.
+        """
+
+        qubits = [Qubit(), Qubit(), Qubit(), Qubit()]
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubits, creg)
+        with qc.switch(expr.bit_and(creg, 2)) as case:
+            with case(0):
+                qc.x(0)
+            with case(1):
+                qc.x(2)
+            with case(2):
+                qc.h(0)
+            with case(3):
+                qc.h(3)
+
+        # Initially: qubits 0, 1, 2, 3 are clean
+        tracker = QubitTracker(4, True)
+
+        self.run_and_track_qubits(qc, tracker)
+
+        # Expected: qubit 1 is clean; qubits 0, 2, 3 are dirty
+        expected_clean = {0: False, 1: True, 2: False, 3: False}
+        self.assertEqual({q: tracker.is_qubit_clean(q) for q in range(4)}, expected_clean)
 
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):
@@ -2770,21 +2901,59 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
         supported_plugin_names = high_level_synthesis_plugin_names("mcx")
         self.assertIn("default", supported_plugin_names)
 
+    @data(OptimizationMetric.COUNT_T, OptimizationMetric.COUNT_2Q)
+    def test_default_prefers_n_dirty_m15(self, optimization_metric):
+        """Test the default selects dirty M15 for four or more controls when applicable."""
+        for num_ctrl_qubits in range(4, 8):
+            with self.subTest(num_ctrl_qubits=num_ctrl_qubits):
+                decomposition = MCXSynthesisDefault().run(
+                    MCXGate(num_ctrl_qubits),
+                    num_clean_ancillas=0,
+                    num_dirty_ancillas=(num_ctrl_qubits - 1) // 2,
+                    optimization_metric=optimization_metric,
+                )
+                counts = decomposition.count_ops()
+
+                self.assertEqual(counts["cx"], 8 * num_ctrl_qubits - 12)
+                self.assertEqual(counts["t"] + counts["tdg"], 8 * num_ctrl_qubits - 8)
+
+    def test_default_selects_c3x_by_metric(self):
+        """Test the C3X default uses NDirtyI15 for CX and dirty M15 for T count."""
+        count_2q = MCXSynthesisDefault().run(
+            MCXGate(3),
+            num_clean_ancillas=0,
+            num_dirty_ancillas=1,
+            optimization_metric=OptimizationMetric.COUNT_2Q,
+        )
+        count_t = MCXSynthesisDefault().run(
+            MCXGate(3),
+            num_clean_ancillas=0,
+            num_dirty_ancillas=1,
+            optimization_metric=OptimizationMetric.COUNT_T,
+        )
+
+        self.assertEqual(count_2q.num_qubits, 4)
+        self.assertEqual(count_2q.count_ops()["cx"], 14)
+        self.assertEqual(count_2q.count_ops()["p"], 15)
+        self.assertEqual(count_t.num_qubits, 5)
+        self.assertEqual(count_t.count_ops()["cx"], 14)
+        self.assertEqual(count_t.count_ops()["t"] + count_t.count_ops()["tdg"], 16)
+
     def test_mcx_plugins_applicability(self):
         """Test applicability of MCX synthesis plugins for MCX gates."""
         gate = MCXGate(5)
 
-        with self.subTest(method="n_clean_m15", num_clean_ancillas=4, num_dirty_ancillas=4):
+        with self.subTest(method="n_clean_m15", num_clean_ancillas=2, num_dirty_ancillas=4):
             # should have a decomposition
             decomposition = MCXSynthesisNCleanM15().run(
-                gate, num_clean_ancillas=4, num_dirty_ancillas=4
+                gate, num_clean_ancillas=2, num_dirty_ancillas=4
             )
             self.assertIsNotNone(decomposition)
 
-        with self.subTest(method="n_clean_m15", num_clean_ancillas=2, num_dirty_ancillas=4):
+        with self.subTest(method="n_clean_m15", num_clean_ancillas=1, num_dirty_ancillas=4):
             # should not have a decomposition
             decomposition = MCXSynthesisNCleanM15().run(
-                gate, num_clean_ancillas=2, num_dirty_ancillas=4
+                gate, num_clean_ancillas=1, num_dirty_ancillas=4
             )
             self.assertIsNone(decomposition)
 
@@ -2806,6 +2975,18 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             # should not have a decomposition
             decomposition = MCXSynthesisNDirtyI15().run(
                 gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNone(decomposition)
+
+        with self.subTest(method="n_dirty_m15", num_clean_ancillas=1, num_dirty_ancillas=1):
+            decomposition = MCXSynthesisNDirtyM15().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="n_dirty_m15", num_clean_ancillas=0, num_dirty_ancillas=1):
+            decomposition = MCXSynthesisNDirtyM15().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=1
             )
             self.assertIsNone(decomposition)
 
@@ -2980,6 +3161,7 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
     @data(
         "n_clean_m15",
         "n_dirty_i15",
+        "n_dirty_m15",
         "2_clean_kg24",
         "2_dirty_kg24",
         "1_clean_kg24",
@@ -3007,6 +3189,7 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
     @data(
         "n_clean_m15",
         "n_dirty_i15",
+        "n_dirty_m15",
         "2_clean_kg24",
         "2_dirty_kg24",
         "1_clean_kg24",
@@ -3277,7 +3460,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.append(PauliEvolutionGate(op), [0, 1, 2])
 
-        with self.subTest("num_simulations=1"):
+        with self.subTest(num_simulations=1):
             hls_config = HLSConfig(
                 PauliEvolution=[("mcts", {"num_simulations": 1, "max_parallel_simulations": 1})]
             )
@@ -3286,7 +3469,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             cnt_ops = qct.count_ops()
             self.assertEqual(cnt_ops["cx"], 16)
 
-        with self.subTest("num_simulations=20"):
+        with self.subTest(num_simulations=20):
             hls_config = HLSConfig(
                 PauliEvolution=[("mcts", {"num_simulations": 20, "max_parallel_simulations": 1})]
             )
