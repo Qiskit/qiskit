@@ -17,15 +17,15 @@ use std::{
 
 use thiserror::Error;
 
-use crate::{DynTypeId, PassContext};
+use crate::{DynTypeId, IR, PassContext};
 
 /// The base behavior for compiler passes written in first-party Rust code.
 ///
 /// This is the component that pass authors actually need to implement.
 pub trait StaticPass<In, Out = In>: Send + Sync + Sized + 'static
 where
-    In: Send + Sync + 'static,
-    Out: Send + Sync + 'static,
+    In: IR,
+    Out: IR,
 {
     /// Run the pass.
     fn run(&self, ir: Box<In>, context: &mut PassContext) -> anyhow::Result<Box<Out>>;
@@ -59,13 +59,10 @@ struct StaticPassOb<T, In, Out = In> {
 }
 impl<P, In, Out> Pass for StaticPassOb<P, In, Out>
 where
-    In: Send + Sync + 'static,
-    Out: Send + Sync + 'static,
+    In: IR,
+    Out: IR,
     P: StaticPass<In, Out>,
 {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
     fn ir_id_in(&self) -> DynTypeId<'_> {
         DynTypeId::of::<In>()
     }
@@ -75,11 +72,13 @@ where
     fn name(&self) -> &str {
         any::type_name::<P>()
     }
-    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> Result<Box<dyn Any>, PassError> {
-        let ir = ir.downcast::<In>().map_err(|_| PassError::Conversion)?;
+    fn run(&self, ir: Box<dyn IR>, context: &mut PassContext) -> Result<Box<dyn IR>, PassError> {
+        let ir = (ir as Box<dyn Any>)
+            .downcast::<In>()
+            .map_err(|_| PassError::Conversion)?;
         self.ob
             .run(ir, context)
-            .map(|out| out as Box<dyn Any>)
+            .map(|out| out as Box<dyn IR>)
             .map_err(PassError::Runtime)
     }
 }
@@ -97,8 +96,6 @@ pub enum PassError {
 
 /// The trait for objects that can be called as transformation [`Task`](super::Task)s.
 pub trait Pass: Send + Sync {
-    /// Cast the pass to Any to allow downcasting to a target type.
-    fn as_any(&self) -> &dyn Any;
     /// Return the type ID of the IR expected on input.
     fn ir_id_in(&self) -> DynTypeId<'_>;
     /// Return the type ID of the IR that is emitted by the pass.
@@ -113,5 +110,5 @@ pub trait Pass: Send + Sync {
     /// the pipeline, so `ir` should typically cast correctly into the desired object.  However,
     /// badly behaved passes might have lied about their output types, or this trait may be called
     /// outside the context of the [`PassManager`](crate::PassManager).
-    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> Result<Box<dyn Any>, PassError>;
+    fn run(&self, ir: Box<dyn IR>, context: &mut PassContext) -> Result<Box<dyn IR>, PassError>;
 }

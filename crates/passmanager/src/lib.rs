@@ -44,6 +44,10 @@ impl PassManagerContext {
             self.data.remove(key);
         }
     }
+
+    pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+        self.data.get(key.as_ref()).map(Box::as_ref)
+    }
 }
 
 /// A private struct representing the context updates performed. As long as this contains only
@@ -196,6 +200,43 @@ impl hash::Hash for DynTypeId<'_> {
     }
 }
 
+/// Trait for types that interact with the Qiskit dynamic-typing system ([`DynTyped`]) as static
+/// Rust objects.
+///
+/// This trait not object safe; use the blanket implementation of [`DynTyped`] for that.
+pub trait StaticDynTyped {
+    fn static_dyn_type_id() -> DynTypeId<'static>;
+}
+/// Declare a static Rust type as directly usable with the Qiskit dynamic-typing system.
+#[macro_export]
+macro_rules! static_dyn_typed {
+    ($ty:ty) => {
+        impl $crate::StaticDynTyped for $ty {
+            fn static_dyn_type_id() -> $crate::DynTypeId<'static> {
+                $crate::DynTypeId::of::<$ty>()
+            }
+        }
+    };
+}
+/// Objects that can interact with Qiskit's dynamic-typing subsystem.
+///
+/// There are two components to the system: the static Rust type that backs the object, and any
+/// additional dynamic typing on top of that.
+///
+/// First-class objects defined in Rust can implement [`StaticDynTyped`] and use the blanket
+/// implementation that provides this object-safe variant.
+pub trait DynTyped: Any {
+    /// The dynamic type identifier.
+    fn dyn_type_id(&self) -> DynTypeId<'_>;
+}
+impl<T: StaticDynTyped + 'static> DynTyped for T {
+    fn dyn_type_id(&self) -> DynTypeId<'_> {
+        T::static_dyn_type_id()
+    }
+}
+/// Types that can be used as an IR by the [`PassManager`].
+pub trait IR: DynTyped + Send + Sync + 'static {}
+
 /// A task in Qiskit's compiler framework.
 ///
 /// This is a single unit of execution flow. It describes how work is being executed, ranging
@@ -297,17 +338,12 @@ impl PassManager {
     /// This is a typed helper wrapper around [`Self::run_erased`].
     pub fn run<IRIn, IROut>(&self, ir: IRIn) -> anyhow::Result<(IROut, PassManagerContext)>
     where
-        IRIn: 'static,
-        IROut: 'static,
+        IRIn: IR,
+        IROut: IR,
     {
-        if self
-            .ir_id_out()
-            .is_some_and(|expected| expected != DynTypeId::of::<IROut>())
-        {
-            anyhow::bail!("requested an output type incompatible with the pipeline");
-        }
         let (ir, context) = self.run_erased(Box::new(ir))?;
-        ir.downcast::<IROut>()
+        (ir as Box<dyn Any>)
+            .downcast::<IROut>()
             .map(|ir| (*ir, context))
             .map_err(|_| PassError::Conversion)
             .with_context(|| {
@@ -321,8 +357,8 @@ impl PassManager {
     /// Run the pass manager
     pub fn run_erased(
         &self,
-        mut ir: Box<dyn Any>,
-    ) -> anyhow::Result<(Box<dyn Any>, PassManagerContext)> {
+        mut ir: Box<dyn IR>,
+    ) -> anyhow::Result<(Box<dyn IR>, PassManagerContext)> {
         let mut context = PassManagerContext::new();
         for task in self.tasks.iter() {
             let mut pass_context = PassContext::spawn(&context);
@@ -374,14 +410,10 @@ impl PassManager {
         Ok(())
     }
 
-    pub fn try_push_static_pass<In, Out>(
+    pub fn try_push_static_pass<In: IR, Out: IR>(
         &mut self,
         ob: impl StaticPass<In, Out>,
-    ) -> Result<(), Task>
-    where
-        In: Send + Sync + 'static,
-        Out: Send + Sync + 'static,
-    {
+    ) -> Result<(), Task> {
         self.try_push_task(Task::Transformation(ob.into_pass()))
     }
 
@@ -395,9 +427,9 @@ impl PassManager {
 /// via the pass manager.
 fn execute_task(
     task: &Task,
-    mut ir: Box<dyn Any>,
+    mut ir: Box<dyn IR>,
     context: &mut PassContext,
-) -> Result<Box<dyn Any>, PassError> {
+) -> Result<Box<dyn IR>, PassError> {
     match task {
         Task::Transformation(pass) => pass.run(ir, context),
         Task::Group(tasks) => {
@@ -428,101 +460,95 @@ fn execute_task(
 #[cfg(test)]
 mod test {
     use super::*;
-    use qiskit_circuit::{
-        Qubit,
-        circuit_data::CircuitData,
-        dag_circuit::DAGCircuit,
-        operations::{Param, StandardGate},
-    };
-    use qiskit_transpiler::passes::run_remove_identity_equiv;
+    use anyhow::anyhow;
+    use std::sync::{Arc, RwLock};
 
-    #[derive(Clone, Debug)]
-    struct RemoveIdentities;
-    impl StaticPass<DAGCircuit> for RemoveIdentities {
+    #[derive(Clone)]
+    struct MyUint(u32);
+    static_dyn_typed!(MyUint);
+    impl IR for MyUint {}
+
+    #[derive(Debug)]
+    struct MyInt(i32);
+    static_dyn_typed!(MyInt);
+    impl IR for MyInt {}
+
+    struct AddOne;
+    impl StaticPass<MyUint> for AddOne {
         fn run(
             &self,
-            mut ir: Box<DAGCircuit>,
+            mut ir: Box<MyUint>,
             _context: &mut PassContext,
-        ) -> anyhow::Result<Box<DAGCircuit>> {
-            run_remove_identity_equiv(&mut ir, None, None)?;
+        ) -> anyhow::Result<Box<MyUint>> {
+            ir.0 += 1;
             Ok(ir)
         }
     }
 
-    #[derive(Clone, Debug)]
-    struct CountT;
-    impl StaticPass<CircuitData> for CountT {
-        fn run(
-            &self,
-            ir: Box<CircuitData>,
-            context: &mut PassContext,
-        ) -> anyhow::Result<Box<CircuitData>> {
-            let count = ir.count_ops();
-            let t_count: usize = count.get("t").unwrap_or(&0) + count.get("tdg").unwrap_or(&0);
-            context.set("t_count".to_string(), Box::new(t_count));
+    struct WriteToContext;
+    impl StaticPass<MyUint> for WriteToContext {
+        fn run(&self, ir: Box<MyUint>, context: &mut PassContext) -> anyhow::Result<Box<MyUint>> {
+            context.set("snapshot".into(), ir.clone());
             Ok(ir)
         }
     }
 
-    struct CheckTCount {
-        expected_t_count: usize,
-    }
-    impl StaticPass<CircuitData> for CheckTCount {
-        fn run(
-            &self,
-            ir: Box<CircuitData>,
-            context: &mut PassContext,
-        ) -> anyhow::Result<Box<CircuitData>> {
-            let Some(t_count) = context.get("t_count") else {
-                return Err(anyhow::anyhow!("Missing `t_count`"));
-            };
-            let Some(t_count) = t_count.downcast_ref::<usize>() else {
-                return Err(anyhow::anyhow!("Downcasting to usize failed"));
-            };
-            if *t_count != self.expected_t_count {
-                return Err(anyhow::anyhow!(
-                    "Expected T count of {} but got {}",
-                    self.expected_t_count,
-                    t_count
-                ));
-            }
+    struct LeakFromContext<T>(Arc<RwLock<T>>);
+    impl<T: Clone + IR + 'static> StaticPass<T> for LeakFromContext<T> {
+        fn run(&self, ir: Box<T>, context: &mut PassContext) -> anyhow::Result<Box<T>> {
+            let ob = context
+                .get("snapshot")
+                .ok_or_else(|| anyhow!("object absent"))?;
+            let ob = ob
+                .downcast_ref::<T>()
+                .ok_or_else(|| anyhow!("failed downcast"))?
+                .clone();
+            *self.0.write().expect("lock shouldn't be poisoned") = ob;
             Ok(ir)
+        }
+    }
+
+    struct LowerToInt;
+    impl StaticPass<MyUint, MyInt> for LowerToInt {
+        fn run(&self, ir: Box<MyUint>, _context: &mut PassContext) -> anyhow::Result<Box<MyInt>> {
+            let ir = MyInt(ir.0.try_into().map_err(|_| anyhow!("too big!"))?);
+            Ok(Box::new(ir))
         }
     }
 
     #[test]
     fn test_io_types() -> Result<(), PassError> {
-        let dag_type = DynTypeId::of::<DAGCircuit>();
-        let circ_type = DynTypeId::of::<CircuitData>();
+        let uint_ty = DynTypeId::of::<MyUint>();
+        let int_ty = DynTypeId::of::<MyInt>();
 
-        let make_dag_pass = || Task::Transformation(RemoveIdentities.into_pass());
-        assert_eq!(make_dag_pass().io_types().unwrap(), [dag_type, dag_type]);
+        let make_uint_pass = || Task::Transformation(AddOne.into_pass());
+        assert_eq!(make_uint_pass().io_types().unwrap(), [uint_ty, uint_ty]);
 
-        let circ_pass = Task::Transformation(CountT.into_pass());
-        assert_eq!(circ_pass.io_types().unwrap(), [circ_type, circ_type]);
+        let lower_pass = Task::Transformation(LowerToInt.into_pass());
+        assert_eq!(lower_pass.io_types().unwrap(), [uint_ty, int_ty]);
 
         let infinity = Task::Loop {
             condition: |_, _| true,
-            body: Box::new(make_dag_pass()),
+            body: Box::new(make_uint_pass()),
         };
-        assert_eq!(infinity.io_types().unwrap(), [dag_type, dag_type]);
+        assert_eq!(infinity.io_types().unwrap(), [uint_ty, uint_ty]);
 
         let switch = Task::Switch {
             switch: |_, _| 0,
-            cases: vec![make_dag_pass()],
+            cases: vec![make_uint_pass()],
         };
-        assert_eq!(switch.io_types().unwrap(), [dag_type, dag_type]);
+        assert_eq!(switch.io_types().unwrap(), [uint_ty, uint_ty]);
 
-        let stages = Task::Stages(vec![("one_and_only".to_string(), make_dag_pass())]);
-        assert_eq!(stages.io_types().unwrap(), [dag_type, dag_type]);
+        let stages = Task::Stages(vec![("one_and_only".to_string(), make_uint_pass())]);
+        assert_eq!(stages.io_types().unwrap(), [uint_ty, uint_ty]);
 
         let nested = Task::Stages(vec![
-            ("pass".to_string(), make_dag_pass()),
+            ("pass".to_string(), make_uint_pass()),
             ("loop".to_string(), infinity),
             ("switch".to_string(), switch),
             ("stages".to_string(), stages),
         ]);
-        assert_eq!(nested.io_types().unwrap(), [dag_type, dag_type]);
+        assert_eq!(nested.io_types().unwrap(), [uint_ty, uint_ty]);
 
         Ok(())
     }
@@ -530,31 +556,25 @@ mod test {
     #[test]
     fn test_pass() {
         let mut pm = PassManager::new();
-        pm.try_push_static_pass(RemoveIdentities).unwrap();
+        pm.try_push_static_pass(AddOne).unwrap();
+        pm.try_push_static_pass(AddOne).unwrap();
+        pm.try_push_static_pass(AddOne).unwrap();
+        pm.try_push_static_pass(AddOne).unwrap();
 
-        let mut qc = CircuitData::with_capacity(1, 0, 2, Param::Float(0.0)).unwrap();
-        qc.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
-            .unwrap();
-        qc.push_standard_gate(StandardGate::RX, &[Param::Float(0.0)], &[Qubit(0)])
-            .unwrap();
-        let dag = DAGCircuit::from_circuit_data(&qc, false, None, None).unwrap();
-
-        let (out, _) = pm.run::<_, DAGCircuit>(dag).unwrap();
-        let ops = out.count_ops(false).unwrap();
-        assert_eq!(ops.get("h"), Some(&1));
-        assert_eq!(ops.get("rx"), None);
+        let (out, _) = pm.run::<MyUint, MyUint>(MyUint(4)).unwrap();
+        assert_eq!(out.0, 8);
     }
 
     #[test]
     fn test_incompatible_types() {
         let mut pm = PassManager::new();
-        pm.try_push_static_pass(RemoveIdentities).unwrap();
-        assert!(pm.try_push_static_pass(CountT).is_err());
+        pm.try_push_static_pass(LowerToInt).unwrap();
+        assert!(pm.try_push_static_pass(AddOne).is_err());
     }
 
     #[test]
     fn test_task_retrieval() {
-        let make_task = || Task::Transformation(RemoveIdentities.into_pass());
+        let make_task = || Task::Transformation(AddOne.into_pass());
 
         let group = Task::Group(vec![make_task(), make_task()]);
         let loop_task = Task::Loop {
@@ -568,7 +588,7 @@ mod test {
         let stages = Task::Stages(vec![("one_and_only".to_string(), make_task())]);
 
         let mut pm = PassManager::new();
-        pm.try_push_static_pass(RemoveIdentities).unwrap();
+        pm.try_push_static_pass(AddOne).unwrap();
         pm.try_push_task(group).unwrap();
         pm.try_push_task(loop_task).unwrap();
         pm.try_push_task(switch).unwrap();
@@ -595,31 +615,30 @@ mod test {
 
     #[test]
     fn test_pass_context() {
-        let num_t = 50;
-        let mut circuit = CircuitData::with_capacity(3, 0, num_t, Param::Float(0.)).unwrap();
-        for i in 0..num_t as u32 {
-            circuit
-                .push_standard_gate(StandardGate::T, &[], &[Qubit(i % 3)])
-                .unwrap();
-            circuit
-                .push_standard_gate(StandardGate::H, &[], &[Qubit(i % 3)])
-                .unwrap();
-        }
+        let cell = Arc::new(RwLock::new(MyUint(0)));
 
         let mut pm = PassManager::new();
-        pm.try_push_static_pass(CountT).unwrap();
-        pm.try_push_static_pass(CheckTCount {
-            expected_t_count: num_t,
-        })
-        .unwrap();
+        pm.try_push_static_pass(AddOne).unwrap();
+        pm.try_push_static_pass(WriteToContext).unwrap();
+        pm.try_push_static_pass(LeakFromContext(Arc::clone(&cell)))
+            .unwrap();
+        pm.try_push_static_pass(AddOne).unwrap();
+        pm.try_push_static_pass(WriteToContext).unwrap();
+        pm.try_push_static_pass(AddOne).unwrap();
+        pm.try_push_static_pass(LowerToInt).unwrap();
 
-        let (_, context) = pm.run::<_, CircuitData>(circuit).unwrap();
-        let t_count = context
-            .data
-            .get("t_count")
-            .expect("Failed to retrieve `t_count`")
-            .downcast_ref::<usize>()
-            .expect("Downcasting failed");
-        assert_eq!(*t_count, num_t);
+        let (MyInt(from_pm), context) = pm.run(MyUint(4)).unwrap();
+        assert_eq!(cell.read().unwrap().0, 5);
+        let MyUint(from_context) = *context.data["snapshot"].downcast_ref().unwrap();
+        assert_eq!(from_context, 6);
+        assert_eq!(from_pm, 7);
+    }
+
+    #[test]
+    fn test_pass_error() {
+        let mut pm = PassManager::new();
+        pm.try_push_static_pass(LowerToInt).unwrap();
+        let e = pm.run::<MyUint, MyInt>(MyUint(u32::MAX)).unwrap_err();
+        assert!(e.to_string().contains("too big!"), "{:?}", e);
     }
 }

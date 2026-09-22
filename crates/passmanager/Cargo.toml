@@ -19,5 +19,5 @@ thiserror.workspace = true
 hashbrown.workspace = true
 
 [dev-dependencies]
-qiskit-circuit.workspace = true
+qiskit-circuit = { workspace = true, features = ["passmanager"] }
 qiskit-transpiler.workspace = true

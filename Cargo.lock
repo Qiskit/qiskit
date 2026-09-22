@@ -2403,6 +2403,7 @@ dependencies = [
  "num-traits",
  "numpy",
  "pyo3",
+ "qiskit-passmanager",
  "qiskit-quantum-info",
  "qiskit-util",
  "rayon",

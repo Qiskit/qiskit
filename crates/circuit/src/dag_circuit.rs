@@ -373,6 +373,15 @@ pub struct DAGCircuit {
     op_names: IndexMap<String, usize>,
 }
 
+#[cfg(feature = "passmanager")]
+mod passmanager {
+    use super::DAGCircuit;
+    use qiskit_passmanager::{IR, static_dyn_typed};
+
+    static_dyn_typed!(DAGCircuit);
+    impl IR for DAGCircuit {}
+}
+
 #[derive(Clone, Debug)]
 struct PyLegacyResources {
     clbits: Py<PyTuple>,
