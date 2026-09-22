@@ -2349,6 +2349,7 @@ version = "2.6.0-dev"
 dependencies = [
  "anyhow",
  "bytemuck",
+ "derive_more",
  "hashbrown 0.15.5",
  "mimalloc",
  "nalgebra 0.35.0",
