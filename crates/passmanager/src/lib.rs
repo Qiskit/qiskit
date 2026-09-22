@@ -197,6 +197,43 @@ impl hash::Hash for DynTypeId<'_> {
     }
 }
 
+/// Trait for types that interact with the Qiskit dynamic-typing system ([`DynTyped`]) as static
+/// Rust objects.
+///
+/// This trait not object safe; use the blanket implementation of [`DynTyped`] for that.
+pub trait StaticDynTyped {
+    fn static_dyn_type_id() -> DynTypeId<'static>;
+}
+/// Declare a static Rust type as directly usable with the Qiskit dynamic-typing system.
+#[macro_export]
+macro_rules! static_dyn_typed {
+    ($ty:ty) => {
+        impl $crate::StaticDynTyped for $ty {
+            fn static_dyn_type_id() -> $crate::DynTypeId<'static> {
+                $crate::DynTypeId::of::<$ty>()
+            }
+        }
+    };
+}
+/// Objects that can interact with Qiskit's dynamic-typing subsystem.
+///
+/// There are two components to the system: the static Rust type that backs the object, and any
+/// additional dynamic typing on top of that.
+///
+/// First-class objects defined in Rust can implement [`StaticDynTyped`] and use the blanket
+/// implementation that provides this object-safe variant.
+pub trait DynTyped: Any {
+    /// The dynamic type identifier.
+    fn dyn_type_id(&self) -> DynTypeId<'_>;
+}
+impl<T: StaticDynTyped + 'static> DynTyped for T {
+    fn dyn_type_id(&self) -> DynTypeId<'_> {
+        T::static_dyn_type_id()
+    }
+}
+/// Types that can be used as an IR by the [`PassManager`].
+pub trait IR: DynTyped + Send + Sync + 'static {}
+
 /// A task in Qiskit's compiler framework.
 ///
 /// This is a single unit of execution flow. It describes how work is being executed, ranging
@@ -299,17 +336,12 @@ impl PassManager {
     /// This is a typed helper wrapper around [`Self::run_erased`].
     pub fn run<IRIn, IROut>(&self, ir: IRIn) -> anyhow::Result<(IROut, PassManagerContext)>
     where
-        IRIn: 'static,
-        IROut: 'static,
+        IRIn: IR,
+        IROut: IR,
     {
-        if self
-            .ir_id_out()
-            .is_some_and(|expected| expected != DynTypeId::of::<IROut>())
-        {
-            anyhow::bail!("requested an output type incompatible with the pipeline");
-        }
         let (ir, context) = self.run_erased(Box::new(ir))?;
-        ir.downcast::<IROut>()
+        (ir as Box<dyn Any>)
+            .downcast::<IROut>()
             .map(|ir| (*ir, context))
             .map_err(|_| PassError::Conversion)
             .with_context(|| {
@@ -323,8 +355,8 @@ impl PassManager {
     /// Run the pass manager
     pub fn run_erased(
         &self,
-        mut ir: Box<dyn Any>,
-    ) -> anyhow::Result<(Box<dyn Any>, PassManagerContext)> {
+        mut ir: Box<dyn IR>,
+    ) -> anyhow::Result<(Box<dyn IR>, PassManagerContext)> {
         let mut context = PassManagerContext::new();
         for task in self.tasks.iter() {
             let mut pass_context = PassContext::spawn(&context);
@@ -376,14 +408,10 @@ impl PassManager {
         Ok(())
     }
 
-    pub fn try_push_static_pass<In, Out>(
+    pub fn try_push_static_pass<In: IR, Out: IR>(
         &mut self,
         ob: impl StaticPass<In, Out>,
-    ) -> Result<(), Task>
-    where
-        In: Send + Sync + 'static,
-        Out: Send + Sync + 'static,
-    {
+    ) -> Result<(), Task> {
         self.try_push_task(Task::Transformation(ob.into_pass()))
     }
 
@@ -397,9 +425,9 @@ impl PassManager {
 /// via the pass manager.
 fn execute_task(
     task: &Task,
-    mut ir: Box<dyn Any>,
+    mut ir: Box<dyn IR>,
     context: &mut PassContext,
-) -> Result<Box<dyn Any>, PassError> {
+) -> Result<Box<dyn IR>, PassError> {
     match task {
         Task::Transformation(pass) => pass.run(ir, context),
         Task::Group(tasks) => {
