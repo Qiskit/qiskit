@@ -82,7 +82,7 @@ Here's a quick example of what that looks like:
 Data Types
 ==========
 
-.. doxygenstruct:: QkCustomOpVTableEntry
+.. doxygenstruct:: QkVTableEntry
    :members:
 
 .. doxygenenum:: QkCustomOpMethod

@@ -22,7 +22,7 @@ use qiskit_circuit::{
     operations::{BoxedCustomOperation, CustomOperation, Operation, Param},
 };
 
-use crate::ExitCode;
+use crate::{ExitCode, pointers::arc_clone_from_raw};
 
 /// Represents a quantum operation fully defined in C.
 ///
@@ -422,7 +422,7 @@ impl VTableEntry {
 /// - Be immutably borrowed by other threads without causing race conditions.
 /// - Be preserved throughout the lifetime of the operation.
 ///
-/// Behavior is undefined if the provided `v_table` pointer is null or non-alligned.
+/// Behavior is undefined if the provided `v_table` pointer is null or non-aligned.
 ///
 /// Failure to comply with these conditions may result in undefined behavior.
 #[unsafe(no_mangle)]
@@ -430,12 +430,11 @@ pub unsafe extern "C" fn qk_custom_operation_new(
     operation: *mut c_void,
     v_table: *const CustomOpVTable,
 ) -> *mut BoxedCustomOperation {
-    unsafe {
-        Arc::increment_strong_count(v_table);
-    }
     let as_custom_op = CustomOp {
         orig: operation,
-        v_table: unsafe { Arc::from_raw(v_table) },
+        // SAFETY: as established by the documentation this pointer must be non-null
+        // and aligned.
+        v_table: unsafe { arc_clone_from_raw(v_table) },
     };
 
     Box::into_raw(Box::new(BoxedCustomOperation::from(as_custom_op)))
@@ -658,7 +657,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_free(v_table: *const CustomO
         if !v_table.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.");
         }
-        // SAFETY: The pointer is non-null and alligned and therefore readable.
+        // SAFETY: The pointer is non-null and aligned and therefore readable.
         let _ = unsafe { Arc::from_raw(v_table) };
     }
 }

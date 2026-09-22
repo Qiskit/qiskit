@@ -17,7 +17,7 @@ use smallvec::SmallVec;
 
 use crate::exit_codes::ExitCode;
 use crate::transpiler::target::parse_params;
-use crate::operations::CustomOp;
+
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
 #[cfg(feature = "python_binding")]
