@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_passmanager::{AnyPass, Callback, Pass, PassContext, PassManager, PassManagerContext};
+use qiskit_passmanager::{DynTypeId, Pass, PassContext, PassManager, PassManagerContext};
 use std::{
     any::Any,
     ffi::{CStr, c_char, c_void},
@@ -133,158 +133,6 @@ pub unsafe extern "C" fn qk_pass_free(pass: *mut PassFromC) {
             let _ = Box::from_raw(pass);
         }
     }
-}
-
-/// The pass vtable.
-struct CallbackVTable {
-    trigger: extern "C" fn(*mut c_void, u8) -> bool,
-    ir_and_context: Option<extern "C" fn(*mut c_void, *mut c_void, *const PassContext)>,
-    with_pass:
-        Option<extern "C" fn(*mut c_void, *const PassFromC, *mut c_void, *const PassContext)>,
-}
-
-impl CallbackVTable {
-    /// # Safety
-    ///
-    /// Behavior is undefined if `slots` is not a pointer to `num_slots` consecutive, valid,
-    /// non-null [VTableSlot]s, or if any of the slots does not point to a function with
-    /// the signature documented in [CCallback].
-    unsafe fn from_slots(slots: *const VTableSlot, num_slots: usize) -> Result<Self, &'static str> {
-        // SAFETY: Per documentation, the pointer points to `num_slots` valid slots.
-        let slots = unsafe { ::std::slice::from_raw_parts(slots, num_slots) };
-
-        let trigger = if let Some(slot) = slots.first() {
-            // SAFETY: Per documentation, the slot has the right type.
-            unsafe {
-                ::std::mem::transmute::<*mut c_void, extern "C" fn(*mut c_void, u8) -> bool>(
-                    slot.ptr,
-                )
-            }
-        } else {
-            return Err("Expected slot 0 to contain the `trigger`, but slot is empty.");
-        };
-
-        let ir_and_context = slots
-            .get(1)
-            .map(|slot| {
-                // SAFETY: Per documentation, the slot has the right type.
-                Some(unsafe {
-                    ::std::mem::transmute::<
-                        *mut c_void,
-                        extern "C" fn(*mut c_void, *mut c_void, *const PassContext),
-                    >(slot.ptr)
-                })
-            })
-            .unwrap_or(None);
-
-        let with_pass = slots
-            .get(2)
-            .map(|slot| {
-                // SAFETY: Per documentation, the slot has the right type.
-                Some(unsafe {
-                    ::std::mem::transmute::<
-                        *mut c_void,
-                        extern "C" fn(
-                            *mut c_void,
-                            *const PassFromC,
-                            *mut c_void,
-                            *const PassContext,
-                        ),
-                    >(slot.ptr)
-                })
-            })
-            .unwrap_or(None);
-
-        Ok(Self {
-            trigger,
-            ir_and_context,
-            with_pass,
-        })
-    }
-}
-
-/// A struct representing a callback for Qiskit's pass manager.
-///
-/// The callback is exposed as opaque pointer to keep the ability of adding more fields
-/// without breaking the ABI.
-///
-/// | Slot | Signature                                                                    | Required |
-/// |------|------------------------------------------------------------------------------|----------|
-/// | 0    | `bool trigger(void *self, uint8_t hookpoint)`                                |    Yes   |
-/// | 1    | `void ir_and_context(void *self, void *ir, QkPassContext *context)`          |    No    |
-/// | 2    | `void with_pass(void *self, QkPass *pass, void *ir, QkPassContext *context)` |    No    |
-///
-/// The hookpoints are
-///
-/// | Value | Hookpoint  |
-/// |-------|------------|
-/// | 0     | Post pass  |
-/// | 1     | Post task  |
-/// | 2     | Post stage |
-pub struct CCallback {
-    /// The pass object, aka `self`.
-    self_ptr: *mut c_void,
-    /// The pass' vtable.
-    vtable: CallbackVTable,
-}
-
-impl Callback for CCallback {
-    fn trigger(&self, hookpoint: &qiskit_passmanager::CallbackType) -> bool {
-        (self.vtable.trigger)(self.self_ptr, *hookpoint as u8)
-    }
-
-    fn ir_and_context(&self, ir: &dyn Any, context: &PassContext) {
-        if let Some(callback) = self.vtable.ir_and_context {
-            (callback)(
-                self.self_ptr,
-                *ir.downcast_ref::<*mut c_void>()
-                    .expect("Failed casting IR to void*."),
-                context as *const PassContext,
-            )
-        }
-    }
-
-    fn with_pass(&self, pass: &dyn AnyPass, ir: &dyn Any, context: &PassContext) {
-        if let Some(callback) = self.vtable.with_pass {
-            let Some(c_pass) = pass.as_any().downcast_ref::<PassFromC>() else {
-                panic!("Failed casting pass.");
-            };
-
-            (callback)(
-                self.self_ptr,
-                c_pass as *const PassFromC,
-                ir.downcast_ref::<*mut c_void>()
-                    .copied()
-                    .expect("Failed casting IR to void*."),
-                context as *const PassContext,
-            )
-        }
-    }
-}
-
-/// @ingroup QkPassManager
-/// Create a new callback.
-///
-/// @param self_ptr A `void *` to a config struct, or `self`. Can be `NULL`.
-/// @param slots A pointer to the vtable slots specifying the callback methods.
-/// @param num_slots The number of slots.
-///
-/// # Safety
-///
-/// Behavior is undefined if `slots` is not a pointer to `num_slots` consecutive, valid,
-/// non-null [VTableSlot]s, or if any of the slots does not point to a function with
-/// the signature documented in [QkCallback].
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_callback_new(
-    self_ptr: *mut c_void,
-    slots: *const VTableSlot,
-    num_slots: usize,
-) -> *mut CCallback {
-    let Ok(vtable) = (unsafe { CallbackVTable::from_slots(slots, num_slots) }) else {
-        return null_mut();
-    };
-
-    Box::into_raw(Box::new(CCallback { self_ptr, vtable }))
 }
 
 /// @ingroup QkPassManager
@@ -451,21 +299,15 @@ pub struct PassManagerResult {
 pub unsafe extern "C" fn qk_passmanager_run(
     pm: *mut PassManager,
     ir: *mut c_void,
-    callback: *const CCallback,
     result: *mut PassManagerResult,
     // callback:
 ) -> ExitCode {
     // SAFETY: Per documentation, `pm` is non-null and valid
     let pm = unsafe { mut_ptr_as_ref(pm) };
-    let callback = match callback.is_null() {
-        true => None,
-        // SAFETY: The pointer is non-null, and per documentation it is then safe to read
-        false => Some(unsafe { const_ptr_as_ref(callback) } as &dyn Callback),
-    };
     // SAFETY: Per documentation, `result` is non-null and valid
     let result = unsafe { mut_ptr_as_ref(result) };
 
-    match pm.run(ir, callback) {
+    match pm.run(ir) {
         Ok((ir_out, context)) => {
             result.ir = ir_out;
             result.context = Box::into_raw(Box::new(context));
