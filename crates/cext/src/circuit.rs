@@ -20,6 +20,7 @@ use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use crate::transpiler::target::parse_params;
 
+use bytemuck::AnyBitPattern;
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2};
 use num_complex::{Complex64, ComplexFloat};
@@ -2966,29 +2967,13 @@ pub unsafe extern "C" fn qk_circuit_add_custom_operation(
 
     let circ = unsafe { mut_ptr_as_ref(circuit) };
 
-    let qubits = if !qubits.is_null() {
-        unsafe { std::slice::from_raw_parts(qubits, op.num_qubits() as usize) }
-    } else {
-        Default::default()
-    };
-    let qargs: &[Qubit] = bytemuck::cast_slice(qubits);
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let qargs = unsafe { cast_to_bit_slice(qubits, op.num_qubits() as usize) };
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let cargs = unsafe { cast_to_bit_slice(clbits, op.num_clbits() as usize) };
 
-    let clbits = if !clbits.is_null() {
-        unsafe { std::slice::from_raw_parts(clbits, op.num_clbits() as usize) }
-    } else {
-        Default::default()
-    };
-    let cargs: &[Clbit] = bytemuck::cast_slice(clbits);
-
-    let params = (!params.is_null()).then(|| {
-        let params = unsafe { std::slice::from_raw_parts(params, op.num_params() as usize) };
-        Parameters::Params(
-            params
-                .iter()
-                .map(|param| unsafe { const_ptr_as_ref(*param) }.clone())
-                .collect(),
-        )
-    });
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let params = unsafe { ptr_to_params_owned(params, op.num_params() as usize) };
 
     let ret = circ.push_packed_operation(op, params, qargs, cargs);
     match ret {
@@ -2997,6 +2982,37 @@ pub unsafe extern "C" fn qk_circuit_add_custom_operation(
             ExitCode::ParameterNameConflict
         }
         Err(_) => ExitCode::ParameterError,
+    }
+}
+
+/// Casts a pointer of u32s to a slace of circuit bits.
+pub(crate) unsafe fn cast_to_bit_slice<'a, T: From<u32> + AnyBitPattern>(
+    bits: *const u32,
+    len: usize,
+) -> &'a [T] {
+    let bits = if !bits.is_null() {
+        unsafe { std::slice::from_raw_parts(bits, len) }
+    } else {
+        Default::default()
+    };
+    bytemuck::cast_slice(bits)
+}
+
+/// Clones a list of parameters from a raw pointer to a [`Param`] array.
+pub(crate) unsafe fn ptr_to_params_owned<B>(
+    params: *mut *mut Param,
+    len: usize,
+) -> Option<Parameters<B>> {
+    if params.is_null() || len == 0 {
+        None
+    } else {
+        let params = unsafe { std::slice::from_raw_parts(params, len) };
+        Some(Parameters::Params(
+            params
+                .iter()
+                .map(|param| unsafe { const_ptr_as_ref(*param) }.clone())
+                .collect(),
+        ))
     }
 }
 

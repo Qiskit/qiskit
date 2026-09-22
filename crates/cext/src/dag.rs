@@ -31,7 +31,9 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
-use crate::circuit::{CBlocksMode, CInstruction, CInstructionView, CVarsMode};
+use crate::circuit::{
+    CBlocksMode, CInstruction, CInstructionView, CVarsMode, cast_to_bit_slice, ptr_to_params_owned,
+};
 
 use crate::circuit::unitary_from_pointer;
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
@@ -2009,29 +2011,13 @@ pub unsafe extern "C" fn qk_dag_apply_custom_operation(
 
     let circ = unsafe { mut_ptr_as_ref(dag) };
 
-    let qubits = if !qubits.is_null() {
-        unsafe { std::slice::from_raw_parts(qubits, op.num_qubits() as usize) }
-    } else {
-        Default::default()
-    };
-    let qargs: &[Qubit] = bytemuck::cast_slice(qubits);
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let qargs: &[Qubit] = unsafe { cast_to_bit_slice(qubits, op.num_qubits() as usize) };
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let cargs: &[Clbit] = unsafe { cast_to_bit_slice(clbits, op.num_clbits() as usize) };
 
-    let clbits = if !clbits.is_null() {
-        unsafe { std::slice::from_raw_parts(clbits, op.num_clbits() as usize) }
-    } else {
-        Default::default()
-    };
-    let cargs: &[Clbit] = bytemuck::cast_slice(clbits);
-
-    let params = (!params.is_null()).then(|| {
-        let params = unsafe { std::slice::from_raw_parts(params, op.num_params() as usize) };
-        Parameters::Params(
-            params
-                .iter()
-                .map(|param| unsafe { const_ptr_as_ref(*param) }.clone())
-                .collect(),
-        )
-    });
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let params = unsafe { ptr_to_params_owned(params, op.num_params() as usize) };
 
     let ret = if front {
         circ.apply_operation_front(
