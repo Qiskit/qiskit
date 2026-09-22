@@ -19,19 +19,10 @@ Loaded circuits are newly allocated and must be released with
 :c:func:`qk_qpy_free_circuits`.
 
 The standard dump functions accept native :c:struct:`QkCircuit` objects and do not interact with
-Python. Circuits borrowed from Python must instead be passed to the corresponding
-``*_from_python`` function:
-
-* :c:func:`qk_qpy_dump_file_from_python`
-* :c:func:`qk_qpy_dump_file_with_version_from_python`
-* :c:func:`qk_qpy_dump_buffer_from_python`
-* :c:func:`qk_qpy_dump_buffer_with_version_from_python`
-
-The thread calling one of these Python-specific functions must already be attached to a Python
-interpreter and hold the GIL. The functions register the call with PyO3 while cloning
-Python-owned circuit data, but callers remain responsible for all GIL coordination. In
-particular, do not call one from a child thread while another thread retains the GIL; arrange for
-the calling thread to hold the GIL before entering the function.
+Python. If you're using the C API in a Python extension you should use
+the Python functions: :func:`.qpy.dump` and :func:`.qpy.load` as the
+C API functions will return an error if Python is required to create
+or load a QPY payload from the circuit.
 
 The following example writes two circuits to a file and loads them again:
 
@@ -56,16 +47,15 @@ The following example writes two circuits to a file and loads them again:
            return 1;
        }
 
-       QkCircuit **loaded = NULL;
-       size_t num_loaded = 0;
-       if (qk_qpy_load_file(&loaded, &num_loaded, "circuits.qpy", NULL) != QkExitCode_Success) {
+       QkQpyLoadedCircuits loaded = {NULL, 0};
+       if (qk_qpy_load_file(&loaded, "circuits.qpy", NULL) != QkExitCode_Success) {
            qk_circuit_free(plus);
            qk_circuit_free(bell);
            return 1;
        }
 
-       int result = num_loaded == 2 ? 0 : 1;
-       qk_qpy_free_circuits(loaded, num_loaded);
+       int result = loaded.len == 2 ? 0 : 1;
+       qk_qpy_loaded_circuits_clear(&loaded);
        qk_circuit_free(plus);
        qk_circuit_free(bell);
        return result;

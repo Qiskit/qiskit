@@ -17,7 +17,7 @@ use std::slice;
 use qiskit_circuit::circuit_data::CircuitData;
 
 use crate::exit_codes::ExitCode;
-use crate::pointers::check_ptr;
+use crate::pointers::{check_ptr, mut_ptr_as_ref};
 
 /// @ingroup QkQpy
 /// Get the oldest QPY format version readable by the loaded library.
@@ -222,10 +222,23 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
 }
 
 /// @ingroup QkQpy
+/// The output data from `qk_qpy_load_file` or `qk_qpy_load_buffer`
+///
+/// This contains an array of pointers to `QkCircuit` and a length.
+///
+/// The array as populated by the QPY load functions are owned by qiskit and must be freed by
+/// calling `qk_qpy_loaded_circuits_clear`.
+#[repr(C)]
+pub struct QpyLoadedCircuits {
+    data: *mut *mut CircuitData,
+    len: usize,
+}
+
+/// @ingroup QkQpy
 /// Load all circuits from a QPY file.
 ///
 /// @param filename A valid, non-null, nul-terminated UTF-8 path.
-/// @param circuits Output location for a newly allocated circuit-pointer array.
+/// @param circuits Output location for loaded circuits.
 /// @param num_circuits Output location for the number of circuits in ``circuits``.
 /// @param error Optional output location for an error description. Free a returned string with
 /// ``qk_str_free``.
@@ -245,8 +258,7 @@ pub unsafe extern "C" fn qk_qpy_dump_file_with_version(
 /// pointer write.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_load_file(
-    circuits: *mut *mut *mut CircuitData,
-    num_circuits: *mut usize,
+    circuits: *mut QpyLoadedCircuits,
     filename: *const c_char,
     error: *mut *mut c_char,
 ) -> ExitCode {
@@ -254,9 +266,6 @@ pub unsafe extern "C" fn qk_qpy_load_file(
         return ExitCode::NullPointerError;
     }
     if let Err(error) = check_ptr(circuits) {
-        return error.into();
-    }
-    if let Err(error) = check_ptr(num_circuits) {
         return error.into();
     }
     // SAFETY: upheld by the caller contract and checked non-null above.
@@ -271,17 +280,17 @@ pub unsafe extern "C" fn qk_qpy_load_file(
         .and_then(|payload| load(&payload));
     match result {
         Ok(loaded) => {
-            let mut loaded: Box<[*mut CircuitData]> = loaded
+            let loaded: Box<[*mut CircuitData]> = loaded
                 .into_iter()
                 .map(|circuit| Box::into_raw(Box::new(circuit)))
                 .collect();
             let len = loaded.len();
-            let ptr = loaded.as_mut_ptr();
-            std::mem::forget(loaded);
             // SAFETY: the caller guarantees the output locations are writable.
             unsafe {
-                circuits.write(ptr);
-                num_circuits.write(len);
+                circuits.write(QpyLoadedCircuits {
+                    data: Box::into_raw(loaded) as *mut *mut CircuitData,
+                    len,
+                });
             }
             ExitCode::Success
         }
@@ -359,10 +368,9 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
 /// @ingroup QkQpy
 /// Load all circuits from a QPY buffer.
 ///
+/// @param circuits Output location for loaded circuits.
 /// @param buffer A valid buffer containing ``size`` bytes of QPY data.
 /// @param size The size of ``buffer`` in bytes.
-/// @param circuits Output location for a newly allocated circuit-pointer array.
-/// @param num_circuits Output location for the number of circuits in ``circuits``.
 /// @param error Optional output location for an error description. Free a returned string with
 /// ``qk_str_free``.
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
@@ -381,8 +389,7 @@ pub unsafe extern "C" fn qk_qpy_dump_buffer_with_version(
 /// pointer write.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qpy_load_buffer(
-    circuits: *mut *mut *mut CircuitData,
-    num_circuits: *mut usize,
+    circuits: *mut QpyLoadedCircuits,
     buffer: *const u8,
     size: usize,
     error: *mut *mut c_char,
@@ -393,23 +400,20 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
     if let Err(error) = check_ptr(circuits) {
         return error.into();
     }
-    if let Err(error) = check_ptr(num_circuits) {
-        return error.into();
-    }
     // SAFETY: upheld by the caller contract and checked non-null above.
     match load(unsafe { slice::from_raw_parts(buffer.cast::<u8>(), size) }) {
         Ok(loaded) => {
-            let mut loaded: Box<[*mut CircuitData]> = loaded
+            let loaded: Box<[*mut CircuitData]> = loaded
                 .into_iter()
                 .map(|circuit| Box::into_raw(Box::new(circuit)))
                 .collect();
             let len = loaded.len();
-            let ptr = loaded.as_mut_ptr();
-            std::mem::forget(loaded);
             // SAFETY: the caller guarantees the output locations are writable.
             unsafe {
-                circuits.write(ptr);
-                num_circuits.write(len);
+                circuits.write(QpyLoadedCircuits {
+                    data: Box::into_raw(loaded) as *mut *mut CircuitData,
+                    len,
+                })
             }
             ExitCode::Success
         }
@@ -420,28 +424,36 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
 /// @ingroup QkQpy
 /// Free circuits returned by ``qk_qpy_load_file`` or ``qk_qpy_load_buffer``.
 ///
-/// @param circuits The circuit-pointer array returned by a QPY load function, or null.
+/// @param circuits The pointer to the loaded circuits object populated by a QPY load function, or null.
 /// @param num_circuits The number of circuit pointers in ``circuits`` returned by the QPY load
 /// function.
 ///
 /// # Safety
-/// ``circuits`` must be null, or have been returned by a QPY load function with exactly
-/// ``num_circuits`` elements and not previously freed.
+/// ``circuits`` must either be null, or valid aligned pointer to a `QkQpyLoadedCircuits`
+/// object with the `.data` field populated with an array of `QkCircuit` pointers as populated
+/// by `qk_qpy_load_file` or `qk_qpy_load_buffer`. Otherwise the behavior of this function is
+/// undefined.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_qpy_free_circuits(
-    circuits: *mut *mut CircuitData,
-    num_circuits: usize,
-) {
+pub unsafe extern "C" fn qk_qpy_loaded_circuits_clear(circuits: *mut QpyLoadedCircuits) {
     if !circuits.is_null() {
-        // SAFETY: upheld by the caller contract.
-        let circuits =
-            unsafe { Box::from_raw(std::ptr::slice_from_raw_parts_mut(circuits, num_circuits)) };
-        for circuit in circuits.iter().copied() {
+        // SAFETY: Per the documentation the pointer must be a valid pointer to a QpyLoadedCircuits
+        // object
+        let circuits = unsafe { mut_ptr_as_ref(circuits) };
+        // SAFETY: Per the documentation the QpyLoadCircuits object must have a valid circuits
+        let circuit_array: Box<[*mut CircuitData]> = unsafe {
+            Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+                circuits.data,
+                circuits.len,
+            ))
+        };
+        for circuit in circuit_array.into_iter() {
             if !circuit.is_null() {
-                // SAFETY: each pointer was allocated by a QPY load function.
+                // SAFETY: per the QPY documentation each pointer was allocated by a QPY load function.
                 unsafe { drop(Box::from_raw(circuit)) };
             }
         }
+        circuits.data = std::ptr::null_mut();
+        circuits.len = 0;
     }
 }
 

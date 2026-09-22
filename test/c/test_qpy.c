@@ -33,34 +33,33 @@ static int test_round_trip(void) {
         return RuntimeError;
     }
 
-    QkCircuit **loaded = NULL;
-    size_t num_loaded = 0;
-    QkExitCode load_result = qk_qpy_load_file(&loaded, &num_loaded, filename, NULL);
+    QkQpyLoadedCircuits loaded = {NULL, 0};
+    QkExitCode load_result = qk_qpy_load_file(&loaded, filename, NULL);
     remove(filename);
-    if (load_result != QkExitCode_Success || loaded == NULL || num_loaded != 2) {
+    if (load_result != QkExitCode_Success || loaded.data == NULL || loaded.len != 2) {
         printf("Unexpected error encountered in QPY test_round_trip.");
-        if (loaded != NULL) {
-            qk_qpy_free_circuits(loaded, num_loaded);
+        if (loaded.data != NULL) {
+            qk_qpy_loaded_circuits_clear(&loaded);
         }
         qk_circuit_free(source);
         return RuntimeError;
     }
 
     if (qk_qpy_dump_file_with_version(sources, 2, filename, 18, NULL) != QkExitCode_Success) {
-        qk_qpy_free_circuits(loaded, num_loaded);
+        qk_qpy_loaded_circuits_clear(&loaded);
         qk_circuit_free(source);
         return RuntimeError;
     }
     remove(filename);
 
     int result = Ok;
-    if (qk_circuit_num_qubits(loaded[0]) != 2 || qk_circuit_num_clbits(loaded[0]) != 2 ||
-        qk_circuit_num_instructions(loaded[0]) != 4 ||
-        qk_circuit_num_instructions(loaded[1]) != 4) {
+    if (qk_circuit_num_qubits(loaded.data[0]) != 2 || qk_circuit_num_clbits(loaded.data[0]) != 2 ||
+        qk_circuit_num_instructions(loaded.data[0]) != 4 ||
+        qk_circuit_num_instructions(loaded.data[1]) != 4) {
         result = EqualityError;
     }
 
-    qk_qpy_free_circuits(loaded, num_loaded);
+    qk_qpy_loaded_circuits_clear(&loaded);
     qk_circuit_free(source);
     return result;
 }
@@ -91,35 +90,33 @@ static int test_buffer_round_trip(void) {
         return RuntimeError;
     }
 
-    QkCircuit **loaded = NULL;
-    size_t num_loaded = 0;
-    QkExitCode result = qk_qpy_load_buffer(&loaded, &num_loaded, buffer, size, NULL);
+    QkQpyLoadedCircuits loaded = {NULL, 0};
+    QkExitCode result = qk_qpy_load_buffer(&loaded, buffer, size, NULL);
     qk_qpy_free_buffer(buffer, size);
-    if (result != QkExitCode_Success || loaded == NULL || num_loaded != 2) {
-        if (loaded != NULL) {
-            qk_qpy_free_circuits(loaded, num_loaded);
+    if (result != QkExitCode_Success || loaded.data == NULL || loaded.len != 2) {
+        if (loaded.data != NULL) {
+            qk_qpy_loaded_circuits_clear(&loaded);
         }
         qk_circuit_free(source);
         return RuntimeError;
     }
 
-    int test_result = qk_circuit_num_qubits(loaded[0]) == 2 &&
-                              qk_circuit_num_instructions(loaded[0]) == 1 &&
-                              qk_circuit_num_instructions(loaded[1]) == 1
+    int test_result = qk_circuit_num_qubits(loaded.data[0]) == 2 &&
+                              qk_circuit_num_instructions(loaded.data[0]) == 1 &&
+                              qk_circuit_num_instructions(loaded.data[1]) == 1
                           ? Ok
                           : EqualityError;
-    qk_qpy_free_circuits(loaded, num_loaded);
+    qk_qpy_loaded_circuits_clear(&loaded);
     qk_circuit_free(source);
     return test_result;
 }
 
 static int test_error_message(void) {
     uint8_t invalid_payload[] = {0};
-    QkCircuit **loaded = NULL;
-    size_t num_loaded = 0;
+    QkQpyLoadedCircuits loaded = {NULL, 0};
     char *error = NULL;
     QkExitCode result =
-        qk_qpy_load_buffer(&loaded, &num_loaded, invalid_payload, sizeof(invalid_payload), &error);
+        qk_qpy_load_buffer(&loaded, invalid_payload, sizeof(invalid_payload), &error);
     if (result != QkExitCode_QpyError || error == NULL) {
         if (error != NULL) {
             qk_str_free(error);
