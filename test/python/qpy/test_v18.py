@@ -159,6 +159,8 @@ class TestV17VsV18(QiskitTestCase):
         circuit = QuantumCircuit(qr, ar)
         circuit.cx(qr[0], ar[0])
         loaded = load(io.BytesIO(_dump(circuit, 18)))[0]
+        self.assertIsInstance(loaded.qregs[0], QuantumRegister)
+        self.assertIsInstance(loaded.qregs[1], AncillaRegister)
         self.assertEqual(loaded, circuit)
 
 
