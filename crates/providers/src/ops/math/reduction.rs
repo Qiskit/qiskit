@@ -814,7 +814,7 @@ mod tests {
     #[test]
     fn test_call_branch_where_leaf_expected_errors() {
         let mut tree = DataTree::new();
-        tree.insert_leaf("x", Tensor::from([1.0_f64, 2.0]));
+        tree.insert_leaf("x", Tensor::from([1.0_f64, 2.0])).unwrap();
         let err = Mean::new(0).call(&tree).unwrap_err();
         assert!(matches!(
             err,

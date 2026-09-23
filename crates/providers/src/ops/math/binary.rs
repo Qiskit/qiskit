@@ -19,22 +19,26 @@ use std::sync::LazyLock;
 /// Shared input type spec for all elementwise binary ops: two broadcastable tensors `x` and `y`.
 static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     let mut types = DataTree::with_capacity(2);
-    types.insert_leaf(
-        "x",
-        TensorType {
-            dtype: DTypeLike::Var("x".into()),
-            shape: vec![],
-            broadcastable: true,
-        },
-    );
-    types.insert_leaf(
-        "y",
-        TensorType {
-            dtype: DTypeLike::Var("y".into()),
-            shape: vec![],
-            broadcastable: true,
-        },
-    );
+    types
+        .insert_leaf(
+            "x",
+            TensorType {
+                dtype: DTypeLike::Var("x".into()),
+                shape: vec![],
+                broadcastable: true,
+            },
+        )
+        .expect("\"x\" is a valid name");
+    types
+        .insert_leaf(
+            "y",
+            TensorType {
+                dtype: DTypeLike::Var("y".into()),
+                shape: vec![],
+                broadcastable: true,
+            },
+        )
+        .expect("\"y\" is a valid name");
     types
 });
 
@@ -219,7 +223,7 @@ mod tests {
     #[test]
     fn test_call_missing_input_errors() {
         let mut tree = DataTree::new();
-        tree.insert_leaf("x", Tensor::from([1.0_f64]));
+        tree.insert_leaf("x", Tensor::from([1.0_f64])).unwrap();
         let err = Add.call(&tree).unwrap_err();
         assert!(matches!(
             err,
@@ -232,8 +236,8 @@ mod tests {
     #[test]
     fn test_call_branch_where_leaf_expected_errors() {
         let mut tree = DataTree::new();
-        tree.insert_leaf("x", Tensor::from([1.0_f64]));
-        tree.insert_branch("y", DataTree::new());
+        tree.insert_leaf("x", Tensor::from([1.0_f64])).unwrap();
+        tree.insert_branch("y", DataTree::new()).unwrap();
         let err = Add.call(&tree).unwrap_err();
         assert!(matches!(
             err,
@@ -246,8 +250,10 @@ mod tests {
     #[test]
     fn test_add_call_end_to_end() {
         let mut tree = DataTree::new();
-        tree.insert_leaf("x", Tensor::from([1.0_f64, 2.0, 3.0]));
-        tree.insert_leaf("y", Tensor::from([4.0_f64, 5.0, 6.0]));
+        tree.insert_leaf("x", Tensor::from([1.0_f64, 2.0, 3.0]))
+            .unwrap();
+        tree.insert_leaf("y", Tensor::from([4.0_f64, 5.0, 6.0]))
+            .unwrap();
         let result = Add.call(&tree).unwrap();
         let Tensor::F64(arr) = result.unwrap_leaf() else {
             panic!("expected f64")
