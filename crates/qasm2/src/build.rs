@@ -453,11 +453,9 @@ fn push_gate(
     }
     let params: Vec<Param> = arguments.iter().map(|&v| Param::Float(v)).collect();
     match entry {
-        GateEntry::Standard(gate) => {
-            circuit
-                .push_standard_gate(*gate, &params, qargs)
-                .map_err(|err| ParseError::new(format!("failed to apply gate: {err}")))
-        }
+        GateEntry::Standard(gate) => circuit
+            .push_standard_gate(*gate, &params, qargs)
+            .map_err(|err| ParseError::new(format!("failed to apply gate: {err}"))),
         GateEntry::Defined(template) => {
             let defined = DefinedGate {
                 template: template.clone(),
