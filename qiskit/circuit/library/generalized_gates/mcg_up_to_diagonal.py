@@ -23,7 +23,7 @@ from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
-from qiskit._accelerate.synthesis.mcg_up_diagonal import mcg_up_diagonal
+from qiskit._accelerate.synthesis.mcg_up_to_diagonal import mcg_up_to_diagonal_synth
 from .uc import UCGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -65,7 +65,7 @@ class MCGupDiag(Gate):
         super().__init__("MCGupDiag", num_qubits, [gate])
 
     def _define(self):
-        mcg_up_diag_circuit, _ = mcg_up_diagonal.mcg_up_diag_synth(self.params[0],self.num_controls)
+        mcg_up_diag_circuit, _ = mcg_up_to_diagonal_synth(self.params[0],self.num_controls)
         #mcg_up_diag_circuit, _ = self._dec_mcg_up_diag()
         gate = mcg_up_diag_circuit.to_instruction()
         q = QuantumRegister(self.num_qubits, "q")

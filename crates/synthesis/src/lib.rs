@@ -19,6 +19,7 @@ pub mod linalg;
 pub mod linear;
 pub mod linear_phase;
 pub mod matrix;
+mod mcg_up_to_diagonal;
 mod multi_controlled;
 pub mod pauli_evolution;
 pub mod pauli_products;
@@ -29,7 +30,6 @@ pub mod ross_selinger;
 pub mod two_qubit_decompose;
 mod uc_gate;
 mod ucrz;
-mod mcg_up_to_diagonal;
 mod utils;
 
 use pyo3::import_exception;
@@ -43,7 +43,7 @@ pub mod synthesis {
     use super::{
         clifford::clifford, diagonal::diagonal, discrete_basis::discrete_basis,
         evolution::evolution, linear::linear, linear_phase::linear_phase,
-        multi_controlled::multi_controlled, pauli_products::pauli_products_mod,
-        permutation::permutation, qft::qft, uc_gate::uc_gate,
+        mcg_up_to_diagonal::mcg_up_to_diagonal, multi_controlled::multi_controlled,
+        pauli_products::pauli_products_mod, permutation::permutation, qft::qft, uc_gate::uc_gate,
     };
 }
