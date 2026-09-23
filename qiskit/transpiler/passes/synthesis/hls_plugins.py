@@ -2141,14 +2141,10 @@ def _cx_size_for_pauli_evo(circuit: QuantumCircuit):
     Estimate the number of CX-gates in a circuit produced by one of the PauliEvolutionGate
     synthesis algorithms (``basic``, ``rustiq`` or ``mcts``).
 
-    When applied to a PauliEvolutionGate without projectors, in addition to CX gates,
-    ``basic`` can produce two-qubit rxx, ryy, rzz, and rzx rotations, while ``rustiq``
-    and ``mcts`` can produce swaps. These two-qubit gates are counted according to
-    the number of CX gates required to decompose them.
-
-    When applied to a PauliEvolutionGate with projectors, ``basic`` can also
-    produce controlled rotations and mcphase gates. Currently, these gates are not included
-    in the estimate, prioritizing ``basic`` over other methods.
+    This function is only called for PauliEvolutionGates without projectors. In this case,
+    in addition to CX gates, ``basic`` can produce two-qubit rxx, ryy, rzz, and rzx rotations,
+    while ``rustiq`` and ``mcts`` can produce swaps. These two-qubit gates are counted according
+    to the number of CX gates required to decompose them.
     """
     ops = circuit.count_ops()
     return (
@@ -2180,12 +2176,20 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, PauliEvolutionGate):
+            return None
+
         synth_object = PauliEvolutionSynthesisBasic().run(
             high_level_object, coupling_map, target, qubits, **options
         )
 
-        if (options.get("optimization_level", 2) >= 2) and (
-            (coupling_map is None) or _is_coupling_map_all_to_all(coupling_map)
+        # Currently we only run the MCTS method for higher optimization levels, for all-to-all
+        # connectivity, and for Pauli evolution gates without projector terms.
+        if (
+            (options.get("optimization_level", 2) >= 2)
+            and not high_level_object.contains_projectors()
+            and (coupling_map is None)
+            or _is_coupling_map_all_to_all(coupling_map)
         ):
             synth_mcts = PauliEvolutionSynthesisMcts().run(
                 high_level_object, coupling_map, target, qubits, **options
@@ -2195,10 +2199,6 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             # when the targeted basis set contains CX gates and when it contains RZZ gates.
             # In a follow-up, investigate whether target-aware heuristics could improve the
             # results further.
-            # TODO: This heuristic also ignores controlled rotations and mcphase gates produced by the
-            # basic algorithm when PauliEvolutionGate contains projectors. This prioritizes basic over
-            # mcts (which is a safer option). In a follow-up, improve heuristic to account for these
-            # additional gates.
             if _cx_size_for_pauli_evo(synth_mcts) < _cx_size_for_pauli_evo(synth_object):
                 synth_object = synth_mcts
 
