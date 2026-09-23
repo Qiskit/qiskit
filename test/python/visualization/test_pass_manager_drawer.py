@@ -98,6 +98,22 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         finally:
             os.remove(filename)
 
+    def test_pass_manager_drawer_pygraphviz_render(self):
+        """Test pass manager drawing with pygraphviz rendering directly to an image."""
+        from PIL import Image
+
+        image = self.pass_manager.draw()
+        self.assertIsInstance(image, Image.Image)
+
+        filename = "test_pm_render.png"
+        try:
+            self.pass_manager.draw(filename=filename)
+            self.assertTrue(os.path.exists(filename))
+            self.assertGreater(os.path.getsize(filename), 0)
+        finally:
+            if os.path.exists(filename):
+                os.remove(filename)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
