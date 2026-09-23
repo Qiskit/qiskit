@@ -1219,14 +1219,114 @@ static int test_circuit_draw(void) {
     QkPauliProductMeasurement ppm = {z, x, 4, true};
     qk_circuit_pauli_product_measurement(circuit, &ppm, qubits, 0);
 
-    QkCircuitDrawerConfig config = {false, true, 80, 0};
+    QkCircuitDrawerConfig *config = qk_circuit_drawer_config_new();
+    qk_circuit_drawer_config_set_bundle_cregs(config, false);
+    qk_circuit_drawer_config_set_fold(config, 80);
 
-    char *circ_str = qk_circuit_draw(circuit, &config);
+    char *circ_str = qk_circuit_draw(circuit, config);
 
     qk_str_free(circ_str);
+    qk_circuit_drawer_config_free(config);
     qk_circuit_free(circuit);
 
     return Ok;
+}
+
+/**
+ *  Count the number of lines in a nul-terminated string.
+ */
+static size_t count_lines(const char *text) {
+    size_t lines = 1;
+    for (; *text; text++) {
+        if (*text == '\n') {
+            lines++;
+        }
+    }
+    return lines;
+}
+
+/**
+ *  Check the opaque drawer configuration: a default config renders the same as passing NULL, and
+ *  each option that is observable through the C API actually changes the rendering.
+ */
+static int test_circuit_drawer_config(void) {
+    // A classical *register* is needed for `bundle_cregs` to have anything to bundle, and enough
+    // gates that the rendering is wide enough for `fold` to wrap it.
+    QkCircuit *circuit = qk_circuit_new(2, 0);
+    QkClassicalRegister *creg = qk_classical_register_new(3, "c");
+    qk_circuit_add_classical_register(circuit, creg);
+    // The circuit has taken what it needs from the register, so we can release it right away.
+    qk_classical_register_free(creg);
+    for (uint32_t i = 0; i < 25; i++) {
+        qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){i % 2}, NULL);
+    }
+    qk_circuit_measure(circuit, 0, 0);
+
+    int result = Ok;
+    char *from_default = NULL;
+    char *from_null = NULL;
+    char *unbundled = NULL;
+    char *unfolded = NULL;
+    char *folded = NULL;
+    char *unmerged = NULL;
+
+    QkCircuitDrawerConfig *config = qk_circuit_drawer_config_new();
+
+    // A freshly constructed config must be equivalent to passing no config at all.
+    from_default = qk_circuit_draw(circuit, config);
+    from_null = qk_circuit_draw(circuit, NULL);
+    if (strcmp(from_default, from_null) != 0) {
+        printf("A default config did not render the same as NULL\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // 'bundle_cregs=false' must draw one wire per clbit instead of one bundled register wire.
+    qk_circuit_drawer_config_set_bundle_cregs(config, false);
+    unbundled = qk_circuit_draw(circuit, config);
+    if (strcmp(from_default, unbundled) == 0) {
+        printf("Setting 'bundle_cregs=false' did not change the rendering\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // 'fold' must wrap the rendering, so a narrow fold yields strictly more lines than no fold at
+    // all. SIZE_MAX is the baseline rather than 0, because 0 auto-detects the console width and so
+    // is not deterministic across environments.
+    qk_circuit_drawer_config_set_fold(config, SIZE_MAX);
+    unfolded = qk_circuit_draw(circuit, config);
+    qk_circuit_drawer_config_set_fold(config, 40);
+    folded = qk_circuit_draw(circuit, config);
+    if (count_lines(folded) <= count_lines(unfolded)) {
+        printf("Setting 'fold=40' did not wrap the rendering: %zu lines vs %zu unfolded\n",
+               count_lines(folded), count_lines(unfolded));
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // 'merge_wires=false' must stop adjacent wires from sharing their boundary lines.
+    qk_circuit_drawer_config_set_fold(config, SIZE_MAX);
+    qk_circuit_drawer_config_set_merge_wires(config, false);
+    unmerged = qk_circuit_draw(circuit, config);
+    if (strcmp(unfolded, unmerged) == 0) {
+        printf("Setting 'merge_wires=false' did not change the rendering\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // 'barrier_label_len' is deliberately not asserted on: the C API has no way to give a barrier
+    // a label, so the setting has nothing to truncate and cannot be observed from here.
+
+cleanup:
+    qk_str_free(from_default);
+    qk_str_free(from_null);
+    qk_str_free(unbundled);
+    qk_str_free(unfolded);
+    qk_str_free(folded);
+    qk_str_free(unmerged);
+    qk_circuit_drawer_config_free(config);
+    qk_circuit_free(circuit);
+    return result;
 }
 
 static int test_parameterized_circuit(void) {
@@ -1804,6 +1904,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
     num_failed += RUN_TEST(test_circuit_draw);
+    num_failed += RUN_TEST(test_circuit_drawer_config);
     num_failed += RUN_TEST(test_get_instruction_params);
     num_failed += RUN_TEST(test_instruction_params_ownership);
     num_failed += RUN_TEST(test_parameterized_circuit);

@@ -27,7 +27,8 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(105, &dag::FUNCTIONS)
         .add_child(205, &param::FUNCTIONS)
         .add_child(255, &circuit_library::FUNCTIONS)
-        .add_child(305, &classical_expr::FUNCTIONS);
+        .add_child(305, &classical_expr::FUNCTIONS)
+        .add_child(355, &circuit_draw::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
@@ -60,7 +61,7 @@ pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
 mod circuit {
     use crate::impl_::prelude::*;
     #[cfg(feature = "addr")]
-    use qiskit_cext::{circuit::*, control_flow::*};
+    use qiskit_cext::{circuit::*, circuit_draw, control_flow::*};
 
     #[rustfmt::skip]  // Don't wrap long lines so everything stays on one line for counting.
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(100, || {
@@ -109,7 +110,7 @@ mod circuit {
             export_fn!(qk_classical_register_to_python, feature = "python_binding"),
             export_fn!(qk_classical_register_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_classical_register_convert_from_python, feature = "python_binding"),
-            export_fn!(qk_circuit_draw),
+            export_fn!(circuit_draw::qk_circuit_draw),
             export_fn!(qk_circuit_global_phase),
             export_fn!(qk_circuit_set_global_phase),
             export_fn!(qk_circuit_estimate_fidelity),
@@ -512,6 +513,23 @@ mod classical_expr {
             export_fn!(qk_var_name),
             export_fn!(qk_var_type_info),
             export_fn!(qk_stretch_name),
+        ]
+    });
+}
+
+mod circuit_draw {
+    use crate::impl_::prelude::*;
+    #[cfg(feature = "addr")]
+    use qiskit_cext::circuit_draw::*;
+
+    pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(30, || {
+        vec![
+            export_fn!(qk_circuit_drawer_config_new),
+            export_fn!(qk_circuit_drawer_config_free),
+            export_fn!(qk_circuit_drawer_config_set_bundle_cregs),
+            export_fn!(qk_circuit_drawer_config_set_merge_wires),
+            export_fn!(qk_circuit_drawer_config_set_fold),
+            export_fn!(qk_circuit_drawer_config_set_barrier_label_len),
         ]
     });
 }

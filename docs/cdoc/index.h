@@ -6,6 +6,7 @@
  * @defgroup QkBitTerm QkBitTerm
  * @defgroup QkCircuit QkCircuit
  * @defgroup QkCircuitLibrary QkCircuitLibrary
+ * @defgroup QkCircuitDrawerConfig QkCircuitDrawerConfig
  * @defgroup QkClassicalRegister QkClassicalRegister
  * @defgroup QkComplex64 QkComplex64
  * @defgroup QkDag QkDag

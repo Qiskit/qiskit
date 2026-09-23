@@ -51,6 +51,14 @@ Circuit Library
 
    qk-circuit-library
 
+Visualization
++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-circuit-drawer-config
+
 Import/Export
 +++++++++++++
 
