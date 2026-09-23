@@ -609,4 +609,12 @@ mod test {
         let e = pm.run::<MyUint, MyInt>(MyUint(u32::MAX)).unwrap_err();
         assert!(e.to_string().contains("too big!"), "{:?}", e);
     }
+
+    #[test]
+    fn test_pass_name() {
+        let add = AddOne.into_pass();
+        let lower = LowerToInt.into_pass();
+        assert!(add.name().contains("AddOne"));
+        assert!(lower.name().contains("LowerToInt"));
+    }
 }

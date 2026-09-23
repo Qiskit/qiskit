@@ -106,7 +106,8 @@ pub trait Pass: Send + Sync {
     fn ir_id_out(&self) -> DynTypeId<'_>;
     /// A human-readable name for the pass.
     ///
-    /// This is primarily for debugging purposes.
+    /// This is primarily for debugging purposes and may generally depend on the crate
+    /// the pass is defined in. This full qualifier should not be relied upon to be stable.
     fn name(&self) -> &str;
     /// Run the pass.
     ///
