@@ -16,11 +16,14 @@ use std::mem;
 use std::sync::Arc;
 
 use crate::exit_codes::ExitCode;
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
 
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr, Value};
+
+// SAFETY: all owned `Param` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(Param) };
 
 /// @ingroup QkParam
 /// Construct a new ``QkParam`` representing an unbound symbol.
@@ -47,12 +50,10 @@ pub unsafe extern "C" fn qk_param_new_symbol(name: *const c_char) -> *mut Param 
     if name.is_empty() {
         // Per documentation, the name cannot be empty.
         panic!("Invalid empty name.");
-    } else {
-        let symbol = Symbol::standalone(name.to_owned(), None);
-        let expr = ParameterExpression::from_symbol(symbol);
-        let param = Param::ParameterExpression(Arc::new(expr));
-        Box::into_raw(Box::new(param))
     }
+    let symbol = Symbol::standalone(name.to_owned(), None);
+    let expr = ParameterExpression::from_symbol(symbol);
+    Param::ParameterExpression(Arc::new(expr)).into_leaked()
 }
 
 /// @ingroup QkParam
@@ -74,7 +75,7 @@ pub unsafe extern "C" fn qk_param_new_symbol(name: *const c_char) -> *mut Param 
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_param_zero() -> *mut Param {
-    Box::into_raw(Box::new(Param::Float(0.)))
+    Param::Float(0.0).into_leaked()
 }
 
 /// @ingroup QkParam
@@ -94,17 +95,9 @@ pub extern "C" fn qk_param_zero() -> *mut Param {
 /// Behavior is undefined if ``param`` is not either null or a valid pointer to a ``QkParam``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_param_free(param: *mut Param) {
-    if !param.is_null() {
-        if !param.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(param);
-        }
-    }
+    // SAFETY: if `param` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!param.is_null()).then(|| unsafe { Param::steal(param) });
 }
 
 /// @ingroup QkParam
@@ -122,8 +115,7 @@ pub unsafe extern "C" fn qk_param_free(param: *mut Param) {
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_param_from_double(value: f64) -> *mut Param {
-    let value = Param::Float(value);
-    Box::into_raw(Box::new(value))
+    Param::Float(value).into_leaked()
 }
 
 /// @ingroup QkParam
@@ -144,8 +136,7 @@ pub extern "C" fn qk_param_from_double(value: f64) -> *mut Param {
 pub extern "C" fn qk_param_from_complex(value: Complex64) -> *mut Param {
     let value = SymbolExpr::Value(Value::Complex(value));
     let expr = ParameterExpression::from_symbol_expr(value);
-    let param = Param::ParameterExpression(Arc::new(expr));
-    Box::into_raw(Box::new(param))
+    Param::ParameterExpression(Arc::new(expr)).into_leaked()
 }
 
 /// @ingroup QkParam
@@ -168,8 +159,7 @@ pub extern "C" fn qk_param_from_complex(value: Complex64) -> *mut Param {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_param_copy(param: *const Param) -> *mut Param {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let expr = unsafe { const_ptr_as_ref(param) };
-    Box::into_raw(Box::new(expr.clone()))
+    unsafe { const_ptr_as_ref(param) }.clone().into_leaked()
 }
 
 /// @ingroup QkParam
