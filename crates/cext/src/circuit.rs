@@ -2556,6 +2556,9 @@ pub unsafe extern "C" fn qk_circuit_delay(
 /// Append a delay instruction to the circuit with a duration in units of
 /// dt.
 ///
+/// As expected with all duration, this value should be positive. Otherwise,
+/// the function will return with an input error.
+///
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
 /// @param duration The duration of the delay as an integer.
@@ -2588,10 +2591,15 @@ pub unsafe extern "C" fn qk_circuit_delay_dt(
     let duration_param: Param = Param::Int(duration);
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    // SAFETY: Per documentation, the circuit pointer is non-null and aligned.
     unsafe { qk_circuit_delay_inner(circuit, qubit, duration_param, delay_instruction) }
 }
 
+/// Adds a delay to a ``QkCircuit`` pointer.
+///
+/// # Safety
+///
+/// Behavior is undefined if `circuit` is null or unalligned.
 unsafe fn qk_circuit_delay_inner(
     circuit: *mut CircuitData,
     qubit: u32,
