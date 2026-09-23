@@ -18,7 +18,7 @@ use std::sync::Arc;
 /// # Implementing
 ///
 /// You typically don't need to implement this by hand; use the [`expose_by_box!`] or
-/// [`expose_by_arc!`] marcos to do it for you.  Since the trait is unsafe to implement, these two
+/// [`expose_by_arc!`] macros to do it for you.  Since the trait is unsafe to implement, these two
 /// macros require you to wrap them in `unsafe` blocks to work.  You do this like
 /// ```no_run
 /// # #[macro_use] extern crate qiskit_cext;
@@ -32,7 +32,7 @@ use std::sync::Arc;
 /// }
 /// #[unsafe(no_mangle)]
 /// pub unsafe extern "C" fn qk_mytype_free(ptr: *mut MyType) {
-///     _ = (!ptr.is_null).then(|| unsafe { MyType::steal(ptr) })
+///     _ = (!ptr.is_null()).then(|| unsafe { MyType::steal(ptr) })
 /// }
 /// ```
 ///
@@ -131,8 +131,8 @@ macro_rules! expose_by_arc {
 
             #[inline]
             unsafe fn steal(ptr: *mut Self) -> Self::Owner {
-                // SAFETY: per (trait) documentation, `ptr` is the only owner resulting from a
-                // leaked `Arc<Self>`.
+                // SAFETY: per (trait) documentation, `ptr` is an owner of a single `strong_count`
+                // resulting from a leaked `Arc<Self>`.
                 unsafe { Self::Owner::from_raw(ptr.cast_const()) }
             }
             #[inline]

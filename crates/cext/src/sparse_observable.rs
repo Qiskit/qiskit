@@ -212,7 +212,7 @@ pub unsafe extern "C" fn qk_obs_new(
 /// Behavior is undefined if ``obs`` is not either null or a valid pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
-    // SAFETY: if `dag` is not null, then per documentation it is an owned pointer.  Per trait
+    // SAFETY: if `obs` is not null, then per documentation it is an owned pointer.  Per trait
     // documentation, all owned pointers can be given to `steal`.
     _ = (!obs.is_null()).then(|| unsafe { SparseObservable::steal(obs) });
 }
