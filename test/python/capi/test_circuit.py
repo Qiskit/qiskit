@@ -67,6 +67,7 @@ class TestCircuit(QiskitTestCase):
                 self.assertEqual(val_as_int.value, -1)
             # Only way of seeing a parameter expression
             else:
+                self.assertEqual(param_kind, capi.QkParamKind.ParameterExpression.value.value)
                 val = capi.qk_param_str(param)
                 cast_val = ctypes.cast(val, ctypes.c_char_p)
 
