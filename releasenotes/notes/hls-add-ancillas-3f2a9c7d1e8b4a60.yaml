@@ -1,0 +1,29 @@
+---
+features_transpiler:
+  - |
+    Added a new argument ``add_ancillas`` to the :class:`.HighLevelSynthesis` transpiler pass.
+    When set to ``True`` and the ``target`` (or ``coupling_map``) contains more qubits than the
+    circuit being synthesized, the additional qubits are made available to the synthesis
+    methods as auxiliary qubits, and the qubits that are actually used are added to the
+    output circuit. This allows using synthesis methods that require more auxiliary qubits
+    than are available in the input circuit. For example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler import CouplingMap
+        from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
+
+        qc = QuantumCircuit(6)
+        qc.mcx([0, 1, 2, 3, 4], 5)
+
+        # the "n_clean_m15" method requires 2 clean auxiliary qubits in this case
+        hls = HighLevelSynthesis(
+            hls_config=HLSConfig(mcx=["n_clean_m15"]),
+            basis_gates=["cx", "u"],
+            coupling_map=CouplingMap.from_line(10),
+            add_ancillas=True,
+        )
+        synthesized = hls(qc)
+        assert synthesized.num_qubits == 8
+
+    The option is disabled by default, and should only be used before the layout is set.
+    See `#17023 <https://github.com/Qiskit/qiskit/issues/17023>`__ for more details.

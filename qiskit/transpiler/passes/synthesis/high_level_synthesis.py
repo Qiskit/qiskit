@@ -176,6 +176,14 @@ class HighLevelSynthesis(TransformationPass):
     :math:`|0\rangle` state. When appending a synthesized block using auxiliary qubits onto the
     circuit, we first use the clean auxiliary qubits.
 
+    By default, only the qubits already present in the circuit may serve as auxiliary qubits,
+    and the output circuit has the same number of qubits as the input circuit. When
+    ``add_ancillas`` is ``True`` and the ``target`` (or ``coupling_map``) contains more qubits
+    than the circuit, the additional qubits are also made available to the synthesis routines
+    as auxiliary qubits (in the same initial state as specified by ``qubits_initially_zero``).
+    The additional qubits that are actually used are appended to the output circuit, so
+    the output circuit may have more qubits than the input circuit.
+
     .. note::
 
         Synthesis methods are assumed to maintain the state of the auxiliary qubits.
@@ -196,6 +204,7 @@ class HighLevelSynthesis(TransformationPass):
         min_qubits: int = 0,
         qubits_initially_zero: bool = True,
         optimization_metric: OptimizationMetric = OptimizationMetric.COUNT_2Q,
+        add_ancillas: bool = False,
     ):
         r"""
         HighLevelSynthesis initializer.
@@ -221,6 +230,12 @@ class HighLevelSynthesis(TransformationPass):
                 (i.e. in the zero state) to synthesize an operation.
             optimization_metric:  Specifies the optimization criterion used by the default synthesis
                 methods for high-level-objects (when available).
+            add_ancillas: If ``True``, the pass may add qubits to the output circuit, provided
+                that the ``target`` (or ``coupling_map``) contains more qubits than the circuit
+                being synthesized. These additional qubits are used as auxiliary qubits for
+                synthesis, and only those that are actually used are added to the output circuit.
+                This option should only be used before the layout is set, as the added qubits
+                are appended to the circuit's (virtual) qubits.
         """
         super().__init__()
 
@@ -234,6 +249,14 @@ class HighLevelSynthesis(TransformationPass):
 
         if target is not None:
             coupling_map = target.build_coupling_map()
+
+        # The total number of qubits available on the target architecture (if known).
+        self._max_num_qubits = None
+        if add_ancillas:
+            if target is not None and target.num_qubits is not None:
+                self._max_num_qubits = target.num_qubits
+            elif coupling_map is not None:
+                self._max_num_qubits = coupling_map.size()
 
         unroll_definitions = not (
             (basis_gates is None or len(basis_gates) == 0)
@@ -276,7 +299,11 @@ class HighLevelSynthesis(TransformationPass):
             TranspilerError: when the transpiler is unable to synthesize the given DAG
             (for instance, when the specified synthesis method is not available).
         """
-        res = run_on_dag(dag, self.data, self.qubits_initially_zero)
+        num_extra_qubits = 0
+        if self._max_num_qubits is not None:
+            num_extra_qubits = max(0, self._max_num_qubits - dag.num_qubits())
+
+        res = run_on_dag(dag, self.data, self.qubits_initially_zero, num_extra_qubits)
         return res if res is not None else dag
 
 
