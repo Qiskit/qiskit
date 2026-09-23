@@ -41,25 +41,43 @@ class TestCircuit(QiskitTestCase):
         for idx, c_idx in enumerate([0, 2, 4]):
             view = capi.QkCircuitInstruction()
             capi.qk_circuit_get_instruction(c_circ, c_idx, ctypes.byref(view))
+            param = view.params[0]
 
             # Compare the element's kind using its integer value.
-            param_kind = capi.qk_param_kind(view.params[0])
+            param_kind = capi.qk_param_kind(param)
             self.assertEqual(param_kind, expected_param_types[idx])
 
             # Check if the integer case happens and load the integer within a pointer.
             if param_kind == capi.QkParamKind.Int.value.value:
                 val = ctypes.c_int64(0)
-                result = capi.qk_param_as_int(view.params[0], ctypes.byref(val))
+                result = capi.qk_param_as_int(param, ctypes.byref(val))
                 self.assertTrue(result, "Getting an integer param as an int failed.")
-                
-
                 self.assertEqual(val.value, param_result_types[idx])
 
             # Process differs with real as we don't really allocate.
             elif param_kind == capi.QkParamKind.Real.value.value:
-                val = capi.qk_param_as_real(view.params[0])
+                val = capi.qk_param_as_real(param)
 
                 self.assertEqual(val, param_result_types[idx])
-            # We don't yet have ways of obtaining expressions so we continue the loop by freeing.
 
+                # Reserve space for c_int. Will not be overwritten.
+                val_as_int = ctypes.c_int64(-1)
+
+                self.assertFalse(capi.qk_param_as_int(param, ctypes.byref(val_as_int)))
+                self.assertEqual(val_as_int.value, -1)
+            # Only way of seeing a parameter expression
+            else:
+                val = capi.qk_param_str(param)
+                cast_val = ctypes.cast(val, ctypes.c_char_p)
+
+                exp = ctypes.c_char_p("a".encode("utf-8"))
+
+                self.assertEqual(cast_val.value, exp.value)
+                capi.qk_str_free(val)
+
+                # Reserve space for c_int. Will not be overwritten.
+                val_as_int = ctypes.c_int64(-1)
+
+                self.assertFalse(capi.qk_param_as_int(param, ctypes.byref(val_as_int)))
+                self.assertEqual(val_as_int.value, -1)
             capi.qk_circuit_instruction_clear(view)
