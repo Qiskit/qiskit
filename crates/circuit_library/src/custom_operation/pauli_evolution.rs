@@ -10,22 +10,28 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::Arc;
+use std::{error, sync::Arc};
 
+use ndarray::Array2;
+use num_complex::Complex64;
 use qiskit_circuit::{
     operations::{CustomOperation, Operation, Param},
     packed_instruction::PackedOperation,
 };
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_quantum_info::sparse_observable::{BitTerm, MatrixError, SparseObservable};
 use smallvec::SmallVec;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
+    #[error("hermitian operates on 0 qubits")]
+    HermitianEmpty,
     #[error("time is python object")]
-    TimeIsPython,
-    #[error("operator has 0 qubits")]
-    Zero,
+    TimePython,
+    #[error("time is int")]
+    TimeInt,
+    #[error("matrix error")]
+    Matrix(#[from] MatrixError),
 }
 
 /// Time-evolution of a hermitian operator.
@@ -34,32 +40,37 @@ pub enum PauliEvolutionError {
 /// **U(t) = e<sup>-itH</sup>**.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
-    operator: SparseObservable,
+    hermitian: SparseObservable,
     time: ComparableParam,
 }
 
 impl PauliEvolution {
-    /// Construct a new [`PauliEvolution`] with a hermitian `operator` and `time`.
+    /// Construct a new [`PauliEvolution`] with a `hermitian` operator and `time` parameter.
     ///
     /// # Errors
     ///
-    /// Returns an error if `time` is [`Param::Obj`] or `operator` has 0 qubits.
-    pub fn new(operator: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
-        if matches!(time, Param::Obj(_)) {
-            Err(PauliEvolutionError::TimeIsPython)
-        } else if operator.num_qubits() == 0 {
-            Err(PauliEvolutionError::Zero)
+    /// Returns an error if `time` is [`Param::Int`], `time` is [`Param::Obj`], or `hermitian` has
+    /// 0 qubits.
+    pub fn new(hermitian: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
+        // TODO: Should we check whether
+
+        if hermitian.num_qubits() == 0 {
+            Err(PauliEvolutionError::HermitianEmpty)
+        } else if matches!(time, Param::Obj(_)) {
+            Err(PauliEvolutionError::TimePython)
+        } else if matches!(time, Param::Int(_)) {
+            Err(PauliEvolutionError::TimeInt)
         } else {
             Ok(Self {
-                operator,
+                hermitian,
                 time: ComparableParam(time),
             })
         }
     }
 
-    /// Returns a reference to the hermitian `operator`.
-    pub fn operator(&self) -> &SparseObservable {
-        &self.operator
+    /// Returns a reference to the `hermitian` operator.
+    pub fn hermitian(&self) -> &SparseObservable {
+        &self.hermitian
     }
 
     /// Returns a reference to the `time` parameter.
@@ -70,7 +81,7 @@ impl PauliEvolution {
     /// Decomposes `PauliEvolution` into its raw components.
     pub fn into_parts(self) -> PauliEvolutionParts {
         PauliEvolutionParts {
-            operator: self.operator,
+            hermitian: self.hermitian,
             time: self.time.0,
         }
     }
@@ -82,7 +93,7 @@ impl Operation for PauliEvolution {
     }
 
     fn num_qubits(&self) -> u32 {
-        self.operator.num_qubits()
+        self.hermitian.num_qubits()
     }
 
     fn num_clbits(&self) -> u32 {
@@ -119,6 +130,24 @@ impl CustomOperation for PauliEvolution {
         let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
         Some((inverse, SmallVec::new()))
     }
+
+    fn matrix(
+        &self,
+        _params: &[Param],
+    ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
+        if let Param::Float(time) = self.time() {
+            let matrix = evolve_matrix(self.hermitian(), *time)?;
+            Ok(Some(matrix))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PauliEvolutionParts {
+    pub hermitian: SparseObservable,
+    pub time: Param,
 }
 
 #[derive(Debug, Clone)]
@@ -137,10 +166,37 @@ impl PartialEq for ComparableParam {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct PauliEvolutionParts {
-    pub operator: SparseObservable,
-    pub time: Param,
+fn evolve_matrix(
+    hermitian: &SparseObservable,
+    time: f64,
+) -> Result<Array2<Complex64>, PauliEvolutionError> {
+    let evolve_matrix = |matrix| {
+        if is_pauli(hermitian) {
+            evolve_matrix_pauli(matrix, time)
+        } else {
+            evolve_matrix_pade(matrix, time)
+        }
+    };
+
+    hermitian
+        .to_matrix()
+        .map(evolve_matrix)
+        .map_err(PauliEvolutionError::from)
+}
+
+fn is_pauli(hermitian: &SparseObservable) -> bool {
+    hermitian
+        .bit_terms()
+        .iter()
+        .all(|bit_term| matches!(bit_term, BitTerm::X | BitTerm::Y | BitTerm::Z))
+}
+
+fn evolve_matrix_pauli(matrix: Array2<Complex64>, time: f64) -> Array2<Complex64> {
+    todo!()
+}
+
+fn evolve_matrix_pade(matrix: Array2<Complex64>, time: f64) -> Array2<Complex64> {
+    todo!()
 }
 
 #[cfg(test)]
@@ -153,10 +209,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_zero_qubits() {
+    fn test_hermitian_empty() {
         let obs = SparseObservable::new(0, vec![], vec![], vec![], vec![0]).expect("is coherent");
         let res = PauliEvolution::new(obs, Param::Float(3.0));
-        assert!(matches!(res, Err(PauliEvolutionError::Zero)))
+        assert!(matches!(res, Err(PauliEvolutionError::HermitianEmpty)))
     }
 
     #[test]
