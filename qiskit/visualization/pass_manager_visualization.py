@@ -316,15 +316,12 @@ def make_output(graph, raw, filename):
 
     _optionals.HAS_PIL.require_now("pass manager drawer")
 
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        from PIL import Image
+    from PIL import Image
 
-        tmppath = os.path.join(tmpdirname, "pass_manager.png")
-
-        agraph.draw(tmppath, format="png")
-        with Image.open(tmppath) as temp_image:
-            image = temp_image.copy()
-
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as fileobj:
+        agraph.draw(fileobj.name, format="png")
+        image = Image.open(fileobj.name)
+        os.remove(fileobj.name)
         if filename:
             image.save(filename, "PNG")
         return image
