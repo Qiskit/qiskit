@@ -70,7 +70,7 @@ class TestCircuit(QiskitTestCase):
                 val = capi.qk_param_str(param)
                 cast_val = ctypes.cast(val, ctypes.c_char_p)
 
-                exp = ctypes.c_char_p("a".encode("utf-8"))
+                exp = ctypes.c_char_p(b"a")
 
                 self.assertEqual(cast_val.value, exp.value)
                 capi.qk_str_free(val)
