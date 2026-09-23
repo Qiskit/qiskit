@@ -36,7 +36,12 @@ use crate::circuit::{
 };
 
 use crate::circuit::unitary_from_pointer;
-use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{
+    ExposesOwnedPointers, check_ptr, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref,
+};
+
+// SAFETY: all owned `DAGCircuit` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(DAGCircuit) };
 
 /// @ingroup QkDag
 /// Construct a new empty DAG.
@@ -51,8 +56,7 @@ use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
 /// ```
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_dag_new() -> *mut DAGCircuit {
-    let dag = DAGCircuit::new();
-    Box::into_raw(Box::new(dag))
+    DAGCircuit::new().into_leaked()
 }
 
 /// @ingroup QkDag
@@ -1440,21 +1444,12 @@ pub unsafe extern "C" fn qk_dag_compose(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``dag`` is not either null or a valid pointer to a
-/// ``QkDag``.
+/// Behavior is undefined if ``dag`` is not either null or a valid, owning pointer of a `QkDag`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
-    if !dag.is_null() {
-        if !dag.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(dag);
-        }
-    }
+    // SAFETY: if `dag` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!dag.is_null()).then(|| unsafe { DAGCircuit::steal(dag) });
 }
 
 /// @ingroup QkDag
@@ -1489,10 +1484,9 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 pub unsafe extern "C" fn qk_dag_to_circuit(dag: *const DAGCircuit) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let circuit = CircuitData::from_dag_ref(dag)
-        .expect("Error occurred while converting DAGCircuit to CircuitData");
-
-    Box::into_raw(Box::new(circuit))
+    CircuitData::from_dag_ref(dag)
+        .expect("Error occurred while converting DAGCircuit to CircuitData")
+        .into_leaked()
 }
 
 /// @ingroup QkDag
@@ -1672,8 +1666,8 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
     let vars_mode = vars_mode.into();
     let blocks_mode = blocks_mode.into();
 
-    let copied_dag = dag.copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode);
-    Box::into_raw(Box::new(copied_dag))
+    dag.copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
+        .into_leaked()
 }
 
 /// @ingroup QkDag
@@ -1878,7 +1872,7 @@ pub unsafe extern "C" fn qk_dag_to_python(dag: *mut DAGCircuit) -> *mut ::pyo3::
     // SAFETY: per documentation, we are attached to a Python interpreter.
     let py = unsafe { ::pyo3::Python::assume_attached() };
     // SAFETY: per documentation, `dag` points to owned and valid data.
-    let dag = unsafe { Box::from_raw(dag) };
+    let dag = unsafe { DAGCircuit::steal(dag) };
     match ::pyo3::Bound::new(py, PyDAGCircuit::from(*dag)) {
         Ok(ob) => ob.into_ptr(),
         Err(e) => {

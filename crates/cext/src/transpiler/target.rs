@@ -16,7 +16,9 @@ use std::sync::Arc;
 
 use crate::dag::COperationKind;
 use crate::exit_codes::{CInputError, ExitCode};
-use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{
+    ExposesOwnedPointers, check_ptr, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref,
+};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::StandardInstruction;
@@ -27,6 +29,9 @@ use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_transpiler::target::{InstructionProperties, Qargs, Target, TargetOperation};
 use qiskit_util::IndexMap;
 use smallvec::{SmallVec, smallvec};
+
+// SAFETY: all owned `Target` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(Target) };
 
 /// @ingroup QkTarget
 /// Construct a new ``QkTarget`` with the given number of qubits.
@@ -45,7 +50,7 @@ use smallvec::{SmallVec, smallvec};
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
-    let target = Target::new(
+    Target::new(
         None,
         Some(num_qubits),
         None,
@@ -56,8 +61,8 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
         None,
         None,
     )
-    .unwrap();
-    Box::into_raw(Box::new(target))
+    .unwrap()
+    .into_leaked()
 }
 
 /// @ingroup QkTarget
@@ -435,8 +440,7 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
-
-    Box::into_raw(target.clone().into())
+    target.clone().into_leaked()
 }
 
 /// @ingroup QkTarget
@@ -455,17 +459,9 @@ pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
 /// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
-    if !target.is_null() {
-        if !target.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(target);
-        }
-    }
+    // SAFETY: if `target` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!target.is_null()).then(|| unsafe { Target::steal(target) });
 }
 
 #[derive(Debug)]
@@ -548,6 +544,9 @@ impl TargetEntry {
     }
 }
 
+// SAFETY: all owned `TargetEntry` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(TargetEntry) };
+
 /// @ingroup QkTargetEntry
 /// Creates an entry to the ``QkTarget`` based on a ``QkGate`` instance.
 ///
@@ -564,7 +563,7 @@ impl TargetEntry {
 /// ```
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new(operation)))
+    TargetEntry::new(operation).into_leaked()
 }
 
 /// @ingroup QkTargetEntry
@@ -588,9 +587,7 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 /// ```
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new_instruction(
-        StandardInstruction::Measure,
-    )))
+    TargetEntry::new_instruction(StandardInstruction::Measure).into_leaked()
 }
 
 /// @ingroup QkTargetEntry
@@ -614,9 +611,7 @@ pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
 /// ```
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new_instruction(
-        StandardInstruction::Reset,
-    )))
+    TargetEntry::new_instruction(StandardInstruction::Reset).into_leaked()
 }
 
 /// @ingroup QkTargetEntry
@@ -665,12 +660,13 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
                 .to_string(),
         )
     };
-    Box::into_raw(Box::new(TargetEntry::new_fixed(
+    TargetEntry::new_fixed(
         operation,
         // SAFETY: per documentation, params is compatible with the operation.
         unsafe { parse_params(operation, params) },
         name_fixed,
-    )))
+    )
+    .into_leaked()
 }
 
 /// @ingroup QkTargetEntry
@@ -719,17 +715,9 @@ pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntr
 /// non-null pointer to a ``QkTargetEntry`` object.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
-    if !entry.is_null() {
-        if !entry.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(entry);
-        }
-    }
+    // SAFETY: if `entry` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!entry.is_null()).then(|| unsafe { TargetEntry::steal(entry) });
 }
 
 /// @ingroup QkTargetEntry

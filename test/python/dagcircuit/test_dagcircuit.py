@@ -2058,6 +2058,34 @@ class TestDagEquivalence(DAGTest):
 
         self.assertNotEqual(self.dag1, dag2)
 
+    def test_dag_eq_multiple_delays(self):
+        """DAG Equivalence with multiple delays of different unit types."""
+        #      ┌───┐┌────────────────┐     ┌──────────────────┐
+        # q_0: ┤ H ├┤ Delay(100[dt]) ├──■──┤ Delay(100.0[ms]) ├
+        #      └───┘└────────────────┘┌─┴─┐└┬───────────────┬─┘
+        # q_1: ───────────────────────┤ X ├─┤ Delay(1.0[s]) ├──
+        #                             └───┘ └───────────────┘
+        circ = QuantumCircuit(2, 0)
+        circ.h(0)
+        circ.delay(100, 0, "dt")
+        circ.cx(0, 1)
+        circ.delay(1, 1, "s")
+        circ.delay(100, 0, "ms")
+
+        expected = DAGCircuit()
+        expected.add_qreg(QuantumRegister(2, "q"))
+        expected.apply_operation_back(HGate(), [expected.qubits[0]], [])
+        expected.apply_operation_back(Delay(100, "dt"), [expected.qubits[0]], [])
+        expected.apply_operation_back(CXGate(), [expected.qubits[0], expected.qubits[1]], [])
+        expected.apply_operation_back(Delay(1, "s"), [expected.qubits[1]], [])
+        expected.apply_operation_back(Delay(100, "ms"), [expected.qubits[0]], [])
+
+        obtained = circuit_to_dag(circ)
+        for node1, node2 in zip(expected.op_nodes(), obtained.op_nodes()):
+            # Compare node by node to make sure it compares correctly.
+            self.assertEqual(node1, node2)
+        self.assertEqual(obtained, expected)
+
     def test_dag_neq_same_topology(self):
         """DAG equivalence check: False. Same topology."""
         #        ┌───┐                ┌───┐

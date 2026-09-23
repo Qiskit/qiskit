@@ -13,7 +13,10 @@
 use std::ffi::{CString, c_char};
 
 use crate::exit_codes::{CInputError, ExitCode};
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref, slice_from_ptr, try_slice_from_ptr};
+use crate::pointers::{
+    ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref, slice_from_ptr,
+    try_slice_from_ptr,
+};
 use num_complex::Complex64;
 
 use qiskit_quantum_info::sparse_observable::{
@@ -62,6 +65,9 @@ impl TryFrom<&CSparseTerm> for SparseTermView<'_> {
     }
 }
 
+// SAFETY: all owned `SparseObservable` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(SparseObservable) };
+
 /// @ingroup QkObs
 /// Construct the zero observable (without any terms).
 ///
@@ -76,8 +82,7 @@ impl TryFrom<&CSparseTerm> for SparseTermView<'_> {
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_obs_zero(num_qubits: u32) -> *mut SparseObservable {
-    let obs = SparseObservable::zero(num_qubits);
-    Box::into_raw(Box::new(obs))
+    SparseObservable::zero(num_qubits).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -94,8 +99,7 @@ pub extern "C" fn qk_obs_zero(num_qubits: u32) -> *mut SparseObservable {
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
-    let obs = SparseObservable::identity(num_qubits);
-    Box::into_raw(Box::new(obs))
+    SparseObservable::identity(num_qubits).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -117,8 +121,7 @@ pub extern "C" fn qk_obs_with_capacity(
     num_terms: usize,
     num_bit_terms: usize,
 ) -> *mut SparseObservable {
-    let obs = SparseObservable::with_capacity(num_qubits, num_terms, num_bit_terms);
-    Box::into_raw(Box::new(obs))
+    SparseObservable::with_capacity(num_qubits, num_terms, num_bit_terms).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -189,7 +192,7 @@ pub unsafe extern "C" fn qk_obs_new(
         unsafe { slice_from_ptr(indices, num_bits) }.to_vec(),
         unsafe { slice_from_ptr(boundaries, num_terms + 1) }.to_vec(),
     )
-    .map(|obs| Box::into_raw(Box::new(obs)))
+    .map(SparseObservable::into_leaked)
     .unwrap_or(::std::ptr::null_mut())
 }
 
@@ -209,14 +212,9 @@ pub unsafe extern "C" fn qk_obs_new(
 /// Behavior is undefined if ``obs`` is not either null or a valid pointer to a ``QkObs``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_obs_free(obs: *mut SparseObservable) {
-    if !obs.is_null() {
-        if !obs.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.");
-        }
-        // SAFETY: per documentation, `obs` points to a valid boxed `SparseObservable`.  Per above
-        // checks, it is aligned and non-null.
-        let _ = unsafe { Box::from_raw(obs) };
-    }
+    // SAFETY: if `obs` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!obs.is_null()).then(|| unsafe { SparseObservable::steal(obs) });
 }
 
 /// @ingroup QkObs
@@ -582,8 +580,7 @@ pub unsafe extern "C" fn qk_obs_multiply(
     let obs = unsafe { const_ptr_as_ref(obs) };
     let coeff = unsafe { const_ptr_as_ref(coeff) };
 
-    let result = obs * (*coeff);
-    Box::into_raw(Box::new(result))
+    (obs * (*coeff)).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -644,8 +641,7 @@ pub unsafe extern "C" fn qk_obs_add(
     let left = unsafe { const_ptr_as_ref(left) };
     let right = unsafe { const_ptr_as_ref(right) };
 
-    let result = left + right;
-    Box::into_raw(Box::new(result))
+    (left + right).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -709,8 +705,7 @@ pub unsafe extern "C" fn qk_obs_scaled_add(
     let right = unsafe { const_ptr_as_ref(right) };
     let factor = unsafe { const_ptr_as_ref(factor) };
 
-    let result = left.scaled_add(right, *factor);
-    Box::into_raw(Box::new(result))
+    left.scaled_add(right, *factor).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -775,8 +770,7 @@ pub unsafe extern "C" fn qk_obs_compose(
     let first = unsafe { const_ptr_as_ref(first) };
     let second = unsafe { const_ptr_as_ref(second) };
 
-    let result = first.compose(second);
-    Box::into_raw(Box::new(result))
+    first.compose(second).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -820,8 +814,7 @@ pub unsafe extern "C" fn qk_obs_compose_map(
     let qargs = unsafe { slice_from_ptr(qargs, second.num_qubits() as usize) };
     let qargs_map = |index: u32| qargs[index as usize];
 
-    let result = first.compose_map(second, qargs_map);
-    Box::into_raw(Box::new(result))
+    first.compose_map(second, qargs_map).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -949,8 +942,7 @@ pub unsafe extern "C" fn qk_obs_canonicalize(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
 
-    let result = obs.canonicalize(tol);
-    Box::into_raw(Box::new(result))
+    obs.canonicalize(tol).into_leaked()
 }
 
 /// @ingroup QkObs
@@ -974,8 +966,7 @@ pub unsafe extern "C" fn qk_obs_copy(obs: *const SparseObservable) -> *mut Spars
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
 
-    let copied = obs.clone();
-    Box::into_raw(Box::new(copied))
+    obs.clone().into_leaked()
 }
 
 /// @ingroup QkObs
