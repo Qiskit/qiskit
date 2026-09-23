@@ -17,7 +17,7 @@ use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotatio
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
 use crate::transpiler::target::parse_params;
 
 use nalgebra::{Matrix2, Matrix4};
@@ -40,6 +40,13 @@ use qiskit_circuit::parameter_table::ParameterTableError;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 use qiskit_transpiler::target::{Target, estimate_fidelity};
 use smallvec::smallvec;
+
+// SAFETY: all owned `CircuitData` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(CircuitData) };
+// SAFETY: all owned `QuantumRegister` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(QuantumRegister) };
+// SAFETY: all owned `ClassicalRegister` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(ClassicalRegister) };
 
 /// @ingroup QkCircuit
 /// Construct a new circuit with the given number of qubits and clbits.
@@ -74,8 +81,9 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
         None
     };
 
-    let circuit = CircuitData::new(qubits, clbits, (0.).into()).unwrap();
-    Box::into_raw(Box::new(circuit))
+    CircuitData::new(qubits, clbits, (0.).into())
+        .unwrap()
+        .into_leaked()
 }
 
 /// @ingroup QkQuantumRegister
@@ -102,15 +110,14 @@ pub unsafe extern "C" fn qk_quantum_register_new(
     num_qubits: u32,
     name: *const c_char,
 ) -> *mut QuantumRegister {
+    // SAFETY: Per documentation the pointer for name is a valid CStr pointer
     let name = unsafe {
         CStr::from_ptr(name)
             .to_str()
             .expect("Invalid UTF-8 character")
             .to_string()
     };
-    // SAFETY: Per documentation the pointer for name is a valid CStr pointer
-    let reg = QuantumRegister::new_owning(name, num_qubits);
-    Box::into_raw(Box::new(reg))
+    QuantumRegister::new_owning(name, num_qubits).into_leaked()
 }
 
 /// @ingroup QkQuantumRegister
@@ -130,17 +137,9 @@ pub unsafe extern "C" fn qk_quantum_register_new(
 /// ``QkQuantumRegister``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
-    if !reg.is_null() {
-        if !reg.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(reg);
-        }
-    }
+    // SAFETY: if `reg` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!reg.is_null()).then(|| unsafe { QuantumRegister::steal(reg) });
 }
 
 /// @ingroup QkQuantumRegister
@@ -290,8 +289,7 @@ pub unsafe extern "C" fn qk_classical_register_new(
             .expect("Invalid UTF-8 character")
             .to_string()
     };
-    let reg = ClassicalRegister::new_owning(name, num_clbits);
-    Box::into_raw(Box::new(reg))
+    ClassicalRegister::new_owning(name, num_clbits).into_leaked()
 }
 
 /// @ingroup QkClassicalRegister
@@ -311,17 +309,9 @@ pub unsafe extern "C" fn qk_classical_register_new(
 /// ``QkClassicalRegister``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister) {
-    if !reg.is_null() {
-        if !reg.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(reg);
-        }
-    }
+    // SAFETY: if `reg` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!reg.is_null()).then(|| unsafe { ClassicalRegister::steal(reg) });
 }
 
 /// @ingroup QkClassicalRegister
@@ -677,8 +667,7 @@ pub unsafe extern "C" fn qk_circuit_get_classical_register(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { const_ptr_as_ref(circuit) };
-    Box::into_raw(Box::new(circuit.clone()))
+    unsafe { const_ptr_as_ref(circuit) }.clone().into_leaked()
 }
 
 /// @ingroup QkCircuit
@@ -795,8 +784,7 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
 pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) -> *mut Param {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
-
-    Box::into_raw(Box::new(circuit.global_phase().clone()))
+    circuit.global_phase().clone().into_leaked()
 }
 
 /// @ingroup QkCircuit
@@ -863,17 +851,9 @@ pub unsafe extern "C" fn qk_circuit_set_global_phase(
 /// ``QkCircuit``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
-    if !circuit.is_null() {
-        if !circuit.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(circuit);
-        }
-    }
+    // SAFETY: if `circuit` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!circuit.is_null()).then(|| unsafe { CircuitData::steal(circuit) });
 }
 
 /// @ingroup QkCircuit

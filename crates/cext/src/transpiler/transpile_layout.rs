@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::const_ptr_as_ref;
+use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box};
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::{NLayout, PhysicalQubit};
 use qiskit_transpiler::target::Target;
@@ -22,6 +22,9 @@ use pyo3::Python;
 use pyo3::ffi::PyObject;
 #[cfg(feature = "python_binding")]
 use qiskit_circuit::circuit_data::CircuitData;
+
+// SAFETY: all owned `TranspileLayout` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(TranspileLayout) };
 
 /// @ingroup QkTranspileLayout
 /// Return the number of qubits in the input circuit to the transpiler.
@@ -266,14 +269,14 @@ pub unsafe extern "C" fn qk_transpile_layout_generate_from_mapping(
     }
     .to_vec();
     let initial_layout = NLayout::from_virtual_to_physical(virt_to_phys).unwrap();
-    let transpile_layout: TranspileLayout = TranspileLayout::new(
+    TranspileLayout::new(
         Some(initial_layout),
         None,
         dag.qubits().objects().to_owned(),
         dag.num_qubits() as u32,
         dag.qregs().to_vec(),
-    );
-    Box::into_raw(Box::new(transpile_layout))
+    )
+    .into_leaked()
 }
 
 /// @ingroup QkTranspileLayout
@@ -286,16 +289,9 @@ pub unsafe extern "C" fn qk_transpile_layout_generate_from_mapping(
 /// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) {
-    if !layout.is_null() {
-        if !layout.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-        // SAFETY: We have verified the pointer is non-null and aligned, so
-        // it should be readable by Box.
-        unsafe {
-            let _ = Box::from_raw(layout);
-        }
-    }
+    // SAFETY: if `layout` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!layout.is_null()).then(|| unsafe { TranspileLayout::steal(layout) });
 }
 
 /// @ingroup QkTranspileLayout
