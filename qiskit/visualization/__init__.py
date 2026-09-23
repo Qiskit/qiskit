@@ -301,7 +301,6 @@ __all__ = [
     "array_to_latex",
     "circuit_drawer",
     "dag_drawer",
-    "draw",
     "latex",
     "matplotlib",
     "pass_manager_drawer",
