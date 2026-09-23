@@ -641,6 +641,7 @@ pub(crate) fn pack_param_obj(
 pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyError> {
     match value {
         GenericValue::Float64(float_val) => Ok(Param::Float(*float_val)),
+        GenericValue::Int64(int_val) => Ok(Param::Int(*int_val)),
         GenericValue::ParameterExpressionSymbol(symbol) => {
             let parameter_expression = ParameterExpression::from_arc_symbol(symbol.clone());
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
