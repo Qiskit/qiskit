@@ -33,6 +33,7 @@ class CommutativeCancellation(TransformationPass):
 
     This pass uses commutation rules to apply the following optimizations
     to a sequence of gate:
+
     * **Self-inverse gates** (``h, y, cx, cy, cz``): if an even number of copies
       of the *same* self-inverse gate on the *same* qubit(s) commute together, they
       cancel completely; an odd number leaves a single copy behind.
@@ -52,11 +53,11 @@ class CommutativeCancellation(TransformationPass):
         the two ``cx`` gates below commute past the ``z`` gate (which acts
         only on the control qubit) and cancel each other, leaving just the ``z``::
 
-                  ┌───┐              ┌───┐
-        q_0: ──■──┤ Z ├──■──   ->    ┤ Z ├
-             ┌─┴─┐└───┘┌─┴─┐         └───┘
-        q_1: ┤ X ├─────┤ X ├   ->    ──────
-             └───┘     └───┘
+                      ┌───┐            ┌───┐
+            q_0: ──■──┤ Z ├──■──   ->  ┤ Z ├
+                 ┌─┴─┐└-──┘┌─┴─┐       └───┘
+            q_1: ┤ X ├─────┤ X ├   ->  ──────
+                 └───┘     └───┘
 
 
         .. code-block:: python
