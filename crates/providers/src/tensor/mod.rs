@@ -22,7 +22,7 @@ mod tensor_type;
 mod value;
 
 pub use broadcast::broadcast_shape;
-pub use dtype::{DType, DTypeLike, DTypePromotion, DTypeVar, promotion};
+pub use dtype::{DType, promotion};
 pub use error::TensorError;
 pub use tensor_type::{Dim, TensorType, broadcast_dims, require_static};
 pub use value::Tensor;
