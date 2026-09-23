@@ -853,6 +853,24 @@ class TestEvolutionGate(QiskitTestCase):
             merged = _merge_two_pauli_evolutions(gate1, gate2)
             self.assertIsNotNone(merged)
 
+    def test_contains_projectors(self):
+        """Test correctness of `contains_projector` method."""
+        with self.subTest("SparsePauliOp"):
+            gate = PauliEvolutionGate(SparsePauliOp("XY"))
+            self.assertFalse(gate.contains_projectors())
+        with self.subTest("SparseObservable without projectors"):
+            gate = PauliEvolutionGate(SparseObservable("XY"))
+            self.assertFalse(gate.contains_projectors())
+        with self.subTest("SparseObservable with projectors"):
+            gate = PauliEvolutionGate(SparseObservable("X+"))
+            self.assertTrue(gate.contains_projectors())
+        with self.subTest("List of SparseObservables without projectors"):
+            gate = PauliEvolutionGate([SparseObservable("XX"), SparseObservable("YY")])
+            self.assertFalse(gate.contains_projectors())
+        with self.subTest("List of SparseObservables with projectors"):
+            gate = PauliEvolutionGate([SparseObservable("XX"), SparseObservable("rY")])
+            self.assertTrue(gate.contains_projectors())
+
 
 def exact_atomic_evolution(circuit, pauli, time):
     """An exact atomic evolution for Suzuki-Trotter.

@@ -335,6 +335,17 @@ class PauliEvolutionGate(Gate):
             )
         return _to_sparse_observable(self.operator)
 
+    def contains_projectors(self):
+        """Return whether the operator contains any projector terms."""
+        if isinstance(self.operator, SparseObservable):
+            return self.operator.contains_projectors()
+        elif isinstance(self.operator, list):
+            return any(
+                isinstance(op, SparseObservable) and op.contains_projectors()
+                for op in self.operator
+            )
+        return False
+
 
 def _to_sparse_op(
     operator: Pauli | SparsePauliOp | SparseObservable,
