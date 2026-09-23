@@ -182,7 +182,7 @@ fn push_1q_unitary(
 /// drop controls the gate list doesn't actually depend on.
 ///
 /// [1]: https://arxiv.org/pdf/quant-ph/0410066.pdf
-fn dec_ucg_inner(
+pub(crate) fn dec_ucg_inner(
     single_qubit_gates: Vec<Matrix2<Complex64>>,
     num_qubits: u32,
     up_to_diagonal: bool,

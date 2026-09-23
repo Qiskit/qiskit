@@ -19,6 +19,7 @@ pub mod linalg;
 pub mod linear;
 pub mod linear_phase;
 pub mod matrix;
+mod mcg_up_to_diagonal;
 mod multi_controlled;
 pub mod pauli_evolution;
 pub mod pauli_products;
@@ -29,7 +30,6 @@ pub mod ross_selinger;
 pub mod two_qubit_decompose;
 mod uc_gate;
 mod ucrz;
-mod mcg_up_to_diagonal;
 
 use pyo3::import_exception;
 use pyo3::prelude::*;
@@ -80,6 +80,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let uc_gate_mod = PyModule::new(m.py(), "uc_gate")?;
     uc_gate::uc_gate(&uc_gate_mod)?;
     m.add_submodule(&uc_gate_mod)?;
+
+    let mcg_mod = PyModule::new(m.py(), "mcg_up_to_diagonal")?;
+    mcg_up_to_diagonal::mcg_up_to_diagonal(&mcg_mod)?;
+    m.add_submodule(&mcg_mod)?;
 
     Ok(())
 }
