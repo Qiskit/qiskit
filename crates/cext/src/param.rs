@@ -998,7 +998,7 @@ pub unsafe extern "C" fn qk_param_equal(lhs: *const Param, rhs: *const Param) ->
 ///
 /// If the parameter could not be cast to a ``double``, because there were unbound parameters,
 /// ``NAN`` is returned. Note that for ``QkParam`` of the kind ``QkParamKind_ParameterExpression``
-/// representing complex values the real part is returned.
+/// representing a bound complex values the real part is returned.
 ///
 /// If the parameter in originally an `int` instance, it will be coerced into a double, resulting
 /// in a lossy conversion.
@@ -1087,7 +1087,7 @@ pub extern "C" fn qk_param_stride() -> usize {
 /// will return ``false``.
 ///
 /// @param param A pointer to the ``QkParam`` to evaluate.
-/// @param value A pointer to a ``int32_t`` to write the resulting value.
+/// @param value A pointer to a ``int64_t`` to write the resulting value.
 ///
 /// @return ``true`` if the stored value is an integer, otherwise ``false``.
 ///
@@ -1095,13 +1095,13 @@ pub extern "C" fn qk_param_stride() -> usize {
 ///
 /// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
 /// The behavior is undefined if ``value`` is not a valid, non-null pointer to an address that
-/// can hold an ``int32_t`` instance.
+/// can hold an ``int64_t`` instance.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let param = unsafe { const_ptr_as_ref(param) };
 
-    // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an ``int32_t``.
+    // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an ``int64_t``.
     param_try_int(param)
         .inspect(|param| unsafe { value.write(*param) })
         .is_some()
