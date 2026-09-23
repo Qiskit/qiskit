@@ -58,8 +58,6 @@ fn return_error(error: *mut *mut c_char, value: QpyCError) -> ExitCode {
         QpyCError::ExitCode(code) => code,
         QpyCError::Diagnostic(message) => {
             if !error.is_null() {
-                // A safeguard in case the error contains nuls.
-                let message = message.replace('\0', "\\0");
                 // SAFETY: the caller guarantees that a non-null `error` is valid for one write.
                 unsafe { error.write(CString::new(message).unwrap().into_raw()) };
             }
@@ -70,7 +68,6 @@ fn return_error(error: *mut *mut c_char, value: QpyCError) -> ExitCode {
 
 fn dump_circuits(circuits: &[&CircuitData], version: Option<u8>) -> Result<Vec<u8>, QpyCError> {
     qiskit_qpy::native_dump_qpy(circuits, version)
-        .map(|payload| payload.to_vec())
         .map_err(|err| QpyCError::Diagnostic(err.to_string()))
 }
 
