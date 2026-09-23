@@ -72,7 +72,7 @@ impl ContextUpdates {
     }
 
     fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
-        Some(self.insertions.get(key.as_ref())?)
+        self.insertions.get(key.as_ref()).map(|v| v.as_ref())
     }
 }
 
@@ -119,6 +119,10 @@ impl<'a> PassContext<'a> {
     /// This first queries from the local context, then the global.
     pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
         let key = key.as_ref();
+
+        if self.updates.deletions.contains(key) {
+            return None;
+        }
 
         // The local registry takes precedence.
         self.updates.get(key).or_else(|| {
@@ -204,7 +208,7 @@ impl hash::Hash for DynTypeId<'_> {
 /// Trait for types that interact with the Qiskit dynamic-typing system ([`DynTyped`]) as static
 /// Rust objects.
 ///
-/// This trait not object safe; use the blanket implementation of [`DynTyped`] for that.
+/// This trait is not object safe; use the blanket implementation of [`DynTyped`] for that.
 pub trait StaticDynTyped {
     fn static_dyn_type_id() -> DynTypeId<'static>;
 }
@@ -245,6 +249,8 @@ pub trait IR: DynTyped + Send + Sync + 'static {}
 /// such as loops. The [PassManager] stores a vector of [Task]s and executes them.
 #[non_exhaustive]
 pub enum Task {
+    // TODO Add Loop and Switch with conditions that can be set from Python/C and
+    // proper error handlings that occur during the condition evaluation.
     /// A single pass.
     Transformation(Box<dyn Pass>),
 
@@ -253,21 +259,6 @@ pub enum Task {
 
     /// A sequence of named tasks.
     Stages(Vec<(String, Task)>),
-
-    /// A conditional execution of a task.
-    /// Takes a switch function, that takes the type-erased IR and the pass context,
-    /// and returns an index to which case to run.
-    Switch {
-        switch: fn(&dyn Any, &PassContext) -> usize,
-        cases: Vec<Task>,
-    },
-
-    /// A looped execution.
-    /// Runs the body until the condition function returns false.
-    Loop {
-        condition: fn(&dyn Any, &PassContext) -> bool,
-        body: Box<Task>,
-    },
 }
 
 impl fmt::Debug for Task {
@@ -276,16 +267,6 @@ impl fmt::Debug for Task {
             Task::Transformation(p) => f.debug_tuple("Transformation").field(&p.name()).finish(),
             Task::Group(tasks) => f.debug_tuple("Group").field(tasks).finish(),
             Task::Stages(stages) => f.debug_tuple("Stages").field(stages).finish(),
-            Task::Switch { switch, cases } => f
-                .debug_struct("Switch")
-                .field("switch", switch)
-                .field("cases", cases)
-                .finish(),
-            Task::Loop { condition, body } => f
-                .debug_struct("Loop")
-                .field("condition", condition)
-                .field("body", body)
-                .finish(),
         }
     }
 }
@@ -312,8 +293,6 @@ impl Task {
             Task::Group(group) => {
                 Some([group.first()?.io_types()?[0], group.last()?.io_types()?[1]])
             }
-            Task::Loop { condition: _, body } => (*body).io_types(),
-            Task::Switch { switch: _, cases } => cases.first()?.io_types(),
             Task::Stages(stages) => Some([
                 stages.first()?.1.io_types()?[0],
                 stages.last()?.1.io_types()?[1],
@@ -440,16 +419,6 @@ fn execute_task(
             }
             Ok(ir)
         }
-        Task::Switch { switch, cases } => {
-            let index = switch(&ir, context);
-            execute_task(&cases[index], ir, context)
-        }
-        Task::Loop { condition, body } => {
-            while condition(&ir, context) {
-                ir = execute_task(body, ir, context)?;
-            }
-            Ok(ir)
-        }
         Task::Stages(stages) => {
             for (_name, task) in stages.iter() {
                 ir = execute_task(task, ir, context)?;
@@ -465,7 +434,7 @@ mod test {
     use anyhow::anyhow;
     use std::sync::{Arc, RwLock};
 
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     struct MyUint(u32);
     static_dyn_typed!(MyUint);
     impl IR for MyUint {}
@@ -491,6 +460,7 @@ mod test {
     impl StaticPass<MyUint> for WriteToContext {
         fn run(&self, ir: Box<MyUint>, context: &mut PassContext) -> anyhow::Result<Box<MyUint>> {
             context.set("snapshot".into(), ir.clone());
+            context.ir_modified = false;
             Ok(ir)
         }
     }
@@ -506,6 +476,15 @@ mod test {
                 .ok_or_else(|| anyhow!("failed downcast"))?
                 .clone();
             *self.0.write().expect("lock shouldn't be poisoned") = ob;
+            Ok(ir)
+        }
+    }
+
+    struct DeleteFromContext;
+    impl StaticPass<MyUint> for DeleteFromContext {
+        fn run(&self, ir: Box<MyUint>, context: &mut PassContext) -> anyhow::Result<Box<MyUint>> {
+            context.delete("snapshot".into());
+            context.ir_modified = false;
             Ok(ir)
         }
     }
@@ -529,25 +508,11 @@ mod test {
         let lower_pass = Task::Transformation(LowerToInt.into_pass());
         assert_eq!(lower_pass.io_types().unwrap(), [uint_ty, int_ty]);
 
-        let infinity = Task::Loop {
-            condition: |_, _| true,
-            body: Box::new(make_uint_pass()),
-        };
-        assert_eq!(infinity.io_types().unwrap(), [uint_ty, uint_ty]);
-
-        let switch = Task::Switch {
-            switch: |_, _| 0,
-            cases: vec![make_uint_pass()],
-        };
-        assert_eq!(switch.io_types().unwrap(), [uint_ty, uint_ty]);
-
         let stages = Task::Stages(vec![("one_and_only".to_string(), make_uint_pass())]);
         assert_eq!(stages.io_types().unwrap(), [uint_ty, uint_ty]);
 
         let nested = Task::Stages(vec![
             ("pass".to_string(), make_uint_pass()),
-            ("loop".to_string(), infinity),
-            ("switch".to_string(), switch),
             ("stages".to_string(), stages),
         ]);
         assert_eq!(nested.io_types().unwrap(), [uint_ty, uint_ty]);
@@ -579,21 +544,11 @@ mod test {
         let make_task = || Task::Transformation(AddOne.into_pass());
 
         let group = Task::Group(vec![make_task(), make_task()]);
-        let loop_task = Task::Loop {
-            condition: |_, _| true,
-            body: Box::new(make_task()),
-        };
-        let switch = Task::Switch {
-            switch: |_, _| 0,
-            cases: vec![make_task()],
-        };
         let stages = Task::Stages(vec![("one_and_only".to_string(), make_task())]);
 
         let mut pm = PassManager::new();
         pm.try_push_static_pass(AddOne).unwrap();
         pm.try_push_task(group).unwrap();
-        pm.try_push_task(loop_task).unwrap();
-        pm.try_push_task(switch).unwrap();
         pm.try_push_task(stages).unwrap();
 
         assert!(matches!(pm.get_task(0), Some(Task::Transformation(_))));
@@ -604,10 +559,7 @@ mod test {
             panic!("Expected a Task::Group");
         }
 
-        assert!(matches!(pm.get_task(2), Some(Task::Loop { .. })));
-        assert!(matches!(pm.get_task(3), Some(Task::Switch { .. })));
-
-        if let Some(Task::Stages(stages)) = pm.get_task(4) {
+        if let Some(Task::Stages(stages)) = pm.get_task(2) {
             assert_eq!(stages.len(), 1);
             assert_eq!(stages[0].0, "one_and_only".to_string());
         } else {
@@ -634,6 +586,20 @@ mod test {
         let MyUint(from_context) = *context.data["snapshot"].downcast_ref().unwrap();
         assert_eq!(from_context, 6);
         assert_eq!(from_pm, 7);
+    }
+
+    #[test]
+    fn test_delete_context() {
+        let cell = Arc::new(RwLock::new(MyUint(0)));
+
+        let mut pm = PassManager::new();
+        pm.try_push_static_pass(WriteToContext).unwrap();
+        pm.try_push_static_pass(DeleteFromContext).unwrap();
+        pm.try_push_static_pass(LeakFromContext(Arc::clone(&cell)))
+            .unwrap();
+
+        let e = pm.run::<_, MyUint>(MyUint(1)).unwrap_err();
+        assert!(e.to_string().contains("object absent"), "{:?}", e);
     }
 
     #[test]
