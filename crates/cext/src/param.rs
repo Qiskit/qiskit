@@ -1084,7 +1084,8 @@ pub extern "C" fn qk_param_stride() -> usize {
 ///
 /// If the parameter could not be cast to a ``int64_t``, because there were
 /// unbound parameters, the pointer will not be written to and the function
-/// will return ``false``.
+/// will return ``false``. This will also be the case if the parameter
+/// is bound but evaluates to a floating point or complex number.
 ///
 /// @param param A pointer to the ``QkParam`` to evaluate.
 /// @param value A pointer to a ``int64_t`` to write the resulting value.
