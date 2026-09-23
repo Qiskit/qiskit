@@ -1131,7 +1131,7 @@ impl fmt::Display for DataTree<()> {
                 f.write_str(", ")?;
             }
             if let Some(name) = name {
-                write!(f, "{}: ", name.as_str())?;
+                write!(f, "{}: ", name)?;
             }
             write!(f, "{child}")?;
         }
