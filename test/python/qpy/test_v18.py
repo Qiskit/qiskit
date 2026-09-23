@@ -150,12 +150,16 @@ class TestV17VsV18(QiskitTestCase):
     def test_ancilla_register_round_trip(self):
         """Ancilla register and qubit types survive serialization."""
         circuit = QuantumCircuit(AncillaRegister(2, "ancilla"))
-
         loaded = load(io.BytesIO(_dump(circuit, 18)))[0]
-
-        self.assertEqual(loaded.num_ancillas, circuit.num_ancillas)
-        self.assertEqual(loaded.ancillas, circuit.ancillas)
         self.assertIsInstance(loaded.qregs[0], AncillaRegister)
+        self.assertEqual(loaded, circuit)
+
+        ar = AncillaRegister(2, "ancilla")
+        qr = QuantumRegister(2, "q")
+        circuit = QuantumCircuit(qr, ar)
+        circuit.cx(qr[0], ar[0])
+        loaded = load(io.BytesIO(_dump(circuit, 18)))[0]
+        self.assertEqual(loaded, circuit)
 
 
 class TestV18RegisterParam(QiskitTestCase):
