@@ -2599,7 +2599,7 @@ pub unsafe extern "C" fn qk_circuit_delay_dt(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if `circuit` is null or unalligned.
+/// Behavior is undefined if `circuit` is null or unaligned.
 unsafe fn qk_circuit_delay_inner(
     circuit: *mut CircuitData,
     qubit: u32,
