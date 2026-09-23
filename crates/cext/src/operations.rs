@@ -22,7 +22,13 @@ use qiskit_circuit::{
     operations::{BoxedCustomOperation, CustomOperation, Operation, Param},
 };
 
-use crate::{ExitCode, pointers::arc_clone_from_raw};
+use crate::{
+    ExitCode, expose_by_arc, expose_by_box,
+    pointers::{ExposesOwnedPointers, arc_clone_from_raw},
+};
+
+// SAFETY: all owned `BoxedCustomOperation` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(BoxedCustomOperation) };
 
 /// Represents a quantum operation fully defined in C.
 ///
@@ -179,7 +185,7 @@ impl CustomOperation for CustomOp {
         if definition.is_null() {
             return None;
         }
-        let circ = unsafe { Box::from_raw(definition) };
+        let circ = unsafe { CircuitData::steal(definition) };
         Some(*circ)
     }
 
@@ -231,6 +237,9 @@ pub struct CustomOpVTable {
     definition: unsafe extern "C" fn(*const c_void, *const *const Param) -> *mut CircuitData,
     eq: unsafe extern "C" fn(*const c_void, *const c_void) -> bool,
 }
+
+// SAFETY: all owned `CustomOpVTable` objects are exposed and freed using `Arc`.
+const _: () = unsafe { expose_by_arc!(CustomOpVTable) };
 
 extern "C" fn default_num_clbits(_op: *const c_void) -> u32 {
     0
@@ -437,7 +446,7 @@ pub unsafe extern "C" fn qk_custom_operation_new(
         v_table: unsafe { arc_clone_from_raw(v_table) },
     };
 
-    Box::into_raw(Box::new(BoxedCustomOperation::from(as_custom_op)))
+    BoxedCustomOperation::from(as_custom_op).into_leaked()
 }
 
 /// @ingroup QkCustomOperation
@@ -633,7 +642,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
         }
         slot = unsafe { slots.read() };
     }
-    if let Ok(ptr) = CustomOpVTable::try_from(vtable).map(|x| Arc::into_raw(Arc::new(x))) {
+    if let Ok(ptr) = CustomOpVTable::try_from(vtable).map(ExposesOwnedPointers::into_leaked) {
         // SAFETY: We have established that this pointer is big enough
         // to hold a pointer to ``QkCustomOpVTable``, and needs to be
         // null add aligned.
@@ -653,11 +662,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
 /// to a `QkCustomOpVTable`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_vtable_free(v_table: *const CustomOpVTable) {
-    if !v_table.is_null() {
-        if !v_table.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.");
-        }
-        // SAFETY: The pointer is non-null and aligned and therefore readable.
-        let _ = unsafe { Arc::from_raw(v_table) };
-    }
+    // SAFETY: if `v_table` is not nul, then it is an owned pointer as per documentation
+    // all owned pointers can be given to `steal`.
+    _ = (!v_table.is_null()).then(|| unsafe { CustomOpVTable::steal(v_table.cast_mut()) })
 }
