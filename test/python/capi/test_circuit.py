@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from pathlib import Path
-
 from qiskit import capi
 from qiskit.circuit import QuantumCircuit, Parameter
 from test import QiskitTestCase
@@ -50,7 +48,7 @@ class TestCircuit(QiskitTestCase):
 
             # Check if the integer case happens and load the integer within a pointer.
             if param_kind == capi.QkParamKind.Int.value.value:
-                val = ctypes.c_long.from_buffer(bytearray(64))
+                val = ctypes.c_int64.from_buffer(bytearray(64))
                 capi.qk_param_as_int(view.params[0], val)
 
                 self.assertEqual(val.value, param_result_types[idx])
