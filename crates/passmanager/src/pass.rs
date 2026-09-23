@@ -89,10 +89,6 @@ pub enum PassError {
     /// The given input type failed to cast to the right type dynamically.
     #[error("failed to cast to expected input type")]
     Conversion,
-    /// An index error access a [`Task::Group`](crate::Task::Group) or
-    /// [`Task::Switch`](crate::Task::Switch).
-    #[error("Index out of bounds")]
-    IndexError,
     /// An arbitrary error during processing of the pass.
     #[error(transparent)]
     Runtime(#[from] anyhow::Error),
@@ -107,7 +103,7 @@ pub trait Pass: Send + Sync {
     /// A human-readable name for the pass.
     ///
     /// This is primarily for debugging purposes and may generally depend on the crate
-    /// the pass is defined in. This full qualifier should not be relied upon to be stable.
+    /// the pass is defined in. No part of the name should be relied on as being stable.
     fn name(&self) -> &str;
     /// Run the pass.
     ///
