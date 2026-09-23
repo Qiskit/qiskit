@@ -335,17 +335,6 @@ class PauliEvolutionGate(Gate):
             )
         return _to_sparse_observable(self.operator)
 
-    def _contains_projectors(self):
-        """Return whether the operator contains any projector terms."""
-        if isinstance(self.operator, SparseObservable):
-            return self.operator.contains_projectors()
-        elif isinstance(self.operator, list):
-            return any(
-                isinstance(op, SparseObservable) and op.contains_projectors()
-                for op in self.operator
-            )
-        return False
-
 
 def _to_sparse_op(
     operator: Pauli | SparsePauliOp | SparseObservable,
@@ -480,3 +469,14 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
         return (np.exp(-1j * angle), 1)
 
     return (np.cos(angle), 2**num_qubits)
+
+
+def _contains_projectors(gate: PauliEvolutionGate):
+    """Return whether gate contains any projector terms."""
+    if isinstance(gate.operator, SparseObservable):
+        return gate.operator.contains_projectors()
+    elif isinstance(gate.operator, list):
+        return any(
+            isinstance(op, SparseObservable) and op.contains_projectors() for op in gate.operator
+        )
+    return False

@@ -623,6 +623,7 @@ from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
 from qiskit.transpiler.optimization_metric import OptimizationMetric
+from qiskit.circuit.library.pauli_evolution import _contains_projectors
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
@@ -2191,7 +2192,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
         if (
             (options.get("optimization_level", 2) >= 2)
             and options.get("preserve_order", True)
-            and (not high_level_object._contains_projectors())
+            and (not _contains_projectors(high_level_object))
             and ((coupling_map is None) or _is_coupling_map_all_to_all(coupling_map))
         ):
             synth_mcts = PauliEvolutionSynthesisMcts().run(
