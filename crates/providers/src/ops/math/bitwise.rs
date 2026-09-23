@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::data_tree::{DataTree, Name};
+use crate::data_tree::DataTree;
 use crate::ops::{CallInputError, ProgramOp};
 use crate::tensor::{DType, DTypeLike, Tensor, TensorType, broadcast_shape};
 use crate::unpack_tensor_args;
@@ -20,22 +20,26 @@ use std::sync::LazyLock;
 /// Shared input type spec for binary bitwise ops
 static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     let mut types = DataTree::with_capacity(2);
-    types.insert_leaf(
-        Name::new("x").unwrap(),
-        TensorType {
-            dtype: DTypeLike::Concrete(DType::Bit),
-            shape: vec![],
-            broadcastable: true,
-        },
-    );
-    types.insert_leaf(
-        Name::new("y").unwrap(),
-        TensorType {
-            dtype: DTypeLike::Concrete(DType::Bit),
-            shape: vec![],
-            broadcastable: true,
-        },
-    );
+    types
+        .insert_leaf(
+            "x",
+            TensorType {
+                dtype: DTypeLike::Concrete(DType::Bit),
+                shape: vec![],
+                broadcastable: true,
+            },
+        )
+        .expect("\"x\" is a valid name");
+    types
+        .insert_leaf(
+            "y",
+            TensorType {
+                dtype: DTypeLike::Concrete(DType::Bit),
+                shape: vec![],
+                broadcastable: true,
+            },
+        )
+        .expect("\"y\" is a valid name");
     types
 });
 
@@ -314,7 +318,7 @@ mod tests {
     #[test]
     fn test_call_branch_where_leaf_expected_errors() {
         let mut tree = DataTree::new();
-        tree.insert_leaf(Name::new("x").unwrap(), bit(&[1, 0]));
+        tree.insert_leaf("x", bit(&[1, 0])).unwrap();
         let err = BitwiseNot.call(&tree).unwrap_err();
         assert!(matches!(
             err,
@@ -327,8 +331,8 @@ mod tests {
     #[test]
     fn test_bitwise_and_call_end_to_end() {
         let mut tree = DataTree::new();
-        tree.insert_leaf(Name::new("x").unwrap(), bit(&[1, 0, 1, 1]));
-        tree.insert_leaf(Name::new("y").unwrap(), bit(&[1, 1, 0, 1]));
+        tree.insert_leaf("x", bit(&[1, 0, 1, 1])).unwrap();
+        tree.insert_leaf("y", bit(&[1, 1, 0, 1])).unwrap();
         let result = BitwiseAnd.call(&tree).unwrap();
         let Tensor::Bit(arr) = result.unwrap_leaf() else {
             panic!("expected Bit leaf");

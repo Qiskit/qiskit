@@ -17,24 +17,16 @@ use hashbrown::HashMap;
 use std::borrow::Borrow;
 use thiserror::Error;
 
-/// The name of one child within a branch of a [`DataTree`].
+/// The validated name of one child within a branch of a [`DataTree`].
 ///
-/// A name must be non-empty, contain no `.`, and not consist only of digits.
-///
-/// # Example
-/// ```rust
-/// use qiskit_providers::{InvalidName, Name};
-/// assert_eq!(Name::new("counts")?.as_str(), "counts");
-/// assert!(matches!(Name::new("a.b"), Err(InvalidName::ContainsDot(_))));
-/// assert!(matches!(Name::new("12"), Err(InvalidName::OnlyDigits(_))));
-/// # Ok::<(), InvalidName>(())
-/// ```
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Name(String);
+/// The rule a name satisfies is on [`InvalidName`]. A name taken from an existing tree is
+/// re-inserted with [`DataTree::insert_name`], which skips the check.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct Name(String);
 
 impl Name {
     /// Validate `name` for use as a child's name.
-    pub fn new(name: impl Into<String>) -> Result<Self, InvalidName> {
+    fn new(name: impl Into<String>) -> Result<Self, InvalidName> {
         let name = name.into();
         if name.is_empty() {
             Err(InvalidName::Empty)
@@ -48,19 +40,8 @@ impl Name {
     }
 
     /// The name as a string slice.
-    pub fn as_str(&self) -> &str {
+    fn as_str(&self) -> &str {
         &self.0
-    }
-
-    /// Consume the name, returning it as a string.
-    pub fn into_string(self) -> String {
-        self.0
-    }
-}
-
-impl AsRef<str> for Name {
-    fn as_ref(&self) -> &str {
-        self.as_str()
     }
 }
 
@@ -70,22 +51,10 @@ impl Borrow<str> for Name {
     }
 }
 
-impl TryFrom<&str> for Name {
-    type Error = InvalidName;
-
-    fn try_from(name: &str) -> Result<Self, InvalidName> {
-        Self::new(name)
-    }
-}
-
-impl TryFrom<String> for Name {
-    type Error = InvalidName;
-    fn try_from(name: String) -> Result<Self, InvalidName> {
-        Self::new(name)
-    }
-}
-
-/// Returned when a string cannot be used as a [`Name`].
+/// Returned when a string cannot be used as the name of a child in a [`DataTree`].
+///
+/// A name must be non-empty, contain no `.`, and not consist only of digits. The exclusions are
+/// what make a dotted path unambiguous, as read by [`DataTree::get_by_str_key`].
 #[derive(Debug, Error)]
 pub enum InvalidName {
     #[error("a name cannot be empty")]
@@ -304,18 +273,18 @@ impl<T> DataTree<T> {
     ///
     /// # Example
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name};
-    /// let name = |name: &str| Name::new(name).unwrap();
+    /// use qiskit_providers::{DataTree, InvalidName};
     /// let mut inner_tree = DataTree::with_capacity(5);
-    /// inner_tree.insert_leaf(name("y"), 10);
-    /// inner_tree.insert_leaf(name("z"), 11);
-    /// inner_tree.insert_leaf(name("a"), 12);
-    /// inner_tree.insert_leaf(name("b"), 13);
+    /// inner_tree.insert_leaf("y", 10)?;
+    /// inner_tree.insert_leaf("z", 11)?;
+    /// inner_tree.insert_leaf("a", 12)?;
+    /// inner_tree.insert_leaf("b", 13)?;
     /// inner_tree.push_leaf(15);
     ///
     /// let mut tree = DataTree::new();
-    /// tree.insert_branch(name("x"), inner_tree);
+    /// tree.insert_branch("x", inner_tree)?;
     /// assert_eq!(tree.len(), 1);
+    /// # Ok::<(), InvalidName>(())
     /// ```
     pub fn len(&self) -> usize {
         match self {
@@ -339,14 +308,15 @@ impl<T> DataTree<T> {
     ///
     /// # Example
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name};
+    /// use qiskit_providers::{DataTree, InvalidName};
     /// let mut inner_tree = DataTree::new();
-    /// inner_tree.insert_leaf(Name::new("y").unwrap(), 10);
+    /// inner_tree.insert_leaf("y", 10)?;
     /// let mut tree = DataTree::new();
-    /// tree.insert_branch(Name::new("x").unwrap(), inner_tree);
+    /// tree.insert_branch("x", inner_tree)?;
     /// let result = tree.get_by_str_key("x.y").unwrap().clone().unwrap_leaf();
     /// assert_eq!(result, 10);
     /// assert_eq!(tree.get_by_str_key("0.0"), tree.get_by_str_key("x.y"));
+    /// # Ok::<(), InvalidName>(())
     /// ```
     pub fn get_by_str_key(&self, path: &str) -> Option<&Self> {
         if path.is_empty() {
@@ -404,18 +374,18 @@ impl<T> DataTree<T> {
     ///
     /// # Example
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name};
-    /// let name = |name: &str| Name::new(name).unwrap();
+    /// use qiskit_providers::{DataTree, InvalidName};
     /// let mut inner_tree = DataTree::new();
-    /// inner_tree.insert_leaf(name("y"), 10);
+    /// inner_tree.insert_leaf("y", 10)?;
     /// let mut tree = DataTree::new();
-    /// tree.insert_branch(name("x"), inner_tree);
+    /// tree.insert_branch("x", inner_tree)?;
     /// tree.push_leaf(124);
     /// let result = tree.get(1).unwrap().clone().unwrap_leaf();
     /// assert_eq!(result, 124);
     /// let subtree = tree.get(0).unwrap();
     /// let subtree_result = subtree.get(0).unwrap().clone().unwrap_leaf();
     /// assert_eq!(subtree_result, 10);
+    /// # Ok::<(), InvalidName>(())
     /// ```
     pub fn get(&self, index: usize) -> Option<&DataTree<T>> {
         match self {
@@ -424,21 +394,28 @@ impl<T> DataTree<T> {
         }
     }
 
-    /// Iterate over direct children, yielding `(optional_key, child)` pairs in index order, panic if `self` is a leaf.
+    /// Iterate over direct children, yielding `(optional_name, child)` pairs in index order, panic if `self` is a leaf.
     ///
     /// # Example
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name};
+    /// use qiskit_providers::{DataTree, InvalidName};
     /// let mut tree = DataTree::new();
-    /// tree.push_leaf(10);                            // unnamed
-    /// tree.insert_leaf(Name::new("b").unwrap(), 20); // named
-    /// tree.push_leaf(30);                            // unnamed
+    /// tree.push_leaf(10);            // unnamed
+    /// tree.insert_leaf("b", 20)?;    // named
+    /// tree.push_leaf(30);            // unnamed
     /// let children: Vec<_> = tree.iter_children().collect();
     /// assert_eq!(children[0], (None, &DataTree::Leaf(10)));
-    /// assert_eq!(children[1], (Some(&Name::new("b").unwrap()), &DataTree::Leaf(20)));
+    /// assert_eq!(children[1], (Some("b"), &DataTree::Leaf(20)));
     /// assert_eq!(children[2], (None, &DataTree::Leaf(30)));
+    /// # Ok::<(), InvalidName>(())
     /// ```
-    pub fn iter_children(&self) -> impl Iterator<Item = (Option<&Name>, &DataTree<T>)> + '_ {
+    pub fn iter_children(&self) -> impl Iterator<Item = (Option<&str>, &DataTree<T>)> + '_ {
+        self.iter_named_children()
+            .map(|(name, child)| (name.map(Name::as_str), child))
+    }
+
+    /// Iterate over direct children, yielding each named child's validated name.
+    fn iter_named_children(&self) -> impl Iterator<Item = (Option<&Name>, &DataTree<T>)> + '_ {
         let branch = match self {
             Self::Branch(branch) => branch,
             Self::Leaf(_) => panic!("called iter_children() on a leaf node"),
@@ -454,20 +431,21 @@ impl<T> DataTree<T> {
     /// Insert a new leaf node with an associated name, panic if `self` is a leaf.
     ///
     /// If the name is already in the tree the new value replaces the old one in place, keeping
-    /// its position among the children.
+    /// its position among the children. Returns [`InvalidName`] if `name` cannot be used as a name.
     ///
     /// # Example
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name};
+    /// use qiskit_providers::{DataTree, InvalidName};
     /// let mut tree = DataTree::new();
-    /// tree.insert_leaf(Name::new("y").unwrap(), 10);
-    /// tree.insert_leaf(Name::new("y").unwrap(), 1000);
+    /// tree.insert_leaf("y", 10)?;
+    /// tree.insert_leaf("y", 1000)?;
     /// assert_eq!(tree.len(), 1);
     /// let result = tree.get_by_str_key("y").unwrap().clone().unwrap_leaf();
     /// assert_eq!(result, 1000);
+    /// # Ok::<(), InvalidName>(())
     /// ```
-    pub fn insert_leaf(&mut self, name: Name, value: T) {
-        self.insert_branch(name, Self::Leaf(value));
+    pub fn insert_leaf(&mut self, name: impl Into<String>, value: T) -> Result<(), InvalidName> {
+        self.insert_branch(name, Self::Leaf(value))
     }
 
     /// Add a new leaf to the tree, panic if `self` is a leaf.
@@ -486,30 +464,41 @@ impl<T> DataTree<T> {
 
     /// Add a subtree to the tree with an associated name, panic if `self` is a leaf.
     ///
-    /// If the name is already in the tree the new subtree replaces the old child in place,
-    /// keeping its position among the children.
+    /// If the name is already in the tree the new subtree replaces the old child in place, keeping
+    /// its position among the children. Returns [`InvalidName`] if `name` cannot be used as a name.
     ///
     /// # Example
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name};
+    /// use qiskit_providers::{DataTree, InvalidName};
     /// let mut tree = DataTree::new();
-    /// tree.insert_leaf(Name::new("y").unwrap(), 10);
+    /// tree.insert_leaf("y", 10)?;
     /// let mut subtree = DataTree::with_capacity(2);
     /// subtree.push_leaf(123);
     /// subtree.push_leaf(456);
-    /// tree.insert_branch(Name::new("y").unwrap(), subtree);
+    /// tree.insert_branch("y", subtree)?;
     /// let result = tree.get_by_str_key("y").unwrap();
     /// let leaves: Vec<_> = result.iter_leaves().copied().collect();
     /// assert_eq!(leaves, vec![123, 456]);
+    /// # Ok::<(), InvalidName>(())
     /// ```
-    pub fn insert_branch(&mut self, key: Name, value: DataTree<T>) {
+    pub fn insert_branch(
+        &mut self,
+        name: impl Into<String>,
+        value: DataTree<T>,
+    ) -> Result<(), InvalidName> {
+        self.insert_name(Name::new(name)?, value);
+        Ok(())
+    }
+
+    /// Add a subtree under a name that is already validated, panic if `self` is a leaf.
+    fn insert_name(&mut self, name: Name, value: DataTree<T>) {
         match self {
             Self::Leaf(_) => panic!("Called insert_branch() on a leaf node"),
-            Self::Branch(branch) => match branch.keys.get(key.as_str()) {
+            Self::Branch(branch) => match branch.keys.get(name.as_str()) {
                 Some(&index) => branch.data[index] = value,
                 None => {
                     branch.data.push(value);
-                    branch.keys.insert(key, branch.data.len() - 1);
+                    branch.keys.insert(name, branch.data.len() - 1);
                 }
             },
         }
@@ -570,12 +559,12 @@ impl<T> DataTree<T> {
     /// assert_eq!(tree.get_by_str_key("y.0"), Some(&DataTree::Leaf(20)));
     /// # Ok::<(), InvalidName>(())
     /// ```
-    pub fn mapping<N: TryInto<Name>>(
+    pub fn mapping<N: Into<String>>(
         children: impl IntoIterator<Item = (N, DataTree<T>)>,
-    ) -> Result<Self, N::Error> {
+    ) -> Result<Self, InvalidName> {
         let mut tree = Self::new();
         for (name, child) in children {
-            tree.insert_branch(name.try_into()?, child);
+            tree.insert_branch(name, child)?;
         }
         Ok(tree)
     }
@@ -590,27 +579,27 @@ impl<T> DataTree<T> {
     /// Traversing this tree:
     ///
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name};
-    /// let name = |name: &str| Name::new(name).unwrap();
+    /// use qiskit_providers::{DataTree, InvalidName};
     /// let mut subsubsubtree = DataTree::new();
     /// subsubsubtree.push_leaf(3);
     /// subsubsubtree.push_leaf(4);
     /// let mut subsubtree = DataTree::new();
     /// subsubtree.push_branch(subsubsubtree);
-    /// subsubtree.insert_leaf(name("b"), 5);
+    /// subsubtree.insert_leaf("b", 5)?;
     /// let mut subsubtree_prime = DataTree::new();
     /// subsubtree_prime.push_leaf(7);
     /// let mut subtree = DataTree::new();
-    /// subtree.insert_branch(name("c"), subsubtree);
-    /// subtree.insert_leaf(name("d"), 6);
+    /// subtree.insert_branch("c", subsubtree)?;
+    /// subtree.insert_leaf("d", 6)?;
     /// subtree.push_branch(subsubtree_prime);
     /// let mut tree = DataTree::new();
-    /// tree.insert_leaf(name("a"), 0);
-    /// tree.insert_branch(name("root"), subtree);
-    /// tree.insert_leaf(name("z"), 26);
+    /// tree.insert_leaf("a", 0)?;
+    /// tree.insert_branch("root", subtree)?;
+    /// tree.insert_leaf("z", 26)?;
     /// let leaves: Vec<_> = tree.iter_leaves().copied().collect();
     /// let expected = vec![0, 3, 4, 5, 6, 7, 26];
     /// assert_eq!(leaves, expected);
+    /// # Ok::<(), InvalidName>(())
     /// ```
     pub fn iter_leaves(&self) -> impl Iterator<Item = &T> {
         IterLeaves {
@@ -633,24 +622,23 @@ impl<T> DataTree<T> {
     /// [`PathEntry::Index`].
     ///
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name, PathEntry};
-    /// let name = |name: &str| Name::new(name).unwrap();
+    /// use qiskit_providers::{DataTree, InvalidName, PathEntry};
     /// let mut subsubsubtree = DataTree::new();
     /// subsubsubtree.push_leaf(3);
     /// subsubsubtree.push_leaf(4);
     /// let mut subsubtree = DataTree::new();
     /// subsubtree.push_branch(subsubsubtree);
-    /// subsubtree.insert_leaf(name("b"), 5);
+    /// subsubtree.insert_leaf("b", 5)?;
     /// let mut subsubtree_prime = DataTree::new();
     /// subsubtree_prime.push_leaf(7);
     /// let mut subtree = DataTree::new();
-    /// subtree.insert_branch(name("c"), subsubtree);
-    /// subtree.insert_leaf(name("d"), 6);
+    /// subtree.insert_branch("c", subsubtree)?;
+    /// subtree.insert_leaf("d", 6)?;
     /// subtree.push_branch(subsubtree_prime);
     /// let mut tree = DataTree::new();
-    /// tree.insert_leaf(name("a"), 0);
-    /// tree.insert_branch(name("root"), subtree);
-    /// tree.insert_leaf(name("z"), 26);
+    /// tree.insert_leaf("a", 0)?;
+    /// tree.insert_branch("root", subtree)?;
+    /// tree.insert_leaf("z", 26)?;
     /// let result: Vec<_> = tree.iter_path().map(|(a, b)| (a, *b)).collect();
     /// let expected: Vec<(Vec<PathEntry>, i32)> = vec![
     ///     (vec![PathEntry::Key("a")], 0),
@@ -662,6 +650,7 @@ impl<T> DataTree<T> {
     ///     (vec![PathEntry::Key("z")], 26),
     /// ];
     /// assert_eq!(result, expected);
+    /// # Ok::<(), InvalidName>(())
     /// ```
     pub fn iter_path(&self) -> IterDataTree<'_, T> {
         IterDataTree {
@@ -713,13 +702,13 @@ impl<T> DataTree<T> {
     /// by `f(&leaf)`.
     ///
     /// ```rust
-    /// use qiskit_providers::{DataTree, Name};
-    /// let name = |name: &str| Name::new(name).unwrap();
+    /// use qiskit_providers::{DataTree, InvalidName};
     /// let mut tree = DataTree::new();
-    /// tree.insert_leaf(name("a"), 1);
-    /// tree.insert_leaf(name("b"), 2);
+    /// tree.insert_leaf("a", 1)?;
+    /// tree.insert_leaf("b", 2)?;
     /// let doubled = tree.map_leaves(|v| v * 2);
     /// assert_eq!(doubled.iter_leaves().copied().collect::<Vec<_>>(), vec![2, 4]);
+    /// # Ok::<(), InvalidName>(())
     /// ```
     pub fn map_leaves<U>(&self, mut f: impl FnMut(&T) -> U) -> DataTree<U> {
         fn inner<T, U>(tree: &DataTree<T>, f: &mut impl FnMut(&T) -> U) -> DataTree<U> {
@@ -727,10 +716,10 @@ impl<T> DataTree<T> {
                 DataTree::Leaf(value) => DataTree::new_leaf(f(value)),
                 DataTree::Branch(_) => {
                     let mut result = DataTree::with_capacity(tree.len());
-                    for (key, child) in tree.iter_children() {
+                    for (name, child) in tree.iter_named_children() {
                         let new_child = inner(child, f);
-                        match key {
-                            Some(key) => result.insert_branch(key.clone(), new_child),
+                        match name {
+                            Some(name) => result.insert_name(name.clone(), new_child),
                             None => result.push_child(new_child),
                         }
                     }
@@ -763,10 +752,10 @@ impl<T> DataTree<T> {
                 DataTree::Leaf(_) => Ok(DataTree::new_leaf(iter.next().ok_or(())?)),
                 DataTree::Branch(_) => {
                     let mut result = DataTree::with_capacity(template.len());
-                    for (key, child) in template.iter_children() {
+                    for (name, child) in template.iter_named_children() {
                         let subtree = inner(child, iter)?;
-                        match key {
-                            Some(key) => result.insert_branch(key.clone(), subtree),
+                        match name {
+                            Some(name) => result.insert_name(name.clone(), subtree),
                             None => result.push_child(subtree),
                         }
                     }
@@ -818,9 +807,9 @@ impl<T> DataTree<T> {
                     path: dotted_path(path),
                 }),
                 (DataTree::Branch(_), _) => {
-                    for (i, (key, child_template)) in template.iter_children().enumerate() {
-                        let entry = match key {
-                            Some(k) => PathEntry::Key(k.as_str()),
+                    for (i, (name, child_template)) in template.iter_children().enumerate() {
+                        let entry = match name {
+                            Some(name) => PathEntry::Key(name),
                             None => PathEntry::Index(i),
                         };
                         let data_child = match entry {
@@ -1135,11 +1124,6 @@ fn dotted_path(path: &[PathEntry<'_>]) -> String {
 mod test {
     use super::*;
 
-    /// Make a new name assuming it's a valid string.
-    fn name(name: &str) -> Name {
-        Name::new(name).unwrap()
-    }
-
     #[test]
     fn test_data_leaf() {
         let mut tree = DataTree::new();
@@ -1151,8 +1135,8 @@ mod test {
     #[test]
     fn test_flat_dict() {
         let mut tree = DataTree::with_capacity(3);
-        tree.insert_leaf(name("a"), 1);
-        tree.insert_leaf(name("b"), 2);
+        tree.insert_leaf("a", 1).unwrap();
+        tree.insert_leaf("b", 2).unwrap();
         let result = tree.get_by_str_key("b").unwrap().clone();
         assert_eq!(result.unwrap_leaf(), 2);
         let result = tree.get_by_str_key("a").unwrap().clone();
@@ -1162,10 +1146,10 @@ mod test {
     #[test]
     fn test_nested_dict() {
         let mut inner_tree = DataTree::new();
-        inner_tree.insert_leaf(name("y"), 10);
+        inner_tree.insert_leaf("y", 10).unwrap();
         let mut tree = DataTree::new();
-        tree.insert_branch(name("x"), inner_tree.clone());
-        tree.insert_leaf(name("z"), 100);
+        tree.insert_branch("x", inner_tree.clone()).unwrap();
+        tree.insert_leaf("z", 100).unwrap();
         assert_eq!(None, tree.get_by_str_key("z.y"));
         assert_eq!(Some(&inner_tree), tree.get_by_str_key("x"));
     }
@@ -1173,8 +1157,8 @@ mod test {
     #[test]
     fn test_nested_dict_iter() {
         let mut inner_tree = DataTree::new();
-        inner_tree.insert_leaf(name("y"), 10);
-        inner_tree.insert_leaf(name("yy"), 1);
+        inner_tree.insert_leaf("y", 10).unwrap();
+        inner_tree.insert_leaf("yy", 1).unwrap();
         let mut inner_inner_tree = DataTree::new();
         inner_inner_tree.push_leaf(2);
         inner_inner_tree.push_leaf(3);
@@ -1182,8 +1166,8 @@ mod test {
         inner_inner_tree.push_leaf(5);
         inner_tree.push_branch(inner_inner_tree);
         let mut tree = DataTree::new();
-        tree.insert_branch(name("x"), inner_tree.clone());
-        tree.insert_leaf(name("z"), 100);
+        tree.insert_branch("x", inner_tree.clone()).unwrap();
+        tree.insert_leaf("z", 100).unwrap();
         assert_eq!(
             vec![10, 1, 2, 3, 4, 5, 100],
             tree.iter_leaves().copied().collect::<Vec<_>>()
@@ -1193,8 +1177,8 @@ mod test {
     #[test]
     fn test_nested_dict_iter_path() {
         let mut inner_tree = DataTree::new();
-        inner_tree.insert_leaf(name("y"), 10);
-        inner_tree.insert_leaf(name("yy"), 1);
+        inner_tree.insert_leaf("y", 10).unwrap();
+        inner_tree.insert_leaf("yy", 1).unwrap();
         let mut inner_inner_tree = DataTree::new();
         inner_inner_tree.push_leaf(2);
         inner_inner_tree.push_leaf(3);
@@ -1202,8 +1186,8 @@ mod test {
         inner_inner_tree.push_leaf(5);
         inner_tree.push_branch(inner_inner_tree);
         let mut tree = DataTree::new();
-        tree.insert_branch(name("x"), inner_tree.clone());
-        tree.insert_leaf(name("z"), 100);
+        tree.insert_branch("x", inner_tree.clone()).unwrap();
+        tree.insert_leaf("z", 100).unwrap();
         let expected_paths = vec![
             vec![PathEntry::Key("x"), PathEntry::Key("y")],
             vec![PathEntry::Key("x"), PathEntry::Key("yy")],
@@ -1243,18 +1227,18 @@ mod test {
     #[test]
     fn test_get_by_str() {
         let mut inner_tree = DataTree::new();
-        inner_tree.insert_leaf(name("y"), 10);
-        inner_tree.insert_leaf(name("yy"), 1);
+        inner_tree.insert_leaf("y", 10).unwrap();
+        inner_tree.insert_leaf("yy", 1).unwrap();
         let mut inner_inner_tree = DataTree::new();
         inner_inner_tree.push_leaf(2);
         inner_inner_tree.push_leaf(3);
-        inner_inner_tree.insert_leaf(name("a"), 4);
+        inner_inner_tree.insert_leaf("a", 4).unwrap();
         inner_inner_tree.push_leaf(5);
         let inner_inner_tree_expected = inner_inner_tree.clone();
-        inner_tree.insert_branch(name("yyy"), inner_inner_tree);
+        inner_tree.insert_branch("yyy", inner_inner_tree).unwrap();
         let mut tree = DataTree::new();
-        tree.insert_branch(name("x"), inner_tree.clone());
-        tree.insert_leaf(name("z"), 100);
+        tree.insert_branch("x", inner_tree.clone()).unwrap();
+        tree.insert_leaf("z", 100).unwrap();
         let result = tree.get_by_str_key("x.yyy.a");
         assert_eq!(result, Some(&DataTree::Leaf(4)));
         assert_eq!(tree.get_by_str_key("z"), Some(&DataTree::Leaf(100)));
@@ -1268,17 +1252,17 @@ mod test {
     #[test]
     fn test_get_by_str_no_match() {
         let mut inner_tree = DataTree::new();
-        inner_tree.insert_leaf(name("y"), 10);
-        inner_tree.insert_leaf(name("yy"), 1);
+        inner_tree.insert_leaf("y", 10).unwrap();
+        inner_tree.insert_leaf("yy", 1).unwrap();
         let mut inner_inner_tree = DataTree::new();
         inner_inner_tree.push_leaf(2);
         inner_inner_tree.push_leaf(3);
-        inner_inner_tree.insert_leaf(name("a"), 4);
+        inner_inner_tree.insert_leaf("a", 4).unwrap();
         inner_inner_tree.push_leaf(5);
-        inner_tree.insert_branch(name("yyy"), inner_inner_tree);
+        inner_tree.insert_branch("yyy", inner_inner_tree).unwrap();
         let mut tree = DataTree::new();
-        tree.insert_branch(name("x"), inner_tree.clone());
-        tree.insert_leaf(name("z"), 100);
+        tree.insert_branch("x", inner_tree.clone()).unwrap();
+        tree.insert_leaf("z", 100).unwrap();
         assert_eq!(None, tree.get_by_str_key("a"));
         assert_eq!(None, tree.get_by_str_key("x.yyyy"));
         assert_eq!(None, tree.get_by_str_key("x.yy.a"));
@@ -1289,11 +1273,11 @@ mod test {
     #[test]
     fn test_map_leaves() {
         let mut sub = DataTree::new();
-        sub.insert_leaf(name("a"), 2);
+        sub.insert_leaf("a", 2).unwrap();
         sub.push_leaf(3);
         let mut tree = DataTree::new();
-        tree.insert_branch(name("x"), sub);
-        tree.insert_leaf(name("y"), 5);
+        tree.insert_branch("x", sub).unwrap();
+        tree.insert_leaf("y", 5).unwrap();
 
         let doubled = tree.map_leaves(|v| v * 2);
         assert_eq!(
@@ -1308,22 +1292,22 @@ mod test {
     #[test]
     fn test_into_leaves() {
         let mut sub = DataTree::new();
-        sub.insert_leaf(name("a"), 1);
+        sub.insert_leaf("a", 1).unwrap();
         sub.push_leaf(2);
         let mut tree = DataTree::new();
-        tree.insert_branch(name("x"), sub);
-        tree.insert_leaf(name("y"), 3);
+        tree.insert_branch("x", sub).unwrap();
+        tree.insert_leaf("y", 3).unwrap();
         assert_eq!(tree.into_leaves().collect::<Vec<_>>(), vec![1, 2, 3]);
     }
 
     #[test]
     fn test_unflatten_preserves_named_vs_anonymous() {
         let mut sub = DataTree::new();
-        sub.insert_leaf(name("a"), 0);
+        sub.insert_leaf("a", 0).unwrap();
         sub.push_leaf(0);
         let mut template = DataTree::new();
-        template.insert_branch(name("x"), sub);
-        template.insert_leaf(name("y"), 0);
+        template.insert_branch("x", sub).unwrap();
+        template.insert_leaf("y", 0).unwrap();
 
         let result = template.unflatten(vec![1, 2, 3]).unwrap();
         assert_eq!(result.get_by_str_key("x.a"), Some(&DataTree::Leaf(1)));
@@ -1334,8 +1318,8 @@ mod test {
     #[test]
     fn test_unflatten_arity_mismatch_errors() {
         let mut template = DataTree::new();
-        template.insert_leaf(name("x"), 0);
-        template.insert_leaf(name("y"), 0);
+        template.insert_leaf("x", 0).unwrap();
+        template.insert_leaf("y", 0).unwrap();
         // 2 leaves; passing 1 value
         let err = template.unflatten(vec![42]).unwrap_err();
         assert!(matches!(
@@ -1359,21 +1343,21 @@ mod test {
     #[test]
     fn test_flatten_against_branch_with_keys() {
         let mut template = DataTree::new();
-        template.insert_leaf(name("x"), 0);
-        template.insert_leaf(name("y"), 0);
+        template.insert_leaf("x", 0).unwrap();
+        template.insert_leaf("y", 0).unwrap();
         let mut data = DataTree::new();
-        data.insert_leaf(name("x"), 1);
-        data.insert_leaf(name("y"), 2);
+        data.insert_leaf("x", 1).unwrap();
+        data.insert_leaf("y", 2).unwrap();
         assert_eq!(template.flatten_against(&data).unwrap(), vec![1, 2]);
     }
 
     #[test]
     fn test_flatten_against_missing_key_errors() {
         let mut template = DataTree::new();
-        template.insert_leaf(name("x"), 0);
-        template.insert_leaf(name("y"), 0);
+        template.insert_leaf("x", 0).unwrap();
+        template.insert_leaf("y", 0).unwrap();
         let mut data = DataTree::new();
-        data.insert_leaf(name("x"), 1);
+        data.insert_leaf("x", 1).unwrap();
         let err = template.flatten_against(&data).unwrap_err();
         assert!(matches!(
             err,
@@ -1384,11 +1368,11 @@ mod test {
     #[test]
     fn test_flatten_against_branch_where_leaf_expected_errors() {
         let mut template = DataTree::new();
-        template.insert_leaf(name("x"), 0);
-        template.insert_leaf(name("y"), 0);
+        template.insert_leaf("x", 0).unwrap();
+        template.insert_leaf("y", 0).unwrap();
         let mut data = DataTree::new();
-        data.insert_leaf(name("x"), 1);
-        data.insert_branch(name("y"), DataTree::<i32>::new());
+        data.insert_leaf("x", 1).unwrap();
+        data.insert_branch("y", DataTree::<i32>::new()).unwrap();
         let err = template.flatten_against(&data).unwrap_err();
         assert!(matches!(
             err,
@@ -1399,18 +1383,18 @@ mod test {
     #[test]
     fn test_flatten_against_then_unflatten_roundtrip() {
         let mut sub = DataTree::new();
-        sub.insert_leaf(name("a"), 0);
+        sub.insert_leaf("a", 0).unwrap();
         sub.push_leaf(0);
         let mut template = DataTree::new();
-        template.insert_leaf(name("x"), 0);
-        template.insert_branch(name("y"), sub);
+        template.insert_leaf("x", 0).unwrap();
+        template.insert_branch("y", sub).unwrap();
 
         let mut data_sub = DataTree::new();
-        data_sub.insert_leaf(name("a"), 20);
+        data_sub.insert_leaf("a", 20).unwrap();
         data_sub.push_leaf(30);
         let mut data = DataTree::new();
-        data.insert_leaf(name("x"), 10);
-        data.insert_branch(name("y"), data_sub);
+        data.insert_leaf("x", 10).unwrap();
+        data.insert_branch("y", data_sub).unwrap();
 
         let flat = template.flatten_against(&data).unwrap();
         assert_eq!(flat, vec![10, 20, 30]);
@@ -1427,12 +1411,12 @@ mod test {
         sub.push_leaf(4);
         sub.push_leaf(5);
         let mut inner = DataTree::new();
-        inner.insert_leaf(name("y"), 10);
-        inner.insert_leaf(name("yy"), 1);
+        inner.insert_leaf("y", 10).unwrap();
+        inner.insert_leaf("yy", 1).unwrap();
         inner.push_branch(sub);
         let mut tree = DataTree::new();
-        tree.insert_branch(name("x"), inner);
-        tree.insert_leaf(name("z"), 100);
+        tree.insert_branch("x", inner).unwrap();
+        tree.insert_leaf("z", 100).unwrap();
         tree
     }
 
@@ -1464,39 +1448,52 @@ mod test {
     fn test_branch_mixes_named_and_unnamed_children() {
         let mut tree = DataTree::new();
         tree.push_leaf(1);
-        tree.insert_leaf(name("b"), 2);
+        tree.insert_leaf("b", 2).unwrap();
         tree.push_leaf(3);
         let names: Vec<_> = tree.iter_children().map(|(key, _)| key).collect();
-        assert_eq!(names, [None, Some(&name("b")), None]);
+        assert_eq!(names, [None, Some("b"), None]);
     }
 
     #[test]
     fn test_insert_replaces_a_named_child_in_place() {
         let mut tree = DataTree::new();
-        tree.insert_leaf(name("a"), 1);
+        tree.insert_leaf("a", 1).unwrap();
         tree.push_leaf(2);
-        tree.insert_leaf(name("a"), 3);
+        tree.insert_leaf("a", 3).unwrap();
         // The replaced child is not left behind as an unnamed sibling.
         assert_eq!(tree.len(), 2);
         let children: Vec<_> = tree.iter_children().collect();
         assert_eq!(
             children,
-            [
-                (Some(&name("a")), &DataTree::Leaf(3)),
-                (None, &DataTree::Leaf(2))
-            ]
+            [(Some("a"), &DataTree::Leaf(3)), (None, &DataTree::Leaf(2))]
         );
     }
 
     #[test]
     fn test_insert_branch_replaces_a_named_child_in_place() {
         let mut tree = DataTree::new();
-        tree.insert_leaf(name("a"), 1);
-        tree.insert_leaf(name("b"), 2);
-        tree.insert_branch(name("a"), DataTree::sequence([DataTree::Leaf(3)]));
+        tree.insert_leaf("a", 1).unwrap();
+        tree.insert_leaf("b", 2).unwrap();
+        tree.insert_branch("a", DataTree::sequence([DataTree::Leaf(3)]))
+            .unwrap();
         assert_eq!(tree.len(), 2);
         assert_eq!(tree.get_by_str_key("a.0"), Some(&DataTree::Leaf(3)));
         assert_eq!(tree.get_by_str_key("b"), Some(&DataTree::Leaf(2)));
+    }
+
+    #[test]
+    fn test_insert_rejects_an_invalid_name() {
+        let mut tree = DataTree::new();
+        assert!(matches!(
+            tree.insert_leaf("a.b", 1),
+            Err(InvalidName::ContainsDot(name)) if name == "a.b"
+        ));
+        assert!(matches!(
+            tree.insert_branch("0", DataTree::Leaf(1)),
+            Err(InvalidName::OnlyDigits(name)) if name == "0"
+        ));
+        // A rejected name leaves the tree alone.
+        assert!(tree.is_empty());
     }
 
     #[test]

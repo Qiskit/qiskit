@@ -14,5 +14,5 @@ pub mod data_tree;
 pub mod ops;
 pub mod tensor;
 
-pub use data_tree::{ArityMismatch, DataTree, InvalidName, Name, PathEntry, TreeMatchError};
+pub use data_tree::{ArityMismatch, DataTree, InvalidName, PathEntry, TreeMatchError};
 pub use ops::{CallError, CallInputError, MissingCallError, ProgramOp, ProgramOpExt, Store};
