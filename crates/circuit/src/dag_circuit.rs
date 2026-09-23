@@ -4698,8 +4698,7 @@ impl PyDAGCircuit {
     ///
     /// See also:
     ///     :meth:`has_var` checks whether a variable is present.
-    #[pyo3(name = "get_var")]
-    fn py_get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+    pub fn get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(var) = self.inner.vars_stretches.get_var(name) {
             var.clone().into_py_any(py)
         } else {
@@ -4728,8 +4727,7 @@ impl PyDAGCircuit {
     ///
     /// See also:
     ///     :meth:`has_stretch` checks whether a stretch is present.
-    #[pyo3(name = "get_stretch")]
-    fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+    pub fn get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
         if let Some(stretch) = self.inner.vars_stretches.get_stretch(name) {
             stretch.clone().into_py_any(py)
         } else {
