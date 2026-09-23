@@ -264,12 +264,12 @@ mod tests {
     #[test]
     fn test_add_wrong_arity_errors() {
         let err = Add.call_flat(&[Tensor::from([1.0_f64])]).unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
             MathOpError::Input(CallInputError::WrongArity {
                 expected: 2,
                 actual: 1,
             })
-        );
+        ));
     }
 }

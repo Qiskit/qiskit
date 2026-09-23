@@ -829,13 +829,13 @@ mod tests {
         let err = Mean::new(0)
             .call_flat(&[Tensor::from([1.0_f64]), Tensor::from([2.0_f64])])
             .unwrap_err();
-        assert_eq!(
+        assert!(matches!(
             err,
             MathOpError::Input(CallInputError::WrongArity {
                 expected: 1,
                 actual: 2,
             })
-        );
+        ));
     }
 
     #[test]
@@ -854,20 +854,20 @@ mod tests {
     fn test_mean_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
         let err = Mean::new(1).call_flat(&[x]).unwrap_err();
-        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
+        assert!(matches!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 }));
     }
 
     #[test]
     fn test_variance_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
         let err = Variance::new(1, 0.0).call_flat(&[x]).unwrap_err();
-        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
+        assert!(matches!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 }));
     }
 
     #[test]
     fn test_std_axis_out_of_bounds_errors() {
         let x = Tensor::from([1.0_f64, 2.0, 3.0]);
         let err = Std::new(1, 0.0).call_flat(&[x]).unwrap_err();
-        assert_eq!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 });
+        assert!(matches!(err, MathOpError::InvalidAxis { axis: 1, ndim: 1 }));
     }
 }
