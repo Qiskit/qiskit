@@ -225,6 +225,15 @@ pub struct CircuitData {
     global_phase: Param,
 }
 
+#[cfg(feature = "passmanager")]
+mod passmanager {
+    use super::CircuitData;
+    use qiskit_passmanager::{IR, static_dyn_typed};
+
+    static_dyn_typed!(CircuitData);
+    impl IR for CircuitData {}
+}
+
 /// A container for :class:`.QuantumCircuit` instruction listings that stores
 /// :class:`.CircuitInstruction` instances in a packed form by interning
 /// their :attr:`~.CircuitInstruction.qubits` and
