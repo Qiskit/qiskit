@@ -6,5 +6,5 @@ features_transpiler:
     more optimized circuits at the expense of increased runtime.
   - |
     Included the :class:`.PauliEvolutionSynthesisMcts` plugin to the default 
-    synthesis plugin for :class:`.PauliEvolutionGate`. The plugin is selected
+    synthesis plugin for :class:`.PauliEvolutionGate`. The plugin may optionally be selected
     when ``optimization_level >= 2`` and the target has all-to-all connectivity.

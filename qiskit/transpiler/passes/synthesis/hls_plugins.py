@@ -2161,8 +2161,10 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     This plugin runs other implemented synthesis plugins, forwarding all options to
-    the selected plugins. The choice of which synthesis plugins to run is manually
-    determined based on experiments.
+    the selected plugins. The choice of which synthesis plugins to run is heuristic.
+    The current implementation generally runs :class:`PauliEvolutionSynthesisBasic`,
+    but might run :class:`PauliEvolutionSynthesisMcts` to minimize the CX count
+    if suitable. This selection is subject to change and should not be relied upon.
 
     For greater control, specify :class:`~.HLSConfig` with the relevant synthesis plugins
     directly.
