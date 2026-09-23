@@ -1037,7 +1037,7 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
         },
         Param::Float(f) => *f,
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
-        Param::Int(val) => *val as f64,
+        Param::Int(u) => *u as f64, // Lossy conversion,
     }
 }
 

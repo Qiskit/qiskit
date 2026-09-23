@@ -39,17 +39,19 @@ class TestCircuit(QiskitTestCase):
 
         # Test each delay
         for idx, c_idx in enumerate([0, 2, 4]):
-            view = capi.QkCircuitInstruction.from_buffer(bytearray(48))
+            view = capi.QkCircuitInstruction()
             capi.qk_circuit_get_instruction(c_circ, c_idx, ctypes.byref(view))
 
             # Compare the element's kind using its integer value.
             param_kind = capi.qk_param_kind(view.params[0])
-            self.assertEqual(capi.qk_param_kind(view.params[0]), expected_param_types[idx])
+            self.assertEqual(param_kind, expected_param_types[idx])
 
             # Check if the integer case happens and load the integer within a pointer.
             if param_kind == capi.QkParamKind.Int.value.value:
                 val = ctypes.c_int64(0)
-                capi.qk_param_as_int(view.params[0], ctypes.byref(val))
+                result = capi.qk_param_as_int(view.params[0], ctypes.byref(val))
+                self.assertTrue(result, "Getting an integer param as an int failed.")
+                
 
                 self.assertEqual(val.value, param_result_types[idx])
 
