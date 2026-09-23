@@ -90,8 +90,8 @@ jobs:
         id: output
         run: |
           set -eo pipefail
-          # Awk: `-F.` and `-vOFS=.` set the input and output field seperators. `$NF` is the last
-          # field, so this increments the last number in a `[0-9]+(\.[0-9]+)*` version number.
+          # Awk: `-F.` and `-vOFS=.` set the input and output field separators, respectively. `$NF`
+          # is the last field. This increments the last segment of a `[0-9]+(\.[0-9]+)*` version.
           PYTHON_NEXT=$(echo "$PYTHON_NEW" | awk -F. -vOFS=. '{$NF += 1 ; print}')
           echo "requires-python=>=$PYTHON_OLD,<$PYTHON_NEXT" >> $GITHUB_OUTPUT
         env:
