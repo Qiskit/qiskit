@@ -2499,7 +2499,7 @@ impl TryFrom<DelayUnit> for CDelayUnit {
             DelayUnit::NS => CDelayUnit::NS,
             DelayUnit::PS => CDelayUnit::PS,
             DelayUnit::DT => CDelayUnit::DT,
-            _ => return Err(value),
+            DelayUnit::EXPR => return Err(value),
         };
         Ok(ret)
     }
@@ -2620,7 +2620,7 @@ unsafe fn qk_circuit_delay_inner(
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param index The instruction index to get the instruction details of.
 ///
-/// @return The duraion unit of the delay.
+/// @return The duration unit of the delay.
 ///
 /// # Example
 /// ```c
