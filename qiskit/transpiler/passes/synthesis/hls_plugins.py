@@ -2189,7 +2189,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
         if (
             (options.get("optimization_level", 2) >= 2)
             and options.get("preserve_order", True)
-            and (not high_level_object.contains_projectors())
+            and (not high_level_object._contains_projectors())
             and ((coupling_map is None) or _is_coupling_map_all_to_all(coupling_map))
         ):
             synth_mcts = PauliEvolutionSynthesisMcts().run(
