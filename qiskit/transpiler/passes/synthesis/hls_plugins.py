@@ -2187,9 +2187,8 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
         # connectivity, and for Pauli evolution gates without projector terms.
         if (
             (options.get("optimization_level", 2) >= 2)
-            and not high_level_object.contains_projectors()
-            and (coupling_map is None)
-            or _is_coupling_map_all_to_all(coupling_map)
+            and (not high_level_object.contains_projectors())
+            and ((coupling_map is None) or _is_coupling_map_all_to_all(coupling_map))
         ):
             synth_mcts = PauliEvolutionSynthesisMcts().run(
                 high_level_object, coupling_map, target, qubits, **options
