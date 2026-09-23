@@ -2184,9 +2184,11 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
         )
 
         # Currently we only run the MCTS method for higher optimization levels, for all-to-all
-        # connectivity, and for Pauli evolution gates without projector terms.
+        # connectivity, for Pauli evolution gates without projector terms, and with
+        # preserve_order=True.
         if (
             (options.get("optimization_level", 2) >= 2)
+            and options.get("preserve_order", True)
             and (not high_level_object.contains_projectors())
             and ((coupling_map is None) or _is_coupling_map_all_to_all(coupling_map))
         ):
