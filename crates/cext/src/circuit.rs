@@ -2632,7 +2632,10 @@ unsafe fn qk_circuit_delay_inner(
 /// will result in undefined behavior.
 ///
 /// @param circuit A pointer to the circuit to add the delay to.
-/// @param index The instruction index to get the instruction details of.
+/// @param index The instruction index to get the delay details of.
+///     If the index is not within the circuit range it can lead to
+///     undefined behavior. Please use ``qk_circuit_num_instructions``
+///     to check the circuit's current length.
 ///
 /// @return The duration unit of the delay.
 ///
@@ -2646,6 +2649,8 @@ unsafe fn qk_circuit_delay_inner(
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// 
+/// Undefined behavior may also happen if ``index`` is not within the circuit's range.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_delay_unit(
     circuit: *const CircuitData,
