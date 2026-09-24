@@ -2625,6 +2625,12 @@ unsafe fn qk_circuit_delay_inner(
 /// @ingroup QkCircuit
 /// Retrieves the duration unit of a delay instruction.
 ///
+/// Users should make sure that the instruction being accessed here
+/// is a delay instruction by using ``qk_circuit_instruction_kind``.
+///
+/// Attempting to extract the duration unit of any other instruction
+/// will result in undefined behavior.
+///
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param index The instruction index to get the instruction details of.
 ///
