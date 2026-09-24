@@ -24,8 +24,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
-    #[error("hermitian operates on 0 qubits")]
-    HermitianEmpty,
     #[error("time is python object")]
     TimePython,
     #[error("time is int")]
@@ -52,11 +50,7 @@ impl PauliEvolution {
     /// Returns an error if `time` is [`Param::Int`], `time` is [`Param::Obj`], or `hermitian` has
     /// 0 qubits.
     pub fn new(hermitian: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
-        // TODO: Should we check whether
-
-        if hermitian.num_qubits() == 0 {
-            Err(PauliEvolutionError::HermitianEmpty)
-        } else if matches!(time, Param::Obj(_)) {
+        if matches!(time, Param::Obj(_)) {
             Err(PauliEvolutionError::TimePython)
         } else if matches!(time, Param::Int(_)) {
             Err(PauliEvolutionError::TimeInt)
@@ -207,13 +201,6 @@ mod tests {
     use qiskit_quantum_info::sparse_observable::BitTerm;
 
     use super::*;
-
-    #[test]
-    fn test_hermitian_empty() {
-        let obs = SparseObservable::new(0, vec![], vec![], vec![], vec![0]).expect("is coherent");
-        let res = PauliEvolution::new(obs, Param::Float(3.0));
-        assert!(matches!(res, Err(PauliEvolutionError::HermitianEmpty)))
-    }
 
     #[test]
     fn test_inverse_float() {
