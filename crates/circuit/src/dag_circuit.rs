@@ -4691,6 +4691,21 @@ impl PyDAGCircuit {
         }
     }
 
+    /// Retrieve a variable by name, or None if it is not present in the DAG.
+    ///
+    /// Args:
+    ///     name (str): the variable name.
+    ///
+    /// See also:
+    ///     :meth:`has_var` checks whether a variable is present.
+    pub fn get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(var) = self.inner.vars_stretches.get_var(name) {
+            var.clone().into_py_any(py)
+        } else {
+            Ok(py.None())
+        }
+    }
+
     /// Is this stretch in the DAG?
     ///
     /// Args:
@@ -4702,6 +4717,21 @@ impl PyDAGCircuit {
         } else {
             let stretch = stretch.extract::<expr::Stretch>()?;
             Ok(self.inner.vars_stretches.stretches().contains(&stretch))
+        }
+    }
+
+    /// Retrieve a stretch by name, or None if it is not present in the DAG.
+    ///
+    /// Args:
+    ///     name (str): the stretch name.
+    ///
+    /// See also:
+    ///     :meth:`has_stretch` checks whether a stretch is present.
+    pub fn get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(stretch) = self.inner.vars_stretches.get_stretch(name) {
+            stretch.clone().into_py_any(py)
+        } else {
+            Ok(py.None())
         }
     }
 
