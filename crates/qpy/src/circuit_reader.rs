@@ -381,19 +381,18 @@ pub fn unpack_instruction(
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
         InstructionType::Store => unpack_store(instruction, qpy_data)?,
-        InstructionType::Custom => {
-            QpyCaller::Python.attach("Python custom instruction unpacking", |py| {
-                unpack_custom_instruction(
-                    py,
-                    instruction,
-                    label.as_deref(),
-                    qpy_data,
-                    custom_instructions,
-                )
-            })?
-        }
-        InstructionType::Python => QpyCaller::Python
-            .attach("Python instruction unpacking", |py| {
+        InstructionType::Custom => qpy_data.caller.attach("Custom instructions", |py| {
+            unpack_custom_instruction(
+                py,
+                instruction,
+                label.as_deref(),
+                qpy_data,
+                custom_instructions,
+            )
+        })?,
+        InstructionType::Python => qpy_data
+            .caller
+            .attach("Python defined instructions", |py| {
                 unpack_py_instruction(py, instruction, label.as_deref(), qpy_data)
             })?,
     };
@@ -562,7 +561,7 @@ fn unpack_pauli_product_rotation(
         qpy_data,
         ValueEndian::LittleForV17AndBelow,
     )?;
-    let angle = generic_value_to_param(&angle_value)?;
+    let angle = generic_value_to_param(&angle_value, qpy_data)?;
     let rotation = PauliProductRotation { z, x, angle };
     let pbc = Box::new(PauliBased::PauliProductRotation(rotation));
     let op = PackedOperation::from_pauli_based(pbc);
@@ -1447,12 +1446,15 @@ pub(crate) fn unpack_circuit(
             .annotation_handler
             .load_deserializers(annotation_deserializers_data)?;
     }
-    let global_phase = generic_value_to_param(&load_value(
-        packed_circuit.header.global_phase_type,
-        &packed_circuit.header.global_phase_data,
-        &mut qpy_data,
-        ValueEndian::Big,
-    )?)?;
+    let global_phase = generic_value_to_param(
+        &load_value(
+            packed_circuit.header.global_phase_type,
+            &packed_circuit.header.global_phase_data,
+            &mut qpy_data,
+            ValueEndian::Big,
+        )?,
+        &qpy_data,
+    )?;
     qpy_data.circuit_data.set_global_phase_param(global_phase)?;
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;

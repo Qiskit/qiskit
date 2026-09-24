@@ -34,6 +34,7 @@ use crate::value::{
     ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
     serialize_with_args,
 };
+use crate::{QPY_READ_MIN_VERSION, QPY_WRITE_MIN_VERSION};
 
 use std::io::{Cursor, Seek, Write};
 
@@ -86,8 +87,7 @@ const fn parse_version() -> (u8, u8, u8) {
 }
 
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
-const QPY_READ_MIN_VERSION: u8 = 13;
-const QPY_WRITE_MIN_VERSION: u8 = 17;
+const QPY_VERSION: u8 = 18;
 
 /// Serializes native circuits into a complete binary QPY payload.
 /// # Arguments
@@ -130,7 +130,6 @@ pub fn dump_qpy<W: Write>(
         )));
     }
     let serialized_circuits: Vec<Bytes> = circuits
-        .iter_mut()
         .zip(extra_data)
         .map(|(circuit, extra)| {
             serialize_with_args::<QPYCircuit, (u8,)>(
@@ -277,6 +276,32 @@ pub fn read_raw_circuits(
     Ok(circuits)
 }
 
+/// Serialize native circuits using empty metadata and no transpiler layout.
+///
+/// This is a non-Python convenience interface used by the C API.
+pub fn native_dump_qpy(
+    circuits: &[&CircuitData],
+    qpy_version: Option<u8>,
+) -> Result<Vec<u8>, QpyError> {
+    let extra_data = (0..circuits.len())
+        .map(|_| ExtraCircuitData {
+            name: None,
+            // The default Python QPY metadata codec is JSON, so an empty mapping must still be
+            // represented by valid JSON for files produced through non-Python interfaces.
+            metadata: Bytes::from("{}"),
+            layout: Bytes::new(),
+        })
+        .collect();
+    dump_qpy(
+        circuits.iter().copied(),
+        extra_data,
+        qpy_version.unwrap_or(QPY_VERSION),
+        None,
+        Some(QpyCaller::Native),
+    )
+    .map(|bytes| bytes.0)
+}
+
 /// Deserializes native circuits from a complete QPY payload.
 ///
 /// # Arguments
@@ -410,22 +435,29 @@ pub fn py_load_qpy(
     load_qpy(&data, Some(annotation_handler), Some(QpyCaller::Python))?
         .into_iter()
         .map(|loaded| {
-            QpyCaller::Python.attach("Python circuit construction", |py| {
-                py_circuit_data_to_quantum_circuit(
-                    py,
-                    loaded.circuit_data,
-                    &loaded.packed_circuit,
-                    metadata_deserializer.as_ref().map(Bound::as_ref),
-                )
-            })
+            py_circuit_data_to_quantum_circuit(
+                py,
+                loaded.circuit_data,
+                &loaded.packed_circuit,
+                metadata_deserializer.as_ref().map(Bound::as_ref),
+            )
         })
         .collect()
+}
+
+/// Deserialize native circuits from a complete QPY payload.
+pub fn native_load_qpy(data: &[u8]) -> Result<Vec<CircuitData>, QpyError> {
+    load_qpy(&Bytes::from(data), None, Some(QpyCaller::Native)).map(|loaded| {
+        loaded
+            .into_iter()
+            .map(|loaded| loaded.circuit_data)
+            .collect()
+    })
 }
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-
     use super::*;
     use qiskit_circuit::Qubit;
     use qiskit_circuit::operations::{DelayUnit, OperationRef, Param, StandardInstruction};
@@ -469,7 +501,7 @@ mod tests {
 
         // Round trip through the native QPY dump/load entry points.
         let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
-        let payload = dump_qpy(vec![circuit], vec![extra], version, None, None).unwrap();
+        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
         let loaded = load_qpy(&payload, None, None).unwrap();
 
         // Exactly one circuit, with exactly one instruction.
