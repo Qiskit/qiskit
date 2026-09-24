@@ -13,6 +13,7 @@
  * @defgroup QkObs QkObs
  * @defgroup QkObsTerm QkObsTerm
  * @defgroup QkParam QkParam
+ * @defgroup QkQpy QkQpy
  * @defgroup QkQuantumRegister QkQuantumRegister
  * @defgroup QkSabreLayoutOptions QkSabreLayoutOptions
  * @defgroup QkTarget QkTarget
