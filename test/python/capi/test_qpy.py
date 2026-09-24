@@ -276,3 +276,51 @@ class TestQpyCAPI(QiskitTestCase):
             capi.qk_circuit_to_python_full(capi.qk_circuit_copy(output.data[0])), circuit
         )
         capi.qk_qpy_loaded_circuits_clear(output)
+
+    def test_dt_delay(self):
+        circuit = QuantumCircuit(1)
+        circuit.delay(5, 0, "dt")
+        circuit_ptrs = (ctypes.POINTER(capi.QkCircuit) * 1)(
+            capi.qk_circuit_borrow_from_python(circuit._data)
+        )
+        buffer = ctypes.POINTER(ctypes.c_uint8)()
+        size = ctypes.c_size_t()
+        error = ctypes.POINTER(ctypes.c_char)()
+
+        # should fail due to unsupported version
+        result = capi.qk_qpy_dump_buffer(
+            circuit_ptrs,
+            len(circuit_ptrs),
+            ctypes.byref(buffer),
+            ctypes.byref(size),
+            ctypes.byref(error),
+        )
+        self.assertEqual(result, capi.QkExitCode.Success.value.value)
+        buffer_array = ctypes.cast(buffer, ctypes.POINTER(ctypes.c_uint8 * size.value))
+        data = bytes(buffer_array.contents)
+        length = len(data)
+        array_type = ctypes.c_ubyte * length
+        array_data = array_type.from_buffer(bytearray(data))
+        with io.BytesIO(data) as qpy_buf:
+            loaded = qpy.load(qpy_buf)
+
+        self.assertEqual(loaded, [circuit])
+        output = capi.QkQpyLoadedCircuits(None, 0)
+        result = capi.qk_qpy_load_buffer(
+            ctypes.byref(output), ctypes.POINTER(ctypes.c_ubyte)(array_data), length, error
+        )
+        self.assertEqual(result, capi.QkExitCode.Success.value.value)
+        self.assertEqual(output.len, 1)
+        self.assertEqual(
+            capi.qk_circuit_to_python_full(capi.qk_circuit_copy(output.data[0])), circuit
+        )
+        capi.qk_qpy_free_buffer(buffer, size)
+        instruction = capi.QkCircuitInstruction()
+        capi.qk_circuit_get_instruction(output.data[0], 0, ctypes.byref(instruction))
+        self.assertEqual(
+            capi.QkParamKind.Int.value.value, capi.qk_param_kind(instruction.params[0])
+        )
+        param_val = ctypes.c_int64()
+        self.assertTrue(capi.qk_param_as_int(instruction.params[0], ctypes.byref(param_val)))
+        self.assertEqual(param_val.value, 5)
+        capi.qk_qpy_loaded_circuits_clear(output)
