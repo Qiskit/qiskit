@@ -12,22 +12,23 @@
 
 use std::{error, sync::Arc};
 
+use nalgebra::DMatrix;
 use ndarray::Array2;
 use num_complex::Complex64;
 use qiskit_circuit::{
     operations::{CustomOperation, Operation, Param},
     packed_instruction::PackedOperation,
 };
-use qiskit_quantum_info::sparse_observable::{BitTerm, MatrixError, SparseObservable};
+use qiskit_quantum_info::sparse_observable::{MatrixError, SparseObservable};
 use smallvec::SmallVec;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
-    #[error("time is python object")]
-    TimePython,
-    #[error("time is int")]
-    TimeInt,
+    #[error("time not float value or expression")]
+    TimeNotFloat,
+    #[error("time not evaluated")]
+    TimeNotEvaluated,
     #[error("matrix error")]
     Matrix(#[from] MatrixError),
 }
@@ -47,18 +48,15 @@ impl PauliEvolution {
     ///
     /// # Errors
     ///
-    /// Returns an error if `time` is [`Param::Int`], `time` is [`Param::Obj`], or `hermitian` has
-    /// 0 qubits.
+    /// Returns an error if `time` isn't a float value or expression.
     pub fn new(hermitian: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
-        if matches!(time, Param::Obj(_)) {
-            Err(PauliEvolutionError::TimePython)
-        } else if matches!(time, Param::Int(_)) {
-            Err(PauliEvolutionError::TimeInt)
-        } else {
+        if matches!(time, Param::Float(_) | Param::ParameterExpression(_)) {
             Ok(Self {
                 hermitian,
                 time: ComparableParam(time),
             })
+        } else {
+            Err(PauliEvolutionError::TimeNotFloat)
         }
     }
 
@@ -70,6 +68,28 @@ impl PauliEvolution {
     /// Returns a reference to the `time` parameter.
     pub fn time(&self) -> &Param {
         &self.time.0
+    }
+
+    /// Expand the gate into its dense matrix form.
+    ///
+    /// See [`SparseObservable::to_matrix`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `time` isn't evaluated or the `hermitian` operator
+    /// can't be expanded into its dense matrix form.
+    pub fn to_matrix(&self) -> Result<Array2<Complex64>, PauliEvolutionError> {
+        if let Param::Float(time) = self.time() {
+            let matrix = self
+                .hermitian()
+                .to_matrix()
+                .map_err(PauliEvolutionError::from)?;
+
+            let matrix = evolve_matrix(&matrix, *time);
+            Ok(matrix)
+        } else {
+            Err(PauliEvolutionError::TimeNotEvaluated)
+        }
     }
 
     /// Decomposes `PauliEvolution` into its raw components.
@@ -129,12 +149,8 @@ impl CustomOperation for PauliEvolution {
         &self,
         _params: &[Param],
     ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
-        if let Param::Float(time) = self.time() {
-            let matrix = evolve_matrix(self.hermitian(), *time)?;
-            Ok(Some(matrix))
-        } else {
-            Ok(None)
-        }
+        let matrix = self.to_matrix().map(Some)?;
+        Ok(matrix)
     }
 }
 
@@ -160,37 +176,26 @@ impl PartialEq for ComparableParam {
     }
 }
 
-fn evolve_matrix(
-    hermitian: &SparseObservable,
-    time: f64,
-) -> Result<Array2<Complex64>, PauliEvolutionError> {
-    let evolve_matrix = |matrix| {
-        if is_pauli(hermitian) {
-            evolve_matrix_pauli(matrix, time)
-        } else {
-            evolve_matrix_pade(matrix, time)
-        }
-    };
+fn evolve_matrix(matrix: &Array2<Complex64>, time: f64) -> Array2<Complex64> {
+    debug_assert_eq!(matrix.nrows(), matrix.ncols());
 
-    hermitian
-        .to_matrix()
-        .map(evolve_matrix)
-        .map_err(PauliEvolutionError::from)
-}
+    let dim = matrix.nrows();
+    let matrix = DMatrix::from_row_iterator(dim, dim, matrix.iter().copied());
 
-fn is_pauli(hermitian: &SparseObservable) -> bool {
-    hermitian
-        .bit_terms()
-        .iter()
-        .all(|bit_term| matches!(bit_term, BitTerm::X | BitTerm::Y | BitTerm::Z))
-}
+    let solver = matrix.symmetric_eigen();
+    let eigenvectors = solver.eigenvectors;
+    let eigenvalues = solver.eigenvalues;
 
-fn evolve_matrix_pauli(matrix: Array2<Complex64>, time: f64) -> Array2<Complex64> {
-    todo!()
-}
+    let mut diagonal = DMatrix::zeros(dim, dim);
+    for i in 0..dim {
+        let phase = -time * eigenvalues[i];
+        diagonal[(i, i)] = Complex64::new(phase.cos(), phase.sin());
+    }
 
-fn evolve_matrix_pade(matrix: Array2<Complex64>, time: f64) -> Array2<Complex64> {
-    todo!()
+    let adjoint = eigenvectors.adjoint();
+    let evolved = eigenvectors * diagonal * adjoint;
+
+    Array2::from_shape_fn((dim, dim), |(i, j)| evolved[(j, i)])
 }
 
 #[cfg(test)]
@@ -235,6 +240,11 @@ mod tests {
         let exp = ParameterExpression::from_f64(-3.0);
         let res: &PauliEvolution = custom.downcast_ref().unwrap();
         assert!(matches!(res.time(), Param::ParameterExpression(expr) if expr.as_ref() == &exp));
+    }
+
+    #[test]
+    fn test_to_matrix() {
+        todo!()
     }
 
     fn create_observable() -> SparseObservable {
