@@ -36,10 +36,8 @@ pub type BasisTransformOut = (SmallVec<[Param; 3]>, DAGCircuit);
 pub(super) fn compose_transforms<'a>(
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
     source_basis: &'a IndexSet<GateIdentifier>,
-    source_dag: &'a DAGCircuit,
+    gate_param_counts: &'a IndexMap<GateIdentifier, usize>,
 ) -> Result<IndexMap<GateIdentifier, BasisTransformOut>, BasisTranslatorError> {
-    let mut gate_param_counts: IndexMap<GateIdentifier, usize> = IndexMap::default();
-    get_gates_num_params(source_dag, &mut gate_param_counts);
     let mut mapped_instructions: IndexMap<GateIdentifier, BasisTransformOut> = IndexMap::default();
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
@@ -142,7 +140,10 @@ pub(super) fn compose_transforms<'a>(
 ///
 /// Gets the identifier of a gate instance (name, number of qubits) mapped to the
 /// number of parameters it contains currently.
-fn get_gates_num_params(dag: &DAGCircuit, example_gates: &mut IndexMap<GateIdentifier, usize>) {
+pub(super) fn get_gates_num_params(
+    dag: &DAGCircuit,
+    example_gates: &mut IndexMap<GateIdentifier, usize>,
+) {
     for (_, inst) in dag.op_nodes(true) {
         if let Some(control_flow) = dag.try_view_control_flow(inst) {
             example_gates.insert(
