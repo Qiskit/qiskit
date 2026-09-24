@@ -471,7 +471,7 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
     return (np.cos(angle), 2**num_qubits)
 
 
-def _contains_projectors(gate: PauliEvolutionGate):
+def _contains_projectors(gate: PauliEvolutionGate) -> bool:
     """Return whether gate contains any projector terms."""
     if isinstance(gate.operator, SparseObservable):
         return gate.operator.contains_projectors()

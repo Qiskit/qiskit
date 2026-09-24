@@ -2137,7 +2137,7 @@ class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
         )
 
 
-def _cx_size_for_pauli_evo(circuit: QuantumCircuit):
+def _cx_size_for_pauli_evo(circuit: QuantumCircuit) -> int:
     """
     Estimate the number of CX-gates in a circuit produced by one of the PauliEvolutionGate
     synthesis algorithms (``basic``, ``rustiq`` or ``mcts``).
