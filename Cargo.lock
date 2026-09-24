@@ -2417,6 +2417,7 @@ dependencies = [
 name = "qiskit-circuit-library"
 version = "2.6.0-dev"
 dependencies = [
+ "approx",
  "hashbrown 0.15.5",
  "itertools 0.15.0",
  "nalgebra 0.35.0",

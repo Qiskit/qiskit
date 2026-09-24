@@ -70,7 +70,7 @@ impl PauliEvolution {
         &self.time.0
     }
 
-    /// Expand the gate into its dense matrix form.
+    /// Expands `PauliEvolution` into its approximate dense matrix form.
     ///
     /// See [`SparseObservable::to_matrix`].
     ///
@@ -92,7 +92,7 @@ impl PauliEvolution {
         }
     }
 
-    /// Decomposes `PauliEvolution` into its raw components.
+    /// Decomposes `PauliEvolution` into its owned components.
     pub fn into_parts(self) -> PauliEvolutionParts {
         PauliEvolutionParts {
             hermitian: self.hermitian,
@@ -195,11 +195,14 @@ fn evolve_matrix(matrix: &Array2<Complex64>, time: f64) -> Array2<Complex64> {
     let adjoint = eigenvectors.adjoint();
     let evolved = eigenvectors * diagonal * adjoint;
 
-    Array2::from_shape_fn((dim, dim), |(i, j)| evolved[(j, i)])
+    Array2::from_shape_fn((dim, dim), |(i, j)| evolved[(i, j)])
 }
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_abs_diff_eq;
+    use ndarray::ArrayView2;
+    use num_complex::c64;
     use qiskit_circuit::{
         operations::OperationRef, parameter::parameter_expression::ParameterExpression,
     };
@@ -209,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_inverse_float() {
-        let obs = create_observable();
+        let obs = xy();
 
         let gate = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
         let (packed, _) = gate.inverse(&[]).unwrap();
@@ -227,7 +230,7 @@ mod tests {
 
     #[test]
     fn test_inverse_param() {
-        let obs = create_observable();
+        let obs = xy();
 
         let expr = Arc::new(ParameterExpression::from_f64(3.0));
         let gate = PauliEvolution::new(obs, Param::ParameterExpression(expr)).unwrap();
@@ -244,10 +247,39 @@ mod tests {
 
     #[test]
     fn test_to_matrix() {
-        todo!()
+        let obs = xy();
+
+        let gate = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
+        let res = gate.to_matrix().unwrap();
+
+        let data = &[
+            // Row 1
+            c64(f64::cos(3.0), 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(-f64::sin(3.0), 0.0),
+            // Row 2
+            c64(0.0, 0.0),
+            c64(f64::cos(3.0), 0.0),
+            c64(f64::sin(3.0), 0.0),
+            c64(0.0, 0.0),
+            // Row 3
+            c64(0.0, 0.0),
+            c64(-f64::sin(3.0), 0.0),
+            c64(f64::cos(3.0), 0.0),
+            c64(0.0, 0.0),
+            // Row 4
+            c64(f64::sin(3.0), 0.0),
+            c64(0.0, 0.0),
+            c64(0.0, 0.0),
+            c64(f64::cos(3.0), 0.0),
+        ];
+
+        let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
+        assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
     }
 
-    fn create_observable() -> SparseObservable {
+    fn xy() -> SparseObservable {
         SparseObservable::new(
             2,
             vec![1.0.into()],
