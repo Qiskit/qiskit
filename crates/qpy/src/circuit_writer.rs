@@ -437,6 +437,7 @@ fn control_flow_class_name(control_flow: &ControlFlow) -> String {
         ControlFlow::Switch { .. } => "SwitchCaseOp",
     })
 }
+
 fn pack_control_flow_inst(
     control_flow_inst: &ControlFlowInstruction,
     instruction: &PackedInstruction,
@@ -499,6 +500,9 @@ fn pack_control_flow_inst(
                 Some(LoopParam::Parameter(symbol)) => {
                     GenericValue::ParameterExpressionSymbol(Arc::new(symbol.clone()))
                 }
+                // A runtime loop `Var` is the body's input variable, so it round-trips as part of
+                // the body circuit; write `Null` here and re-infer it on read from the body's
+                // single input var (see `circuit_reader`).
                 Some(LoopParam::Variable(_)) => GenericValue::Null,
             };
             let mut params = Vec::with_capacity(3);
