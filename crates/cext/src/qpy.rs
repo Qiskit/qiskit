@@ -58,6 +58,9 @@ fn return_error(error: *mut *mut c_char, value: QpyCError) -> ExitCode {
         QpyCError::ExitCode(code) => code,
         QpyCError::Diagnostic(message) => {
             if !error.is_null() {
+                // A safeguard in case the error contains nuls from payload
+                // defined strings.
+                let message = message.replace('\0', "\\0");
                 // SAFETY: the caller guarantees that a non-null `error` is valid for one write.
                 unsafe { error.write(CString::new(message).unwrap().into_raw()) };
             }
