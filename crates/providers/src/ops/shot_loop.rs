@@ -13,67 +13,41 @@
 //! An op that runs each of a list of circuits for a number of shots, over a sweep of
 //! parameterizations.
 
-use std::sync::Arc;
-
 use qiskit_circuit::circuit_data::CircuitData;
 use thiserror::Error;
 
 use super::{ProgramOp, QISKIT};
-use crate::data_tree::{DataTree, InvalidName};
 use crate::tensor::{DType, Dim, Tensor, TensorType};
 
 /// Run each of a vector of circuits for a fixed number of shots.
 ///
 /// There is one operand per circuit for that circuit's parameter values.
-/// For each circuit, one value is returned per classical register, keyed by register name.
+/// For each circuit, one value is returned per classical register.
 #[derive(Clone)]
 pub struct ShotLoop {
-    /// One circuit per operand, shared so that cloning this op clones no circuit.
-    circuits: Vec<Arc<CircuitData>>,
+    circuits: Vec<CircuitData>,
     shots: usize,
-    output_structure: DataTree<()>,
 }
 
 impl ShotLoop {
     /// Construct a shot loop running each of `circuits` for `shots` shots.
-    ///
-    /// Every classical register's name must be usable as a [`Name`](crate::Name).
-    pub fn new(circuits: Vec<Arc<CircuitData>>, shots: usize) -> Result<Self, ShotLoopError> {
-        let mut output_structure = DataTree::with_capacity(circuits.len());
-        for (index, circuit) in circuits.iter().enumerate() {
-            let names = circuit
-                .cregs()
-                .iter()
-                .map(|register| (register.name(), DataTree::Leaf(())));
-            output_structure.push_branch(DataTree::mapping(names).map_err(|source| {
-                ShotLoopError::RegisterName {
-                    circuit: index,
-                    source,
-                }
-            })?);
-        }
-        Ok(Self {
-            circuits,
-            shots,
-            output_structure,
-        })
+    pub fn new(circuits: Vec<CircuitData>, shots: usize) -> Result<Self, ShotLoopError> {
+        Ok(Self { circuits, shots })
     }
 
     /// The circuits this op runs.
-    pub fn circuits(&self) -> &[Arc<CircuitData>] {
+    pub fn circuits(&self) -> &[CircuitData] {
         &self.circuits
+    }
+
+    // Get a mutable reference to the `i`'th circuit if the index is valid.
+    pub fn get_mut(&mut self, i: usize) -> Option<&mut CircuitData> {
+        self.circuits.get_mut(i)
     }
 
     /// How many shots each circuit is run for.
     pub fn shots(&self) -> usize {
         self.shots
-    }
-
-    /// How this op's results are arranged.
-    ///
-    /// There is one entry per circuit, each keyed by classical register name.
-    pub fn output_structure(&self) -> &DataTree<()> {
-        &self.output_structure
     }
 }
 
@@ -99,7 +73,7 @@ impl ProgramOp for ShotLoop {
             "{} expects one operand per circuit",
             self.full_name()
         );
-        let mut outputs = Vec::with_capacity(self.output_structure.leaf_count());
+        let mut outputs = Vec::with_capacity(self.circuits.len());
         for (index, (circuit, operand)) in self.circuits.iter().zip(inputs).enumerate() {
             let parameters = circuit.num_parameters();
             let batch =
@@ -137,14 +111,6 @@ fn leading_axes(parameters: usize, operand: &TensorType) -> Option<&[Dim]> {
 /// Errors returned by [`ShotLoop`].
 #[derive(Debug, Error)]
 pub enum ShotLoopError {
-    /// A classical register's name cannot name a slot of the result.
-    #[error("circuit {circuit}: {source}")]
-    RegisterName {
-        circuit: usize,
-        #[source]
-        source: InvalidName,
-    },
-
     /// A circuit's parameter values are not a floating-point tensor whose trailing axis is that
     /// circuit's parameter count.
     #[error(
@@ -166,12 +132,15 @@ pub enum ShotLoopError {
 mod test {
     use std::sync::Arc;
 
+    use qiskit_circuit::Qubit;
     use qiskit_circuit::bit::ClassicalRegister;
     use qiskit_circuit::operations::Param;
+    use qiskit_circuit::operations::StandardGate;
     use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
     use qiskit_circuit::parameter::symbol_expr::Symbol;
 
     use super::*;
+    use crate::DataTree;
     use crate::ops::Mean;
     use crate::program::{ProgramEvalError, ProgramFunction, QuantumProgram};
 
@@ -179,7 +148,7 @@ mod test {
     ///
     /// A shot loop reads a circuit's parameter count and its classical registers and nothing else, so
     /// a global phase over that many symbols stands in for parameterized instructions.
-    fn circuit(parameters: usize, registers: &[(&str, u32)]) -> Arc<CircuitData> {
+    fn circuit(parameters: usize, registers: &[(&str, u32)]) -> CircuitData {
         let symbol =
             |index| ParameterExpression::from_symbol(Symbol::standalone(format!("p{index}"), None));
         let global_phase = (0..parameters)
@@ -195,7 +164,7 @@ mod test {
                 .add_creg(ClassicalRegister::new_owning(name, width), true)
                 .unwrap();
         }
-        Arc::new(circuit)
+        circuit
     }
 
     /// A `TensorType` of `dtype` over fixed axes `shape`.
@@ -227,23 +196,29 @@ mod test {
     }
 
     #[test]
-    fn test_output_structure_is_one_entry_per_circuit_keyed_by_register() {
-        let op = ShotLoop::new(
-            vec![
-                circuit(0, &[("c", 2), ("meas", 3)]),
-                circuit(0, &[("d", 1)]),
-                circuit(0, &[]),
-            ],
-            100,
-        )
-        .unwrap();
+    fn test_get_mut() {
+        let mut op = ShotLoop::new(vec![circuit(1, &[("c", 2)])], 100).unwrap();
+
+        let circuit = &op.circuits[0];
+        assert_eq!(circuit.len(), 0);
         assert_eq!(
-            op.output_structure().to_string(),
-            "[[c: _, meas: _], [d: _], []]"
+            op.infer_output_types(&[ty(DType::F64, &[3, 1])]).unwrap(),
+            vec![ty(DType::Bit, &[3, 100, 2])]
         );
+
+        let mut_circuit = op.get_mut(0).unwrap();
+        mut_circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
+            .unwrap();
+        mut_circuit
+            .add_creg(ClassicalRegister::new_owning("new_creg", 5), true)
+            .unwrap();
+
+        let circuit = &op.circuits[0];
+        assert_eq!(circuit.len(), 1);
         assert_eq!(
-            op.output_structure().dotted_paths(),
-            ["0.c", "0.meas", "1.d"]
+            op.infer_output_types(&[ty(DType::F64, &[3, 1])]).unwrap(),
+            vec![ty(DType::Bit, &[3, 100, 2]), ty(DType::Bit, &[3, 100, 5])]
         );
     }
 
@@ -353,34 +328,6 @@ mod test {
     }
 
     #[test]
-    fn test_a_register_whose_name_cannot_name_a_slot_is_rejected() {
-        // A name may contain no dot and may not be all digits, which is what makes a dotted path
-        // unambiguous. A register named that way could not be addressed in the result.
-        let Err(digits) = ShotLoop::new(vec![circuit(0, &[("c", 1)]), circuit(0, &[("0", 1)])], 8)
-        else {
-            panic!("a register named \"0\" could not be addressed in the result")
-        };
-        assert!(matches!(
-            digits,
-            ShotLoopError::RegisterName {
-                circuit: 1,
-                source: InvalidName::OnlyDigits(name),
-            } if name == "0"
-        ));
-
-        let Err(dotted) = ShotLoop::new(vec![circuit(0, &[("a.b", 1)])], 8) else {
-            panic!("a register named \"a.b\" could not be addressed in the result")
-        };
-        assert!(matches!(
-            dotted,
-            ShotLoopError::RegisterName {
-                circuit: 0,
-                source: InvalidName::ContainsDot(name),
-            } if name == "a.b"
-        ));
-    }
-
-    #[test]
     fn test_eval_has_no_in_process_implementation() {
         let op = ShotLoop::new(vec![circuit(0, &[("c", 1)])], 8).unwrap();
         assert!(matches!(
@@ -410,9 +357,6 @@ mod test {
             100,
         )
         .unwrap();
-        // A shot loop's results are structured like any other value, so the op's own structure is
-        // the one a program returning those results declares.
-        let output_structure = op.output_structure().clone();
 
         let mut function = ProgramFunction::new();
         let theta = function.add_parameter(ty(DType::F64, &[2]));
@@ -424,7 +368,10 @@ mod test {
             vec![function],
             DataTree::mapping([("theta", DataTree::Leaf(())), ("none", DataTree::Leaf(()))])
                 .unwrap(),
-            output_structure,
+            DataTree::sequence([
+                DataTree::mapping([("c", DataTree::Leaf(()))]).unwrap(),
+                DataTree::mapping([("meas", DataTree::Leaf(()))]).unwrap(),
+            ]),
         )
         .unwrap();
 
