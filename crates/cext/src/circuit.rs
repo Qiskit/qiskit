@@ -2668,7 +2668,9 @@ pub unsafe extern "C" fn qk_circuit_delay_unit(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let inst = &circuit.data()[index];
+    // SAFETY: Per documentation the index has been checked to be in range
+    // of the circuit, via `qk_circuit_num_instructions`.
+    let inst = unsafe { circuit.data().get_unchecked(index) };
 
     let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view() else {
         return CDelayUnit::Unknown;
