@@ -839,6 +839,9 @@ impl ProgramFunction {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
     use super::*;
     use crate::ops::{Add, Constant, MathOpError, Mean};
     use crate::tensor::{DType, Dim, TensorError};
@@ -1176,16 +1179,32 @@ mod test {
         let Err(err) = function.add_call(callee, &double_signature(3), &[x]) else {
             panic!("an F64[2] operand cannot fill an F64[3] parameter")
         };
-        assert_eq!(
-            err.to_string(),
-            "operand 0 of the call to @0: expected F64[3], got F64[2]",
+        assert!(
+            matches!(
+                err,
+                FunctionError::CallOperandType {
+                    operand: 0,
+                    callee,
+                    expected,
+                    actual,
+                } if callee == FunctionId::from_index(0)
+                    && expected == f64_1d(3)
+                    && actual == f64_1d(2)
+            ),
             "the position, the callee, and both types are named"
         );
 
         let Err(err) = function.add_call(callee, &double_signature(2), &[x, x]) else {
             panic!("a one-parameter signature takes one operand")
         };
-        assert_eq!(err.to_string(), "qiskit.call takes 1 operand(s), got 2");
+        assert!(matches!(
+            err,
+            FunctionError::OperandArity {
+                full_name,
+                expected: 1,
+                actual: 2,
+            } if full_name == "qiskit.call"
+        ));
 
         // A value from another function is unknown here, so long as this one has no instruction at
         // its index.
@@ -1228,10 +1247,17 @@ mod test {
         let Err(err) = function.add_call(callee, &signature, &[loose]) else {
             panic!("a bounded operand cannot fill a parameter of a true size")
         };
-        assert_eq!(
-            err.to_string(),
-            "operand 0 of the call to @0: expected F64[3], got F64[<=4]"
-        );
+        assert!(matches!(
+            err,
+            FunctionError::CallOperandType {
+                operand: 0,
+                callee,
+                expected,
+                actual,
+            } if callee == FunctionId::from_index(0)
+                && expected == f64_1d(3)
+                && actual.shape == [Dim::Bounded { max: 4 }]
+        ));
     }
 
     #[test]
@@ -1247,10 +1273,10 @@ mod test {
         let Err(err) = function.eval(&[Tensor::from([1.0_f64])]) else {
             panic!("resolving a call needs the program holding its callee")
         };
-        assert_eq!(
-            err.to_string(),
-            "instruction 1 (qiskit.call) has no built-in implementation"
-        );
+        assert!(matches!(
+            err,
+            FunctionEvalError::NoBuiltinEval { full_name, .. } if full_name == "qiskit.call"
+        ));
     }
 
     // ---------------------------------------------------------------------------
@@ -1665,6 +1691,67 @@ mod test {
             "the offending instruction is named"
         );
         assert_eq!(full_name, "vendor.elsewhere");
+    }
+
+    /// An instruction that counts how often it has been evaluated, which is how a test observes
+    /// whether a walk ran at all.
+    #[derive(Clone)]
+    struct Tally(Arc<AtomicUsize>);
+
+    impl ProgramOp for Tally {
+        type Error = std::convert::Infallible;
+
+        fn name(&self) -> &str {
+            "tally"
+        }
+
+        fn namespace(&self) -> &str {
+            "vendor"
+        }
+
+        fn arity(&self) -> usize {
+            1
+        }
+
+        fn has_builtin_eval(&self) -> bool {
+            true
+        }
+
+        fn infer_output_types(
+            &self,
+            inputs: &[TensorType],
+        ) -> Result<Vec<TensorType>, Self::Error> {
+            Ok(vec![inputs[0].clone()])
+        }
+
+        fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Ok(args.to_vec())
+        }
+    }
+
+    #[test]
+    fn a_function_that_needs_a_backend_evaluates_nothing_at_all() {
+        // Locality is settled before the walk starts, so a function that has to be handed on has not
+        // produced any intermediates by the time it says so.
+        let evaluations = Arc::new(AtomicUsize::new(0));
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(f64_1d(1));
+        let counted = function
+            .add_op(Tally(Arc::clone(&evaluations)), &[x])
+            .unwrap()[0];
+        let out = function.add_op(Elsewhere, &[counted]).unwrap()[0];
+        function.add_result(out).unwrap();
+
+        assert!(matches!(
+            function.eval(&[Tensor::from([1.0_f64])]),
+            Err(FunctionEvalError::NoBuiltinEval { .. })
+        ));
+        assert_eq!(
+            evaluations.load(Ordering::Relaxed),
+            0,
+            "the instruction ahead of the one needing a backend never ran"
+        );
     }
 
     #[test]
