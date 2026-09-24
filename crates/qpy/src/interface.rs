@@ -35,7 +35,7 @@ use crate::value::{
     serialize_with_args,
 };
 
-use std::io::{Cursor, Seek};
+use std::io::{Cursor, Seek, Write};
 
 /// A circuit loaded from QPY, before the Python-only parts of circuit construction.
 ///
@@ -101,19 +101,20 @@ const QPY_WRITE_MIN_VERSION: u8 = 17;
 ///
 /// Returns:
 /// A `Bytes` object containing the complete QPY payload.
-pub fn dump_qpy(
+pub fn dump_qpy<W: Write>(
+    mut writer: W,
     mut circuits: Vec<CircuitData>,
     extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
     caller: Option<QpyCaller>,
-) -> Result<Bytes, QpyError> {
+) -> Result<(), QpyError> {
     if qpy_version < QPY_WRITE_MIN_VERSION {
-        Err(QpyError::UnsupportedFeatureForVersion {
+        return Err(QpyError::UnsupportedFeatureForVersion {
             feature: "Rust QPY".to_string(),
             version: qpy_version,
             min_version: QPY_WRITE_MIN_VERSION,
-        })?;
+        });
     }
     let caller = caller.unwrap_or(QpyCaller::Native);
     let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
@@ -144,41 +145,31 @@ pub fn dump_qpy(
             )
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
-    // Since QPY doesn't use symengine anymore, we default to SymbolicEncoding::Sympy
     let qpy_header = QPYFileHeader {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
         num_programs: serialized_circuits.len() as u64,
         symbolic_encoding: SymbolicEncoding::Sympy,
-        type_key: ProgramType::Circuit, //for now, no other value type is used
+        type_key: ProgramType::Circuit,
     };
     let serialized_qpy_header = serialize(&qpy_header)?;
-
-    // At this point we have collected all the relevant data
-    // But still need to create the offset table and put everything together
     let header_size = serialized_qpy_header.len();
-    let offset_table_size = serialized_circuits.len() * 8; // 8 bytes per u64
+    let offset_table_size = serialized_circuits.len() * 8;
     let circuits_start_offset = header_size + offset_table_size;
-    // Build the offset table
     let mut offset_table: Vec<u64> = Vec::with_capacity(serialized_circuits.len());
     let mut current_offset = circuits_start_offset as u64;
-
     for circuit_bytes in &serialized_circuits {
         offset_table.push(current_offset);
         current_offset += circuit_bytes.len() as u64;
     }
-
-    let mut output = Vec::<u8>::with_capacity(current_offset as usize);
-
-    output.extend_from_slice(&serialized_qpy_header);
+    writer.write_all(&serialized_qpy_header)?;
     for offset in offset_table {
-        output.extend_from_slice(&offset.to_be_bytes());
+        writer.write_all(&offset.to_be_bytes())?;
     }
     for circuit_bytes in serialized_circuits {
-        output.extend_from_slice(&circuit_bytes);
+        writer.write_all(&circuit_bytes)?;
     }
-
-    Ok(Bytes::from(output))
+    Ok(())
 }
 
 #[pyfunction]
@@ -220,14 +211,16 @@ pub fn py_dump_qpy(
         })
         .collect::<Result<Vec<_>, QpyError>>()?;
     let circuit_data = circuits.into_iter().map(|circuit| circuit.data).collect();
-    let serialized_qpy = dump_qpy(
-        circuit_data,
-        extra_data,
-        version,
-        Some(annotation_handler),
-        Some(QpyCaller::Python),
-    )?;
-    file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
+    let mut serialized_qpy = Vec::new();
+dump_qpy(
+    &mut serialized_qpy,
+    circuit_data,
+    extra_data,
+    version,
+    Some(annotation_handler),
+    Some(QpyCaller::Python),
+)?;
+file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
 }
 
