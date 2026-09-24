@@ -137,13 +137,11 @@ unsafe fn dump_buffer_impl(
     // SAFETY: upheld by the caller contract and checked for alignment/null above.
     match unsafe { dump(circuits, num_circuits, version) } {
         Ok(payload) => {
-            let mut payload = payload.into_boxed_slice();
+            let payload = payload.into_boxed_slice();
             let payload_size = payload.len();
-            let payload_ptr = payload.as_mut_ptr();
-            std::mem::forget(payload);
             // SAFETY: the caller guarantees both output locations are writable.
             unsafe {
-                buffer.write(payload_ptr);
+                buffer.write(Box::into_raw(payload) as *mut u8);
                 size.write(payload_size);
             }
             ExitCode::Success
