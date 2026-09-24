@@ -10,9 +10,31 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod data_tree;
+//! The quantum program: the dataflow IR that Qiskit's `BackendV3` interface consumes.
+//!
+//! A program describes a hybrid quantum-classical computation as typed tensor values produced and
+//! consumed by instructions. It is inert data: it describes a computation without performing one.
+//!
+//! - [`tensor`] is the value domain. A [`Tensor`](tensor::Tensor) is a dense array over one of a
+//!   fixed set of dtypes, and a [`TensorType`](tensor::TensorType) is its data-less counterpart.
+//! - [`ops`] holds the [`ProgramOp`] contract and the ops Qiskit defines. The set is open: an
+//!   op may be defined outside this crate, in its own namespace.
+//! - [`program`] holds [`QuantumProgram`], a whole computation, and the [`ProgramFunction`]s it is
+//!   made of, each of which is one dataflow graph. Instructions are the only entity a function
+//!   holds: a [`Value`] is an output slot of the instruction producing it, and a function's
+//!   parameters and results are instructions too, so every value has a producer.
+//! - [`data_tree`] holds [`DataTree`], the container for structured values. A program's inputs and
+//!   outputs arrive in one, arranged by the structures it declares, which is where all naming lives.
+
+pub mod data_tree;
 pub mod ops;
+pub mod program;
 pub mod tensor;
 
-pub use data_tree::{ArityMismatch, DataTree, PathEntry, TreeMatchError};
-pub use ops::{CallError, CallInputError, MissingCallError, ProgramOp, ProgramOpExt, Store};
+pub use data_tree::{ArityMismatch, DataTree, InvalidName, PathEntry, TreeMatchError};
+pub use ops::{BoxedOpError, BoxedProgramOp, Constant, ErasedProgramOp, ProgramOp};
+pub use program::{
+    FunctionError, FunctionEvalError, FunctionId, InstructionId, InstructionRef, InstructionRole,
+    InstructionView, ProgramError, ProgramEvalError, ProgramFunction, QuantumProgram, Signature,
+    Value,
+};

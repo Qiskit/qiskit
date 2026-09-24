@@ -266,6 +266,8 @@ mod param {
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
             export_fn!(qk_param_stride),
+            export_fn!(qk_param_as_int),
+            export_fn!(qk_param_kind),
         ]
     });
 }
