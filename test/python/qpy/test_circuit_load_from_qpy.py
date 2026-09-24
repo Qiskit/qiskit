@@ -700,3 +700,27 @@ class TestOutputStreamProperties(QpyCircuitTestCase):
                 unseekable = TestOutputStreamProperties.UnseekableStream(internal_buffer)
                 dump(circuits, unseekable)
                 self.assertEqual(internal_buffer.getbuffer(), seekable.getbuffer())
+
+class TestMalformedPayload(QpyCircuitTestCase):
+    """Test that malformed QPY payloads raise errors rather than panicking."""
+
+    def test_invalid_bit_type_raises_error(self):
+        """A QPY payload with an unknown bit_type byte should raise QpyError, not panic."""
+        # Dump a simple valid circuit to get a well-formed QPY payload.
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        buf = io.BytesIO()
+        dump(qc, buf)
+        raw = bytearray(buf.getvalue())
+
+        # The bit_type byte is b'q' (0x71) or b'c' (0x63).
+        # Corrupt the first occurrence of b'q' that appears after the header
+        # by replacing it with an invalid value (0xFF).
+        # We search from offset 6 (past "QISKIT") to avoid touching the magic bytes.
+        idx = raw.index(ord('q'), 6)
+        raw[idx] = 0xFF
+
+        with self.assertRaises(QpyError):
+            load(io.BytesIO(bytes(raw)))

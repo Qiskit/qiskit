@@ -158,13 +158,25 @@ impl TryFrom<u8> for RegisterType {
 }
 
 // Representation for qubit/clbit
-#[binrw]
+#[derive(Debug, BinWrite)]
 #[brw(repr = u8)]
 #[repr(u8)]
-#[derive(Debug)]
 pub enum BitType {
     Qubit = b'q',
     Clbit = b'c',
+}
+
+impl BinRead for BitType {
+    type Args<'a> = ();
+
+    fn read_options<R: std::io::Read + std::io::Seek>(
+        reader: &mut R,
+        endian: binrw::Endian,
+        _: (),
+    ) -> binrw::BinResult<Self> {
+        let raw = u8::read_options(reader, endian, ())?;
+        Self::try_from(raw).map_err(|e| crate::error::to_binrw_error(reader, e))
+    }
 }
 
 // Representation for symbolic encodings (now obsolete)
