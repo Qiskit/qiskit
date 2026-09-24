@@ -1240,6 +1240,23 @@ static int test_delay_instruction(void) {
         goto instr_cleanup;
     }
 
+    // Test with a non-delay instruction
+    const uint32_t h_qubits[1] = {0};
+    QkExitCode circuit_h_code = qk_circuit_gate(qc, QkGate_H, h_qubits, NULL);
+    if (circuit_h_code != QkExitCode_Success) {
+        printf("Unexpected exit code while adding 'QkGate_H' to a circuit");
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
+    QkDelayUnit unit_unknown = qk_circuit_delay_unit(qc, 2);
+    if (unit_unknown != QkDelayUnit_Unknown) {
+        result = EqualityError;
+        printf("Expected 'unknown' (7) delay unit, for non delay gate, got '%d' instead",
+               unit_unknown);
+        goto instr_cleanup;
+    }
+
 instr_cleanup:
     qk_circuit_instruction_clear(&instr);
 cleanup:

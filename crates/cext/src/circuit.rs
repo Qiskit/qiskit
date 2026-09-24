@@ -13,6 +13,7 @@
 use std::ffi::{CStr, CString, c_char};
 use std::ptr;
 
+use crate::ExitCode::CInputError;
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
@@ -2487,34 +2488,40 @@ pub enum CDelayUnit {
     PS = 4,
     /// Dt
     DT = 5,
+    /// Classical Expression
+    EXPR = 6,
+    /// Unknown
+    Unknown = 7,
 }
 
-impl TryFrom<DelayUnit> for CDelayUnit {
-    type Error = DelayUnit;
-    fn try_from(value: DelayUnit) -> Result<Self, Self::Error> {
-        let ret = match value {
+impl From<DelayUnit> for CDelayUnit {
+    fn from(value: DelayUnit) -> Self {
+        match value {
             DelayUnit::S => CDelayUnit::S,
             DelayUnit::MS => CDelayUnit::MS,
             DelayUnit::US => CDelayUnit::US,
             DelayUnit::NS => CDelayUnit::NS,
             DelayUnit::PS => CDelayUnit::PS,
             DelayUnit::DT => CDelayUnit::DT,
-            DelayUnit::EXPR => return Err(value),
-        };
-        Ok(ret)
+            DelayUnit::EXPR => CDelayUnit::EXPR,
+        }
     }
 }
 
-impl From<CDelayUnit> for DelayUnit {
-    fn from(value: CDelayUnit) -> Self {
-        match value {
+impl TryFrom<CDelayUnit> for DelayUnit {
+    type Error = CDelayUnit;
+    fn try_from(value: CDelayUnit) -> Result<Self, Self::Error> {
+        let res = match value {
             CDelayUnit::S => DelayUnit::S,
             CDelayUnit::MS => DelayUnit::MS,
             CDelayUnit::US => DelayUnit::US,
             CDelayUnit::NS => DelayUnit::NS,
             CDelayUnit::PS => DelayUnit::PS,
             CDelayUnit::DT => DelayUnit::DT,
-        }
+            CDelayUnit::EXPR => DelayUnit::EXPR,
+            CDelayUnit::Unknown => return Err(value),
+        };
+        Ok(res)
     }
 }
 
@@ -2544,7 +2551,9 @@ pub unsafe extern "C" fn qk_circuit_delay(
     duration: f64,
     unit: CDelayUnit,
 ) -> ExitCode {
-    let delay_unit_variant = unit.into();
+    let Ok(delay_unit_variant) = unit.try_into() else {
+        return CInputError;
+    };
 
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
@@ -2649,7 +2658,7 @@ unsafe fn qk_circuit_delay_inner(
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-/// 
+///
 /// Undefined behavior may also happen if ``index`` is not within the circuit's range.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_delay_unit(
@@ -2662,10 +2671,10 @@ pub unsafe extern "C" fn qk_circuit_delay_unit(
     let inst = &circuit.data()[index];
 
     let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view() else {
-        panic!("Not a Delay instruction")
+        return CDelayUnit::Unknown;
     };
 
-    CDelayUnit::try_from(unit).expect("Classical expression unit detected")
+    CDelayUnit::from(unit)
 }
 
 /// The configuration options for the ``qk_circuit_draw`` function.
