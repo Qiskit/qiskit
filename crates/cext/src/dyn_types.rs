@@ -33,7 +33,6 @@ use qiskit_util::dyn_types::DynTypeId;
 ///
 /// Other unsafe FFI code relies on the correctness and soundness of this trait to avoid undefined
 /// behavior across the FFI boundary.
-#[expect(dead_code)]
 pub unsafe trait DynTraitExposer<Trait: ?Sized>: Send + Sync + 'static {
     /// Get the type identifier for the concrete objects that are produced by
     /// [`steal`](Self::steal) and consumed by [`leak`](Self::leak).
@@ -123,5 +122,4 @@ macro_rules! make_static_trait_exposer {
         }
     };
 }
-#[expect(unused_imports)]
 pub use make_static_trait_exposer;

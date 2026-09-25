@@ -62,6 +62,12 @@ pub enum ExitCode {
     TargetInvalidInstKey = 304,
     /// Transpilation failed
     TranspilerError = 400,
+    /// Incompatible types.
+    IncompatibleTypes = 401,
+    /// Failed conversion to an output IR.
+    FailedOutputConversion = 402,
+    /// Type casting error.
+    CastingError = 403,
     /// QkDag operation error
     DagError = 500,
     /// The DAGs have mismatching qubit/clbit amounts during compose.
