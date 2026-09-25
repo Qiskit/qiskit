@@ -51,6 +51,13 @@ Circuit Library
 
    qk-circuit-library
 
+Import/Export
++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-qpy
 
 -------------------
 Quantum information

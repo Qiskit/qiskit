@@ -119,9 +119,11 @@ impl<'a> PassContext<'a> {
     /// This first queries from the local context, then the global.
     pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
         let key = key.as_ref();
+
         if self.updates.deletions.contains(key) {
             return None;
         }
+
         // The local registry takes precedence.
         self.updates.get(key).or_else(|| {
             self.global_context
@@ -306,6 +308,7 @@ pub struct PassManager {
     // match upon construction, hence the tasks are private.
     tasks: Vec<Task>,
 }
+
 impl PassManager {
     pub fn new() -> Self {
         Self::default()

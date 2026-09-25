@@ -22,6 +22,7 @@ qiskit-circuit.workspace = true
 qiskit-circuit-library.workspace = true
 qiskit-passmanager.workspace = true
 qiskit-transpiler.workspace = true
+qiskit-qpy.workspace = true
 pyo3 = { workspace = true, optional = true }
 qiskit-util.workspace = true
 smallvec.workspace = true
