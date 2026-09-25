@@ -228,10 +228,8 @@ pub struct CircuitData {
 #[cfg(feature = "passmanager")]
 mod passmanager {
     use super::CircuitData;
-    use qiskit_passmanager::{IR, static_dyn_typed};
-
-    static_dyn_typed!(CircuitData);
-    impl IR for CircuitData {}
+    qiskit_util::dyn_types::static_dyn_typed!(CircuitData);
+    impl qiskit_passmanager::IR for CircuitData {}
 }
 
 /// A container for :class:`.QuantumCircuit` instruction listings that stores
