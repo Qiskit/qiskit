@@ -376,10 +376,8 @@ pub struct DAGCircuit {
 #[cfg(feature = "passmanager")]
 mod passmanager {
     use super::DAGCircuit;
-    use qiskit_passmanager::{IR, static_dyn_typed};
-
-    static_dyn_typed!(DAGCircuit);
-    impl IR for DAGCircuit {}
+    qiskit_util::dyn_types::static_dyn_typed!(DAGCircuit);
+    impl qiskit_passmanager::IR for DAGCircuit {}
 }
 
 #[derive(Clone, Debug)]

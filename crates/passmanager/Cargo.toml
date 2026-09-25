@@ -17,6 +17,7 @@ smallvec.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 hashbrown.workspace = true
+qiskit-util.workspace = true
 
 [dev-dependencies]
 qiskit-circuit = { workspace = true, features = ["passmanager"] }
