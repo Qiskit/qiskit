@@ -25,8 +25,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
-    #[error("time not float value or expression")]
-    TimeNotFloat,
+    #[error("time not float or expression")]
+    TimeInvalid,
     #[error("time not evaluated")]
     TimeNotEvaluated,
     #[error("matrix error")]
@@ -56,7 +56,7 @@ impl PauliEvolution {
                 time: ComparableParam(time),
             })
         } else {
-            Err(PauliEvolutionError::TimeNotFloat)
+            Err(PauliEvolutionError::TimeInvalid)
         }
     }
 
