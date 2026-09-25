@@ -1181,7 +1181,14 @@ static int test_delay_instruction(void) {
         goto cleanup;
     }
 
-    QkDelayUnit unit_s = qk_circuit_delay_unit(qc, 0);
+    QkDelayUnit unit_s;
+    QkExitCode s_code = qk_circuit_delay_unit(qc, 0, &unit_s);
+    if (s_code != QkExitCode_Success) {
+        result = RuntimeError;
+        printf("Unexpected error while accessing Delay instruction. Code: %d", s_code);
+        goto cleanup;
+    }
+
     if (unit_s != QkDelayUnit_S) {
         result = EqualityError;
         printf("Expected 's' (0) delay unit, found (%d).\n", unit_s);
@@ -1212,7 +1219,15 @@ static int test_delay_instruction(void) {
         goto instr_cleanup;
     }
 
-    QkDelayUnit unit_dt = qk_circuit_delay_unit(qc, 1);
+    QkDelayUnit unit_dt;
+
+    QkExitCode dt_code = qk_circuit_delay_unit(qc, 1, &unit_dt);
+    if (dt_code != QkExitCode_Success) {
+        result = RuntimeError;
+        printf("Unexpected error while accessing Delay instruction. Code: %d", dt_code);
+        goto cleanup;
+    }
+
     if (unit_dt != QkDelayUnit_DT) {
         result = EqualityError;
         printf("Expected 'dt' (5) delay unit, found (%d).\n", unit_dt);
@@ -1249,12 +1264,19 @@ static int test_delay_instruction(void) {
         goto instr_cleanup;
     }
 
-    QkDelayUnit unit_unknown = qk_circuit_delay_unit(qc, 2);
-    if (unit_unknown != QkDelayUnit_Unknown) {
-        result = EqualityError;
-        printf("Expected 'unknown' (7) delay unit, for non delay gate, got '%d' instead",
-               unit_unknown);
-        goto instr_cleanup;
+    QkDelayUnit unit_unknown;
+    QkExitCode invalid_op_code = qk_circuit_delay_unit(qc, 2, &unit_unknown);
+    if (invalid_op_code != QkExitCode_InvalidOperationKind) {
+        result = RuntimeError;
+        printf("Unexpected result while triggering invalid op error. Code: %d", invalid_op_code);
+        goto cleanup;
+    }
+    QkExitCode out_of_range_code = qk_circuit_delay_unit(qc, 3, &unit_unknown);
+    if (invalid_op_code != QkExitCode_InvalidOperationKind) {
+        result = RuntimeError;
+        printf("Unexpected result while triggering out of range error. Code: %d",
+               out_of_range_code);
+        goto cleanup;
     }
 
 instr_cleanup:

@@ -13,7 +13,6 @@
 use std::ffi::{CStr, CString, c_char};
 use std::ptr;
 
-use crate::ExitCode::CInputError;
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
@@ -2490,8 +2489,6 @@ pub enum CDelayUnit {
     DT = 5,
     /// Classical Expression
     EXPR = 6,
-    /// Unknown
-    Unknown = 7,
 }
 
 impl From<DelayUnit> for CDelayUnit {
@@ -2508,10 +2505,9 @@ impl From<DelayUnit> for CDelayUnit {
     }
 }
 
-impl TryFrom<CDelayUnit> for DelayUnit {
-    type Error = CDelayUnit;
-    fn try_from(value: CDelayUnit) -> Result<Self, Self::Error> {
-        let res = match value {
+impl From<CDelayUnit> for DelayUnit {
+    fn from(value: CDelayUnit) -> Self {
+        match value {
             CDelayUnit::S => DelayUnit::S,
             CDelayUnit::MS => DelayUnit::MS,
             CDelayUnit::US => DelayUnit::US,
@@ -2519,9 +2515,7 @@ impl TryFrom<CDelayUnit> for DelayUnit {
             CDelayUnit::PS => DelayUnit::PS,
             CDelayUnit::DT => DelayUnit::DT,
             CDelayUnit::EXPR => DelayUnit::EXPR,
-            CDelayUnit::Unknown => return Err(value),
-        };
-        Ok(res)
+        }
     }
 }
 
@@ -2551,9 +2545,7 @@ pub unsafe extern "C" fn qk_circuit_delay(
     duration: f64,
     unit: CDelayUnit,
 ) -> ExitCode {
-    let Ok(delay_unit_variant) = unit.try_into() else {
-        return CInputError;
-    };
+    let delay_unit_variant = unit.into();
 
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
@@ -2642,11 +2634,14 @@ unsafe fn qk_circuit_delay_inner(
 ///
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param index The instruction index to get the delay details of.
-///     If the index is not within the circuit range it can lead to
-///     undefined behavior. Please use ``qk_circuit_num_instructions``
-///     to check the circuit's current length.
+///     If the index is not within the circuit range the function
+///     will exit with ``QkExitCode_IndexError``. Please use
+///     ``qk_circuit_num_instructions`` to check the circuit's
+///     current length.
+/// @param delay_unit The pointer in which we will write the duration
+///     unit of the delay instruction found.
 ///
-/// @return The duration unit of the delay.
+/// @return A ``QkExitCode``.
 ///
 /// # Example
 /// ```c
@@ -2658,25 +2653,33 @@ unsafe fn qk_circuit_delay_inner(
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-///
-/// Undefined behavior may also happen if ``index`` is not within the circuit's range.
+/// Undefined behavior may happen if ``delay_unit`` is not a valid, non-null and aligned
+/// pointer to an address with enough space to record a ``QkDelayUnit`` enum variant.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_delay_unit(
     circuit: *const CircuitData,
     index: usize,
-) -> CDelayUnit {
+    delay_unit: *mut CDelayUnit,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    // SAFETY: Per documentation the index has been checked to be in range
-    // of the circuit, via `qk_circuit_num_instructions`.
-    let inst = unsafe { circuit.data().get_unchecked(index) };
-
-    let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view() else {
-        return CDelayUnit::Unknown;
+    let Some(inst) = circuit.data().get(index) else {
+        return ExitCode::IndexError;
     };
 
-    CDelayUnit::from(unit)
+    let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view() else {
+        return ExitCode::InvalidOperationKind;
+    };
+
+    let unit = CDelayUnit::from(unit);
+
+    // SAFETY: Per documentation, the pointer is non-null, aligned, and points
+    // to an address with enough space to write a `CDelayUnit` enum variant.
+    unsafe {
+        delay_unit.write(unit);
+    }
+    ExitCode::Success
 }
 
 /// The configuration options for the ``qk_circuit_draw`` function.
