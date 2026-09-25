@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed circuit drawers displaying the full statevector amplitudes for
+    :class:`~qiskit.circuit.library.Initialize` and
+    :class:`~qiskit.circuit.library.StatePreparation` instructions. The text,
+    LaTeX, and Matplotlib drawers now omit these expanded parameter lists.
+    See `#11470 <https://github.com/Qiskit/qiskit/issues/11470>`__.

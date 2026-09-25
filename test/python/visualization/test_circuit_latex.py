@@ -29,6 +29,7 @@ from qiskit.circuit.library import (
     DCXGate,
     HamiltonianGate,
     Isometry,
+    StatePreparation,
     iqp,
 )
 from qiskit.circuit import Parameter, Qubit, Clbit
@@ -471,6 +472,18 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
+
+    def test_state_preparation_hides_params(self):
+        """StatePreparation does not render expanded statevector params."""
+        ket = np.array([0.5 + 0.1j, 0, 0, 0.8602325267042626j])
+        circuit = QuantumCircuit(2)
+        circuit.append(StatePreparation(ket), [0, 1])
+
+        latex = circuit_drawer(circuit, output="latex_source")
+
+        self.assertIn(r"\mathrm{State\,Preparation}", latex)
+        self.assertNotIn("0.5", latex)
+        self.assertNotIn("0.86023", latex)
 
     def test_iqx_colors(self):
         """Tests with iqx color scheme"""

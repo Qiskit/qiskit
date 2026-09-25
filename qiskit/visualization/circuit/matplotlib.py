@@ -466,7 +466,7 @@ class MatplotlibDrawer:
                     and not any(isinstance(param, QuantumCircuit) for param in op.params)
                 ):
                     param_text = get_param_str(op, "mpl", ndigits=3)
-                    if isinstance(op, Initialize):
+                    if isinstance(op, Initialize) and param_text:
                         param_text = f"$[{param_text.replace('$', '')}]$"
                     node_data[node].param_text = param_text
                     raw_param_width = self._get_text_width(
