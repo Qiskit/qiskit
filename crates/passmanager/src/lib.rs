@@ -17,6 +17,7 @@ use hashbrown::{HashMap, HashSet};
 use std::{
     any::{self, Any},
     borrow, fmt, hash,
+    marker::PhantomData,
 };
 
 pub use pass::*;
@@ -156,6 +157,14 @@ impl DynTypeId<'_> {
             static_id: any::TypeId::of::<T>(),
             static_name: any::type_name::<T>(),
             dynamic: None,
+        }
+    }
+
+    /// Discard the dynamic components of the type, leaving only the static part.
+    pub fn to_static(self) -> DynTypeId<'static> {
+        DynTypeId {
+            dynamic: None,
+            ..self
         }
     }
 

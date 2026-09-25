@@ -18,7 +18,7 @@ derive_more = { version = "2.1", features = ["try_from"] }
 thiserror.workspace = true
 num-complex.workspace = true
 qiskit-quantum-info.workspace = true
-qiskit-circuit.workspace = true
+qiskit-circuit  = { workspace = true, features = ["passmanager"] }
 qiskit-circuit-library.workspace = true
 qiskit-passmanager.workspace = true
 qiskit-transpiler.workspace = true

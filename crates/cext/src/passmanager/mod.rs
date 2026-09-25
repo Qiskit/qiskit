@@ -10,22 +10,149 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 use qiskit_passmanager::{
-    DynTypeId, Pass, PassContext, PassError, PassManager, PassManagerContext,
+    DynTypeId, DynTyped, IR, Pass, PassContext, PassError, PassManager, StaticDynTyped, Task,
 };
+
 use std::{
     any::Any,
     ffi::{CStr, c_char, c_void},
+    marker::PhantomData,
     mem, ptr,
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 
 use crate::{
     ExitCode,
-    pointers::{arc_clone_from_raw, const_ptr_as_ref, mut_ptr_as_ref},
+    pointers::{
+        ExposesOwnedPointers, arc_clone_from_raw, const_ptr_as_ref, expose_by_arc, expose_by_box,
+        mut_ptr_as_ref,
+    },
 };
 
 type CFuncPtr = unsafe extern "C" fn() -> c_void;
+
+unsafe trait IRExposer: Send + Sync + 'static {
+    fn ir_dyn_type_id(&self) -> DynTypeId<'_>;
+    fn leak(&self, ob: Box<dyn IR>) -> *mut c_void;
+    unsafe fn steal(&self, ptr: *mut c_void) -> Box<dyn IR>;
+}
+
+struct StaticIRExposer<T>(PhantomData<T>);
+unsafe impl<T> IRExposer for StaticIRExposer<T>
+where
+    T: IR + StaticDynTyped + ExposesOwnedPointers<Owner = Box<T>>,
+{
+    fn ir_dyn_type_id(&self) -> DynTypeId<'_> {
+        T::static_dyn_type_id()
+    }
+    fn leak(&self, ob: Box<dyn IR>) -> *mut c_void {
+        let typed = (ob as Box<dyn Any>)
+            .downcast::<T>()
+            .expect("called should ensure correct type");
+        T::leak(typed).cast()
+    }
+    unsafe fn steal(&self, ptr: *mut c_void) -> Box<dyn IR> {
+        (unsafe { T::steal(ptr.cast()) }) as Box<dyn IR>
+    }
+}
+
+#[derive(Debug)]
+struct IRVTable {
+    name: String,
+    // ... we don't have any instance methods on `IR` yet.
+}
+
+struct CIr {
+    ir: *mut c_void,
+    vtable: Arc<IRVTable>,
+}
+unsafe impl Send for CIr {}
+unsafe impl Sync for CIr {}
+impl CIr {
+    fn dyn_type_for_vtable(vtable: &IRVTable) -> DynTypeId<'_> {
+        DynTypeId::of::<Self>().with_dynamic(ptr::from_ref(vtable).cast_mut().cast(), &vtable.name)
+    }
+}
+impl DynTyped for CIr {
+    fn dyn_type_id(&self) -> DynTypeId<'_> {
+        Self::dyn_type_for_vtable(&self.vtable)
+    }
+}
+impl IR for CIr {}
+
+pub struct IRHandle(Arc<dyn IRExposer>);
+const _: () = unsafe { expose_by_box!(IRHandle) };
+
+#[derive(Clone, Copy, derive_more::TryFrom, Debug)]
+#[try_from(repr)]
+#[repr(u32)]
+pub enum BuiltinIR {
+    Circuit,
+    Dag,
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_pass_ir_handle_new(
+    name: *const c_char,
+    #[expect(unused_variables)] table: *const VTableEntry,
+) -> *mut IRHandle {
+    let name = unsafe { CStr::from_ptr(name) }
+        .to_string_lossy()
+        .into_owned();
+    let vtable = Arc::new(IRVTable { name });
+    IRHandle(Arc::new(CIrExposer(vtable))).into_leaked()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_pass_ir_handle_builtin(ty: u32) -> *mut IRHandle {
+    match BuiltinIR::try_from(ty) {
+        Ok(BuiltinIR::Circuit) => {
+            static CIRCUIT: LazyLock<Arc<dyn IRExposer>> =
+                LazyLock::new(|| Arc::new(StaticIRExposer(PhantomData::<CircuitData>)));
+            IRHandle(Arc::clone(&CIRCUIT)).into_leaked()
+        }
+        Ok(BuiltinIR::Dag) => {
+            static DAG: LazyLock<Arc<dyn IRExposer>> = LazyLock::new(|| {
+                Arc::new(StaticIRExposer(PhantomData::<DAGCircuit>)) as Arc<dyn IRExposer>
+            });
+            IRHandle(Arc::clone(&DAG)).into_leaked()
+        }
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_pass_ir_handle_free(handle: *mut IRHandle) {
+    _ = (!handle.is_null()).then(|| unsafe { IRHandle::steal(handle) })
+}
+
+struct CIrExposer(Arc<IRVTable>);
+unsafe impl IRExposer for CIrExposer {
+    fn ir_dyn_type_id(&self) -> DynTypeId<'_> {
+        CIr::dyn_type_for_vtable(&self.0)
+    }
+    fn leak(&self, ob: Box<dyn IR>) -> *mut c_void {
+        (ob as Box<dyn Any>)
+            .downcast::<CIr>()
+            .expect("called should ensure correct type")
+            .ir
+    }
+    unsafe fn steal(&self, ptr: *mut c_void) -> Box<dyn IR> {
+        // TODO: there is a performance optimisation possible in the `CPass` logic, where we re-use
+        // an existing `Box<CIr>` allocation if both the input and output IR types use it as the
+        // backing dynamic type.  That optimisation probably extends to general exposure/leakers,
+        // but let's leave it for the first implementation.
+
+        // SAFETY: constructing the `CIr` implies that `ptr` is the correct type for our `vtable`.
+        // Per documentation, the caller was responsible for ensuring that.
+        Box::new(CIr {
+            ir: ptr,
+            vtable: Arc::clone(&self.0),
+        })
+    }
+}
 
 // TODO: docs
 /// @ingroup QkPassManager
@@ -49,6 +176,7 @@ pub struct VTableEntry {
 
 // TODO: docs
 pub struct Error(anyhow::Error);
+const _: () = unsafe { expose_by_box!(Error) };
 
 /// @ingroup QkError
 /// Create a new error message.
@@ -59,12 +187,10 @@ pub struct Error(anyhow::Error);
 ///
 /// `msg` must point to nul-terminated bytes.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_error_new(msg: *const c_char) -> ptr::NonNull<Error> {
+pub unsafe extern "C" fn qk_error_new(msg: *const c_char) -> *mut Error {
     // SAFETY: per documentation, `msg` points to nul-terminated bytes.
     let msg = unsafe { CStr::from_ptr(msg) }.to_string_lossy();
-    let ptr = Box::into_raw(Box::new(Error(anyhow::Error::msg(msg))));
-    // SAFETY: `Box` is always non-null.
-    unsafe { ptr::NonNull::new_unchecked(ptr) }
+    Error(anyhow::Error::msg(msg)).into_leaked()
 }
 
 // TODO: docs
@@ -103,8 +229,8 @@ pub enum PassSlot {
 // TODO: docs
 pub struct PassVTable {
     name: String,
-    ir_in: Arc<IRVTable>,
-    ir_out: Arc<IRVTable>,
+    ir_in: Arc<dyn IRExposer>,
+    ir_out: Arc<dyn IRExposer>,
     run: unsafe extern "C" fn(
         *mut c_void,
         *mut c_void,
@@ -113,6 +239,8 @@ pub struct PassVTable {
     ) -> *mut c_void,
     delete: Option<unsafe extern "C" fn(*mut c_void) -> c_void>,
 }
+// TODO: doc.
+const _: () = unsafe { expose_by_arc!(PassVTable) };
 impl TryFrom<PassVTablePartial> for PassVTable {
     /// The first slot encountered that's required but absent.
     type Error = PassSlot;
@@ -132,8 +260,8 @@ impl TryFrom<PassVTablePartial> for PassVTable {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_pass_vtable_new(
     name: *const c_char,
-    ir_in: *const IRVTable,
-    ir_out: *const IRVTable,
+    ir_in: *const IRHandle,
+    ir_out: *const IRHandle,
     mut table: *const VTableEntry,
 ) -> *const PassVTable {
     // SAFETY: per documentation `name` is a pointer to nul-terminated `char`s.
@@ -141,10 +269,10 @@ pub unsafe extern "C" fn qk_pass_vtable_new(
         .to_string_lossy()
         .into_owned();
     // SAFETY: per documentation, `ir_in` is the valid output of an `IRVTable` constructor.
-    let ir_in = unsafe { arc_clone_from_raw(ir_in) };
+    let ir_in = unsafe { const_ptr_as_ref(ir_in) };
     // SAFETY: per documentation, `ir_out` is the valid output of an `IRVTable` constructor.
-    let ir_out = unsafe { arc_clone_from_raw(ir_out) };
-    let mut partial = PassVTablePartial::new(name, ir_in, ir_out);
+    let ir_out = unsafe { const_ptr_as_ref(ir_out) };
+    let mut partial = PassVTablePartial::new(name, Arc::clone(&ir_in.0), Arc::clone(&ir_out.0));
     loop {
         // SAFETY: per documentation, `table` is valid for reads until we see the sentinel all-ones
         // pattern in a `slot`.
@@ -164,18 +292,16 @@ pub unsafe extern "C" fn qk_pass_vtable_new(
         // SAFETY: per documentation, `ptr` is of the expected function-pointer type.
         unsafe { partial.set(slot, ptr) };
     }
-    let vtable = PassVTable::try_from(partial).unwrap();
-    Arc::into_raw(Arc::new(vtable))
+    PassVTable::try_from(partial).unwrap().into_leaked()
 }
 
 // TODO: we can very likely do a bit of macro trickery to simplify the creation of vtable objects,
 // taking care that the filled public one needs to be visible to `cbindgen`.  For initial
 // implementation, hard-coding is good enough.
-#[derive(Debug)]
 struct PassVTablePartial {
     name: String,
-    ir_in: Arc<IRVTable>,
-    ir_out: Arc<IRVTable>,
+    ir_in: Arc<dyn IRExposer>,
+    ir_out: Arc<dyn IRExposer>,
     run: Option<
         unsafe extern "C" fn(
             *mut c_void,
@@ -187,7 +313,7 @@ struct PassVTablePartial {
     delete: Option<unsafe extern "C" fn(*mut c_void) -> c_void>,
 }
 impl PassVTablePartial {
-    fn new(name: String, ir_in: Arc<IRVTable>, ir_out: Arc<IRVTable>) -> Self {
+    fn new(name: String, ir_in: Arc<dyn IRExposer>, ir_out: Arc<dyn IRExposer>) -> Self {
         Self {
             name,
             ir_in,
@@ -230,36 +356,38 @@ impl CPass {
     ///
     /// # Safety
     ///
-    /// 1. `this` must point ot data of the type that is expected by all "`this`" arguments in
+    /// 1. `this` must point to data of the type that is expected by all "`this`" arguments in
     ///    functions in the `vtable`.
     /// 2. the data pointed to by `this` must be safe to share and send between threads.
     unsafe fn new(this: *mut c_void, vtable: Arc<PassVTable>) -> Self {
         Self { this, vtable }
     }
 }
+// SAFETY: per struct documentation, the `this` pointer must be safe to send between threads.
+unsafe impl Send for CPass {}
+// SAFETY: per struct documentation, the `this` pointer must be safe to share between threads.
+unsafe impl Sync for CPass {}
 impl Pass for CPass {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
     fn ir_id_in(&self) -> DynTypeId<'_> {
-        self.vtable.ir_in.dyn_type_id()
+        self.vtable.ir_in.ir_dyn_type_id()
     }
     fn ir_id_out(&self) -> DynTypeId<'_> {
-        self.vtable.ir_out.dyn_type_id()
+        self.vtable.ir_out.ir_dyn_type_id()
     }
     fn name(&self) -> &str {
         &self.vtable.name
     }
-    fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> Result<Box<dyn Any>, PassError> {
+    fn run(&self, ir: Box<dyn IR>, context: &mut PassContext) -> Result<Box<dyn IR>, PassError> {
         let mut error = None::<ptr::NonNull<Error>>;
         let error_ptr = (&raw mut error).cast::<*mut Error>();
-        let ir_out = unsafe { (self.vtable.run)(self.this, ir, context, error_ptr) };
+        let ir_in = self.vtable.ir_in.leak(ir).cast::<c_void>();
+        let ir_out = unsafe { (self.vtable.run)(self.this, ir_in, context, error_ptr) };
         match error {
             Some(error) => {
                 let error = unsafe { Box::from_raw(error.as_ptr()) };
                 Err(PassError::Runtime(error.0))
             }
-            None => Ok(ir_out),
+            None => Ok(unsafe { self.vtable.ir_out.steal(ir_out) }),
         }
     }
 }
@@ -272,10 +400,10 @@ impl Drop for CPass {
         }
     }
 }
-// SAFETY: per struct documentation, the `this` pointer must be safe to send between threads.
-unsafe impl Send for CPass {}
-// SAFETY: per struct documentation, the `this` pointer must be safe to share between threads.
-unsafe impl Sync for CPass {}
+const _: () = unsafe { expose_by_box!(CPass) };
+
+// TODO: having everything exposed as `CPass` is awkward for a future world where we have handles to
+// built-in passes?
 
 // TODO: docs
 #[unsafe(no_mangle)]
@@ -284,8 +412,7 @@ pub unsafe extern "C" fn qk_pass_new(this: *mut c_void, vtable: *const PassVTabl
     // returns the result of `Arc::into_raw`.
     let vtable = unsafe { arc_clone_from_raw(vtable) };
     // SAFETY: per documentation, `this` points to data of the type expected by `vtable` methods.
-    let pass = unsafe { CPass::new(this, vtable) };
-    Box::into_raw(Box::new(pass))
+    (unsafe { CPass::new(this, vtable) }).into_leaked()
 }
 
 /// @ingroup QkPassManager
@@ -298,13 +425,11 @@ pub unsafe extern "C" fn qk_pass_new(this: *mut c_void, vtable: *const PassVTabl
 ///
 /// Behavior is undefined if ``pass`` is not either null or a valid pointer to a ``QkPass``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_pass_free(pass: Option<ptr::NonNull<CPass>>) {
-    if let Some(ptr) = pass {
-        // SAFETY: per documentation, `pass` points to the result of `qk_pass_new`, which returns a
-        // leaked boxed `CPass`.
-        _ = unsafe { Box::from_raw(ptr.as_ptr()) };
-    }
+pub unsafe extern "C" fn qk_pass_free(pass: *mut CPass) {
+    _ = (!pass.is_null()).then(|| unsafe { CPass::steal(pass) });
 }
+
+const _: () = unsafe { expose_by_box!(PassManager) };
 
 /// @ingroup QkPassManager
 /// Create an empty pass manager.
@@ -312,7 +437,7 @@ pub unsafe extern "C" fn qk_pass_free(pass: Option<ptr::NonNull<CPass>>) {
 /// This object must be freed by the user.
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_passmanager_new() -> *mut PassManager {
-    Box::into_raw(Box::new(PassManager::new()))
+    PassManager::new().into_leaked()
 }
 
 /// @ingroup QkPassManager
@@ -325,17 +450,7 @@ pub extern "C" fn qk_passmanager_new() -> *mut PassManager {
 /// Behavior is undefined if ``pm`` is not either null or a valid pointer to a ``QkPassManager``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_passmanager_free(pm: *mut PassManager) {
-    if !pm.is_null() {
-        if !pm.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(pm);
-        }
-    }
+    _ = (!pm.is_null()).then(|| unsafe { PassManager::steal(pm) });
 }
 
 /// @ingroup QkPassManager
@@ -353,101 +468,21 @@ pub unsafe extern "C" fn qk_passmanager_free(pm: *mut PassManager) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_passmanager_push_pass(
     pm: *mut PassManager,
-    pass: *mut PassFromC,
+    pass: *mut CPass,
 ) -> ExitCode {
     // SAFETY: per documentation the pointer is non-null and valid
     let pm = unsafe { mut_ptr_as_ref(pm) };
-    // SAFETY: per documentation the pointer is non-null and valid
-    let pass: Box<PassFromC> = unsafe { Box::from_raw(pass) };
-
-    if let Err(e) = pm.try_push_pass(pass) {
-        e.into()
-    } else {
-        ExitCode::Success
-    }
+    let pass = unsafe { CPass::steal(pass) };
+    pm.try_push_task(Task::Transformation(pass as Box<dyn Pass>))
+        .map_err(|_| ExitCode::IncompatibleTypes)
+        .err()
+        .unwrap_or(ExitCode::Success)
 }
 
-/// @ingroup QkPassManager
-/// Get a value from the local pass context.
-///
-/// @param context A pointer to the pass context to read from.
-/// @param key A char pointer to the key string.
-/// @param value A pointer to a `void *` to write the value into.
-///
-/// @return A `QkExitCode_CastingError` if the key exists but the value could not be cast
-///     to `void *`. Else `QkExitCode_Success`.
-///
-/// # Safety
-///
-/// Behavior is undefined if
-///
-/// * `context` is not a aligned, non-null pointer to a `QkPassContext`, or
-/// * `key` is not a pointer to a valid, nul-terminated character array, or
-/// * `value` is not safely writeable with a `void *`.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_pass_context_get(
-    context: *const PassContext,
-    key: *const c_char,
-    value: *mut *mut c_void,
-) -> ExitCode {
-    // SAFETY: Per documentation, `key` is a valid, nul-terminated char pointer
-    let key = unsafe { CStr::from_ptr(key) }
-        .to_str()
-        .expect("Invalid UTF-8 character")
-        .to_string();
-
-    // SAFETY: Per documentation, `context` is a valid, non-null pointer to `PassContext`
-    let context = unsafe { const_ptr_as_ref(context) };
-    if let Some(as_any) = context.get(&key) {
-        if let Some(as_void) = as_any.downcast_ref::<*mut c_void>().copied() {
-            // SAFETY: Per documentation, `value` is safe to write
-            unsafe { *value = as_void };
-            ExitCode::Success
-        } else {
-            ExitCode::CastingError
-        }
-    } else {
-        ExitCode::Success
-    }
-}
-
-/// @ingroup QkPassManager
-/// Set a value in the local pass context.
-///
-/// @param context A pointer to the pass context to read from.
-/// @param key A char pointer to the key string.
-/// @param value A pointer to write into the pass context.
-///
-/// # Safety
-///
-/// Behavior is undefined if
-///
-/// * `context` is not a aligned, non-null pointer to a `QkPassContext`
-/// * `key` is not a pointer to a valid, nul-terminated character array
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_pass_context_set(
-    context: *mut PassContext,
-    key: *const c_char,
-    value: *const c_void,
-) {
-    // SAFETY: Per documentation, `key` is a valid, nul-terminated char pointer
-    let key = unsafe { CStr::from_ptr(key) }
-        .to_str()
-        .expect("Invalid UTF-8 character")
-        .to_string();
-
-    // SAFETY: Per documentation, `context` is a valid, non-null pointer to `PassContext`
-    let context = unsafe { mut_ptr_as_ref(context) };
-    // TODO The alternative is to have some Value::CPtr(ptr) here, since storing a
-    // Box<*mut c_void> seems strange
-    context.set(key, Box::new(value))
-}
-
-#[repr(C)]
-pub struct PassManagerResult {
-    ir: *mut c_void,
-    context: *mut PassManagerContext,
-}
+// TODO: should we move the "expose" logic into the core `qiskit-passmanager` crate, and remove the
+// handles from `run_simple`?  Pro: simpler signature and less change for disagreement.  Cons: moves
+// C-specific exposure code into the core; motivates exposing the dynamic-type comparison logic to
+// C, for it to check safety.
 
 /// @ingroup QkPassManager
 /// Run the pass manager.
@@ -467,51 +502,25 @@ pub struct PassManagerResult {
 /// * `callback` is not either null or a valid pointer to a `QkCallback`, or
 /// * `result` is not a valid, non-null pointer to a `QkPassManagerResult`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_passmanager_run(
+pub unsafe extern "C" fn qk_passmanager_run_simple(
     pm: *mut PassManager,
     ir: *mut c_void,
-    result: *mut PassManagerResult,
-    // callback:
-) -> ExitCode {
+    ir_in_handle: *const IRHandle,
+    ir_out_handle: *const IRHandle,
+    error: *mut *const Error,
+) -> *mut c_void {
     // SAFETY: Per documentation, `pm` is non-null and valid
     let pm = unsafe { mut_ptr_as_ref(pm) };
-    // SAFETY: Per documentation, `result` is non-null and valid
-    let result = unsafe { mut_ptr_as_ref(result) };
-
-    match pm.run(ir) {
-        Ok((ir_out, context)) => {
-            result.ir = ir_out;
-            result.context = Box::into_raw(Box::new(context));
-            ExitCode::Success
-        }
-        Err(e) => {
-            result.ir = null_mut();
-            result.context = null_mut();
-            ExitCode::from(e)
-        }
-    }
-}
-
-/// @ingroup QkPassManager
-/// Free the pass manager context.
-///
-/// @param context A pointer to the pass manager context to free.
-///
-/// # Safety
-///
-/// Behavior is undefined if ``context`` is not either null or a valid pointer to a
-/// ``QkPassManagerContext``.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_passmanager_context_free(context: *mut PassManagerContext) {
-    if !context.is_null() {
-        if !context.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(context);
-        }
-    }
+    let ir_in_handle = unsafe { const_ptr_as_ref(ir_in_handle) };
+    let ir_out_handle = unsafe { const_ptr_as_ref(ir_out_handle) };
+    let ir = unsafe { ir_in_handle.0.steal(ir) };
+    pm.run_erased(ir)
+        .map(|(ir_out, _)| ir_out_handle.0.leak(ir_out))
+        .unwrap_or_else(|e| {
+            if !error.is_null() {
+                let e = Error(e).into_leaked();
+                unsafe { error.write(e) };
+            }
+            ptr::null_mut()
+        })
 }
