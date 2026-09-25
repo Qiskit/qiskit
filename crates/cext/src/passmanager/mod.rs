@@ -31,8 +31,6 @@ use crate::{
     },
 };
 
-type CFuncPtr = unsafe extern "C" fn() -> c_void;
-
 unsafe trait IRExposer: Send + Sync + 'static {
     fn ir_dyn_type_id(&self) -> DynTypeId<'_>;
     fn leak(&self, ob: Box<dyn IR>) -> *mut c_void;
@@ -171,7 +169,7 @@ pub struct VTableEntry {
     /// `flags`.
     ///
     /// This can be `NULL` only in the case of `slots` being the sentinel `-1`.
-    pub ptr: Option<CFuncPtr>,
+    pub ptr: *mut c_void,
 }
 
 // TODO: docs
@@ -287,10 +285,9 @@ pub unsafe extern "C" fn qk_pass_vtable_new(
             // TODO: add an envvar / global to turn on debug information in these cases?
             continue;
         };
-        // SAFETY: per documentation, `entry.ptr` is not null because `entry.slot` was not all ones.
-        let ptr = unsafe { entry.ptr.unwrap_unchecked() };
-        // SAFETY: per documentation, `ptr` is of the expected function-pointer type.
-        unsafe { partial.set(slot, ptr) };
+        // SAFETY: per documentation, `entry,ptr` is of the expected function-pointer type and valid
+        // to call, because `entry.slot` was not all-ones.
+        unsafe { partial.set(slot, entry.ptr) };
     }
     PassVTable::try_from(partial).unwrap().into_leaked()
 }
@@ -329,16 +326,16 @@ impl PassVTablePartial {
     ///
     /// `ptr` must be a valid function pointer of the type expected by the corresponding method in
     /// [`PassVTable`].
-    unsafe fn set(&mut self, slot: PassSlot, ptr: CFuncPtr) -> bool {
+    unsafe fn set(&mut self, slot: PassSlot, ptr: *mut c_void) -> bool {
         match slot {
             PassSlot::Run => {
                 // SAFETY: per documentation, caller ensures pointer type validity.
-                let ptr = unsafe { mem::transmute::<CFuncPtr, _>(ptr) };
+                let ptr = unsafe { mem::transmute::<*mut c_void, _>(ptr) };
                 self.run.replace(ptr).is_some()
             }
             PassSlot::Delete => {
                 // SAFETY: per documentation, caller ensures pointer type validity.
-                let ptr = unsafe { mem::transmute::<CFuncPtr, _>(ptr) };
+                let ptr = unsafe { mem::transmute::<*mut c_void, _>(ptr) };
                 self.delete.replace(ptr).is_some()
             }
         }
@@ -480,7 +477,7 @@ pub unsafe extern "C" fn qk_passmanager_push_pass(
 }
 
 // TODO: should we move the "expose" logic into the core `qiskit-passmanager` crate, and remove the
-// handles from `run_simple`?  Pro: simpler signature and less change for disagreement.  Cons: moves
+// handles from `run_simple`?  Pro: simpler signature and less chance for disagreement.  Cons: moves
 // C-specific exposure code into the core; motivates exposing the dynamic-type comparison logic to
 // C, for it to check safety.
 
