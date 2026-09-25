@@ -74,7 +74,7 @@ def add_control(
         num_ctrl_qubits: The number of controls to add to gate.
         label: An optional gate label.
         ctrl_state: The control state in decimal or as a bitstring
-            (e.g. '111'). If specified as a bitstring the length
+            (e.g. '111'). If specified as a bitstring, the length
             must equal num_ctrl_qubits, MSB on left. If None, use
             2**num_ctrl_qubits-1.
 
@@ -116,7 +116,7 @@ def control(
         num_ctrl_qubits: The number of controls to add to gate (default=1).
         label: An optional gate label.
         ctrl_state: The control state in decimal or as
-            a bitstring (e.g. '111'). If specified as a bitstring the length
+            a bitstring (e.g. '111'). If specified as a bitstring, the length
             must equal num_ctrl_qubits, MSB on left. If None, use
             2**num_ctrl_qubits-1.
 
