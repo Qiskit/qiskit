@@ -74,6 +74,10 @@ pub enum ExitCode {
     ParameterNameConflict = 601,
     /// QPY serialization, deserialization, or file I/O failed.
     QpyError = 700,
+    /// CustomOperation error
+    CustomOperation = 800,
+    /// Repeated vtable slot error
+    CustomOperationRepeatedSlot = 801,
 }
 
 impl From<ArithmeticError> for ExitCode {

@@ -20,6 +20,7 @@ use crate::exit_codes::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
 use crate::transpiler::target::parse_params;
 
+use bytemuck::AnyBitPattern;
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2};
 use num_complex::{Complex64, ComplexFloat};
@@ -32,8 +33,8 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
-    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, BoxedCustomOperation, DelayUnit, Operation, OperationRef, Param, PauliBased,
+    PauliProductMeasurement, PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter_table::ParameterTableError;
@@ -2901,6 +2902,98 @@ pub unsafe extern "C" fn qk_circuit_get_control_flow_instruction(
 pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControlFlowInstruction) {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a QkControlFlowInstruction
     unsafe { drop(Box::from_raw(cf_inst)) };
+}
+
+/// @ingroup QkCircuit
+/// Adds a `QkCustomOperation` into the circuit. Consuming the instance in the process.
+///
+/// The addition of this `QkCustomOperation` depends on its validity and can be rejected.
+/// If the operation's vtable points to a null pointer due to any errors during construction,
+/// or invalid input being received by ``qk_custom_operation_vtable_new``, the operation will be
+/// rejected and an `ExitCode` will be returned due to an unexpected null pointer.
+///
+/// @param circuit A pointer to the circuit object.
+/// @param operation The `QkCustomOperation` object.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``QkParam`` values to use for the operation parameters.
+///     This can be a null pointer if there are no parameters for ``operation`` (e.g. ``QkGate_H``).
+///
+/// @return an ExitCode.
+///
+/// # Safety
+///
+/// The ``qubits``, ``clbits``, and ``params`` types are expected to be a pointer to an
+/// array of ``uint32_t`` (for ``qubits``, ``clbits``) or  ``QkParam`` (for ``params``)
+/// where the length is matching the expectations for the standard operation. If the array is
+/// insufficiently long the behavior of this function is undefined as this will read
+/// outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given operation.
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_add_custom_operation(
+    circuit: *mut CircuitData,
+    operation: *mut BoxedCustomOperation,
+    qubits: *const u32,
+    clbits: *const u32,
+    params: *mut *mut Param,
+) -> ExitCode {
+    // SAFETY: This pointer is non-null and aligned.
+    let boxed: Box<BoxedCustomOperation> = unsafe { Box::from_raw(operation) };
+    let op: PackedOperation = boxed.into();
+
+    let circ = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let qargs = unsafe { cast_to_bit_slice(qubits, op.num_qubits() as usize) };
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let cargs = unsafe { cast_to_bit_slice(clbits, op.num_clbits() as usize) };
+
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let params = unsafe { ptr_to_params_owned(params, op.num_params() as usize) };
+
+    let ret = circ.push_packed_operation(op, params, qargs, cargs);
+    match ret {
+        Ok(()) => ExitCode::Success,
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
+        }
+        Err(_) => ExitCode::ParameterError,
+    }
+}
+
+/// Casts a pointer of u32s to a slace of circuit bits.
+pub(crate) unsafe fn cast_to_bit_slice<'a, T: From<u32> + AnyBitPattern>(
+    bits: *const u32,
+    len: usize,
+) -> &'a [T] {
+    let bits = if !bits.is_null() {
+        unsafe { std::slice::from_raw_parts(bits, len) }
+    } else {
+        Default::default()
+    };
+    bytemuck::cast_slice(bits)
+}
+
+/// Clones a list of parameters from a raw pointer to a [`Param`] array.
+pub(crate) unsafe fn ptr_to_params_owned<B>(
+    params: *mut *mut Param,
+    len: usize,
+) -> Option<Parameters<B>> {
+    if params.is_null() || len == 0 {
+        None
+    } else {
+        let params = unsafe { std::slice::from_raw_parts(params, len) };
+        Some(Parameters::Params(
+            params
+                .iter()
+                .map(|param| unsafe { const_ptr_as_ref(*param) }.clone())
+                .collect(),
+        ))
+    }
 }
 
 #[cfg(test)]

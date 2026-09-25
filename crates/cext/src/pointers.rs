@@ -232,7 +232,6 @@ pub(crate) unsafe fn mut_ptr_as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
 ///
 /// `ptr` must be the result of a call to [`Arc<T>::into_raw`] and still be valid to pass to
 /// [`Arc::from_raw`].
-#[expect(dead_code)] // Whichever PR using this that merges first to remove.
 pub unsafe fn arc_clone_from_raw<T: ?Sized>(ptr: *const T) -> Arc<T> {
     // SAFETY: per documentation, `ptr` is from `Arc::into_raw` and still valid.
     unsafe { Arc::increment_strong_count(ptr) };
