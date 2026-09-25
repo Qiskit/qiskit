@@ -1,0 +1,12 @@
+---
+upgrade_qpy:
+  - Deserializing QPY payload formats 10 through 12 with :func:`qpy.load` that contain any
+    :class:`.ParameterExpression` objects when the payload is using
+    ``symengine`` expression encoding now also requires the ``sympy`` optional
+    dependency to be installed. The optional extra ``qpy_compat`` which is used to install
+    the optional dependencies that are needed for loading older payload formats already installs
+    this.
+  - Using :func:`qpy.load` to deserializing QPY payload formats < 10 and QPY formats 10 through
+    12 with ``sympy`` expression encoding no longer requires ``sympy`` to be installed. Previously
+    the ``sympy`` was required to recreate any :class:`.ParameterExpression`
+    objects in the payload, but starting in this release they are directly created from the payload.
