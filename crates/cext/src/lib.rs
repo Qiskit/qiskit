@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod dyn_types;
 mod extras;
 mod pointers;
 #[cfg(feature = "python_binding")]
@@ -21,6 +20,7 @@ pub mod circuit_library;
 pub mod classical_expr;
 pub mod control_flow;
 pub mod dag;
+pub mod dyn_types;
 pub mod exit_codes;
 pub mod param;
 pub mod qpy;

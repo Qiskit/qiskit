@@ -81,6 +81,8 @@ pub static QISKIT_PUBLIC_API_CRATES: &[&str] =
     &["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"];
 
 pub static EXPORT_PREFIX: &str = "Qk";
+// Includes that cbindgen wouldn't otherwise emit.
+pub static EXPORT_INCLUDE: &[&str] = &["VTableEntry"];
 pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CBlocksMode", "BlocksMode"),
     ("CDagNeighbors", "DagNeighbors"),
@@ -203,10 +205,12 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
             .iter()
             .map(|&k| (String::from(k), String::from(k))),
     );
+    let include = EXPORT_INCLUDE.iter().copied().map(String::from).collect();
     let export = cbindgen::ExportConfig {
         prefix: Some(EXPORT_PREFIX.into()),
         rename,
         renaming_overrides_prefixing: true,
+        include,
         ..Default::default()
     };
     let function = cbindgen::FunctionConfig {

@@ -13,6 +13,7 @@
 //! Additional tools for working with the dynamic runtime-type information system across the C FFI.
 
 use qiskit_util::dyn_types::DynTypeId;
+use std::ffi::c_void;
 
 /// Define behavior for sending and receiving `dyn Trait` objects across the C FFI boundary.
 ///
@@ -125,3 +126,32 @@ macro_rules! make_static_trait_exposer {
 }
 #[expect(unused_imports)]
 pub use make_static_trait_exposer;
+
+/// @ingroup dynamic-types
+/// An entry in a vtable for defining objects with custom behavior.
+///
+/// This same structure is used in several places when defining "custom behavior" for objects
+/// dynamically at runtime of your C program.  The valid values of `slot`, `flag` and the
+/// function-pointer type of `ptr` will vary based on the context you are passing it to.
+///
+/// Typically, you will defining program statics of tables of these, terminating in the sentinel
+/// value `{-1, 0, NULL}`.  Various Qiskit C API functions will take arguments of this form, and
+/// return a "vtable" handle back, which can then be used to define "instances" of the object with
+/// this attached behavior.
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct VTableEntry {
+    /// The "slot" of the function, or the sentinel `(uint32_t)-1` to mark the final array entry.
+    ///
+    /// This is typically set to some `enum` value, where the particular `enum` varies depending on
+    /// which vtable you are defining.
+    pub slot: u32,
+    /// Any additional "flags" for the particular table entry.  These will typically be or'd (`|`)
+    /// together, and the valid set of flags will be documented by the table user.
+    pub flags: u32,
+    /// A function pointer implementing the correct signature for the combination of the `slot` and
+    /// `flags`.
+    ///
+    /// This can be `NULL` only in the case of `slots` being the sentinel `-1`.
+    pub ptr: *mut c_void,
+}
