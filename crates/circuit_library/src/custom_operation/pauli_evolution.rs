@@ -48,7 +48,7 @@ impl PauliEvolution {
     ///
     /// # Errors
     ///
-    /// Returns an error if `time` isn't a float value or expression.
+    /// Returns an error if `time` isn't a float or expression.
     pub fn new(hermitian: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
         if matches!(time, Param::Float(_) | Param::ParameterExpression(_)) {
             Ok(Self {
