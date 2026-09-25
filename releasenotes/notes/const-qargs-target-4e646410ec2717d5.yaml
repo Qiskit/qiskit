@@ -1,9 +1,6 @@
 ---
-upgrade_c:
+fixes:
   - |
-    The ``qargs`` parameter of ``qk_target_entry_add_property`` and
-    ``qk_target_update_property`` is now ``const uint32_t *`` rather than
-    ``uint32_t *``.  Neither function modifies the array, so this matches the
-    rest of the C API, where qubit-index inputs are already ``const``.
-    Existing C code continues to compile unchanged; callers that previously had
-    to cast away constness to pass a ``const`` array no longer need to.
+    The ``qargs`` parameter is now correctly marked as ``const``
+    (``const uint32_t *``) in both ``qk_target_entry_add_property``
+    and ``qk_target_update_property``.
