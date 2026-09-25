@@ -617,7 +617,7 @@ pub fn unpack_py_instruction(
     let mut py_params: Vec<Bound<PyAny>> = instruction_values
         .iter()
         .map(|value| -> Result<_, QpyError> {
-            generic_value_to_param(value)?
+            generic_value_to_param(value, qpy_data)?
                 .into_pyobject(py)
                 .map_err(QpyError::from)
         })
@@ -783,7 +783,7 @@ pub fn unpack_custom_instruction(
     let py_params: Vec<Bound<PyAny>> = instruction_values
         .iter()
         .map(|value| -> Result<_, QpyError> {
-            generic_value_to_param(value)?
+            generic_value_to_param(value, qpy_data)?
                 .into_pyobject(py)
                 .map_err(QpyError::from)
         })

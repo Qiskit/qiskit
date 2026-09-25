@@ -2359,6 +2359,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-circuit-library",
+ "qiskit-qpy",
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
@@ -2401,6 +2402,7 @@ dependencies = [
  "num-traits",
  "numpy",
  "pyo3",
+ "qiskit-passmanager",
  "qiskit-quantum-info",
  "qiskit-util",
  "rayon",
@@ -2438,6 +2440,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiskit-passmanager"
+version = "2.6.0-dev"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "qiskit-circuit",
+ "qiskit-transpiler",
+ "smallvec",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "qiskit-providers"
 version = "2.6.0-dev"
 dependencies = [
@@ -2446,6 +2460,7 @@ dependencies = [
  "ndarray",
  "num-complex",
  "num-traits",
+ "qiskit-circuit",
  "rustworkx-core",
  "thiserror 2.0.20",
 ]
