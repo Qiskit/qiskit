@@ -28,9 +28,8 @@ use qiskit_util::dyn_types::DynTypeId;
 /// # Safety
 ///
 /// The [`leak`](Self::leak) and [`steal`](Self::steal) functions must agree on the type
-/// constructed, and this type must use
-/// the same [`DynTypeId`] as produced by the [`object_dyn_type_id`](Self::object_dyn_type_id)
-/// function.
+/// constructed, and this type must use the same [`DynTypeId`] as produced by the
+/// [`object_dyn_type_id`](Self::object_dyn_type_id) function.
 ///
 /// Other unsafe FFI code relies on the correctness and soundness of this trait to avoid undefined
 /// behavior across the FFI boundary.
@@ -39,6 +38,11 @@ pub unsafe trait DynTraitExposer<Trait: ?Sized>: Send + Sync + 'static {
     /// [`steal`](Self::steal) and consumed by [`leak`](Self::leak).
     fn object_dyn_type_id(&self) -> DynTypeId<'_>;
     /// Leak the raw data pointer of `ob` to a type-erased C pointer.
+    ///
+    /// # Panics
+    ///
+    /// Implementers of the trait may assume that `ob` will always downcast to the known concrete
+    /// type expected by the base object.
     fn leak(&self, ob: Box<Trait>) -> *mut ::std::ffi::c_void;
     /// Steal the ownership of the raw data pointer `ptr`, and combine it with the necessary dynamic
     /// trait vtables to produce a complete [`Box<dyn T>`] object.
@@ -66,24 +70,24 @@ pub unsafe trait DynTraitExposer<Trait: ?Sized>: Send + Sync + 'static {
 /// implementation.
 #[macro_export]
 macro_rules! make_static_trait_exposer {
-    ($vis:vis struct $ty:ident<T> for dyn $trait:ident) => {
+    ($vis:vis struct $ty:ident<$T:ident> for dyn $trait:ident) => {
         /// A zero-sized marker struct for implementing
         /// [`DynTraitExposer`](qiskit_cext::dyn_types::DynTraitExposer) for
         #[doc = concat!("[`", stringify!($trait), "`].")]
         #[derive(Debug)]
-        $vis struct $ty<T>(::std::marker::PhantomData<T>);
-        impl<T> $ty<T> {
+        $vis struct $ty<$T>(::std::marker::PhantomData<$T>);
+        impl<$T> $ty<$T> {
             $vis const fn new() -> Self {
                 Self(::std::marker::PhantomData)
             }
         }
-        impl<T> ::std::clone::Clone for $ty<T> {
+        impl<$T> ::std::clone::Clone for $ty<$T> {
             fn clone(&self) -> Self {
                 *self
             }
         }
-        impl<T> ::std::marker::Copy for $ty<T> {}
-        impl<T> ::std::default::Default for $ty<T> {
+        impl<$T> ::std::marker::Copy for $ty<$T> {}
+        impl<$T> ::std::default::Default for $ty<$T> {
             fn default() -> Self {
                 Self::new()
             }
@@ -91,13 +95,13 @@ macro_rules! make_static_trait_exposer {
 
         // SAFETY: since `T` is static, we easily make all the required methods agree simply by
         // having the compiler fill in the correct information statically.
-        unsafe impl<T> $crate::dyn_types::DynTraitExposer<dyn $trait> for $ty<T>
-        where T: $trait
+        unsafe impl<$T> $crate::dyn_types::DynTraitExposer<dyn $trait> for $ty<$T>
+        where $T: $trait
             + ::qiskit_util::dyn_types::StaticDynTyped
-            + $crate::pointers::ExposesOwnedPointers<Owner = ::std::boxed::Box<T>>
+            + $crate::pointers::ExposesOwnedPointers<Owner = ::std::boxed::Box<$T>>
         {
             fn object_dyn_type_id(&self) -> ::qiskit_util::dyn_types::DynTypeId<'_> {
-                T::static_dyn_type_id()
+                $T::static_dyn_type_id()
             }
             fn leak(&self, ob: ::std::boxed::Box<dyn $trait>) -> *mut ::std::ffi::c_void {
                 use std::{any::Any, boxed::Box};
@@ -108,12 +112,12 @@ macro_rules! make_static_trait_exposer {
                     self.object_dyn_type_id()
                 );
                 let typed = (ob as Box<dyn Any>)
-                    .downcast::<T>()
+                    .downcast::<$T>()
                     .expect("caller should ensure correct type");
-                T::leak(typed).cast()
+                $T::leak(typed).cast()
             }
             unsafe fn steal(&self, ptr: *mut ::std::ffi::c_void) -> ::std::boxed::Box<dyn $trait> {
-                (unsafe { T::steal(ptr.cast()) }) as ::std::boxed::Box<dyn $trait>
+                (unsafe { $T::steal(ptr.cast()) }) as ::std::boxed::Box<dyn $trait>
             }
         }
     };
