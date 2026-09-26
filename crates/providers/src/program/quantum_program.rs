@@ -154,16 +154,15 @@ pub enum ProgramEvalError {
     Function(#[from] FunctionEvalError),
 }
 
-/// A collection of [`ProgramFunction`]s.
+/// A program describing a quantum computation.
 ///
-/// A caller to this program provides a [`DataTree`] of tensor inputs arranged in the format
-/// prescribed by [`input_types`](Self::input_types), and receives back the resulting tensors as
-/// prescribed by [`output_types`](Self::output_types).
+/// A collection of [`ProgramFunction`]s, each of which is a list of instructions with semantics defined by
+/// [`ProgramOp`] implementations.
 ///
-/// A function may call one defined before it but not after it, through
-/// [`ProgramFunction::add_call`]. The last function is the entry point to the program, so
-/// definition order is also an execution order. This type has no builder; [`Self::new`] is its
-/// only constructor.
+/// Input is specified as a [`DataTree`] of tensor inputs arranged as [`input_types`](Self::input_types),
+/// and returns tensors arranged as [`output_types`](Self::output_types).
+///
+/// The last function is the entry point by convention.
 ///
 /// # Example
 /// ```rust
@@ -211,8 +210,8 @@ impl QuantumProgram {
     /// Assemble `functions` into a program whose inputs and outputs are arranged as
     /// `input_structure` and `output_structure`.
     ///
-    /// The last of `functions` is the entry point, and the structures describe its slots: a
-    /// structure's leaves correspond to them by DFS order.
+    /// The last of `functions` is the entry point, and the structures describe its slots. A
+    /// structure's leaves correspond to them in DFS order.
     ///
     /// Function calls are checked for type compatibility.
     pub fn new(
@@ -292,18 +291,16 @@ impl QuantumProgram {
         )
     }
 
-    /// Whether every instruction in every function has a built-in evaluation.
-    ///
-    /// In other words, whether [`eval`](Self::eval) is expected to work.
+    /// Whether every instruction in every function has a built-in evaluation; whether
+    /// [`eval`](Self::eval) can run.
     pub fn has_builtin_eval(&self) -> bool {
         self.first_without_builtin_eval().is_none()
     }
 
     /// Evaluate the program on a tree of inputs, returning a tree of outputs.
     ///
-    /// `inputs` must be arranged as [`input_structure`](Self::input_structure) dictates, which is
-    /// checked before anything is evaluated, and the results are formatted according to
-    /// [`output_structure`](Self::output_structure).
+    /// `inputs` must be arranged as [`input_structure`](Self::input_structure), checked
+    /// before evaluation. The results are arranged as [`output_structure`](Self::output_structure).
     pub fn eval(&self, inputs: DataTree<Tensor>) -> Result<DataTree<Tensor>, ProgramEvalError> {
         let actual = inputs.structure();
         if actual != self.input_structure {
@@ -327,8 +324,6 @@ impl QuantumProgram {
     }
 
     /// The first instruction of any function that has no built-in evaluation.
-    ///
-    /// A call instruction is skipped; the function it names is checked in its own right.
     fn first_without_builtin_eval(&self) -> Option<(FunctionId, InstructionRef<'_>)> {
         self.functions
             .iter()
@@ -488,12 +483,12 @@ mod test {
         function
     }
 
-    /// `[x: _, y: _]` — names for [`add_function`]'s two parameters.
+    /// Names for [`add_function`]'s two parameters: `[x: _, y: _]`.
     fn named_inputs() -> DataTree<()> {
         DataTree::mapping([("x", DataTree::Leaf(())), ("y", DataTree::Leaf(()))]).unwrap()
     }
 
-    /// `[x: _, y: [_]]` — the same two inputs, with the second one declared nested.
+    /// The same two inputs with the second one declared nested: `[x: _, y: [_]]`.
     fn nested_inputs() -> DataTree<()> {
         DataTree::mapping([
             ("x", DataTree::Leaf(())),
@@ -502,7 +497,7 @@ mod test {
         .unwrap()
     }
 
-    /// `[sum: _]` — a name for [`add_function`]'s one result.
+    /// A name for [`add_function`]'s one result: `[sum: _]`.
     fn named_output() -> DataTree<()> {
         DataTree::mapping([("sum", DataTree::Leaf(()))]).unwrap()
     }
@@ -1098,9 +1093,7 @@ mod test {
         ));
     }
 
-    /// An op defined outside the crate whose `eval` always fails, reporting `builtin` for
-    /// [`ProgramOp::has_builtin_eval`]. A backend contributes work Qiskit cannot perform with
-    /// `builtin` false; with it true, the failure lands in the middle of a walk.
+    /// An op defined outside the crate whose `eval` always fails.
     #[derive(Clone)]
     struct Elsewhere {
         builtin: bool,

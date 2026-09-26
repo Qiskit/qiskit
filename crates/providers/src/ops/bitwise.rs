@@ -101,10 +101,6 @@ impl ProgramOp for BitwiseNot {
 }
 
 /// XOR-reduction of a `Bit` tensor along a specified axis, removing that axis.
-///
-/// The parity of a sequence of bits is 1 if an odd number of bits are 1, and 0 otherwise,
-/// which is equivalent to XOR-folding the sequence. The output has one fewer dimension than
-/// the input, with the reduction axis removed.
 #[derive(Clone)]
 pub struct Parity {
     axis: usize,
@@ -134,7 +130,6 @@ impl ProgramOp for Parity {
     }
     fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
         crate::unpack_operands!(self, inputs, [x]);
-        // Folding bits with exclusive-or leaves them bits, so the result dtype is the operand's.
         Ok(vec![reduce(x, self.axis, is_bit, |dtype| dtype)?])
     }
     fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
@@ -227,7 +222,6 @@ mod tests {
 
     #[test]
     fn test_bitwise_not_forwards_a_bounded_axis() {
-        // Unary and elementwise, so no size is needed to forward the axis.
         let bounded = TensorType {
             dtype: DType::Bit,
             shape: vec![Dim::Bounded { max: 8 }],
@@ -254,8 +248,6 @@ mod tests {
 
     #[test]
     fn test_a_non_bit_operand_is_rejected_naming_both_dtypes() {
-        // `Bit` is the bottom of the promotion lattice, so two operands promote to `Bit` exactly
-        // when both are `Bit`. Anything else lands on a dtype no bitwise operation implements.
         let f64_1 = TensorType {
             dtype: DType::F64,
             shape: vec![Dim::Fixed(1)],
@@ -274,7 +266,6 @@ mod tests {
 
     #[test]
     fn test_bitwise_not_names_the_operand_it_rejects() {
-        // Unary, so there is no promotion to speak of and the offending operand can be named.
         let f64_1 = TensorType {
             dtype: DType::F64,
             shape: vec![Dim::Fixed(1)],

@@ -17,9 +17,6 @@ use ndarray::{ArcArrayD, IxDyn, Zip};
 use super::TensorError;
 
 /// Pair up the axes of two shapes, right-aligned, padding the shorter one with `pad`.
-///
-/// This is the axis correspondence NumPy-style broadcasting uses, shared by [`broadcast_shape`] and
-/// [`broadcast_dims`](super::broadcast_dims) so that the two agree on which axes meet.
 pub(super) fn align_axes<'a, T: Copy>(
     a: &'a [T],
     b: &'a [T],
@@ -53,9 +50,8 @@ pub fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>, TensorErr
 
 /// Element-wise binary operation on two arrays with NumPy-style broadcasting.
 ///
-/// Unlike ndarray's built-in arithmetic operators which handle broadcasting automatically,
-/// this helper is needed for operations without a Rust operator (e.g. `pow`). Returns
-/// [`TensorError::ShapeMismatch`] if the operand shapes are not broadcast-compatible.
+/// ndarray's arithmetic operators broadcast on their own, so this is for an operation with no Rust
+/// operator, such as `pow`.
 pub(super) fn broadcast_elementwise<T, F>(
     a: &ArcArrayD<T>,
     b: &ArcArrayD<T>,

@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! The static counterpart of a tensor: a dtype paired with a shape of per-axis sizes.
+//! The static counterpart of a tensor.
 
 use std::fmt;
 
@@ -33,7 +33,7 @@ impl Dim {
     /// Whether every size `offered` allows is a size this dimension allows.
     ///
     /// A fixed dimension allows only its own size. Broadcasting, where a size of `1` stands for any
-    /// size, is [`rules::broadcast_dims`].
+    /// size, is [`broadcast_dims`].
     pub fn admits(self, offered: Dim) -> bool {
         match (self, offered) {
             (Dim::Fixed(n), Dim::Fixed(m)) => n == m,
@@ -76,17 +76,15 @@ pub fn require_static(shape: &[Dim]) -> Result<Vec<usize>, TensorError> {
 
 /// Compute the type-level NumPy-style broadcast shape for two operand shapes.
 ///
-/// This is the [`Dim`]-level counterpart of [`broadcast_shape`](super::broadcast_shape), predicting
-/// a result shape from operand shapes with no tensor data in hand. Over fixed axes the rules are
-/// exactly `broadcast_shape`'s:
+/// This is the [`Dim`]-level counterpart of [`broadcast_shape`](super::broadcast_shape).
 ///
 /// - `Fixed(1)` broadcasts against anything.
 /// - `Fixed(m)` against `Fixed(n)` with `m != n`, neither of them `1`, is
 ///   [`TensorError::DimShapeMismatch`].
 ///
 /// A [`Dim::Bounded`] axis passes through where it meets a size of `1`, including the implicit `1`s
-/// that pad the shorter shape. Anywhere else it would have to be compared against the size it meets,
-/// which needs its true size, so it is [`TensorError::DynamicDim`].
+/// that pad the shorter shape. Anywhere else it is [`TensorError::DynamicDim`], since comparing it
+/// against the size it meets needs its true size.
 pub fn broadcast_dims(a: &[Dim], b: &[Dim]) -> Result<Vec<Dim>, TensorError> {
     align_axes(a, b, Dim::Fixed(1))
         .map(|pair| match pair {
@@ -144,8 +142,7 @@ impl TensorType {
 
     /// Whether every tensor satisfying `other` also satisfies this type.
     ///
-    /// A value of type `other` already fits this one, rather than fitting after broadcasting. It is
-    /// [`Tensor::matches`](super::Tensor::matches) with a type in place of the tensor.
+    /// This is the type-level counterpart of [`Tensor::matches`](super::Tensor::matches).
     pub fn admits(&self, other: &TensorType) -> bool {
         self.dtype == other.dtype
             && self.shape.len() == other.shape.len()
@@ -157,7 +154,7 @@ impl TensorType {
     }
 }
 
-/// Render as `F64[4000, <=2]`, so that a type can be named in an error a caller reads.
+/// Render as `F64[4000, <=2]`.
 impl fmt::Display for TensorType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.dtype, fmt_shape(&self.shape))
@@ -168,7 +165,6 @@ impl fmt::Display for TensorType {
 mod test {
     use super::*;
 
-    /// A `TensorType` over `shape`; the dtype is irrelevant to every test that uses this.
     fn bit_type(shape: Vec<Dim>) -> TensorType {
         TensorType {
             dtype: DType::Bit,

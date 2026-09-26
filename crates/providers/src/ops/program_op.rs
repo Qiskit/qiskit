@@ -17,11 +17,10 @@ use crate::tensor::{Tensor, TensorType};
 /// The [`ProgramOp::namespace`] of every op Qiskit defines.
 pub const QISKIT: &str = "qiskit";
 
-/// Destructure an op's operands into one binding each, panicking if the count is wrong.
+/// Destructure an op's operands, panicking if the count is wrong.
 ///
-/// The panic should be unreachable when the op is part of a
-/// [`ProgramFunction`](crate::ProgramFunction), because static analysis is done while inserting
-/// ops.
+/// The panic is unreachable for an op held by a [`ProgramFunction`](crate::ProgramFunction), which
+/// checks the count as the op is added.
 #[macro_export]
 macro_rules! unpack_operands {
     ($op:expr, $operands:expr, [$($name:ident),+ $(,)?]) => {
@@ -39,18 +38,17 @@ macro_rules! unpack_operands {
 
 /// An atomic operation in a quantum program: a typed mapping from tensors to tensors.
 ///
-/// An op declares how many operands it takes ([`Self::arity`]) and how to derive its result types
-/// from prospective input types ([`Self::infer_output_types`]). Operands and results are flat and
-/// positional, and inference is monomorphic: given operand types the op accepts, its result types
-/// are determined.
+/// An op declares how many operands it takes ([`Self::arity`]) and how its result types follow from
+/// prospective operand types ([`Self::infer_output_types`]). Operands and results are flat and
+/// positional, and inference is monomorphic: operand types the op accepts determine its result
+/// types exactly.
 ///
 /// An op may have a payload of its own, such as "which axis" information in
 /// [`Mean`](crate::ops::Mean), quantum circuit instances in [`ShotLoop`](crate::ops::ShotLoop), or
 /// a tensor in [`Constant`](crate::ops::Constant).
 ///
-/// An op can optionally implement [`Self::eval`] to explicitly perform the tensor manipulation
-/// that it represents, declaring its choice to do so or not in [`Self::has_builtin_eval`].
-/// `QuantumProgram` offers call options to enable externally-defined evaluations.
+/// An op may implement [`Self::eval`] to perform the tensor manipulation it represents, and
+/// [`Self::has_builtin_eval`] reports whether it does. An op without one is evaluated by a backend.
 ///
 /// An op defined outside this crate lives in its own [`Self::namespace`] and is treated like
 /// any other.
@@ -79,14 +77,9 @@ pub trait ProgramOp {
 
     /// Infer the types of this op's results from the types of its operands.
     ///
-    /// This runs when the op is added to a program function, and is the primary mechanism
-    /// to ensure all quantum programs and the functions they contain are well-defined at
-    /// all times. The inferred type returned by this method becomes the value type checked by
-    /// subsequent ops.
-    ///
-    /// When several ops happen to share output type inference rules, they are typically made
-    /// common in [`tensor::rules`](crate::tensor::rules). For example, binary arithmetic operations
-    /// share the same broadcasting and type promotion rules.
+    /// This runs when the op is added to a program function, so that every program and every
+    /// function it owns is well-defined at all times. The types returned here are the ones later
+    /// ops are checked against.
     ///
     /// # Panics
     ///
@@ -95,11 +88,10 @@ pub trait ProgramOp {
 
     /// Evaluate this op on `args`, returning one tensor per result.
     ///
-    /// The returned tensors match, in count and type, what [`Self::infer_output_types`] promised
-    /// for the corresponding operand types. Run time errors should be a last resort: a division op
-    /// returns non-finite values for a zero divisor rather than failing, because data from
-    /// elsewhere in the program may still be usable. An op whose [`Self::has_builtin_eval`] is
-    /// false always returns an error.
+    /// The returned tensors match, in count and type, what [`Self::infer_output_types`] returns
+    /// the corresponding operand types. An error is a last resort: for example, a division op returns non-finite
+    /// values for a zero divisor rather than failing, so that the rest of the program's data stays
+    /// usable. An op whose [`Self::has_builtin_eval`] is false always returns an error.
     ///
     /// # Panics
     ///
@@ -159,7 +151,7 @@ where
 }
 
 impl dyn ErasedProgramOp + 'static {
-    /// Downcast a type-erased program op into the specific program op it actually is.
+    /// Downcast a type-erased program op to the concrete op it holds.
     pub fn downcast_ref<O: ProgramOp + 'static>(&self) -> Option<&O> {
         (self as &dyn std::any::Any).downcast_ref()
     }
@@ -179,7 +171,7 @@ mod sealed {
     /// Copying an op through a trait object.
     ///
     /// [`Clone`] is not dyn-compatible, because it returns `Self`. This trait is sealed and blanket
-    /// implemented, so an implementor supplies nothing but `Clone`.
+    /// implemented, so an implementor supplies only `Clone`.
     #[diagnostic::on_unimplemented(
         message = "Clone is required to store {Self} in a program function",
         note = "Consider annotating {Self} with `#[derive(Clone)]`"

@@ -84,11 +84,7 @@ pub enum InstructionRole {
     Result,
 }
 
-/// What an instruction is, and what it holds.
-///
-/// An instruction has a [`ProgramOp`] only in the [`Op`](Self::Op) case and a callee only in the
-/// [`Call`](Self::Call) case, so this answers what [`InstructionRole`] answers and hands over the
-/// payload as well.
+/// View of an instruction.
 #[derive(Clone, Copy)]
 pub enum InstructionView<'a> {
     /// A function input, supplied by the caller.
@@ -152,8 +148,8 @@ impl<'a> InstructionView<'a> {
         match self {
             Self::Parameter | Self::Result => true,
             Self::Op(op) => op.has_builtin_eval(),
-            // A call is evaluated by the program holding its callee, so a function that contains
-            // one cannot be evaluated on its own.
+            // A call is evaluated by the program holding its callee, so a function containing one
+            // cannot be evaluated on its own.
             Self::Call(_) => false,
         }
     }
@@ -191,18 +187,13 @@ impl InstructionBody {
 /// One instruction of a function: what it is, what it reads, and what it produces.
 struct ProgramInstruction {
     body: InstructionBody,
-    /// The values this instruction consumes, in operand order. There are always
-    /// [`InstructionView::arity`] of them, so a half-wired instruction cannot be represented, and
-    /// this is the only record of how the function is connected.
+    /// The values this instruction consumes, in operand order.
     operands: Vec<Value>,
     /// The types inference produced for this instruction's results, one per result.
     output_types: Vec<TensorType>,
 }
 
 /// A read-only view of one instruction of a [`ProgramFunction`].
-///
-/// This holds the function as well as the instruction, because an instruction's operand types live
-/// on the instructions that produce them and so cannot be read from the instruction alone.
 #[derive(Clone, Copy)]
 pub struct InstructionRef<'a> {
     function: &'a ProgramFunction,
@@ -348,8 +339,7 @@ pub enum FunctionEvalError {
         source: BoxedOpError,
     },
 
-    /// A function reached through a call instruction failed. The chain of these leads from the
-    /// entry point to the function that could not be evaluated.
+    /// A function reached through a call instruction failed.
     #[error("evaluating the call at instruction {instruction} to {callee}")]
     CallFailed {
         instruction: InstructionId,
@@ -358,9 +348,7 @@ pub enum FunctionEvalError {
         source: Box<FunctionEvalError>,
     },
 
-    /// An instruction's `eval` returned a different number of tensors than its type inference
-    /// promised when it was added. This is a bug in the instruction; it cannot be caught
-    /// statically, because instructions are stored type-erased.
+    /// An instruction's `eval` returned a different number of tensors than its type inference expected.
     #[error("instruction {instruction} returned {actual} result(s), expected {expected}")]
     ResultArityMismatch {
         instruction: InstructionId,
@@ -377,18 +365,13 @@ pub enum FunctionEvalError {
 ///  * call: a call to another function defined in a [`QuantumProgram`](super::QuantumProgram)
 ///  * op: some atomic operation represented as a [`ProgramOp`]
 ///
-/// Each instruction has some number of operands, and an instruction can only be added when values
-/// exist in the graph to assign to the operands; the first instruction added must have arity `0`,
-/// such as a parameter or [`Constant`](crate::ops::Constant) instruction. Values are specified
-/// using [`Value`] which is a struct containing the index of an existing instruction along with an
-/// index of one of its output slots.
+/// An operand is a [`Value`], which names an existing instruction and one of its output slots. An
+/// instruction can be added only once every value it uses exists.
 ///
-/// Type compatibility of values and the operands of the instructions that act on them is checked
-/// when adding the instruction. This implies that a `ProgramFunction` cannot be malformed by
-/// construction. A call instruction is the exception: its contract is checked against the function
-/// it names when a [`QuantumProgram`](super::QuantumProgram) is assembled. Also by construction,
-/// this data model is SSA compliant and the stored instruction order is topological with respect to
-/// evaluation.
+/// Operand types are checked against the instruction as it is added, so a `ProgramFunction` cannot
+/// be malformed by construction. A call instruction is the exception: its contract is checked against
+/// the function it names when a [`QuantumProgram`](super::QuantumProgram) is assembled. Because of SSA
+/// discipline, instruction order is a valid execution order.
 pub struct ProgramFunction {
     /// Every instruction, indexed by [`InstructionId`].
     instructions: Vec<ProgramInstruction>,
@@ -472,10 +455,8 @@ impl ProgramFunction {
 
     /// Invoke `callee` on `operands`, returning the values it produces in result order.
     ///
-    /// You must know the eventual function ID within a [`QuantumProgram`](super::QuantumProgram)
-    /// and its signature to call this method. Therefore, this method is most useful to callers who
-    /// are in the process of building a program. One function may be called from any number of
-    /// sites.
+    /// The caller supplies the id `callee` will have within its
+    /// [`QuantumProgram`](super::QuantumProgram).
     pub fn add_call(
         &mut self,
         callee: FunctionId,
@@ -616,10 +597,7 @@ impl ProgramFunction {
 
     /// Evaluate this function against `args`, one per parameter in declaration order.
     ///
-    /// This eval method provides no mechanism to pass in external evaluation closures,
-    /// so will ultimately raise a runtime error if an instruction without a built-in evaluation
-    /// is encountered. This includes, for example, all function calls and the shot-loop
-    /// instruction.
+    /// Fails when any instruction has no built-in evaluation implementation.
     pub fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, FunctionEvalError> {
         // The function is monomorphic, so its declared parameter types are the only ones its
         // instructions were built for. Checking them here names the argument the caller supplied.
@@ -647,11 +625,8 @@ impl ProgramFunction {
         self.walk(args, functions)
     }
 
-    /// Walk the instructions in storage order, which is topological, over a single dense
-    /// environment, releasing each intermediate once its last consumer has run.
-    ///
-    /// A call's arguments are not checked against the callee's parameter types: assembling the
-    /// program established that those types admit the operand types wired to the call.
+    /// Walk the instructions in storage order over a single dense environment, releasing each intermediate
+    /// once its last consumer has run.
     fn walk(
         &self,
         args: &[Tensor],
@@ -798,12 +773,7 @@ impl ProgramFunction {
         Ok(())
     }
 
-    /// Where each instruction's block of values starts in a dense environment, with the total
-    /// appended.
-    ///
-    /// This is the flat value numbering [`Self::eval`] uses, derived when it is needed rather than
-    /// stored: an instruction's values are already grouped by their producer, so the offsets are
-    /// one prefix sum away.
+    /// Where each instruction's block of values starts in a dense environment.
     fn value_offsets(&self) -> Vec<u32> {
         let mut offsets = Vec::with_capacity(self.instructions.len() + 1);
         let mut total = 0;
@@ -816,11 +786,6 @@ impl ProgramFunction {
     }
 
     /// For each value, the instruction position after which nothing needs it.
-    ///
-    /// Lets [`Self::eval`] release a tensor as soon as its final consumer has run, so that peak
-    /// memory is the working set rather than every intermediate the walk ever produced. A value
-    /// nothing goes on to consume dies where it is produced, which is what keeps an unused result
-    /// from being held for the whole walk.
     fn last_use(&self, offsets: &[u32]) -> Vec<Option<usize>> {
         let total = *offsets.last().expect("offsets always end with the total");
         let mut last = vec![None; total as usize];
@@ -965,8 +930,6 @@ mod test {
 
     #[test]
     fn reducing_a_zero_length_axis_yields_a_non_finite_value() {
-        // A zero-length axis divides by zero. Failing the whole program over it would be worse than
-        // handing back a value the caller can see is not a number.
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(f64_1d(0));
         let mean = function.add_op(Mean::new(0), &[x]).unwrap()[0];
@@ -983,7 +946,6 @@ mod test {
 
     #[test]
     fn a_function_can_be_sent_between_threads() {
-        // A job drives evaluation and is where all concurrency lives, so it must be able to hold one.
         fn assert_send_sync<T: Send + Sync>() {}
         assert_send_sync::<ProgramFunction>();
     }
@@ -1023,8 +985,6 @@ mod test {
         let second = function.add_op(Add, &[x, x]).unwrap()[0];
         function.add_result(second).unwrap();
 
-        // An instruction has no name of its own, so the shape of a built function is pinned by
-        // counting instructions per type rather than by looking one up.
         assert_eq!(
             function
                 .iter_instructions()
@@ -1223,8 +1183,6 @@ mod test {
 
     #[test]
     fn a_call_operand_may_be_narrower_than_the_parameter_declared_for_it() {
-        // A declared type constrains what may arrive rather than equalling it, so a true size within
-        // a bound is admitted.
         let bounded = TensorType {
             dtype: DType::F64,
             shape: vec![Dim::Bounded { max: 4 }],
@@ -1307,8 +1265,6 @@ mod test {
         let mut known = ProgramFunction::new();
         let x = known.add_parameter(f64_1d(1));
 
-        // A value is only meaningful within the function that issued it, so one from elsewhere is
-        // simply unknown here.
         let mut other = ProgramFunction::new();
         other.add_parameter(f64_1d(1));
         let stranger = other.add_parameter(f64_1d(1));
@@ -1450,8 +1406,6 @@ mod test {
 
     #[test]
     fn averaging_a_bit_tensor_yields_a_float() {
-        // The flagship post-processing step: shots come back as bits and a mean of them is a
-        // probability. A global promotion rule could not express this, so it is the reduce family's.
         let mut function = ProgramFunction::new();
         let shots = function.add_parameter(TensorType {
             dtype: DType::Bit,
@@ -1519,8 +1473,6 @@ mod test {
 
     #[test]
     fn two_bounded_axes_cannot_be_combined() {
-        // Nothing proves their true sizes agree, and the sizes post-selection produces are
-        // exponentially unlikely to. Refusing here beats a shape error after the data was paid for.
         let bounded = TensorType {
             dtype: DType::F64,
             shape: vec![Dim::Bounded { max: 8 }],
@@ -1544,7 +1496,6 @@ mod test {
 
     #[test]
     fn a_bounded_axis_broadcasts_against_a_fixed_one() {
-        // Post-selected data against a per-register constant is what bounded dynamism is for.
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(TensorType {
             dtype: DType::F64,
@@ -1607,8 +1558,6 @@ mod test {
 
     #[test]
     fn a_bounded_parameter_admits_any_argument_within_its_bound() {
-        // A declared type constrains an argument rather than equalling it, so a bounded axis is
-        // usable: an argument shorter than the bound is what a bounded axis is for.
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(TensorType {
             dtype: DType::F64,
@@ -1617,8 +1566,8 @@ mod test {
         let doubled = function.add_op(Elsewhere, &[x]).unwrap()[0];
         function.add_result(doubled).unwrap();
 
-        // `Elsewhere` has no built-in implementation, so evaluation stops at the locality check, which
-        // is past the argument check under test here.
+        // `Elsewhere` has no built-in implementation, so evaluation stops at the locality check. That
+        // comes after the argument check under test here.
         for len in 0..=4 {
             let arg = Tensor::from(vec![1.0_f64; len].as_slice());
             assert!(
@@ -1647,8 +1596,7 @@ mod test {
     // Locality
     // ---------------------------------------------------------------------------
 
-    /// An op defined outside the crate, in its own namespace, with no in-process
-    /// implementation — which is how a backend contributes work Qiskit cannot perform itself.
+    /// An op defined outside the crate, in its own namespace, with no in-process implementation.
     #[derive(Clone)]
     struct Elsewhere;
 
@@ -1735,8 +1683,7 @@ mod test {
         assert_eq!(full_name, "vendor.elsewhere");
     }
 
-    /// An instruction that counts how often it has been evaluated, which is how a test observes
-    /// whether a walk ran at all.
+    /// An op counting how often it has been evaluated.
     #[derive(Clone)]
     struct Tally(Arc<AtomicUsize>);
 
@@ -1774,8 +1721,6 @@ mod test {
 
     #[test]
     fn a_function_that_needs_a_backend_evaluates_nothing_at_all() {
-        // Locality is settled before the walk starts, so a function that has to be handed on has not
-        // produced any intermediates by the time it says so.
         let evaluations = Arc::new(AtomicUsize::new(0));
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(f64_1d(1));

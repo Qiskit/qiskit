@@ -17,8 +17,7 @@ use crate::tensor::{DType, Tensor, TensorType};
 
 /// Generate a [`ProgramOp`] struct for an elementwise binary operation.
 ///
-/// These ops coerce, so the dtype `$eval_fn` computes in is the one the operands promote to, and
-/// `$accepts` is what admits that dtype rather than either operand's.
+/// These ops coerce and promote dtypes like NumPy.
 macro_rules! elementwise_binary_op {
     ($name:ident, $op_name:literal, $eval_fn:expr, $accepts:expr) => {
         #[doc = concat!(
@@ -53,9 +52,6 @@ macro_rules! elementwise_binary_op {
             }
             fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
                 crate::unpack_operands!(self, args, [x, y]);
-                // Coerce to the dtype inference promised, so that the tensors agree with the type
-                // the op was given when it was added. A cast to the dtype a tensor already has
-                // is free.
                 let dtype = promoted_dtype(x.dtype(), y.dtype(), $accepts)?;
                 let (x, y) = (x.clone().cast(dtype), y.clone().cast(dtype));
                 Ok(vec![$eval_fn(&x, &y)?])
@@ -204,9 +200,6 @@ mod tests {
 
     #[test]
     fn test_infer_output_types_rejects_two_bounded_axes() {
-        // Two bounded axes have equal types without having equal sizes, so this op cannot pair
-        // their elements up. A bounded axis meeting a fixed 1 is fine, since only one size is in
-        // question there.
         let bounded = TensorType {
             dtype: DType::F64,
             shape: vec![Dim::Bounded { max: 8 }],
@@ -235,9 +228,7 @@ mod tests {
 
     #[test]
     fn test_a_dtype_the_operation_cannot_compute_is_rejected_when_inferring() {
-        // `add` has no `Bit` implementation and `remainder` no complex one, so accepting either
-        // would let a function type-check and then fail as it ran. The check is against the dtype
-        // the operands promote to, which is the one the operation would compute in.
+        // `add` has no `Bit` implementation and `remainder` no complex one.
         let bit = TensorType {
             dtype: DType::Bit,
             shape: vec![Dim::Fixed(2)],
@@ -266,7 +257,6 @@ mod tests {
                 dtype: DType::C128,
             }
         ));
-        // Which dtypes are accepted is per operation: `add` implements the complex ones.
         assert_eq!(
             Add.infer_output_types(&[c128.clone(), c128.clone()])
                 .unwrap(),
@@ -276,8 +266,7 @@ mod tests {
 
     #[test]
     fn test_a_bit_operand_is_accepted_where_it_promotes_to_something_computable() {
-        // A `Bit` operand is only a problem when the other one is also `Bit`: alongside an `F64` it
-        // promotes to `F64`, which `add` implements.
+        // A `Bit` operand is rejected only when the other one is also `Bit`.
         let bit = TensorType {
             dtype: DType::Bit,
             shape: vec![Dim::Fixed(3)],
