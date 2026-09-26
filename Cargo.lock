@@ -296,9 +296,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.6.6"
+version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "473c7e07f409a8d772161724aa8db6a765a2532a70f9667eeb7b49d3d02fbdca"
+checksum = "aa8876b300ab35ba921adea3dfd70157a46249b33f95c9084ae5709785478946"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -306,9 +306,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.6.6"
+version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b48fea5a88e9ae728a2dcbedbfc0e730f7d60da42e1cb049a83c9fb8b789889"
+checksum = "ec0797fb7aeb1406c84efac526901f7ec3ead2124f946b494e72879d4b54704d"
 dependencies = [
  "anstream",
  "anstyle",
@@ -318,9 +318,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.6.4"
+version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d012d2b9d65aca7f18f4d9878a045bc17899bba951561ba5ec3c2ba1eed9a061"
+checksum = "f9c751b79415d4e559e3d1fcf128e09e720eb673a06d26cf6f392d37d75b66e0"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -1227,6 +1227,12 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+ "rayon",
+]
 
 [[package]]
 name = "heapless"
@@ -2224,7 +2230,7 @@ version = "0.29.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4688ddedf473e32662b9b067670129a8afb8c18e351482c70d62ba4a88171e8b"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "indexmap",
  "libc",
  "num-bigint",
@@ -2311,7 +2317,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.10.2",
+ "rand 0.10.3",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2363,7 +2369,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.10.2",
+ "rand 0.10.3",
  "rand_pcg",
  "smallvec",
  "thiserror 2.0.20",
@@ -2430,7 +2436,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.10.2",
+ "rand 0.10.3",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2554,7 +2560,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-util",
- "rand 0.10.2",
+ "rand 0.10.3",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2582,7 +2588,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-util",
- "rand 0.10.2",
+ "rand 0.10.3",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2615,7 +2621,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.10.2",
+ "rand 0.10.3",
  "rand_pcg",
  "rayon",
  "rayon-cond",
@@ -2687,9 +2693,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.2"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
+checksum = "65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af"
 dependencies = [
  "chacha20",
  "getrandom 0.4.3",
@@ -2757,7 +2763,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
 dependencies = [
  "num-traits",
- "rand 0.10.2",
+ "rand 0.10.3",
 ]
 
 [[package]]
@@ -2961,13 +2967,13 @@ checksum = "54299df1d95fb17c25f9ae7f4169db76de708c231a19e29a50b7d74e87853246"
 dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.1.5",
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "indexmap",
  "ndarray",
  "num-traits",
  "petgraph 0.8.3",
  "priority-queue",
- "rand 0.10.2",
+ "rand 0.10.3",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -3167,9 +3173,9 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "smallvec"
-version = "1.16.0"
+version = "1.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9be42f50aa861c555654aa3a37f52f4b1074bacf4e48fe0ef7fa584e80f1f0f"
+checksum = "ba467056f1b547ed52077911161fc86985becbc60e8e1857c8a144dab0def891"
 
 [[package]]
 name = "smol_str"
@@ -3495,13 +3501,13 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.26.0"
+version = "1.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5772d71c9be8a8a6ac2117d949c5b224c1b72241bb611d9a3012edcf8af7812"
+checksum = "2ef6dac1e96601b4fb3acccccff2139741fcb757cb9a36089bf5be91cfb285ce"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
- "rand 0.10.2",
+ "rand 0.10.3",
  "wasm-bindgen",
 ]
 
