@@ -2485,6 +2485,24 @@ pub enum CDelayUnit {
     NS = 3,
     /// Picoseconds.
     PS = 4,
+    /// Dt
+    DT = 5,
+    /// Classical Expression
+    EXPR = 6,
+}
+
+impl From<DelayUnit> for CDelayUnit {
+    fn from(value: DelayUnit) -> Self {
+        match value {
+            DelayUnit::S => CDelayUnit::S,
+            DelayUnit::MS => CDelayUnit::MS,
+            DelayUnit::US => CDelayUnit::US,
+            DelayUnit::NS => CDelayUnit::NS,
+            DelayUnit::PS => CDelayUnit::PS,
+            DelayUnit::DT => CDelayUnit::DT,
+            DelayUnit::EXPR => CDelayUnit::EXPR,
+        }
+    }
 }
 
 impl From<CDelayUnit> for DelayUnit {
@@ -2495,6 +2513,8 @@ impl From<CDelayUnit> for DelayUnit {
             CDelayUnit::US => DelayUnit::US,
             CDelayUnit::NS => DelayUnit::NS,
             CDelayUnit::PS => DelayUnit::PS,
+            CDelayUnit::DT => DelayUnit::DT,
+            CDelayUnit::EXPR => DelayUnit::EXPR,
         }
     }
 }
@@ -2525,13 +2545,70 @@ pub unsafe extern "C" fn qk_circuit_delay(
     duration: f64,
     unit: CDelayUnit,
 ) -> ExitCode {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { mut_ptr_as_ref(circuit) };
-
     let delay_unit_variant = unit.into();
 
-    let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    unsafe { qk_circuit_delay_inner(circuit, qubit, duration.into(), delay_instruction) }
+}
+
+/// @ingroup QkCircuit
+/// Append a delay instruction to the circuit with a duration in units of
+/// dt.
+///
+/// As expected with all duration, this value should be positive. Otherwise,
+/// the function will return with an input error.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
+/// @param duration The duration of the delay as an integer.
+///
+/// @return An exit code. If the duration is negative, it will return
+/// ``ExitCode_CInputError``.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(1, 0);
+/// qk_circuit_delay_dt(qc, 0, 100);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_delay_dt(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration: i64,
+) -> ExitCode {
+    // Fast path to error if a negative duration is found.
+    if duration.is_negative() {
+        return ExitCode::CInputError;
+    }
+
+    let delay_unit_variant = DelayUnit::DT;
+
+    let duration_param: Param = Param::Int(duration);
+    let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    // SAFETY: Per documentation, the circuit pointer is non-null and aligned.
+    unsafe { qk_circuit_delay_inner(circuit, qubit, duration_param, delay_instruction) }
+}
+
+/// Adds a delay to a ``QkCircuit`` pointer.
+///
+/// # Safety
+///
+/// Behavior is undefined if `circuit` is null or unaligned.
+unsafe fn qk_circuit_delay_inner(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration_param: Param,
+    delay_instruction: StandardInstruction,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
     let params = Parameters::Params(smallvec![duration_param]);
     circuit
@@ -2543,6 +2620,65 @@ pub unsafe extern "C" fn qk_circuit_delay(
         )
         .unwrap();
 
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Retrieves the duration unit of a delay instruction.
+///
+/// Users should make sure that the instruction being accessed here
+/// is a delay instruction by using ``qk_circuit_instruction_kind``.
+///
+/// Attempting to extract the duration unit of any other instruction
+/// will result in undefined behavior.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param index The instruction index to get the delay details of.
+///     If the index is not within the circuit range the function
+///     will exit with ``QkExitCode_IndexError``. Please use
+///     ``qk_circuit_num_instructions`` to check the circuit's
+///     current length.
+/// @param delay_unit The pointer in which we will write the duration
+///     unit of the delay instruction found.
+///
+/// @return A ``QkExitCode``.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(1, 0);
+/// qk_circuit_delay_dt(qc, 0, 100);
+/// QkDelayUnit unit = qk_circuit_delay_unit(qc, 0);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Undefined behavior may happen if ``delay_unit`` is not a valid, non-null and aligned
+/// pointer to an address with enough space to record a ``QkDelayUnit`` enum variant.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_delay_unit(
+    circuit: *const CircuitData,
+    index: usize,
+    delay_unit: *mut CDelayUnit,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let Some(inst) = circuit.data().get(index) else {
+        return ExitCode::IndexError;
+    };
+
+    let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view() else {
+        return ExitCode::InvalidOperationKind;
+    };
+
+    let unit = CDelayUnit::from(unit);
+
+    // SAFETY: Per documentation, the pointer is non-null, aligned, and points
+    // to an address with enough space to write a `CDelayUnit` enum variant.
+    unsafe {
+        delay_unit.write(unit);
+    }
     ExitCode::Success
 }
 
