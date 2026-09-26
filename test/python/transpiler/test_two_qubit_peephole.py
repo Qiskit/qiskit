@@ -111,6 +111,33 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
     """Test TwoQubitPeepholeOptimization."""
 
     @combine(
+        gate=[CRXGate, CRYGate, CRZGate],
+        theta=[-1e-4, 1.5e-4],
+        optimization_level=[None, 2, 3],
+    )
+    def test_exact_small_controlled_rotation(self, gate, theta, optimization_level):
+        """Exact compilation preserves small controlled rotations through two-qubit synthesis."""
+        circuit = QuantumCircuit(2)
+        circuit.append(gate(theta), [0, 1])
+        if optimization_level is None:
+            translated = transpile(circuit, basis_gates=["u", "cx"], optimization_level=0)
+            target = Target.from_configuration(basis_gates=["u", "cx"], num_qubits=2)
+            result = PassManager(
+                [TwoQubitPeepholeOptimization(target, approximation_degree=1.0)]
+            ).run(translated)
+        else:
+            result = transpile(
+                circuit,
+                basis_gates=["u", "cx"],
+                optimization_level=optimization_level,
+                approximation_degree=1.0,
+                seed_transpiler=42,
+            )
+        np.testing.assert_allclose(
+            Operator(result).data, Operator(circuit).data, rtol=0, atol=1e-12
+        )
+
+    @combine(
         bidirectional=[True, False],
         dsc=(
             "test natural_direction works with transpile using a"
