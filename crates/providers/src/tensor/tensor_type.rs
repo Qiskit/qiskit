@@ -30,7 +30,7 @@ pub enum Dim {
 }
 
 impl Dim {
-    /// Whether every size `offered` allows is a size this dimension allows.
+    /// Return whether every size `offered` allows is a size this dimension allows.
     ///
     /// A fixed dimension allows only its own size. Broadcasting, where a size of `1` stands for any
     /// size, is [`broadcast_dims`].
@@ -140,7 +140,7 @@ impl TensorType {
         require_static(&self.shape).ok()
     }
 
-    /// Whether every tensor satisfying `other` also satisfies this type.
+    /// Return whether every tensor satisfying `other` also satisfies this type.
     ///
     /// This is the type-level counterpart of [`Tensor::matches`](super::Tensor::matches).
     pub fn admits(&self, other: &TensorType) -> bool {

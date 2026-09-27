@@ -35,17 +35,17 @@ impl ShotLoop {
         Ok(Self { circuits, shots })
     }
 
-    /// The circuits this op runs.
+    /// Return the circuits this op runs.
     pub fn circuits(&self) -> &[CircuitData] {
         &self.circuits
     }
 
-    /// A mutable reference to the `i`th circuit, or `None` if there is no such circuit.
+    /// Return a mutable reference to the `i`th circuit, or `None` if there is no such circuit.
     pub fn get_mut(&mut self, i: usize) -> Option<&mut CircuitData> {
         self.circuits.get_mut(i)
     }
 
-    /// How many shots each circuit is run for.
+    /// Return how many shots each circuit is run for.
     pub fn shots(&self) -> usize {
         self.shots
     }
@@ -144,7 +144,7 @@ mod test {
     use crate::ops::Mean;
     use crate::program::{ProgramEvalError, ProgramFunction, QuantumProgram};
 
-    /// A circuit taking `parameters` parameters and holding `registers` as `(name, width)` pairs.
+    /// Return a circuit taking `parameters` with `registers` as `(name, width)` pairs.
     fn circuit(parameters: usize, registers: &[(&str, u32)]) -> CircuitData {
         let symbol =
             |index| ParameterExpression::from_symbol(Symbol::standalone(format!("p{index}"), None));
@@ -164,7 +164,7 @@ mod test {
         circuit
     }
 
-    /// A `TensorType` of `dtype` over fixed axes `shape`.
+    /// Return a `TensorType` of `dtype` over fixed axes `shape`.
     fn ty(dtype: DType, shape: &[usize]) -> TensorType {
         TensorType {
             dtype,
@@ -172,7 +172,7 @@ mod test {
         }
     }
 
-    /// The `Bit` type of one register's outcomes: `batch`, then `shots` by the register's width.
+    /// Return the `Bit` type of one register's outcomes.
     fn outcomes(batch: &[Dim], shots: usize, width: usize) -> TensorType {
         let mut shape = batch.to_vec();
         shape.extend([Dim::Fixed(shots), Dim::Fixed(width)]);

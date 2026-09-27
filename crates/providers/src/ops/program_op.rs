@@ -56,23 +56,21 @@ pub trait ProgramOp {
     /// The error this op reports for a rejected operand type or a failed evaluation.
     type Error;
 
-    /// The name of this op within its namespace, `add` for instance.
+    /// Return the name of this op within its namespace, `add` for instance.
     fn name(&self) -> &str;
 
-    /// The namespace this op belongs to, [`QISKIT`] for one Qiskit defines.
+    /// Return the namespace this op belongs to.
     fn namespace(&self) -> &str;
 
-    /// The namespace and name as one string, `qiskit.add` for instance.
-    ///
-    /// Backends dispatch on this value.
+    /// Return the namespace and name as one string.
     fn full_name(&self) -> String {
         format!("{}.{}", self.namespace(), self.name())
     }
 
-    /// The number of operand tensors this op consumes.
+    /// Return the number of operand tensors this op consumes.
     fn arity(&self) -> usize;
 
-    /// Whether [`Self::eval`] contains an implementation.
+    /// Return whether [`Self::eval`] contains an implementation.
     fn has_builtin_eval(&self) -> bool;
 
     /// Infer the types of this op's results from the types of its operands.

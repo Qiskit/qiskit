@@ -41,7 +41,7 @@ impl Name {
         }
     }
 
-    /// The name as a string slice.
+    /// Return the name as a string slice.
     fn as_str(&self) -> &str {
         &self.0
     }
@@ -179,8 +179,8 @@ impl<T> DataTreeBranch<T> {
         }
     }
 
-    /// The number of items in this `DataTree`. This length is just the number of items in this
-    /// local tree object and will not recurse through the tree to compute the total number of
+    /// Return the number of items in this `DataTree`. This length is just the number of items in
+    /// this local tree object and will not recurse through the tree to compute the total number of
     /// leaves. If you want to do that you should use [`DataTree::iter_leaves`].
     fn iter_leaves(&self) -> IterLeaves<'_, T> {
         IterLeaves {
@@ -192,7 +192,7 @@ impl<T> DataTreeBranch<T> {
         }
     }
 
-    /// The number of [`DataTree`] in this branch.
+    /// Return the number of [`DataTree`] in this branch.
     pub fn len(&self) -> usize {
         self.data.len()
     }
@@ -202,7 +202,7 @@ impl<T> DataTreeBranch<T> {
         self.data.is_empty()
     }
 
-    /// The number of string keys set on this branch.
+    /// Return the number of string keys set on this branch.
     pub fn num_keys(&self) -> usize {
         self.keys.len()
     }
@@ -269,8 +269,8 @@ impl<T> DataTree<T> {
         DataTree::Branch(DataTreeBranch::with_capacity(capacity))
     }
 
-    /// The number of items in this `DataTree`. This length is just the number of items in this
-    /// local tree object and will not recurse through the tree to compute the total number of
+    /// Return the number of items in this `DataTree`. This length is just the number of items in
+    /// this local tree object and will not recurse through the tree to compute the total number of
     /// leaves. If you want to do that you should use [`DataTree::iter_leaves`].
     ///
     /// # Example
@@ -670,17 +670,18 @@ impl<T> DataTree<T> {
         }
     }
 
-    /// The number of leaves in this tree.
+    /// Return the number of leaves in this tree.
     pub fn leaf_count(&self) -> usize {
         self.iter_leaves().count()
     }
 
-    /// This tree with its leaf values erased.
+    /// Return this tree with its leaf values erased.
     pub fn structure(&self) -> DataTree<()> {
         self.map_leaves(|_| ())
     }
 
-    /// A dotted path addressing each leaf, in the order of [`iter_leaves`](Self::iter_leaves).
+    /// Return a dotted path addressing each leaf, in the order of
+    /// [`iter_leaves`](Self::iter_leaves).
     ///
     /// A named child contributes its name and an unnamed one contributes its position. A tree that
     /// is itself a leaf returns an empty path.
@@ -849,7 +850,8 @@ pub struct IterDataTree<'a, T> {
 }
 
 impl<'a, T> IterDataTree<'a, T> {
-    /// The path entry addressing the child at `index`: its name if it has one, else its position.
+    /// Return the path entry addressing the child at `index`: its name if it has one, else its
+    /// position.
     fn entry(&self, index: usize) -> PathEntry<'a> {
         match self.names.get(&index) {
             Some(name) => PathEntry::Key(name.as_str()),
@@ -1151,7 +1153,7 @@ impl fmt::Display for DataTree<()> {
     }
 }
 
-/// Whether a path segment addresses a child by position rather than by name.
+/// Return whether a path segment addresses a child by position rather than by name.
 fn is_positional(segment: &str) -> bool {
     !segment.is_empty() && segment.bytes().all(|byte| byte.is_ascii_digit())
 }
@@ -1450,7 +1452,7 @@ mod test {
         assert_eq!(back, data);
     }
 
-    /// Returns `{"x": {"y": 10, "yy": 1, [2, 3, 4, 5]}, "z": 100}`.
+    /// Return `{"x": {"y": 10, "yy": 1, [2, 3, 4, 5]}, "z": 100}`.
     fn mixed_tree() -> DataTree<i32> {
         let mut sub = DataTree::new();
         sub.push_leaf(2);

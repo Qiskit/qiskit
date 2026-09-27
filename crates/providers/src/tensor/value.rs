@@ -38,7 +38,7 @@ pub enum Tensor {
     Bit(ArcArrayD<u8>), // bool
 }
 
-/// The error raised when an `op` has no implementation for some type(s).
+/// Return the error raised when an `op` has no implementation for some type(s).
 ///
 /// Operands of different dtypes are a [`TensorError::DTypeMismatch`], and a pair that shares a
 /// dtype the op does not implement is a [`TensorError::UnsupportedDType`].
@@ -148,7 +148,7 @@ impl Tensor {
         }
     }
 
-    /// Whether this tensor satisfies `ty`.
+    /// Return whether this tensor satisfies `ty`.
     ///
     /// A [`Dim::Fixed`] axis admits exactly its size and a [`Dim::Bounded`] axis admits any
     /// size up to and including its bound.
@@ -162,7 +162,7 @@ impl Tensor {
                 .all(|(&size, &dim)| dim.admits(Dim::Fixed(size)))
     }
 
-    /// Element-wise power with NumPy-style broadcasting.
+    /// Compute the element-wise power with NumPy-style broadcasting.
     ///
     /// An integer result wraps on overflow. Returns [`TensorError::NegativeExponent`] if an
     /// exponent of a signed integer dtype is negative, [`TensorError::DTypeMismatch`] if the
@@ -314,9 +314,9 @@ impl_tensor_from!(U8, u8); // u8 → U8; Bit requires explicit construction
 
 /// Integer division and remainder where a zero divisor gives zero, as in NumPy.
 trait DivideByZero: Sized {
-    /// `self / rhs`, or zero if `rhs` is zero.
+    /// Return `self / rhs`, or zero if `rhs` is zero.
     fn div_or_zero(self, rhs: Self) -> Self;
-    /// `self % rhs`, or zero if `rhs` is zero.
+    /// Return `self % rhs`, or zero if `rhs` is zero.
     fn rem_or_zero(self, rhs: Self) -> Self;
 }
 
@@ -348,7 +348,7 @@ macro_rules! impl_tensor_binop {
     ($trait:ident, $method:ident, $tensor_method:ident, $op:tt, $integer:ident, $op_name:literal) => {
         impl Tensor {
             #[doc = concat!(
-                "Element-wise `",
+                "Compute the element-wise `",
                 $op_name,
                 "` with NumPy-style broadcasting.\n\n",
                 "Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ, ",
@@ -412,7 +412,7 @@ impl_tensor_binop!(Div, div, div_tensor, /, div_or_zero, "div");
 // `Rem` is hand-written rather than going through `impl_tensor_binop!` because
 // `num_complex` does not implement `%`, so the complex variants must be omitted.
 impl Tensor {
-    /// Element-wise `%` with NumPy-style broadcasting (real dtypes only).
+    /// Compute the element-wise `%` with NumPy-style broadcasting (real dtypes only).
     ///
     /// Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ,
     /// [`TensorError::UnsupportedDType`] if they share a dtype this op does not support (a complex

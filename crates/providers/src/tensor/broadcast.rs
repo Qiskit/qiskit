@@ -48,7 +48,7 @@ pub fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>, TensorErr
         .collect()
 }
 
-/// Element-wise binary operation on two arrays with NumPy-style broadcasting.
+/// Apply an element-wise binary operation to two arrays with NumPy-style broadcasting.
 ///
 /// ndarray's arithmetic operators broadcast on their own, so this is for an operation with no Rust
 /// operator, such as `pow`.

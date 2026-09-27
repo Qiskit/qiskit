@@ -62,7 +62,7 @@ mod test {
     use crate::tensor::Dim;
     use num_complex::Complex64;
 
-    /// The type of a 1-D tensor of `len` elements.
+    /// Return the type of a 1-D tensor of `len` elements.
     fn ty_1d(dtype: DType, len: usize) -> TensorType {
         TensorType {
             dtype,

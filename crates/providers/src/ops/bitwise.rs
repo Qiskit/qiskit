@@ -16,7 +16,8 @@ use super::{ProgramOp, QISKIT};
 use crate::tensor::{DType, Tensor, TensorType};
 use ndarray::Axis;
 
-/// Whether a dtype is `Bit`, the only one a bitwise operation is defined for.
+/// Return whether a dtype is `Bit`.
+#[inline]
 fn is_bit(dtype: DType) -> bool {
     dtype == DType::Bit
 }
@@ -156,7 +157,6 @@ mod tests {
         Tensor::Bit(arr1(data).into_dyn().into_shared())
     }
 
-    /// The type of a 1-D `Bit` tensor of `len` elements.
     fn bit_1d(len: usize) -> TensorType {
         TensorType {
             dtype: DType::Bit,

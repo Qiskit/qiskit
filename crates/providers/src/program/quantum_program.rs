@@ -30,12 +30,12 @@ use crate::tensor::{Tensor, TensorType};
 pub struct FunctionId(u32);
 
 impl FunctionId {
-    /// The id of the function at `index` in definition order.
+    /// Return the id of the function at `index` in definition order.
     pub fn from_index(index: usize) -> Self {
         Self(u32::try_from(index).expect("a function id fits in a u32"))
     }
 
-    /// The underlying index, for use as a dense array subscript.
+    /// Return the underlying index, for use as a dense array subscript.
     pub fn index(self) -> usize {
         self.0 as usize
     }
@@ -243,39 +243,39 @@ impl QuantumProgram {
         })
     }
 
-    /// The functions, in definition order.
+    /// Return the functions, in definition order.
     pub fn functions(&self) -> &[ProgramFunction] {
         &self.functions
     }
 
-    /// The function `id` names, or `None` if it does not belong to this program.
+    /// Return the function `id` names, or `None` if it does not belong to this program.
     pub fn function(&self, id: FunctionId) -> Option<&ProgramFunction> {
         self.functions.get(id.index())
     }
 
-    /// The entry point, which is the last function.
+    /// Return the entry point, which is the last function.
     pub fn entry(&self) -> FunctionId {
         FunctionId::from_index(self.functions.len() - 1)
     }
 
-    /// The entry point's function, which is the one a caller of this program invokes.
+    /// Return the entry point's function, which is the one a caller of this program invokes.
     pub fn entry_function(&self) -> &ProgramFunction {
         self.functions
             .last()
             .expect("a program holds at least one function")
     }
 
-    /// How the program's inputs are arranged and named.
+    /// Return how the program's inputs are arranged and named.
     pub fn input_structure(&self) -> &DataTree<()> {
         &self.input_structure
     }
 
-    /// How the program's outputs are arranged and named.
+    /// Return how the program's outputs are arranged and named.
     pub fn output_structure(&self) -> &DataTree<()> {
         &self.output_structure
     }
 
-    /// The declared type of every input.
+    /// Return the declared type of every input.
     pub fn input_types(&self) -> DataTree<TensorType> {
         arrange(
             &self.input_structure,
@@ -283,7 +283,7 @@ impl QuantumProgram {
         )
     }
 
-    /// The declared type of every output.
+    /// Return the declared type of every output.
     pub fn output_types(&self) -> DataTree<TensorType> {
         arrange(
             &self.output_structure,
@@ -291,7 +291,7 @@ impl QuantumProgram {
         )
     }
 
-    /// Whether every instruction in every function has a built-in evaluation; whether
+    /// Return whether every instruction in every function has a built-in evaluation; whether
     /// [`eval`](Self::eval) can run.
     pub fn has_builtin_eval(&self) -> bool {
         self.first_without_builtin_eval().is_none()
@@ -323,7 +323,7 @@ impl QuantumProgram {
         Ok(arrange(&self.output_structure, results))
     }
 
-    /// The first instruction of any function that has no built-in evaluation.
+    /// Return the first instruction of any function that has no built-in evaluation.
     fn first_without_builtin_eval(&self) -> Option<(FunctionId, InstructionRef<'_>)> {
         self.functions
             .iter()
@@ -451,7 +451,7 @@ mod test {
     use crate::program::Signature;
     use crate::tensor::{DType, Dim};
 
-    /// The type of a 1-D `F64` tensor of `len` elements.
+    /// Return the type of a 1-D `F64` tensor of `len` elements.
     fn f64_1d(len: usize) -> TensorType {
         TensorType {
             dtype: DType::F64,
@@ -459,12 +459,12 @@ mod test {
         }
     }
 
-    /// A one-element `F64` tensor.
+    /// Return a one-element `F64` tensor.
     fn one_element(value: f64) -> Tensor {
         Tensor::from([value])
     }
 
-    /// `f(x, y) = x + y` over one-element `F64` tensors: two parameters, one result.
+    /// Build `f(x, y) = x + y` over one-element `F64` tensors: two parameters, one result.
     fn add_function() -> ProgramFunction {
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(f64_1d(1));
@@ -474,7 +474,7 @@ mod test {
         function
     }
 
-    /// `f(x) = x + x` over one-element `F64` tensors: one parameter, one result.
+    /// Build `f(x) = x + x` over one-element `F64` tensors: one parameter, one result.
     fn double_function() -> ProgramFunction {
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(f64_1d(1));
@@ -483,12 +483,12 @@ mod test {
         function
     }
 
-    /// Names for [`add_function`]'s two parameters: `[x: _, y: _]`.
+    /// Return names for [`add_function`]'s two parameters: `[x: _, y: _]`.
     fn named_inputs() -> DataTree<()> {
         DataTree::mapping([("x", DataTree::Leaf(())), ("y", DataTree::Leaf(()))]).unwrap()
     }
 
-    /// The same two inputs with the second one declared nested: `[x: _, y: [_]]`.
+    /// Return the same two inputs with the second one declared nested: `[x: _, y: [_]]`.
     fn nested_inputs() -> DataTree<()> {
         DataTree::mapping([
             ("x", DataTree::Leaf(())),
@@ -497,12 +497,12 @@ mod test {
         .unwrap()
     }
 
-    /// A name for [`add_function`]'s one result: `[sum: _]`.
+    /// Return a name for [`add_function`]'s one result: `[sum: _]`.
     fn named_output() -> DataTree<()> {
         DataTree::mapping([("sum", DataTree::Leaf(()))]).unwrap()
     }
 
-    /// `function` as a program whose slots are unnamed: one sequence of leaves per side.
+    /// Wrap `function` as a program whose slots are unnamed: one sequence of leaves per side.
     fn positional_program(function: ProgramFunction) -> QuantumProgram {
         let positional = |count| DataTree::sequence(std::iter::repeat_n(DataTree::Leaf(()), count));
         let inputs = positional(function.parameters().len());
@@ -510,7 +510,7 @@ mod test {
         QuantumProgram::new(vec![function], inputs, outputs).unwrap()
     }
 
-    /// [`add_function`] as a program, with the structures above.
+    /// Wrap [`add_function`] as a program, with the structures above.
     fn add_program() -> QuantumProgram {
         QuantumProgram::new(vec![add_function()], named_inputs(), named_output()).unwrap()
     }
@@ -702,8 +702,8 @@ mod test {
     // Several functions, one calling another
     // ---------------------------------------------------------------------------
 
-    /// A function that calls `callee` on its one parameter and returns what comes back, given the
-    /// signature the callee has.
+    /// Build a function that calls `callee` on its one parameter and returns what comes back, given
+    /// the signature the callee has.
     fn calling_function(callee: FunctionId, signature: &Signature) -> ProgramFunction {
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(signature.inputs[0].clone());
@@ -1142,7 +1142,7 @@ mod test {
         }
     }
 
-    /// A one-parameter, one-result function holding a single [`Elsewhere`].
+    /// Build a one-parameter, one-result function holding a single [`Elsewhere`].
     fn vendor_function(builtin: bool) -> ProgramFunction {
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(f64_1d(1));
@@ -1151,7 +1151,7 @@ mod test {
         function
     }
 
-    /// A program whose entry point @1 calls @0, which holds a single [`Elsewhere`].
+    /// Build a program whose entry point @1 calls @0, which holds a single [`Elsewhere`].
     fn calls_a_vendor_function(builtin: bool) -> QuantumProgram {
         let callee = vendor_function(builtin);
         let signature = callee.signature();

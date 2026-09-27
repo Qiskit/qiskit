@@ -29,7 +29,7 @@ impl BroadcastTo {
         Self { target }
     }
 
-    /// The shape an operand of shape `shape` is broadcast to.
+    /// Return the shape an operand of shape `shape` is broadcast to.
     ///
     /// A fixed target axis gives its own size. A bounded one takes the operand's size along the axis
     /// it aligns with.
@@ -87,7 +87,7 @@ mod test {
     use crate::tensor::DType;
     use ndarray::arr2;
 
-    /// A `TensorType` over `shape`; every test here is about the shape alone.
+    /// Return a `TensorType` over `shape`; every test here is about the shape alone.
     fn ty(shape: Vec<Dim>) -> TensorType {
         TensorType {
             dtype: DType::F64,
@@ -95,7 +95,7 @@ mod test {
         }
     }
 
-    /// A shape of fixed axes.
+    /// Return a shape of fixed axes.
     fn fixed(sizes: &[usize]) -> Vec<Dim> {
         sizes.iter().copied().map(Dim::Fixed).collect()
     }

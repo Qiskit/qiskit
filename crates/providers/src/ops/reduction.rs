@@ -17,8 +17,8 @@ use crate::tensor::{DType, Tensor, TensorType};
 use ndarray::{ArrayBase, ArrayD, Axis, Data, IxDyn, NdFloat, Zip};
 use num_complex::Complex;
 
-/// The result dtype of [`Mean`]: `F32` and the complex dtypes are unchanged, and everything else
-/// becomes `F64`.
+/// Return the result dtype of [`Mean`]: `F32` and the complex dtypes are unchanged, and everything
+/// else becomes `F64`.
 fn mean_out_dtype(dtype: DType) -> DType {
     match dtype {
         DType::F32 => DType::F32,
@@ -28,8 +28,8 @@ fn mean_out_dtype(dtype: DType) -> DType {
     }
 }
 
-/// The result dtype of [`Variance`] and [`Std`]: as [`mean_out_dtype`], except that a complex
-/// operand produces its real counterpart, since a squared modulus is real.
+/// Return the result dtype of [`Variance`] and [`Std`]: as [`mean_out_dtype`], except that a
+/// complex operand produces its real counterpart, since a squared modulus is real.
 fn real_out_dtype(dtype: DType) -> DType {
     match dtype {
         DType::F32 => DType::F32,
@@ -53,7 +53,7 @@ fn real_out_dtype(dtype: DType) -> DType {
 /// the slice traversal on it is more than forty times slower.
 const MIN_SLICE_OUTPUT_LEN: usize = 16;
 
-/// Mean of `a` along `axis`, with that axis removed.
+/// Compute the mean of `a` along `axis`, with that axis removed.
 ///
 /// A zero-length axis gives a NaN mean.
 fn complex_mean<A, S>(a: &ArrayBase<S, IxDyn>, axis: Axis) -> ArrayD<Complex<A>>
@@ -66,7 +66,7 @@ where
         .mapv_into(|c| Complex::new(c.re / n, c.im / n))
 }
 
-/// Sum of the squared moduli of the deviations of `a` from its mean along `axis`,
+/// Sum the squared moduli of the deviations of `a` from its mean along `axis`,
 /// with that axis removed.
 ///
 /// Peak memory is independent of the length of the reduced axis.
@@ -163,7 +163,7 @@ impl Mean {
         Self { axis }
     }
 
-    /// The mean of `x` along `self.axis`, which must be in bounds for `x`.
+    /// Compute the mean of `x` along `self.axis`, which must be in bounds for `x`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
         // can't use `ndarray::mean_axis` because it returns `None` for a zero-length axis.
         let n = x.shape()[self.axis];
@@ -209,7 +209,7 @@ impl Variance {
         Self { axis, ddof }
     }
 
-    /// The variance of `x` along `self.axis`.
+    /// Compute the variance of `x` along `self.axis`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
         match x {
             Tensor::F32(a) => {
@@ -259,7 +259,7 @@ impl Std {
         Self { axis, ddof }
     }
 
-    /// The standard deviation of `x` along `self.axis`.
+    /// Compute the standard deviation of `x` along `self.axis`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
         match Variance::new(self.axis, self.ddof).reduce_axis(x) {
             Tensor::F32(v) => Tensor::F32(v.mapv(f32::sqrt).into_shared()),
@@ -291,7 +291,7 @@ mod tests {
         }
     }
 
-    /// A 2-D operand type, so that a reduction has an axis to remove and one to keep.
+    /// Return a 2-D operand type, so that a reduction has an axis to remove and one to keep.
     fn ty_2d(dtype: DType, rows: Dim, cols: Dim) -> TensorType {
         TensorType {
             dtype,

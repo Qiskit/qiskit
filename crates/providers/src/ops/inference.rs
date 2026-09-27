@@ -98,7 +98,7 @@ fn check_accepts(dtype: DType, accepts: Accepts) -> Result<(), MathOpError> {
     Ok(())
 }
 
-/// The dtype a cast from `from` to `to` produces.
+/// Return the dtype a cast from `from` to `to` produces.
 ///
 /// This is the evaluation-time counterpart of [`cast`]. Every cast is supported except from a
 /// complex dtype to a real one.
@@ -110,7 +110,7 @@ pub(super) fn cast_dtype(from: DType, to: DType) -> Result<DType, MathOpError> {
     Ok(to)
 }
 
-/// The dtype an elementwise binary operation computes in.
+/// Return the dtype an elementwise binary operation computes in.
 ///
 /// This is the evaluation-time counterpart of [`elementwise_binary`]. Evaluation casts both operands
 /// to this dtype first.
@@ -131,7 +131,7 @@ mod test {
     use super::*;
     use crate::tensor::{Dim, TensorError};
 
-    /// A `TensorType` of `dtype` over fixed axes `shape`.
+    /// Return a `TensorType` of `dtype` over fixed axes `shape`.
     fn ty(dtype: DType, shape: &[usize]) -> TensorType {
         TensorType {
             dtype,

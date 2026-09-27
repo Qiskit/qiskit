@@ -60,12 +60,13 @@ macro_rules! elementwise_binary_op {
     };
 }
 
-/// Every dtype but `Bit`, which the arithmetic operators do not implement.
+/// Admit every dtype except `Bit`.
+#[inline]
 fn numeric(dtype: DType) -> bool {
     dtype != DType::Bit
 }
 
-/// Every real dtype, since a remainder is not defined for a complex number.
+/// Admit every real dtype.
 fn real(dtype: DType) -> bool {
     !matches!(dtype, DType::Bit | DType::C64 | DType::C128)
 }
@@ -82,7 +83,6 @@ mod tests {
     use super::*;
     use crate::tensor::{Dim, TensorError};
 
-    /// The type of a 1-D `F64` tensor of `len` elements.
     fn f64_1d(len: usize) -> TensorType {
         TensorType {
             dtype: DType::F64,

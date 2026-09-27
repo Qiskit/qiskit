@@ -30,7 +30,7 @@ type Slot = u16;
 pub struct InstructionId(u32);
 
 impl InstructionId {
-    /// The underlying index, for use as a dense array subscript.
+    /// Return the underlying index, for use as a dense array subscript.
     pub fn index(self) -> usize {
         self.0 as usize
     }
@@ -50,12 +50,12 @@ pub struct Value {
 }
 
 impl Value {
-    /// The instruction that produces this value.
+    /// Return the instruction that produces this value.
     pub fn instruction(self) -> InstructionId {
         self.instruction
     }
 
-    /// Which of that instruction's results this value is.
+    /// Return which of that instruction's results this value is.
     pub fn slot(self) -> usize {
         self.slot as usize
     }
@@ -98,7 +98,7 @@ pub enum InstructionView<'a> {
 }
 
 impl<'a> InstructionView<'a> {
-    /// What part the instruction plays, without its payload.
+    /// Return what part the instruction plays, without its payload.
     pub fn role(self) -> InstructionRole {
         match self {
             Self::Parameter => InstructionRole::Parameter,
@@ -133,8 +133,8 @@ impl<'a> InstructionView<'a> {
         }
     }
 
-    /// How many operands the instruction takes, or `None` when only the callee settles that. A call
-    /// takes one operand per parameter of the function it names.
+    /// Return how many operands the instruction takes, or `None` when only the callee settles that.
+    /// A call takes one operand per parameter of the function it names.
     fn arity(self) -> Option<usize> {
         match self {
             Self::Parameter => Some(0),
@@ -173,7 +173,7 @@ enum InstructionBody {
 }
 
 impl InstructionBody {
-    /// What this instruction is, and what it holds.
+    /// Return what this instruction is, and what it holds.
     fn view(&self) -> InstructionView<'_> {
         match self {
             Self::Parameter => InstructionView::Parameter,
@@ -205,49 +205,50 @@ impl<'a> InstructionRef<'a> {
         &self.function.instructions[self.id.index()]
     }
 
-    /// This instruction's position in its function, which is its identity.
+    /// Return this instruction's position in its function, which is its identity.
     pub fn id(&self) -> InstructionId {
         self.id
     }
 
-    /// What part this instruction plays: an operation, or one end of the function's boundary.
+    /// Return what part this instruction plays: an operation, or one end of the function's
+    /// boundary.
     pub fn role(&self) -> InstructionRole {
         self.view().role()
     }
 
-    /// This instruction's type name within its namespace, `add` for instance.
+    /// Return this instruction's type name within its namespace, `add` for instance.
     pub fn name(&self) -> &'a str {
         self.view().name()
     }
 
-    /// The namespace this instruction's type belongs to, [`QISKIT`](crate::ops::QISKIT) for an op
-    /// Qiskit defines.
+    /// Return the namespace this instruction's type belongs to, [`QISKIT`](crate::ops::QISKIT) for
+    /// an op Qiskit defines.
     pub fn namespace(&self) -> &'a str {
         self.view().namespace()
     }
 
-    /// The name that categorizes this instruction and that a backend dispatches on, `qiskit.add`
-    /// for instance.
+    /// Return the name that categorizes this instruction and that a backend dispatches on,
+    /// `qiskit.add` for instance.
     pub fn full_name(&self) -> String {
         self.view().full_name()
     }
 
-    /// Whether Qiskit can evaluate this instruction in-process.
+    /// Return whether this instruction has a built-in implementation.
     pub fn has_builtin_eval(&self) -> bool {
         self.view().has_builtin_eval()
     }
 
-    /// What this instruction is, and what it holds.
+    /// Return what this instruction is, and what it holds.
     pub fn view(&self) -> InstructionView<'a> {
         self.instruction().body.view()
     }
 
-    /// The values this instruction consumes, in operand order.
+    /// Return the values this instruction consumes, in operand order.
     pub fn operands(&self) -> &'a [Value] {
         &self.instruction().operands
     }
 
-    /// The type of each operand, read from the instruction that produces it.
+    /// Return the type of each operand, read from the instruction that produces it.
     pub fn operand_types(&self) -> impl Iterator<Item = &'a TensorType> {
         let function = self.function;
         self.instruction()
@@ -256,14 +257,14 @@ impl<'a> InstructionRef<'a> {
             .map(move |&value| function.type_of(value).expect("an operand always exists"))
     }
 
-    /// The values this instruction produces, in result order.
+    /// Return the values this instruction produces, in result order.
     pub fn outputs(&self) -> impl Iterator<Item = Value> + 'a {
         let instruction = self.id;
         (0..self.instruction().output_types.len() as Slot)
             .map(move |slot| Value { instruction, slot })
     }
 
-    /// The type of each value this instruction produces, in result order.
+    /// Return the type of each value this instruction produces, in result order.
     pub fn output_types(&self) -> &'a [TensorType] {
         &self.instruction().output_types
     }
@@ -529,7 +530,7 @@ impl ProgramFunction {
         id
     }
 
-    /// The type of `value`, or `None` if it does not belong to this function.
+    /// Return the type of `value`, or `None` if it does not belong to this function.
     pub fn type_of(&self, value: Value) -> Option<&TensorType> {
         self.instructions
             .get(value.instruction.index())?
@@ -537,17 +538,17 @@ impl ProgramFunction {
             .get(value.slot())
     }
 
-    /// The parameter instructions, in declaration order.
+    /// Return the parameter instructions, in declaration order.
     pub fn parameters(&self) -> &[InstructionId] {
         &self.parameters
     }
 
-    /// The result instructions, in declaration order.
+    /// Return the result instructions, in declaration order.
     pub fn results(&self) -> &[InstructionId] {
         &self.results
     }
 
-    /// The value of each parameter, in declaration order.
+    /// Return the value of each parameter, in declaration order.
     pub fn parameter_values(&self) -> impl Iterator<Item = Value> + '_ {
         self.parameters.iter().map(|&instruction| Value {
             instruction,
@@ -555,14 +556,14 @@ impl ProgramFunction {
         })
     }
 
-    /// The value each result returns, in declaration order.
+    /// Return the value each result returns, in declaration order.
     pub fn result_values(&self) -> impl Iterator<Item = Value> + '_ {
         self.results
             .iter()
             .map(|&instruction| self.instructions[instruction.index()].operands[0])
     }
 
-    /// This function's type contract: the types of its parameters and of its results.
+    /// Return this function's type contract: the types of its parameters and of its results.
     pub fn signature(&self) -> Signature {
         Signature {
             inputs: self.value_types(self.parameter_values()),
@@ -570,12 +571,12 @@ impl ProgramFunction {
         }
     }
 
-    /// A view of the instruction with the given id, or `None`.
+    /// Return a view of the instruction with the given id, or `None`.
     pub fn instruction(&self, id: InstructionId) -> Option<InstructionRef<'_>> {
         (id.index() < self.instructions.len()).then_some(InstructionRef { function: self, id })
     }
 
-    /// The number of instructions in this function, boundary instructions included.
+    /// Return the number of instructions in this function, boundary instructions included.
     pub fn instruction_count(&self) -> usize {
         self.instructions.len()
     }
@@ -590,7 +591,7 @@ impl ProgramFunction {
         })
     }
 
-    /// Whether Qiskit can evaluate every instruction of this function in-process.
+    /// Return whether every instruction of this function has a built-in implementation.
     pub fn has_builtin_eval(&self) -> bool {
         self.first_without_builtin_eval().is_none()
     }
@@ -732,7 +733,7 @@ impl ProgramFunction {
             .collect())
     }
 
-    /// The first instruction Qiskit has no in-process implementation of.
+    /// Return the first instruction Qiskit has no in-process implementation of.
     ///
     /// [`Self::eval`] consults this before computing anything, so a function that needs a backend
     /// fails at the top rather than part-way through a walk that has produced intermediates.
@@ -741,7 +742,7 @@ impl ProgramFunction {
             .find(|instruction| !instruction.has_builtin_eval())
     }
 
-    /// The types of `values`, which must all belong to this function.
+    /// Return the types of `values`, which must all belong to this function.
     fn value_types(&self, values: impl Iterator<Item = Value>) -> Vec<TensorType> {
         values
             .map(|value| {
@@ -773,7 +774,7 @@ impl ProgramFunction {
         Ok(())
     }
 
-    /// Where each instruction's block of values starts in a dense environment.
+    /// Return where each instruction's block of values starts in a dense environment.
     fn value_offsets(&self) -> Vec<u32> {
         let mut offsets = Vec::with_capacity(self.instructions.len() + 1);
         let mut total = 0;
@@ -785,7 +786,7 @@ impl ProgramFunction {
         offsets
     }
 
-    /// For each value, the instruction position after which nothing needs it.
+    /// Return, for each value, the instruction position after which it is not used again.
     fn last_use(&self, offsets: &[u32]) -> Vec<Option<usize>> {
         let total = *offsets.last().expect("offsets always end with the total");
         let mut last = vec![None; total as usize];
@@ -812,7 +813,7 @@ mod test {
     use crate::tensor::{DType, Dim, TensorError};
     use ndarray::arr2;
 
-    /// The type of a 1-D `F64` tensor of `len` elements.
+    /// Return the type of a 1-D `F64` tensor of `len` elements.
     fn f64_1d(len: usize) -> TensorType {
         TensorType {
             dtype: DType::F64,
@@ -1076,7 +1077,6 @@ mod test {
     // Calls
     // ---------------------------------------------------------------------------
 
-    /// The signature `(F64[len]) -> (F64[len])`, which [`double_function`] in the program tests has.
     fn double_signature(len: usize) -> Signature {
         Signature {
             inputs: vec![f64_1d(len)],
@@ -1123,7 +1123,7 @@ mod test {
         );
     }
 
-    /// The function `instruction` calls, for an instruction that calls one.
+    /// Return the function `instruction` calls, for an instruction that calls one.
     fn named_callee(instruction: InstructionRef<'_>) -> Option<FunctionId> {
         match instruction.view() {
             InstructionView::Call(callee) => Some(callee),
