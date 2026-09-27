@@ -412,6 +412,7 @@ mod test {
         assert!(get_extractor("test_absent").is_none());
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_create_py_op_uses_registered_conversion() {
         ensure_conversions_installed();
@@ -425,6 +426,7 @@ mod test {
         });
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_create_py_op_rejects_mismatched_type() {
         ensure_conversions_installed();
@@ -445,6 +447,7 @@ mod test {
         });
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_unregistered_reports_by_name() {
         ensure_conversions_installed();
@@ -462,6 +465,7 @@ mod test {
         });
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_create_py_op_threads_params_and_label() {
         ensure_conversions_installed();
@@ -486,6 +490,7 @@ mod test {
         });
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_extractor_roundtrips_params_and_label() {
         ensure_conversions_installed();
@@ -513,6 +518,7 @@ mod test {
         });
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_roundtrip_through_python() {
         ensure_conversions_installed();
@@ -544,6 +550,7 @@ mod test {
         });
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_extract_from_py_can_decline() {
         ensure_conversions_installed();
@@ -567,6 +574,7 @@ mod test {
         });
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_extract_from_py_reports_conversion_error() {
         ensure_conversions_installed();
