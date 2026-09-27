@@ -43,7 +43,7 @@ use qiskit_circuit::parameter::symbol_expr::SymbolVector;
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 use qiskit_circuit::{Block, classical, imports};
 use qiskit_circuit::{Clbit, Qubit};
-use qiskit_circuit_library::custom_operations::qft::QFTGate;
+use qiskit_circuit_library::custom_operations::qft::QftGate;
 use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -477,7 +477,7 @@ fn unpack_custom_operation(
     // This is a placeholder implementation.
     let op = match instruction.gate_class_name.as_str() {
         "qft" => {
-            PackedOperation::from_custom_operation(Box::new(QFTGate::new(instruction.num_qargs)))
+            PackedOperation::from_custom_operation(Box::new(QftGate::new(instruction.num_qargs)))
         }
         _ => {
             return Err(QpyError::InvalidInstruction(format!(

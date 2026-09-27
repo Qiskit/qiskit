@@ -13,7 +13,7 @@
 """Define a Quantum Fourier Transform circuit (QFT) and a native gate (QFTGate)."""
 
 from __future__ import annotations
-from qiskit._accelerate.circuit_library import QFTGate as _RustQFTGate
+from qiskit._accelerate.circuit_library import PyQftGate as _RustQFTGate
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister, CircuitInstruction, Gate
 from qiskit.utils.deprecation import deprecate_func

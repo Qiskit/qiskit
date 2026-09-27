@@ -22,6 +22,7 @@ use smallvec::SmallVec;
 use std::error;
 use std::f64::consts::PI;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use thiserror::Error;
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{CustomOperation, Operation, Param};
@@ -29,34 +30,48 @@ use qiskit_circuit::py_convertible::PyConvertible;
 use qiskit_synthesis::qft::qft_decompose_full::synth_qft_full;
 use qiskit_util::py::ImportOnceCell;
 
-/// The Python-space `QFTGate`, which holds a [`PyQftGate`] instance in its `_inner` attribute.
+#[derive(Debug, Error)]
+pub enum QftError {
+    #[error("matrix for a {0}-qubit QFT is too large to construct")]
+    MatrixLimitExceeded(u32),
+}
+
+impl From<QftError> for PyErr {
+    fn from(error: QftError) -> Self {
+        match error {
+            QftError::MatrixLimitExceeded(_) => PyValueError::new_err(error.to_string()),
+        }
+    }
+}
+
+/// The Python `QFTGate` class used to wrap a [`PyQftGate`].
 static QFT_GATE: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.library.basis_change.qft", "QFTGate");
 
-/// The Quantum Fourier Transform Gate.
+/// Quantum Fourier Transform gate.
 ///
-/// On `n` qubits this is the operation
+/// On `n` qubits, the QFT is defined by
 ///
 /// ```text
 /// |j> -> 1/sqrt(2^n) * sum_k exp(2 pi i j k / 2^n) |k>
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct QFTGate {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QftGate {
     num_qubits: u32,
 }
 
-impl QFTGate {
+impl QftGate {
     pub fn new(num_qubits: u32) -> Self {
         Self { num_qubits }
     }
 
-    /// The number of qubits the QFT acts on.
+    /// The number of qubits this gate acts on.
     pub fn num_qubits(&self) -> u32 {
         self.num_qubits
     }
 }
 
-impl Operation for QFTGate {
+impl Operation for QftGate {
     fn name(&self) -> &str {
         "qft"
     }
@@ -78,7 +93,7 @@ impl Operation for QFTGate {
     }
 }
 
-impl CustomOperation for QFTGate {
+impl CustomOperation for QftGate {
     fn is_unitary(&self) -> bool {
         true
     }
@@ -87,9 +102,9 @@ impl CustomOperation for QFTGate {
         &self,
         _params: &[Param],
     ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
-        // ToDo: should we return `None` if the number of qubits is too large?
-        // This would also prevent overflow errors when computing 1 << num_qubits.
-        let size = 1usize << self.num_qubits;
+        let size = 1usize
+            .checked_shl(self.num_qubits)
+            .ok_or(QftError::MatrixLimitExceeded(self.num_qubits))?;
         let norm = (size as f64).sqrt().recip();
         Ok(Some(Array2::from_shape_fn((size, size), |(i, j)| {
             let phase = 2.0 * PI * (i * j) as f64 / (size as f64);
@@ -98,31 +113,17 @@ impl CustomOperation for QFTGate {
     }
 
     fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        // Matches the Python `QFTGate._define`, which calls `synth_qft_full` with only
-        // `num_qubits` set, leaving `do_swaps`, `approximation_degree` and `insert_barriers` at
-        // their defaults.
         synth_qft_full(self.num_qubits as usize, true, 0, false)
             .ok()
             .map(CircuitData::from)
     }
 }
 
-/// Python-exposed wrapper around [`QFTGate`].
-///
-/// The Python-level ``qiskit.circuit.library.QFTGate`` (a :class:`~qiskit.circuit.Gate`
-/// subclass) holds an instance of this class in a private ``_inner`` attribute, rather than
-/// inheriting from it, and delegates to it for the pieces that are cheapest to implement once in
-/// Rust: the dense matrix (via `__array__`/`matrix`). Equality, hashing, `repr`, copying and
-/// pickling of the outer `QFTGate` are handled by the usual `Gate`/`Instruction` machinery in
-/// Python instead of being inherited from here.
-#[pyclass(
-    module = "qiskit._accelerate.circuit_library",
-    name = "QFTGate",
-    from_py_object
-)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Python-facing wrapper around [`QftGate`].
+#[pyclass(module = "qiskit._accelerate.circuit_library", from_py_object)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PyQftGate {
-    inner: QFTGate,
+    inner: QftGate,
 }
 
 #[pymethods]
@@ -130,7 +131,7 @@ impl PyQftGate {
     #[new]
     fn py_new(num_qubits: u32) -> Self {
         Self {
-            inner: QFTGate::new(num_qubits),
+            inner: QftGate::new(num_qubits),
         }
     }
 
@@ -151,17 +152,15 @@ impl PyQftGate {
     }
 
     fn __repr__(&self) -> String {
-        format!("QFTGate({})", self.inner.num_qubits)
+        format!("QftGate({})", self.inner.num_qubits)
     }
 
-    /// Support `copy.copy`. The gate is logically immutable, so returning the same instance
-    /// is safe.
+    /// Return the same instance for `copy.copy`.
     fn __copy__(slf: Py<Self>) -> Py<Self> {
         slf
     }
 
-    /// Support `copy.deepcopy`. There is no interior mutability or nested Python state, so
-    /// sharing the instance is a complete deep copy; see `__copy__`.
+    /// Return the same instance for `copy.deepcopy`.
     #[pyo3(signature = (_memo=None))]
     fn __deepcopy__(slf: Py<Self>, _memo: Option<&Bound<PyAny>>) -> Py<Self> {
         slf
@@ -175,18 +174,23 @@ impl PyQftGate {
         (py.get_type::<Self>(), (self.inner.num_qubits,)).into_py_any(py)
     }
 
-    /// The dense unitary matrix of this QFT, as a NumPy array.
+    /// Return the QFT unitary matrix as a NumPy array.
     #[pyo3(name = "matrix")]
     fn py_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = CustomOperation::matrix(&self.inner, &[])
-            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?
-            .ok_or_else(|| PyRuntimeError::new_err("QFTGate has no matrix representation"))?;
+        let matrix = self
+            .inner
+            .matrix(&[])
+            .map_err(|e| match e.downcast::<QftError>() {
+                Ok(err) => (*err).into(),
+                Err(err) => PyRuntimeError::new_err(err.to_string()),
+            })?
+            .ok_or_else(|| PyRuntimeError::new_err("QftGate has no matrix representation"))?;
         Ok(matrix.into_pyarray(py))
     }
 
-    /// Support the NumPy array protocol (e.g. `np.asarray(gate)`), delegated to by the Python
-    /// `QFTGate.__array__`. This always allocates a fresh array, so `copy=False` is rejected
-    /// rather than honored.
+    /// Support the NumPy array protocol, e.g. `np.asarray(gate)`.
+    ///
+    /// A new array is always created, so `copy=False` is rejected.
     #[pyo3(signature = (dtype=None, copy=None))]
     fn __array__<'py>(
         &self,
@@ -226,40 +230,40 @@ impl PyQftGate {
 }
 
 impl PyQftGate {
-    pub fn new(inner: QFTGate) -> Self {
+    pub fn new(inner: QftGate) -> Self {
         Self { inner }
     }
 
-    pub fn inner(&self) -> &QFTGate {
+    pub fn inner(&self) -> &QftGate {
         &self.inner
+    }
+
+    pub fn into_inner(self) -> QftGate {
+        self.inner
     }
 }
 
-/// The Python boundary for [`QFTGate`], kept out of [`CustomOperation`] so that the operation
-/// itself stays independent of Python.
-///
-/// Serialization is not handled here: QPY constructs [`QFTGate`] directly, alongside the other
-/// standard-library gates it knows.
-impl PyConvertible for QFTGate {
-    /// Wrap `self` in a [`PyQftGate`] and hand it to the Python `QFTGate._from_inner`
-    /// classmethod, which builds a `QFTGate` around it without going through `__init__`.
-    /// `QFTGate` in Python has no label and no params, so both arguments are ignored.
+/// Provides the Python conversion for [`QftGate`].
+impl PyConvertible for QftGate {
+    /// Wrap `self` in [`PyQftGate`] and construct a Python `QFTGate` around it.
+    ///
+    /// `QFTGate` has no parameters or label, so `params` and `label` are ignored.
     fn create_py_op(
         &self,
         py: Python,
         _params: Option<SmallVec<[Param; 3]>>,
         _label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let inner = PyQftGate::new(*self);
+        let inner = PyQftGate::new(self.clone());
         Ok(QFT_GATE
             .get_bound(py)
             .call_method1(intern!(py, "_from_inner"), (inner,))?
             .unbind())
     }
 
-    /// Returns `Ok(None)` if the object is not exactly a Python `QFTGate` (including if it is a
-    /// *subclass* of `QFTGate`), so that the caller falls back to treating it as an opaque Python
-    /// instruction rather than rejecting it.
+    /// Extract a [`QftGate`] from an exact Python `QFTGate`.
+    ///
+    /// Returns `Ok(None)` for other objects, including `QFTGate` subclasses.
     fn extract_from_py(ob: Borrowed<'_, '_, PyAny>) -> PyResult<Option<Self>> {
         if !ob.get_type().is(QFT_GATE.get_bound(ob.py())) {
             return Ok(None);
@@ -267,7 +271,7 @@ impl PyConvertible for QFTGate {
         let Ok(inner) = ob.getattr(intern!(ob.py(), "_inner")) else {
             return Ok(None);
         };
-        Ok(inner.extract::<PyQftGate>().ok().map(|gate| *gate.inner()))
+        Ok(inner.extract::<PyQftGate>().ok().map(PyQftGate::into_inner))
     }
 }
 
@@ -281,39 +285,50 @@ mod test {
 
     // Tests basic QFT gate properties
     #[test]
+    /// Tests basic QFT gate properties.
     fn test_qft() {
-        let qft3 = QFTGate::new(3);
-        let another_qft3 = QFTGate::new(3);
+        let qft3 = QftGate::new(3);
+        let another_qft3 = QftGate::new(3);
         assert_eq!(qft3, another_qft3);
 
-        let qft4 = QFTGate::new(4);
+        let qft4 = QftGate::new(4);
         assert_ne!(qft3, qft4);
 
         let mat = CustomOperation::matrix(&qft3, &[]);
         assert!(matches!(mat, Ok(Some(_))));
     }
 
-    // Tests that the gate's definition matches the textbook synthesis it delegates to.
+    /// Tests that requesting the matrix of an unreasonably large QFT reports an error.
+    #[test]
+    fn test_qft_matrix_too_large() {
+        let qft = QftGate::new(64);
+        let err = qft.matrix(&[]).expect_err("size should overflow");
+        assert!(matches!(
+            err.downcast_ref::<QftError>(),
+            Some(QftError::MatrixLimitExceeded(_))
+        ));
+    }
+
+    /// Tests that the gate definition uses the expected QFT synthesis.
     #[test]
     fn test_qft_definition() {
-        let qft = QFTGate::new(3);
+        let qft = QftGate::new(3);
         let definition =
-            CustomOperation::definition(&qft, &[]).expect("QFTGate should have a definition");
+            CustomOperation::definition(&qft, &[]).expect("QftGate should have a definition");
         let expected =
             CircuitData::from(synth_qft_full(3, true, 0, false).expect("synthesis should succeed"));
         assert_eq!(definition.num_qubits(), expected.num_qubits());
         assert_eq!(definition.data().len(), expected.data().len());
     }
 
-    // Tests putting QFT gates in a circuit and retrieving them back
+    /// Tests that a QFT gate can be stored in and retrieved from a circuit.
     #[test]
     fn test_qft_rountrip() {
-        let qft = QFTGate::new(4);
+        let qft = QftGate::new(4);
 
-        // Add a QFT gate to a circuit
         let mut qc = CircuitData::with_capacity(1, 0, 1, 0.0.into())
             .expect("Circuit with small capacity should be built.");
-        let qft_op = PackedOperation::from_custom_operation(Box::new(qft));
+        let qft_op = PackedOperation::from_custom_operation(Box::new(qft.clone()));
         qc.push_packed_operation(qft_op, None, &[Qubit(0)], &[])
             .expect("Instruction should be added to the circuit.");
 
@@ -323,8 +338,8 @@ mod test {
             panic!("Gate should be a custom operation");
         };
 
-        let Some(downcast_op) = dyn_cast_op.downcast_ref::<QFTGate>() else {
-            panic!("Gate should be a custom gate of type QFTGate");
+        let Some(downcast_op) = dyn_cast_op.downcast_ref::<QftGate>() else {
+            panic!("Gate should be a custom gate of type QftGate");
         };
 
         assert!(downcast_op.is_unitary());
@@ -332,15 +347,14 @@ mod test {
         assert_eq!(downcast_op, &qft);
     }
 
-    /// Registration wires up both directions from the one `PyConvertible` impl.
+    /// Tests that the QFT conversion is registered.
     #[test]
     fn test_python_conversion_registered() {
-        // Ignore the result: another test in this binary may have registered already, and this
-        // asserts on the tables' contents rather than on which call populated them.
+        // Ignore the result: another test in this binary may have registered already.
         let _ = crate::custom_operations::register_custom_operations();
 
-        // Python -> Rust, keyed by name, which `NAME` keeps in step with `Operation::name`.
-        assert_eq!("qft", Operation::name(&QFTGate::new(3)));
+        // Python -> Rust, keyed by the operation name.
+        assert_eq!("qft", Operation::name(&QftGate::new(3)));
         assert!(qiskit_circuit::py_convertible::get_extractor("qft").is_some());
     }
 }

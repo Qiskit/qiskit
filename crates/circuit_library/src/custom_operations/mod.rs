@@ -36,14 +36,14 @@ pub mod qft;
 
 /// The compile-time Rust-to-Python conversion table for every custom operation in this crate.
 static CONVERSIONS_TO_PYTHON_TABLE: &[ConversionToPythonEntry] = &[ConversionToPythonEntry {
-    type_id: TypeId::of::<qft::QFTGate>,
-    create: create_py_op_for::<qft::QFTGate>,
+    type_id: TypeId::of::<qft::QftGate>,
+    create: create_py_op_for::<qft::QftGate>,
 }];
 
 /// The compile-time Python-to-Rust conversion table for every custom operation in this crate.
 static CONVERSIONS_FROM_PYTHON_TABLE: &[ConversionFromPythonEntry] = &[ConversionFromPythonEntry {
     name: "qft",
-    extract: extract_from_py_for::<qft::QFTGate>,
+    extract: extract_from_py_for::<qft::QftGate>,
 }];
 
 /// Register the Python conversions for every custom operation in this crate.
