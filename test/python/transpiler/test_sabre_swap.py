@@ -27,6 +27,7 @@ from qiskit.circuit.classical import expr, types
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.passes import SabreSwap, CheckMap
 from qiskit.transpiler.passes.routing.sabre_swap import Heuristic, SetScaling
@@ -406,6 +407,46 @@ class TestSabreSwap(QiskitTestCase):
 @ddt.ddt
 class TestSabreSwapControlFlow(QiskitTestCase):
     """Tests for control flow in sabre swap."""
+
+    def test_break_loop_preserves_measurement_semantics(self):
+        """A measurement after a break sees the same result after routing."""
+        source = QuantumCircuit(3, 1)
+        source.x(0)
+        with source.for_loop(range(1)):
+            source.id(1)
+            source.cx(0, 2)
+            source.break_loop()
+        source.measure(1, 0)
+
+        routed = SabreSwap(CouplingMap.from_line(3), heuristic="basic", seed=82, trials=1)(source)
+
+        # BasicSimulator does not execute loop operations, so make the one path in this circuit
+        # explicit: execute the loop body up to break_loop, then execute the operations after it.
+        path = QuantumCircuit(routed.num_qubits, routed.num_clbits)
+        for inst in routed.data:
+            if inst.operation.name == "for_loop":
+                block = inst.operation.blocks[0]
+                for body_inst in block.data:
+                    if body_inst.operation.name == "break_loop":
+                        break
+                    qargs = [
+                        path.qubits[
+                            routed.find_bit(inst.qubits[block.find_bit(qubit).index]).index
+                        ]
+                        for qubit in body_inst.qubits
+                    ]
+                    cargs = [
+                        path.clbits[
+                            routed.find_bit(inst.clbits[block.find_bit(clbit).index]).index
+                        ]
+                        for clbit in body_inst.clbits
+                    ]
+                    path.append(body_inst.operation, qargs, cargs)
+            else:
+                path.append(inst.operation, inst.qubits, inst.clbits)
+
+        counts = BasicSimulator().run(path, shots=32, seed_simulator=82).result().get_counts()
+        self.assertEqual(counts, {"0": 32})
 
     @ddt.data(
         ("break_loop", False),
