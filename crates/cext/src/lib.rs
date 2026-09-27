@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod dyn_types;
 mod extras;
 mod pointers;
 #[cfg(feature = "python_binding")]
@@ -22,6 +23,7 @@ pub mod control_flow;
 pub mod dag;
 pub mod exit_codes;
 pub mod param;
+pub mod qpy;
 pub mod sparse_observable;
 pub mod transpiler;
 

@@ -107,6 +107,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
                     optimization_metric,
+                    optimization_level,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -127,6 +128,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
                     optimization_metric,
+                    optimization_level,
                 )
             init.append(
                 [
@@ -145,6 +147,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.hls_config,
                 pass_manager_config.qubits_initially_zero,
                 optimization_metric,
+                optimization_level,
             )
             if pass_manager_config.routing_method != "none":
                 init.append(ElidePermutations())
@@ -1031,6 +1034,7 @@ class CliffordTInitPassManager(PassManagerCliffordTStagePlugin):
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
                     optimization_metric,
+                    optimization_level,
                 )
         elif optimization_level == 1:
             init = PassManager()
@@ -1051,6 +1055,7 @@ class CliffordTInitPassManager(PassManagerCliffordTStagePlugin):
                     pass_manager_config.hls_config,
                     pass_manager_config.qubits_initially_zero,
                     optimization_metric,
+                    optimization_level,
                 )
             init.append(
                 [
@@ -1069,6 +1074,7 @@ class CliffordTInitPassManager(PassManagerCliffordTStagePlugin):
                 pass_manager_config.hls_config,
                 pass_manager_config.qubits_initially_zero,
                 optimization_metric,
+                optimization_level,
             )
             if not pass_manager_config._routing_disabled:
                 init.append(ElidePermutations())
@@ -1143,6 +1149,7 @@ class TranslateToCliffordRZPassManager(PassManagerCliffordTStagePlugin):
                     basis_gates=clifford_rz_gates,
                     qubits_initially_zero=pass_manager_config.qubits_initially_zero,
                     optimization_metric=OptimizationMetric.COUNT_T,
+                    optimization_level=optimization_level,
                 ),
                 # Note that HighLevelSynthesis does not translate gates in the equivalence
                 # library, which is BasisTranslator is used as well.
