@@ -152,6 +152,7 @@ impl<'a> Order<'a> {
 pub struct RoutingResult<'a> {
     problem: RoutingProblem<'a>,
     order: Order<'a>,
+    seed: u64,
     /// The initial layout that the routing algorithm started from.
     pub initial_layout: NLayout,
     /// The layout after the routing algorithm had finished.  This can be rederived from [order] and
@@ -177,14 +178,7 @@ impl RoutingResult<'_> {
     /// device.  If the device was subset (such as for disjoint handling), use [rebuild_onto] with
     /// suitable mappings back to the full-width [PhysicalQubit] instances instead.
     pub fn rebuild(&self) -> PyResult<DAGCircuit> {
-        let num_swaps = self.order.swap_count();
-        let dag = self.problem.dag.physical_empty_like_with_capacity(
-            self.num_qubits(),
-            self.problem.dag.num_ops() + num_swaps,
-            self.problem.dag.dag().edge_count() + 2 * num_swaps,
-            BlocksMode::Drop,
-        )?;
-        self.rebuild_onto(dag, |q| q)
+        self.rebuild_with_loop_exit(None)
     }
 
     /// Construct the routed [DAGCircuit] from the result, placing the operations onto an existing
@@ -200,6 +194,26 @@ impl RoutingResult<'_> {
         &self,
         dag: DAGCircuit,
         map_fn: impl Fn(PhysicalQubit) -> PhysicalQubit,
+    ) -> PyResult<DAGCircuit> {
+        self.rebuild_onto_with_loop_exit(dag, map_fn, None)
+    }
+
+    fn rebuild_with_loop_exit(&self, loop_exit: Option<&NLayout>) -> PyResult<DAGCircuit> {
+        let num_swaps = self.order.swap_count();
+        let dag = self.problem.dag.physical_empty_like_with_capacity(
+            self.num_qubits(),
+            self.problem.dag.num_ops() + num_swaps,
+            self.problem.dag.dag().edge_count() + 2 * num_swaps,
+            BlocksMode::Drop,
+        )?;
+        self.rebuild_onto_with_loop_exit(dag, |q| q, loop_exit)
+    }
+
+    fn rebuild_onto_with_loop_exit(
+        &self,
+        dag: DAGCircuit,
+        map_fn: impl Fn(PhysicalQubit) -> PhysicalQubit,
+        loop_exit: Option<&NLayout>,
     ) -> PyResult<DAGCircuit> {
         let apply_swap = |swap: &[PhysicalQubit; 2],
                           layout: &mut NLayout,
@@ -259,11 +273,53 @@ impl RoutingResult<'_> {
             match item.kind {
                 RoutedItemKind::Simple => apply_op(inst, &layout, &mut dag)?,
                 RoutedItemKind::ControlFlow(num_blocks) => {
+                    let control_flow = &inst.op.control_flow().control_flow;
+                    let is_loop = matches!(
+                        control_flow,
+                        ControlFlow::ForLoop { .. } | ControlFlow::While { .. }
+                    );
                     let mut blocks = blocks
                         .by_ref()
                         .take(num_blocks.get() as usize)
-                        .map(|block| block.rebuild())
+                        .map(|block| {
+                            // A nested block has its own virtual-qubit numbering.  Translate the
+                            // nearest loop's entry layout through the physical positions shared
+                            // by the parent and child at this control-flow operation.
+                            let exit = if is_loop {
+                                Some(block.initial_layout.clone())
+                            } else {
+                                loop_exit.map(|target| {
+                                    NLayout::from_virtual_to_physical(
+                                        block
+                                            .initial_layout
+                                            .iter_virtual()
+                                            .map(|(_, physical)| target[layout[physical]])
+                                            .collect(),
+                                    )
+                                    .expect("translated loop exit is a permutation")
+                                })
+                            };
+                            block.rebuild_with_loop_exit(exit.as_ref())
+                        })
                         .collect::<Result<Vec<_>, _>>()?;
+                    let early_exit = matches!(
+                        control_flow,
+                        ControlFlow::BreakLoop | ControlFlow::ContinueLoop
+                    );
+                    let previous_layout = if let (true, Some(exit)) = (early_exit, loop_exit) {
+                        let previous = layout.clone();
+                        for swap in layout_restoring_swaps(
+                            &self.problem.target.neighbors,
+                            &layout,
+                            exit,
+                            self.seed,
+                        ) {
+                            apply_swap(&swap, &mut layout, &mut dag)?;
+                        }
+                        Some(previous)
+                    } else {
+                        None
+                    };
                     let explicit = self
                         .problem
                         .dag
@@ -297,10 +353,7 @@ impl RoutingResult<'_> {
                         dag.remove_qubits(idle.iter().copied())?;
                     }
                     let mut new_op = inst.op.control_flow().clone();
-                    if !matches!(
-                        &new_op.control_flow,
-                        ControlFlow::BreakLoop | ControlFlow::ContinueLoop
-                    ) {
+                    if !early_exit {
                         new_op.num_qubits = blocks[0].num_qubits() as u32;
                     }
                     let blocks = blocks.into_iter().map(|b| dag.add_block(b)).collect();
@@ -311,7 +364,13 @@ impl RoutingResult<'_> {
                         inst.clbits,
                         inst.label.as_deref().cloned(),
                     );
-                    dag.push_back(new_inst)?
+                    let node = dag.push_back(new_inst)?;
+                    // The early exit has no fallthrough path.  Keep the analysis layout for any
+                    // later nodes in this block and for its ordinary block-tail restoration.
+                    if let Some(previous) = previous_layout {
+                        layout = previous;
+                    }
+                    node
                 }
             };
             for node in rest {
@@ -517,14 +576,29 @@ fn route_control_flow_block<'a>(
     let mut result = swap_map_trial(problem, layout, seed);
     // For now, we always append a swap circuit that gets the inner block back to the
     // parent's layout.
-    result.order.final_swaps = token_swapper(
+    result.order.final_swaps = layout_restoring_swaps(
         &problem.target.neighbors,
-        // Map physical location in the final layout from the inner routing to the current
-        // location in the outer routing.
-        result
-            .final_layout
-            .iter_physical()
-            .map(|(p, v)| (p, v.to_phys(layout)))
+        &result.final_layout,
+        layout,
+        seed,
+    );
+    result.final_layout = layout.clone();
+    result
+}
+
+fn layout_restoring_swaps(
+    neighbors: &Neighbors,
+    from: &NLayout,
+    to: &NLayout,
+    seed: u64,
+) -> Vec<[PhysicalQubit; 2]> {
+    if from == to {
+        return Vec::new();
+    }
+    token_swapper(
+        neighbors,
+        from.iter_physical()
+            .map(|(physical, virtual_qubit)| (physical, virtual_qubit.to_phys(to)))
             .collect(),
         Some(SWAP_EPILOGUE_TRIALS),
         Some(seed),
@@ -532,15 +606,13 @@ fn route_control_flow_block<'a>(
     )
     .unwrap()
     .into_iter()
-    .map(|(l, r)| {
+    .map(|(left, right)| {
         [
-            PhysicalQubit::new(l.index() as u32),
-            PhysicalQubit::new(r.index() as u32),
+            PhysicalQubit::new(left.index() as u32),
+            PhysicalQubit::new(right.index() as u32),
         ]
     })
-    .collect();
-    result.final_layout = layout.clone();
-    result
+    .collect()
 }
 
 /// Mark all the outgoing edges of the given node as "satisfied" for the topological visitor, and
@@ -1116,6 +1188,7 @@ pub fn swap_map_trial<'a>(
     RoutingResult {
         problem,
         order,
+        seed,
         initial_layout: initial_layout.clone(),
         final_layout: state.layout,
     }

@@ -36,6 +36,39 @@ from ..legacy_cmaps import ALMADEN_CMAP, MUMBAI_CMAP
 class TestSabreLayout(QiskitTestCase):
     """Tests the SabreLayout pass"""
 
+    def test_break_loop_restores_layout_before_exit(self):
+        """The routed loop must restore its entry layout before a break."""
+        source = QuantumCircuit(3, 1)
+        source.x(0)
+        with source.for_loop(range(1)):
+            source.id(1)
+            source.cx(0, 2)
+            source.break_loop()
+        source.measure(1, 0)
+
+        layout = Layout({qubit: index for index, qubit in enumerate(source.qubits)})
+        routed = SabreLayout(
+            CouplingMap.from_line(3), max_iterations=0, swap_trials=1, layout_trials=0, seed=82
+        )(source, property_set={"sabre_starting_layouts": [layout]})
+        loop = next(inst.operation for inst in routed.data if inst.operation.name == "for_loop")
+        before_break = []
+        for inst in loop.blocks[0].data:
+            if inst.operation.name == "break_loop":
+                break
+            if inst.operation.name == "swap":
+                before_break.append(
+                    tuple(loop.blocks[0].find_bit(qubit).index for qubit in inst.qubits)
+                )
+
+        self.assertTrue(before_break)
+        physical_layout = list(range(3))
+        for left, right in before_break:
+            physical_layout[left], physical_layout[right] = (
+                physical_layout[right],
+                physical_layout[left],
+            )
+        self.assertEqual(physical_layout, list(range(3)))
+
     def setUp(self):
         super().setUp()
         self.cmap20 = ALMADEN_CMAP

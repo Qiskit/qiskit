@@ -407,6 +407,87 @@ class TestSabreSwap(QiskitTestCase):
 class TestSabreSwapControlFlow(QiskitTestCase):
     """Tests for control flow in sabre swap."""
 
+    @ddt.data(
+        ("break_loop", False),
+        ("continue_loop", False),
+        ("break_loop", True),
+        ("continue_loop", True),
+    )
+    @ddt.unpack
+    def test_early_loop_exit_restores_layout(self, exit_name, nested):
+        """An early loop exit must see the same layout as the loop entry."""
+        source = QuantumCircuit(3, 1)
+        source.x(0)
+        with source.for_loop(range(1)):
+            source.id(1)
+            source.cx(0, 2)
+            if nested:
+                with source.if_test((source.clbits[0], 0)):
+                    getattr(source, exit_name)()
+            else:
+                getattr(source, exit_name)()
+        source.measure(1, 0)
+
+        routed = SabreSwap(CouplingMap.from_line(3), heuristic="basic", seed=82, trials=1)(source)
+        check_map = CheckMap(CouplingMap.from_line(3))
+        check_map(routed)
+        self.assertTrue(check_map.property_set["is_swap_mapped"])
+        loop = next(inst for inst in routed.data if inst.operation.name == "for_loop")
+        swaps = []
+
+        def collect_before_exit(block, physical_qubits):
+            for inst in block.data:
+                if inst.operation.name == "swap":
+                    swaps.append(
+                        tuple(physical_qubits[block.find_bit(qubit).index] for qubit in inst.qubits)
+                    )
+                elif inst.operation.name == exit_name:
+                    return True
+                elif isinstance(inst.operation, ControlFlowOp):
+                    inner_qubits = tuple(
+                        physical_qubits[block.find_bit(qubit).index] for qubit in inst.qubits
+                    )
+                    if collect_before_exit(inst.operation.blocks[0], inner_qubits):
+                        return True
+            return False
+
+        self.assertTrue(collect_before_exit(loop.operation.blocks[0], loop.qubits))
+        self.assertTrue(swaps)
+        layout = list(routed.qubits)
+        for left, right in swaps:
+            a, b = routed.find_bit(left).index, routed.find_bit(right).index
+            layout[a], layout[b] = layout[b], layout[a]
+        self.assertEqual(layout, list(routed.qubits))
+
+    def test_nested_loop_exit_restores_inner_layout(self):
+        """An inner break returns to the inner loop's entry layout."""
+        source = QuantumCircuit(3, 1)
+        with source.for_loop(range(1)):
+            source.id(1)
+            source.cx(0, 2)
+            with source.for_loop(range(1)):
+                source.cx(0, 1)
+                source.break_loop()
+        source.measure(1, 0)
+
+        routed = SabreSwap(CouplingMap.from_line(3), heuristic="basic", seed=82, trials=1)(source)
+        outer = next(
+            inst.operation.blocks[0] for inst in routed.data if inst.operation.name == "for_loop"
+        )
+        inner = next(
+            inst.operation.blocks[0] for inst in outer.data if inst.operation.name == "for_loop"
+        )
+        self.assertTrue(any(inst.operation.name == "swap" for inst in outer.data))
+
+        layout = list(range(inner.num_qubits))
+        for inst in inner.data:
+            if inst.operation.name == "break_loop":
+                break
+            if inst.operation.name == "swap":
+                left, right = (inner.find_bit(qubit).index for qubit in inst.qubits)
+                layout[left], layout[right] = layout[right], layout[left]
+        self.assertEqual(layout, list(range(inner.num_qubits)))
+
     def test_shared_block(self):
         """Test multiple control flow ops sharing the same block instance."""
         inner = QuantumCircuit(2)

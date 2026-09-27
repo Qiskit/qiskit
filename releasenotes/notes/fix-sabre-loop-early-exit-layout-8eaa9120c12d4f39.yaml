@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :class:`.SabreSwap` and :class:`.SabreLayout` changing circuit behavior when
+    a routed loop exits through ``break_loop`` or ``continue_loop``. The routing
+    now restores the loop's entry layout before an early exit, including exits
+    nested inside conditional control flow.
