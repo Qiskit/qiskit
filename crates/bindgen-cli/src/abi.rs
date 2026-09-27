@@ -105,6 +105,7 @@ impl SlotsLists {
                 ("circuit", &qiskit_cext_vtable::FUNCTIONS_CIRCUIT),
                 ("transpile", &qiskit_cext_vtable::FUNCTIONS_TRANSPILE),
                 ("qi", &qiskit_cext_vtable::FUNCTIONS_QI),
+                ("qpy", &qiskit_cext_vtable::FUNCTIONS_QPY),
             ]
             .iter()
             .map(|(name, funcs)| (String::from(*name), names(funcs.slots())))

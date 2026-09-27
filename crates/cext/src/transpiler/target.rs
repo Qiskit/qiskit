@@ -818,8 +818,8 @@ pub unsafe extern "C" fn qk_target_entry_set_name(
 /// Adds a gate to the ``QkTarget`` through a ``QkTargetEntry``.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param target_entry A pointer to the ``QkTargetEntry``. The pointer
-/// gets freed when added to the ``QkTarget``.
+/// @param target_entry A pointer to the ``QkTargetEntry``. This function takes ownership of the
+/// entry and frees it, regardless of the returned ``QkExitCode``.
 ///
 /// @return ``QkExitCode`` specifying if the operation was successful.
 ///

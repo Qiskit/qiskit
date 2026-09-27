@@ -17,7 +17,8 @@ use std::{
 
 use thiserror::Error;
 
-use crate::{DynTypeId, IR, PassContext};
+use crate::{IR, PassContext};
+use qiskit_util::dyn_types::DynTypeId;
 
 /// The base behavior for compiler passes written in first-party Rust code.
 ///

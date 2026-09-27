@@ -72,6 +72,8 @@ pub enum ExitCode {
     ParameterError = 600,
     /// Parameter name conflict.
     ParameterNameConflict = 601,
+    /// QPY serialization, deserialization, or file I/O failed.
+    QpyError = 700,
 }
 
 impl From<ArithmeticError> for ExitCode {

@@ -1131,6 +1131,12 @@ impl SparseObservable {
         }
     }
 
+    /// Return whether the observable contains any projector terms.
+    pub fn contains_projectors(&self) -> bool {
+        self.iter()
+            .any(|view| view.bit_terms.iter().any(|bit| bit.is_projector()))
+    }
+
     /// Add the term implied by a dense string label onto this observable.
     pub fn add_dense_label<L: AsRef<[u8]>>(
         &mut self,
@@ -3993,6 +3999,12 @@ impl PySparseObservable {
         let obs = self.inner.read().map_err(|_| InnerReadError)?;
         let matrix = obs.to_matrix()?;
         Ok(PyArray2::from_owned_array(py, matrix))
+    }
+
+    /// Return whether the observable contains any projector terms.
+    fn contains_projectors(&self) -> PyResult<bool> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        Ok(inner.contains_projectors())
     }
 
     fn __len__(&self) -> PyResult<usize> {
