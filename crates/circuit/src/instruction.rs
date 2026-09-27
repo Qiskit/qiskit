@@ -194,8 +194,6 @@ pub fn create_py_op(
         }
         OperationRef::PyCustom(inst) => Ok(inst.ob.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
-        // Dispatched by the concrete type's `TypeId`. Errors if that type does not implement
-        // `PyConvertible` or was never registered.
         OperationRef::CustomOperation(custom) => {
             create_custom_py_op(py, custom, params.map(|p| p.unwrap_params()), label)
         }

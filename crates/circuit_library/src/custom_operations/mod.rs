@@ -12,16 +12,13 @@
 
 //! Custom operations implemented natively in Rust.
 //!
-//! Each operation here implements [`qiskit_circuit::operations::CustomOperation`], which is what
-//! makes it usable in a circuit and says nothing about Python. Operations that also have a
-//! Python-space class implement [`PyConvertible`] separately; this crate names the concrete types,
-//! so it is the one place that can build the lookup tables `qiskit-circuit` needs to convert between
-//! a `&dyn CustomOperation` and its Python-space object. See [`qiskit_circuit::py_convertible`]
-//! for why the two directions (Rust-to-Python, Python-to-Rust) are wired up differently.
+//! Each operation implements [`qiskit_circuit::operations::CustomOperation`]. Operations that also
+//! have a Python representation implement [`PyConvertible`], which provides the conversions between
+//! the Rust and Python representations.
 //!
-//! To add an operation: implement it in a submodule, implement [`PyConvertible`] for it if it has
-//! a Python class, then add one line each to [`CONVERSIONS_TO_PYTHON_TABLE`] and
-//! [`CONVERSIONS_FROM_PYTHON_TABLE`] -- the compile-time Rust-to-Python and Python-to-Rust tables.
+//! This module registers those conversions with `qiskit-circuit`. To add an operation, implement it
+//! in a submodule, implement [`PyConvertible`] if it has a Python representation, and add its
+//! conversion functions to the appropriate tables below.
 
 use std::any::TypeId;
 
@@ -34,22 +31,26 @@ use qiskit_circuit::py_convertible::{
 
 pub mod qft;
 
-/// The compile-time Rust-to-Python conversion table for every custom operation in this crate.
+// Operations with a Python representation need an entry in both tables. The Rust type identifies
+// the operation in the Rust-to-Python direction; the Python operation name identifies it in the
+// Python-to-Rust direction.
+
+/// All Rust-to-Python conversions provided by this crate.
 static CONVERSIONS_TO_PYTHON_TABLE: &[ConversionToPythonEntry] = &[ConversionToPythonEntry {
     type_id: TypeId::of::<qft::QftGate>,
     create: create_py_op_for::<qft::QftGate>,
 }];
 
-/// The compile-time Python-to-Rust conversion table for every custom operation in this crate.
+/// All Python-to-Rust conversions provided by this crate.
 static CONVERSIONS_FROM_PYTHON_TABLE: &[ConversionFromPythonEntry] = &[ConversionFromPythonEntry {
     name: "qft",
     extract: extract_from_py_for::<qft::QftGate>,
 }];
 
-/// Register the Python conversions for every custom operation in this crate.
+/// Register the Python conversions for all custom operations in this crate.
 ///
-/// This must run before any circuit containing these operations crosses the Python boundary; it is
-/// called from this crate's module initialisation.
+/// This must be called during module initialization before any custom operation crosses the
+/// Python boundary.
 pub fn register_custom_operations() -> PyResult<()> {
     register_conversions_to_python(CONVERSIONS_TO_PYTHON_TABLE);
     register_conversions_from_python(CONVERSIONS_FROM_PYTHON_TABLE);
