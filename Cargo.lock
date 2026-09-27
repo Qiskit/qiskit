@@ -2447,6 +2447,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "qiskit-circuit",
  "qiskit-transpiler",
+ "qiskit-util",
  "smallvec",
  "thiserror 2.0.20",
 ]
