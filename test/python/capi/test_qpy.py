@@ -17,7 +17,7 @@ from pathlib import Path
 import tempfile
 
 from qiskit import QuantumCircuit, capi, qpy
-from qiskit.circuit.library import PermutationGate, QFTGate, SdgGate, MCXGate
+from qiskit.circuit.library import PermutationGate, SdgGate, MCXGate
 from qiskit.qpy import dump, common as qpy_common
 from test import QiskitTestCase
 
