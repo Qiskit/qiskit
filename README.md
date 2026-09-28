@@ -40,7 +40,9 @@ To install from source, follow the instructions in the [documentation](https://q
 ### Standalone C library
 
 To install Qiskit as a standalone C library the only option is currently to build Qiskit from source. This requires having the
-[Rust](https://rust-lang.org/) compiler installed. To simplify the build process, we recommend installing [GNU Make](https://www.gnu.org/software/make/). With these requirements installed you can run:
+[Rust](https://rust-lang.org/) compiler installed.
+We recommend installing [GNU Make](https://www.gnu.org/software/make/) to simplify the build process.
+With these requirements installed you can run:
 
 ```bash
 make c
@@ -180,7 +182,10 @@ The changelog for the current release can be found in the releases tab:
 The changelog provides a quick overview of notable changes for a given
 release.
 
-Additionally, as part of each release, detailed release notes are written for each release to document what has changed. This includes any documentation on potential breaking changes on upgrade and new features. See [all release notes here](https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes).
+Additionally, as part of each release, detailed release notes are written to
+document in detail what has changed. This includes any documentation on
+potential breaking changes on upgrade, and new features. See [all release notes
+here](https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes).
 
 ## Acknowledgements
 
