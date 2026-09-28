@@ -34,7 +34,9 @@ use qiskit_util::dyn_types::DynTypeId;
 /// Ensure that your implementation of [`leak`](Self::leak) does not allow a concrete `Box<T>` with
 /// to run a custom destructor in its [`Drop`] implementation after you transfer ownership of the
 /// data pointer to the output.  Consider using [`ManuallyDrop`](std::mem::ManuallyDrop) to suppress
-/// a virtual destructor.
+/// a virtual destructor (though take care to drop the other fields and any containing smart
+/// pointer), or arrange the destructor to check for ownership, such as a non-null pointer, before
+/// attempting to run.
 ///
 /// Other unsafe FFI code relies on the correctness and soundness of this trait to avoid undefined
 /// behavior across the FFI boundary.

@@ -75,6 +75,8 @@ impl IrVtable {
 pub enum IrSlot {
     /// A destructor for the `data` of an IR.  *Optional*.
     ///
+    /// This method is not called if the data pointer is `NULL`.
+    ///
     /// Signature:
     /// ```c
     /// void delete(void *data);
@@ -94,7 +96,7 @@ pub enum IrSlot {
 /// must be callable from any thread..  Of particular note: it must be valid to call the
 /// [`IrVtable::delete`] function from any thread.
 struct CIr {
-    /// Data pointer to the IR.
+    /// Data pointer to the IR.  If `NULL`, then ownership has been moved out of the [`CIr`] struct.
     this: *mut c_void,
     /// Implementation vtable of the [`IR`] trait.
     vtable: Arc<IrVtable>,
@@ -117,7 +119,11 @@ impl DynTyped for CIr {
 impl IR for CIr {}
 impl Drop for CIr {
     fn drop(&mut self) {
-        if let Some(delete) = self.vtable.delete {
+        // The no-op on `NULL` is documented in `IrSlot::Delete` and used to mark moved ownership of
+        // the data pointer.
+        if let Some(delete) = self.vtable.delete
+            && !self.this.is_null()
+        {
             // SAFETY: per documentation of `IrVtable`, if the `delete` method is set, it is valid
             // to be passed `self.this` from any thread.
             unsafe { delete(self.this) };
@@ -267,13 +273,12 @@ unsafe impl DynTraitExposer<dyn IR> for CIrExposer {
         CIr::dyn_type_for_vtable(&self.0)
     }
     fn leak(&self, ob: Box<dyn IR>) -> *mut c_void {
-        // We're passing ownership of the data pointer on; its destructor shouldn't run.
-        let owned = mem::ManuallyDrop::new(
-            (ob as Box<dyn Any>)
-                .downcast::<CIr>()
-                .expect("called should ensure correct type"),
-        );
-        owned.this
+        // We're passing ownership of the data pointer on; its destructor shouldn't run on it, but
+        // we _do_ need to destruct the `Box` and the rest of the `CIr` object.
+        let mut owned = (ob as Box<dyn Any>)
+            .downcast::<CIr>()
+            .expect("called should ensure correct type");
+        mem::replace(&mut owned.this, ptr::null_mut())
     }
     unsafe fn steal(&self, ptr: *mut c_void) -> Box<dyn IR> {
         // TODO: there is a performance optimisation possible in the `CPass` logic, where we re-use
