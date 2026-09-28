@@ -272,6 +272,13 @@ unsafe impl DynTraitExposer<dyn IR> for CIrExposer {
             .expect("called should ensure correct type")
             .this
     }
+    fn borrow(&self, ob: &dyn IR) -> *const c_void {
+        (ob as &dyn Any)
+            .downcast_ref::<CIr>()
+            .expect("caller should ensure correct type")
+            .this
+            .cast_const()
+    }
     unsafe fn steal(&self, ptr: *mut c_void) -> Box<dyn IR> {
         // TODO: there is a performance optimisation possible in the `CPass` logic, where we re-use
         // an existing `Box<CIr>` allocation if both the input and output IR types use it as the

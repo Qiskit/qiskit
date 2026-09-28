@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 mod pass;
+mod predicate;
 
 use anyhow::Context;
 use hashbrown::{HashMap, HashSet};
@@ -18,6 +19,7 @@ use qiskit_util::dyn_types::*;
 use std::{any::Any, fmt};
 
 pub use pass::*;
+pub use predicate::*;
 
 /// The pass manager execution environment.
 ///
@@ -141,7 +143,7 @@ pub trait IR: DynTyped + Send + Sync + 'static {}
 /// such as loops. The [PassManager] stores a vector of [Task]s and executes them.
 #[non_exhaustive]
 pub enum Task {
-    // TODO Add Loop and Switch with conditions that can be set from Python/C and
+    // TODO Add Switch with conditions that can be set from Python/C and
     // proper error handlings that occur during the condition evaluation.
     /// A single pass.
     Transformation(Box<dyn Pass>),
@@ -151,6 +153,13 @@ pub enum Task {
 
     /// A sequence of named tasks.
     Stages(Vec<(String, Task)>),
+
+    /// A task run repeatedly until an exit criterion is met.
+    While {
+        body: Box<Task>,
+        criterion: Box<dyn Predicate>,
+        max_iterations: usize,
+    },
 }
 
 impl fmt::Debug for Task {
@@ -159,6 +168,16 @@ impl fmt::Debug for Task {
             Task::Transformation(p) => f.debug_tuple("Transformation").field(&p.name()).finish(),
             Task::Group(tasks) => f.debug_tuple("Group").field(tasks).finish(),
             Task::Stages(stages) => f.debug_tuple("Stages").field(stages).finish(),
+            Task::While {
+                body,
+                criterion,
+                max_iterations,
+            } => f
+                .debug_struct("While")
+                .field("body", body)
+                .field("criterion", &criterion.name())
+                .field("max_iterations", max_iterations)
+                .finish(),
         }
     }
 }
@@ -189,7 +208,36 @@ impl Task {
                 stages.first()?.1.io_types()?[0],
                 stages.last()?.1.io_types()?[1],
             ]),
+            Task::While { body, .. } => body.io_types(),
         }
+    }
+}
+
+impl Task {
+    /// Try to build a task that runs `body` until `criterion` says to stop.
+    ///
+    /// The criterion is evaluated before each run of `body`, and the loop fails with
+    /// [`PassError::IterationLimit`] if `body` would run more than `max_iterations` times.
+    ///
+    /// Fails, returning `body` back to the caller, if `body` does not have equal input and output
+    /// IR types, or if `criterion` reads a different IR type than `body` accepts.
+    pub fn while_(
+        body: Task,
+        criterion: Box<dyn Predicate>,
+        max_iterations: usize,
+    ) -> Result<Self, Task> {
+        // An empty body has no types to disagree with, so it is admitted; the loop is then a no-op
+        // that runs until the criterion says to stop.
+        if let Some([in_, out]) = body.io_types()
+            && (in_ != out || in_ != criterion.ir_id())
+        {
+            return Err(body);
+        }
+        Ok(Task::While {
+            body: Box::new(body),
+            criterion,
+            max_iterations,
+        })
     }
 }
 
@@ -290,6 +338,26 @@ impl PassManager {
         self.try_push_task(Task::Transformation(ob.into_pass()))
     }
 
+    /// Try to push a task that runs `body` until `criterion` says to stop.
+    ///
+    /// This is a typed helper wrapper around [`Task::while_`] and [`Self::try_push_task`]; the `In`
+    /// type parameter is inferred from `body`, which is what lets a criterion that ignores the IR
+    /// be written generically and reused across bodies.
+    ///
+    /// Fails, returning `body` back to the caller, if the types are incompatible.
+    pub fn try_push_while<In: IR>(
+        &mut self,
+        body: Task,
+        criterion: impl StaticPredicate<In>,
+        max_iterations: usize,
+    ) -> Result<(), Task> {
+        self.try_push_task(Task::while_(
+            body,
+            criterion.into_predicate(),
+            max_iterations,
+        )?)
+    }
+
     /// Get a reference to a [Task] at a given index.
     pub fn get_task(&self, index: usize) -> Option<&Task> {
         self.tasks.get(index)
@@ -316,6 +384,25 @@ fn execute_task(
                 ir = execute_task(task, ir, context)?;
             }
             Ok(ir)
+        }
+        Task::While {
+            body,
+            criterion,
+            max_iterations,
+        } => {
+            for _ in 0..*max_iterations {
+                if criterion.evaluate(ir.as_ref(), context)? {
+                    return Ok(ir);
+                }
+                ir = execute_task(body, ir, context)?;
+            }
+            if criterion.evaluate(ir.as_ref(), context)? {
+                Ok(ir)
+            } else {
+                Err(PassError::IterationLimit {
+                    max_iterations: *max_iterations,
+                })
+            }
         }
     }
 }

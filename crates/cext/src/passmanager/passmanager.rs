@@ -13,10 +13,10 @@
 use std::ffi::c_void;
 use std::ptr;
 
-use super::{CPass, CompilationError, IrHandle};
+use super::{CPass, CPredicate, CompilationError, IrHandle};
 use crate::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
-use qiskit_passmanager::{Pass, PassManager, Task};
+use qiskit_passmanager::{Pass, PassManager, Predicate, Task};
 
 // SAFETY: `PassManager` is always exposed and freed by `Box`.
 const _: () = unsafe { expose_by_box!(PassManager) };
@@ -71,6 +71,51 @@ pub unsafe extern "C" fn qk_passmanager_push_pass(
     // SAFETY: per documentation, `pass` points to a valid owned `CPass`.
     let pass = unsafe { CPass::steal(pass) };
     pm.try_push_task(Task::Transformation(pass as Box<dyn Pass>))
+        .map_err(|_| ExitCode::IncompatibleTypes)
+        .err()
+        .unwrap_or(ExitCode::Success)
+}
+
+/// @ingroup pass-manager
+/// Push a looping task onto the pass manager.
+///
+/// The `body` runs repeatedly until `predicate` reports that the loop should stop.  The predicate is
+/// evaluated before each run of the body, so the body may run zero times.
+///
+/// @param pm A borrowed pointer to the pass manager.
+/// @param body An owned pass to use as the loop body.  This steals ownership of the given pass.  Its
+///     input and output IR types must be equal.
+/// @param predicate An owned predicate.  This steals ownership.  Its IR type must match that of
+///     `body`.
+/// @param max_iterations The most times `body` may run before the pipeline fails at run time.
+///
+/// @return `QkExitCode_Success` if the task was added successfully, or
+///     `QkExitCode_IncompatibleTypes` if it could not be added because the IR types of `body`, of
+///     `predicate`, or of the existing pipeline do not agree.
+///
+/// # Safety
+///
+/// Behavior is undefined if any of the following are violated:
+///
+/// * `pm` points to a valid `QkPassManager`
+/// * `body` points to an owned `QkPass` instance.
+/// * `predicate` points to an owned `QkPredicate` instance.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_passmanager_push_while(
+    pm: *mut PassManager,
+    body: *mut CPass,
+    predicate: *mut CPredicate,
+    max_iterations: usize,
+) -> ExitCode {
+    // SAFETY: per documentation, `pm` points to a valid `PassManager`.
+    let pm = unsafe { mut_ptr_as_ref(pm) };
+    // SAFETY: per documentation, `body` points to a valid owned `CPass`.
+    let body = unsafe { CPass::steal(body) };
+    // SAFETY: per documentation, `predicate` points to a valid owned `CPredicate`.
+    let predicate = unsafe { CPredicate::steal(predicate) };
+    let body = Task::Transformation(body as Box<dyn Pass>);
+    Task::while_(body, predicate as Box<dyn Predicate>, max_iterations)
+        .and_then(|task| pm.try_push_task(task))
         .map_err(|_| ExitCode::IncompatibleTypes)
         .err()
         .unwrap_or(ExitCode::Success)

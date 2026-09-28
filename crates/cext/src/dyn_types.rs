@@ -27,8 +27,8 @@ use qiskit_util::dyn_types::DynTypeId;
 ///
 /// # Safety
 ///
-/// The [`leak`](Self::leak) and [`steal`](Self::steal) functions must agree on the type
-/// constructed, and this type must use the same [`DynTypeId`] as produced by the
+/// The [`leak`](Self::leak), [`steal`](Self::steal) and [`borrow`](Self::borrow) functions must
+/// agree on the type constructed, and this type must use the same [`DynTypeId`] as produced by the
 /// [`object_dyn_type_id`](Self::object_dyn_type_id) function.
 ///
 /// Other unsafe FFI code relies on the correctness and soundness of this trait to avoid undefined
@@ -44,6 +44,15 @@ pub unsafe trait DynTraitExposer<Trait: ?Sized>: Send + Sync + 'static {
     /// Implementers of the trait may assume that `ob` will always downcast to the known concrete
     /// type expected by the base object.
     fn leak(&self, ob: Box<Trait>) -> *mut ::std::ffi::c_void;
+    /// Get the raw data pointer of `ob` without transferring ownership.
+    ///
+    /// The returned pointer is valid for as long as `ob` is borrowed, and must not be freed.
+    ///
+    /// # Panics
+    ///
+    /// Implementers of the trait may assume that `ob` will always downcast to the known concrete
+    /// type expected by the base object.
+    fn borrow(&self, ob: &Trait) -> *const ::std::ffi::c_void;
     /// Steal the ownership of the raw data pointer `ptr`, and combine it with the necessary dynamic
     /// trait vtables to produce a complete [`Box<dyn T>`] object.
     ///
@@ -115,6 +124,19 @@ macro_rules! make_static_trait_exposer {
                     .downcast::<$T>()
                     .expect("caller should ensure correct type");
                 $T::leak(typed).cast()
+            }
+            fn borrow(&self, ob: &dyn $trait) -> *const ::std::ffi::c_void {
+                use std::any::Any;
+                use qiskit_util::dyn_types::DynTyped;
+
+                debug_assert_eq!(
+                    (ob as &dyn DynTyped).dyn_type_id(),
+                    self.object_dyn_type_id()
+                );
+                let typed = (ob as &dyn Any)
+                    .downcast_ref::<$T>()
+                    .expect("caller should ensure correct type");
+                ::std::ptr::from_ref(typed).cast()
             }
             unsafe fn steal(&self, ptr: *mut ::std::ffi::c_void) -> ::std::boxed::Box<dyn $trait> {
                 (unsafe { $T::steal(ptr.cast()) }) as ::std::boxed::Box<dyn $trait>

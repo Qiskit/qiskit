@@ -90,6 +90,9 @@ pub enum PassError {
     /// The given input type failed to cast to the right type dynamically.
     #[error("failed to cast to expected input type")]
     Conversion,
+    /// A looping task ran the maximum permitted iterations without its exit criterion being met.
+    #[error("loop body ran {max_iterations} times without the exit criterion being met")]
+    IterationLimit { max_iterations: usize },
     /// An arbitrary error during processing of the pass.
     #[error(transparent)]
     Runtime(#[from] anyhow::Error),

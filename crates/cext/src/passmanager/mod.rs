@@ -17,6 +17,7 @@ mod pass;
 // its corresponding `cext` module mirrors it.
 #[expect(clippy::module_inception)]
 mod passmanager;
+mod predicate;
 
 use std::ffi::c_void;
 
@@ -24,6 +25,7 @@ pub use error::*;
 pub use ir::*;
 pub use pass::*;
 pub use passmanager::*;
+pub use predicate::*;
 
 /// @ingroup pass-manager
 /// Temporary documentation to be deleted in rebase.
