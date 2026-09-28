@@ -10,11 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
-use qiskit_passmanager::{
-    DynTypeId, DynTyped, IR, Pass, PassContext, PassError, PassManager, StaticDynTyped, Task,
-};
-
 use std::{
     any::Any,
     ffi::{CStr, c_char, c_void},
@@ -23,38 +18,17 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use crate::{
-    ExitCode,
-    pointers::{
-        ExposesOwnedPointers, arc_clone_from_raw, const_ptr_as_ref, expose_by_arc, expose_by_box,
-        mut_ptr_as_ref,
-    },
+use crate::ExitCode;
+use crate::dyn_types::*;
+use crate::pointers::{
+    ExposesOwnedPointers, arc_clone_from_raw, const_ptr_as_ref, expose_by_arc, expose_by_box,
+    mut_ptr_as_ref,
 };
+use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
+use qiskit_passmanager::{IR, Pass, PassContext, PassError, PassManager, Task};
+use qiskit_util::dyn_types::*;
 
-unsafe trait IRExposer: Send + Sync + 'static {
-    fn ir_dyn_type_id(&self) -> DynTypeId<'_>;
-    fn leak(&self, ob: Box<dyn IR>) -> *mut c_void;
-    unsafe fn steal(&self, ptr: *mut c_void) -> Box<dyn IR>;
-}
-
-struct StaticIRExposer<T>(PhantomData<T>);
-unsafe impl<T> IRExposer for StaticIRExposer<T>
-where
-    T: IR + StaticDynTyped + ExposesOwnedPointers<Owner = Box<T>>,
-{
-    fn ir_dyn_type_id(&self) -> DynTypeId<'_> {
-        T::static_dyn_type_id()
-    }
-    fn leak(&self, ob: Box<dyn IR>) -> *mut c_void {
-        let typed = (ob as Box<dyn Any>)
-            .downcast::<T>()
-            .expect("called should ensure correct type");
-        T::leak(typed).cast()
-    }
-    unsafe fn steal(&self, ptr: *mut c_void) -> Box<dyn IR> {
-        (unsafe { T::steal(ptr.cast()) }) as Box<dyn IR>
-    }
-}
+make_static_trait_exposer!(struct StaticIrExposer<T> for dyn IR);
 
 #[derive(Debug)]
 struct IRVTable {
@@ -80,7 +54,7 @@ impl DynTyped for CIr {
 }
 impl IR for CIr {}
 
-pub struct IRHandle(Arc<dyn IRExposer>);
+pub struct IRHandle(Arc<dyn DynTraitExposer<dyn IR>>);
 const _: () = unsafe { expose_by_box!(IRHandle) };
 
 #[derive(Clone, Copy, derive_more::TryFrom, Debug)]
@@ -107,14 +81,13 @@ pub unsafe extern "C" fn qk_pass_ir_handle_new(
 pub extern "C" fn qk_pass_ir_handle_builtin(ty: u32) -> *mut IRHandle {
     match BuiltinIR::try_from(ty) {
         Ok(BuiltinIR::Circuit) => {
-            static CIRCUIT: LazyLock<Arc<dyn IRExposer>> =
-                LazyLock::new(|| Arc::new(StaticIRExposer(PhantomData::<CircuitData>)));
+            static CIRCUIT: LazyLock<Arc<dyn DynTraitExposer<dyn IR>>> =
+                LazyLock::new(|| Arc::new(StaticIrExposer(PhantomData::<CircuitData>)));
             IRHandle(Arc::clone(&CIRCUIT)).into_leaked()
         }
         Ok(BuiltinIR::Dag) => {
-            static DAG: LazyLock<Arc<dyn IRExposer>> = LazyLock::new(|| {
-                Arc::new(StaticIRExposer(PhantomData::<DAGCircuit>)) as Arc<dyn IRExposer>
-            });
+            static DAG: LazyLock<Arc<dyn DynTraitExposer<dyn IR>>> =
+                LazyLock::new(|| Arc::new(StaticIrExposer(PhantomData::<DAGCircuit>)));
             IRHandle(Arc::clone(&DAG)).into_leaked()
         }
         Err(_) => ptr::null_mut(),
@@ -127,8 +100,8 @@ pub unsafe extern "C" fn qk_pass_ir_handle_free(handle: *mut IRHandle) {
 }
 
 struct CIrExposer(Arc<IRVTable>);
-unsafe impl IRExposer for CIrExposer {
-    fn ir_dyn_type_id(&self) -> DynTypeId<'_> {
+unsafe impl DynTraitExposer<dyn IR> for CIrExposer {
+    fn object_dyn_type_id(&self) -> DynTypeId<'_> {
         CIr::dyn_type_for_vtable(&self.0)
     }
     fn leak(&self, ob: Box<dyn IR>) -> *mut c_void {
@@ -227,8 +200,8 @@ pub enum PassSlot {
 // TODO: docs
 pub struct PassVTable {
     name: String,
-    ir_in: Arc<dyn IRExposer>,
-    ir_out: Arc<dyn IRExposer>,
+    ir_in: Arc<dyn DynTraitExposer<dyn IR>>,
+    ir_out: Arc<dyn DynTraitExposer<dyn IR>>,
     run: unsafe extern "C" fn(
         *mut c_void,
         *mut c_void,
@@ -297,8 +270,8 @@ pub unsafe extern "C" fn qk_pass_vtable_new(
 // implementation, hard-coding is good enough.
 struct PassVTablePartial {
     name: String,
-    ir_in: Arc<dyn IRExposer>,
-    ir_out: Arc<dyn IRExposer>,
+    ir_in: Arc<dyn DynTraitExposer<dyn IR>>,
+    ir_out: Arc<dyn DynTraitExposer<dyn IR>>,
     run: Option<
         unsafe extern "C" fn(
             *mut c_void,
@@ -310,7 +283,11 @@ struct PassVTablePartial {
     delete: Option<unsafe extern "C" fn(*mut c_void) -> c_void>,
 }
 impl PassVTablePartial {
-    fn new(name: String, ir_in: Arc<dyn IRExposer>, ir_out: Arc<dyn IRExposer>) -> Self {
+    fn new(
+        name: String,
+        ir_in: Arc<dyn DynTraitExposer<dyn IR>>,
+        ir_out: Arc<dyn DynTraitExposer<dyn IR>>,
+    ) -> Self {
         Self {
             name,
             ir_in,
@@ -366,10 +343,10 @@ unsafe impl Send for CPass {}
 unsafe impl Sync for CPass {}
 impl Pass for CPass {
     fn ir_id_in(&self) -> DynTypeId<'_> {
-        self.vtable.ir_in.ir_dyn_type_id()
+        self.vtable.ir_in.object_dyn_type_id()
     }
     fn ir_id_out(&self) -> DynTypeId<'_> {
-        self.vtable.ir_out.ir_dyn_type_id()
+        self.vtable.ir_out.object_dyn_type_id()
     }
     fn name(&self) -> &str {
         &self.vtable.name
