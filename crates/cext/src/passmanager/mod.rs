@@ -18,28 +18,7 @@ mod pass;
 #[expect(clippy::module_inception)]
 mod passmanager;
 
-use std::ffi::c_void;
-
 pub use error::*;
 pub use ir::*;
 pub use pass::*;
 pub use passmanager::*;
-
-/// @ingroup pass-manager
-/// Temporary documentation to be deleted in rebase.
-#[repr(C)]
-pub struct VtableEntry {
-    /// The "slot" of the function, or the sentinel `(uint32_t)-1` to mark the final array entry.
-    ///
-    /// This is typically set to some `enum` value, where the particular `enum` varies depending on
-    /// which vtable you are defining.
-    pub slot: u32,
-    /// Any additional "flags" for the particular table entry.  These will typically be or'd (`|`)
-    /// together, and the valid set of flags will be documented by the table user.
-    pub flags: u32,
-    /// A function pointer implementing the correct signature for the combination of the `slot` and
-    /// `flags`.
-    ///
-    /// This can be `NULL` only in the case of `slots` being the sentinel `-1`.
-    pub ptr: *mut c_void,
-}

@@ -16,7 +16,6 @@ use std::marker::PhantomData;
 use std::sync::{Arc, LazyLock};
 use std::{mem, ptr};
 
-use super::VtableEntry;
 use crate::dyn_types::*;
 use crate::pointers::{ExposesOwnedPointers, expose_by_box};
 use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};

@@ -2894,13 +2894,16 @@ pub unsafe extern "C" fn qk_circuit_get_control_flow_instruction(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``cf_inst`` is not a valid pointer that was returned by
-/// ``qk_circuit_get_control_flow_instruction``, or if this function is called more than
-/// once on the same pointer.
+/// Behavior is undefined if ``cf_inst`` is not either null or a valid pointer that was
+/// returned by ``qk_circuit_get_control_flow_instruction``, or if this function is called
+/// more than once on the same pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControlFlowInstruction) {
-    // SAFETY: Per documentation, cf_inst is a valid pointer to a QkControlFlowInstruction
-    unsafe { drop(Box::from_raw(cf_inst)) };
+    if !cf_inst.is_null() {
+        // SAFETY: per documentation, `cf_inst` is an owned pointer that was returned by
+        // `qk_circuit_get_control_flow_instruction`.
+        unsafe { drop(Box::from_raw(cf_inst)) };
+    }
 }
 
 #[cfg(test)]
@@ -2952,5 +2955,11 @@ mod test {
 
         assert_eq!(out_bits[1], 1); // Bit was explicitly added to the circuit
         assert_eq!(out_bits[0], u32::MAX); // Bit was not added to the circuit
+    }
+
+    #[test]
+    fn test_free_control_flow_instruction_null() {
+        // A null pointer must be a no-op, not undefined behavior.
+        unsafe { qk_control_flow_instruction_free(std::ptr::null_mut()) };
     }
 }

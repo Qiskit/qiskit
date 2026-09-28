@@ -14,7 +14,7 @@ use std::ffi::{CStr, c_char, c_void};
 use std::sync::Arc;
 use std::{mem, ptr};
 
-use super::{CompilationError, IrHandle, VtableEntry};
+use super::{CompilationError, IrHandle};
 use crate::dyn_types::*;
 use crate::pointers::{
     ExposesOwnedPointers, arc_clone_from_raw, const_ptr_as_ref, expose_by_arc, expose_by_box,
