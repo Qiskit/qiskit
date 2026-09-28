@@ -324,7 +324,6 @@ fn execute_task(
 mod test {
     use super::*;
     use anyhow::anyhow;
-    use qiskit_util::dyn_types::*;
     use std::sync::{Arc, RwLock};
 
     #[derive(Clone, Debug)]
