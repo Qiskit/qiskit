@@ -286,7 +286,7 @@ pub unsafe extern "C" fn qk_transpile_layout_generate_from_mapping(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``layout`` is not a valid, non-null pointer to a ``QkTranspileLayout``.
+/// Behavior is undefined if ``layout`` is not either null or a valid pointer to a ``QkTranspileLayout``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpile_layout_free(layout: *mut TranspileLayout) {
     // SAFETY: if `layout` is not null, then per documentation it is an owned pointer.  Per trait

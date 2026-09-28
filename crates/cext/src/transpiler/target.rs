@@ -456,7 +456,7 @@ pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
+/// Behavior is undefined if ``target`` is not either null or a valid pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
     // SAFETY: if `target` is not null, then per documentation it is an owned pointer.  Per trait
@@ -711,8 +711,8 @@ pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntr
 ///
 /// # Safety
 ///
-/// The behavior is undefined if ``entry`` is not a valid,
-/// non-null pointer to a ``QkTargetEntry`` object.
+/// The behavior is undefined if ``entry`` is not either null or a valid
+/// pointer to a ``QkTargetEntry`` object.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
     // SAFETY: if `entry` is not null, then per documentation it is an owned pointer.  Per trait
