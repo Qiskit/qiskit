@@ -78,9 +78,9 @@ impl IR for CIr {}
 #[repr(u32)]
 pub enum IrBuiltin {
     /// The `QkCircuit` object.
-    Circuit,
+    Circuit = 0,
     /// The `QkDag` object.
-    Dag,
+    Dag = 1,
 }
 
 /// @ingroup pass-manager
