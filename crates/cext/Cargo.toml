@@ -14,6 +14,7 @@ crate-type = ["rlib"]
 workspace = true
 
 [dependencies]
+derive_more = { version = "2.1", features = ["try_from"] }
 thiserror.workspace = true
 num-complex.workspace = true
 qiskit-quantum-info.workspace = true

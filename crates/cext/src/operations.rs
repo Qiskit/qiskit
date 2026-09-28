@@ -23,7 +23,7 @@ use qiskit_circuit::{
 };
 
 use crate::{
-    ExitCode, expose_by_arc, expose_by_box,
+    expose_by_arc, expose_by_box,
     pointers::{ExposesOwnedPointers, arc_clone_from_raw},
 };
 
@@ -315,13 +315,108 @@ pub struct CustomOpVtablePartial {
     eq: Option<unsafe extern "C" fn(*const c_void, *const c_void) -> bool>,
 }
 
+impl CustomOpVtablePartial {
+    unsafe fn set(&mut self, slot: CustomOpMethod, ptr: *const c_void) -> bool {
+        match slot {
+            CustomOpMethod::Name => {
+                let ptr = unsafe {
+                    std::mem::transmute::<
+                        *const c_void,
+                        unsafe extern "C" fn(*const c_void) -> *const c_char,
+                    >(ptr)
+                };
+                self.name.replace(ptr).is_some()
+            }
+            CustomOpMethod::NumQubits => {
+                let ptr = unsafe {
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
+                        ptr,
+                    )
+                };
+                self.num_qubits.replace(ptr).is_some()
+            }
+            CustomOpMethod::NumClbits => {
+                let ptr = unsafe {
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
+                        ptr,
+                    )
+                };
+                self.num_clbits.replace(ptr).is_some()
+            }
+            CustomOpMethod::NumParams => {
+                let ptr = unsafe {
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
+                        ptr,
+                    )
+                };
+                self.num_params.replace(ptr).is_some()
+            }
+            CustomOpMethod::Directive => {
+                let ptr = unsafe {
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
+                        ptr,
+                    )
+                };
+                self.directive.replace(ptr).is_some()
+            }
+            CustomOpMethod::IsUnitary => {
+                let ptr = unsafe {
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
+                        ptr,
+                    )
+                };
+                self.is_unitary.replace(ptr).is_some()
+            }
+            CustomOpMethod::NumCtrlQubits => {
+                let ptr = unsafe {
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
+                        ptr,
+                    )
+                };
+                self.num_ctrl_qubits.replace(ptr).is_some()
+            }
+            CustomOpMethod::Label => {
+                let ptr = unsafe {
+                    std::mem::transmute::<
+                        *const c_void,
+                        unsafe extern "C" fn(*const c_void) -> *const c_char,
+                    >(ptr)
+                };
+                self.label.replace(ptr).is_some()
+            }
+            CustomOpMethod::Definition => {
+                let ptr = unsafe {
+                    std::mem::transmute::<
+                        *const c_void,
+                        unsafe extern "C" fn(
+                            *const c_void,
+                            *const *const Param,
+                        ) -> *mut CircuitData,
+                    >(ptr)
+                };
+                self.definition.replace(ptr).is_some()
+            }
+            CustomOpMethod::Eq => {
+                let ptr = unsafe {
+                    std::mem::transmute::<
+                        *const c_void,
+                        unsafe extern "C" fn(*const c_void, *const c_void) -> bool,
+                    >(ptr)
+                };
+                self.eq.replace(ptr).is_some()
+            }
+        }
+    }
+}
+
 /// Represents the Vtable index of a ``QkCustomOperation`` coming from the
 /// C domain.
 ///
 /// Each named index refers to a required/optional method of the `Operation`
 /// and `CustomOperation` traits in Rust.
 #[repr(u32)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, derive_more::TryFrom)]
+#[try_from(repr)]
 pub enum CustomOpMethod {
     Name = 0,
     NumQubits = 1,
@@ -335,28 +430,6 @@ pub enum CustomOpMethod {
     Eq = 9,
 }
 
-impl TryFrom<u32> for CustomOpMethod {
-    type Error = u32;
-
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
-        use CustomOpMethod::*;
-        let ret = match value {
-            0 => Name,
-            1 => NumQubits,
-            2 => NumClbits,
-            3 => NumParams,
-            4 => Directive,
-            5 => IsUnitary,
-            6 => NumCtrlQubits,
-            7 => Label,
-            8 => Definition,
-            9 => Eq,
-            _ => return Err(value),
-        };
-        Ok(ret)
-    }
-}
-
 /// Represents an entry in a ``VTable`` designed in Qiskit.
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -366,15 +439,7 @@ pub struct VTableEntry {
     /// Refers to possible calling conventions and feature flags set by the user.
     flags: u32,
     /// A function pointer for the operation to use as a method.
-    func: *const ::std::ffi::c_void,
-}
-
-impl VTableEntry {
-    pub const SENTINEL: Self = Self {
-        slot: u32::MAX,
-        flags: 0,
-        func: ::std::ptr::null(),
-    };
+    ptr: *const c_void,
 }
 
 /// @ingroup QkCustomOperation
@@ -515,140 +580,32 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     mut slots: *const VTableEntry,
-    pointer: *mut *const CustomOpVTable,
-) -> ExitCode {
+) -> *const CustomOpVTable {
     let mut vtable = CustomOpVtablePartial::default();
-    let mut slot = unsafe { slots.read() };
-    while slot.slot != u32::MAX {
-        match CustomOpMethod::try_from(slot.slot) {
-            Ok(CustomOpMethod::Name) => {
-                if vtable.name.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.name = Some(unsafe {
-                    std::mem::transmute::<
-                        *const c_void,
-                        unsafe extern "C" fn(*const c_void) -> *const c_char,
-                    >(slot.func)
-                })
-            }
-            Ok(CustomOpMethod::NumQubits) => {
-                if vtable.num_qubits.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.num_qubits = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
-                        slot.func,
-                    )
-                })
-            }
-            Ok(CustomOpMethod::NumClbits) => {
-                if vtable.num_clbits.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.num_clbits = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
-                        slot.func,
-                    )
-                })
-            }
-            Ok(CustomOpMethod::NumParams) => {
-                if vtable.num_params.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.num_params = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
-                        slot.func,
-                    )
-                })
-            }
-            Ok(CustomOpMethod::Directive) => {
-                if vtable.directive.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.directive = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
-                        slot.func,
-                    )
-                })
-            }
-            Ok(CustomOpMethod::IsUnitary) => {
-                if vtable.is_unitary.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.is_unitary = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
-                        slot.func,
-                    )
-                })
-            }
-            Ok(CustomOpMethod::NumCtrlQubits) => {
-                if vtable.num_ctrl_qubits.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.num_ctrl_qubits = Some(unsafe {
-                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
-                        slot.func,
-                    )
-                })
-            }
-            Ok(CustomOpMethod::Label) => {
-                if vtable.label.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.label = Some(unsafe {
-                    std::mem::transmute::<
-                        *const c_void,
-                        unsafe extern "C" fn(*const c_void) -> *const c_char,
-                    >(slot.func)
-                })
-            }
-            Ok(CustomOpMethod::Definition) => {
-                if vtable.definition.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.definition = Some(unsafe {
-                    std::mem::transmute::<
-                        *const c_void,
-                        unsafe extern "C" fn(
-                            *const c_void,
-                            *const *const Param,
-                        ) -> *mut CircuitData,
-                    >(slot.func)
-                })
-            }
-            Ok(CustomOpMethod::Eq) => {
-                if vtable.eq.is_some() {
-                    return ExitCode::CustomOperationRepeatedSlot;
-                }
-                vtable.eq = Some(unsafe {
-                    std::mem::transmute::<
-                        *const c_void,
-                        unsafe extern "C" fn(*const c_void, *const c_void) -> bool,
-                    >(slot.func)
-                })
-            }
-            // We have left case this open so that if a method is removed from the
-            // `CustomOperation` API the slot will get ignored instead of triggering
-            // an error or leading to undefined behavior.
-            Err(_) => (),
+    loop {
+        // SAFETY: per documentation, `slots` is valid for reads until we see the sentinel all-ones
+        // pattern in a `slot`.
+        let entry = unsafe { slots.read() };
+        slots = if entry.slot == u32::MAX {
+            break;
+        } else {
+            slots.wrapping_add(1)
+        };
+        let Ok(slot) = CustomOpMethod::try_from(entry.slot) else {
+            // We assume this is a slot from a later version of Qiskit.
+            // TODO: add an envvar / global to turn on debug information in these cases?
+            continue;
+        };
+        // SAFETY: per documentation, `entry.ptr` is of the expected function-pointer type and valid
+        // to call, because `entry.slot` was not all-ones.
+        if unsafe { vtable.set(slot, entry.ptr) } {
+            // This a documented UB case.
+            return std::ptr::dangling_mut();
         }
-        slots = unsafe { slots.add(1) };
-        if slots.is_null() {
-            // If by the time we reach a null item we have not yet found a sentinel
-            // value to stop reading. Assume the resulting vtable is invalid and
-            // do not write to pointer.
-            return ExitCode::CInputError;
-        }
-        slot = unsafe { slots.read() };
     }
-    if let Ok(ptr) = CustomOpVTable::try_from(vtable).map(ExposesOwnedPointers::into_leaked) {
-        // SAFETY: We have established that this pointer is big enough
-        // to hold a pointer to ``QkCustomOpVTable``, and needs to be
-        // null add aligned.
-        unsafe { pointer.write(ptr) }
-    }
-    ExitCode::Success
+
+    // SAFETY: per documentation, all required methods were set.
+    (unsafe { CustomOpVTable::try_from(vtable).unwrap_unchecked() }).into_leaked()
 }
 
 /// @ingroup QkCustomOperation
