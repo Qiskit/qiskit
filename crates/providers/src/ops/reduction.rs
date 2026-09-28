@@ -17,8 +17,8 @@ use crate::tensor::{DType, Tensor, TensorType};
 use ndarray::{ArrayBase, ArrayD, Axis, Data, IxDyn, NdFloat, Zip};
 use num_complex::Complex;
 
-/// The result dtype of [`Mean`]: `F32` stays `F32`, `C64`/`C128` stay complex, and everything
-/// else become `F64`.
+/// Return the result dtype of [`Mean`]: `F32` and the complex dtypes are unchanged, and everything
+/// else becomes `F64`.
 fn mean_out_dtype(dtype: DType) -> DType {
     match dtype {
         DType::F32 => DType::F32,
@@ -28,8 +28,8 @@ fn mean_out_dtype(dtype: DType) -> DType {
     }
 }
 
-/// The result dtype of [`Variance`] and [`Std`]: as [`mean_out_dtype`], except that a complex
-/// operand produces its real counterpart, since a squared modulus is real.
+/// Return the result dtype of [`Variance`] and [`Std`]: as [`mean_out_dtype`], except that a
+/// complex operand produces its real counterpart, since a squared modulus is real.
 fn real_out_dtype(dtype: DType) -> DType {
     match dtype {
         DType::F32 => DType::F32,
@@ -53,7 +53,7 @@ fn real_out_dtype(dtype: DType) -> DType {
 /// the slice traversal on it is more than forty times slower.
 const MIN_SLICE_OUTPUT_LEN: usize = 16;
 
-/// Mean of `a` along `axis`, with that axis removed.
+/// Compute the mean of `a` along `axis`, with that axis removed.
 ///
 /// A zero-length axis gives a NaN mean.
 fn complex_mean<A, S>(a: &ArrayBase<S, IxDyn>, axis: Axis) -> ArrayD<Complex<A>>
@@ -66,7 +66,7 @@ where
         .mapv_into(|c| Complex::new(c.re / n, c.im / n))
 }
 
-/// Sum of the squared moduli of the deviations of `a` from its mean along `axis`,
+/// Sum the squared moduli of the deviations of `a` from its mean along `axis`,
 /// with that axis removed.
 ///
 /// Peak memory is independent of the length of the reduced axis.
@@ -150,14 +150,8 @@ macro_rules! reduction_op {
 
 /// Mean of a tensor along a specified axis, removing that axis.
 ///
-/// Integer inputs are cast to `F64` before computing the mean. `F32` inputs
-/// produce `F32` output; all other float and integer types produce `F64`.
-/// Complex inputs (`C64`, `C128`) preserve their complex dtype.
-///
-/// # Empty reductions
-///
-/// Averaging a zero-length axis divides by zero and yields `NaN`, matching [`Variance`] and
-/// [`Std`].
+/// An `F32` operand produces `F32` and a complex one keeps its dtype. Every other dtype produces
+/// `F64`. Averaging a zero-length axis divides by zero and gives `NaN`.
 #[derive(Clone)]
 pub struct Mean {
     axis: usize,
@@ -169,11 +163,9 @@ impl Mean {
         Self { axis }
     }
 
-    /// The mean of `x` along `self.axis`, which must be in bounds for `x`.
+    /// Compute the mean of `x` along `self.axis`, which must be in bounds for `x`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
-        // Every arm divides a sum by the reduced axis's length, which is what `ndarray::mean_axis`
-        // computes, except that `mean_axis` returns `None` for a zero-length axis rather than
-        // dividing by zero. See the degenerate-divisor convention on `Mean`.
+        // can't use `ndarray::mean_axis` because it returns `None` for a zero-length axis.
         let n = x.shape()[self.axis];
         match x {
             Tensor::F32(a) => Tensor::F32((a.sum_axis(Axis(self.axis)) / n as f32).into_shared()),
@@ -198,13 +190,12 @@ reduction_op!(Mean, "mean", mean_out_dtype);
 
 /// Variance of a tensor along a specified axis, removing that axis.
 ///
-/// The `ddof` (delta degrees of freedom) parameter adjusts the divisor: the result
-/// is divided by `n - ddof` where `n` is the number of elements along the axis.
-/// Use `ddof=0` for population variance and `ddof=1` for sample variance.
+/// The divisor is `n - ddof`, where `n` is the length of the axis. `ddof=0` gives the population
+/// variance and `ddof=1` the sample variance.
 ///
-/// Integer inputs are cast to `F64`. `F32` produces `F32`; all other real types
-/// produce `F64`. Complex inputs (`C64`, `C128`) produce real output (`F32`, `F64`
-/// respectively), computed as the mean squared modulus of the deviations.
+/// An `F32` operand produces `F32`, `C64` produces `F32` and `C128` produces `F64`. Every other
+/// dtype produces `F64`. The variance of a complex tensor is the mean squared modulus of its
+/// deviations.
 #[derive(Clone)]
 pub struct Variance {
     axis: usize,
@@ -218,9 +209,7 @@ impl Variance {
         Self { axis, ddof }
     }
 
-    /// The variance of `x` along `self.axis`, which [`Std`] takes the square root of.
-    ///
-    /// `self.axis` must be in bounds for `x`.
+    /// Compute the variance of `x` along `self.axis`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
         match x {
             Tensor::F32(a) => {
@@ -256,8 +245,7 @@ reduction_op!(Variance, "variance", real_out_dtype);
 
 /// Standard deviation of a tensor along a specified axis, removing that axis.
 ///
-/// This is the square root of [`Variance`]. See that type for details on `ddof`,
-/// output dtypes, and complex handling.
+/// This is the square root of [`Variance`].
 #[derive(Clone)]
 pub struct Std {
     axis: usize,
@@ -271,7 +259,7 @@ impl Std {
         Self { axis, ddof }
     }
 
-    /// The standard deviation of `x` along `self.axis`, which must be in bounds for `x`.
+    /// Compute the standard deviation of `x` along `self.axis`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
         match Variance::new(self.axis, self.ddof).reduce_axis(x) {
             Tensor::F32(v) => Tensor::F32(v.mapv(f32::sqrt).into_shared()),
@@ -303,7 +291,7 @@ mod tests {
         }
     }
 
-    /// A 2-D operand type, so that a reduction has an axis to remove and one to keep.
+    /// Return a 2-D operand type, so that a reduction has an axis to remove and one to keep.
     fn ty_2d(dtype: DType, rows: Dim, cols: Dim) -> TensorType {
         TensorType {
             dtype,
@@ -465,7 +453,6 @@ mod tests {
 
     #[test]
     fn test_variance_f64_ddof0() {
-        // [2, 4, 4, 4, 5, 5, 7, 9] — classic example, population variance = 4.0
         let x = Tensor::from([2.0_f64, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
         let result = Variance::new(0, 0.0).eval(&[x]).unwrap();
         let Tensor::F64(arr) = &result[0] else {
@@ -476,7 +463,6 @@ mod tests {
 
     #[test]
     fn test_variance_f64_ddof1() {
-        // Sample variance (ddof=1) of the same sequence
         let x = Tensor::from([2.0_f64, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
         let result = Variance::new(0, 1.0).eval(&[x]).unwrap();
         let Tensor::F64(arr) = &result[0] else {
@@ -488,7 +474,6 @@ mod tests {
 
     #[test]
     fn test_variance_f32_ddof0() {
-        // [2, 4, 4, 4, 5, 5, 7, 9] — classic example, population variance = 4.0
         let x = Tensor::from([2.0_f32, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
         let result = Variance::new(0, 0.0).eval(&[x]).unwrap();
         let Tensor::F32(arr) = &result[0] else {
@@ -511,7 +496,6 @@ mod tests {
 
     #[test]
     fn test_variance_c128_returns_real() {
-        // [1+1i, 3+3i] — mean = 2+2i, deviations = [−1−i, 1+i], |.|^2 = [2, 2], var = 2.0
         let data: Vec<Complex<f64>> = vec![Complex::new(1.0, 1.0), Complex::new(3.0, 3.0)];
         let x = Tensor::C128(ndarray::Array1::from(data).into_dyn().into_shared());
         let result = Variance::new(0, 0.0).eval(&[x]).unwrap();
@@ -528,7 +512,6 @@ mod tests {
 
     #[test]
     fn test_variance_c64_returns_real() {
-        // [1+1i, 3+3i] — mean = 2+2i, deviations = [−1−i, 1+i], |.|^2 = [2, 2], var = 2.0
         let data: Vec<Complex<f32>> = vec![Complex::new(1.0, 1.0), Complex::new(3.0, 3.0)];
         let x = Tensor::C64(ndarray::Array1::from(data).into_dyn().into_shared());
         let result = Variance::new(0, 0.0).eval(&[x]).unwrap();
