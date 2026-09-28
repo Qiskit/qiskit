@@ -840,7 +840,7 @@ class TestCustomClassical(QiskitTestCase):
             program,
             custom_classical=[qiskit.qasm2.CustomClassical("bad", 1, always_raises)],
         )
-        # The exception is raised here, when _evaluate_argument processes ExprCustom.
+        # The exception is raised here, when the Rust evaluator calls the custom function.
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, "caught exception when constant folding"
         ):

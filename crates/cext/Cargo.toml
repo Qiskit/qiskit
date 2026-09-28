@@ -20,6 +20,7 @@ qiskit-quantum-info.workspace = true
 qiskit-circuit.workspace = true
 qiskit-circuit-library.workspace = true
 qiskit-transpiler.workspace = true
+qiskit-qpy.workspace = true
 pyo3 = { workspace = true, optional = true }
 qiskit-util.workspace = true
 smallvec.workspace = true
@@ -33,6 +34,7 @@ mimalloc = { workspace = true, optional = true}
 uuid.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
+bytemuck.workspace = true
 
 [features]
 python_binding = ["dep:pyo3"]

@@ -12,14 +12,18 @@
 
 use num_complex::Complex64;
 use std::ffi::{CStr, CString, c_char};
+use std::mem;
 use std::sync::Arc;
 
 use crate::exit_codes::ExitCode;
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
 
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr, Value};
+
+// SAFETY: all owned `Param` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(Param) };
 
 /// @ingroup QkParam
 /// Construct a new ``QkParam`` representing an unbound symbol.
@@ -46,12 +50,10 @@ pub unsafe extern "C" fn qk_param_new_symbol(name: *const c_char) -> *mut Param 
     if name.is_empty() {
         // Per documentation, the name cannot be empty.
         panic!("Invalid empty name.");
-    } else {
-        let symbol = Symbol::standalone(name.to_owned(), None);
-        let expr = ParameterExpression::from_symbol(symbol);
-        let param = Param::ParameterExpression(Arc::new(expr));
-        Box::into_raw(Box::new(param))
     }
+    let symbol = Symbol::standalone(name.to_owned(), None);
+    let expr = ParameterExpression::from_symbol(symbol);
+    Param::ParameterExpression(Arc::new(expr)).into_leaked()
 }
 
 /// @ingroup QkParam
@@ -73,7 +75,7 @@ pub unsafe extern "C" fn qk_param_new_symbol(name: *const c_char) -> *mut Param 
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_param_zero() -> *mut Param {
-    Box::into_raw(Box::new(Param::Float(0.)))
+    Param::Float(0.0).into_leaked()
 }
 
 /// @ingroup QkParam
@@ -93,17 +95,9 @@ pub extern "C" fn qk_param_zero() -> *mut Param {
 /// Behavior is undefined if ``param`` is not either null or a valid pointer to a ``QkParam``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_param_free(param: *mut Param) {
-    if !param.is_null() {
-        if !param.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(param);
-        }
-    }
+    // SAFETY: if `param` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!param.is_null()).then(|| unsafe { Param::steal(param) });
 }
 
 /// @ingroup QkParam
@@ -121,8 +115,7 @@ pub unsafe extern "C" fn qk_param_free(param: *mut Param) {
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_param_from_double(value: f64) -> *mut Param {
-    let value = Param::Float(value);
-    Box::into_raw(Box::new(value))
+    Param::Float(value).into_leaked()
 }
 
 /// @ingroup QkParam
@@ -143,8 +136,7 @@ pub extern "C" fn qk_param_from_double(value: f64) -> *mut Param {
 pub extern "C" fn qk_param_from_complex(value: Complex64) -> *mut Param {
     let value = SymbolExpr::Value(Value::Complex(value));
     let expr = ParameterExpression::from_symbol_expr(value);
-    let param = Param::ParameterExpression(Arc::new(expr));
-    Box::into_raw(Box::new(param))
+    Param::ParameterExpression(Arc::new(expr)).into_leaked()
 }
 
 /// @ingroup QkParam
@@ -167,8 +159,7 @@ pub extern "C" fn qk_param_from_complex(value: Complex64) -> *mut Param {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_param_copy(param: *const Param) -> *mut Param {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let expr = unsafe { const_ptr_as_ref(param) };
-    Box::into_raw(Box::new(expr.clone()))
+    unsafe { const_ptr_as_ref(param) }.clone().into_leaked()
 }
 
 /// @ingroup QkParam
@@ -206,8 +197,9 @@ pub unsafe extern "C" fn qk_param_str(param: *const Param) -> *mut c_char {
         Param::ParameterExpression(expr) => expr.to_string(),
         Param::Float(f) => f.to_string(),
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
+        Param::Int(u) => u.to_string(),
     };
-    let out = CString::new(str.to_string()).unwrap();
+    let out = CString::new(str).unwrap();
     out.into_raw()
 }
 
@@ -995,8 +987,11 @@ pub unsafe extern "C" fn qk_param_equal(lhs: *const Param, rhs: *const Param) ->
 /// Attempt casting the ``QkParam`` as ``double``.
 ///
 /// If the parameter could not be cast to a ``double``, because there were unbound parameters,
-/// ``NAN`` is returned. Note that for ``QkParam`` representing complex values the real part is
-/// returned.
+/// ``NAN`` is returned. Note that for ``QkParam`` of the kind ``QkParamKind_ParameterExpression``
+/// representing a bound complex values the real part is returned.
+///
+/// If the parameter in originally an `int` instance, it will be coerced into a double, resulting
+/// in a lossy conversion.
 ///
 /// @param param A pointer to the ``QkParam`` to evaluate.
 ///
@@ -1032,5 +1027,150 @@ pub unsafe extern "C" fn qk_param_as_real(param: *const Param) -> f64 {
         },
         Param::Float(f) => *f,
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
+        Param::Int(u) => *u as f64, // Lossy conversion,
+    }
+}
+
+/// @ingroup QkParam
+/// Get the size in bytes of the opaque `QkParam` type.
+///
+/// @return The size in bytes of the opaque `QkParam` type.
+///
+/// The `QkParam` type is opaque to the C API, and its width is unspecified.  You can use this value
+/// to offset `QkParam *` pointers, if you cast it to a byte-width type and back.
+///
+/// This function returns the same value on every call within any given process.  The value might
+/// change between platforms or Qiskit library versions, and may depend on the build environment of
+/// the Qiskit C API.  You must not rely on this width being any particular value without querying
+/// this function.
+///
+/// # Example
+///
+/// If given a pointer to the first `QkParam` in a contiguous array, such as in
+/// `QkCircuitInstructionView::params`, you can access subsequent elements by offsetting the
+/// pointer by a number of bytes.
+///
+/// ```c
+/// const QkParam *p;  // A pretend pointer to the first of 3 contiguous elements.
+/// const size_t el_size = qk_param_stride();
+/// for (size_t i = 0; i < 3; i++) {
+///     // Offset the pointer by `el_size` bytes each time.
+///     p = (const QkParam *)((const char *)p + el_size);
+///
+///     char *val = qk_param_str(p);
+///     printf("%zu: %s\n", i, val);
+///     qk_str_free(val);
+/// }
+/// ```
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_param_stride() -> usize {
+    mem::size_of::<Param>()
+}
+
+/// @ingroup QkParam
+/// Attempt casting the ``QkParam`` as ``int64_t``. This is intended to be
+/// used for retrieving a parameter representing the duration of a delay
+/// instruction in units of ``Dt``.
+///
+/// If the parameter could not be cast to a ``int64_t``, because there were
+/// unbound parameters, the pointer will not be written to and the function
+/// will return ``false``. This will also be the case if the parameter
+/// is bound but evaluates to a floating point or complex number.
+///
+/// @param param A pointer to the ``QkParam`` to evaluate.
+/// @param value A pointer to a ``int64_t`` to write the resulting value.
+///
+/// @return ``true`` if the stored value is an integer, otherwise ``false``.
+///
+/// # Safety
+///
+/// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
+/// The behavior is undefined if ``value`` is not a valid, non-null pointer to an address that
+/// can hold an ``int64_t`` instance.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_param_as_int(param: *const Param, value: *mut i64) -> bool {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let param = unsafe { const_ptr_as_ref(param) };
+
+    // SAFETY: Per documentation, the pointer is non-null, alligned and valid to hold an ``int64_t``.
+    param_try_int(param)
+        .inspect(|param| unsafe { value.write(*param) })
+        .is_some()
+}
+
+/// Quickly returns the integer value of a [``Param``] if stores one or evaluates to one.
+fn param_try_int(param: &Param) -> Option<i64> {
+    match param {
+        Param::ParameterExpression(expr) => match expr.try_to_value(true) {
+            Ok(Value::Int(v)) => Some(v),
+            _ => None,
+        },
+        Param::Int(int) => Some(*int),
+        Param::Float(_) => None,
+        Param::Obj(_) => None,
+    }
+}
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Represents the type of a ``QkParam`` instance.
+pub enum ParamKind {
+    /// Represents an unknown parameter that is not representable in the C API. Typically this is a parameter that is defined in Python.
+    Unknown = 0,
+    /// Represents a real floating point parameter.
+    Real = 1,
+    /// Represents an unbound parameter symbol.
+    ParameterExpression = 2,
+    /// Represents a parameter that can only be represented by an integer. Usually a duration in terms of ``Dt``.
+    Int = 3,
+}
+
+/// @ingroup QkParam
+/// Returns the associated type of the ``QkParam`` instance via the ``QkParamKind`` enumeration.
+///
+/// @param param A pointer to the ``QkParam`` to evaluate.
+///
+/// @return The associated type with the parameter.
+///
+/// # Safety
+///
+/// The behavior is undefined if ``param`` is not a valid, non-null pointer to a ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_param_kind(param: *const Param) -> ParamKind {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let param = unsafe { const_ptr_as_ref(param) };
+
+    match param {
+        Param::ParameterExpression(_) => ParamKind::ParameterExpression,
+        Param::Int(_) => ParamKind::Int,
+        Param::Float(_) => ParamKind::Real,
+        Param::Obj(_) => ParamKind::Unknown,
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_param_offsetting() {
+        let params = [
+            Param::Float(1.0),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_f64(2.0))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("a".to_owned(), None),
+            ))),
+        ];
+        assert_eq!(mem::size_of::<Param>(), qk_param_stride());
+        let base = params.as_ptr();
+        assert_eq!(
+            base.wrapping_add(2).addr(),
+            base.cast::<u8>().wrapping_add(2 * qk_param_stride()).addr()
+        );
+        let middle_ptr = base
+            .cast::<u8>()
+            .wrapping_add(qk_param_stride())
+            .cast::<Param>();
+        assert!(params[1].eq(unsafe { &*middle_ptr }).unwrap());
     }
 }

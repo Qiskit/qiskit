@@ -63,6 +63,12 @@ class SparsePauliOp(LinearOp):
     are stored as a complex Numpy array vector and can be accessed using
     the :attr:`~SparsePauliOp.coeffs` attribute.
 
+    .. note::
+
+        Pauli strings are read right-to-left: the rightmost character is qubit 0
+        and the leftmost is qubit :math:`N-1`.  For example, ``SparsePauliOp("ZII")``
+        applies ``Z`` to qubit 2, not qubit 0.
+
     .. rubric:: Data type of coefficients
 
     The default ``dtype`` of the internal ``coeffs`` Numpy array is ``complex128``.  Users can

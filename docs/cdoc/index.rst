@@ -51,6 +51,13 @@ Circuit Library
 
    qk-circuit-library
 
+Import/Export
++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-qpy
 
 -------------------
 Quantum information
@@ -100,4 +107,5 @@ Utilities
    :maxdepth: 1
 
    config
+   dynamic-types
    version
