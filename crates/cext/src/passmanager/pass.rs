@@ -141,7 +141,7 @@ pub unsafe extern "C" fn qk_pass_vtable_new(
     ir_in: *const IrHandle,
     ir_out: *const IrHandle,
     mut table: *const VtableEntry,
-) -> *const PassVtable {
+) -> *mut PassVtable {
     // SAFETY: per documentation `name` is a pointer to nul-terminated `char`s.
     let name = unsafe { CStr::from_ptr(name) }
         .to_string_lossy()
@@ -169,11 +169,29 @@ pub unsafe extern "C" fn qk_pass_vtable_new(
         // to call, because `entry.slot` was not all-ones.
         if unsafe { partial.set(slot, entry.ptr) } {
             // This a documented UB case.
-            return ptr::dangling();
+            return ptr::dangling_mut();
         }
     }
     // SAFETY: per documentation, all required methods were set.
     (unsafe { PassVtable::try_from(partial).unwrap_unchecked() }).into_leaked()
+}
+
+/// @ingroup pass-manager
+/// Free a single reference to a `PassVtable`.
+///
+/// You can call this once you have finished constructing instances of passes that need this vtable;
+/// each constructed pass owns its own reference to the table.
+///
+/// Does nothing if `vtable` is `NULL`.
+///
+/// @param vtable The owned reference to release.
+///
+/// # Safety
+///
+/// Behavior is undefined if `vtable` is not null or a valid owned reference to a `PassVtable`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_pass_vtable_free(vtable: *mut PassVtable) {
+    _ = (!vtable.is_null()).then(|| unsafe { PassVtable::steal(vtable) });
 }
 
 // TODO: we can very likely do a bit of macro trickery to simplify the creation of vtable objects,

@@ -49,10 +49,11 @@ static int test_circuit(void) {
         {.slot = 0, .flags = 0, .ptr = run_remove_identity},
         {.slot = -1, .flags = 0, .ptr = NULL},
     };
-    const QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", ir, ir, table);
+    QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", ir, ir, table);
     QkTarget *target = qk_target_new(10);
     RemoveIdentity this = {target};
     QkPass *pass = qk_pass_new((void *)(&this), vtable);
+    qk_pass_vtable_free(vtable);
 
     QkPassManager *pm = qk_passmanager_new();
     int result = Ok;
@@ -102,7 +103,6 @@ cleanup:
     qk_target_free(target);
     qk_passmanager_free(pm);
     qk_ir_handle_free(ir);
-    // TODO free the vtable
     return result;
 }
 
@@ -126,9 +126,10 @@ static int test_lowering(void) {
     const QkVtableEntry circuit_to_dag_slots[2] = {
         {.slot = 0, .flags = 0, .ptr = (void *)(&run_circuit_to_dag)},
         {.slot = -1, .flags = 0, .ptr = NULL}};
-    const QkPassVtable *circuit_to_dag_vtable =
+    QkPassVtable *circuit_to_dag_vtable =
         qk_pass_vtable_new("circuit_to_dag", circuit_ir, dag_ir, circuit_to_dag_slots);
     QkPass *circuit_to_dag = qk_pass_new(NULL, circuit_to_dag_vtable);
+    qk_pass_vtable_free(circuit_to_dag_vtable);
 
     QkCircuit *circuit = qk_circuit_new(10, 0);
     uint32_t q0[1] = {0};
@@ -202,7 +203,6 @@ cleanup:
     qk_passmanager_free(pm);
     qk_ir_handle_free(circuit_ir);
     qk_ir_handle_free(dag_ir);
-    // TODO free the vtable
 
     return result;
 }
