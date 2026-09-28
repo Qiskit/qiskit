@@ -40,14 +40,13 @@ To install from source, follow the instructions in the [documentation](https://q
 ### Standalone C library
 
 To install Qiskit as a standalone C library the only option is currently to build Qiskit from source. This requires having the
-[Rust](https://rust-lang.org/) compiler installed. To simplify building having [GNU Make](https://www.gnu.org/software/make/) installed
-is recommended. With these requirements installed you can run:
+[Rust](https://rust-lang.org/) compiler installed. To simplify the build process, we recommend installing [GNU Make](https://www.gnu.org/software/make/). With these requirements installed you can run:
 
 ```bash
 make c
 ```
 
-Which will compile the C library and put the `dist/c` directory in the root of the repository which will contain the shared library and C headers for
+This will compile the C library and put the `dist/c` directory in the root of the repository which will contain the shared library and C headers for
 the library.
 
 You can refer to the [documentation](https://quantum.cloud.ibm.com/docs/guides/install-c-api) on installing the C API for more details and how to
@@ -147,7 +146,7 @@ hardware or simulators to Qiskit. The backend class includes a common interface 
 * https://github.com/qiskit-community/qiskit-quantinuum-provider
 * https://github.com/rigetti/qiskit-rigetti
 
-<!-- This is not an exhaustive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
+<!-- This is not an exhaustive list, and if you maintain a provider package, please feel free to open a PR to add new providers -->
 
 You can refer to the documentation of these packages for further instructions
 on how to get access and use these systems.
@@ -181,9 +180,7 @@ The changelog for the current release can be found in the releases tab:
 The changelog provides a quick overview of notable changes for a given
 release.
 
-Additionally, as part of each release, detailed release notes are written to
-document in detail what has changed as part of a release. This includes any
-documentation on potential breaking changes on upgrade and new features. See [all release notes here](https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes).
+Additionally, as part of each release, detailed release notes are written for each release to document what has changed. This includes any documentation on potential breaking changes on upgrade and new features. See [all release notes here](https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes).
 
 ## Acknowledgements
 
