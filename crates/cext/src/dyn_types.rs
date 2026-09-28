@@ -138,7 +138,7 @@ pub use make_static_trait_exposer;
 /// this attached behavior.
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-pub struct VTableEntry {
+pub struct VtableEntry {
     /// The "slot" of the function, or the sentinel `(uint32_t)-1` to mark the final array entry.
     ///
     /// This is typically set to some `enum` value, where the particular `enum` varies depending on
