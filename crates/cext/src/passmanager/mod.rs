@@ -74,6 +74,7 @@ impl DynTyped for CIr {
 }
 impl IR for CIr {}
 
+/// @ingroup pass-manager
 /// Enumeration of the different built-in C API types that are usable directly as IRs.
 ///
 /// These are the valid inputs to `qk_ir_handle_new`.
@@ -81,9 +82,9 @@ impl IR for CIr {}
 #[try_from(repr)]
 #[repr(u32)]
 pub enum IrBuiltin {
-    /// The :c:type:`QkCircuit` object.
+    /// The `QkCircuit` object.
     Circuit,
-    /// The :c:type:`QkDag` object.
+    /// The `QkDag` object.
     Dag,
 }
 

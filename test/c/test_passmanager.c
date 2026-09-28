@@ -43,7 +43,7 @@ void *run_circuit_to_dag(void *self, void *ir) {
  * Test running a single RemoveIdentity pass on a circuit.
  */
 static int test_circuit(void) {
-    QkIrHandle *ir = qk_ir_handle_builtin(0); // 0 = Circuit
+    QkIrHandle *ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
     QkVtableEntry table[2] = {
         // Slot 0 for run -- slot 1 for delete (which we don't have here)
         {.slot = 0, .flags = 0, .ptr = run_remove_identity},
@@ -110,9 +110,8 @@ cleanup:
  * Test a pass manager lowering from circuit to dag.
  */
 static int test_lowering(void) {
-    // IR handles (TODO use constants once available)
-    QkIrHandle *circuit_ir = qk_ir_handle_builtin(0);
-    QkIrHandle *dag_ir = qk_ir_handle_builtin(1);
+    QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
+    QkIrHandle *dag_ir = qk_ir_handle_builtin(QkIrBuiltin_Dag);
 
     QkTarget *target = qk_target_new(10);
     RemoveIdentity remove_identity_config = {target};
