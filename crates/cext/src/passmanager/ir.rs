@@ -13,8 +13,8 @@
 use std::any::Any;
 use std::ffi::{CStr, c_char, c_void};
 use std::marker::PhantomData;
-use std::ptr;
 use std::sync::{Arc, LazyLock};
+use std::{mem, ptr};
 
 use super::VtableEntry;
 use crate::dyn_types::*;
@@ -32,7 +32,54 @@ struct IrVtable {
     ///
     /// Primarily for debugging purposes.
     name: String,
-    // TODO: delete.
+    delete: Option<unsafe extern "C" fn(*mut c_void)>,
+}
+impl IrVtable {
+    fn new(name: String) -> Self {
+        Self { name, delete: None }
+    }
+
+    /// Set the `slot` to the corresponding function `ptr`.
+    ///
+    /// # Safety
+    ///
+    /// `ptr` must be a valid function pointer of the type expected by the corresponding method in
+    /// [`IrVtable`].
+    unsafe fn set(&mut self, slot: IrSlot, ptr: *mut c_void) -> bool {
+        // This lint suppression is because there is no actual safety provided by writing out the
+        // entire type again; the safety is only guaranteed as a long-range interaction of a C
+        // caller matching the correct type signature in the documentation of `IrSlot`.
+        #[allow(clippy::missing_transmute_annotations)]
+        match slot {
+            IrSlot::Delete => {
+                // SAFETY: per documentation, caller ensures pointer type validity.
+                let ptr = unsafe { mem::transmute::<*mut c_void, _>(ptr) };
+                self.delete.replace(ptr).is_some()
+            }
+        }
+    }
+}
+
+/// @ingroup pass-manager
+/// The available methods that can be implemented by a custom IR.
+///
+/// These are the valid values for `QkVtableEntry::slot` and the associated function-pointer types
+/// required for the `table` argument of `qk_ir_handle_new`.
+///
+/// # Safety
+///
+/// All functions, including the destructor, must be callable from any thread.
+#[derive(Clone, Copy, derive_more::TryFrom, Debug)]
+#[try_from(repr)]
+#[repr(u32)]
+pub enum IrSlot {
+    /// A destructor for the `data` of an IR.  *Optional*.
+    ///
+    /// Signature:
+    /// ```c
+    /// void delete(void *data);
+    /// ```
+    Delete = 0,
 }
 
 /// C-API wrapper for IR objects where a C extension defined the [`IR`] trait implementation
@@ -68,11 +115,20 @@ impl DynTyped for CIr {
     }
 }
 impl IR for CIr {}
+impl Drop for CIr {
+    fn drop(&mut self) {
+        if let Some(delete) = self.vtable.delete {
+            // SAFETY: per documentation of `IrVtable`, if the `delete` method is set, it is valid
+            // to be passed `self.this` from any thread.
+            unsafe { delete(self.this) };
+        }
+    }
+}
 
 /// @ingroup pass-manager
 /// Enumeration of the different built-in C API types that are usable directly as IRs.
 ///
-/// These are the valid inputs to `qk_ir_handle_new`.
+/// These are the valid inputs to `qk_ir_handle_builtin`.
 #[derive(Clone, Copy, derive_more::TryFrom, Debug)]
 #[try_from(repr)]
 #[repr(u32)]
@@ -107,7 +163,7 @@ const _: () = unsafe { expose_by_box!(IrHandle) };
 /// @param name A human-readable name for the IR type.
 /// @param table A table of the defined methods for the IR, terminated by an entry using `-1` as
 ///     its slot id.  This may be `NULL` if there are no entries in the table.  See
-///     `QkIrVtableSlot` for the allowed values and function-pointer signatures.
+///     `QkIrSlot` for the allowed values and function-pointer signatures.
 /// @return An owned handle to the IR type object.
 ///
 /// # Safety
@@ -115,18 +171,48 @@ const _: () = unsafe { expose_by_box!(IrHandle) };
 /// Behavior is undefined if any of the following are violated:
 ///
 /// * `name` is a nul-terminated string.
-/// * `table` is a null pointer or aligned and points to a list of valid slot entries terminated by
-///   an entry with `.slot = -1`.
+/// * `table` is a null pointer, or aligned and points to a list of valid slot entries terminated by
+///   an entry with `.slot = -1` with no duplicate `slot` values.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_ir_handle_new(
     name: *const c_char,
-    #[expect(unused_variables)] table: *const VtableEntry,
+    mut table: *const VtableEntry,
 ) -> *mut IrHandle {
     let name = unsafe { CStr::from_ptr(name) }
         .to_string_lossy()
         .into_owned();
-    let vtable = Arc::new(IrVtable { name });
-    IrHandle(Arc::new(CIrExposer(vtable))).into_leaked()
+    let mut vtable = IrVtable::new(name);
+    let sentinel;
+    if table.is_null() {
+        sentinel = VtableEntry {
+            slot: u32::MAX,
+            flags: 0,
+            ptr: ptr::null_mut(),
+        };
+        table = &sentinel;
+    }
+    loop {
+        // SAFETY: per documentation, `table` is valid for reads until we see the sentinel all-ones
+        // pattern in a `slot`.
+        let entry = unsafe { table.read() };
+        table = if entry.slot == u32::MAX {
+            break;
+        } else {
+            table.wrapping_add(1)
+        };
+        let Ok(slot) = IrSlot::try_from(entry.slot) else {
+            // We assume this is a slot from a later version of Qiskit.
+            // TODO: add an envvar / global to turn on debug information in these cases?
+            continue;
+        };
+        // SAFETY: per documentation, `entry,ptr` is of the expected function-pointer type and valid
+        // to call, because `entry.slot` was not all-ones.
+        if unsafe { vtable.set(slot, entry.ptr) } {
+            // This a documented UB case.
+            return ptr::dangling_mut();
+        }
+    }
+    IrHandle(Arc::new(CIrExposer(Arc::new(vtable)))).into_leaked()
 }
 
 /// @ingroup pass-manager
