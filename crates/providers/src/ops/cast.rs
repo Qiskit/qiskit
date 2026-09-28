@@ -62,7 +62,7 @@ mod test {
     use crate::tensor::Dim;
     use num_complex::Complex64;
 
-    /// The type of a 1-D tensor of `len` elements.
+    /// Return the type of a 1-D tensor of `len` elements.
     fn ty_1d(dtype: DType, len: usize) -> TensorType {
         TensorType {
             dtype,
@@ -132,7 +132,6 @@ mod test {
 
     #[test]
     fn test_eval_casts_to_bit_by_testing_against_zero() {
-        // Any non-zero value becomes 1, so the bitwise ops can read the result.
         assert_eq!(
             Cast::new(DType::Bit)
                 .eval(&[Tensor::from([0.0_f64, 2.5, -1.0])])
@@ -145,10 +144,7 @@ mod test {
 
     #[test]
     fn test_a_complex_operand_cannot_be_cast_to_a_real_dtype() {
-        // Rejected when the op is added, so a function cannot type-check and then fail while
-        // running.
         let op = Cast::new(DType::F64);
-        // Both the build-time and the run-time path refuse it the same way.
         for err in [
             op.infer_output_types(&[ty_1d(DType::C128, 2)]).unwrap_err(),
             op.eval(&[Tensor::from([Complex64::new(1.0, 2.0)])])

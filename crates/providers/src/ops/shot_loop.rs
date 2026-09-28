@@ -35,17 +35,17 @@ impl ShotLoop {
         Ok(Self { circuits, shots })
     }
 
-    /// The circuits this op runs.
+    /// Return the circuits this op runs.
     pub fn circuits(&self) -> &[CircuitData] {
         &self.circuits
     }
 
-    // Get a mutable reference to the `i`'th circuit if the index is valid.
+    /// Return a mutable reference to the `i`th circuit, or `None` if there is no such circuit.
     pub fn get_mut(&mut self, i: usize) -> Option<&mut CircuitData> {
         self.circuits.get_mut(i)
     }
 
-    /// How many shots each circuit is run for.
+    /// Return how many shots each circuit is run for.
     pub fn shots(&self) -> usize {
         self.shots
     }
@@ -144,10 +144,7 @@ mod test {
     use crate::ops::Mean;
     use crate::program::{ProgramEvalError, ProgramFunction, QuantumProgram};
 
-    /// A circuit taking `parameters` parameters and holding `registers` as `(name, width)` pairs.
-    ///
-    /// A shot loop reads a circuit's parameter count and its classical registers and nothing else, so
-    /// a global phase over that many symbols stands in for parameterized instructions.
+    /// Return a circuit taking `parameters` with `registers` as `(name, width)` pairs.
     fn circuit(parameters: usize, registers: &[(&str, u32)]) -> CircuitData {
         let symbol =
             |index| ParameterExpression::from_symbol(Symbol::standalone(format!("p{index}"), None));
@@ -167,7 +164,7 @@ mod test {
         circuit
     }
 
-    /// A `TensorType` of `dtype` over fixed axes `shape`.
+    /// Return a `TensorType` of `dtype` over fixed axes `shape`.
     fn ty(dtype: DType, shape: &[usize]) -> TensorType {
         TensorType {
             dtype,
@@ -175,7 +172,7 @@ mod test {
         }
     }
 
-    /// The `Bit` type of one register's outcomes: `batch`, then `shots` by the register's width.
+    /// Return the `Bit` type of one register's outcomes.
     fn outcomes(batch: &[Dim], shots: usize, width: usize) -> TensorType {
         let mut shape = batch.to_vec();
         shape.extend([Dim::Fixed(shots), Dim::Fixed(width)]);
@@ -246,8 +243,6 @@ mod test {
 
     #[test]
     fn test_infer_output_types_carries_each_operands_batch_prefix() {
-        // The prefix is opaque, so any rank of it passes through, including an axis whose size is
-        // only bounded. The two circuits' prefixes are independent of each other.
         let op = ShotLoop::new(vec![circuit(2, &[("c", 2)]), circuit(1, &[("d", 1)])], 8).unwrap();
         let bounded = Dim::Bounded { max: 4 };
         assert_eq!(
@@ -304,8 +299,7 @@ mod test {
                 actual,
             } if actual == ty(DType::F64, &[3])
         ));
-        // A dtype that is not floating point, a rank too low to carry a parameter axis, and a
-        // parameter axis whose size is not known are each refused the same way.
+
         for operand in [
             ty(DType::I64, &[2]),
             ty(DType::Bit, &[2]),
@@ -338,8 +332,6 @@ mod test {
 
     #[test]
     fn test_outcomes_are_ordinary_values() {
-        // Averaging over the shots axis is the flagship post-processing step, and it composes with a
-        // shot loop's results like any other tensor.
         let mut function = ProgramFunction::new();
         let values = function.add_parameter(ty(DType::F64, &[2]));
         let op = ShotLoop::new(vec![circuit(2, &[("c", 3)])], 100).unwrap();
@@ -375,8 +367,6 @@ mod test {
         )
         .unwrap();
 
-        // Building and type-checking a program is not evaluating one: it reports every type it
-        // produces without a backend.
         assert_eq!(
             program.output_types(),
             DataTree::sequence([
