@@ -87,7 +87,7 @@ mod test {
     use crate::tensor::DType;
     use ndarray::arr2;
 
-    /// Return a `TensorType` over `shape`; every test here is about the shape alone.
+    /// Return a `TensorType` over `shape`.
     fn ty(shape: Vec<Dim>) -> TensorType {
         TensorType {
             dtype: DType::F64,
