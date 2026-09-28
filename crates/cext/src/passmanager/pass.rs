@@ -14,7 +14,7 @@ use std::ffi::{CStr, c_char, c_void};
 use std::sync::Arc;
 use std::{mem, ptr};
 
-use super::{Error, IrHandle, VtableEntry};
+use super::{CompilationError, IrHandle, VtableEntry};
 use crate::dyn_types::*;
 use crate::pointers::{
     ExposesOwnedPointers, arc_clone_from_raw, const_ptr_as_ref, expose_by_arc, expose_by_box,
@@ -86,7 +86,7 @@ pub struct PassVtable {
         *mut c_void,
         *mut c_void,
         *mut PassContext,
-        *mut *mut Error,
+        *mut *mut CompilationError,
     ) -> *mut c_void,
     /// The destructor of the [`CPass::this`] pointer.  See [`PassSlot::Delete`].
     delete: Option<unsafe extern "C" fn(*mut c_void) -> c_void>,
@@ -207,7 +207,7 @@ struct PassVtablePartial {
             *mut c_void,
             *mut c_void,
             *mut PassContext,
-            *mut *mut Error,
+            *mut *mut CompilationError,
         ) -> *mut c_void,
     >,
     delete: Option<unsafe extern "C" fn(*mut c_void) -> c_void>,
@@ -301,8 +301,8 @@ impl Pass for CPass {
         &self.vtable.name
     }
     fn run(&self, ir: Box<dyn IR>, context: &mut PassContext) -> Result<Box<dyn IR>, PassError> {
-        let mut error = None::<ptr::NonNull<Error>>;
-        let error_ptr = (&raw mut error).cast::<*mut Error>();
+        let mut error = None::<ptr::NonNull<CompilationError>>;
+        let error_ptr = (&raw mut error).cast::<*mut CompilationError>();
         let ir_in = self.vtable.ir_in.leak(ir).cast::<c_void>();
         let ir_out = unsafe { (self.vtable.run_owned)(self.this, ir_in, context, error_ptr) };
         match error {

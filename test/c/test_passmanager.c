@@ -157,7 +157,7 @@ static int test_lowering(void) {
 
     // note: as the passmanager is set up, it takes ownership of the input IR, which no longer
     // needs to be freed -- only the output IR must be freed
-    const QkError *error = NULL;
+    const QkCompilationError *error = NULL;
     void *out_ir = qk_passmanager_run_simple(pm, (void *)circuit, circuit_ir, dag_ir, &error);
     if (error != NULL) {
         printf("Failed running pass.\n");

@@ -13,7 +13,7 @@
 use std::ffi::c_void;
 use std::ptr;
 
-use super::{CPass, Error, IrHandle};
+use super::{CPass, CompilationError, IrHandle};
 use crate::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
 use qiskit_passmanager::{Pass, PassManager, Task};
@@ -115,7 +115,7 @@ pub unsafe extern "C" fn qk_passmanager_run_simple(
     ir: *mut c_void,
     ir_in_handle: *const IrHandle,
     ir_out_handle: *const IrHandle,
-    error: *mut *const Error,
+    error: *mut *const CompilationError,
 ) -> *mut c_void {
     // SAFETY: Per documentation, `pm` is non-null and valid
     let pm = unsafe { mut_ptr_as_ref(pm) };
@@ -126,7 +126,7 @@ pub unsafe extern "C" fn qk_passmanager_run_simple(
         .map(|(ir_out, _)| ir_out_handle.0.leak(ir_out))
         .unwrap_or_else(|e| {
             if !error.is_null() {
-                let e = Error(e).into_leaked();
+                let e = CompilationError(e).into_leaked();
                 unsafe { error.write(e) };
             }
             ptr::null_mut()
