@@ -267,10 +267,13 @@ unsafe impl DynTraitExposer<dyn IR> for CIrExposer {
         CIr::dyn_type_for_vtable(&self.0)
     }
     fn leak(&self, ob: Box<dyn IR>) -> *mut c_void {
-        (ob as Box<dyn Any>)
-            .downcast::<CIr>()
-            .expect("called should ensure correct type")
-            .this
+        // We're passing ownership of the data pointer on; its destructor shouldn't run.
+        let owned = mem::ManuallyDrop::new(
+            (ob as Box<dyn Any>)
+                .downcast::<CIr>()
+                .expect("called should ensure correct type"),
+        );
+        owned.this
     }
     unsafe fn steal(&self, ptr: *mut c_void) -> Box<dyn IR> {
         // TODO: there is a performance optimisation possible in the `CPass` logic, where we re-use
