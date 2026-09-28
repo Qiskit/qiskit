@@ -108,4 +108,5 @@ Utilities
    :maxdepth: 1
 
    config
+   dynamic-types
    version

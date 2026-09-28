@@ -20,6 +20,7 @@ pub mod circuit_library;
 pub mod classical_expr;
 pub mod control_flow;
 pub mod dag;
+pub mod dyn_types;
 pub mod exit_codes;
 pub mod operations;
 pub mod param;

@@ -28,4 +28,5 @@
  * @defgroup QkVF2LayoutResult QkVF2LayoutResult
  * @defgroup QkClassicalExpressions QkClassicalExpressions
  * @defgroup QkControlFlow QkControlFlow
+ * @defgroup dynamic-types Dynamic-typing system
  */

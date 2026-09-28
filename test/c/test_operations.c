@@ -56,7 +56,7 @@ bool foo_eq(const void *gate, const void *other) {
             _self->num_params == _other->num_params);
 }
 
-QkVTableEntry entries[5] = {
+QkVtableEntry entries[5] = {
     {.slot = QkCustomOpMethod_Name, .ptr = foo_name},
     {.slot = QkCustomOpMethod_NumQubits, .ptr = foo_num_qubits},
     {.slot = QkCustomOpMethod_NumClbits, .ptr = foo_num_clbits},
