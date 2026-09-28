@@ -34,6 +34,8 @@ pub use self::ext::{
 ///
 /// Any `custom_classical` must be callable without an interpreter (see
 /// [ClassicalEvaluator::detached]); a Python callable here is an error, not a panic.
+///
+/// Custom instructions are not yet supported, so are rejected with an error.
 pub fn circuit_from_string(
     program: String,
     include_path: Vec<std::path::PathBuf>,
@@ -41,6 +43,11 @@ pub fn circuit_from_string(
     custom_classical: &[CustomClassical],
     strict: bool,
 ) -> Result<qiskit_circuit::circuit_data::CircuitData, ParseError> {
+    if !custom_instructions.is_empty() {
+        return Err(ParseError::new(
+            "custom instructions are not yet supported by the native importer",
+        ));
+    }
     let state = parse::State::new(
         lex::TokenStream::from_string(program, strict),
         include_path,

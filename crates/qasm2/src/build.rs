@@ -756,4 +756,32 @@ mod tests {
         assert_eq!(custom.name(), "black_box");
         assert!(custom.definition(&[]).is_none());
     }
+
+    /// Custom instructions aren't supported yet, so must be refused, not mis-resolved.
+    #[test]
+    fn rejects_custom_instructions() {
+        let custom = [crate::CustomInstruction {
+            name: "my_swap".to_owned(),
+            num_params: 0,
+            num_qubits: 2,
+            builtin: false,
+        }];
+        let result = circuit_from_string(
+            "include \"qelib1.inc\";\nqreg q[2];\nx q[0];\n".to_owned(),
+            vec![],
+            &custom,
+            &[],
+            false,
+        );
+        let Err(error) = result else {
+            panic!("custom instructions must be rejected until the builder supports them");
+        };
+        assert!(
+            error
+                .message
+                .contains("custom instructions are not yet supported"),
+            "unexpected message: {}",
+            error.message
+        );
+    }
 }
