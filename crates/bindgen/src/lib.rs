@@ -102,8 +102,7 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CVarsMode", "VarsMode"),
     ("CircuitData", "Circuit"),
     ("DAGCircuit", "Dag"),
-    ("PassFromC", "Pass"),
-    ("CPassContext", "PassContext"),
+    ("CPass", "Pass"),
     ("SparseObservable", "Obs"),
     ("StandardGate", "Gate"),
     // Classical expression types

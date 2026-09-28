@@ -27,4 +27,5 @@
  * @defgroup QkVF2LayoutResult QkVF2LayoutResult
  * @defgroup QkClassicalExpressions QkClassicalExpressions
  * @defgroup QkControlFlow QkControlFlow
+ * @defgroup pass-manager Pass manager infrastructure, including generic passes and IRs.
  */
