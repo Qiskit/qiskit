@@ -31,6 +31,11 @@ use qiskit_util::dyn_types::DynTypeId;
 /// constructed, and this type must use the same [`DynTypeId`] as produced by the
 /// [`object_dyn_type_id`](Self::object_dyn_type_id) function.
 ///
+/// Ensure that your implementation of [`leak`](Self::leak) does not allow a concrete `Box<T>` with
+/// to run a custom destructor in its [`Drop`] implementation after you transfer ownership of the
+/// data pointer to the output.  Consider using [`ManuallyDrop`](std::mem::ManuallyDrop) to suppress
+/// a virtual destructor.
+///
 /// Other unsafe FFI code relies on the correctness and soundness of this trait to avoid undefined
 /// behavior across the FFI boundary.
 pub unsafe trait DynTraitExposer<Trait: ?Sized>: Send + Sync + 'static {
@@ -38,6 +43,10 @@ pub unsafe trait DynTraitExposer<Trait: ?Sized>: Send + Sync + 'static {
     /// [`steal`](Self::steal) and consumed by [`leak`](Self::leak).
     fn object_dyn_type_id(&self) -> DynTypeId<'_>;
     /// Leak the raw data pointer of `ob` to a type-erased C pointer.
+    ///
+    /// *Warning*: when implementating this method, make sure that you do not trigger a virtual
+    /// destructor after transferring ownership of the data pointer.  See the trait's "Safety"
+    /// section.
     ///
     /// # Panics
     ///
