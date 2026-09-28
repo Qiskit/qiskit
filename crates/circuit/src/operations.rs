@@ -13,6 +13,7 @@
 use approx::relative_eq;
 use qiskit_quantum_info::sparse_pauli_op::MatrixCompressedPaulis;
 use std::any::Any;
+use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
@@ -136,40 +137,55 @@ impl Param {
             _ => None,
         }
     }
-    pub fn eq(&self, other: &Param) -> PyResult<bool> {
+
+    /// Compares two parameters based on their value types and what they evaluate to.
+    pub fn eval_eq(&self, other: &Param) -> PyResult<bool> {
         match [self, other] {
-            [Self::Float(a), Self::Float(b)] => Ok(a == b),
-            [Self::Float(a), Self::ParameterExpression(b)] => {
-                Ok(&ParameterExpression::from_f64(*a) == b.as_ref())
+            [Self::Float(float), param] | [param, Self::Float(float)] => {
+                float_eq_param(*float, param)
             }
-            [Self::ParameterExpression(a), Self::Float(b)] => {
-                Ok(a.as_ref() == &ParameterExpression::from_f64(*b))
+            [Self::Int(int), param] | [param, Self::Int(int)] => int_eq_param(*int, param),
+            [Self::ParameterExpression(expr), param] | [param, Self::ParameterExpression(expr)] => {
+                expr_eq_param(expr.as_ref(), param)
             }
-            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => Ok(a == b),
-            [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
-            [Self::Obj(_), Self::Float(_)] => Ok(false),
-            [Self::Float(_), Self::Obj(_)] => Ok(false),
-            [Self::Obj(_a), Self::ParameterExpression(_b)] => Ok(false),
-            [Self::ParameterExpression(_a), Self::Obj(_b)] => Ok(false),
-            [Self::Int(int), Self::Int(other_int)] => Ok(int == other_int),
-            [Self::Int(int), Self::Float(float)] | [Self::Float(float), Self::Int(int)] => {
-                Ok(float == &(*int as f64))
-            }
-            [Self::Int(int), Self::ParameterExpression(expr)]
-            | [Self::ParameterExpression(expr), Self::Int(int)] => {
-                let int_as_val: Value = (*int).into();
-                Ok(ParameterExpression::from(int_as_val) == **expr)
-            }
-            [Self::Int(int), Self::Obj(obj)] | [Self::Obj(obj), Self::Int(int)] => {
-                Python::attach(|py| obj.bind(py).eq(int))
-            }
+            [Self::Obj(obj), param] => Python::attach(|py| try_obj_eq_param(py, obj, param)),
+        }
+    }
+
+    /// Compares the equality of two parameters of specifically the same kind
+    pub fn strict_eq(&self, other: &Param) -> PyResult<bool> {
+        match [self, other] {
+            [Param::ParameterExpression(a), Param::ParameterExpression(b)] => Ok(a == b),
+            [Param::Float(a), Param::Float(b)] => Ok(a.total_cmp(b) == Ordering::Equal),
+            [Param::Int(a), Param::Int(b)] => Ok(a == b),
+            [Param::Obj(a), Param::Obj(b)] => Python::attach(|py| try_obj_eq_param(py, a, b)),
+            // Exhaustive matching to avoid future errors.
+            [Param::ParameterExpression(_), Param::Int(_)]
+            | [Param::ParameterExpression(_), Param::Float(_)]
+            | [Param::ParameterExpression(_), Param::Obj(_)]
+            | [Param::Int(_), Param::ParameterExpression(_)]
+            | [Param::Int(_), Param::Float(_)]
+            | [Param::Int(_), Param::Obj(_)]
+            | [Param::Float(_), Param::ParameterExpression(_)]
+            | [Param::Float(_), Param::Int(_)]
+            | [Param::Float(_), Param::Obj(_)]
+            | [Param::Obj(_), Param::ParameterExpression(_)]
+            | [Param::Obj(_), Param::Int(_)]
+            | [Param::Obj(_), Param::Float(_)] => Ok(false),
         }
     }
 
     pub fn is_close(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
-            _ => self.eq(other),
+            _ => self.eval_eq(other),
+        }
+    }
+
+    pub fn is_close_strict(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
+        match [self, other] {
+            [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
+            _ => self.strict_eq(other),
         }
     }
 
@@ -325,6 +341,65 @@ impl Param {
                     .as_borrowed(),
             ),
         }
+    }
+}
+
+/// Compares an integer to a [`ParameterExpression`].
+fn int_eq_expr(int: i64, expr: &ParameterExpression) -> bool {
+    let Ok(Value::Int(val)) = expr.try_to_value(false) else {
+        return false;
+    };
+    val == int
+}
+
+/// Compares a floating point number to a [`ParameterExpression`].
+fn float_eq_expr(float: f64, expr: &ParameterExpression) -> bool {
+    let Ok(Value::Real(val)) = expr.try_to_value(false) else {
+        return false;
+    };
+    val == float
+}
+
+/// Compares a [`Py<PyAny>`] to any other object that can be converted to Python.
+fn try_obj_eq_param<'py, T: IntoPyObject<'py>>(
+    py: Python<'py>,
+    ob: &Py<PyAny>,
+    other: T,
+) -> PyResult<bool> {
+    ob.bind_borrowed(py).eq(other)
+}
+
+/// Compares an integer to a [`Param`] instance.
+fn int_eq_param(int: i64, param: &Param) -> PyResult<bool> {
+    match param {
+        Param::ParameterExpression(expr) => Ok(int_eq_expr(int, expr)),
+        Param::Int(val) => Ok(val == &int),
+        Param::Float(float) => Ok(&(int as f64) == float),
+        Param::Obj(obj) => Python::attach(|py| try_obj_eq_param(py, obj, int)),
+    }
+}
+
+/// Compares a floating point number to a [`Param`] instance.
+fn float_eq_param(float: f64, param: &Param) -> PyResult<bool> {
+    match param {
+        Param::ParameterExpression(expr) => Ok(float_eq_expr(float, expr)),
+        Param::Int(int) => Ok(float == *int as f64),
+        Param::Float(val) => Ok(&float == val),
+        Param::Obj(obj) => Python::attach(|py| try_obj_eq_param(py, obj, float)),
+    }
+}
+
+/// Compares a [`ParameterExpression`] to a [`Param`] instance.
+fn expr_eq_param(expr: &ParameterExpression, param: &Param) -> PyResult<bool> {
+    match param {
+        Param::ParameterExpression(r_expr) => Ok(&**r_expr == expr),
+        Param::Int(int) => Ok(int_eq_expr(*int, expr)),
+        Param::Float(float) => Ok(float_eq_expr(*float, expr)),
+        Param::Obj(obj) => Python::attach(|py| {
+            PyParameterExpression::from(expr.clone())
+                .coerce_into_py(py)
+                .map(|param| try_obj_eq_param(py, obj, param))?
+        }),
     }
 }
 
@@ -1979,7 +2054,7 @@ impl PartialEq for PauliProductRotation {
             && self.z == other.z
             && self
                 .angle
-                .eq(&other.angle)
+                .eval_eq(&other.angle)
                 .expect("Angles are float or symbol, for which eq is infallible")
     }
 }
