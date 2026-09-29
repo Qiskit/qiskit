@@ -549,8 +549,6 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 ///
 /// @param slots A pointer to a list of entries delimited by an entry with
 /// a sentinel value.
-/// @param pointer A pointer to a space reserved to store a ``QkCustomOpVTable``
-/// object.
 ///
 /// @return A pointer to a constructed vtable or a null pointer if any
 /// required entries are absent.
@@ -559,10 +557,6 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 ///
 /// Behavior is undefined if a list of entries without delimiting sentinel
 /// value are provided.
-///
-/// Undefined behavior can happen if `pointer` doesn't point to an address
-/// big enough to store a ``QkCustomOpVTable`` pointer, or if the pointer is null
-/// or unaligned.
 ///
 /// Undefined behavior may also happen during transmutation if the provided
 /// function pointer does not have the correct signature.
