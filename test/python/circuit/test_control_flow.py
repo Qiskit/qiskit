@@ -19,6 +19,7 @@ from ddt import ddt, data, unpack, idata
 
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
 from qiskit import transpile
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources
 from qiskit.circuit.library import XGate, RXGate
@@ -570,6 +571,66 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         ):
             ForLoopOp(range(3), expr.Var.new("b", types.Bool()), body)
         self.assertEqual(list(ForLoopOp(range(3), a, body).params), [range(3), a, body])
+
+    def test_for_input_var_with_captures(self):
+        """A body can capture outer variables and stretches as well as taking its `Var` loop
+        parameter as its input, but other control-flow blocks still reject input variables."""
+        i = expr.Var.new("i", types.Uint(8))
+        acc = expr.Var.new("acc", types.Uint(8))
+        s = expr.Stretch.new("s")
+        body = QuantumCircuit(1, inputs=[i], captures=[acc, s])
+        body.store(acc, i)
+        body.delay(s, 0)
+        op = ForLoopOp(range(3), i, body)
+        self.assertEqual(list(op.params), [range(3), i, body])
+
+        qc = QuantumCircuit(1, declarations=[(acc, expr.lift(0, types.Uint(8)))])
+        qc.add_stretch(s)
+        qc.append(op, [0], [])
+        self.assertEqual(qc.data[-1].operation, op)
+
+        with self.assertRaisesRegex(CircuitError, "attempts to capture"):
+            QuantumCircuit(1).append(op, [0], [])
+
+        j = expr.Var.new("j", types.Uint(8))
+        with self.assertRaisesRegex(CircuitError, "too many input variables"):
+            ForLoopOp(range(3), i, QuantumCircuit(inputs=[i, j], captures=[acc]))
+
+        cond = expr.Var.new("c", types.Bool())
+        bad_body = QuantumCircuit(inputs=[i], captures=[cond])
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
+            IfElseOp(cond, bad_body)
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
+            WhileLoopOp(cond, bad_body)
+
+    def test_for_input_var_with_captures_roundtrips_through_dag(self):
+        """A `for` loop whose body has its `Var` loop parameter as input and captures outer
+        variables survives conversion to and from a DAG, and transpilation."""
+        qc = QuantumCircuit(2)
+        acc = qc.add_var("acc", expr.lift(0, types.Uint(8)))
+        with qc.for_loop(range(3), expr.Var.new("i", types.Uint(8))) as i:
+            qc.store(acc, expr.add(acc, i))
+            with qc.if_test(expr.equal(acc, 2)):
+                qc.cx(0, 1)
+            qc.h(0)
+            qc.h(1)
+
+        self.assertEqual(dag_to_circuit(circuit_to_dag(qc)), qc)
+        for optimization_level in range(4):
+            with self.subTest(optimization_level=optimization_level):
+                out = transpile(
+                    qc,
+                    basis_gates=["cz", "rz", "sx", "x"],
+                    optimization_level=optimization_level,
+                    seed_transpiler=0,
+                )
+                (body,) = out.data[-1].operation.blocks
+                self.assertEqual(list(body.iter_input_vars()), [i])
+                self.assertEqual(list(body.iter_captured_vars()), [acc])
 
     def test_switch_rejects_input_vars(self):
         """Bodies must not contain input variables."""

@@ -1054,38 +1054,35 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
                 CircuitError, "cannot add var as its name shadows an existing identifier"
             ):
                 data.add_input_var(expr.Var.new("in1", types.Bool()))
-            with self.assertRaisesRegex(
-                CircuitError,
-                "circuits with input variables cannot be enclosed, so they cannot be closures",
-            ):
-                data.add_captured_var(expr.Var.new("v1", types.Bool()))
+            # Input and captured variables can coexist (e.g. a `for`-loop body with a `Var`
+            # loop parameter that reads variables from its enclosing scope).
+            data.add_captured_var(expr.Var.new("v1", types.Bool()))
 
             data.add_declared_stretch(expr.Stretch.new("s1"))
             with self.assertRaisesRegex(
                 CircuitError, "cannot add stretch as its name shadows an existing identifier"
             ):
                 data.add_declared_stretch(expr.Stretch.new("s1"))
-            with self.assertRaisesRegex(
-                CircuitError,
-                "circuits with input variables cannot be enclosed, so they cannot be closures",
-            ):
-                data.add_captured_stretch(expr.Stretch.new("s2"))
+            data.add_captured_stretch(expr.Stretch.new("s2"))
+            self.assertEqual(data.num_input_vars, 1)
+            self.assertEqual(data.num_captured_vars, 1)
+            self.assertEqual(data.num_captured_stretches, 1)
 
         with self.subTest("circuits with captured variables"):
             data = CircuitData()
             data.add_captured_var(expr.Var.new("v1", types.Bool()))
             data.add_declared_stretch(expr.Stretch.new("s1"))
+            data.add_input_var(expr.Var.new("in1", types.Bool()))
             with self.assertRaisesRegex(
-                CircuitError, "circuits to be enclosed with captures cannot have input variables"
+                CircuitError, "cannot add var as its name shadows an existing identifier"
             ):
-                data.add_input_var(expr.Var.new("in1", types.Bool()))
+                data.add_input_var(expr.Var.new("v1", types.Bool()))
 
             data = CircuitData()
             data.add_captured_stretch(expr.Stretch.new("s1"))
-            with self.assertRaisesRegex(
-                CircuitError, "circuits to be enclosed with captures cannot have input variables"
-            ):
-                data.add_input_var(expr.Var.new("in1", types.Bool()))
+            data.add_input_var(expr.Var.new("in1", types.Bool()))
+            self.assertEqual(data.num_captured_stretches, 1)
+            self.assertEqual(data.num_input_vars, 1)
 
     def test_equality_vars(self):
         """Test equality checking over variables and stretches"""
