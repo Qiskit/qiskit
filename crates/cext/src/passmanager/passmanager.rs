@@ -16,7 +16,7 @@ use std::ptr;
 use super::{CPass, CPredicate, CompilationError, IrHandle};
 use crate::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
-use qiskit_passmanager::{Pass, PassManager, Predicate, Task};
+use qiskit_passmanager::{Pass, PassManager, Task};
 
 // SAFETY: `PassManager` is always exposed and freed by `Box`.
 const _: () = unsafe { expose_by_box!(PassManager) };
@@ -114,7 +114,7 @@ pub unsafe extern "C" fn qk_passmanager_push_while(
     // SAFETY: per documentation, `predicate` points to a valid owned `CPredicate`.
     let predicate = unsafe { CPredicate::steal(predicate) };
     let body = Task::Transformation(body as Box<dyn Pass>);
-    Task::while_(body, predicate as Box<dyn Predicate>, max_iterations)
+    Task::while_(body, predicate.0, max_iterations)
         .and_then(|task| pm.try_push_task(task))
         .map_err(|_| ExitCode::IncompatibleTypes)
         .err()

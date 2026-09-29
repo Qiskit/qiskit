@@ -522,6 +522,7 @@ mod transpiler {
                 export_fn!(passmanager::qk_predicate_vtable_free),
                 export_fn!(passmanager::qk_predicate_new),
                 export_fn!(passmanager::qk_predicate_free),
+                export_fn!(passmanager::qk_predicate_builtin),
             ]
         });
 

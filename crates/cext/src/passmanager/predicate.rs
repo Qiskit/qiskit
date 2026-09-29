@@ -19,7 +19,7 @@ use crate::dyn_types::*;
 use crate::pointers::{
     ExposesOwnedPointers, arc_clone_from_raw, const_ptr_as_ref, expose_by_arc, expose_by_box,
 };
-use qiskit_passmanager::{IR, PassContext, PassError, Predicate};
+use qiskit_passmanager::{IR, PassContext, PassError, Predicate, UntilStable};
 use qiskit_util::dyn_types::*;
 
 /// @ingroup pass-manager
@@ -39,14 +39,15 @@ pub enum PredicateSlot {
     ///
     /// Signature:
     /// ```c
-    /// bool evaluate(void *this, const void *ir, const QkPassContext *context,
-    ///                 QkCompilationError **error);
+    /// bool evaluate(void *this, const void *ir, const void *context,
+    ///               QkCompilationError **error);
     /// ```
     ///
     /// # Implementation
     ///
     /// `this` will be equal to a value passed to `qk_predicate_new` with this vtable.  `ir`
-    /// points to *borrowed* data of the type specified by the vtable's `ir` field.
+    /// points to *borrowed* data of the type specified by the vtable's `ir` field.  `context` is
+    /// reserved and cannot be inspected; there are no functions that read it.
     ///
     /// If the function wants to indicate an error state, it must write a valid owned
     /// `QkCompilationError *` object into the `error` pointer, in which case the returned
@@ -241,25 +242,30 @@ impl PredicateVtablePartial {
 }
 
 /// @ingroup pass-manager
-/// A predicate with custom behavior defined through the C API.
+/// A predicate usable by a pass-manager task.
 ///
-/// This is a complete instance of a predicate whose general behavior was previously defined using
-/// `qk_predicate_vtable_new`.  You construct instances of this struct by calling
-/// `qk_predicate_new`.
+/// This holds either a predicate whose behavior was defined through the C API using
+/// `qk_predicate_vtable_new` and `qk_predicate_new`, or one of Qiskit's own predicates retrieved
+/// with `qk_predicate_builtin`.
 ///
-/// These criteria are given to `qk_passmanager_push_while`.
+/// These are given to `qk_passmanager_push_while`.
+pub struct CPredicate(pub(super) Box<dyn Predicate>);
+// SAFETY: `CPredicate` is only created and freed via `Box`.
+const _: () = unsafe { expose_by_box!(CPredicate) };
+
+/// A predicate whose [`Predicate`] implementation was defined dynamically from C.
 ///
 /// # Safety
 ///
 /// The `this` data pointer must be safe to send and share between threads.  All methods in the
-/// `QkPredicateVtable` must be safely callable from any thread.
-pub struct CPredicate {
+/// [`PredicateVtable`] must be safely callable from any thread.
+struct VtablePredicate {
     /// The data pointer provided by C, and used as the `this` parameter in all
     /// [`PredicateVtable`] methods.
     this: *mut c_void,
     vtable: Arc<PredicateVtable>,
 }
-impl CPredicate {
+impl VtablePredicate {
     /// Create a new instance of the predicate.
     ///
     /// # Safety
@@ -272,10 +278,10 @@ impl CPredicate {
     }
 }
 // SAFETY: per struct documentation, the `this` pointer must be safe to send between threads.
-unsafe impl Send for CPredicate {}
+unsafe impl Send for VtablePredicate {}
 // SAFETY: per struct documentation, the `this` pointer must be safe to share between threads.
-unsafe impl Sync for CPredicate {}
-impl Predicate for CPredicate {
+unsafe impl Sync for VtablePredicate {}
+impl Predicate for VtablePredicate {
     fn ir_id(&self) -> DynTypeId<'_> {
         self.vtable.ir.object_dyn_type_id()
     }
@@ -302,7 +308,7 @@ impl Predicate for CPredicate {
         }
     }
 }
-impl Drop for CPredicate {
+impl Drop for VtablePredicate {
     fn drop(&mut self) {
         if let Some(delete) = self.vtable.delete {
             // SAFETY: per documentation of `PredicateVtable`, if the `delete` method is set, it
@@ -311,8 +317,18 @@ impl Drop for CPredicate {
         }
     }
 }
-// SAFETY: `CPredicate` is only created and freed via `Box`.
-const _: () = unsafe { expose_by_box!(CPredicate) };
+
+/// @ingroup pass-manager
+/// Enumeration of Qiskit's own predicates that are usable from the C API.
+///
+/// These are the valid inputs to `qk_predicate_builtin`.
+#[derive(Clone, Copy, derive_more::TryFrom, Debug)]
+#[try_from(repr)]
+#[repr(u32)]
+pub enum PredicateBuiltin {
+    /// Stop as soon as the loop body reports that it left the IR alone.
+    UntilStable = 0,
+}
 
 /// @ingroup pass-manager
 /// Create a new instance of a predicate whose behavior was previously defined.
@@ -338,7 +354,63 @@ pub unsafe extern "C" fn qk_predicate_new(
     // `qk_predicate_vtable_new`, which returns the result of `Arc::into_raw`.
     let vtable = unsafe { arc_clone_from_raw(vtable) };
     // SAFETY: per documentation, `data` points to data of the type expected by `vtable` methods.
-    (unsafe { CPredicate::new(data, vtable) }).into_leaked()
+    let predicate = unsafe { VtablePredicate::new(data, vtable) };
+    CPredicate(Box::new(predicate)).into_leaked()
+}
+
+/// @ingroup pass-manager
+/// Get one of Qiskit's own predicates.
+///
+/// A built-in predicate reads no IR of its own, so it is compatible with any loop body.
+///
+/// @param predicate An identifier for the desired predicate.  See `QkPredicateBuiltin` for the
+///     allowed values.
+/// @param ir A borrowed handle to the IR "type object" of the loop body the predicate will be used
+///     with.
+/// @return An owned predicate object, or `NULL` if `predicate` is not a valid
+///     `QkPredicateBuiltin`.
+///
+/// # Safety
+///
+/// Behavior is undefined if `ir` does not point to a valid `QkIrHandle` object.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_predicate_builtin(
+    predicate: u32,
+    ir: *const IrHandle,
+) -> *mut CPredicate {
+    // SAFETY: per documentation, `ir` points to a valid `IrHandle` object.
+    let ir = unsafe { const_ptr_as_ref(ir) };
+    match PredicateBuiltin::try_from(predicate) {
+        Ok(PredicateBuiltin::UntilStable) => CPredicate(Box::new(ContextPredicate {
+            name: "qiskit.until_stable",
+            ir: Arc::clone(&ir.0),
+            evaluate: UntilStable::is_stable,
+        }))
+        .into_leaked(),
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+/// A [`Predicate`] that reads only the [`PassContext`], taking its IR type from the loop body it was
+/// built against.
+///
+/// Qiskit's own IR-agnostic predicates are generic over the IR type, which a C caller cannot supply,
+/// so this pairs the condition with an IR handle chosen at run time.
+struct ContextPredicate {
+    name: &'static str,
+    ir: Arc<dyn DynTraitExposer<dyn IR>>,
+    evaluate: fn(&PassContext) -> bool,
+}
+impl Predicate for ContextPredicate {
+    fn ir_id(&self) -> DynTypeId<'_> {
+        self.ir.object_dyn_type_id()
+    }
+    fn name(&self) -> &str {
+        self.name
+    }
+    fn evaluate(&self, _ir: &dyn IR, context: &PassContext) -> Result<bool, PassError> {
+        Ok((self.evaluate)(context))
+    }
 }
 
 /// @ingroup pass-manager

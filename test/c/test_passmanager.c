@@ -207,11 +207,133 @@ cleanup:
     return result;
 }
 
+/// A pass that appends one H gate to qubit 0.
+void *run_add_h(void *self, void *ir) {
+    UNUSED_VARIABLE(self);
+
+    QkCircuit *circuit = (QkCircuit *)ir;
+    uint32_t q0[1] = {0};
+    qk_circuit_gate(circuit, QkGate_H, q0, NULL);
+    return (void *)circuit;
+}
+
+/// The configuration of a C-defined predicate that stops once the circuit is long enough.
+typedef struct {
+    size_t target;
+} AtLeastGates;
+
+/// A predicate function: stop once the circuit has at least `target` instructions.
+bool evaluate_at_least_gates(void *self, const void *ir, const void *context,
+                             QkCompilationError **error) {
+    UNUSED_VARIABLE(context);
+    UNUSED_VARIABLE(error);
+
+    AtLeastGates *self_ = (AtLeastGates *)self;
+    const QkCircuit *circuit = (const QkCircuit *)ir;
+    return qk_circuit_num_instructions(circuit) >= self_->target;
+}
+
+/// Run a pass manager holding a single `while` task over an `add_h` body, and return the number of
+/// instructions the loop left behind.  Returns `-1` if the run failed.
+static int64_t run_while_loop(QkIrHandle *ir, QkPredicate *predicate, size_t max_iterations) {
+    const QkVtableEntry add_h_slots[2] = {{.slot = 0, .flags = 0, .ptr = (void *)(&run_add_h)},
+                                          {.slot = -1, .flags = 0, .ptr = NULL}};
+    QkPassVtable *add_h_vtable = qk_pass_vtable_new("add_h", ir, ir, add_h_slots);
+    QkPass *add_h = qk_pass_new(NULL, add_h_vtable);
+    qk_pass_vtable_free(add_h_vtable);
+
+    QkPassManager *pm = qk_passmanager_new();
+    if (qk_passmanager_push_while(pm, add_h, predicate, max_iterations) != QkExitCode_Success) {
+        printf("Failed pushing the while task.\n");
+        qk_passmanager_free(pm);
+        return -1;
+    }
+
+    QkCircuit *circuit = qk_circuit_new(1, 0);
+    const QkCompilationError *error = NULL;
+    void *out_ir = qk_passmanager_run_simple(pm, (void *)circuit, ir, ir, &error);
+    qk_passmanager_free(pm);
+    if (error != NULL) {
+        qk_compilation_error_free((QkCompilationError *)error);
+        return -1;
+    }
+
+    QkCircuit *out = (QkCircuit *)out_ir;
+    int64_t num_instructions = (int64_t)qk_circuit_num_instructions(out);
+    qk_circuit_free(out);
+    return num_instructions;
+}
+
+/**
+ * Test a loop governed by a predicate whose behavior is defined in C.
+ */
+static int test_while_c_predicate(void) {
+    QkIrHandle *ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
+
+    AtLeastGates predicate_config = {4};
+    const QkVtableEntry predicate_slots[2] = {
+        // Slot 0 for evaluate -- slot 1 for delete (which we don't have here)
+        {.slot = 0, .flags = 0, .ptr = (void *)(&evaluate_at_least_gates)},
+        {.slot = -1, .flags = 0, .ptr = NULL}};
+    QkPredicateVtable *predicate_vtable =
+        qk_predicate_vtable_new("at_least_gates", ir, predicate_slots);
+    QkPredicate *predicate = qk_predicate_new((void *)(&predicate_config), predicate_vtable);
+    qk_predicate_vtable_free(predicate_vtable);
+
+    int result = Ok;
+    int64_t num_instructions = run_while_loop(ir, predicate, 100);
+    if (num_instructions < 0) {
+        printf("Failed running the pass manager.\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+    // The predicate is checked before each run, so the loop stops at exactly the target.
+    if (num_instructions != 4) {
+        printf("Expected 4 instructions, found %lld\n", (long long)num_instructions);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_ir_handle_free(ir);
+    return result;
+}
+
+/**
+ * Test a loop governed by one of Qiskit's own predicates, retrieved from C.
+ */
+static int test_while_builtin_predicate(void) {
+    QkIrHandle *ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
+    QkPredicate *predicate = qk_predicate_builtin(QkPredicateBuiltin_UntilStable, ir);
+
+    int result = Ok;
+    if (predicate == NULL) {
+        printf("Failed retrieving the built-in predicate.\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // `UntilStable` never returns true because we always report the IR changes from C
+    int64_t num_instructions = run_while_loop(ir, predicate, 3);
+    if (num_instructions >= 0) {
+        printf("Expected the iteration limit to fail the run, got %lld instructions\n",
+               (long long)num_instructions);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_ir_handle_free(ir);
+    return result;
+}
+
 int test_passmanager(void) {
     int num_failed = 0;
 
     num_failed += RUN_TEST(test_circuit);
     num_failed += RUN_TEST(test_lowering);
+    num_failed += RUN_TEST(test_while_c_predicate);
+    num_failed += RUN_TEST(test_while_builtin_predicate);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (passmanager): %i\n", num_failed);
