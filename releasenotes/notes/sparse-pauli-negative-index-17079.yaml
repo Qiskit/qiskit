@@ -1,6 +1,5 @@
 ---
 fixes:
   - |
-    ``SparsePauliOp.from_sparse_list`` now rejects negative qubit indices instead of
-    interpreting them as Python negative list indices. See
-    `#17079 <https://github.com/Qiskit/qiskit/issues/17079>`__.
+    ``SparsePauliOp.from_sparse_list`` now supports negative qubit indices using Python
+    sequence-indexing semantics. For example, ``-1`` refers to the highest-numbered qubit.

@@ -948,12 +948,12 @@ class SparsePauliOp(LinearOp):
             # construct the full label based off the non-trivial Paulis and indices
             label = ["I"] * num_qubits
             for pauli, index in zip(paulis, indices):
-                if index < 0:
-                    raise QiskitError(f"A required qubit index cannot be negative: {index}.")
-                if index >= num_qubits:
+                if index < -num_qubits or index >= num_qubits:
                     raise QiskitError(
                         f"The number of qubits ({num_qubits}) is smaller than a required index {index}."
                     )
+                if index < 0:
+                    index += num_qubits
                 label[~index] = pauli
 
             labels[i] = "".join(label)
