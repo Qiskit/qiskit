@@ -10,11 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! An op that evaluates parameter expressions over a batch of parameter values.
+//! An op that evaluates parameter expressions.
 
 use hashbrown::{HashMap, HashSet};
 use ndarray::{ArrayD, IxDyn};
-use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use num_complex::Complex64;
+use qiskit_circuit::parameter::parameter_expression::{ParameterError, ParameterExpression};
 use qiskit_circuit::parameter::symbol_expr::{Symbol, Value};
 use thiserror::Error;
 
@@ -25,24 +26,28 @@ use crate::tensor::{DType, Dim, Tensor, TensorType};
 /// Evaluate parameter expressions over a batch of parameter values.
 ///
 /// The operand has one value per declared parameter in its trailing axis, and the result has one
-/// value per expression. Leading axes on the operand are a batch prefix and are carried onto the
-/// result.
-#[derive(Clone)]
+/// value per expression. Leading axes on the operand are a batch prefix. The result dtype is
+/// `F64` or `C128`. When an expression evaluates to a complex number, an `F64` result keeps just
+/// the real part.
+#[derive(Clone, Debug)]
 pub struct BindParameters {
     expressions: Vec<ParameterExpression>,
     parameters: Vec<Symbol>,
+    dtype: DType,
 }
 
 impl BindParameters {
-    /// Construct an op evaluating `expressions` over values for `parameters`.
+    /// Construct an op evaluating `expressions` over values for `parameters`, producing `dtype`.
     ///
-    /// The operand's trailing axis has one value per entry of `parameters`, in that order.
-    /// Every parameter the expressions reference must appear in `parameters`. Surplus parameters are
-    /// accepted and their values ignored.
+    /// `dtype` must be either `F64` or `C128`.
     pub fn new(
         expressions: Vec<ParameterExpression>,
         parameters: Vec<Symbol>,
+        dtype: DType,
     ) -> Result<Self, BindParametersError> {
+        if !matches!(dtype, DType::F64 | DType::C128) {
+            return Err(BindParametersError::ResultDType { dtype });
+        }
         if let Some((expression, parameter)) = undeclared_parameter(&expressions, &parameters) {
             return Err(BindParametersError::UndeclaredParameter {
                 expression,
@@ -52,6 +57,7 @@ impl BindParameters {
         Ok(Self {
             expressions,
             parameters,
+            dtype,
         })
     }
 
@@ -65,12 +71,40 @@ impl BindParameters {
         &self.parameters
     }
 
-    /// Evaluate every expression over each of `rows` consecutive sets of values from `values`.
-    fn evaluate(
+    /// Return the dtype of the result.
+    pub fn dtype(&self) -> DType {
+        self.dtype
+    }
+
+    /// Evaluate every expression over each of `rows` consecutive sets of values from `values`,
+    /// returning one tensor of `shape` in this op's dtype.
+    fn bind_all(
+        &self,
+        values: impl Iterator<Item = f64>,
+        rows: usize,
+        shape: &[usize],
+    ) -> Result<Tensor, BindParametersError> {
+        match self.dtype {
+            DType::C128 => Ok(Tensor::from(reshape(
+                self.evaluate(values, rows, complex)?,
+                shape,
+            ))),
+            DType::F64 => Ok(Tensor::from(reshape(
+                self.evaluate(values, rows, real)?,
+                shape,
+            ))),
+            other => panic!("{} cannot produce {}", self.full_name(), other),
+        }
+    }
+
+    /// Evaluate every expression over each of `rows` consecutive sets of values from `values`,
+    /// mapping each result through `convert`.
+    fn evaluate<T>(
         &self,
         mut values: impl Iterator<Item = f64>,
         rows: usize,
-    ) -> Result<Vec<f64>, BindParametersError> {
+        convert: fn(Value) -> T,
+    ) -> Result<Vec<T>, BindParametersError> {
         let mut results = Vec::with_capacity(rows * self.expressions.len());
         for _ in 0..rows {
             let bindings: HashMap<&Symbol, Value> = self
@@ -80,10 +114,21 @@ impl BindParameters {
                 .map(|(parameter, value)| (parameter, Value::Real(value)))
                 .collect();
             for (index, expression) in self.expressions.iter().enumerate() {
-                results.push(
-                    real_value(expression, &bindings)
-                        .ok_or(BindParametersError::NotReal { expression: index })?,
-                );
+                let bound = match expression.bind(&bindings, true) {
+                    Ok(bound) => bound,
+                    Err(ParameterError::BindingInf | ParameterError::BindingNaN) => {
+                        return Err(BindParametersError::NonFinite { expression: index });
+                    }
+                    Err(other) => panic!("{} cannot bind a value: {other}", self.full_name()),
+                };
+                let value = match bound.try_to_value(true) {
+                    Ok(value) => value,
+                    Err(ParameterError::UnboundParameters(_)) => {
+                        return Err(BindParametersError::UnboundParameter { expression: index });
+                    }
+                    Err(other) => panic!("{} cannot read a value: {other}", self.full_name()),
+                };
+                results.push(convert(value));
             }
         }
         Ok(results)
@@ -119,7 +164,7 @@ impl ProgramOp for BindParameters {
         let mut shape = batch.to_vec();
         shape.push(Dim::Fixed(self.expressions.len()));
         Ok(vec![TensorType {
-            dtype: DType::F64,
+            dtype: self.dtype,
             shape,
         }])
     }
@@ -137,36 +182,42 @@ impl ProgramOp for BindParameters {
             self.full_name()
         );
         let rows = batch.iter().product();
+        let mut shape = batch.to_vec();
+        shape.push(self.expressions.len());
         let results = match values {
-            Tensor::F32(x) => self.evaluate(x.iter().map(|&value| f64::from(value)), rows),
-            Tensor::F64(x) => self.evaluate(x.iter().copied(), rows),
+            Tensor::F32(x) => self.bind_all(x.iter().map(|&value| f64::from(value)), rows, &shape),
+            Tensor::F64(x) => self.bind_all(x.iter().copied(), rows, &shape),
             other => panic!(
                 "{} expects floating-point parameter values, got {}",
                 self.full_name(),
                 other.dtype()
             ),
         }?;
-
-        let mut shape = batch.to_vec();
-        shape.push(self.expressions.len());
-        let results = ArrayD::from_shape_vec(IxDyn(&shape), results)
-            .expect("one value per expression per batch entry");
-        Ok(vec![Tensor::from(results)])
+        Ok(vec![results])
     }
 }
 
-/// Return the value of `expression` with `bindings` substituted for its parameters.
-///
-/// Returns `None` unless every parameter is bound and the result is a real number.
-fn real_value(expression: &ParameterExpression, bindings: &HashMap<&Symbol, Value>) -> Option<f64> {
-    match expression
-        .bind(bindings, true)
-        .and_then(|bound| bound.try_to_value(true))
-    {
-        Ok(Value::Real(value)) => Some(value),
-        Ok(Value::Int(value)) => Some(value as f64),
-        Ok(Value::Complex(_)) | Err(_) => None,
+/// Return the real part of `value`.
+fn real(value: Value) -> f64 {
+    match value {
+        Value::Real(value) => value,
+        Value::Int(value) => value as f64,
+        Value::Complex(value) => value.re,
     }
+}
+
+/// Return `value` as a complex number.
+fn complex(value: Value) -> Complex64 {
+    match value {
+        Value::Real(value) => Complex64::from(value),
+        Value::Int(value) => Complex64::from(value as f64),
+        Value::Complex(value) => value,
+    }
+}
+
+/// Return `results` as an array of `shape`.
+fn reshape<T>(results: Vec<T>, shape: &[usize]) -> ArrayD<T> {
+    ArrayD::from_shape_vec(IxDyn(shape), results).expect("one value per expression per batch entry")
 }
 
 /// Return a parameter some expression references that `parameters` does not contain, with the index
@@ -188,29 +239,29 @@ fn undeclared_parameter(
 }
 
 /// Errors returned by [`BindParameters`].
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[derive(Debug, Error)]
 pub enum BindParametersError {
-    /// An expression references a parameter the op does not declare.
+    /// An expression references an undeclared parameter.
     #[error("expression {expression} references undeclared parameter {}", .parameter.fullname())]
     UndeclaredParameter {
         expression: usize,
         parameter: Symbol,
     },
-
-    /// The parameter values are not a floating-point tensor whose trailing axis is the declared
-    /// parameter count.
+    /// An operand has the wrong type or shape.
     #[error("expected a floating-point tensor of shape [..., {parameters}], got {actual}")]
     ValueType {
         parameters: usize,
         actual: TensorType,
     },
-
-    /// An expression did not evaluate to a real number.
-    ///
-    /// Binding a parameter expression rejects a non-finite result, so a division by zero is reported
-    /// here rather than yielding an infinity.
-    #[error("expression {expression} did not evaluate to a real number")]
-    NotReal { expression: usize },
+    /// The result dtype is neither `F64` nor `C128`.
+    #[error("expected a result dtype of F64 or C128, got {dtype}")]
+    ResultDType { dtype: DType },
+    /// An expression did not evaluate to a finite number.
+    #[error("expression {expression} did not evaluate to a finite number")]
+    NonFinite { expression: usize },
+    /// An expression has an unbound parameter.
+    #[error("expression {expression} has an unbound parameter")]
+    UnboundParameter { expression: usize },
 }
 
 #[cfg(test)]
@@ -237,30 +288,40 @@ mod test {
         }
     }
 
-    /// Return an `F64` tensor of `shape`, holding `data` in row-major order.
+    /// Return `data` as an `F64` tensor of `shape` in row-major order.
     fn tensor(shape: &[usize], data: &[f64]) -> Tensor {
         Tensor::from(ArrayD::from_shape_vec(IxDyn(shape), data.to_vec()).unwrap())
+    }
+
+    /// Return `data` as a `C128` tensor of `shape` in row-major order.
+    fn complex_tensor(shape: &[usize], data: &[Complex64]) -> Tensor {
+        Tensor::from(ArrayD::from_shape_vec(IxDyn(shape), data.to_vec()).unwrap())
+    }
+
+    /// Return an op evaluating `expressions` over `parameters`, producing `F64`.
+    fn real_op(expressions: Vec<ParameterExpression>, parameters: Vec<Symbol>) -> BindParameters {
+        BindParameters::new(expressions, parameters, DType::F64).unwrap()
     }
 
     #[test]
     fn test_bind_parameters_full_name_and_arity() {
         let x = symbol("x");
-        let op = BindParameters::new(vec![expr(&x)], vec![x.clone()]).unwrap();
+        let op = real_op(vec![expr(&x)], vec![x.clone()]);
         assert_eq!(op.full_name(), "qiskit.bind_parameters");
         assert_eq!(op.arity(), 1);
         assert!(op.has_builtin_eval(), "Qiskit evaluates expressions");
         assert_eq!(op.expressions(), [expr(&x)]);
         assert_eq!(op.parameters(), [x]);
+        assert_eq!(op.dtype(), DType::F64);
     }
 
     #[test]
     fn test_infer_output_types_gives_one_value_per_expression() {
         let (x, y) = (symbol("x"), symbol("y"));
-        let op = BindParameters::new(
+        let op = real_op(
             vec![expr(&x).add(&expr(&y)).unwrap(), expr(&x), expr(&y)],
             vec![x, y],
-        )
-        .unwrap();
+        );
         assert_eq!(
             op.infer_output_types(&[ty(DType::F64, &[2])]).unwrap(),
             vec![ty(DType::F64, &[3])],
@@ -272,7 +333,7 @@ mod test {
     fn test_infer_output_types_carries_the_batch_prefix() {
         // The prefix is opaque, so any rank of it passes through.
         let x = symbol("x");
-        let op = BindParameters::new(vec![expr(&x), expr(&x)], vec![x]).unwrap();
+        let op = real_op(vec![expr(&x), expr(&x)], vec![x]);
         assert_eq!(
             op.infer_output_types(&[ty(DType::F32, &[5, 3, 1])])
                 .unwrap(),
@@ -295,25 +356,24 @@ mod test {
     #[test]
     fn test_infer_output_types_rejects_values_that_are_not_the_declared_parameters() {
         let x = symbol("x");
-        let op = BindParameters::new(vec![expr(&x)], vec![x, symbol("y")]).unwrap();
+        let op = real_op(vec![expr(&x)], vec![x, symbol("y")]);
 
-        // Both the shape the values must have and the type supplied are named.
-        assert_eq!(
-            op.infer_output_types(&[ty(DType::F64, &[3])])
-                .unwrap_err()
-                .to_string(),
-            "expected a floating-point tensor of shape [..., 2], got F64[3]"
-        );
         // A dtype that is not floating point is refused the same way as a parameter axis of the
         // wrong length.
-        for operand in [ty(DType::I64, &[2]), ty(DType::Bit, &[2])] {
-            assert_eq!(
-                op.infer_output_types(std::slice::from_ref(&operand))
-                    .unwrap_err(),
-                BindParametersError::ValueType {
-                    parameters: 2,
-                    actual: operand,
-                }
+        for operand in [
+            ty(DType::F64, &[3]),
+            ty(DType::I64, &[2]),
+            ty(DType::Bit, &[2]),
+        ] {
+            let err = op
+                .infer_output_types(std::slice::from_ref(&operand))
+                .unwrap_err();
+            assert!(
+                matches!(
+                    &err,
+                    BindParametersError::ValueType { parameters: 2, actual } if *actual == operand
+                ),
+                "{operand} is refused: {err}"
             );
         }
     }
@@ -321,20 +381,15 @@ mod test {
     #[test]
     fn test_an_expression_may_not_reference_an_undeclared_parameter() {
         let (x, y) = (symbol("x"), symbol("y"));
-        let Err(err) = BindParameters::new(vec![expr(&x), expr(&y)], vec![x]) else {
+        let Err(err) = BindParameters::new(vec![expr(&x), expr(&y)], vec![x], DType::F64) else {
             panic!("y has no value to be evaluated at")
         };
-        assert_eq!(
-            err,
-            BindParametersError::UndeclaredParameter {
-                expression: 1,
-                parameter: y,
-            }
-        );
-        assert_eq!(
-            err.to_string(),
-            "expression 1 references undeclared parameter y",
-            "the parameter that has no value is named"
+        assert!(
+            matches!(
+                &err,
+                BindParametersError::UndeclaredParameter { expression: 1, parameter } if *parameter == y
+            ),
+            "the expression and the parameter that has no value are both named: {err}"
         );
     }
 
@@ -343,7 +398,7 @@ mod test {
         // A caller can declare a whole circuit's parameters without pruning them to what each
         // expression uses.
         let (x, y, z) = (symbol("x"), symbol("y"), symbol("z"));
-        let op = BindParameters::new(vec![expr(&y)], vec![x, y, z]).unwrap();
+        let op = real_op(vec![expr(&y)], vec![x, y, z]);
         assert_eq!(
             op.infer_output_types(&[ty(DType::F64, &[3])]).unwrap(),
             vec![ty(DType::F64, &[1])]
@@ -357,15 +412,14 @@ mod test {
     #[test]
     fn test_eval_evaluates_every_expression_over_every_set_of_values() {
         let (x, y) = (symbol("x"), symbol("y"));
-        let op = BindParameters::new(
+        let op = real_op(
             vec![
                 expr(&x).add(&expr(&y)).unwrap(),
                 expr(&x).mul(&expr(&x)).unwrap(),
                 expr(&y).sin(),
             ],
             vec![x, y],
-        )
-        .unwrap();
+        );
         assert_eq!(
             op.eval(&[tensor(&[2, 2], &[0.5, 1.5, 2.0, -0.25])])
                 .unwrap(),
@@ -380,11 +434,10 @@ mod test {
     #[test]
     fn test_eval_widens_a_single_precision_operand_over_a_batch_of_any_rank() {
         let x = symbol("x");
-        let op = BindParameters::new(
+        let op = real_op(
             vec![expr(&x).mul(&ParameterExpression::from_f64(2.0)).unwrap()],
             vec![x],
-        )
-        .unwrap();
+        );
         let values = Tensor::from(
             ArrayD::from_shape_vec(IxDyn(&[3, 1, 1]), vec![0.5_f32, 1.5, -2.0]).unwrap(),
         );
@@ -402,14 +455,13 @@ mod test {
     #[test]
     fn test_eval_over_an_empty_batch_and_over_no_parameters() {
         let x = symbol("x");
-        let op = BindParameters::new(vec![expr(&x)], vec![x]).unwrap();
+        let op = real_op(vec![expr(&x)], vec![x]);
         assert_eq!(
             op.eval(&[tensor(&[0, 1], &[])]).unwrap(),
             vec![tensor(&[0, 1], &[])]
         );
 
-        let constant =
-            BindParameters::new(vec![ParameterExpression::from_f64(0.25)], vec![]).unwrap();
+        let constant = real_op(vec![ParameterExpression::from_f64(0.25)], vec![]);
         assert_eq!(
             constant
                 .infer_output_types(&[ty(DType::F64, &[2, 0])])
@@ -428,53 +480,113 @@ mod test {
         // Unreachable through a program function, which type-checks the operand while adding the
         // op, but reading the values as sets of the wrong size would be silently wrong.
         let x = symbol("x");
-        let op = BindParameters::new(vec![expr(&x)], vec![x]).unwrap();
+        let op = real_op(vec![expr(&x)], vec![x]);
         let _ = op.eval(&[tensor(&[2, 3], &[0.0; 6])]);
     }
 
     #[test]
-    fn test_an_expression_that_is_not_numeric_is_reported() {
+    fn test_a_non_finite_result_is_reported() {
         let x = symbol("x");
-        let op = BindParameters::new(
+        let op = real_op(
             vec![
                 expr(&x),
                 ParameterExpression::from_f64(1.0).div(&expr(&x)).unwrap(),
             ],
             vec![x],
-        )
-        .unwrap();
+        );
         assert_eq!(
             op.eval(&[tensor(&[1], &[2.0])]).unwrap(),
             vec![tensor(&[2], &[2.0, 0.5])]
         );
         let err = op.eval(&[tensor(&[1], &[0.0])]).unwrap_err();
-        assert_eq!(
-            err,
-            BindParametersError::NotReal { expression: 1 },
-            "the expression that has no value is named"
+        assert!(
+            matches!(err, BindParametersError::NonFinite { expression: 1 }),
+            "the expression that has no value is named: {err}"
         );
-        assert_eq!(
-            err.to_string(),
-            "expression 1 did not evaluate to a real number"
-        );
+    }
 
-        // A complex value is refused the same way. `log(-1)` is `i * pi`.
-        let y = symbol("y");
-        let logarithm = BindParameters::new(vec![expr(&y).log()], vec![y]).unwrap();
+    #[test]
+    fn test_an_f64_result_keeps_the_real_part_of_a_complex_value() {
+        // `log(-1)` is `i * pi`, so this expression is real or complex depending on the value.
+        let x = symbol("x");
+        let op = real_op(vec![expr(&x).log()], vec![x]);
         assert_eq!(
-            logarithm.eval(&[tensor(&[1], &[-1.0])]).unwrap_err(),
-            BindParametersError::NotReal { expression: 0 }
+            op.eval(&[tensor(&[1], &[-1.0])]).unwrap(),
+            vec![tensor(&[1], &[0.0])],
+            "the real part of i * pi is zero"
         );
         assert_eq!(
-            logarithm.eval(&[tensor(&[1], &[1.0])]).unwrap(),
+            op.eval(&[tensor(&[1], &[1.0])]).unwrap(),
             vec![tensor(&[1], &[0.0])]
         );
     }
 
     #[test]
+    fn test_every_expression_kind_evaluates_to_a_value() {
+        // Binding every declared parameter leaves nothing symbolic, whatever the expression is
+        // built from, which is why an unbound parameter cannot reach the result.
+        let x = symbol("x");
+        let expressions = vec![
+            expr(&x).sin(),
+            expr(&x).cos(),
+            expr(&x).tan(),
+            expr(&x).atan(),
+            expr(&x).exp(),
+            expr(&x).abs(),
+            expr(&x).sign(),
+            expr(&x).conjugate(),
+            expr(&x).pow(&ParameterExpression::from_f64(3.0)).unwrap(),
+            expr(&x).sub(&expr(&x)).unwrap(),
+        ];
+        let count = expressions.len();
+        let op = real_op(expressions, vec![x]);
+        let results = op.eval(&[tensor(&[1], &[0.5])]).unwrap();
+        assert_eq!(results[0].shape(), [count]);
+    }
+
+    #[test]
+    fn test_a_c128_result_admits_a_complex_value() {
+        let x = symbol("x");
+        let op = BindParameters::new(vec![expr(&x).log()], vec![x], DType::C128).unwrap();
+        assert_eq!(op.dtype(), DType::C128);
+        assert_eq!(
+            op.infer_output_types(&[ty(DType::F64, &[1])]).unwrap(),
+            vec![ty(DType::C128, &[1])]
+        );
+        assert_eq!(
+            op.eval(&[tensor(&[1], &[-1.0])]).unwrap(),
+            vec![complex_tensor(
+                &[1],
+                &[Complex64::new(0.0, std::f64::consts::PI)]
+            )],
+            "the value an F64 result refuses is the value a C128 result returns"
+        );
+        assert_eq!(
+            op.eval(&[tensor(&[1], &[1.0])]).unwrap(),
+            vec![complex_tensor(&[1], &[Complex64::new(0.0, 0.0)])],
+            "a real value widens to a complex one"
+        );
+    }
+
+    #[test]
+    fn test_a_result_dtype_other_than_f64_or_c128_is_refused() {
+        // Expressions evaluate in double precision, so a narrower result comes from a `Cast`.
+        let x = symbol("x");
+        for dtype in [DType::F32, DType::C64, DType::I64, DType::Bit] {
+            let Err(err) = BindParameters::new(vec![expr(&x)], vec![x.clone()], dtype) else {
+                panic!("{dtype} is neither F64 nor C128")
+            };
+            assert!(
+                matches!(err, BindParametersError::ResultDType { dtype: got } if got == dtype),
+                "{dtype} is refused: {err}"
+            );
+        }
+    }
+
+    #[test]
     fn test_a_program_computes_parameters_from_its_inputs() {
         let theta = symbol("theta");
-        let op = BindParameters::new(
+        let op = real_op(
             vec![
                 expr(&theta)
                     .mul(&ParameterExpression::from_f64(2.0))
@@ -482,8 +594,7 @@ mod test {
                 ParameterExpression::from_f64(0.25),
             ],
             vec![theta],
-        )
-        .unwrap();
+        );
 
         let mut function = ProgramFunction::new();
         let sweep = function.add_parameter(ty(DType::F64, &[2, 1]));
