@@ -64,8 +64,8 @@ class MCGupDiag(Gate):
         super().__init__("MCGupDiag", num_qubits, [gate])
 
     def _define(self):
-        gate = np.asarray(self.params[0], dtype=complex, order="f")
-        mcg_up_diag_circuit, _ = mcg_up_to_diagonal_synth(gate, self.num_controls)
+        unitary = np.asarray(self.params[0], dtype=complex, order="f")
+        mcg_up_diag_circuit, _ = mcg_up_to_diagonal_synth(unitary, self.num_controls)
         gate = mcg_up_diag_circuit.to_instruction()
         q = QuantumRegister(self.num_qubits, "q")
         mcg_up_diag_circuit = QuantumCircuit(q, name="mcg_up_to_diagonal")
