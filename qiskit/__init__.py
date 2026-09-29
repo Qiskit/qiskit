@@ -120,7 +120,9 @@ sys.modules["qiskit._accelerate.synthesis.multi_controlled"] = (
 sys.modules["qiskit._accelerate.synthesis.pauli_products"] = _accelerate.synthesis.pauli_products
 sys.modules["qiskit._accelerate.synthesis.qft"] = _accelerate.synthesis.qft
 sys.modules["qiskit._accelerate.synthesis.uc_gate"] = _accelerate.synthesis.uc_gate
-sys.modules["qiskit._accelerate.synthesis.mcg_up_to_diagonal"] = _accelerate.synthesis.mcg_up_to_diagonal
+sys.modules["qiskit._accelerate.synthesis.mcg_up_to_diagonal"] = (
+    _accelerate.synthesis.mcg_up_to_diagonal
+)
 sys.modules["qiskit._accelerate.synthesis.diagonal"] = _accelerate.synthesis.diagonal
 sys.modules["qiskit._accelerate.split_2q_unitaries"] = _accelerate.split_2q_unitaries
 sys.modules["qiskit._accelerate.gate_direction"] = _accelerate.gate_direction

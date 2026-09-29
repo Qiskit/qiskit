@@ -10,6 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+//! Multi-controlled single-qubit gate decomposition up to diagonal (`MCGupDiag`).
+//!
+//! Decomposes a multi-controlled unitary $U$ acting on $k$ control qubits and 1 target
+//! qubit into a circuit $U'$ such that $U = D \cdot U'$, where $D$ is a diagonal gate.
+//! Implemented by reducing to [`dec_ucg_inner`] with $2^k$ single-qubit unitaries
+//! where all slots are identity except the last (all controls active) which receives the target gate.
 
 use numpy::PyReadonlyArray2;
 use pyo3::Python;
@@ -23,7 +29,21 @@ use nalgebra::{Matrix2, MatrixView2};
 use num_complex::Complex64;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 
-
+/// Synthesizes a multi-controlled single-qubit gate up to a diagonal gate.
+///
+/// Constructs a multiplexed gate sequence of length `2^num_ctrls` with identities in all
+/// positions except the last (all controls set to 1), then delegates to [`dec_ucg_inner`]
+/// with `up_to_diagonal = true` and `mux_simp = true`.
+///
+/// # Arguments
+///
+/// * `gate` - The 2x2 unitary matrix acting on the target qubit when all controls are 1.
+/// * `num_ctrls` - The number of control qubits.
+///
+/// # Returns
+///
+/// A tuple `(circuit, diag)` where `circuit` is the `CircuitData` implementing the gate
+/// up to diagonal, and `diag` is the diagonal phases vector of length `2^(num_ctrls + 1)`.
 pub(crate) fn mcg_up_to_diagonal_inner(
     gate: Matrix2<Complex64>,
     num_ctrls: u32,
@@ -33,16 +53,28 @@ pub(crate) fn mcg_up_to_diagonal_inner(
     let mut gates = vec![Matrix2::identity(); 2usize.pow(num_ctrls)];
     let last = gates.len() - 1;
     gates[last] = gate;
-    dec_ucg_inner(gates, num_qubits, true, true)   
-    
+    dec_ucg_inner(gates, num_qubits, true, true)
 }
 
+/// Python-exposed entry point for decomposing a multi-controlled single-qubit gate up to diagonal.
+///
+/// See [`mcg_up_to_diagonal_inner`] for the core synthesis logic. This wrapper converts the
+/// input 2x2 NumPy matrix to Rust and the resulting `CircuitData` to a Python `QuantumCircuit`.
+///
+/// # Arguments
+///
+/// * `gate` - A 2x2 complex numpy array representing the target unitary.
+/// * `num_ctrls` - The number of control qubits.
+///
+/// # Returns
+///
+/// A tuple `(circuit, diag)` containing the `QuantumCircuit` and the list of complex diagonal elements.
 #[pyfunction]
 pub fn mcg_up_to_diagonal_synth(
     py: Python,
     gate: PyReadonlyArray2<Complex64>,
     num_ctrls: u32,
-) -> PyResult<(Py<PyAny>,Vec<Complex64>)> {
+) -> PyResult<(Py<PyAny>, Vec<Complex64>)> {
     let gate_rs: Matrix2<Complex64> = gate
         .try_as_matrix()
         .map(|m: MatrixView2<Complex64>| m.into_owned())
@@ -56,6 +88,7 @@ pub fn mcg_up_to_diagonal_synth(
     Ok((qc.unbind(), diag))
 }
 
+/// Registers the `mcg_up_to_diagonal` Python submodule functions.
 pub fn mcg_up_to_diagonal(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(mcg_up_to_diagonal_synth, m)?)?;
     Ok(())
