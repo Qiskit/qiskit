@@ -18,7 +18,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit import transpile
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.generalized_gates.mcg_up_to_diagonal import MCGupDiag
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase
@@ -29,7 +29,7 @@ def _random_su2(seed=None):
     rng = np.random.default_rng(seed)
     # Random SU(2): use scipy-style parametrisation via QR decomposition
     z = (rng.standard_normal((2, 2)) + 1j * rng.standard_normal((2, 2))) / np.sqrt(2)
-    q, r = np.linalg.qr(z)
+    q, _ = np.linalg.qr(z)
     # Make determinant 1
     q = q * (np.linalg.det(q) ** -0.5)
     return q
