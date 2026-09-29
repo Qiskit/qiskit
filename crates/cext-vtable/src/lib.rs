@@ -45,6 +45,7 @@ pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
     ]
 });
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
+pub static FUNCTIONS_MIR: ExportedFunctions = ExportedFunctions::empty();
 
 // Below this line is close to a mirror of the actual `cext` structure.  Ideally, all of the
 // above exports would be locally within `cext` itself, but that has problems with needing to
