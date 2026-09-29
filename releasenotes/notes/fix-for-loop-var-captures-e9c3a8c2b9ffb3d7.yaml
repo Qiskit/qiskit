@@ -16,6 +16,10 @@ fixes:
             with qc.for_loop(range(2), expr.Var.new("j", types.Uint(8))) as j:
                 qc.store(acc, expr.add(acc, expr.add(i, j)))
                 qc.x(0)
+  - |
+    :class:`.ContractIdleWiresInControlFlow` no longer fails on a :class:`.ForLoopOp` whose loop
+    parameter is an :class:`.expr.Var` and whose body has idle qubits.  Previously, the pass
+    dropped the loop variable from the contracted body, which then raised a :exc:`.CircuitError`.
 upgrade_circuits:
   - |
     :class:`.QuantumCircuit` and :class:`.DAGCircuit` can now hold ``input`` variables and
