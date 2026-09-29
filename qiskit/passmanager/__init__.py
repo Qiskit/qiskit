@@ -275,6 +275,8 @@ from .flow_controllers import (
 from .base_tasks import GenericPass, BaseController, Task
 from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 from .exceptions import PassManagerError
+from .lowering_passmanager import *
+from . import lowering_passmanager
 
 __all__ = [
     "BaseController",
@@ -290,3 +292,4 @@ __all__ = [
     "Task",
     "WorkflowStatus",
 ]
+__all__ += lowering_passmanager.__all__
