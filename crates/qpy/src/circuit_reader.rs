@@ -806,6 +806,9 @@ fn unpack_control_flow(
                             GenericValue::Int64(value) => {
                                 Ok(CaseSpecifier::Uint(BigUint::from(value as u64)))
                             }
+                            GenericValue::Bool(value) => {
+                                Ok(CaseSpecifier::Uint(BigUint::from(if value { 1u32 } else { 0u32 })))
+                            }
                             _ => Err(QpyError::InvalidInstruction(
                                 "could not identify switch case label spec".to_string(),
                             )),

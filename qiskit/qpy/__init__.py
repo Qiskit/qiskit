@@ -473,6 +473,42 @@ circuits in the data.
 
 .. _qpy_version_18:
 
+.. _qpy_version_19:
+
+Version 19
+----------
+
+Version 19 introduces support for serializing extra named attributes on instructions.
+In previous versions, extra instruction data was only captured if it could be represented
+as a parameter or standard control attributes, which caused non-standard gate fields
+such as ``_inverse`` on :class:`.StatePreparation` or ``_dirty_ancillas``, ``_relative_phase``,
+and ``_action_only`` on :class:`.MCXVChain` to be lost on QPY roundtrip.
+
+Instruction Extra Data
+~~~~~~~~~~~~~~~~~~~~~~
+
+Bit 6 (``0b0100_0000``) of the ``extras_key`` in ``CIRCUIT_INSTRUCTION_V2`` now indicates
+the presence of an ``INSTRUCTION_EXTRA_DATA`` payload. When this bit is set, the extra
+data block appears following any annotations payload:
+
+.. code-block:: c
+
+    struct {
+        uint16_t num_fields;
+    }
+
+followed by ``num_fields`` entries of:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        char name[name_size];
+        INSTRUCTION_PARAM value;
+    }
+
+.. _qpy_version_18:
+
 Version 18
 ----------
 

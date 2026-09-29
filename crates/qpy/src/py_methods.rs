@@ -48,7 +48,7 @@ use crate::params::generic_value_to_param;
 use crate::value::{
     BitType, CircuitInstructionType, GenericValue, ModifierType, ParamRegisterValue, QPYReadData,
     QPYWriteData, ValueEndian, ValueType, deserialize_with_args, load_value,
-    serialize_generic_value,
+    serialize_generic_value, unpack_generic_value,
 };
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
@@ -626,6 +626,20 @@ pub fn unpack_py_instruction(
     // some gates need special treatment for their parameters prior to python-space initialization
     let mut gate_object = match name.as_str() {
         "Initialize" | "StatePreparation" => {
+            let mut is_inverse = false;
+            if let Some(extra_data) = &instruction.extra_data {
+                for field in &extra_data.fields {
+                    if field.name == "inverse"
+                        && let Ok(GenericValue::Bool(b)) = unpack_generic_value(
+                            &field.value,
+                            qpy_data,
+                            ValueEndian::LittleForV17AndBelow,
+                        )
+                    {
+                        is_inverse = b;
+                    }
+                }
+            }
             if py_params[0].is_instance_of::<PyString>() {
                 // the params are the labels of the initial state
                 let label = py_params
@@ -633,15 +647,30 @@ pub fn unpack_py_instruction(
                     .map(|param| param.extract())
                     .collect::<PyResult<Vec<String>>>()?
                     .join("");
-                gate_class.call1((label,))?
+                if is_inverse {
+                    let kwargs = [("inverse", true.into_py_any(py)?)].into_py_dict(py)?;
+                    gate_class.call((label,), Some(&kwargs))?
+                } else {
+                    gate_class.call1((label,))?
+                }
             } else if py_params.len() == 1 {
                 // the params is the integer indicating which qubits to initialize
                 let real_param: f64 = py_params[0].getattr("real")?.extract()?;
                 let qubits_to_initialize = real_param as u32;
-                gate_class.call1((qubits_to_initialize, instruction.num_qargs))?
+                if is_inverse {
+                    let kwargs = [("inverse", true.into_py_any(py)?)].into_py_dict(py)?;
+                    gate_class.call((qubits_to_initialize, instruction.num_qargs), Some(&kwargs))?
+                } else {
+                    gate_class.call1((qubits_to_initialize, instruction.num_qargs))?
+                }
             } else {
                 // the params represent a list of complex amplitudes
-                gate_class.call1((py_params,))?
+                if is_inverse {
+                    let kwargs = [("inverse", true.into_py_any(py)?)].into_py_dict(py)?;
+                    gate_class.call((py_params,), Some(&kwargs))?
+                } else {
+                    gate_class.call1((py_params,))?
+                }
             }
         }
         "QFTGate" => {
@@ -653,13 +682,59 @@ pub fn unpack_py_instruction(
         }
 
         "UCRXGate" | "UCRYGate" | "UCRZGate" | "DiagonalGate" => gate_class.call1((py_params,))?,
-        "MCPhaseGate" | "MCU1Gate" | "MCXGrayCode" | "MCXGate" | "MCXRecursive" | "MCXVChain" => {
+        "MCPhaseGate" | "MCU1Gate" | "MCXGrayCode" | "MCXGate" | "MCXRecursive" => {
             let mut args: Vec<Py<PyAny>> = Vec::new();
             for param in py_params {
                 args.push(param.unbind());
             }
             args.push(instruction.num_ctrl_qubits.into_py_any(py)?);
             gate_class.call1(PyTuple::new(py, args)?)?
+        }
+        "MCXVChain" => {
+            let mut dirty_ancillas = false;
+            let mut relative_phase = false;
+            let mut action_only = false;
+            if let Some(extra_data) = &instruction.extra_data {
+                for field in &extra_data.fields {
+                    match field.name.as_str() {
+                        "dirty_ancillas" => {
+                            if let Ok(GenericValue::Bool(b)) = unpack_generic_value(
+                                &field.value,
+                                qpy_data,
+                                ValueEndian::LittleForV17AndBelow,
+                            ) {
+                                dirty_ancillas = b;
+                            }
+                        }
+                        "relative_phase" => {
+                            if let Ok(GenericValue::Bool(b)) = unpack_generic_value(
+                                &field.value,
+                                qpy_data,
+                                ValueEndian::LittleForV17AndBelow,
+                            ) {
+                                relative_phase = b;
+                            }
+                        }
+                        "action_only" => {
+                            if let Ok(GenericValue::Bool(b)) = unpack_generic_value(
+                                &field.value,
+                                qpy_data,
+                                ValueEndian::LittleForV17AndBelow,
+                            ) {
+                                action_only = b;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            let kwargs = [
+                ("dirty_ancillas", dirty_ancillas.into_py_any(py)?),
+                ("relative_phase", relative_phase.into_py_any(py)?),
+                ("action_only", action_only.into_py_any(py)?),
+            ]
+            .into_py_dict(py)?;
+            gate_class.call((instruction.num_ctrl_qubits,), Some(&kwargs))?
         }
         "IfElseOp" | "WhileLoopOp" => {
             let condition =
