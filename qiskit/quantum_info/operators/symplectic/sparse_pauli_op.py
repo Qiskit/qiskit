@@ -952,8 +952,6 @@ class SparsePauliOp(LinearOp):
                     raise QiskitError(
                         f"The number of qubits ({num_qubits}) is smaller than a required index {index}."
                     )
-                if index < 0:
-                    index += num_qubits
                 label[~index] = pauli
 
             labels[i] = "".join(label)
