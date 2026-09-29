@@ -115,7 +115,7 @@ pub unsafe extern "C" fn qk_passmanager_run_simple(
     ir: *mut c_void,
     ir_in_handle: *const IrHandle,
     ir_out_handle: *const IrHandle,
-    error: *mut *const CompilationError,
+    error: *mut *mut CompilationError,
 ) -> *mut c_void {
     // SAFETY: Per documentation, `pm` is non-null and valid
     let pm = unsafe { mut_ptr_as_ref(pm) };

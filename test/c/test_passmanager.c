@@ -232,12 +232,12 @@ int test_lowering(void) {
 
     // note: as the passmanager is set up, it takes ownership of the input IR, which no longer
     // needs to be freed -- only the output IR must be freed
-    const QkCompilationError *error = NULL;
+    QkCompilationError *error = NULL;
     void *out_ir = qk_passmanager_run_simple(pm, (void *)circuit, circuit_ir, dag_ir, &error);
     if (error != NULL) {
         printf("Failed running pass.\n");
         result = RuntimeError;
-        qk_compilation_error_free((QkCompilationError *)error);
+        qk_compilation_error_free(error);
         goto cleanup;
     }
 
@@ -419,7 +419,7 @@ static int test_mismatching_input(void) {
 
     // .. and now we call it on QkDag
     QkDag *dag = qk_dag_new();
-    const QkCompilationError *error = NULL;
+    QkCompilationError *error = NULL;
     QkDag *out = (QkDag *)qk_passmanager_run_simple(pm, (void *)dag, dag_ir, dag_ir, &error);
 
     if (out != NULL) {
@@ -442,7 +442,7 @@ static int test_mismatching_input(void) {
             result = EqualityError;
             goto cleanup;
         }
-        qk_compilation_error_free((QkCompilationError *)error);
+        qk_compilation_error_free(error);
     }
 
 cleanup:

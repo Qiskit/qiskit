@@ -303,6 +303,9 @@ fn execute_task(
     mut ir: Box<dyn IR>,
     context: &mut PassContext,
 ) -> Result<Box<dyn IR>, PassError> {
+    // TODO We might be able to only type-check in the pass manager's execution method,
+    // since the pipeline is already type-checked upon construction. For now we keep it here,
+    // which is the safer choice.
     if let Some([task_in_type, _]) = task.io_types()
         && task_in_type != ir.dyn_type_id()
     {
