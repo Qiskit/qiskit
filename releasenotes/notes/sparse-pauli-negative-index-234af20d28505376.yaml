@@ -1,5 +1,5 @@
 ---
-fixes:
+features_quantum_info:
   - |
     ``SparsePauliOp.from_sparse_list`` now supports negative qubit indices using Python
     sequence-indexing semantics. For example, ``-1`` refers to the highest-numbered qubit.
