@@ -887,7 +887,9 @@ class SparsePauliOp(LinearOp):
         """Construct from a list of local Pauli strings and coefficients.
 
         Each list element is a 3-tuple of a local Pauli string, indices where to apply it,
-        and a coefficient.
+        and a coefficient. The indices follow Python sequence-indexing semantics, so negative
+        indices count backward from the highest-numbered qubit. For example, ``-1`` refers to
+        qubit ``num_qubits - 1``.
 
         For example, the 5-qubit Hamiltonian
 
