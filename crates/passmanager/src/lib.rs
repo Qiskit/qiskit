@@ -413,6 +413,53 @@ mod test {
     }
 
     #[test]
+    fn test_io_types_empty() {
+        assert!(Task::Group(vec![]).io_types().is_none());
+        assert!(Task::Stages(vec![]).io_types().is_none());
+
+        let nested_empty = Task::Group(vec![Task::Stages(vec![(
+            "empty".to_string(),
+            Task::Group(vec![]),
+        )])]);
+        assert!(nested_empty.io_types().is_none());
+    }
+
+    #[test]
+    fn test_io_types_skips_empty_children() {
+        let uint_ty = DynTypeId::of::<MyUint>();
+        let int_ty = DynTypeId::of::<MyInt>();
+
+        let empty = || Task::Group(vec![]);
+        let lower = || Task::Transformation(LowerToInt.into_pass());
+
+        let leading = Task::Group(vec![empty(), lower()]);
+        assert_eq!(leading.io_types().unwrap(), [uint_ty, int_ty]);
+
+        let trailing = Task::Group(vec![lower(), empty()]);
+        assert_eq!(trailing.io_types().unwrap(), [uint_ty, int_ty]);
+
+        let surrounded = Task::Stages(vec![
+            ("before".to_string(), empty()),
+            ("lower".to_string(), lower()),
+            ("after".to_string(), empty()),
+        ]);
+        assert_eq!(surrounded.io_types().unwrap(), [uint_ty, int_ty]);
+    }
+
+    #[test]
+    fn test_empty_child_keeps_type_checks() {
+        let mut pm = PassManager::new();
+        pm.try_push_static_pass(LowerToInt).unwrap();
+        assert!(
+            pm.try_push_task(Task::Group(vec![
+                Task::Group(vec![]),
+                Task::Transformation(AddOne.into_pass()),
+            ]))
+            .is_err()
+        );
+    }
+
+    #[test]
     fn test_pass() {
         let mut pm = PassManager::new();
         pm.try_push_static_pass(AddOne).unwrap();
