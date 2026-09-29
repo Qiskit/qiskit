@@ -303,6 +303,12 @@ fn execute_task(
     mut ir: Box<dyn IR>,
     context: &mut PassContext,
 ) -> Result<Box<dyn IR>, PassError> {
+    if let Some([task_in_type, _]) = task.io_types()
+        && task_in_type != ir.dyn_type_id()
+    {
+        return Err(PassError::Conversion);
+    }
+
     match task {
         Task::Transformation(pass) => pass.run(ir, context),
         Task::Group(tasks) => {

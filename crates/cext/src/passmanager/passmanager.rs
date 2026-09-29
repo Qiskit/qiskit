@@ -122,6 +122,7 @@ pub unsafe extern "C" fn qk_passmanager_run_simple(
     let ir_in_handle = unsafe { const_ptr_as_ref(ir_in_handle) };
     let ir_out_handle = unsafe { const_ptr_as_ref(ir_out_handle) };
     let ir = unsafe { ir_in_handle.0.steal(ir) };
+
     pm.run_erased(ir)
         .map(|(ir_out, _)| ir_out_handle.0.leak(ir_out))
         .unwrap_or_else(|e| {
