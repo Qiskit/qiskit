@@ -294,6 +294,11 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         with self.assertRaises(QiskitError):
             _ = SparsePauliOp.from_sparse_list([("Z", [2], 1)], 1)
 
+    def test_from_index_list_rejects_negative_indices(self):
+        """Test from_sparse_list rejects negative qubit indices instead of Python indexing."""
+        with self.assertRaisesRegex(QiskitError, "cannot be negative"):
+            _ = SparsePauliOp.from_sparse_list([("X", [-1], 1)], num_qubits=3)
+
     def test_from_index_list_same_index(self):
         """Test from_sparse_list via Pauli + number of qubits raises correctly, if indices duplicate."""
         with self.assertRaises(QiskitError):
