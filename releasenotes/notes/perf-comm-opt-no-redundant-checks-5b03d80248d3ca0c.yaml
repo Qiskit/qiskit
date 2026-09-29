@@ -1,0 +1,4 @@
+---
+performance:
+  - Improved the performance of the :class:`.CommutativeOptimization` transpiler pass
+    for circuits containing many single-qubit RX, RY and RZ gates and their equivalents.
