@@ -596,4 +596,72 @@ mod test {
         assert!(add.name().contains("AddOne"));
         assert!(lower.name().contains("LowerToInt"));
     }
+
+    struct AtLeast(u32);
+    impl StaticPredicate<MyUint> for AtLeast {
+        fn evaluate(&self, ir: &MyUint, _context: &PassContext) -> anyhow::Result<bool> {
+            Ok(ir.0 >= self.0)
+        }
+    }
+
+    #[test]
+    fn test_while_static_predicate() {
+        let mut pm = PassManager::new();
+        pm.try_push_while(Task::Transformation(AddOne.into_pass()), AtLeast(10), 100)
+            .unwrap();
+
+        let (out, _) = pm.run::<MyUint, MyUint>(MyUint(4)).unwrap();
+        assert_eq!(out.0, 10);
+    }
+
+    #[test]
+    fn test_while_static_predicate_ignoring_ir() {
+        let mut pm = PassManager::new();
+        // notice the turbofish is necessary because UntilStable is generic over the IR
+        pm.try_push_while::<MyUint>(
+            Task::Transformation(WriteToContext.into_pass()),
+            UntilStable,
+            100,
+        )
+        .unwrap();
+
+        // `WriteToContext` clears `ir_modified`, so the body runs exactly once.
+        let (out, context) = pm.run::<MyUint, MyUint>(MyUint(4)).unwrap();
+        assert_eq!(out.0, 4);
+        let MyUint(snapshot) = *context.get("snapshot").unwrap().downcast_ref().unwrap();
+        assert_eq!(snapshot, 4);
+    }
+
+    #[test]
+    fn test_while_closure_predicate() {
+        let mut pm = PassManager::new();
+        pm.try_push_while(
+            Task::Transformation(AddOne.into_pass()),
+            |ir: &MyUint, _: &PassContext| Ok(ir.0 >= 7),
+            100,
+        )
+        .unwrap();
+
+        let (out, _) = pm.run::<MyUint, MyUint>(MyUint(4)).unwrap();
+        assert_eq!(out.0, 7);
+    }
+
+    #[test]
+    fn test_while_predicate_error_stops_the_loop() {
+        let mut pm = PassManager::new();
+        pm.try_push_while(
+            Task::Transformation(AddOne.into_pass()),
+            |ir: &MyUint, _: &PassContext| {
+                if ir.0 > 6 {
+                    return Err(anyhow!("ran away"));
+                }
+                Ok(false)
+            },
+            100,
+        )
+        .unwrap();
+
+        let e = pm.run::<MyUint, MyUint>(MyUint(4)).unwrap_err();
+        assert!(e.to_string().contains("ran away"), "{:?}", e);
+    }
 }
