@@ -44,8 +44,10 @@ enum NodeAction {
     /// However, unless this representative gate is removed or merged,
     /// we will add the original instruction to the output circuit.
     Canonical(PackedInstruction, Param),
-    /// The node's instruction has been removed.
-    Drop,
+    /// The node's instruction has been removed. For removed RX, RY and RZ instructions
+    /// that are not equivalent to identity, we additionally save the kind of the instruction
+    /// and the qubit it acts on.
+    Drop(Option<(StandardGate, usize)>),
     /// The node's instruction has been replaced by the current instruction.
     Replace(PackedInstruction),
 }
@@ -617,6 +619,10 @@ pub fn run_commutative_optimization(
     let mut node_actions: Vec<NodeAction> = vec![NodeAction::Keep; num_nodes];
     let mut new_global_phase = new_dag.set_global_phase_f64(0.0);
 
+    // For each instruction we will store the index of the last instruction in the backward scan
+    // that is known to commute with it.
+    let mut commutes_to: Vec<usize> = (0..num_nodes).collect();
+
     let mut modified: bool = false;
 
     for idx1 in 0..num_nodes {
@@ -629,7 +635,7 @@ pub fn run_commutative_optimization(
         }
 
         if let Some(phase_update) = is_identity_equiv(instr1, false, Some(0), error_cutoff_fn)? {
-            node_actions[idx1] = NodeAction::Drop;
+            node_actions[idx1] = NodeAction::Drop(None);
             new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
             modified = true;
             continue;
@@ -643,7 +649,7 @@ pub fn run_commutative_optimization(
             NodeAction::Replace(instruction) => (instruction, Param::Float(0.)),
             NodeAction::Keep => (instr1, Param::Float(0.)),
             NodeAction::Canonical(instruction, phase) => (instruction, phase.clone()),
-            NodeAction::Drop => {
+            NodeAction::Drop(_) => {
                 unreachable!("The current instruction should not be deleted.")
             }
         };
@@ -658,14 +664,39 @@ pub fn run_commutative_optimization(
         let qargs1: &[Qubit] = new_dag.get_qargs(instr1.qubits);
         let cargs1: &[Clbit] = new_dag.get_cargs(instr1.clbits);
 
-        for idx2 in (0..idx1).rev() {
+        let rot1 = match instr1.op.view() {
+            OperationRef::StandardGate(
+                gate @ (StandardGate::RX | StandardGate::RY | StandardGate::RZ),
+            ) => Some((gate, qargs1[0].index())),
+            _ => None,
+        };
+
+        let mut idx2 = idx1;
+
+        while idx2 > 0 {
+            idx2 -= 1;
+
             let node_index2 = node_indices[idx2];
 
             let (instr2, extraphase2) = match &node_actions[idx2] {
                 NodeAction::Replace(instruction) => (instruction, Param::Float(0.)),
                 NodeAction::Keep => (dag[node_index2].unwrap_operation(), Param::Float(0.)),
                 NodeAction::Canonical(instruction, phase) => (instruction, phase.clone()),
-                NodeAction::Drop => continue,
+                NodeAction::Drop(None) => {
+                    continue;
+                }
+                NodeAction::Drop(Some((kind, q))) => {
+                    // For RX, RY and RZ gates we have an additional optimization.
+                    // Note that if such a gate is not equivalent to identity, then the commutation with an arbitrary
+                    // instruction only depends on the gate kind (i.e. RX, RY, RZ) and the qubit it acts on.
+                    // If during backward scan from idx1 we reached a removed gate of the same kind on the same qubit,
+                    // then we can immediately skip all the gates the removed instruction was known to commute with
+                    // prior to being removed.
+                    if matches!(rot1, Some((rot_kind, rot_q)) if rot_kind == *kind && rot_q == *q) {
+                        idx2 = commutes_to[idx2];
+                    }
+                    continue;
+                }
             };
 
             // For now, assume that control-flow operations do not commute with anything.
@@ -686,13 +717,14 @@ pub fn run_commutative_optimization(
                 try_merge(&new_dag, instr1, instr2, tol, matrix_max_num_qubits)?;
 
             if can_be_merged {
+                commutes_to[idx1] = commutes_to[idx2];
                 if let Some(merged_instruction) = merged_instruction {
                     node_actions[idx1] = NodeAction::Replace(merged_instruction);
                 } else {
-                    node_actions[idx1] = NodeAction::Drop;
+                    node_actions[idx1] = NodeAction::Drop(rot1);
                 }
 
-                node_actions[idx2] = NodeAction::Drop;
+                node_actions[idx2] = NodeAction::Drop(rot1);
                 new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
                 new_global_phase = radd_param(new_global_phase, extraphase1.clone());
                 new_global_phase = radd_param(new_global_phase, extraphase2.clone());
@@ -710,6 +742,8 @@ pub fn run_commutative_optimization(
                 commutation_checker,
             )? {
                 break;
+            } else {
+                commutes_to[idx1] = idx2;
             }
         }
     }
@@ -723,7 +757,7 @@ pub fn run_commutative_optimization(
 
     for idx in 0..num_nodes {
         match &node_actions[idx] {
-            NodeAction::Drop => {}
+            NodeAction::Drop(_) => {}
             NodeAction::Keep | NodeAction::Canonical(_, _) => {
                 new_dag.push_back(dag[node_indices[idx]].unwrap_operation().clone())?;
             }
