@@ -527,7 +527,7 @@ def _read_instruction(
                     circuit,
                     use_symengine,
                     standalone_vars,
-                    annotation_factories=annotation_state.factories,
+                    annotation_factories=annotation_state.factories if annotation_state else {},
                 )
             extra_data[field_name] = field_value
 
@@ -612,6 +612,7 @@ def _read_instruction(
             "MCXRecursive",
             "MCXVChain",
         }:
+            num_ctrl_qubits = getattr(instruction, "num_ctrl_qubits", 0)
             if gate_name == "MCXVChain" and extra_data:
                 kwargs = {}
                 if "dirty_ancillas" in extra_data:
@@ -620,9 +621,9 @@ def _read_instruction(
                     kwargs["relative_phase"] = extra_data["relative_phase"]
                 if "action_only" in extra_data:
                     kwargs["action_only"] = extra_data["action_only"]
-                gate = gate_class(*params, instruction.num_ctrl_qubits, label=label, **kwargs)
+                gate = gate_class(*params, num_ctrl_qubits, label=label, **kwargs)
             else:
-                gate = gate_class(*params, instruction.num_ctrl_qubits, label=label)
+                gate = gate_class(*params, num_ctrl_qubits, label=label)
         else:
             gate = gate_class(*params, label=label)
             if (
