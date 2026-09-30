@@ -293,5 +293,3 @@ unsafe impl DynTraitExposer<dyn IR> for CIrExposer {
         })
     }
 }
-
-// TODO: `qk_pass_ir_new`

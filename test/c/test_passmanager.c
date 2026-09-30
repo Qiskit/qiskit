@@ -61,10 +61,19 @@ typedef struct {
     size_t num_deletes;
 } DeleteLogger;
 
-/// A custom integer IR.
+/// A custom integer-based IR.
 ///
 /// This holds an array of uint32_t and is assumed to flip the bits at where there is
-/// a 1-bit.
+/// a 1-bit. For example:
+///     [1, 3, 6]
+/// would flip apply X gates on
+///     [..X, .XX, XX.]
+///
+/// We're defining a set of passes on this IR, e.g. one that cancels adjacent integers
+/// and one to remove specific integers.
+///
+/// Importantly, this struct is contains data that must be freed (the `*integers` pointer),
+/// and keeps a logger to count how often the deconstructor (`delete_flips`) is called.
 typedef struct {
     size_t capacity;
     size_t len;
@@ -159,6 +168,8 @@ void *inverse_cancellation(void *self, void *ir, QkPassContext *context,
     return (void *)flips;
 }
 
+/// A pass to pop specified integers from the Flips IR.
+/// This pass needs freeing the data it holds upon destruction.
 typedef struct {
     size_t len;
     uint32_t *to_pop;
@@ -203,6 +214,7 @@ void *pop_flips(void *self, void *ir, QkPassContext *context, QkCompilationError
  * Test running a single RemoveIdentity pass on a circuit.
  *
  * This is a simple test case on a single builtin IR, without lowering or custom destructors.
+ * The pass manager is run twice to check it is re-usable.
  */
 static int test_circuit_ir(void) {
     QkIrHandle *ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
@@ -224,18 +236,18 @@ static int test_circuit_ir(void) {
         goto cleanup;
     }
 
-    QkCircuit *circuit = qk_circuit_new(10, 0);
+    QkCircuit *circuit1 = qk_circuit_new(10, 0);
     uint32_t q0[1] = {0};
     double almost_zero[1] = {1e-20};
     double nonzero[1] = {1.23};
-    qk_circuit_gate(circuit, QkGate_H, q0, NULL);
-    qk_circuit_gate(circuit, QkGate_RX, q0, almost_zero);
-    qk_circuit_gate(circuit, QkGate_RZ, q0, nonzero);
-    qk_circuit_gate(circuit, QkGate_H, q0, NULL);
+    qk_circuit_gate(circuit1, QkGate_H, q0, NULL);
+    qk_circuit_gate(circuit1, QkGate_RX, q0, almost_zero);
+    qk_circuit_gate(circuit1, QkGate_RZ, q0, nonzero);
+    qk_circuit_gate(circuit1, QkGate_H, q0, NULL);
 
     // note: as the passmanager is set up, it takes ownership of the input IR, which no longer
     // needs to be freed -- only the output IR must be freed
-    QkCircuit *out = (QkCircuit *)qk_passmanager_run_simple(pm, (void *)circuit, ir, ir, NULL);
+    QkCircuit *out = (QkCircuit *)qk_passmanager_run_simple(pm, (void *)circuit1, ir, ir, NULL);
 
     QkOpCounts counts = qk_circuit_count_ops(out);
     qk_circuit_free(out);
@@ -251,6 +263,32 @@ static int test_circuit_ir(void) {
         } else if (strcmp(count.name, "rz") == 0) {
             if (count.count != 1) {
                 printf("Expected 1 RZ gate, found %zu\n", count.count);
+                result = EqualityError;
+                goto cleanup_counts;
+            }
+        } else {
+            printf("Unexpected gate.\n");
+            result = EqualityError;
+            goto cleanup_counts;
+        }
+    }
+    qk_opcounts_clear(&counts);
+
+    QkCircuit *circuit2 = qk_circuit_new(3, 0);
+    uint32_t q01[2] = {0, 1};
+    qk_circuit_gate(circuit2, QkGate_CX, q01, NULL);
+    qk_circuit_gate(circuit2, QkGate_RY, q0, almost_zero);
+    qk_circuit_gate(circuit2, QkGate_CX, q01, NULL);
+
+    out = (QkCircuit *)qk_passmanager_run_simple(pm, (void *)circuit2, ir, ir, NULL);
+    counts = qk_circuit_count_ops(out);
+    qk_circuit_free(out);
+
+    for (size_t i = 0; i < counts.len; i++) {
+        QkOpCount count = counts.data[i];
+        if (strcmp(count.name, "cx") == 0) {
+            if (count.count != 2) {
+                printf("Expected 2 CX gates, found %zu\n", count.count);
                 result = EqualityError;
                 goto cleanup_counts;
             }
