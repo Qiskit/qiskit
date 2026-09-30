@@ -160,18 +160,10 @@ impl Param {
             [Param::Int(a), Param::Int(b)] => Ok(a == b),
             [Param::Obj(a), Param::Obj(b)] => Python::attach(|py| try_obj_eq_param(py, a, b)),
             // Exhaustive matching to avoid future errors.
-            [Param::ParameterExpression(_), Param::Int(_)]
-            | [Param::ParameterExpression(_), Param::Float(_)]
-            | [Param::ParameterExpression(_), Param::Obj(_)]
-            | [Param::Int(_), Param::ParameterExpression(_)]
-            | [Param::Int(_), Param::Float(_)]
-            | [Param::Int(_), Param::Obj(_)]
-            | [Param::Float(_), Param::ParameterExpression(_)]
-            | [Param::Float(_), Param::Int(_)]
-            | [Param::Float(_), Param::Obj(_)]
-            | [Param::Obj(_), Param::ParameterExpression(_)]
-            | [Param::Obj(_), Param::Int(_)]
-            | [Param::Obj(_), Param::Float(_)] => Ok(false),
+            [Param::ParameterExpression(_), _]
+            | [Param::Int(_), _]
+            | [Param::Float(_), _]
+            | [Param::Obj(_), _] => Ok(false),
         }
     }
 
