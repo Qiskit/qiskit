@@ -77,8 +77,12 @@ pub fn copyright_with_line_comments(comment: &str) -> String {
 }
 
 /// Crates that contain definitions of objects that are exposed through the C API.
-pub static QISKIT_PUBLIC_API_CRATES: &[&str] =
-    &["qiskit-quantum-info", "qiskit-circuit", "qiskit-transpiler"];
+pub static QISKIT_PUBLIC_API_CRATES: &[&str] = &[
+    "qiskit-quantum-info",
+    "qiskit-circuit",
+    "qiskit-transpiler",
+    "qiskit-mir",
+];
 
 pub static EXPORT_PREFIX: &str = "Qk";
 // Includes that cbindgen wouldn't otherwise emit.
