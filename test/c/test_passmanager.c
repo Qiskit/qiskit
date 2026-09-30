@@ -58,7 +58,7 @@ void *always_error(void *self, void *ir, QkPassContext *context, QkCompilationEr
 /// A logger to keep track of delete calls.
 typedef struct {
     size_t num_deletes;
-} IrLogger;
+} DeleteLogger;
 
 /// A custom integer IR.
 ///
@@ -68,10 +68,10 @@ typedef struct {
     size_t capacity;
     size_t len;
     uint32_t *integers;
-    IrLogger *logger;
+    DeleteLogger *logger;
 } Flips;
 
-Flips *new_flips(size_t capacity, IrLogger *logger) {
+Flips *new_flips(size_t capacity, DeleteLogger *logger) {
     Flips *flips = malloc(sizeof(Flips));
     flips->capacity = capacity;
     flips->len = 0;
@@ -158,19 +158,10 @@ void *inverse_cancellation(void *self, void *ir, QkPassContext *context,
     return (void *)flips;
 }
 
-QkPassVtable *make_inverse_cancellation(QkIrHandle *ir) {
-    QkVtableEntry cancellation_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
-    QkPassVtable *vtable = qk_pass_vtable_new("cancellation", ir, ir, cancellation_slots);
-    return vtable;
-}
-
 typedef struct {
     size_t len;
     uint32_t *to_pop;
-    IrLogger *logger;
+    DeleteLogger *logger;
 } PopFlips;
 
 void delete_pops(void *this) {
@@ -382,7 +373,7 @@ cleanup:
 }
 
 static int test_custom_ir(void) {
-    IrLogger logger = {0};
+    DeleteLogger logger = {0};
     Flips *program = new_flips(5, &logger);
     apply_flip(program, 1);
     apply_flip(program, 1);
@@ -400,8 +391,14 @@ static int test_custom_ir(void) {
     QkPassManager *pm = qk_passmanager_new();
 
     QkIrHandle *ir = make_flip_ir();
-    QkPassVtable *cancellation_vtable = make_inverse_cancellation(ir);
+    QkVtableEntry cancellation_slots[2] = {
+        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
+        {.slot = -1, .flags = 0, .ptr = NULL},
+    };
+    QkPassVtable *cancellation_vtable =
+        qk_pass_vtable_new("cancellation", ir, ir, cancellation_slots);
     QkPass *cancellation = qk_pass_new(NULL, cancellation_vtable);
+
     int result = Ok;
     if (qk_passmanager_push_pass(pm, cancellation) != QkExitCode_Success) {
         printf("Failed pushing pass.\n");
@@ -568,7 +565,7 @@ static int test_mismatching_input(void) {
     }
 
     // .. and now we call it on the Flip IR. This also needs to call its destructor.
-    IrLogger logger = {0};
+    DeleteLogger logger = {0};
     Flips *program = new_flips(5, &logger);
     apply_flip(program, 1);
 
@@ -622,9 +619,15 @@ static int test_mismatching_output(void) {
     QkIrHandle *flip_ir = make_flip_ir();
 
     // This PM now has a pipeline built on Flips IR
-    QkPassManager *pm = qk_passmanager_new();
-    QkPassVtable *cancellation_vtable = make_inverse_cancellation(flip_ir);
+    QkVtableEntry cancellation_slots[2] = {
+        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
+        {.slot = -1, .flags = 0, .ptr = NULL},
+    };
+    QkPassVtable *cancellation_vtable =
+        qk_pass_vtable_new("cancellation", flip_ir, flip_ir, cancellation_slots);
     QkPass *cancellation = qk_pass_new(NULL, cancellation_vtable);
+
+    QkPassManager *pm = qk_passmanager_new();
     int result = Ok;
     if (qk_passmanager_push_pass(pm, cancellation) != QkExitCode_Success) {
         printf("Failed pushing pass.\n");
@@ -632,7 +635,7 @@ static int test_mismatching_output(void) {
         goto cleanup;
     }
 
-    IrLogger logger = {0};
+    DeleteLogger logger = {0};
     Flips *program = new_flips(5, &logger);
     apply_flip(program, 1);
     apply_flip(program, 1);
@@ -701,7 +704,7 @@ static int test_pass_deconstructor_after_run(void) {
     to_pop[0] = 3;
     to_pop[1] = 4;
 
-    IrLogger pass_logger = {0};
+    DeleteLogger pass_logger = {0};
     PopFlips pops = {len, to_pop, &pass_logger};
     QkPass *pop = qk_pass_new((void *)&pops, pop_vtable);
 
@@ -710,12 +713,11 @@ static int test_pass_deconstructor_after_run(void) {
     if (qk_passmanager_push_pass(pm, pop) != QkExitCode_Success) {
         printf("Failed pushing pass.\n");
         result = RuntimeError;
-        delete_pops(&pops);
         qk_passmanager_free(pm);
         goto cleanup;
     }
 
-    IrLogger ir_logger = {0};
+    DeleteLogger ir_logger = {0};
     Flips *program = new_flips(5, &ir_logger);
     apply_flip(program, 1);
     apply_flip(program, 1);
@@ -802,7 +804,7 @@ static int test_pass_deconstructor_on_failure(void) {
     uint32_t *to_pop = malloc(len * sizeof(uint32_t));
     to_pop[0] = 3;
     to_pop[1] = 4;
-    IrLogger pass_logger = {0};
+    DeleteLogger pass_logger = {0};
     PopFlips pops = {len, to_pop, &pass_logger};
     QkPass *flip_pass = qk_pass_new((void *)&pops, pop_vtable);
 
