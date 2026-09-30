@@ -39,7 +39,7 @@ pub enum PassSlot {
     ///
     /// Signature:
     /// ```c
-    /// void *run(void *this, void *ir, QkPassContext *context, QkError **error);
+    /// void *run(void *this, void *ir, QkPassContext *context, QkCompilationError **error);
     /// ```
     ///
     /// # Implementation
