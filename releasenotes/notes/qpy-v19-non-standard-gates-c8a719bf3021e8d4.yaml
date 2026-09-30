@@ -1,0 +1,10 @@
+---
+upgrade_qpy:
+  - |
+    Added QPY format version 19, which adds support for saving extra named attributes
+    on circuit instructions via an ``INSTRUCTION_EXTRA_DATA`` payload. This fixes an issue
+    where non-standard gate attributes, such as ``_inverse`` on :class:`.StatePreparation`
+    gates (`#17000 <https://github.com/Qiskit/qiskit/issues/17000>`_) and ``_dirty_ancillas``,
+    ``_relative_phase``, and ``_action_only`` on :class:`.MCXVChain` gates
+    (`#11377 <https://github.com/Qiskit/qiskit/issues/11377>`_), were lost upon QPY
+    serialization and deserialization (`#17040 <https://github.com/Qiskit/qiskit/issues/17040>`_).

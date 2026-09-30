@@ -169,12 +169,38 @@ pub struct CircuitInstructionV2Pack {
     pub params: Vec<GenericDataPack>,
     #[br(if(has_annotations(extras_key)))]
     pub annotations: Option<InstructionsAnnotationPack>,
+    #[br(if(has_extra_data(extras_key)))]
+    pub extra_data: Option<InstructionExtraDataPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct InstructionExtraDataPack {
+    #[bw(calc = fields.len() as u16)]
+    pub num_fields: u16,
+    #[br(count = num_fields)]
+    pub fields: Vec<NamedExtraFieldPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct NamedExtraFieldPack {
+    #[bw(calc = name.len() as u16)]
+    pub name_size: u16,
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub name: String,
+    pub value: GenericDataPack,
 }
 
 // To save space, the extras key encoded data about the existence of annotations
-// in its msb, and about the type of condition (Two-tuple, Expression or None) in the two lsbs.
+// in its msb, about extra instruction data in bit 6, and about the type of condition
+// (Two-tuple, Expression or None) in the two lsbs.
 pub mod extras_key_parts {
     pub const ANNOTATIONS: u8 = 0b1000_0000;
+    pub const EXTRA_DATA: u8 = 0b0100_0000;
     pub const CONDITIONAL: u8 = 0b0000_0011;
 }
 
@@ -182,6 +208,10 @@ pub mod extras_key_parts {
 // such that they are set by the code and have binrw generate extras_key from them
 fn has_annotations(extras_key: u8) -> bool {
     extras_key & extras_key_parts::ANNOTATIONS != 0
+}
+
+fn has_extra_data(extras_key: u8) -> bool {
+    extras_key & extras_key_parts::EXTRA_DATA != 0
 }
 
 fn extract_conditional_key(extras_key: u8) -> u8 {

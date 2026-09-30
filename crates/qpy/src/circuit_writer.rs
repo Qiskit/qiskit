@@ -58,7 +58,7 @@ use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
     QPYWriteData, QpyCaller, RegisterType, ValueEndian, get_circuit_type_key, pack_for_collection,
     pack_generic_value, pack_standalone_var, pack_stretch, serialize,
-    serialize_param_register_value, serialize_with_args,
+    serialize_generic_value, serialize_param_register_value, serialize_with_args,
 };
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
@@ -320,6 +320,7 @@ fn pack_standard_gate(
         bit_data: Default::default(),
         params,
         annotations: None,
+        extra_data: None,
     })
 }
 
@@ -341,6 +342,7 @@ fn pack_standard_instruction(
         bit_data: Default::default(),
         params,
         annotations: None,
+        extra_data: None,
     })
 }
 
@@ -386,6 +388,7 @@ fn pack_pauli_product_measurement(
         bit_data: Default::default(),
         params,
         annotations: None,
+        extra_data: None,
     })
 }
 
@@ -420,6 +423,7 @@ fn pack_pauli_product_rotation(
         bit_data: Default::default(),
         params,
         annotations: None,
+        extra_data: None,
     })
 }
 
@@ -589,6 +593,7 @@ fn pack_control_flow_inst(
         bit_data: Default::default(),
         params,
         annotations: packed_annotations,
+        extra_data: None,
     })
 }
 fn pack_unitary_gate(
@@ -621,6 +626,7 @@ fn pack_unitary_gate(
         bit_data: Default::default(),
         params,
         annotations: None,
+        extra_data: None,
     })
 }
 
@@ -649,6 +655,7 @@ fn pack_store(
         bit_data: Default::default(),
         params,
         annotations: None,
+        extra_data: None,
     })
 }
 
@@ -692,20 +699,69 @@ fn pack_py_instruction(
         }
     };
 
+    let (gate_class_name, extra_data, extras_key) = qpy_data
+        .caller
+        .attach("Python defined instruction", |py| -> Result<_, QpyError> {
+            let class_name = py_inst.class_name(py)?;
+            let mut fields = Vec::new();
+            if qpy_data.version >= 19 {
+                let py_op = py_inst.ob.bind(py);
+                if class_name == "StatePreparation" {
+                    if matches!(
+                        py_op.getattr("_inverse").and_then(|a| a.extract::<bool>()),
+                        Ok(true)
+                    ) {
+                        let (type_key, data) =
+                            serialize_generic_value(&GenericValue::Bool(true), qpy_data)?;
+                        fields.push(formats::NamedExtraFieldPack {
+                            name: "inverse".to_string(),
+                            value: formats::GenericDataPack { type_key, data },
+                        });
+                    }
+                } else if class_name == "MCXVChain" {
+                    for (attr_name, field_name) in [
+                        ("_dirty_ancillas", "dirty_ancillas"),
+                        ("_relative_phase", "relative_phase"),
+                        ("_action_only", "action_only"),
+                    ] {
+                        if matches!(
+                            py_op.getattr(attr_name).and_then(|a| a.extract::<bool>()),
+                            Ok(true)
+                        ) {
+                            let (type_key, data) =
+                                serialize_generic_value(&GenericValue::Bool(true), qpy_data)?;
+                            fields.push(formats::NamedExtraFieldPack {
+                                name: field_name.to_string(),
+                                value: formats::GenericDataPack { type_key, data },
+                            });
+                        }
+                    }
+                }
+            }
+            if !fields.is_empty() {
+                Ok((
+                    class_name,
+                    Some(formats::InstructionExtraDataPack { fields }),
+                    formats::extras_key_parts::EXTRA_DATA,
+                ))
+            } else {
+                Ok((class_name, None, 0))
+            }
+        })?;
+
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: py_inst.num_qubits(),
         num_cargs: py_inst.num_clbits(),
-        extras_key: 0,
+        extras_key,
         num_ctrl_qubits: py_inst.num_ctrl_qubits().unwrap_or(0),
         ctrl_state: py_inst.ctrl_state().unwrap_or(0),
-        gate_class_name: qpy_data.caller.attach("Python defined instruction", |py| {
-            py_inst.class_name(py).map_err(QpyError::from)
-        })?,
+        gate_class_name,
         label: Default::default(),
         condition: Default::default(),
         bit_data: Default::default(),
         params,
         annotations: None,
+        extra_data,
     })
 }
 

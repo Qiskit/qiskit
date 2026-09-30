@@ -325,6 +325,8 @@ def _loads_instruction_parameter(
                 annotation_factories=annotation_factories,
             )
         )
+    elif type_key == b"b":
+        param = bool(data_bytes[0])
     elif type_key == type_keys.Value.INTEGER:
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<q", data_bytes)[0]
@@ -416,6 +418,7 @@ def _read_instruction(
             type_keys.Condition.TWO_TUPLE if instruction.has_condition else type_keys.Condition.NONE
         )
         has_annotations = False
+        has_extra_data = False
     else:
         instruction = formats.CIRCUIT_INSTRUCTION_V2._make(
             struct.unpack(
@@ -426,6 +429,9 @@ def _read_instruction(
         conditional_key = type_keys.Condition(instruction.extras_key & 0b11)
         has_annotations = bool(
             instruction.extras_key & type_keys.InstructionExtraFlags.HAS_ANNOTATIONS
+        )
+        has_extra_data = bool(
+            instruction.extras_key & type_keys.InstructionExtraFlags.HAS_EXTRA_DATA
         )
 
     gate_name = file_obj.read(instruction.name_size).decode(common.ENCODE)
@@ -494,6 +500,36 @@ def _read_instruction(
     annotations = (
         _read_instruction_annotations(file_obj, annotation_state) if has_annotations else None
     )
+
+    # Load extra data (version >= 19).
+    extra_data = {}
+    if has_extra_data:
+        num_fields = struct.unpack(
+            formats.INSTRUCTION_EXTRA_DATA_HEADER_PACK,
+            file_obj.read(formats.INSTRUCTION_EXTRA_DATA_HEADER_SIZE),
+        )[0]
+        for _ in range(num_fields):
+            name_size = struct.unpack(
+                formats.NAMED_EXTRA_FIELD_HEADER_PACK,
+                file_obj.read(formats.NAMED_EXTRA_FIELD_HEADER_SIZE),
+            )[0]
+            field_name = file_obj.read(name_size).decode(common.ENCODE)
+            type_key, data_bytes = common.read_generic_typed_data(file_obj)
+            if type_key == b"b":
+                field_value = bool(data_bytes[0])
+            else:
+                field_value = _loads_instruction_parameter(
+                    type_key,
+                    data_bytes,
+                    version,
+                    vectors,
+                    registers,
+                    circuit,
+                    use_symengine,
+                    standalone_vars,
+                    annotation_factories=annotation_state.factories if annotation_state else {},
+                )
+            extra_data[field_name] = field_value
 
     # Load Gate object
     if gate_name in {"Gate", "Instruction", "ControlledGate"}:
@@ -576,7 +612,18 @@ def _read_instruction(
             "MCXRecursive",
             "MCXVChain",
         }:
-            gate = gate_class(*params, instruction.num_ctrl_qubits, label=label)
+            num_ctrl_qubits = getattr(instruction, "num_ctrl_qubits", 0)
+            if gate_name == "MCXVChain" and extra_data:
+                kwargs = {}
+                if "dirty_ancillas" in extra_data:
+                    kwargs["dirty_ancillas"] = extra_data["dirty_ancillas"]
+                if "relative_phase" in extra_data:
+                    kwargs["relative_phase"] = extra_data["relative_phase"]
+                if "action_only" in extra_data:
+                    kwargs["action_only"] = extra_data["action_only"]
+                gate = gate_class(*params, num_ctrl_qubits, label=label, **kwargs)
+            else:
+                gate = gate_class(*params, num_ctrl_qubits, label=label)
         else:
             gate = gate_class(*params, label=label)
             if (
@@ -592,15 +639,18 @@ def _read_instruction(
             gate = IfElseOp(condition, body)
     else:
         if gate_name in {"Initialize", "StatePreparation"}:
+            kwargs = {}
+            if gate_name == "StatePreparation" and "inverse" in extra_data:
+                kwargs["inverse"] = extra_data["inverse"]
             if isinstance(params[0], str):
                 # the params are the labels of the initial state
-                gate = gate_class("".join(label for label in params))
+                gate = gate_class("".join(label for label in params), **kwargs)
             elif instruction.num_parameters == 1:
                 # the params is the integer indicating which qubits to initialize
-                gate = gate_class(int(params[0].real), instruction.num_qargs)
+                gate = gate_class(int(params[0].real), instruction.num_qargs, **kwargs)
             else:
                 # the params represent a list of complex amplitudes
-                gate = gate_class(params)
+                gate = gate_class(params, **kwargs)
         elif gate_name in {
             "UCRXGate",
             "UCRYGate",
@@ -1109,8 +1159,26 @@ def _write_instruction(
     else:
         instruction_params = getattr(instruction.operation, "params", [])
 
+    extra_data = []
+    if version >= 19:
+        if isinstance(instruction.operation, library.StatePreparation):
+            if getattr(instruction.operation, "_inverse", False):
+                extra_data.append(("inverse", True))
+        elif isinstance(instruction.operation, library.MCXVChain):
+            dirty_ancillas = getattr(instruction.operation, "_dirty_ancillas", False)
+            relative_phase = getattr(instruction.operation, "_relative_phase", False)
+            action_only = getattr(instruction.operation, "_action_only", False)
+            if dirty_ancillas:
+                extra_data.append(("dirty_ancillas", dirty_ancillas))
+            if relative_phase:
+                extra_data.append(("relative_phase", relative_phase))
+            if action_only:
+                extra_data.append(("action_only", action_only))
+
     if annotations:
         extra_type |= type_keys.InstructionExtraFlags.HAS_ANNOTATIONS
+    if extra_data:
+        extra_type |= type_keys.InstructionExtraFlags.HAS_EXTRA_DATA
 
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
@@ -1175,6 +1243,25 @@ def _write_instruction(
                 )
             )
             file_obj.write(annotation_payload)
+    if extra_data:
+        file_obj.write(struct.pack(formats.INSTRUCTION_EXTRA_DATA_HEADER_PACK, len(extra_data)))
+        for field_name, field_value in extra_data:
+            name_raw = field_name.encode(common.ENCODE)
+            file_obj.write(struct.pack(formats.NAMED_EXTRA_FIELD_HEADER_PACK, len(name_raw)))
+            file_obj.write(name_raw)
+            if isinstance(field_value, bool):
+                type_key = b"b"
+                data_bytes = b"\x01" if field_value else b"\x00"
+            else:
+                type_key, data_bytes = _dumps_instruction_parameter(
+                    field_value,
+                    index_map,
+                    use_symengine,
+                    version=version,
+                    standalone_var_indices=standalone_var_indices,
+                    annotation_factories=annotation_state.factories,
+                )
+            common.write_generic_typed_data(file_obj, type_key, data_bytes)
     return custom_operations_list
 
 
