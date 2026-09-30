@@ -19,14 +19,16 @@ use pyo3::exceptions::{PyRuntimeError, PyTypeError};
 use pyo3::gc::PyVisit;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use pyo3::{PyTraverseError, intern};
+use pyo3::{PyTraverseError, import_exception, intern};
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Param;
-use qiskit_passmanager::{IR, PassContext};
+use qiskit_passmanager::{IR, PassContext, Task};
 use qiskit_util::dyn_types::*;
 use qiskit_util::py::ImportOnceCell;
+
+import_exception!(qiskit.passmanager, LoweringPassManagerError);
 
 // TODO: there'll be an abstraction we can make about `PyIrExposer` and the idea of
 // "Python-exposable types", but we're not solving everything in a PR series that's running late.
@@ -303,9 +305,8 @@ struct StolenContext<'a, 'b> {
 impl<'a, 'b> StolenContext<'a, 'b> {
     unsafe fn new(whence: &'b mut PassContext<'a>) -> Self {
         let stolen = mem::replace(whence, PassContext::dummy());
-        // SAFETY: per lifetime rules, 'a is longer lived than us.  If nothing else
-        // moves the `PassContext` out from us, we can put in back in `whence` in our
-        // `Drop`, guaranteeing the lifetime.
+        // SAFETY: per lifetime rules, 'a outlives us. If nothing else moves the `PassContext` out
+        // from us, we can put it back in `whence` in our `Drop`, guaranteeing the lifetime.
         let stolen = unsafe { mem::transmute::<PassContext<'a>, PassContext<'static>>(stolen) };
         Self {
             whence,
@@ -405,7 +406,91 @@ impl PassContextHandle {
 /// Wrapper around the Rust-native pass manager; we can take this as owned when we create it from
 /// Python or give a Rust-created one to Python.
 #[pyclass(name = "PassManager")]
-pub struct PyPassManager;
+pub struct PyPassManager(qiskit_passmanager::PassManager);
+#[pymethods]
+impl PyPassManager {
+    // TODO: the native `PassManager` contains type-erased objects that can (and _will_, via
+    // `PyPassInner`) own Python references.  Badly behaved Python objects can cause reference
+    // cycles that fail to be collected because we can't correctly integrate with the GC's
+    // `tp_traverse` slot (PyO3's `__traverse__`).  We need to rework the dynamic-typing system to
+    // allow arbitrary Rust and C objects to optionally integrate with the traversal logic, without
+    // requiring Python in the base interfaces.
+
+    #[new]
+    pub fn py_new() -> Self {
+        Self(Default::default())
+    }
+    pub fn push_pass(&mut self, outer: &mut PyPass) -> PyResult<()> {
+        let pass = outer
+            .0
+            .take()
+            .ok_or_else(|| PyRuntimeError::new_err("pass was already consumed"))?;
+        match self.0.try_push_task(Task::Transformation(Box::new(pass))) {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                let Task::Transformation(pass) = e else {
+                    panic!("internal logic error: we got back something we didn't put in");
+                };
+                // Restore the object to Python space, to assist debugging.
+                outer.0 = Some(
+                    *(pass as Box<dyn Any>)
+                        .downcast::<PyPassInner>()
+                        .expect("this came from a `PyPassInner`"),
+                );
+                Err(PyTypeError::new_err("ir types mismatched"))
+            }
+        }
+    }
+    pub fn run_simple<'py>(&self, ir: Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = ir.py();
+        let exposer_in = ir_exposer(ir.get_type())?;
+        let Some((ir_id_in, ir_id_out)) = self.0.ir_id_in().zip(self.0.ir_id_out()) else {
+            return Ok(ir);
+        };
+        let actual_in_id = exposer_in.object_dyn_type_id();
+        if ir_id_in != actual_in_id {
+            return Err(PyTypeError::new_err(format!(
+                "incoming IR of type {} does not match expected {}",
+                actual_in_id.describe(),
+                ir_id_in.describe()
+            )));
+        }
+        match self.0.run_erased(exposer_in.steal_from_py(ir)?) {
+            Ok((ir, _ctx)) => {
+                // TODO: this is a disgusting hack.  We _should_ have a way to associate a
+                // `PyIrExposer` / `CIrExposer` with the actual `DynTypeId` object in some form, but
+                // we don't have time to do it properly.  In lieu of that, we just try all the
+                // options...
+                let base_id = ir.dyn_type_id().to_static();
+                if base_id == DynTypeId::of::<CircuitData>() {
+                    PyCircuitExposer.to_py(py, ir)
+                } else if base_id == DynTypeId::of::<DAGCircuit>() {
+                    PyDagExposer.to_py(py, ir)
+                } else if base_id == DynTypeId::of::<PyIr>() {
+                    Ok((ir as Box<dyn Any>)
+                        .downcast::<PyIr>()
+                        .expect("`Any` type should match `DynTypeId`")
+                        .ob
+                        .into_bound(py))
+                } else {
+                    Err(PyTypeError::new_err(format!(
+                        "cannot expose out IR of type {} to Python",
+                        ir_id_out.describe()
+                    )))
+                }
+            }
+            Err(e) => {
+                let e = LoweringPassManagerError::new_err(e.to_string());
+                // Python passes might have left a Python exception in the global state.  Let's pull
+                // it out to check.
+                if let Some(cause) = PyErr::take(py) {
+                    e.set_cause(py, Some(cause));
+                }
+                Err(e)
+            }
+        }
+    }
+}
 
 #[pymodule(name = "passmanager")]
 pub fn passmanager_mod(m: &Bound<'_, PyModule>) -> PyResult<()> {
