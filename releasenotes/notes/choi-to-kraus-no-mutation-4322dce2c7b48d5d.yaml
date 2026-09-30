@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed :class:`.Choi` to :class:`.Kraus` conversion so numerical
+    stabilization does not mutate the source :attr:`.Choi.data`. See
+    `#17095 <https://github.com/Qiskit/qiskit/issues/17095>`__.
