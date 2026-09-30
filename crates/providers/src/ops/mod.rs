@@ -10,12 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! The op contract and the ops Qiskit defines.
-//!
-//! The ops here share the rules in `inference` rather than each spelling out its own, so two
-//! ops in one family cannot drift apart. An op may write its own inference, and one whose
-//! result types come from something other than its operand types has to: a shot loop takes its
-//! result types from its circuits.
+//! The `ProgramOp` trait and its Qiskit implementations.
 
 mod binary;
 mod bitwise;
