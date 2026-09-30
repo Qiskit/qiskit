@@ -15,6 +15,7 @@ mod diagonal;
 pub mod discrete_basis;
 pub mod euler_one_qubit_decomposer;
 pub mod evolution;
+pub mod isometry;
 pub mod linalg;
 pub mod linear;
 pub mod linear_phase;
