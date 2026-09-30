@@ -13,6 +13,7 @@
 //! Additional tools for working with the dynamic runtime-type information system across the C FFI.
 
 use qiskit_util::dyn_types::DynTypeId;
+use std::ffi::c_void;
 
 /// Define behavior for sending and receiving `dyn Trait` objects across the C FFI boundary.
 ///
@@ -31,6 +32,13 @@ use qiskit_util::dyn_types::DynTypeId;
 /// constructed, and this type must use the same [`DynTypeId`] as produced by the
 /// [`object_dyn_type_id`](Self::object_dyn_type_id) function.
 ///
+/// Ensure that your implementation of [`leak`](Self::leak) does not allow a concrete `Box<T>` with
+/// to run a custom destructor in its [`Drop`] implementation after you transfer ownership of the
+/// data pointer to the output.  Consider using [`ManuallyDrop`](std::mem::ManuallyDrop) to suppress
+/// a virtual destructor (though take care to drop the other fields and any containing smart
+/// pointer), or arrange the destructor to check for ownership, such as a non-null pointer, before
+/// attempting to run.
+///
 /// Other unsafe FFI code relies on the correctness and soundness of this trait to avoid undefined
 /// behavior across the FFI boundary.
 pub unsafe trait DynTraitExposer<Trait: ?Sized>: Send + Sync + 'static {
@@ -38,6 +46,10 @@ pub unsafe trait DynTraitExposer<Trait: ?Sized>: Send + Sync + 'static {
     /// [`steal`](Self::steal) and consumed by [`leak`](Self::leak).
     fn object_dyn_type_id(&self) -> DynTypeId<'_>;
     /// Leak the raw data pointer of `ob` to a type-erased C pointer.
+    ///
+    /// *Warning*: when implementating this method, make sure that you do not trigger a virtual
+    /// destructor after transferring ownership of the data pointer.  See the trait's "Safety"
+    /// section.
     ///
     /// # Panics
     ///
@@ -123,3 +135,32 @@ macro_rules! make_static_trait_exposer {
     };
 }
 pub use make_static_trait_exposer;
+
+/// @ingroup dynamic-types
+/// An entry in a vtable for defining objects with custom behavior.
+///
+/// This same structure is used in several places when defining "custom behavior" for objects
+/// dynamically at runtime of your C program.  The valid values of `slot`, `flag` and the
+/// function-pointer type of `ptr` will vary based on the context you are passing it to.
+///
+/// Typically, you will defining program statics of tables of these, terminating in the sentinel
+/// value `{-1, 0, NULL}`.  Various Qiskit C API functions will take arguments of this form, and
+/// return a "vtable" handle back, which can then be used to define "instances" of the object with
+/// this attached behavior.
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct VtableEntry {
+    /// The "slot" of the function, or the sentinel `(uint32_t)-1` to mark the final array entry.
+    ///
+    /// This is typically set to some `enum` value, where the particular `enum` varies depending on
+    /// which vtable you are defining.
+    pub slot: u32,
+    /// Any additional "flags" for the particular table entry.  These will typically be or'd (`|`)
+    /// together, and the valid set of flags will be documented by the table user.
+    pub flags: u32,
+    /// A function pointer implementing the correct signature for the combination of the `slot` and
+    /// `flags`.
+    ///
+    /// This can be `NULL` only in the case of `slots` being the sentinel `-1`.
+    pub ptr: *mut c_void,
+}
