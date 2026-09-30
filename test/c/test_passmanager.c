@@ -45,6 +45,16 @@ void *run_circuit_to_dag(void *self, void *ir, QkPassContext *context, QkCompila
     return (void *)dag;
 }
 
+/// A pass on `QkCircuit*` that always returns an error message "task successfully failed!"
+void *always_error(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
+    UNUSED_VARIABLE(self);
+    UNUSED_VARIABLE(ir);
+    UNUSED_VARIABLE(context);
+
+    *error = qk_compilation_error_new("task successfully failed!");
+    return NULL;
+}
+
 /// A logger to keep track of delete calls.
 typedef struct {
     size_t num_deletes;
@@ -586,9 +596,6 @@ static int test_mismatching_input(void) {
         goto cleanup;
     } else {
         char *error_msg = qk_compilation_error_str(error);
-        // The C11 standard does not provide regex match functionality, so we match
-        // on 3 words we expect to be in this message. We can't give the full message since the
-        // type description is not stable and e.g. the path inclusion might change.
         if (strcmp(error_msg, "failed to cast to expected input type") != 0) {
             printf("Wrong error message: %s\n", error_msg);
             result = EqualityError;
@@ -825,6 +832,86 @@ cleanup:
     return result;
 }
 
+/**
+ * Test a pipeline where a pass returns an error.
+ */
+static int test_failing_pass(void) {
+    QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
+    QkIrHandle *dag_ir = qk_ir_handle_builtin(QkIrBuiltin_Dag);
+
+    // Pass 1: a working circuit IR pass
+    QkTarget *target = qk_target_new(10);
+    RemoveIdentity remove_identity_config = {target};
+    const QkVtableEntry remove_identity_slots[2] = {
+        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_remove_identity},
+        {.slot = -1, .flags = 0, .ptr = NULL}};
+    QkPassVtable *remove_identity_vtable =
+        qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
+    QkPass *remove_identity = qk_pass_new((void *)&remove_identity_config, remove_identity_vtable);
+
+    // Pass 2: the failing pass
+    const QkVtableEntry failing_slots[2] = {
+        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&always_error},
+        {.slot = -1, .flags = 0, .ptr = NULL}};
+    QkPassVtable *failing_vtable =
+        qk_pass_vtable_new("failing", circuit_ir, circuit_ir, failing_slots);
+    QkPass *failing_pass = qk_pass_new(NULL, failing_vtable);
+
+    // Pass 3: a working circuit->dag IR pass
+    const QkVtableEntry circuit_to_dag_slots[2] = {
+        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_circuit_to_dag},
+        {.slot = -1, .flags = 0, .ptr = NULL}};
+    QkPassVtable *circuit_to_dag_vtable =
+        qk_pass_vtable_new("circuit_to_dag", circuit_ir, dag_ir, circuit_to_dag_slots);
+    QkPass *circuit_to_dag = qk_pass_new(NULL, circuit_to_dag_vtable);
+
+    QkPassManager *pm = qk_passmanager_new();
+    qk_passmanager_push_pass(pm, remove_identity);
+    qk_passmanager_push_pass(pm, failing_pass);
+    qk_passmanager_push_pass(pm, circuit_to_dag);
+
+    QkCircuit *circuit = qk_circuit_new(2, 0);
+    uint32_t q0[1] = {0};
+    uint32_t q01[2] = {0, 1};
+    qk_circuit_gate(circuit, QkGate_H, q0, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, q01, NULL);
+
+    // running the pass should return NULL and set the error message
+    QkCompilationError *error = NULL;
+    QkDag *out = (QkDag *)qk_passmanager_run_simple(pm, circuit, circuit_ir, dag_ir, &error);
+
+    int result = Ok;
+    if (out != NULL) {
+        printf("Expected NULL pointer.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (error == NULL) {
+        printf("Expected error to be set, but it is NULL\n");
+        result = EqualityError;
+        goto cleanup;
+    } else {
+        char *error_msg = qk_compilation_error_str(error);
+        if (strcmp(error_msg, "task successfully failed!") != 0) {
+            printf("Wrong error message: %s\n", error_msg);
+            result = EqualityError;
+        }
+        qk_str_free(error_msg);
+        qk_compilation_error_free(error);
+    }
+
+cleanup:
+    qk_passmanager_free(pm);
+    qk_target_free(target);
+    qk_ir_handle_free(circuit_ir);
+    qk_ir_handle_free(dag_ir);
+    qk_pass_vtable_free(remove_identity_vtable);
+    qk_pass_vtable_free(circuit_to_dag_vtable);
+
+    return result;
+}
+
 int test_passmanager(void) {
     int num_failed = 0;
 
@@ -837,6 +924,7 @@ int test_passmanager(void) {
     num_failed += RUN_TEST(test_mismatching_output);
     num_failed += RUN_TEST(test_pass_deconstructor_after_run);
     num_failed += RUN_TEST(test_pass_deconstructor_on_failure);
+    num_failed += RUN_TEST(test_failing_pass);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (passmanager): %i\n", num_failed);
