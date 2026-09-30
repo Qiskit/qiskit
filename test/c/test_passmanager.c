@@ -51,6 +51,7 @@ void *always_error(void *self, void *ir, QkPassContext *context, QkCompilationEr
     UNUSED_VARIABLE(ir);
     UNUSED_VARIABLE(context);
 
+    qk_circuit_free((QkCircuit *)ir); // we are responsible to free the IR
     *error = qk_compilation_error_new("task successfully failed!");
     return NULL;
 }
@@ -165,7 +166,6 @@ typedef struct {
 } PopFlips;
 
 void delete_pops(void *this) {
-    // printf("** called delete_pops\n");
     PopFlips *pop_flips = (PopFlips *)this;
     if (pop_flips->logger != NULL) {
         pop_flips->logger->num_deletes++;
@@ -173,7 +173,10 @@ void delete_pops(void *this) {
     free(pop_flips->to_pop);
 }
 
-void *pop_flips(void *self, void *ir) {
+void *pop_flips(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
+    UNUSED_VARIABLE(context);
+    UNUSED_VARIABLE(error);
+
     Flips *flips = (Flips *)ir;
     PopFlips *pop = (PopFlips *)self;
 
@@ -681,6 +684,7 @@ static int test_mismatching_output(void) {
 
 cleanup:
     qk_passmanager_free(pm);
+    qk_pass_vtable_free(cancellation_vtable);
     qk_ir_handle_free(flip_ir);
     qk_ir_handle_free(circuit_ir);
 
@@ -910,6 +914,7 @@ cleanup:
     qk_ir_handle_free(dag_ir);
     qk_pass_vtable_free(remove_identity_vtable);
     qk_pass_vtable_free(circuit_to_dag_vtable);
+    qk_pass_vtable_free(failing_vtable);
 
     return result;
 }
