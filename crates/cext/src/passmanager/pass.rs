@@ -59,6 +59,8 @@ pub enum PassSlot {
     /// A destructor for the `this` argument of a pass, at the time that the pass is destructed.
     /// *Optional*.
     ///
+    /// This will not be called if the data pointer is `NULL¬.
+    ///
     /// Signature:
     /// ```c
     /// void delete(void *this);
@@ -317,7 +319,11 @@ impl Pass for CPass {
 }
 impl Drop for CPass {
     fn drop(&mut self) {
-        if let Some(delete) = self.vtable.delete {
+        // The no-op on `NULL` is documented in `PassSlot::Delete` and used to mark moved ownership
+        // of the data pointer.
+        if let Some(delete) = self.vtable.delete
+            && !self.this.is_null()
+        {
             // SAFETY: per documentation of `PassVtable`, if the `delete` method is set, it is valid
             // to be passed `self.this` from any thread.
             unsafe { delete(self.this) };
