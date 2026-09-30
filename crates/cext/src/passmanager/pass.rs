@@ -89,7 +89,7 @@ pub struct PassVtable {
         *mut *mut CompilationError,
     ) -> *mut c_void,
     /// The destructor of the [`CPass::this`] pointer.  See [`PassSlot::Delete`].
-    delete: Option<unsafe extern "C" fn(*mut c_void) -> c_void>,
+    delete: Option<unsafe extern "C" fn(*mut c_void)>,
 }
 // SAFETY: `PassVtable` is always exposed and freed via an `Arc`.
 const _: () = unsafe { expose_by_arc!(PassVtable) };
@@ -210,7 +210,7 @@ struct PassVtablePartial {
             *mut *mut CompilationError,
         ) -> *mut c_void,
     >,
-    delete: Option<unsafe extern "C" fn(*mut c_void) -> c_void>,
+    delete: Option<unsafe extern "C" fn(*mut c_void)>,
 }
 impl PassVtablePartial {
     /// Initialize the builder.

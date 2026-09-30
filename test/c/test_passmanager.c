@@ -39,6 +39,11 @@ void *run_circuit_to_dag(void *self, void *ir) {
     return (void *)dag;
 }
 
+/// A logger to keep track of delete calls.
+typedef struct {
+    size_t num_deletes;
+} IrLogger;
+
 /// A custom integer IR.
 ///
 /// This holds an array of uint32_t and is assumed to flip the bits at where there is
@@ -47,27 +52,37 @@ typedef struct {
     size_t capacity;
     size_t len;
     uint32_t *integers;
+    IrLogger *logger;
 } Flips;
 
-Flips *new_flips(size_t capacity) {
+Flips *new_flips(size_t capacity, IrLogger *logger) {
     Flips *flips = malloc(sizeof(Flips));
     flips->capacity = capacity;
     flips->len = 0;
     flips->integers = malloc(capacity * sizeof(uint32_t));
+    flips->logger = logger;
     return flips;
 }
 
-void free_flips(Flips *flips) {
+/// Delete the content of flips.
+void delete_flips(void *ir) {
+    Flips *flips = (Flips *)ir;
+    if (flips->logger != NULL)
+        flips->logger->num_deletes++;
+
     free(flips->integers);
-    free(flips);
 }
 
-void delete_flips(void *ir) { free_flips((Flips *)ir); }
+/// Free the content *and* the flips pointer.
+void free_flips(Flips *flips) {
+    delete_flips((void *)flips);
+    free(flips);
+}
 
 QkIrHandle *make_flip_ir(void) {
     QkVtableEntry flip_methods[2] = {
         // Slot 0 is reserved for the "delete" method
-        {.slot = 0, .flags = 0, .ptr = (void *)(&delete_flips)},
+        {.slot = 0, .flags = 0, .ptr = (void *)&delete_flips},
         {.slot = -1, .flags = 0, .ptr = NULL},
     };
     return qk_ir_handle_new("flip_ir", flip_methods);
@@ -94,7 +109,7 @@ size_t num_flips(Flips *flips) {
     return n;
 }
 
-/// Passes for the integers IR.
+/// Passes for the flips IR.
 void *inverse_cancellation(void *self, void *ir) {
     UNUSED_VARIABLE(self);
     Flips *flips = (Flips *)ir;
@@ -124,10 +139,65 @@ void *inverse_cancellation(void *self, void *ir) {
     return (void *)flips;
 }
 
+QkPassVtable *make_inverse_cancellation(QkIrHandle *ir) {
+    QkVtableEntry cancellation_slots[2] = {
+        {.slot = 0, .flags = 0, .ptr = (void *)&inverse_cancellation},
+        {.slot = -1, .flags = 0, .ptr = NULL},
+    };
+    QkPassVtable *vtable = qk_pass_vtable_new("cancellation", ir, ir, cancellation_slots);
+    return vtable;
+}
+
+typedef struct {
+    size_t len;
+    uint32_t *to_pop;
+    IrLogger *logger;
+} PopFlips;
+
+void delete_pops(void *this) {
+    // printf("** called delete_pops\n");
+    PopFlips *pop_flips = (PopFlips *)this;
+    if (pop_flips->logger != NULL) {
+        //     printf("** logger is none\n");
+        pop_flips->logger->num_deletes++;
+    }
+
+    // if (pop_flips->to_pop == NULL)
+    //     printf("** to_pop is already null!\n");
+    // else
+    //     free(pop_flips->to_pop);
+    free(pop_flips->to_pop);
+}
+
+void *pop_flips(void *self, void *ir) {
+    Flips *flips = (Flips *)ir;
+    PopFlips *pop = (PopFlips *)self;
+
+    size_t write_index = 0;
+    for (size_t read_index = 0; read_index < flips->len; read_index++) {
+        bool skip = false;
+        for (size_t i = 0; i < pop->len; i++) {
+            if (flips->integers[read_index] == pop->to_pop[i]) {
+                skip = true;
+                break;
+            }
+        }
+
+        if (!skip) {
+            flips->integers[write_index] = flips->integers[read_index];
+            write_index++;
+        }
+    }
+    flips->len = write_index;
+    return (void *)flips;
+}
+
 /**
  * Test running a single RemoveIdentity pass on a circuit.
+ *
+ * This is a simple test case on a single builtin IR, without lowering or custom destructors.
  */
-static int test_circuit_ir(void) {
+int test_circuit_ir(void) {
     QkIrHandle *ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
     QkVtableEntry table[2] = {
         // Slot 0 for run -- slot 1 for delete (which we don't have here)
@@ -137,7 +207,7 @@ static int test_circuit_ir(void) {
     QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", ir, ir, table);
     QkTarget *target = qk_target_new(10);
     RemoveIdentity this = {target};
-    QkPass *pass = qk_pass_new((void *)(&this), vtable);
+    QkPass *pass = qk_pass_new((void *)&this, vtable);
 
     QkPassManager *pm = qk_passmanager_new();
     int result = Ok;
@@ -157,6 +227,8 @@ static int test_circuit_ir(void) {
     qk_circuit_gate(circuit, QkGate_RZ, q0, nonzero);
     qk_circuit_gate(circuit, QkGate_H, q0, NULL);
 
+    // note: as the passmanager is set up, it takes ownership of the input IR, which no longer
+    // needs to be freed -- only the output IR must be freed
     QkCircuit *out = (QkCircuit *)qk_passmanager_run_simple(pm, (void *)circuit, ir, ir, NULL);
 
     QkOpCounts counts = qk_circuit_count_ops(out);
@@ -168,22 +240,23 @@ static int test_circuit_ir(void) {
             if (count.count != 2) {
                 printf("Expected 2 H gates, found %zu\n", count.count);
                 result = EqualityError;
-                goto cleanup;
+                goto cleanup_counts;
             }
         } else if (strcmp(count.name, "rz") == 0) {
             if (count.count != 1) {
                 printf("Expected 1 RZ gate, found %zu\n", count.count);
                 result = EqualityError;
-                goto cleanup;
+                goto cleanup_counts;
             }
         } else {
             printf("Unexpected gate.\n");
             result = EqualityError;
-            goto cleanup;
+            goto cleanup_counts;
         }
     }
-    qk_opcounts_clear(&counts);
 
+cleanup_counts:
+    qk_opcounts_clear(&counts);
 cleanup:
     qk_target_free(target);
     qk_passmanager_free(pm);
@@ -195,27 +268,41 @@ cleanup:
 
 /**
  * Test a pass manager lowering from circuit to dag.
+ *
+ * This tests the IR lowering between two builtin IRs.
  */
-static int test_lowering(void) {
+int test_lowering(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
     QkIrHandle *dag_ir = qk_ir_handle_builtin(QkIrBuiltin_Dag);
 
     QkTarget *target = qk_target_new(10);
     RemoveIdentity remove_identity_config = {target};
     const QkVtableEntry remove_identity_slots[2] = {
-        {.slot = 0, .flags = 0, .ptr = (void *)(&run_remove_identity)},
+        {.slot = 0, .flags = 0, .ptr = (void *)&run_remove_identity},
         {.slot = -1, .flags = 0, .ptr = NULL}};
     QkPassVtable *remove_identity_vtable =
         qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
-    QkPass *remove_identity =
-        qk_pass_new((void *)(&remove_identity_config), remove_identity_vtable);
+    QkPass *remove_identity = qk_pass_new((void *)&remove_identity_config, remove_identity_vtable);
 
     const QkVtableEntry circuit_to_dag_slots[2] = {
-        {.slot = 0, .flags = 0, .ptr = (void *)(&run_circuit_to_dag)},
+        {.slot = 0, .flags = 0, .ptr = (void *)&run_circuit_to_dag},
         {.slot = -1, .flags = 0, .ptr = NULL}};
     QkPassVtable *circuit_to_dag_vtable =
         qk_pass_vtable_new("circuit_to_dag", circuit_ir, dag_ir, circuit_to_dag_slots);
     QkPass *circuit_to_dag = qk_pass_new(NULL, circuit_to_dag_vtable);
+
+    QkPassManager *pm = qk_passmanager_new();
+    int result = Ok;
+    if (qk_passmanager_push_pass(pm, remove_identity) != QkExitCode_Success) {
+        printf("Failed pushing circuit pass.\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_passmanager_push_pass(pm, circuit_to_dag) != QkExitCode_Success) {
+        printf("Failed pushing circuit->dag lowering pass.\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
 
     QkCircuit *circuit = qk_circuit_new(10, 0);
     uint32_t q0[1] = {0};
@@ -226,33 +313,15 @@ static int test_lowering(void) {
     qk_circuit_gate(circuit, QkGate_RZ, q0, nonzero);
     qk_circuit_gate(circuit, QkGate_H, q0, NULL);
 
-    QkPassManager *pm = qk_passmanager_new();
-    int result = Ok;
-    if (qk_passmanager_push_pass(pm, remove_identity) != QkExitCode_Success) {
-        printf("Failed pushing pass.\n");
-        result = RuntimeError;
-        qk_circuit_free(circuit);
-        goto cleanup;
-    }
-    if (qk_passmanager_push_pass(pm, circuit_to_dag) != QkExitCode_Success) {
-        printf("Failed pushing pass.\n");
-        result = RuntimeError;
-        qk_circuit_free(circuit);
-        goto cleanup;
-    }
-
-    // note: as the passmanager is set up, it takes ownership of the input IR, which no longer
-    // needs to be freed -- only the output IR must be freed
     QkCompilationError *error = NULL;
-    void *out_ir = qk_passmanager_run_simple(pm, (void *)circuit, circuit_ir, dag_ir, &error);
+    QkDag *out =
+        (QkDag *)qk_passmanager_run_simple(pm, (void *)circuit, circuit_ir, dag_ir, &error);
     if (error != NULL) {
         printf("Failed running pass.\n");
         result = RuntimeError;
         qk_compilation_error_free(error);
         goto cleanup;
     }
-
-    QkDag *out = (QkDag *)out_ir;
 
     // iterate over the DAG and ensure it matches the expected ops
     size_t num_ops = qk_dag_num_op_nodes(out);
@@ -267,17 +336,20 @@ static int test_lowering(void) {
             if (strcmp(inst.name, "h") != 0) {
                 printf("Expected h at %zu, but got %s\n", i, inst.name);
                 result = EqualityError;
+                qk_circuit_instruction_clear(&inst);
                 goto dag_cleanup;
             }
         } else if (i == 1) {
             if (strcmp(inst.name, "rz") != 0) {
                 printf("Expected rz at %zu, but got %s\n", i, inst.name);
                 result = EqualityError;
+                qk_circuit_instruction_clear(&inst);
                 goto dag_cleanup;
             }
         } else {
             printf("Unexpected number of operations.\n");
             result = EqualityError;
+            qk_circuit_instruction_clear(&inst);
             goto dag_cleanup;
         }
         qk_circuit_instruction_clear(&inst);
@@ -297,10 +369,9 @@ cleanup:
     return result;
 }
 
-static int test_custom_ir(void) {
-    QkIrHandle *ir = make_flip_ir();
-
-    Flips *program = new_flips(5);
+int test_custom_ir(void) {
+    IrLogger logger = {0};
+    Flips *program = new_flips(5, &logger);
     apply_flip(program, 1);
     apply_flip(program, 1);
     apply_flip(program, 2);
@@ -311,20 +382,14 @@ static int test_custom_ir(void) {
     if (flipped != 5) {
         printf("Wrong number of initial bitflips, expected 5 got %zu\n", flipped);
         free_flips(program);
-        qk_ir_handle_free(ir);
         return EqualityError;
     }
 
     QkPassManager *pm = qk_passmanager_new();
 
-    QkVtableEntry cancellation_slots[2] = {
-        {.slot = 0, .flags = 0, .ptr = (void *)(&inverse_cancellation)},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
-    QkPassVtable *cancellation_vtable =
-        qk_pass_vtable_new("cancellation", ir, ir, cancellation_slots);
+    QkIrHandle *ir = make_flip_ir();
+    QkPassVtable *cancellation_vtable = make_inverse_cancellation(ir);
     QkPass *cancellation = qk_pass_new(NULL, cancellation_vtable);
-
     int result = Ok;
     if (qk_passmanager_push_pass(pm, cancellation) != QkExitCode_Success) {
         printf("Failed pushing pass.\n");
@@ -334,9 +399,16 @@ static int test_custom_ir(void) {
     }
 
     Flips *out = (Flips *)qk_passmanager_run_simple(pm, program, ir, ir, NULL);
-
     flipped = num_flips(out);
+    size_t num_deletes = logger.num_deletes; // check the number of delete-calls before freeing
     free_flips(out);
+
+    if (num_deletes != 0) {
+        printf("Unwarrented delete of the IR!\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+
     if (flipped != 3) {
         printf("Wrong number of bitflips, expected 3 got %zu\n", flipped);
         result = EqualityError;
@@ -351,14 +423,68 @@ cleanup:
 }
 
 /**
+ * Test running an empty PM acts as identity.
+ */
+int test_empty_pm(void) {
+    QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
+
+    QkCircuit *circuit = qk_circuit_new(2, 0);
+    uint32_t q0[1] = {0};
+    uint32_t q01[2] = {0, 1};
+    qk_circuit_gate(circuit, QkGate_H, q0, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, q01, NULL);
+
+    QkPassManager *pm = qk_passmanager_new();
+    QkCircuit *out =
+        (QkCircuit *)qk_passmanager_run_simple(pm, circuit, circuit_ir, circuit_ir, NULL);
+
+    const size_t num_ops = 2;
+    int result = Ok;
+    if (qk_circuit_num_instructions(out) != num_ops) {
+        printf("Expected 2 instructions, got %zu\n", qk_circuit_num_instructions(out));
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    for (size_t i = 0; i < num_ops; i++) {
+        QkCircuitInstruction inst;
+        qk_circuit_get_instruction(out, i, &inst);
+
+        if (i == 0) {
+            if (strcmp(inst.name, "h") != 0) {
+                printf("Expected h at %zu, but got %s\n", i, inst.name);
+                result = EqualityError;
+                qk_circuit_instruction_clear(&inst);
+                goto cleanup;
+            }
+        } else {
+            if (strcmp(inst.name, "cx") != 0) {
+                printf("Expected cx at %zu, but got %s\n", i, inst.name);
+                result = EqualityError;
+                qk_circuit_instruction_clear(&inst);
+                goto cleanup;
+            }
+        }
+        qk_circuit_instruction_clear(&inst);
+    }
+
+cleanup:
+    qk_circuit_free(out);
+    qk_passmanager_free(pm);
+    qk_ir_handle_free(circuit_ir);
+
+    return result;
+}
+
+/**
  * Test the pipeline being incoherent.
  */
-static int test_invalid_pipeline(void) {
+int test_invalid_pipeline(void) {
     // A pass on Flips->Flips IR.
     QkIrHandle *flip_ir = make_flip_ir();
 
     QkVtableEntry cancellation_slots[2] = {
-        {.slot = 0, .flags = 0, .ptr = (void *)(&inverse_cancellation)},
+        {.slot = 0, .flags = 0, .ptr = (void *)&inverse_cancellation},
         {.slot = -1, .flags = 0, .ptr = NULL},
     };
     QkPassVtable *cancellation_vtable =
@@ -370,11 +496,11 @@ static int test_invalid_pipeline(void) {
     QkTarget *target = qk_target_new(10);
     RemoveIdentity remove_identity_config = {target};
     const QkVtableEntry remove_identity_slots[2] = {
-        {.slot = 0, .flags = 0, .ptr = (void *)(&run_remove_identity)},
+        {.slot = 0, .flags = 0, .ptr = (void *)&run_remove_identity},
         {.slot = -1, .flags = 0, .ptr = NULL}};
     QkPassVtable *remove_identity_vtable =
         qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
-    QkPass *circuit_pass = qk_pass_new((void *)(&remove_identity_config), remove_identity_vtable);
+    QkPass *circuit_pass = qk_pass_new((void *)&remove_identity_config, remove_identity_vtable);
 
     int result = Ok;
     QkPassManager *pm = qk_passmanager_new();
@@ -402,11 +528,14 @@ cleanup:
 }
 
 /**
- * Test the input/output IR types being correct, but not matching the pipeline type.
+ * Test the input/output IR not matching the pipeline type.
+ *
+ * This checks that the input IR is properly freed and `NULL` is returned when the pipeline cannot
+ * run.
  */
-static int test_mismatching_input(void) {
+int test_mismatching_input(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
-    QkIrHandle *dag_ir = qk_ir_handle_builtin(QkIrBuiltin_Dag);
+    QkIrHandle *flip_ir = make_flip_ir();
 
     QkVtableEntry table[2] = {
         // Slot 0 for run -- slot 1 for delete (which we don't have here)
@@ -417,53 +546,209 @@ static int test_mismatching_input(void) {
     QkTarget *target = qk_target_new(10);
     RemoveIdentity this = {target};
     QkPass *pass = qk_pass_new((void *)(&this), vtable);
-    qk_pass_vtable_free(vtable);
 
     // This PM now has a pipeline built on QkCircuit
     QkPassManager *pm = qk_passmanager_new();
     int result = Ok;
-
     if (qk_passmanager_push_pass(pm, pass) != QkExitCode_Success) {
         printf("Failed pushing pass.\n");
         result = RuntimeError;
         goto cleanup;
     }
 
-    // .. and now we call it on QkDag
-    QkDag *dag = qk_dag_new();
+    // .. and now we call it on the Flip IR. This also needs to call its destructor.
+    IrLogger logger = {0};
+    Flips *program = new_flips(5, &logger);
+    apply_flip(program, 1);
+
     QkCompilationError *error = NULL;
-    QkDag *out = (QkDag *)qk_passmanager_run_simple(pm, (void *)dag, dag_ir, dag_ir, &error);
+    Flips *out = (Flips *)qk_passmanager_run_simple(pm, (void *)program, flip_ir, flip_ir, &error);
 
     if (out != NULL) {
         printf("Expected out pointer to be NULL, but it is not.\n");
         result = EqualityError;
-        goto cleanup_dag;
+        free_flips(out);
+        goto cleanup;
+    }
+
+    // at this point we know `out` is NULL (as expected) and no longer need to free it
+    // -- but the input IR should've been freed, so we check this here
+    if (logger.num_deletes != 1) {
+        printf("Input IR has not been freed despite faulty pipeline.\n");
+        result = RuntimeError;
+        goto cleanup;
     }
 
     if (error == NULL) {
         printf("Expected error to be written, but the pointer is NULL.\n");
         result = EqualityError;
-        goto cleanup_dag;
+        goto cleanup;
     } else {
-        const char *error_msg = qk_compilation_error_str(error);
-        qk_compilation_error_free(error);
+        char *error_msg = qk_compilation_error_str(error);
         // The C11 standard does not provide regex match functionality, so we match
         // on 3 words we expect to be in this message. We can't give the full message since the
         // type description is not stable and e.g. the path inclusion might change.
         if (strcmp(error_msg, "failed to cast to expected input type") != 0) {
             printf("Wrong error message: %s\n", error_msg);
             result = EqualityError;
-            goto cleanup_dag;
         }
+        qk_str_free(error_msg);
+        qk_compilation_error_free(error);
     }
 
-cleanup_dag:
-    qk_dag_free(out);
 cleanup:
+    qk_target_free(target);
     qk_passmanager_free(pm);
     qk_pass_vtable_free(vtable);
+    qk_ir_handle_free(flip_ir);
+    qk_ir_handle_free(circuit_ir);
+
+    return result;
+}
+
+/**
+ * Test the pass' deconstructor is correctly called exactly once when the PM is freed.
+ */
+int test_pass_deconstructor_after_run(void) {
+    QkIrHandle *ir = make_flip_ir();
+
+    QkVtableEntry pop_slots[3] = {
+        {.slot = 0, .flags = 0, .ptr = (void *)&pop_flips},
+        {.slot = 1, .flags = 0, .ptr = (void *)&delete_pops},
+        {.slot = -1, .flags = 0, .ptr = NULL},
+    };
+    QkPassVtable *pop_vtable = qk_pass_vtable_new("pop", ir, ir, pop_slots);
+    size_t len = 2;
+    uint32_t *to_pop = malloc(len * sizeof(uint32_t));
+    to_pop[0] = 3;
+    to_pop[1] = 4;
+
+    IrLogger pass_logger = {0};
+    PopFlips pops = {len, to_pop, &pass_logger};
+    QkPass *pop = qk_pass_new((void *)&pops, pop_vtable);
+
+    int result = Ok;
+    QkPassManager *pm = qk_passmanager_new();
+    if (qk_passmanager_push_pass(pm, pop) != QkExitCode_Success) {
+        printf("Failed pushing pass.\n");
+        result = RuntimeError;
+        delete_pops(&pops);
+        qk_passmanager_free(pm);
+        goto cleanup;
+    }
+
+    IrLogger ir_logger = {0};
+    Flips *program = new_flips(5, &ir_logger);
+    apply_flip(program, 1);
+    apply_flip(program, 1);
+    apply_flip(program, 2);
+    apply_flip(program, 3);
+
+    Flips *out = (Flips *)qk_passmanager_run_simple(pm, program, ir, ir, NULL);
+    if (out == NULL) {
+        printf("Failed running PM.\n");
+        result = RuntimeError;
+        qk_passmanager_free(pm);
+        goto cleanup;
+    }
+
+    size_t flipped = num_flips(out);
+    size_t num_ir_deletes = ir_logger.num_deletes;
+    free_flips(out);
+
+    if (flipped != 3) {
+        printf("Wrong number of final flips, expected 3, got %zu\n", flipped);
+        result = EqualityError;
+        qk_passmanager_free(pm);
+        goto cleanup;
+    }
+    if (num_ir_deletes != 0) {
+        printf("Unwarrented delete of the IR!\n");
+        result = RuntimeError;
+        qk_passmanager_free(pm);
+        goto cleanup;
+    }
+    if (pass_logger.num_deletes != 0) {
+        printf("Unwarrented delete of the pass!\n");
+        result = RuntimeError;
+        qk_passmanager_free(pm);
+        goto cleanup;
+    }
+
+    qk_passmanager_free(pm);
+    if (pass_logger.num_deletes != 1) {
+        printf("Pass not correctly deletes upon pass manager free.\n");
+        result = RuntimeError;
+    }
+cleanup:
+    qk_pass_vtable_free(pop_vtable);
+    qk_ir_handle_free(ir);
+
+    return result;
+}
+
+/**
+ * Test the pass' deconstructor is called when failing to push a pass.
+ */
+int test_pass_deconstructor_on_failure(void) {
+    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
+
+    // A pass on circuit IR.
+    QkVtableEntry table[2] = {
+        {.slot = 0, .flags = 0, .ptr = run_remove_identity},
+        {.slot = -1, .flags = 0, .ptr = NULL},
+    };
+    QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, table);
+    QkTarget *target = qk_target_new(10);
+    RemoveIdentity this = {target};
+    QkPass *circuit_pass = qk_pass_new((void *)&this, vtable);
+
+    // A pass on Flips IR.
+    QkVtableEntry pop_slots[3] = {
+        {.slot = 0, .flags = 0, .ptr = (void *)&pop_flips},
+        {.slot = 1, .flags = 0, .ptr = (void *)&delete_pops},
+        {.slot = -1, .flags = 0, .ptr = NULL},
+    };
+    QkPassVtable *pop_vtable = qk_pass_vtable_new("pop", flip_ir, flip_ir, pop_slots);
+
+    int result = Ok;
+    QkPassManager *pm = qk_passmanager_new();
+    if (qk_passmanager_push_pass(pm, circuit_pass) != QkExitCode_Success) {
+        printf("Failed pushing pass.\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    size_t len = 2;
+    uint32_t *to_pop = malloc(len * sizeof(uint32_t));
+    to_pop[0] = 3;
+    to_pop[1] = 4;
+    IrLogger pass_logger = {0};
+    PopFlips pops = {len, to_pop, &pass_logger};
+    QkPass *flip_pass = qk_pass_new((void *)&pops, pop_vtable);
+
+    // Now try pushing the circuit pass onto the flip pass. This should error.
+    // In case this succeeds, we already know from other tests that the pass' deconstructor
+    // is correctly called, so we don't have any cleanup to do.
+    if (qk_passmanager_push_pass(pm, flip_pass) != QkExitCode_IncompatibleTypes) {
+        printf("Expected QkExitCode_IncompatibleTypes.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // .. since the PM took ownership, the pass' deconstructor should've been called.
+    if (pass_logger.num_deletes != 1) {
+        printf("Pass deconstructor not called on failed push.\n");
+        result = RuntimeError;
+    }
+
+cleanup:
     qk_target_free(target);
-    qk_ir_handle_free(dag_ir);
+    qk_passmanager_free(pm);
+    qk_pass_vtable_free(vtable);
+    qk_pass_vtable_free(pop_vtable);
+    qk_ir_handle_free(flip_ir);
     qk_ir_handle_free(circuit_ir);
 
     return result;
@@ -475,8 +760,11 @@ int test_passmanager(void) {
     num_failed += RUN_TEST(test_circuit_ir);
     num_failed += RUN_TEST(test_lowering);
     num_failed += RUN_TEST(test_custom_ir);
+    num_failed += RUN_TEST(test_empty_pm);
     num_failed += RUN_TEST(test_invalid_pipeline);
     num_failed += RUN_TEST(test_mismatching_input);
+    num_failed += RUN_TEST(test_pass_deconstructor_after_run);
+    num_failed += RUN_TEST(test_pass_deconstructor_on_failure);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (passmanager): %i\n", num_failed);
