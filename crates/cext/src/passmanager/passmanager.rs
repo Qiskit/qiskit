@@ -71,7 +71,7 @@ pub unsafe extern "C" fn qk_passmanager_push_pass(
     let pm = unsafe { mut_ptr_as_ref(pm) };
     // SAFETY: per documentation, `pass` points to a valid owned `CPass`.
     let pass = unsafe { CPass::steal(pass) };
-    pm.try_push_task(Task::Transformation(pass as Box<dyn Pass>))
+    pm.try_push_task(Task::transformation(pass as Box<dyn Pass>))
         .map_err(|_| ExitCode::IncompatibleTypes)
         .err()
         .unwrap_or(ExitCode::Success)
