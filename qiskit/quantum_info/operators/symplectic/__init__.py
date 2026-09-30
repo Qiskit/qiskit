@@ -16,6 +16,7 @@ Symplectic Operators
 
 from .clifford import Clifford
 from .clifford_circuits import get_clifford_gate_names
+from .is_clifford import is_clifford
 from .pauli import Pauli
 from .pauli_list import PauliList
 from .pauli_utils import pauli_basis
@@ -23,6 +24,7 @@ from .sparse_pauli_op import SparsePauliOp
 
 __all__ = [
     "Clifford",
+    "is_clifford",
     "Pauli",
     "PauliList",
     "SparsePauliOp",

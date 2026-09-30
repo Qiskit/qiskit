@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Added the :func:`~qiskit.quantum_info.is_clifford` utility function in :mod:`qiskit.quantum_info`
+    to check whether an input object (such as a :class:`~qiskit.circuit.QuantumCircuit`,
+    :class:`~qiskit.circuit.Instruction`, :class:`~qiskit.circuit.Gate`,
+    :class:`~qiskit.quantum_info.Operator`, :class:`~qiskit.quantum_info.Clifford`,
+    or unitary matrix) represents a Clifford operation.
+
+    The checker evaluates Cliffordness through a tiered approach:
+    1. Direct type checks for canonical Clifford types.
+    2. Fast gate-level parsing via :meth:`qiskit.quantum_info.Clifford.from_circuit`.
+    3. Exact unitary matrix / tableau analysis for composite operations (up to 5 qubits)
+       where intermediate non-Clifford gates may cancel out (e.g., :math:`H T T^\dagger`).
