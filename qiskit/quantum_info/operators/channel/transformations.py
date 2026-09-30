@@ -241,8 +241,6 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
         apply_perturbation = np.linalg.cond(data) >= 1e10
 
         if apply_perturbation:
-            # Keep the caller's Choi representation unchanged.  The
-            # perturbation is only a numerical aid for the eigendecomposition.
             data = data + 1e-10 * np.eye(data.shape[0])
 
         triangular, vecs = scipy.linalg.schur(data)

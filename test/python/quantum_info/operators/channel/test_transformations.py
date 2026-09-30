@@ -178,7 +178,7 @@ class TestTransformations(ChannelTestCase):
         choi = Choi(self.choiX)
         original = choi.data.copy()
 
-        Kraus(choi)
+        _ = Kraus(choi)
 
         np.testing.assert_array_equal(choi.data, original)
 
