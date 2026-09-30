@@ -709,10 +709,7 @@ static int test_mismatching_output(void) {
         goto cleanup;
     } else {
         char *error_msg = qk_compilation_error_str(error);
-        // The C11 standard does not provide regex match functionality, so we match
-        // on 3 words we expect to be in this message. We can't give the full message since the
-        // type description is not stable and e.g. the path inclusion might change.
-        if (strcmp(error_msg, "failed to cast to expected input type") != 0) {
+        if (strcmp(error_msg, "declared output IR type does not match the pipeline result") != 0) {
             printf("Wrong error message: %s\n", error_msg);
             result = EqualityError;
         }

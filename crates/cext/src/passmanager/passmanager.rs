@@ -16,7 +16,8 @@ use std::ptr;
 use super::{CPass, CompilationError, IrHandle};
 use crate::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
-use qiskit_passmanager::{Pass, PassError, PassManager, Task};
+use anyhow::anyhow;
+use qiskit_passmanager::{Pass, PassManager, Task};
 
 // SAFETY: `PassManager` is always exposed and freed by `Box`.
 const _: () = unsafe { expose_by_box!(PassManager) };
@@ -134,7 +135,9 @@ pub unsafe extern "C" fn qk_passmanager_run_simple(
     match pm.run_erased(ir) {
         Ok((ir_out, _)) => {
             if ir_out.dyn_type_id() != ir_out_handle.0.object_dyn_type_id() {
-                parse_error(PassError::Conversion.into())
+                parse_error(anyhow!(
+                    "declared output IR type does not match the pipeline result"
+                ))
             } else {
                 ir_out_handle.0.leak(ir_out)
             }

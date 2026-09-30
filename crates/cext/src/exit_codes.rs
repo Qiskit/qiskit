@@ -64,8 +64,6 @@ pub enum ExitCode {
     TranspilerError = 400,
     /// Incompatible types.
     IncompatibleTypes = 401,
-    /// Failed conversion to an output IR.
-    FailedOutputConversion = 402,
     /// Type casting error.
     CastingError = 403,
     /// QkDag operation error
