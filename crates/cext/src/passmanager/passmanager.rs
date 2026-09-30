@@ -16,7 +16,7 @@ use std::ptr;
 use super::{CPass, CompilationError, IrHandle};
 use crate::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
-use qiskit_passmanager::{Pass, PassManager, Task};
+use qiskit_passmanager::{Pass, PassError, PassManager, Task};
 
 // SAFETY: `PassManager` is always exposed and freed by `Box`.
 const _: () = unsafe { expose_by_box!(PassManager) };
@@ -123,13 +123,22 @@ pub unsafe extern "C" fn qk_passmanager_run_simple(
     let ir_out_handle = unsafe { const_ptr_as_ref(ir_out_handle) };
     let ir = unsafe { ir_in_handle.0.steal(ir) };
 
-    pm.run_erased(ir)
-        .map(|(ir_out, _)| ir_out_handle.0.leak(ir_out))
-        .unwrap_or_else(|e| {
-            if !error.is_null() {
-                let e = CompilationError(e).into_leaked();
-                unsafe { error.write(e) };
+    let parse_error = |e| {
+        if !error.is_null() {
+            let e = CompilationError(e).into_leaked();
+            unsafe { error.write(e) };
+        }
+        ptr::null_mut()
+    };
+
+    match pm.run_erased(ir) {
+        Ok((ir_out, _)) => {
+            if ir_out.dyn_type_id() != ir_out_handle.0.object_dyn_type_id() {
+                parse_error(PassError::Conversion.into())
+            } else {
+                ir_out_handle.0.leak(ir_out)
             }
-            ptr::null_mut()
-        })
+        }
+        Err(e) => parse_error(e),
+    }
 }

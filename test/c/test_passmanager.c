@@ -23,7 +23,8 @@ typedef struct {
 } RemoveIdentity;
 
 /// The execution function for RemoveIdentity.
-void *run_remove_identity(void *self, void *ir, QkPassContext *context, QkCompilationError** error) {
+void *run_remove_identity(void *self, void *ir, QkPassContext *context,
+                          QkCompilationError **error) {
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
 
@@ -33,7 +34,7 @@ void *run_remove_identity(void *self, void *ir, QkPassContext *context, QkCompil
 }
 
 /// The execution function for a circuit-to-dag pass.
-void *run_circuit_to_dag(void *self, void *ir, QkPassContext *context, QkCompilationError** error) {
+void *run_circuit_to_dag(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
     UNUSED_VARIABLE(self);
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
@@ -114,7 +115,8 @@ size_t num_flips(Flips *flips) {
 }
 
 /// Passes for the flips IR.
-void *inverse_cancellation(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
+void *inverse_cancellation(void *self, void *ir, QkPassContext *context,
+                           QkCompilationError **error) {
     UNUSED_VARIABLE(self);
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
@@ -198,7 +200,7 @@ void *pop_flips(void *self, void *ir) {
  *
  * This is a simple test case on a single builtin IR, without lowering or custom destructors.
  */
-int test_circuit_ir(void) {
+static int test_circuit_ir(void) {
     QkIrHandle *ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
     QkVtableEntry table[2] = {
         {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = run_remove_identity},
@@ -271,7 +273,7 @@ cleanup:
  *
  * This tests the IR lowering between two builtin IRs.
  */
-int test_lowering(void) {
+static int test_lowering(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
     QkIrHandle *dag_ir = qk_ir_handle_builtin(QkIrBuiltin_Dag);
 
@@ -369,7 +371,7 @@ cleanup:
     return result;
 }
 
-int test_custom_ir(void) {
+static int test_custom_ir(void) {
     IrLogger logger = {0};
     Flips *program = new_flips(5, &logger);
     apply_flip(program, 1);
@@ -425,7 +427,7 @@ cleanup:
 /**
  * Test running an empty PM acts as identity.
  */
-int test_empty_pm(void) {
+static int test_empty_pm(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
 
     QkCircuit *circuit = qk_circuit_new(2, 0);
@@ -479,7 +481,7 @@ cleanup:
 /**
  * Test the pipeline being incoherent.
  */
-int test_invalid_pipeline(void) {
+static int test_invalid_pipeline(void) {
     // A pass on Flips->Flips IR.
     QkIrHandle *flip_ir = make_flip_ir();
 
@@ -528,12 +530,12 @@ cleanup:
 }
 
 /**
- * Test the input/output IR not matching the pipeline type.
+ * Test the input IR not matching the pipeline type.
  *
  * This checks that the input IR is properly freed and `NULL` is returned when the pipeline cannot
  * run.
  */
-int test_mismatching_input(void) {
+static int test_mismatching_input(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
     QkIrHandle *flip_ir = make_flip_ir();
 
@@ -606,9 +608,79 @@ cleanup:
 }
 
 /**
+ * Test the ouput IR not matching the pipeline type.
+ */
+static int test_mismatching_output(void) {
+    QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
+    QkIrHandle *flip_ir = make_flip_ir();
+
+    // This PM now has a pipeline built on Flips IR
+    QkPassManager *pm = qk_passmanager_new();
+    QkPassVtable *cancellation_vtable = make_inverse_cancellation(flip_ir);
+    QkPass *cancellation = qk_pass_new(NULL, cancellation_vtable);
+    int result = Ok;
+    if (qk_passmanager_push_pass(pm, cancellation) != QkExitCode_Success) {
+        printf("Failed pushing pass.\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    IrLogger logger = {0};
+    Flips *program = new_flips(5, &logger);
+    apply_flip(program, 1);
+    apply_flip(program, 1);
+    apply_flip(program, 2);
+    apply_flip(program, 3);
+
+    // .. and now we call the PM but we give the wrong output IR. The pipeline produces
+    // a Flip IR but we request `circuit_ir`.
+    QkCompilationError *error = NULL;
+    QkCircuit *out =
+        (QkCircuit *)qk_passmanager_run_simple(pm, (void *)program, flip_ir, circuit_ir, &error);
+
+    if (out != NULL) {
+        printf("Expected out pointer to be NULL, but it is not.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // at this point we know `out` is NULL (as expected) and no longer need to free it
+    // -- but the input IR should've been freed, so we check this here
+    if (logger.num_deletes != 1) {
+        printf("Input IR has not been freed despite faulty return type.\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    if (error == NULL) {
+        printf("Expected error to be written, but the pointer is NULL.\n");
+        result = EqualityError;
+        goto cleanup;
+    } else {
+        char *error_msg = qk_compilation_error_str(error);
+        // The C11 standard does not provide regex match functionality, so we match
+        // on 3 words we expect to be in this message. We can't give the full message since the
+        // type description is not stable and e.g. the path inclusion might change.
+        if (strcmp(error_msg, "failed to cast to expected input type") != 0) {
+            printf("Wrong error message: %s\n", error_msg);
+            result = EqualityError;
+        }
+        qk_str_free(error_msg);
+        qk_compilation_error_free(error);
+    }
+
+cleanup:
+    qk_passmanager_free(pm);
+    qk_ir_handle_free(flip_ir);
+    qk_ir_handle_free(circuit_ir);
+
+    return result;
+}
+
+/**
  * Test the pass' deconstructor is correctly called exactly once when the PM is freed.
  */
-int test_pass_deconstructor_after_run(void) {
+static int test_pass_deconstructor_after_run(void) {
     QkIrHandle *ir = make_flip_ir();
 
     QkVtableEntry pop_slots[3] = {
@@ -689,7 +761,7 @@ cleanup:
 /**
  * Test the pass' deconstructor is called when failing to push a pass.
  */
-int test_pass_deconstructor_on_failure(void) {
+static int test_pass_deconstructor_on_failure(void) {
     QkIrHandle *flip_ir = make_flip_ir();
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
 
@@ -762,6 +834,7 @@ int test_passmanager(void) {
     num_failed += RUN_TEST(test_empty_pm);
     num_failed += RUN_TEST(test_invalid_pipeline);
     num_failed += RUN_TEST(test_mismatching_input);
+    num_failed += RUN_TEST(test_mismatching_output);
     num_failed += RUN_TEST(test_pass_deconstructor_after_run);
     num_failed += RUN_TEST(test_pass_deconstructor_on_failure);
 
