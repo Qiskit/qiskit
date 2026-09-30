@@ -152,7 +152,7 @@ pub enum IrBuiltin {
 /// and pass managers.
 ///
 /// Most functions that accept one of these borrow the argument.  Once you no longer need the handle
-/// any more, you should call `qk_pass_ir_handle_free` to release your reference to the type object.
+/// any more, you should call `qk_ir_handle_free` to release your reference to the type object.
 pub struct IrHandle(pub(super) Arc<dyn DynTraitExposer<dyn IR>>);
 /// SAFETY: `IrHandle` is always exposed and freed via `Box`.
 const _: () = unsafe { expose_by_box!(IrHandle) };
@@ -160,10 +160,9 @@ const _: () = unsafe { expose_by_box!(IrHandle) };
 /// @ingroup pass-manager
 /// Define the behavior of a new "IR" type.
 ///
-/// This function is called to define the behavioral component of a new IR type.  The result of this
-/// function can then be combined with a data pointer using `qk_pass_ir_new`.
+/// This function is called to define the behavioral component of a new IR type.
 ///
-/// If you want the handle for a built-in Qiskit type, see `qk_pass_ir_handle_builtin`.
+/// If you want the handle for a built-in Qiskit type, see `qk_ir_handle_builtin`.
 ///
 /// @param name A human-readable name for the IR type.
 /// @param table A table of the defined methods for the IR, terminated by an entry using `-1` as
@@ -224,7 +223,7 @@ pub unsafe extern "C" fn qk_ir_handle_new(
 /// Get the IR "type object" for a built-in Qiskit type.
 ///
 /// @param ty An identifier for the desired type.  See `QkIrBuiltin` for the allowed values.
-/// @return An owned handle to the IR type object.
+/// @return An owned handle to the IR type object, or `NULL` if given an invalid value.
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_ir_handle_builtin(ty: u32) -> *mut IrHandle {
     match IrBuiltin::try_from(ty) {

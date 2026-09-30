@@ -65,7 +65,7 @@ pub enum ExitCode {
     /// Incompatible types.
     IncompatibleTypes = 401,
     /// Type casting error.
-    CastingError = 403,
+    CastingError = 402,
     /// QkDag operation error
     DagError = 500,
     /// The DAGs have mismatching qubit/clbit amounts during compose.

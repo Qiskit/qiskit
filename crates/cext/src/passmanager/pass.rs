@@ -52,8 +52,9 @@ pub enum PassSlot {
     /// The function must return owned data of the type specified by `ir_out`, or `NULL` if an error
     /// as occurred.
     ///
-    /// If the function wants to indicate an error state, it must write a valid owned `QkError *`
-    /// object into the `error` pointer, ensure the `ir` pointer is freed, and return `NULL`.
+    /// If the function wants to indicate an error state, it must write a valid owned
+    /// `QkCompilationError *` object into the `error` pointer, ensure the `ir` pointer is freed,
+    /// and return `NULL`.
     RunOwned = 0,
     /// A destructor for the `this` argument of a pass, at the time that the pass is destructed.
     /// *Optional*.

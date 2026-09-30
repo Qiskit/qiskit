@@ -95,7 +95,7 @@ pub unsafe extern "C" fn qk_passmanager_push_pass(
 ///     and the type of `ir`.
 /// @param ir_out_handle A borrowed type object corresponding to the output type of the pass
 ///     manager.
-/// @param[out] error If not `NULL`, then a location to write out a `QkError *` result.
+/// @param[out] error If not `NULL`, then a location to write out a `QkCompilationError *` result.
 ///
 /// @return If no fatal error occurred, then an owned data pointer of the type corresponding to
 ///     `ir_out_handle`.  `NULL` if a fatal error occurred.
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn qk_passmanager_push_pass(
 /// * `ir_in_handle` points a valid `IrHandle`.
 /// * `ir_out_handle` points a valid `IrHandle`.
 /// * `error` is either null, or points to a storage location valid for a single write of one
-///   `QkError *`.
+///   `QkCompilationError *`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_passmanager_run_simple(
     pm: *mut PassManager,
