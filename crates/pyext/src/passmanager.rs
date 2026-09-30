@@ -12,9 +12,10 @@
 
 use std::any::Any;
 use std::mem;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
-use pyo3::exceptions::PyTypeError;
+use anyhow::anyhow;
+use pyo3::exceptions::{PyRuntimeError, PyTypeError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
@@ -22,13 +23,13 @@ use pyo3::types::PyType;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Param;
-use qiskit_passmanager::IR;
+use qiskit_passmanager::{IR, PassContext};
 use qiskit_util::dyn_types::*;
 use qiskit_util::py::ImportOnceCell;
 
 // TODO: there'll be an abstraction we can make about `PyIrExposer` and the idea of
 // "Python-exposable types", but we're not solving everything in a PR series that's running late.
-trait PyIrExposer {
+trait PyIrExposer: Send + Sync + 'static {
     fn object_dyn_type_id(&self) -> DynTypeId<'_>;
     /// Move the data in `ob` into a suitable Python object.
     fn to_py<'py>(&self, py: Python<'py>, ob: Box<dyn IR>) -> PyResult<Bound<'py, PyAny>>;
@@ -173,13 +174,209 @@ fn ir_exposer(mut ty: Bound<PyType>) -> PyResult<Box<dyn PyIrExposer>> {
     Ok(Box::new(PyObjectExposer(Arc::new(base))))
 }
 
-/// The pass type that we define the `dyn Pass` stuff on.
+/// Private Rust-Python boundary object that represents a handle to a pass coming from Python.
 #[pyclass]
-pub struct PyPass;
-/// Rust-native wrapper that mediates access to the lifetime-bound `&mut PassContext` (somehow -
-/// possibly unsafe).
+pub struct PyPass(Option<PyPassInner>);
+#[pymethods]
+impl PyPass {
+    #[new]
+    fn py_new(
+        ob: Bound<PyAny>,
+        name: String,
+        ir_in: Bound<PyType>,
+        ir_out: Bound<PyType>,
+    ) -> PyResult<Self> {
+        let inner = PyPassInner {
+            ob: ob.unbind(),
+            name,
+            ir_in: ir_exposer(ir_in)?,
+            ir_out: ir_exposer(ir_out)?,
+        };
+        Ok(Self(Some(inner)))
+    }
+}
+
+/// The actual logic of Rust wrapping passes that come from Python.  This is what implements `Pass`.
+struct PyPassInner {
+    name: String,
+    ob: Py<PyAny>,
+    ir_in: Box<dyn PyIrExposer>,
+    ir_out: Box<dyn PyIrExposer>,
+}
+impl PyPassInner {
+    /// The internal logic of the [`Pass::run`](qiskit_passmanager::Pass::run) method, but with an
+    /// explicit attachment to an interpreter, and returning `PyErr` so we can centralise the error
+    /// handling.
+    fn run_py(
+        &self,
+        py: Python,
+        ir: Box<dyn IR>,
+        context: PassContextHandle,
+    ) -> PyResult<Box<dyn IR>> {
+        static CONTEXT_WRAPPER: ImportOnceCell =
+            ImportOnceCell::new("qiskit.passmanager", "PassContextHandle");
+        let ir = self.ir_in.to_py(py, ir)?;
+        let ctx = CONTEXT_WRAPPER.get_bound(py).call1((context,))?;
+        let res = self
+            .ob
+            .bind(py)
+            .getattr(intern!(py, "_qiskit_pass_run_"))?
+            .call1((ir, ctx))?;
+        self.ir_out.steal_from_py(res)
+    }
+}
+impl qiskit_passmanager::Pass for PyPassInner {
+    #[inline]
+    fn ir_id_in(&self) -> DynTypeId<'_> {
+        self.ir_in.object_dyn_type_id()
+    }
+
+    #[inline]
+    fn ir_id_out(&self) -> DynTypeId<'_> {
+        self.ir_out.object_dyn_type_id()
+    }
+
+    #[inline]
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    #[inline]
+    fn run(
+        &self,
+        ir: Box<dyn IR>,
+        context: &mut PassContext,
+    ) -> Result<Box<dyn IR>, qiskit_passmanager::PassError> {
+        // SAFETY: we guarantee that `stolen` will drop (and therefore replace `context`) before
+        // control flow leaves this function by leaving ownership of it here.
+        let stolen = unsafe { StolenContext::new(context) };
+
+        Python::attach(|py| {
+            // SAFETY: per documentation of `PassContextHandle`, no methods allow moving the
+            // internal `PassContext` from it, and we ensured that `stolen` drops as this function
+            // ends, so the lifetime of the internal object actually ends with `'a`.
+            let handle = unsafe { stolen.handle() };
+            self.run_py(py, ir, handle).map_err(|e| {
+                // `<PyErr as Display>` internally requires the interpreter, so we'll pull out the
+                // message while we know we're attached.
+                let native = e.to_string();
+                // Stash the exception back into the global state; when we next return to the Python
+                // interpreter we should be able to retrieve it and attach it as the cause.
+                e.restore(py);
+                anyhow!("Python execution raised an exception.")
+                    .context(native)
+                    .into()
+            })
+        })
+    }
+}
+
+struct StolenContext<'a, 'b> {
+    whence: &'b mut PassContext<'a>,
+    shared: Arc<RwLock<Option<PassContext<'static>>>>,
+}
+impl<'a, 'b> StolenContext<'a, 'b> {
+    unsafe fn new(whence: &'b mut PassContext<'a>) -> Self {
+        let stolen = mem::replace(whence, PassContext::dummy());
+        // SAFETY: per lifetime rules, 'a is longer lived than us.  If nothing else
+        // moves the `PassContext` out from us, we can put in back in `whence` in our
+        // `Drop`, guaranteeing the lifetime.
+        let stolen = unsafe { mem::transmute::<PassContext<'a>, PassContext<'static>>(stolen) };
+        Self {
+            whence,
+            shared: Arc::new(RwLock::new(Some(stolen))),
+        }
+    }
+
+    unsafe fn handle(&self) -> PassContextHandle {
+        PassContextHandle(Arc::clone(&self.shared))
+    }
+}
+impl<'a, 'b> Drop for StolenContext<'a, 'b> {
+    fn drop(&mut self) {
+        let mut lock = self.shared.write().expect("lock should not poison");
+        _ = mem::replace(
+            self.whence,
+            lock.take()
+                .expect("no other references should allow taking the inner object"),
+        );
+    }
+}
+
+/// Rust-native wrapper that mediates access to a lifetime-bound `&mut PassContext`.
+///
+/// # Safety
+///
+/// This is in general *unsafe*: the [`PassContext`] object is actually backed by a lifetime-bound
+/// object which is type-erased to `'static`.  The creator of this object must ensure that the inner
+/// `PassContext` is removed before its lifetime actually expires.
+///
+/// No method on this class may ever move a `PassContext` out of the `Option` (or delete it, etc).
+///
+/// Methods on this handle object should attempt to hold locks from the [`RwLock`] for as short
+/// periods as possible.
 #[pyclass]
-pub struct PassContextHandle;
+pub struct PassContextHandle(Arc<RwLock<Option<PassContext<'static>>>>);
+impl PassContextHandle {
+    #[inline]
+    fn with_borrow<F, T>(&self, use_fn: F) -> PyResult<T>
+    where
+        F: FnOnce(&PassContext<'static>) -> T,
+    {
+        let Ok(inner) = self.0.read() else {
+            return Err(PyRuntimeError::new_err("internal lock was poisoned"));
+        };
+        let ctx = inner.as_ref().ok_or_else(|| {
+            PyRuntimeError::new_err("attempted to use handle after pass returned")
+        })?;
+        Ok(use_fn(ctx))
+    }
+
+    #[inline]
+    fn with_borrow_mut<F, T>(&self, use_fn: F) -> PyResult<T>
+    where
+        F: FnOnce(&mut PassContext<'static>) -> T,
+    {
+        let Ok(mut inner) = self.0.write() else {
+            return Err(PyRuntimeError::new_err("internal lock was poisoned"));
+        };
+        let ctx = inner.as_mut().ok_or_else(|| {
+            PyRuntimeError::new_err("attempted to use handle after pass returned")
+        })?;
+        Ok(use_fn(ctx))
+    }
+}
+#[pymethods]
+impl PassContextHandle {
+    pub fn get_context(&self, py: Python, key: String, default: Py<PyAny>) -> PyResult<Py<PyAny>> {
+        self.with_borrow(|ctx| {
+            let Some(val) = ctx.get(&key) else {
+                return Ok(default);
+            };
+            let Some(ob) = val.downcast_ref::<Py<PyAny>>() else {
+                return Err(PyTypeError::new_err(format!(
+                    "'{}' did not correspond to a Python object",
+                    &key
+                )));
+            };
+            Ok(ob.clone_ref(py))
+        })?
+    }
+    pub fn set_context(&self, key: String, val: Py<PyAny>) -> PyResult<()> {
+        let val = Box::new(val);
+        self.with_borrow_mut(|ctx| ctx.set(key, val))
+    }
+    pub fn del_context(&self, key: String) -> PyResult<()> {
+        self.with_borrow_mut(|ctx| ctx.delete(key))
+    }
+    pub fn get_ir_modified(&self) -> PyResult<bool> {
+        self.with_borrow(|ctx| ctx.ir_modified)
+    }
+    pub fn set_ir_modified(&self, val: bool) -> PyResult<()> {
+        self.with_borrow_mut(|ctx| ctx.ir_modified = val)
+    }
+}
+
 /// Wrapper around the Rust-native pass manager; we can take this as owned when we create it from
 /// Python or give a Rust-created one to Python.
 #[pyclass(name = "PassManager")]

@@ -258,6 +258,9 @@ class Pass(Generic[IRIn, IROut], abc.ABC):
 def _native_pass_from_lowering_pass(pass_: Pass) -> passmanager.PyPass:
     """Interpret the given implementation of :class:`Pass`, resolving any version /
     calling-signature conventions, into a Rust-native ``PyPass``."""
+    # Right now this is a fairly simple passthrough.
+    name = pass_._qiskit_pass_name_ or type(pass_).__name__
+    return passmanager.PyPass(pass_, name, pass_._qiskit_pass_ir_in_, pass_._qiskit_pass_ir_out_)
 
 
 @typing.final

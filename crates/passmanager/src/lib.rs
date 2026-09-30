@@ -15,7 +15,7 @@ mod pass;
 use anyhow::Context;
 use hashbrown::{HashMap, HashSet};
 use qiskit_util::dyn_types::*;
-use std::{any::Any, fmt};
+use std::{any::Any, fmt, sync::LazyLock};
 
 pub use pass::*;
 
@@ -27,7 +27,7 @@ pub use pass::*;
 pub struct PassManagerContext {
     /// The global, catch-all data. The local [PassContext] handles get read-only access to
     /// this data and after pass execution this global state is updated.
-    data: HashMap<String, Box<dyn Any>>,
+    data: HashMap<String, Box<dyn Any + Send + Sync>>,
 }
 impl PassManagerContext {
     fn new() -> Self {
@@ -43,7 +43,7 @@ impl PassManagerContext {
         }
     }
 
-    pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+    pub fn get(&self, key: impl AsRef<str>) -> Option<&(dyn Any + Send + Sync)> {
         self.data.get(key.as_ref()).map(Box::as_ref)
     }
 }
@@ -54,12 +54,12 @@ impl PassManagerContext {
 #[derive(Default, Debug)]
 struct ContextUpdates {
     /// New values to insert into the global context.
-    insertions: HashMap<String, Box<dyn Any>>,
+    insertions: HashMap<String, Box<dyn Any + Send + Sync>>,
     /// Keys to delete from the global context.
     deletions: HashSet<String>,
 }
 impl ContextUpdates {
-    fn insert(&mut self, key: String, value: Box<dyn Any>) {
+    fn insert(&mut self, key: String, value: Box<dyn Any + Send + Sync>) {
         self.deletions.remove(&key);
         self.insertions.insert(key, value);
     }
@@ -69,7 +69,7 @@ impl ContextUpdates {
         self.deletions.insert(key);
     }
 
-    fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+    fn get(&self, key: impl AsRef<str>) -> Option<&(dyn Any + Send + Sync)> {
         self.insertions.get(key.as_ref()).map(|v| v.as_ref())
     }
 }
@@ -93,6 +93,18 @@ pub struct PassContext<'a> {
     updates: ContextUpdates,
 }
 
+impl PassContext<'static> {
+    /// Get a dummy version of ourselves for use as a default value in situations where we don't
+    /// need it to be linked to anything.
+    pub fn dummy() -> Self {
+        static GLOBAL: LazyLock<PassManagerContext> = LazyLock::new(PassManagerContext::default);
+        Self {
+            global_context: &GLOBAL,
+            ir_modified: true,
+            updates: ContextUpdates::default(),
+        }
+    }
+}
 impl<'a> PassContext<'a> {
     fn spawn(global_context: &'a PassManagerContext) -> Self {
         Self {
@@ -104,7 +116,7 @@ impl<'a> PassContext<'a> {
 
     /// Set a new entry in the pass context.
     /// Overwrites the existing value under that key, if it exists.
-    pub fn set(&mut self, key: String, value: Box<dyn Any>) {
+    pub fn set(&mut self, key: String, value: Box<dyn Any + Send + Sync>) {
         self.updates.insert(key, value);
     }
 
@@ -115,7 +127,7 @@ impl<'a> PassContext<'a> {
     /// Get an entry, if it exists.
     ///
     /// This first queries from the local context, then the global.
-    pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+    pub fn get(&self, key: impl AsRef<str>) -> Option<&(dyn Any + Send + Sync)> {
         let key = key.as_ref();
 
         if self.updates.deletions.contains(key) {
