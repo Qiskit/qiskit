@@ -66,7 +66,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::gates_in_basis_mod, "gates_in_basis")?;
     add_submodule(m, ::qiskit_transpiler::passes::instruction_duration_check_mod, "instruction_duration_check")?;
     add_submodule(m, ::qiskit_transpiler::passes::inverse_cancellation_mod, "inverse_cancellation")?;
-    add_submodule(m, ::qiskit_accelerate::isometry::isometry, "isometry")?;
+    add_submodule(m, ::qiskit_synthesis::isometry::isometry, "isometry")?;
     add_submodule(m, ::qiskit_circuit::nlayout::nlayout, "nlayout")?;
     add_submodule(m, ::qiskit_circuit::standard_gate::standard_generators::standard_generators, "standard_generators")?;
     add_submodule(m, ::qiskit_accelerate::optimize_1q_gates::optimize_1q_gates, "optimize_1q_gates")?;
