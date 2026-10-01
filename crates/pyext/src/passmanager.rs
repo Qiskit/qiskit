@@ -21,7 +21,6 @@ use pyo3::types::PyType;
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
-use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
 use qiskit_passmanager::IR;
 use qiskit_util::dyn_types::*;
@@ -76,13 +75,11 @@ impl PyIrExposer for PyCircuitExposer {
         let owned = (ob as Box<dyn Any>)
             .downcast::<CircuitData>()
             .expect("caller should ensure typing");
-        imports::QUANTUM_CIRCUIT.get_bound(py).call_method1(
-            intern!(py, "_from_circuit_data"),
-            (PyCircuitData::from(*owned),),
-        )
+        PyCircuitData::from(*owned)
+            .into_pyobject(py)
+            .map(|ob| ob.into_any())
     }
     fn steal_from_py<'py>(&self, ob: Bound<'py, PyAny>) -> PyResult<Box<dyn IR>> {
-        let ob = ob.getattr(intern!(ob.py(), "_data"))?;
         let py_circuit = ob.cast_into::<PyCircuitData>()?;
         let mut py_circuit = py_circuit.try_borrow_mut()?;
         // TODO: this should be the infallible implementation of `Default for CircuitData`.
@@ -144,7 +141,7 @@ fn ir_exposer(mut ty: Bound<PyType>) -> PyResult<Box<dyn PyIrExposer>> {
     static PY_IR: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "IR");
     let py = ty.py();
     if ty.hasattr(intern!(py, "_qiskit_ir_builtin_"))? {
-        if ty.is_subclass(imports::QUANTUM_CIRCUIT.get_bound(py))? {
+        if ty.is_subclass_of::<PyCircuitData>()? {
             return Ok(Box::new(PyCircuitExposer));
         }
         if ty.is_subclass_of::<PyDAGCircuit>()? {

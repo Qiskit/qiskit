@@ -43,6 +43,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.passmanager import IR
 from qiskit.utils import deprecate_func, deprecate_arg
 from . import (
     Bit,
@@ -108,7 +109,7 @@ BitType = TypeVar("BitType", Qubit, Clbit)
 # it has at least some amount of organizational structure.
 
 
-class QuantumCircuit:
+class QuantumCircuit(IR):
     """Core Qiskit representation of a quantum circuit.
 
     .. note::
@@ -172,7 +173,8 @@ class QuantumCircuit:
     :attr:`clbits`                 List of :class:`Clbit`\\ s tracked by the circuit.
     :attr:`data`                   List of individual :class:`CircuitInstruction`\\ s that make up
                                    the circuit.
-    :attr:`_data`                  Python-space handle to the C API :c:struct:`QkCircuit` object.
+    :attr:`_data`                  Python-space handle to the Rust-native backing data, used by
+                                   the C API :c:struct:`QkCircuit` object.
     :attr:`duration`               Total duration of the circuit, added by scheduling transpiler
                                    passes.
                                    This attribute is deprecated and :meth:`.estimate_duration`
@@ -216,15 +218,17 @@ class QuantumCircuit:
     .. autoattribute:: data
 
     .. py::attribute:: _data
-        An opaque handle to the C API object ``QkCircuit``.
+        An opaque handle to the native Rust object backing :class:`QuantumCircuit`.
+
+        This object corresponds directly to the C API object ``QkCircuit``.
 
         .. warning::
-            No part of this object other than its existence is part of the public API.
+            No part of this object other than its existence is part of the public API in Python.
 
-        The only valid use of this object from within the public Python API is as part of the
-        extraction of a :c:struct:`QkCircuit` using :c:func:`qk_circuit_borrow_from_python` or
-        similar methods.  The Python-space type of the object is not specified in the public API,
-        and none of its methods, regardless of name, should be considered public.
+        The only valid uses of this object from within the public Python API are to pass it on to a
+        Rust- or C-native extension that expects the corresponding :c:type:`QkCircuit` (or
+        equivalent). In the C API, this is :c:func:`qk_circuit_borrow_from_python` or similar
+        methods.
 
     Alongside the :attr:`data`, the :attr:`global_phase` of a circuit can have some impact on its
     output, if the circuit is used to describe a :class:`.Gate` that may be controlled.  This is
@@ -1050,9 +1054,9 @@ class QuantumCircuit:
     .. automethod:: reverse_bits
     """
 
-    # Marker protocol for type checkers to recognise `QuantumCircuit` as a "special form" of the
-    # passmanager `IR` without us needing to add base classes.
-    _qiskit_ir_builtin_: typing.ClassVar[None] = None
+    # Implementation of the IR protocol.
+    _qiskit_ir_name_ = "QuantumCircuit"
+    _qiskit_ir_base_ = None
 
     instances = 0
     prefix = "circuit"

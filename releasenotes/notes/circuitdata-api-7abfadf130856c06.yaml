@@ -1,0 +1,6 @@
+---
+features_c:
+  - |
+    The type that backs :attr:`.QuantumCircuit._data` is now nameable as
+    :class:`qiskit.circuit.CircuitData`.  All methods and attributes on the object are still
+    private, regardless of their naming convention.
