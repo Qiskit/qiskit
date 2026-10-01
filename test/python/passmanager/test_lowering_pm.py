@@ -57,6 +57,13 @@ class CliffordCountsIR(CountsIR):
     _qiskit_ir_name_ = "CliffordCountsIR"
     _qiskit_ir_base_ = CountsIR
 
+    def __init__(self, data: dict[str, int]) -> None:
+        clifford_names = set(get_clifford_gate_names())
+        if any(key not in clifford_names for key in data):
+            raise ValueError("Non-Clifford detected!")
+
+        super().__init__(data)
+
 
 class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
     """A lowering pass from quantum circuit to DAG circuit.
