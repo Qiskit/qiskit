@@ -21,6 +21,7 @@ wrapper logic around that low-level interface.
 from __future__ import annotations
 
 import abc
+import copy as _copy
 import typing
 from collections.abc import Iterable
 from typing import Generic, ClassVar
@@ -244,12 +245,14 @@ class LoweringPassManager:
         # We can extend this method with dispatched type-checking once we expose other tasks, etc.
         self._native.push_pass(_native_pass_from_lowering_pass(pass_))
 
-    def run(self, ir: PassIRIn) -> object:
+    def run(self, ir: PassIRIn, *, copy: bool = True) -> object:
         """Run the pipeline on the given IR.
 
         Args:
-            ir: the initial IR.  This is taken by ownership; the object may be completely
-                arbitrarily mutated in place by the pass manager.
+            ir: the initial IR.
+            copy: by default, attempt to :func:`copy.copy` the input on entry.  If set to ``False``,
+                then the pass manager assumes complete ownership of ``ir``, and may arbitrarily
+                mutate the object.  This will typically result in the object becoming empty.
 
         Returns:
             the compiled and lowered IR.
@@ -257,6 +260,8 @@ class LoweringPassManager:
         Raises:
             LoweringPassManagerError: if the pipeline raised an error (or errors) related to the
                 actual compilation process.
-            TypeError: if `ir` does not match the type expected by the first pass.
+            TypeError: if ``ir`` does not match the type expected by the first pass.
         """
+        if copy:
+            ir = _copy.copy(ir)
         return self._native.run_simple(ir)
