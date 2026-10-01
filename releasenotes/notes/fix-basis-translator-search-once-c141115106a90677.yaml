@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed :class:`.BasisTranslator` to search for a translation only once
+    per unique combination of local source basis and local target basis,
+    instead of once per non-global qarg. Previously, if many qargs shared
+    the exact same required translation (for example, several qubits that
+    are all missing the same non-global gate), the expensive equivalence
+    search and the resulting circuit composition were both repeated once
+    per qarg even though the answer was identical each time. Related to
+    `#7346 <https://github.com/Qiskit/qiskit/issues/7346>`__.
