@@ -182,15 +182,20 @@ impl Task {
         //      }
         match self {
             Task::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),
-            Task::Group(group) => {
-                Some([group.first()?.io_types()?[0], group.last()?.io_types()?[1]])
-            }
-            Task::Stages(stages) => Some([
-                stages.first()?.1.io_types()?[0],
-                stages.last()?.1.io_types()?[1],
-            ]),
+            Task::Group(group) => sequence_io_types(group.iter()),
+            Task::Stages(stages) => sequence_io_types(stages.iter().map(|(_name, task)| task)),
         }
     }
+}
+
+/// Return the input and output types of a sequence of tasks if non-empty.
+fn sequence_io_types<'a>(
+    tasks: impl DoubleEndedIterator<Item = &'a Task>,
+) -> Option<[DynTypeId<'a>; 2]> {
+    let mut typed = tasks.filter_map(|task| task.io_types());
+    let first = typed.next()?;
+    let last = typed.next_back().unwrap_or(first);
+    Some([first[0], last[1]])
 }
 
 /// Qiskit's pass manager.
@@ -251,18 +256,11 @@ impl PassManager {
 
     /// Get the type identifier of the input of this pipeline.
     pub fn ir_id_in(&self) -> Option<DynTypeId<'_>> {
-        // This might not just be `last` if the last task is an empty group or stage.
-        self.tasks
-            .iter()
-            .find_map(|t| t.io_types().map(|[in_, _]| in_))
+        sequence_io_types(self.tasks.iter()).map(|[in_, _]| in_)
     }
     /// Get the type identifier of the output of this pipeline.
     pub fn ir_id_out(&self) -> Option<DynTypeId<'_>> {
-        // This might not just be `last` if the last task is an empty group or stage.
-        self.tasks
-            .iter()
-            .rev()
-            .find_map(|t| t.io_types().map(|[_, out]| out))
+        sequence_io_types(self.tasks.iter()).map(|[_, out]| out)
     }
 
     /// Try to push a [`Task`] onto the end of the task list.
@@ -303,6 +301,15 @@ fn execute_task(
     mut ir: Box<dyn IR>,
     context: &mut PassContext,
 ) -> Result<Box<dyn IR>, PassError> {
+    // TODO We might be able to only type-check in the pass manager's execution method,
+    // since the pipeline is already type-checked upon construction. For now we keep it here,
+    // which is the safer choice.
+    if let Some([task_in_type, _]) = task.io_types()
+        && task_in_type != ir.dyn_type_id()
+    {
+        return Err(PassError::Conversion);
+    }
+
     match task {
         Task::Transformation(pass) => pass.run(ir, context),
         Task::Group(tasks) => {
@@ -410,6 +417,53 @@ mod test {
         assert_eq!(nested.io_types().unwrap(), [uint_ty, uint_ty]);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_io_types_empty() {
+        assert!(Task::Group(vec![]).io_types().is_none());
+        assert!(Task::Stages(vec![]).io_types().is_none());
+
+        let nested_empty = Task::Group(vec![Task::Stages(vec![(
+            "empty".to_string(),
+            Task::Group(vec![]),
+        )])]);
+        assert!(nested_empty.io_types().is_none());
+    }
+
+    #[test]
+    fn test_io_types_skips_empty_children() {
+        let uint_ty = DynTypeId::of::<MyUint>();
+        let int_ty = DynTypeId::of::<MyInt>();
+
+        let empty = || Task::Group(vec![]);
+        let lower = || Task::Transformation(LowerToInt.into_pass());
+
+        let leading = Task::Group(vec![empty(), lower()]);
+        assert_eq!(leading.io_types().unwrap(), [uint_ty, int_ty]);
+
+        let trailing = Task::Group(vec![lower(), empty()]);
+        assert_eq!(trailing.io_types().unwrap(), [uint_ty, int_ty]);
+
+        let surrounded = Task::Stages(vec![
+            ("before".to_string(), empty()),
+            ("lower".to_string(), lower()),
+            ("after".to_string(), empty()),
+        ]);
+        assert_eq!(surrounded.io_types().unwrap(), [uint_ty, int_ty]);
+    }
+
+    #[test]
+    fn test_empty_child_keeps_type_checks() {
+        let mut pm = PassManager::new();
+        pm.try_push_static_pass(LowerToInt).unwrap();
+        assert!(
+            pm.try_push_task(Task::Group(vec![
+                Task::Group(vec![]),
+                Task::Transformation(AddOne.into_pass()),
+            ]))
+            .is_err()
+        );
     }
 
     #[test]

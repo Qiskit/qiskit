@@ -265,7 +265,7 @@ Exceptions
 .. autoexception:: PassManagerError
 """
 
-from .passmanager import BasePassManager
+from .base_passmanager import BasePassManager
 from .multistage_passmanager import MultiStagePassManager
 from .flow_controllers import (
     FlowControllerLinear,

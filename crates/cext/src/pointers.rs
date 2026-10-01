@@ -146,7 +146,6 @@ macro_rules! expose_by_arc {
         }
     }};
 }
-#[expect(unused_imports)]
 pub use {expose_by_arc, expose_by_box};
 
 /// No-op function whose only purpose is to force use of wrapping `unsafe {}` blocks around certain
