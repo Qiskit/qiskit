@@ -1,0 +1,25 @@
+---
+upgrade_c:
+  - |
+    ``QkCircuitDrawerConfig`` is now an opaque struct.  Its fields are no longer visible in
+    ``qiskit.h``, so it can no longer be declared or initialized directly; it must be created with
+    :c:func:`qk_circuit_drawer_config_new`, configured with the ``qk_circuit_drawer_config_set_*``
+    functions, and released with :c:func:`qk_circuit_drawer_config_free`.
+
+    Code that previously initialized the struct directly, such as::
+
+        QkCircuitDrawerConfig config = {false, true, 80, 0};
+        char *out = qk_circuit_draw(circuit, &config);
+        qk_str_free(out);
+
+    should now be written as::
+
+        QkCircuitDrawerConfig *config = qk_circuit_drawer_config_new();
+        qk_circuit_drawer_config_set_bundle_cregs(config, false);
+        qk_circuit_drawer_config_set_fold(config, 80);
+        char *out = qk_circuit_draw(circuit, config);
+        qk_str_free(out);
+        qk_circuit_drawer_config_free(config);
+
+    Passing ``NULL`` to :c:func:`qk_circuit_draw` as the configuration continues to select the
+    default options.

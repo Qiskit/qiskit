@@ -16,6 +16,7 @@ mod pointers;
 mod py;
 
 pub mod circuit;
+pub mod circuit_draw;
 pub mod circuit_library;
 pub mod classical_expr;
 pub mod control_flow;
