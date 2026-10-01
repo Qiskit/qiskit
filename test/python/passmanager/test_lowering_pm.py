@@ -32,6 +32,7 @@ from qiskit.passmanager import (
     Task,
 )
 from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.transpiler import generate_preset_pass_manager, CouplingMap, TranspileLayout, Target
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
 
@@ -48,6 +49,13 @@ class CountsIR(IR):
     def __init__(self, data: dict[str, int]) -> None:
         super().__init__()
         self.data = data
+
+
+class CliffordCountsIR(CountsIR):
+    """An IR deriving from CountsIR."""
+
+    _qiskit_ir_name_ = "CliffordCountsIR"
+    _qiskit_ir_base_ = CountsIR
 
 
 class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
@@ -598,3 +606,11 @@ class TestLoweringPassManager(QiskitTestCase):
 
         out = pm.run(circuit, copy=False)
         self.assertIsInstance(out, DAGCircuit)
+
+    def test_subclassed_ir(self):
+        """Test running a pass on the parent class on the subclass."""
+
+        pm = LoweringPassManager([PopCounts(["h"])])
+        ir = CliffordCountsIR({"h": 2, "x": 12})
+        out = pm.run(ir)
+        self.assertEqual(out.data, {"x": 12})
