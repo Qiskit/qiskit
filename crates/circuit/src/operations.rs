@@ -153,7 +153,7 @@ impl Param {
     }
 
     /// Compares the equality of two parameters of specifically the same kind
-    pub fn strict_eq(&self, other: &Param) -> PyResult<bool> {
+    pub fn typed_eq(&self, other: &Param) -> PyResult<bool> {
         match [self, other] {
             [Param::ParameterExpression(a), Param::ParameterExpression(b)] => Ok(a == b),
             [Param::Float(a), Param::Float(b)] => Ok(a.total_cmp(b) == Ordering::Equal),
@@ -170,6 +170,25 @@ impl Param {
     pub fn is_close(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
+            [Self::Int(a), Self::Float(b)] | [Self::Float(b), Self::Int(a)] => {
+                Ok(relative_eq!(*a as f64, b, max_relative = max_relative))
+            }
+            [Self::ParameterExpression(a), Self::Float(b)]
+            | [Self::Float(b), Self::ParameterExpression(a)] => {
+                Ok(float_is_close_expr(*b, a.as_ref(), max_relative))
+            }
+            [Self::Int(a), Self::ParameterExpression(b)]
+            | [Self::ParameterExpression(b), Self::Int(a)] => {
+                let left = Value::from(*a);
+                let Ok(right) = b.try_to_value(false) else {
+                    return Ok(false);
+                };
+                Ok(val_is_close(&left, &right, max_relative))
+            }
+            [
+                Self::ParameterExpression(left),
+                Self::ParameterExpression(right),
+            ] => Ok(expr_is_close(left.as_ref(), right.as_ref(), max_relative)),
             _ => self.eval_eq(other),
         }
     }
@@ -177,7 +196,11 @@ impl Param {
     pub fn is_close_strict(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
-            _ => self.strict_eq(other),
+            [
+                Self::ParameterExpression(left),
+                Self::ParameterExpression(right),
+            ] => Ok(expr_is_close(left.as_ref(), right.as_ref(), max_relative)),
+            _ => self.typed_eq(other),
         }
     }
 
@@ -350,6 +373,63 @@ fn float_eq_expr(float: f64, expr: &ParameterExpression) -> bool {
         return false;
     };
     val == float
+}
+
+/// Compares the closeness a floating point number to a [`ParameterExpression`]
+fn float_is_close_expr(float: f64, expr: &ParameterExpression, max_relative: f64) -> bool {
+    let Ok(value) = expr.try_to_value(false) else {
+        return false;
+    };
+    float_is_close_value(float, &value, max_relative)
+}
+
+/// Compares the closeness an integer to a [`ParameterExpression`]
+fn float_is_close_value(float: f64, value: &Value, max_relative: f64) -> bool {
+    match value {
+        Value::Real(val) => relative_eq!(float, val, max_relative = max_relative),
+        Value::Int(val) => {
+            // Lossy conversion
+            relative_eq!(float, *val as f64, max_relative = max_relative)
+        }
+        Value::Complex(complex) => {
+            let float_as_complex: Complex64 = float.into();
+            relative_eq!(float_as_complex, complex, max_relative = max_relative)
+        }
+    }
+}
+
+/// Compares the closeness of two [`Value`] instances
+fn val_is_close(left: &Value, right: &Value, max_relative: f64) -> bool {
+    match [left, right] {
+        [value, Value::Real(float)] | [Value::Real(float), value] => {
+            // Lossy conversion
+            float_is_close_value(*float, value, max_relative)
+        }
+        [Value::Int(a), Value::Int(b)] => {
+            // An integer comparison should always be true regardless of closeness.
+            a == b
+        }
+        [Value::Int(int), Value::Complex(complex)] | [Value::Complex(complex), Value::Int(int)] => {
+            let int_as_complex: Complex64 = (*int as f64).into();
+            relative_eq!(int_as_complex, complex, max_relative = max_relative)
+        }
+        [Value::Complex(left), Value::Complex(right)] => {
+            relative_eq!(left, right, max_relative = max_relative)
+        }
+    }
+}
+
+/// Compares the closeness of two [`ParameterExpression`] instances
+fn expr_is_close(
+    left: &ParameterExpression,
+    right: &ParameterExpression,
+    max_relative: f64,
+) -> bool {
+    let [Ok(left), Ok(right)] = [left.try_to_value(false), right.try_to_value(false)] else {
+        // If closeness not available, compare by equality.
+        return left == right;
+    };
+    val_is_close(&left, &right, max_relative)
 }
 
 /// Compares a [`Py<PyAny>`] to any other object that can be converted to Python.

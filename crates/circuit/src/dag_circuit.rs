@@ -2594,7 +2594,7 @@ impl PyDAGCircuit {
         if !self
             .inner
             .global_phase
-            .strict_eq(&other.inner.global_phase)?
+            .typed_eq(&other.inner.global_phase)?
         {
             return Ok(false);
         }
@@ -2626,7 +2626,7 @@ impl PyDAGCircuit {
                 return Ok(false);
             }
             for (left, right) in from_self_params.iter().zip(from_other_params.iter()) {
-                if !left.strict_eq(right)? {
+                if !left.typed_eq(right)? {
                     return Ok(false);
                 }
             }
