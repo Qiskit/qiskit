@@ -291,15 +291,14 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertAlmostEqual(energy(exact), np.average(qdrift_energy), places=2)
 
     def test_qdrift_zero_time(self):
-        gate = PauliEvolutionGate(SparsePauliOp('X', coeffs=[1]), time=0)
+        gate = PauliEvolutionGate(SparsePauliOp("X", coeffs=[1]), time=0)
         expanded = QDrift(seed=123).expand(gate)
         self.assertEqual(expanded, [])
 
     def test_qdrive_zero_hermitian(self):
-        gate = PauliEvolutionGate(SparsePauliOp('X', coeffs=[0]), time=1)
+        gate = PauliEvolutionGate(SparsePauliOp("X", coeffs=[0]), time=1)
         expanded = QDrift(seed=123).expand(gate)
         self.assertEqual(expanded, [])
-
 
     @data(True, False)
     def test_passing_grouped_paulis(self, wrap):
