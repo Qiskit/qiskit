@@ -13,9 +13,9 @@
 """
 Python interface to the Rust lowering pass manager objects.
 
-Much of the actual driver logic here is defined in the Rust `qiskit_pyext::passmanager` module, but
-that's the very low-level private interface.  This module provides the Python-friendly higher-order
-wrapper logic around that low-level interface.
+Much of the actual driver logic here is defined in the Rust ``qiskit_pyext::passmanager`` module,
+but that's the very low-level private interface.  This module provides the Python-friendly
+higher-order wrapper logic around that low-level interface.
 """
 
 from __future__ import annotations
@@ -41,22 +41,18 @@ __all__ = [
 
 
 class IR:
-    """An interface for objects that can be used as IRs in a :class:`LoweringPassManager`.
+    """An interface for objects that can be used as IRs by a :class:`Pass` in a
+    :class:`LoweringPassManager`.
 
-    Consuming
-    =========
+    Note that all methods named ``_qiskit_*_`` are interface methods that are only for Qiskit to
+    call.  These are documented for implementers, but are generally not stable for users to call;
+    Qiskit may allow implementations to fulfil one of several contracts for the method, and
+    additional alternatives may be added in new versions.  Qiskit will maintain stability within its
+    own use of these protocols, but they are not stable for public consumption.
 
-    This object only defines an interface for subclasses to be called by Qiskit itself.  Unless
-    otherwise noted, *consumers* of instances of classes derived from this should not consider any
-    of the documented names as public; the call signatures and types may add additional variants
-    without warning, as Qiskit may define alternative calling conventions that an interface may opt
-    in to, without considering it a breaking API change.
-
-    Deriving
-    ========
-
-    Implementers of subclasses should override the methods, and are free to change the methods and
-    signatures in line with this documentation about per-Qiskit-version calling signatures.
+    Implementers of subclasses should override the attributes and methods, and are free to change
+    the methods and signatures in line with this documentation about per-Qiskit-version calling
+    signatures.
 
     Qiskit reserves the attribute and method namespace ``_qiskit_ir_*_`` for future expansion of
     this interface.  Qiskit will not define and attributes or methods in the interface outside this
@@ -91,10 +87,15 @@ class LoweringPassManagerError(PassManagerError):
 class PassContextHandle:
     """The execution context for a given pass in a lowering pipeline.
 
+    This object is created within the Rust components of the pass manager; you do not need to
+    instantiate one yourself.
+
     This object is given to the :meth:`Pass._qiskit_pass_run_` method, and passes may use its
     methods to interact with the execution context.  The object is specific to a single call of
     :meth:`._qiskit_pass_run_`; its data is invalidated once that method has returned, and attempts
     to use it will just raise exceptions.
+
+    You should not store or leak instances of this object anywhere.
     """
 
     _native: passmanager.PassContextHandle
@@ -156,20 +157,15 @@ PassIROut = TypeVar("PassIROut", bound=IR, default=PassIRIn)
 class Pass(Generic[PassIRIn, PassIROut], abc.ABC):
     """An interface for defining passes over IRs.
 
-    Consuming
-    =========
+    This is primarily an *implementation* interface.  The typical way to safely consume a
+    :class:`Pass` is to put it into a :class:`LoweringPassManager`, and call the pass manager's
+    methods.
 
-    This object only defines an interface for subclasses to be called by Qiskit itself.  Unless
-    otherwise noted, *consumers* of instances of classes derived from this should not consider any
-    of the documented names as public; the call signatures and types may add additional variants
-    without warning, as Qiskit may define alternative calling conventions that an interface may opt
-    in to, without considering it a breaking API change.
-
-    The typical way to safely consume a :class:`Pass` is to put it into a
-    :class:`LoweringPassManager`, and call its methods.
-
-    Deriving
-    ========
+    Note that all methods named ``_qiskit_*_`` are interface methods that are only for Qiskit to
+    call.  These are documented for implementers, but are generally not stable for users to call;
+    Qiskit may allow implementations to fulfil one of several contracts for the method, and
+    additional alternatives may be added in new versions.  Qiskit will maintain stability within its
+    own use of these protocols, but they are not stable for public consumption.
 
     Implementers of subclasses should override the methods, and are free to change the methods and
     signatures in line with this documentation about per-Qiskit-version calling signatures.
@@ -196,13 +192,13 @@ class Pass(Generic[PassIRIn, PassIROut], abc.ABC):
     def _qiskit_pass_run_(self, ir: PassIRIn, context: PassContextHandle) -> PassIROut:
         """Run the pass on the given IR, returning the next IR object.
 
-        The pass "owns" the `ir` object that comes in, and can do anything it likes with it; passes
-        can assume they hold the only reference to the object.  However, the execution environment
-        of passes also assumes that it has sole ownership of the output in a similar manner.  This
-        means that you cannot "leak" references to the value returned outside the function; if you
-        store references anywhere, they may see nonsense but valid data after this method has
-        completed, or cause the execution pipeline to raise an access error.  If you want to leak
-        out the data, you will need to ensure you produce copies.
+        The pass "owns" the ``ir`` object that comes in, and can do anything it likes with it;
+        passes can assume they hold the only reference to the object.  However, the execution
+        environment of passes also assumes that it has sole ownership of the output in a similar
+        manner.  This means that you cannot "leak" references to the value returned outside the
+        function; if you store references anywhere, they may see nonsense but valid data after this
+        method has completed, or cause the execution pipeline to raise an access error.  If you want
+        to leak out the data, you will need to ensure you produce copies.
 
         Args:
             ir: the input IR to run the pass on.  This can be assumed to be of the correct type as
@@ -223,25 +219,34 @@ class Pass(Generic[PassIRIn, PassIROut], abc.ABC):
 
 def _native_pass_from_lowering_pass(pass_: Pass) -> passmanager.PyPass:
     """Interpret the given implementation of :class:`Pass`, resolving any version /
-    calling-signature conventions, into a Rust-native `PyPass`."""
+    calling-signature conventions, into a Rust-native ``PyPass``."""
 
 
 @typing.final
 class LoweringPassManager:
-    """Python interface to the Rust-native multi-IR pass manager.
+    """A multi-step pass manager that may lower through several IRs.
 
     Internally, this holds a handle to a low-level Rust-native pass manager.  This class then
-    provides a Pythonic interface for interacting with the base object.  The corresponding object in
-    the C API is :c:type:`QkPassManager`.
+    provides a Pythonic interface for interacting with the base object.  The corresponding object of
+    the Rust-native component in the C API is :c:type:`QkPassManager`.
     """
 
     def __init__(self, tasks: Iterable[Pass] = ()):
+        """
+        Args:
+            tasks: any tasks with which to initialize the pass manager.  Passing this is equivalent
+                to calling :meth:`append` in a loop with the arguments.
+        """
         self._native = passmanager.PassManager()
         for task in tasks:
             self.append(task)
 
     def append(self, pass_: Pass, /):
-        """Push a Python-native pass to the end of the current pipeline."""
+        """Push a Python-native pass to the end of the current pipeline.
+
+        Args:
+            pass_: the pass to push.
+        """
         # We can extend this method with dispatched type-checking once we expose other tasks, etc.
         self._native.push_pass(_native_pass_from_lowering_pass(pass_))
 

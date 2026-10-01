@@ -11,11 +11,24 @@
 # that they have been altered from the originals.
 
 """
-=======================================
-Passmanager (:mod:`qiskit.passmanager`)
-=======================================
+=========================================
+Pass Managers (:mod:`qiskit.passmanager`)
+=========================================
 
 .. currentmodule:: qiskit.passmanager
+
+.. note::
+    As of Qiskit v2.6, there are two separate non-interacting pass-manager systems defined in
+    Qiskit, and Qiskit is beginning to transition away from the pure-Python system.  The original,
+    earlier pass-manager infrastructure is discussed in :ref:`passmanager-legacy`.  The new,
+    Rust-native system, which supports multiple IRs and natively handles interoperation with C and
+    Rust code is discussed in :ref:`passmanager-lowering`.
+
+.. _passmanager-legacy:
+
+-----------------------------------
+Original Python-native pass manager
+-----------------------------------
 
 Overview
 ========
@@ -263,6 +276,44 @@ Exceptions
 ----------
 
 .. autoexception:: PassManagerError
+
+.. _passmanager-lowering:
+
+------------------------------
+Multi-IR Lowering Pass Manager
+------------------------------
+
+The "new" Qiskit pass manager is :class:`LoweringPassManager`.  This is newly designed, with the
+intention to permit native interoperation between compiled code and Python, and to permit a
+pipeline to lower through a series of intermediate representations (IRs).
+
+From a user perspective, you will create a :class:`LoweringPassManager`, populate it with a series
+of :class:`Pass` instances, each of which defines which :class:`IR` it accepts and returns, and then
+simply :meth:`~LoweringPassManager.run` the pipeline.  Alternatively, you may receive a
+:class:`LoweringPassManager` from a constructor function, which builds a preconfigured pipeline for
+you.
+
+.. autoclass:: LoweringPassManager
+
+Developers will need to implement passes, and potentially introduce new IRs.  Both of these base
+objects define their subclass interfaces.
+
+.. autoclass:: IR
+    :members:
+    :private-members:
+.. autoclass:: Pass
+    :members:
+    :private-members:
+
+Implementers of :class:`Pass` get a "handle" object, which can be used to interact with the pipeline
+execution context.
+
+.. autoclass:: PassContextHandle
+
+There are two exceptions associated with the lowering pass-manager infrastructure:
+
+.. autoexception:: PassError
+.. autoexception:: LoweringPassManagerError
 """
 
 from .base_passmanager import BasePassManager
