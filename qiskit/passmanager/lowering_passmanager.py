@@ -57,17 +57,50 @@ class IR:
     Qiskit reserves the attribute and method namespace ``_qiskit_ir_*_`` for future expansion of
     this interface.  Qiskit will not define and attributes or methods in the interface outside this
     namespace.
+
+    .. note::
+        The native :class:`IR` system does not have a concept of Python's subclasses; an object is
+        identified as being of at most one IR type, which is the first type in its resolution order
+        that sets :attr:`_qiskit_ir_base_`, or the sole direct subclass of :class:`IR` if there is
+        only one.
     """
 
-    _qiskit_ir_name_: ClassVar[str]
-    """A human-readable name for the type of IR."""
+    _qiskit_ir_name_: ClassVar[str] = ""
+    """A human-readable name for the type of IR.
+
+    Defaults to the name of base class implementing :class:`IR` if unset (or empty)."""
 
     _qiskit_ir_base_: ClassVar[type[IR] | None] = None
-    """If your IR permits subclassing, then set this to the base type, which defines the IR.
+    """Mark a subclass of an existing :class:`IR` as a *new* intermediate representation.
 
-    If this is ``None``, then each subclass will be considered a separate type for dynamic
-    type-checking purposes.  If not ``None``, then subclasses must not override the IR interface
-    attributes or methods."""
+    You only very rarely need to set this.
+
+    There are three cases to think about:
+
+    * You define a new class that subclasses :class:`IR` directly, and none of its supertypes are
+      instances of :class:`IR` (the most common case).
+
+      You do not need to set this atttribute, but may explicitly set it to ``None`` (these have the
+      same meaning).
+
+    * You define a new class that subclasses an existing implementation of :class:`IR` for reasons
+      unrelated to the :class:`IR` system.  You want instances of your subclass to be treated by the
+      pass-manager system as if they're compatible with the base :class:`IR`.
+
+      You must not set this atttribute (nor override any other attributes or methods).
+
+    * You define a new class that subclasses an existing implementation of :class:`IR`, and you want
+      it to be considered as a _new_ IR.
+
+      You must set this atttribute to ``None``.
+
+    After class creation, the value of this class variable will be set to the resolved base
+    :class:`IR` implementer.
+    """
+
+    def __init_subclass__(cls):
+        cls._qiskit_ir_name_ = cls._qiskit_ir_name_ or cls.__name__
+        cls._qiskit_ir_base_ = cls._qiskit_ir_base_ or cls
 
 
 @typing.final
