@@ -138,7 +138,7 @@ pub fn sampled_expval_sparse_observable(
     dist: HashMap<String, f64>,
 ) -> PyResult<Complex64> {
     // Access the SparseObservable
-    let sparse_obs = sparse_obs.as_inner()?;
+    let sparse_obs = sparse_obs.inner();
     let result: PyResult<Complex64> =
         sparse_obs
             .iter()

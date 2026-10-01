@@ -157,10 +157,10 @@ fn try_extract_op_from_pauli_gate(
             .cast_bound::<PySparseObservable>(py)
             .expect("Failed casting to PySparseObservable")
             .borrow();
-        let local = py_obs.as_inner().expect("Failed to read");
+        let local = py_obs.inner();
 
         let out = SparseObservable::identity(num_qubits);
-        Some(out.compose_map(&local, |i| qubits[i as usize].0))
+        Some(out.compose_map(local, |i| qubits[i as usize].0))
     })
 }
 
@@ -182,10 +182,10 @@ fn try_extract_op_from_pauli_evo(
             .cast_bound::<PySparseObservable>(py)
             .expect("Failed casting to PySparseObservable")
             .borrow();
-        let local = py_obs.as_inner().expect("Failed to read");
+        let local = py_obs.inner();
 
         let out = SparseObservable::identity(num_qubits);
-        Some(out.compose_map(&local, |i| qubits[i as usize].0))
+        Some(out.compose_map(local, |i| qubits[i as usize].0))
     })
 }
 

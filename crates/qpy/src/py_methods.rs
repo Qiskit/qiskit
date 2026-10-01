@@ -204,9 +204,7 @@ fn pack_sparse_pauli_op(
         let py_sparse_observable: PyRef<PySparseObservable> = operator
             .extract()
             .map_err(|e| QpyError::from(PyErr::from(e)))?;
-        let sparse_observable = py_sparse_observable.inner.read().map_err(|_| {
-            QpyError::ConversionError("Can't extract sparse observable data".to_string())
-        })?;
+        let sparse_observable = py_sparse_observable.inner();
         let num_qubits = sparse_observable.num_qubits();
         let coeff_data = sparse_observable
             .coeffs()

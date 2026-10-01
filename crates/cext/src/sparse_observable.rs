@@ -1157,19 +1157,14 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
 #[cfg(feature = "python_binding")]
 mod py {
     use crate::pointers::mut_ptr_as_ref;
-    use pyo3::exceptions::PyRuntimeError;
     use pyo3::prelude::*;
     use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
-    use std::sync;
 
     fn try_project_inner_observable<'a>(
         _py: Python<'_>,
         py_obs: &'a mut PySparseObservable,
     ) -> PyResult<&'a mut SparseObservable> {
-        sync::Arc::get_mut(&mut py_obs.inner)
-            .ok_or_else(|| PyRuntimeError::new_err("observable is not uniquely referenced"))?
-            .get_mut()
-            .map_err(|_| PyRuntimeError::new_err("inner observable is poisoned"))
+        Ok(py_obs.inner_mut())
     }
 
     /// @ingroup QkObs
