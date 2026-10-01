@@ -66,7 +66,8 @@ class DagToCircuit(Pass[DAGCircuit, QuantumCircuit]):
     def _qiskit_pass_run_(self, ir, context):
         context.ir_modified = True
         circuit = ir.to_circuit(copy_operations=False)
-        if self.with_layout and (layout := context.get("layout")) is not None:
+
+        if self.with_layout:
             property_set = LegacyDagPass._state_from_context(context).property_set
             circuit._layout = TranspileLayout.from_property_set(ir, property_set)
         return circuit
@@ -484,8 +485,9 @@ class TestLoweringPassManager(QiskitTestCase):
         self.assertEqual(out.count_ops(), {"cx": 1, "rx": 1})
 
     def test_legacy_pipeline(self):
+        """Test running the legacy pipeline in the new system."""
         backend = GenericBackendV2(25, coupling_map=CouplingMap.from_grid(5, 5))
-        legacy_pm = generate_preset_pass_manager(backend=backend)
+        legacy_pm = generate_preset_pass_manager(backend=backend, seed_transpiler=23)
         pm = LoweringPassManager(
             [CircuitToDag()]
             + [LegacyDagPass(task) for task in legacy_pm.to_flow_controller().tasks]
@@ -500,7 +502,5 @@ class TestLoweringPassManager(QiskitTestCase):
         expect = legacy_pm.run(circuit)
         out = pm.run(circuit)
 
-        print(expect.layout)
-        print(out.layout)
-
         self.assertEqual(expect, out)
+        self.assertIsInstance(out.layout, TranspileLayout)
