@@ -1,5 +1,5 @@
 ---
 performance:
   - Improved the performance of the :class:`.CommutativeOptimization` transpiler pass
-    for circuits containing many single-qubit RX, RY and RZ gates and their equivalents.
+    on circuits where many gates can be canceled or merged with each other.
     See `#17088 <https://github.com/Qiskit/qiskit/pull/17088>`__ for more details.

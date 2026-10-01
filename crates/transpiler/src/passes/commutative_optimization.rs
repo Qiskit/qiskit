@@ -25,14 +25,13 @@ use crate::passes::common::{MINIMUM_TOL, average_gate_fidelity_below_tol};
 use crate::passes::remove_identity_equiv::is_identity_equiv;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
+use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
     StandardGate, multiply_param, radd_param,
 };
-use qiskit_circuit::{BlocksMode, Clbit, NoBlocks, Qubit, imports};
-
-use qiskit_circuit::VarsMode;
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::{BlocksMode, Clbit, NoBlocks, Qubit, VarsMode, imports};
 
 /// Holds the action for each node in the original DAGCircuit.
 #[derive(Clone, Debug)]
@@ -44,10 +43,10 @@ enum NodeAction {
     /// However, unless this representative gate is removed or merged,
     /// we will add the original instruction to the output circuit.
     Canonical(PackedInstruction, Param),
-    /// The node's instruction has been removed. For removed RX, RY and RZ instructions
-    /// that are not equivalent to identity, we additionally save the kind of the instruction
-    /// and the qubit it acts on.
-    Drop(Option<(StandardGate, usize)>),
+    /// The node's instruction has been removed. If the removed instruction is a standard
+    /// gate in `PARAMETER_INDEPENDENT_COMMUTATION_GATES`, we additionally save the gate
+    /// and the qubits it acts on.
+    Drop(Option<(StandardGate, Interned<[Qubit]>)>),
     /// The node's instruction has been replaced by the current instruction.
     Replace(PackedInstruction),
 }
@@ -87,7 +86,7 @@ static SYMMETRIC_GATES: [StandardGate; 12] = [
 
 /// List of single-parameter rotation gates. This gates can be merged into a gate
 /// of the same class with the summed parameter. The list should contain only the
-/// "canonical" gates that remain after `canonicalize`.`
+/// "canonical" gates that remain after `canonicalize`.
 static MERGEABLE_ROTATION_GATES: [StandardGate; 12] = [
     StandardGate::RX,
     StandardGate::RY,
@@ -101,6 +100,47 @@ static MERGEABLE_ROTATION_GATES: [StandardGate; 12] = [
     StandardGate::CRZ,
     StandardGate::CPhase,
     StandardGate::CU1,
+];
+
+/// List of gates such that all nontrivial instances of this gate either commute
+/// or all do not commute with a given unitary `U`. This includes gates without
+/// parameters (such as CX) and single-qubit rotation gates represented by a single
+/// generator (such as RX), but this does not include gates such as `R` or such
+/// as `CRX`. Here, "nontrivial" means not equivalent to identity up to a global phase.
+static PARAMETER_INDEPENDENT_COMMUTATION_GATES: [StandardGate; 33] = [
+    StandardGate::H,
+    StandardGate::X,
+    StandardGate::Y,
+    StandardGate::Z,
+    StandardGate::Phase,
+    StandardGate::RX,
+    StandardGate::RY,
+    StandardGate::RZ,
+    StandardGate::S,
+    StandardGate::Sdg,
+    StandardGate::SX,
+    StandardGate::SXdg,
+    StandardGate::T,
+    StandardGate::Tdg,
+    StandardGate::U1,
+    StandardGate::CH,
+    StandardGate::CX,
+    StandardGate::CY,
+    StandardGate::CZ,
+    StandardGate::DCX,
+    StandardGate::ECR,
+    StandardGate::Swap,
+    StandardGate::ISwap,
+    StandardGate::CS,
+    StandardGate::CSdg,
+    StandardGate::RXX,
+    StandardGate::RYY,
+    StandardGate::RZX,
+    StandardGate::RZZ,
+    StandardGate::CCX,
+    StandardGate::CCZ,
+    StandardGate::CSwap,
+    StandardGate::RCCX,
 ];
 
 /// Check if `inst` is symmetric for some special values of its parameters,
@@ -664,10 +704,12 @@ pub fn run_commutative_optimization(
         let qargs1: &[Qubit] = new_dag.get_qargs(instr1.qubits);
         let cargs1: &[Clbit] = new_dag.get_cargs(instr1.clbits);
 
-        let rot1 = match instr1.op.view() {
-            OperationRef::StandardGate(
-                gate @ (StandardGate::RX | StandardGate::RY | StandardGate::RZ),
-            ) => Some((gate, qargs1[0].index())),
+        let key1 = match instr1.op.view() {
+            OperationRef::StandardGate(gate)
+                if PARAMETER_INDEPENDENT_COMMUTATION_GATES.contains(&gate) =>
+            {
+                Some((gate, instr1.qubits))
+            }
             _ => None,
         };
 
@@ -685,14 +727,13 @@ pub fn run_commutative_optimization(
                 NodeAction::Drop(None) => {
                     continue;
                 }
-                NodeAction::Drop(Some((kind, q))) => {
-                    // For RX, RY and RZ gates we have an additional optimization.
-                    // Note that if such a gate is not equivalent to identity, then the commutation with an arbitrary
-                    // instruction only depends on the gate kind (i.e. RX, RY, RZ) and the qubit it acts on.
-                    // If during backward scan from idx1 we reached a removed gate of the same kind on the same qubit,
-                    // then we can immediately skip all the gates the removed instruction was known to commute with
+                NodeAction::Drop(Some(key2)) => {
+                    // We apply an addition optimization when the commutativity of the instruction
+                    // only depends on its kind and the qubits it acts on (e.g. RX or CX).
+                    // If during the backward scan we reach a removed instruction of the same kind and acting on the same,
+                    // qubits, then we can immediately skip all the gates the removed instruction was known to commute with
                     // prior to being removed.
-                    if matches!(rot1, Some((rot_kind, rot_q)) if rot_kind == *kind && rot_q == *q) {
+                    if key1 == Some(*key2) {
                         idx2 = commutes_to[idx2];
                     }
                     continue;
@@ -721,10 +762,10 @@ pub fn run_commutative_optimization(
                 if let Some(merged_instruction) = merged_instruction {
                     node_actions[idx1] = NodeAction::Replace(merged_instruction);
                 } else {
-                    node_actions[idx1] = NodeAction::Drop(rot1);
+                    node_actions[idx1] = NodeAction::Drop(key1);
                 }
 
-                node_actions[idx2] = NodeAction::Drop(rot1);
+                node_actions[idx2] = NodeAction::Drop(key1);
                 new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
                 new_global_phase = radd_param(new_global_phase, extraphase1.clone());
                 new_global_phase = radd_param(new_global_phase, extraphase2.clone());
