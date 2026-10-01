@@ -165,14 +165,6 @@ class LyingBuiltinOutput(Pass[QuantumCircuit]):
         return ir
 
 
-class LyingOutput(Pass[QuantumCircuit]):
-    _qiskit_pass_ir_in_ = QuantumCircuit
-    _qiskit_pass_ir_out_ = CountsIR  # define CountsIR as return, but we return a QC
-
-    def _qiskit_pass_run_(self, ir, context):
-        return ir
-
-
 class VerifyContext(Pass[DAGCircuit]):
     """A pass raising an error if a defined key is not in the pass context."""
 
@@ -522,25 +514,6 @@ class TestLoweringPassManager(QiskitTestCase):
             cause = ctx.exception.__cause__
             self.assertIsInstance(cause, TypeError)
             self.assertRegex(str(cause), ".* is not an instance of .*")
-
-    # TODO Enable this test once we catch the type error that the pass returns another IR
-    # than it specified in _qiskit_pass_ir_out_.
-    # def test_mismatched_custom_output(self):
-    #     """Test a pipeline where a pass returns another IR than it specified."""
-    #     for pm in [
-    #         LoweringPassManager([LyingOutput(), PopCounts(["t"])]),
-    #         LoweringPassManager([LyingOutput()]),
-    #     ]:
-    #         circuit = QuantumCircuit(2)
-    #         circuit.cry(0.123, 0, 1)
-    #         _ = pm.run(circuit)
-
-    #         with self.assertRaises(LoweringPassManagerError) as ctx:
-    #             _ = pm.run(circuit)
-
-    #         cause = ctx.exception.__cause__
-    #         self.assertIsInstance(cause, TypeError)
-    #         self.assertRegex(str(cause), ".* is not an instance of .*")
 
     def test_pass_error(self):
         """Test the error a pass is raising is propagated."""
