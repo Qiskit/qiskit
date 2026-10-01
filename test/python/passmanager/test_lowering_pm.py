@@ -365,6 +365,7 @@ class TestLoweringPassManager(QiskitTestCase):
                 self.assertEqual(expected, pm.run(circuit))
 
     def test_empty_pm(self):
+        """Test that an empty pass manager works and acts trivially."""
         pm = LoweringPassManager()
 
         circuit = QuantumCircuit(11)
@@ -544,6 +545,7 @@ class TestLoweringPassManager(QiskitTestCase):
         self.assertRegex(str(cause), "vacation\\? not found!")
 
     def test_legacy_pass(self):
+        """Test a pass that runs by wrapping a legacy pass manager pass functions."""
         pm = LoweringPassManager(
             [CircuitToDag(), LegacyDagPass(RemoveIdentityEquivalent()), DagToCircuit()]
         )
