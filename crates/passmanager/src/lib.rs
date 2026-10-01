@@ -260,7 +260,7 @@ impl PassManager {
     pub fn run_erased(
         &self,
         mut ir: Box<dyn IR>,
-    ) -> anyhow::Result<(Box<dyn IR>, PassManagerContext)> {
+    ) -> Result<(Box<dyn IR>, PassManagerContext), PassError> {
         let mut context = PassManagerContext::new();
         for task in self.tasks.iter() {
             let mut pass_context = PassContext::spawn(&context);

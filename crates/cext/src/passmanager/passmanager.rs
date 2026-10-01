@@ -142,6 +142,6 @@ pub unsafe extern "C" fn qk_passmanager_run_simple(
                 ir_out_handle.0.leak(ir_out)
             }
         }
-        Err(e) => parse_error(e),
+        Err(e) => parse_error(e.into()),
     }
 }

@@ -14,7 +14,6 @@ use std::any::Any;
 use std::mem;
 use std::sync::{Arc, RwLock};
 
-use anyhow::anyhow;
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyTypeError};
 use pyo3::gc::PyVisit;
 use pyo3::prelude::*;
@@ -283,17 +282,8 @@ impl qiskit_passmanager::Pass for PyPassInner {
             // internal `PassContext` from it, and we ensured that `stolen` drops as this function
             // ends, so the lifetime of the internal object actually ends with `'a`.
             let handle = unsafe { stolen.handle() };
-            self.run_py(py, ir, handle).map_err(|e| {
-                // `<PyErr as Display>` internally requires the interpreter, so we'll pull out the
-                // message while we know we're attached.
-                let native = e.to_string();
-                // Stash the exception back into the global state; when we next return to the Python
-                // interpreter we should be able to retrieve it and attach it as the cause.
-                e.restore(py);
-                anyhow!("Python execution raised an exception.")
-                    .context(native)
-                    .into()
-            })
+            self.run_py(py, ir, handle)
+                .map_err(|e| qiskit_passmanager::PassError::Runtime(e.into()))
         })
     }
 }
@@ -489,14 +479,19 @@ impl PyPassManager {
                     )))
                 }
             }
-            Err(e) => {
-                let e = LoweringPassManagerError::new_err(e.to_string());
-                // Python passes might have left a Python exception in the global state.  Let's pull
-                // it out to check.
-                if let Some(cause) = PyErr::take(py) {
-                    e.set_cause(py, Some(cause));
+            Err(e @ qiskit_passmanager::PassError::Conversion) => {
+                Err(PyTypeError::new_err(e.to_string()))
+            }
+            Err(qiskit_passmanager::PassError::Runtime(e)) => {
+                // TODO: at some point we should add more structure.
+                let outer = LoweringPassManagerError::new_err(e.to_string());
+                // If there's a Python exception in the chain, we'll attach it as our exception's
+                // "cause".  We'll assume that if there are multiple Python exceptions, then it was
+                // the propagator's responsibility to chain them, if appropriate.
+                if let Some(pyerr) = e.chain().find_map(|e| e.downcast_ref::<PyErr>()) {
+                    outer.set_cause(py, Some(pyerr.clone_ref(py)));
                 }
-                Err(e)
+                Err(outer)
             }
         }
     }
