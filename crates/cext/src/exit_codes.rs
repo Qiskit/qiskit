@@ -78,6 +78,10 @@ pub enum ExitCode {
     ParameterNameConflict = 601,
     /// QPY serialization, deserialization, or file I/O failed.
     QpyError = 700,
+    /// QkCircuit operation error
+    CircuitError = 800,
+    /// Incorrect delay unit added to the circuit. Use specialized function.
+    IncorrectDelayUnit = 801,
 }
 
 impl From<ArithmeticError> for ExitCode {
