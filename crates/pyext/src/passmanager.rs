@@ -187,7 +187,7 @@ fn ir_exposer(mut ty: Bound<PyType>) -> PyResult<Box<dyn PyIrExposer>> {
 }
 
 /// Private Rust-Python boundary object that represents a handle to a pass coming from Python.
-#[pyclass]
+#[pyclass(module = "qiskit._accelerate.passmanager")]
 pub struct PyPass(Option<PyPassInner>);
 #[pymethods]
 impl PyPass {
@@ -331,7 +331,7 @@ impl<'a, 'b> Drop for StolenContext<'a, 'b> {
 ///
 /// Methods on this handle object should attempt to hold locks from the [`RwLock`] for as short
 /// periods as possible.
-#[pyclass]
+#[pyclass(frozen, module = "qiskit._accelerate.passmanager")]
 pub struct PassContextHandle(Arc<RwLock<Option<PassContext<'static>>>>);
 impl PassContextHandle {
     #[inline]
@@ -405,7 +405,7 @@ impl PassContextHandle {
 
 /// Wrapper around the Rust-native pass manager; we can take this as owned when we create it from
 /// Python or give a Rust-created one to Python.
-#[pyclass(name = "PassManager")]
+#[pyclass(name = "PassManager", module = "qiskit._accelerate.passmanager")]
 pub struct PyPassManager(qiskit_passmanager::PassManager);
 #[pymethods]
 impl PyPassManager {
