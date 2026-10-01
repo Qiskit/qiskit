@@ -2583,7 +2583,7 @@ pub unsafe extern "C" fn qk_circuit_delay(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``circuit`` is `NULL` or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_delay_dt(
     circuit: *mut CircuitData,
@@ -2608,7 +2608,7 @@ pub unsafe extern "C" fn qk_circuit_delay_dt(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if `circuit` is null or unaligned.
+/// Behavior is undefined if ``circuit`` is `NULL` or unaligned.
 unsafe fn qk_circuit_delay_inner(
     circuit: *mut CircuitData,
     qubit: u32,
@@ -2657,9 +2657,7 @@ unsafe fn qk_circuit_delay_inner(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-///
-/// Undefined behavior may also happen if ``index`` is not within the circuit's range.
+/// Behavior is undefined if ``circuit`` is `NULL`, ``circuit`` is unaligned, or ``index`` is out of bounds.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_delay_unit(
     circuit: *const CircuitData,
