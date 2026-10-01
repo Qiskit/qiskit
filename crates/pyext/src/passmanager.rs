@@ -15,7 +15,7 @@ use std::mem;
 use std::sync::{Arc, RwLock};
 
 use anyhow::anyhow;
-use pyo3::exceptions::{PyRuntimeError, PyTypeError};
+use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyTypeError};
 use pyo3::gc::PyVisit;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
@@ -390,10 +390,20 @@ impl PassContextHandle {
     }
     pub fn set_context(&self, key: String, val: Py<PyAny>) -> PyResult<()> {
         let val = Box::new(val);
-        self.with_borrow_mut(|ctx| ctx.set(key, val))
+        // Release the lock before dropping a (maybe) Python object whose destructor might run
+        // arbitrary code.
+        let _: Option<_> = self.with_borrow_mut(|ctx| ctx.set(key, val))?;
+        Ok(())
     }
     pub fn del_context(&self, key: String) -> PyResult<()> {
-        self.with_borrow_mut(|ctx| ctx.delete(key))
+        // Release the lock before dropping a (maybe) Python object whose destructor might run
+        // arbitrary code.  In Python space we raise `KeyError` if the key is not present, even if
+        // the actual deletion from the global context is deferred.
+        let _: Option<_> = self.with_borrow_mut(|ctx| match ctx.get(&key) {
+            Some(_) => Ok(ctx.delete(key)),
+            None => Err(PyKeyError::new_err(key)),
+        })??;
+        Ok(())
     }
     pub fn get_ir_modified(&self) -> PyResult<bool> {
         self.with_borrow(|ctx| ctx.ir_modified)

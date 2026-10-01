@@ -59,14 +59,19 @@ struct ContextUpdates {
     deletions: HashSet<String>,
 }
 impl ContextUpdates {
-    fn insert(&mut self, key: String, value: Box<dyn Any + Send + Sync>) {
+    fn insert(
+        &mut self,
+        key: String,
+        value: Box<dyn Any + Send + Sync>,
+    ) -> Option<Box<dyn Any + Send + Sync>> {
         self.deletions.remove(&key);
-        self.insertions.insert(key, value);
+        self.insertions.insert(key, value)
     }
 
-    fn delete(&mut self, key: String) {
-        self.insertions.remove(&key);
+    fn delete(&mut self, key: String) -> Option<Box<dyn Any + Send + Sync>> {
+        let out = self.insertions.remove(&key);
         self.deletions.insert(key);
+        out
     }
 
     fn get(&self, key: impl AsRef<str>) -> Option<&(dyn Any + Send + Sync)> {
@@ -116,12 +121,19 @@ impl<'a> PassContext<'a> {
 
     /// Set a new entry in the pass context.
     /// Overwrites the existing value under that key, if it exists.
-    pub fn set(&mut self, key: String, value: Box<dyn Any + Send + Sync>) {
-        self.updates.insert(key, value);
+    ///
+    /// Returns the previous local entry, if it existed.
+    pub fn set(
+        &mut self,
+        key: String,
+        value: Box<dyn Any + Send + Sync>,
+    ) -> Option<Box<dyn Any + Send + Sync>> {
+        self.updates.insert(key, value)
     }
 
-    pub fn delete(&mut self, key: String) {
-        self.updates.delete(key);
+    /// Delete the given key.  Returns the corresponding local value, if any.
+    pub fn delete(&mut self, key: String) -> Option<Box<dyn Any + Send + Sync>> {
+        self.updates.delete(key)
     }
 
     /// Get an entry, if it exists.
