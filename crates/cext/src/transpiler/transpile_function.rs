@@ -92,7 +92,7 @@ pub unsafe extern "C" fn qk_transpile_state_new(state: *mut *mut TranspilerStage
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspilerStageState``.
+/// Behavior is undefined if ``state`` is not either null or a valid pointer to a ``QkTranspilerStageState``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpile_state_free(state: *mut TranspilerStageState) {
     if !state.is_null() {

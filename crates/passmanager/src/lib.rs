@@ -14,10 +14,8 @@ mod pass;
 
 use anyhow::Context;
 use hashbrown::{HashMap, HashSet};
-use std::{
-    any::{self, Any},
-    borrow, fmt, hash,
-};
+use qiskit_util::dyn_types::*;
+use std::{any::Any, fmt};
 
 pub use pass::*;
 
@@ -106,7 +104,7 @@ impl<'a> PassContext<'a> {
 
     /// Set a new entry in the pass context.
     /// Overwrites the existing value under that key, if it exists.
-    pub fn set(&mut self, key: String, value: Box<dyn any::Any>) {
+    pub fn set(&mut self, key: String, value: Box<dyn Any>) {
         self.updates.insert(key, value);
     }
 
@@ -131,112 +129,6 @@ impl<'a> PassContext<'a> {
                 .get(key)
                 .map(|value| value.as_ref())
         })
-    }
-}
-
-/// An identifier for a type that may have additional runtime-defined components in it, such as a
-/// dynamic trait implementer that comes from C or Python.
-#[derive(Copy, Clone, Debug)]
-pub struct DynTypeId<'a> {
-    static_id: any::TypeId,
-    static_name: &'static str,
-    /// The dynamic components of the type information.
-    ///
-    /// The payload and name are logically tied to some object that creates them.  The pointer, if
-    /// used, is valid for the same lifetime as `'a`.
-    dynamic: Option<(*mut (), &'a str)>,
-}
-impl DynTypeId<'_> {
-    /// Produce a representation of a [`DynTypeId`] for a type whose implementation is completely
-    /// known at Rust compile time.
-    ///
-    /// Use [`Self::with_dynamic`] to add dynamic context afterwards.
-    pub fn of<T: 'static>() -> Self {
-        Self {
-            static_id: any::TypeId::of::<T>(),
-            static_name: any::type_name::<T>(),
-            dynamic: None,
-        }
-    }
-
-    /// A key object that subsets the fields to define equality and hashing.
-    #[inline]
-    fn compare_key(&self) -> impl Eq + hash::Hash {
-        (self.static_id, self.dynamic.map(|(addr, _)| addr))
-    }
-
-    /// Describe this type.
-    pub fn describe(&self) -> borrow::Cow<'_, str> {
-        match self.dynamic {
-            Some((_addr, dyn_name)) => {
-                borrow::Cow::Owned(format!("{}[{}]", self.static_name, dyn_name))
-            }
-            None => borrow::Cow::Borrowed(self.static_name),
-        }
-    }
-}
-impl<'a> DynTypeId<'a> {
-    /// Set the dynamic components of the type identifier.
-    ///
-    /// The combination of the Rust type `T` and the address of `payload` is what uniquely defines
-    /// the "dynamic type".  If you are using this object to represent a pure type from (say)
-    /// Python, you might want to use the pointer to the object's Python `type`.  If you are
-    /// representing a dynamic implementation of some trait coming in from C, you probably want to
-    /// use a pointer to the vtable of the trait methods.
-    ///
-    /// Note that the `name` is purely for human inspectability and plays no part in hashing or
-    /// comparisons.
-    pub fn with_dynamic(self, payload: *mut (), name: &'a str) -> Self {
-        Self {
-            dynamic: Some((payload, name)),
-            ..self
-        }
-    }
-}
-impl PartialEq for DynTypeId<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.compare_key() == other.compare_key()
-    }
-}
-impl Eq for DynTypeId<'_> {}
-impl hash::Hash for DynTypeId<'_> {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        self.compare_key().hash(state)
-    }
-}
-
-/// Trait for types that interact with the Qiskit dynamic-typing system ([`DynTyped`]) as static
-/// Rust objects.
-///
-/// This trait is not object safe; use the blanket implementation of [`DynTyped`] for that.
-pub trait StaticDynTyped {
-    fn static_dyn_type_id() -> DynTypeId<'static>;
-}
-/// Declare a static Rust type as directly usable with the Qiskit dynamic-typing system.
-#[macro_export]
-macro_rules! static_dyn_typed {
-    ($ty:ty) => {
-        impl $crate::StaticDynTyped for $ty {
-            fn static_dyn_type_id() -> $crate::DynTypeId<'static> {
-                $crate::DynTypeId::of::<$ty>()
-            }
-        }
-    };
-}
-/// Objects that can interact with Qiskit's dynamic-typing subsystem.
-///
-/// There are two components to the system: the static Rust type that backs the object, and any
-/// additional dynamic typing on top of that.
-///
-/// First-class objects defined in Rust can implement [`StaticDynTyped`] and use the blanket
-/// implementation that provides this object-safe variant.
-pub trait DynTyped: Any {
-    /// The dynamic type identifier.
-    fn dyn_type_id(&self) -> DynTypeId<'_>;
-}
-impl<T: StaticDynTyped + 'static> DynTyped for T {
-    fn dyn_type_id(&self) -> DynTypeId<'_> {
-        T::static_dyn_type_id()
     }
 }
 /// Types that can be used as an IR by the [`PassManager`].
@@ -290,15 +182,20 @@ impl Task {
         //      }
         match self {
             Task::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),
-            Task::Group(group) => {
-                Some([group.first()?.io_types()?[0], group.last()?.io_types()?[1]])
-            }
-            Task::Stages(stages) => Some([
-                stages.first()?.1.io_types()?[0],
-                stages.last()?.1.io_types()?[1],
-            ]),
+            Task::Group(group) => sequence_io_types(group.iter()),
+            Task::Stages(stages) => sequence_io_types(stages.iter().map(|(_name, task)| task)),
         }
     }
+}
+
+/// Return the input and output types of a sequence of tasks if non-empty.
+fn sequence_io_types<'a>(
+    tasks: impl DoubleEndedIterator<Item = &'a Task>,
+) -> Option<[DynTypeId<'a>; 2]> {
+    let mut typed = tasks.filter_map(|task| task.io_types());
+    let first = typed.next()?;
+    let last = typed.next_back().unwrap_or(first);
+    Some([first[0], last[1]])
 }
 
 /// Qiskit's pass manager.
@@ -359,18 +256,11 @@ impl PassManager {
 
     /// Get the type identifier of the input of this pipeline.
     pub fn ir_id_in(&self) -> Option<DynTypeId<'_>> {
-        // This might not just be `last` if the last task is an empty group or stage.
-        self.tasks
-            .iter()
-            .find_map(|t| t.io_types().map(|[in_, _]| in_))
+        sequence_io_types(self.tasks.iter()).map(|[in_, _]| in_)
     }
     /// Get the type identifier of the output of this pipeline.
     pub fn ir_id_out(&self) -> Option<DynTypeId<'_>> {
-        // This might not just be `last` if the last task is an empty group or stage.
-        self.tasks
-            .iter()
-            .rev()
-            .find_map(|t| t.io_types().map(|[_, out]| out))
+        sequence_io_types(self.tasks.iter()).map(|[_, out]| out)
     }
 
     /// Try to push a [`Task`] onto the end of the task list.
@@ -411,6 +301,15 @@ fn execute_task(
     mut ir: Box<dyn IR>,
     context: &mut PassContext,
 ) -> Result<Box<dyn IR>, PassError> {
+    // TODO We might be able to only type-check in the pass manager's execution method,
+    // since the pipeline is already type-checked upon construction. For now we keep it here,
+    // which is the safer choice.
+    if let Some([task_in_type, _]) = task.io_types()
+        && task_in_type != ir.dyn_type_id()
+    {
+        return Err(PassError::Conversion);
+    }
+
     match task {
         Task::Transformation(pass) => pass.run(ir, context),
         Task::Group(tasks) => {
@@ -518,6 +417,53 @@ mod test {
         assert_eq!(nested.io_types().unwrap(), [uint_ty, uint_ty]);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_io_types_empty() {
+        assert!(Task::Group(vec![]).io_types().is_none());
+        assert!(Task::Stages(vec![]).io_types().is_none());
+
+        let nested_empty = Task::Group(vec![Task::Stages(vec![(
+            "empty".to_string(),
+            Task::Group(vec![]),
+        )])]);
+        assert!(nested_empty.io_types().is_none());
+    }
+
+    #[test]
+    fn test_io_types_skips_empty_children() {
+        let uint_ty = DynTypeId::of::<MyUint>();
+        let int_ty = DynTypeId::of::<MyInt>();
+
+        let empty = || Task::Group(vec![]);
+        let lower = || Task::Transformation(LowerToInt.into_pass());
+
+        let leading = Task::Group(vec![empty(), lower()]);
+        assert_eq!(leading.io_types().unwrap(), [uint_ty, int_ty]);
+
+        let trailing = Task::Group(vec![lower(), empty()]);
+        assert_eq!(trailing.io_types().unwrap(), [uint_ty, int_ty]);
+
+        let surrounded = Task::Stages(vec![
+            ("before".to_string(), empty()),
+            ("lower".to_string(), lower()),
+            ("after".to_string(), empty()),
+        ]);
+        assert_eq!(surrounded.io_types().unwrap(), [uint_ty, int_ty]);
+    }
+
+    #[test]
+    fn test_empty_child_keeps_type_checks() {
+        let mut pm = PassManager::new();
+        pm.try_push_static_pass(LowerToInt).unwrap();
+        assert!(
+            pm.try_push_task(Task::Group(vec![
+                Task::Group(vec![]),
+                Task::Transformation(AddOne.into_pass()),
+            ]))
+            .is_err()
+        );
     }
 
     #[test]

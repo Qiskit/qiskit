@@ -30,6 +30,20 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(305, &classical_expr::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
+pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
+    vec![
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_load_file),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_buffer),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_load_buffer),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_free_buffer),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file_with_version),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_buffer_with_version),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_loaded_circuits_clear),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_read_min_version),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_write_min_version),
+    ]
+});
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
 
 // Below this line is close to a mirror of the actual `cext` structure.  Ideally, all of the
@@ -468,13 +482,57 @@ mod transpiler {
             .add_child(205, &FUNCTIONS_VF2);
     }
 
+    mod passmanager {
+        use crate::impl_::prelude::*;
+        #[cfg(feature = "addr")]
+        use qiskit_cext::passmanager;
+
+        static FUNCTIONS_IR: ExportedFunctions = ExportedFunctions::leaves(20, || {
+            vec![
+                export_fn!(passmanager::qk_ir_handle_new),
+                export_fn!(passmanager::qk_ir_handle_builtin),
+                export_fn!(passmanager::qk_ir_handle_free),
+            ]
+        });
+        static FUNCTIONS_PASS: ExportedFunctions = ExportedFunctions::leaves(20, || {
+            vec![
+                export_fn!(passmanager::qk_pass_vtable_new),
+                export_fn!(passmanager::qk_pass_vtable_free),
+                export_fn!(passmanager::qk_pass_new),
+                export_fn!(passmanager::qk_pass_free),
+            ]
+        });
+        static FUNCTIONS_ERROR: ExportedFunctions = ExportedFunctions::leaves(20, || {
+            vec![
+                export_fn!(passmanager::qk_compilation_error_new),
+                export_fn!(passmanager::qk_compilation_error_free),
+                export_fn!(passmanager::qk_compilation_error_str),
+            ]
+        });
+        static FUNCTIONS_PASSMANAGER: ExportedFunctions = ExportedFunctions::leaves(20, || {
+            vec![
+                export_fn!(passmanager::qk_passmanager_new),
+                export_fn!(passmanager::qk_passmanager_free),
+                export_fn!(passmanager::qk_passmanager_push_pass),
+                export_fn!(passmanager::qk_passmanager_run_simple),
+            ]
+        });
+
+        pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::empty()
+            .add_child(0, &FUNCTIONS_IR)
+            .add_child(20, &FUNCTIONS_PASS)
+            .add_child(40, &FUNCTIONS_ERROR)
+            .add_child(60, &FUNCTIONS_PASSMANAGER);
+    }
+
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::empty()
         .add_child(0, &TRANSPILE_FUNCTION)
         .add_child(20, &NEIGHBORS)
         .add_child(35, &TRANSPILE_LAYOUT)
         .add_child(50, &TRANSPILE_STATE)
         .add_child(150, &target::FUNCTIONS)
-        .add_child(250, &passes::FUNCTIONS);
+        .add_child(250, &passes::FUNCTIONS)
+        .add_child(550, &passmanager::FUNCTIONS);
 }
 
 mod classical_expr {

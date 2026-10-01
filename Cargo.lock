@@ -2349,6 +2349,7 @@ version = "2.6.0-dev"
 dependencies = [
  "anyhow",
  "bytemuck",
+ "derive_more",
  "hashbrown 0.15.5",
  "mimalloc",
  "nalgebra 0.35.0",
@@ -2359,6 +2360,8 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-circuit-library",
+ "qiskit-passmanager",
+ "qiskit-qpy",
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
@@ -2446,6 +2449,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "qiskit-circuit",
  "qiskit-transpiler",
+ "qiskit-util",
  "smallvec",
  "thiserror 2.0.20",
 ]
@@ -2459,6 +2463,7 @@ dependencies = [
  "ndarray",
  "num-complex",
  "num-traits",
+ "qiskit-circuit",
  "rustworkx-core",
  "thiserror 2.0.20",
 ]
