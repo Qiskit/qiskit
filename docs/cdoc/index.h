@@ -28,4 +28,5 @@
  * @defgroup QkClassicalExpressions QkClassicalExpressions
  * @defgroup QkControlFlow QkControlFlow
  * @defgroup dynamic-types Dynamic-typing system
+ * @defgroup pass-manager Pass manager infrastructure, including generic passes and IRs.
  */
