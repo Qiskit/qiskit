@@ -2528,6 +2528,14 @@ impl TryFrom<CDelayUnit> for DelayUnit {
 /// @ingroup QkCircuit
 /// Append a delay instruction to the circuit.
 ///
+/// Some ``QkDelayUnit`` variants are not supported in this function:
+///
+/// - ``QkDelayUnit_DT`` : Returns ``QkExitCode_IncorrectDelayUnit``,
+///   use ``qk_circuit_delay_dt`` instead.
+/// - ``QkDelayUnit_EXPR`` : Returns ``QkExitCode_IncorrectDelayUnit``,
+///   not supported for inserting delays.
+/// - ``QkDelayUnit_Unknown`` : Invalid input, Returns ``QkExitCode_CInputError``.
+///
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
 /// @param duration The duration of the delay.
@@ -2551,8 +2559,12 @@ pub unsafe extern "C" fn qk_circuit_delay(
     duration: f64,
     unit: CDelayUnit,
 ) -> ExitCode {
-    let Ok(delay_unit_variant) = unit.try_into() else {
-        return CInputError;
+    let delay_unit_variant: DelayUnit = match unit.try_into() {
+        Ok(val) => match val {
+            DelayUnit::DT | DelayUnit::EXPR => return ExitCode::IncorrectDelayUnit,
+            _ => val,
+        },
+        Err(_) => return CInputError,
     };
 
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
@@ -2636,9 +2648,6 @@ unsafe fn qk_circuit_delay_inner(
 ///
 /// Users should make sure that the instruction being accessed here
 /// is a delay instruction by using ``qk_circuit_instruction_kind``.
-///
-/// Attempting to extract the duration unit of any other instruction
-/// will result in undefined behavior.
 ///
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param index The instruction index to get the delay details of.
