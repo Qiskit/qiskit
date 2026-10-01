@@ -13,7 +13,6 @@
 use pyo3::prelude::*;
 
 mod capi;
-#[expect(dead_code)] // Temporary state to allow partial commits setting stuff up.
 mod passmanager;
 
 #[cfg(feature = "mimalloc")]

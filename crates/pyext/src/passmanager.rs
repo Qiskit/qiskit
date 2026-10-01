@@ -16,9 +16,10 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::anyhow;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError};
-use pyo3::intern;
+use pyo3::gc::PyVisit;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
+use pyo3::{PyTraverseError, intern};
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
@@ -42,6 +43,7 @@ trait PyIrExposer: Send + Sync + 'static {
     /// Implementers can assume that they should be able to take out a mutable reference to any
     /// inner data, and should return a Python exception if they cannot.
     fn steal_from_py<'py>(&self, ob: Bound<'py, PyAny>) -> PyResult<Box<dyn IR>>;
+    fn gc_traverse(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError>;
 }
 
 struct PyDagExposer;
@@ -64,6 +66,9 @@ impl PyIrExposer for PyDagExposer {
         let dag =
             mem::replace(&mut *py_dag, PyDAGCircuit::from(DAGCircuit::default())).into_inner();
         Ok(Box::new(dag))
+    }
+    fn gc_traverse(&self, _visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        Ok(())
     }
 }
 
@@ -89,6 +94,9 @@ impl PyIrExposer for PyCircuitExposer {
         let circuit = mem::replace(&mut *py_circuit, PyCircuitData::from(empty)).inner;
         Ok(Box::new(circuit))
     }
+    fn gc_traverse(&self, _visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        Ok(())
+    }
 }
 
 struct PyObjectExposer(Arc<PyIrBase>);
@@ -107,6 +115,9 @@ impl PyIrExposer for PyObjectExposer {
             ob: ob.unbind(),
             base: Arc::clone(&self.0),
         }))
+    }
+    fn gc_traverse(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        visit.call(&self.0.ty)
     }
 }
 
@@ -194,6 +205,20 @@ impl PyPass {
         };
         Ok(Self(Some(inner)))
     }
+
+    fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
+        let Some(inner) = self.0.as_ref() else {
+            return Ok(());
+        };
+        visit.call(&inner.ob)?;
+        // `PyVisit` derives `Copy` in https://github.com/PyO3/pyo3/pull/6412, which is due for
+        // release in PyO3 0.30.  The clone is cheap.
+        inner.ir_in.gc_traverse(visit.clone())?;
+        inner.ir_out.gc_traverse(visit.clone())?;
+        Ok(())
+    }
+    // We are not required to do anything in `__clear__` because our Python references are all
+    // immutable.
 }
 
 /// The actual logic of Rust wrapping passes that come from Python.  This is what implements `Pass`.
