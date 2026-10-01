@@ -27,6 +27,7 @@ import numpy as np
 from numpy import pi
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode, DAGCircuitError
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit import (
     QuantumCircuit,
     QuantumRegister,
@@ -777,6 +778,14 @@ class TestDagApplyOperation(DAGTest):
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
+
+    @data("front", "back")
+    def test_apply_operation_rejects_wrong_width(self, direction):
+        """Operation widths must match the supplied arguments."""
+        apply = getattr(self.dag, f"apply_operation_{direction}")
+        with self.assertRaisesRegex(CircuitError, "expects 1 qubits, but 2 were provided"):
+            apply(XGate(), [self.qubit0, self.qubit1], [])
+        self.assertEqual(self.dag.num_ops(), 0)
 
     @data("front", "back")
     def test_apply_operation_duplicate_wires(self, direction):

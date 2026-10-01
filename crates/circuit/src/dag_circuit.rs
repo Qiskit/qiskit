@@ -25,7 +25,7 @@ use crate::bit::{
     ShareableQubit,
 };
 use crate::bit_locator::BitLocator;
-use crate::circuit_data::CircuitData;
+use crate::circuit_data::{CircuitData, validate_operation_arguments};
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use crate::classical::expr;
 use crate::converters::QuantumCircuitData;
@@ -6067,6 +6067,12 @@ impl DAGCircuit {
         instr: PackedInstruction,
         dir: Direction,
     ) -> Result<NodeIndex, DAGError> {
+        validate_operation_arguments(
+            &instr.op,
+            instr.params.as_deref().map(Parameters::len),
+            self.qargs_interner.get(instr.qubits).len(),
+            self.cargs_interner.get(instr.clbits).len(),
+        )?;
         self.track_instruction(&instr);
         let (all_cbits, vars) = self
             .get_classical_resources(&instr)
@@ -8749,6 +8755,12 @@ impl DAGCircuitBuilder {
 
     /// Pushes a valid [PackedInstruction] to the back of the circuit.
     pub fn push_back(&mut self, instr: PackedInstruction) -> Result<NodeIndex, DAGError> {
+        validate_operation_arguments(
+            &instr.op,
+            instr.params.as_deref().map(Parameters::len),
+            self.dag.qargs_interner.get(instr.qubits).len(),
+            self.dag.cargs_interner.get(instr.clbits).len(),
+        )?;
         self.dag.track_instruction(&instr);
         let (all_cbits, vars) = self
             .dag
@@ -9127,6 +9139,7 @@ type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 #[cfg(test)]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
+    use crate::circuit_data::CircuitDataError;
     use crate::dag_circuit::{BlocksMode, DAGCircuit, DAGError, Wire};
     use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
@@ -9171,6 +9184,33 @@ mod test {
                 py_op: Default::default(),
             }
         }};
+    }
+
+    #[test]
+    fn test_reject_incorrect_operation_argument_counts() {
+        let mut dag = new_dag(2, 1);
+
+        assert!(matches!(
+            dag.apply_operation_back(
+                StandardGate::X.into(),
+                &[Qubit(0), Qubit(1)],
+                &[],
+                None,
+                None,
+                #[cfg(feature = "cache_pygates")]
+                None,
+            ),
+            Err(DAGError::Circuit(
+                CircuitDataError::OperationArgumentCountMismatch {
+                    argument: "qubits",
+                    expected: 1,
+                    actual: 2,
+                    ..
+                }
+            ))
+        ));
+
+        assert_eq!(dag.num_ops(), 0);
     }
 
     #[test]

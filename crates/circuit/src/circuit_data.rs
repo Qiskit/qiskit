@@ -104,6 +104,13 @@ pub enum CircuitDataError {
     InvalidParameter,
     #[error("bad type after binding for gate '{0}': '{1}'")]
     StandardGateParameterIsComplex(String, String),
+    #[error("operation '{operation}' expects {expected} {argument}, but {actual} were provided")]
+    OperationArgumentCountMismatch {
+        operation: String,
+        argument: &'static str,
+        expected: u32,
+        actual: usize,
+    },
     #[error(transparent)]
     TryReserveError(TryReserveError),
 }
@@ -152,9 +159,64 @@ impl From<CircuitDataError> for PyErr {
                     "bad type after binding for gate '{gate_name}': '{expr}'"
                 ))
             }
+            error @ CircuitDataError::OperationArgumentCountMismatch { .. } => {
+                CircuitError::new_err(error.to_string())
+            }
             CircuitDataError::TryReserveError(error) => error.into(),
         }
     }
+}
+
+pub(crate) fn validate_operation_arguments(
+    packed_operation: &PackedOperation,
+    num_params: Option<usize>,
+    num_qubits: usize,
+    num_clbits: usize,
+) -> Result<(), CircuitDataError> {
+    let operation = packed_operation.view();
+    let operation_name = || operation.name().to_owned();
+    let expected_qubits = operation.num_qubits();
+    if num_qubits != expected_qubits as usize {
+        return Err(CircuitDataError::OperationArgumentCountMismatch {
+            operation: operation_name(),
+            argument: "qubits",
+            expected: expected_qubits,
+            actual: num_qubits,
+        });
+    }
+
+    let expected_clbits = operation.num_clbits();
+    if num_clbits != expected_clbits as usize {
+        return Err(CircuitDataError::OperationArgumentCountMismatch {
+            operation: operation_name(),
+            argument: "clbits",
+            expected: expected_clbits,
+            actual: num_clbits,
+        });
+    }
+
+    // Some native operations store their parameters inside the operation itself, while control
+    // flow stores only its blocks here.  These three variants are the ones whose complete
+    // parameter lists live in `PackedInstruction::params`.
+    if matches!(
+        &operation,
+        OperationRef::StandardGate(_)
+            | OperationRef::StandardInstruction(_)
+            | OperationRef::PyCustom(_)
+    ) {
+        let num_params = num_params.unwrap_or(0);
+        let expected_params = operation.num_params();
+        if num_params != expected_params as usize {
+            return Err(CircuitDataError::OperationArgumentCountMismatch {
+                operation: operation_name(),
+                argument: "parameters",
+                expected: expected_params,
+                actual: num_params,
+            });
+        }
+    }
+
+    Ok(())
 }
 
 /// A tuple of a `CircuitData`'s internal state used for pickle's `__setstate__()` method.
@@ -911,9 +973,10 @@ impl CircuitData {
         params: &[Param],
         qargs: &[Qubit],
     ) -> Result<(), CircuitDataError> {
+        validate_operation_arguments(&operation.into(), Some(params.len()), qargs.len(), 0)?;
         let params = (!params.is_empty()).then(|| Box::new(params.iter().cloned().collect()));
         let qubits = self.qargs_interner.insert(qargs);
-        self.push(PackedInstruction::from_standard_gate(
+        self.push_unchecked(PackedInstruction::from_standard_gate(
             operation, params, qubits,
         ))
     }
@@ -929,9 +992,15 @@ impl CircuitData {
         qargs: &[Qubit],
         cargs: &[Clbit],
     ) -> Result<(), CircuitDataError> {
+        validate_operation_arguments(
+            &operation,
+            params.as_ref().map(Parameters::len),
+            qargs.len(),
+            cargs.len(),
+        )?;
         let qubits = self.qargs_interner.insert(qargs);
         let clbits = self.cargs_interner.insert(cargs);
-        self.push(PackedInstruction {
+        self.push_unchecked(PackedInstruction {
             op: operation,
             qubits,
             clbits,
@@ -1688,6 +1757,16 @@ impl CircuitData {
     ///   The qubits and clbits **must** already be present in the interner for this
     ///   function to work. If they are not this will corrupt the circuit.
     pub fn push(&mut self, packed: PackedInstruction) -> Result<(), CircuitDataError> {
+        validate_operation_arguments(
+            &packed.op,
+            packed.params.as_deref().map(Parameters::len),
+            self.qargs_interner.get(packed.qubits).len(),
+            self.cargs_interner.get(packed.clbits).len(),
+        )?;
+        self.push_unchecked(packed)
+    }
+
+    fn push_unchecked(&mut self, packed: PackedInstruction) -> Result<(), CircuitDataError> {
         let new_index = self.len();
         self.data.push(packed);
         self.track_instruction_blocks(new_index);
@@ -1759,6 +1838,20 @@ impl CircuitData {
     }
 
     pub fn insert(
+        &mut self,
+        index: isize,
+        packed: PackedInstruction,
+    ) -> Result<(), CircuitDataError> {
+        validate_operation_arguments(
+            &packed.op,
+            packed.params.as_deref().map(Parameters::len),
+            self.qargs_interner.get(packed.qubits).len(),
+            self.cargs_interner.get(packed.clbits).len(),
+        )?;
+        self.insert_unchecked(index, packed)
+    }
+
+    fn insert_unchecked(
         &mut self,
         mut index: isize,
         packed: PackedInstruction,
@@ -2818,13 +2911,16 @@ impl PyCircuitData {
     pub fn insert(&mut self, index: isize, value: PyRef<CircuitInstruction>) -> PyResult<()> {
         let py = value.py();
         let packed = self.pack(py, &value)?;
-        Ok(self.inner.insert(index, packed)?)
+        // `QuantumCircuitData.insert` temporarily inserts an instruction without its arguments,
+        // then validates and replaces it through the public wrapper.
+        Ok(self.inner.insert_unchecked(index, packed)?)
     }
 
     /// Primary entry point for appending an instruction from Python space.
     pub fn append(&mut self, value: &Bound<CircuitInstruction>) -> PyResult<()> {
         let packed = self.pack(value.py(), &value.borrow())?;
-        Ok(self.inner.push(packed)?)
+        // Python-space circuit construction has already validated the instruction arguments.
+        Ok(self.inner.push_unchecked(packed)?)
     }
 
     /// Backup entry point for appending an instruction from Python space, in the unusual case that
@@ -3482,8 +3578,63 @@ mod test {
     use super::*;
     use crate::converters::py_dag_to_circuit;
     use crate::dag_circuit::DAGCircuit;
-    use crate::operations::{ArrayType, PauliProductMeasurement, UnitaryGate};
+    use crate::operations::{ArrayType, PauliProductMeasurement, StandardInstruction, UnitaryGate};
     use nalgebra::{Matrix2, Matrix4};
+
+    #[test]
+    fn reject_incorrect_operation_argument_counts() {
+        let mut circuit = CircuitData::from_packed_operations(2, 1, [], Param::Float(0.0))
+            .expect("valid empty circuit");
+
+        assert!(matches!(
+            circuit.push_standard_gate(StandardGate::X, &[], &[Qubit(0), Qubit(1)]),
+            Err(CircuitDataError::OperationArgumentCountMismatch {
+                argument: "qubits",
+                expected: 1,
+                actual: 2,
+                ..
+            })
+        ));
+        assert!(matches!(
+            circuit.push_standard_gate(StandardGate::RX, &[], &[Qubit(0)]),
+            Err(CircuitDataError::OperationArgumentCountMismatch {
+                argument: "parameters",
+                expected: 1,
+                actual: 0,
+                ..
+            })
+        ));
+        assert!(matches!(
+            circuit.push_packed_operation(
+                StandardInstruction::Measure.into(),
+                None,
+                &[Qubit(0)],
+                &[]
+            ),
+            Err(CircuitDataError::OperationArgumentCountMismatch {
+                argument: "clbits",
+                expected: 1,
+                actual: 0,
+                ..
+            })
+        ));
+
+        let qubits = circuit.qargs_interner.insert(&[Qubit(0), Qubit(1)]);
+        assert!(matches!(
+            circuit.insert(
+                0,
+                PackedInstruction::from_standard_gate(StandardGate::X, None, qubits)
+            ),
+            Err(CircuitDataError::OperationArgumentCountMismatch {
+                argument: "qubits",
+                expected: 1,
+                actual: 2,
+                ..
+            })
+        ));
+
+        assert!(circuit.is_empty());
+    }
 
     #[test]
     fn packed_pointer_types_behave() -> PyResult<()> {
