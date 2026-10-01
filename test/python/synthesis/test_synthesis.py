@@ -975,6 +975,34 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
 class TestTwoQubitDecompose(CheckDecompositions):
     """Test TwoQubitBasisDecomposer() for exact/approx decompositions"""
 
+    @combine(
+        gate=[CRXGate, CRYGate, CRZGate],
+        theta=[-1e-4, 1.5e-4],
+        basis_fidelity=[1.0, 0.99],
+        use_dag=[False, True],
+    )
+    def test_exact_small_controlled_rotation(self, gate, theta, basis_fidelity, use_dag):
+        """Exact synthesis preserves small interactions despite their high identity fidelity."""
+        unitary = Operator(gate(theta)).data
+        decomposer = TwoQubitBasisDecomposer(
+            CXGate(), basis_fidelity=basis_fidelity, euler_basis="U"
+        )
+        result = decomposer(unitary, approximate=False, use_dag=use_dag)
+        if use_dag:
+            result = dag_to_circuit(result)
+        np.testing.assert_allclose(Operator(result).data, unitary, rtol=0, atol=1e-12)
+
+    def test_approximate_small_controlled_rotation(self):
+        """Approximate synthesis can still trade a small interaction for fewer basis gates."""
+        unitary = Operator(CRZGate(1e-4)).data
+        decomposer = TwoQubitBasisDecomposer(CXGate(), basis_fidelity=0.99, euler_basis="U")
+        result = decomposer(unitary, approximate=True)
+        self.assertEqual(result.count_ops().get("cx", 0), 0)
+        matrix = Operator(result).data
+        self.assertGreater(np.max(np.abs(matrix - unitary)), 1e-6)
+        fidelity = (abs(np.vdot(unitary, matrix)) ** 2 + 4) / 20
+        self.assertGreaterEqual(fidelity, 0.99)
+
     @combine(seed=range(10), name="test_exact_two_qubit_cnot_decompose_random_{seed}")
     def test_exact_two_qubit_cnot_decompose_random(self, seed):
         """Verify exact CNOT decomposition for random Haar 4x4 unitary (seed={seed})."""
