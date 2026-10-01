@@ -18,7 +18,6 @@ use pyo3::wrap_pyfunction;
 use crate::qsd::append;
 use crate::ucrz::get_ucrz;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::Param;
 
@@ -28,18 +27,19 @@ use qiskit_circuit::operations::Param;
 ///
 /// [1]: https://arxiv.org/pdf/quant-ph/0406176.pdf
 pub(crate) fn diagonal_gate_circuit(
-    diag_phases: &mut [f64],
-    num_qubits: usize,
+    diag_phases: &[f64],
 ) -> Result<CircuitData, CircuitDataError> {
-    let out_qubits = (0..num_qubits)
-        .map(|_| ShareableQubit::new_anonymous())
-        .collect::<Vec<_>>();
-    let mut circuit = CircuitData::new(Some(out_qubits), None, Param::Float(0.))?;
+    let num_qubits = diag_phases.len().trailing_zeros() as usize;
+    let mut diag_phases = diag_phases.to_vec();
+    
+    // Worst-case instruction count across all recursion levels is 2 * diag_phases.len() - 3
+    let capacity = 2 * diag_phases.len();
+    let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, capacity, Param::Float(0.))?;
 
     let mut n = diag_phases.len();
 
     while n >= 2 {
-        let mut angles_rz = Vec::<f64>::new();
+        let mut angles_rz = Vec::new();
         for i in (0..n).step_by(2) {
             let phi1 = diag_phases[i];
             let phi2 = diag_phases[i + 1];
@@ -71,8 +71,8 @@ pub fn synth_diagonal(py: Python, diag_phases: Vec<f64>, num_qubits: u32) -> PyR
             "expected {expected} diagonal phases for {num_qubits} qubits, got {got}"
         )));
     }
-    let mut phases = diag_phases;
-    let circuit = diagonal_gate_circuit(&mut phases, num_qubits as usize).map_err(PyErr::from)?;
+    let phases = diag_phases;
+    let circuit = diagonal_gate_circuit(&phases).map_err(PyErr::from)?;
     let qc = circuit.into_py_quantum_circuit(py)?;
     qc.setattr("name", "diagonal")?;
     Ok(qc.unbind())
@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn test_diagonal_gate_circuit_synthesizes_diagonal() {
         let phases = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8];
-        let circuit = diagonal_gate_circuit(&mut phases.to_vec(), 3).unwrap();
+        let circuit = diagonal_gate_circuit(&mut phases.to_vec()).unwrap();
         let unitary = sim_unitary_circuit(&circuit).unwrap();
 
         let mut expected = Array2::zeros((8, 8));

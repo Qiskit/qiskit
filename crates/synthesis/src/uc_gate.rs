@@ -240,15 +240,18 @@ fn dec_ucg_inner(
         }
     }
     circuit.add_global_phase(&Param::Float(global_phase))?;
-    let diagonal = expand_diagonal(diagonal, &raw_ctrls, num_qubits);
-    if !up_to_diagonal {
-        let mut diag_phases: Vec<f64> = diagonal.iter().map(|x| x.arg()).collect();
-        let diag_circuit: CircuitData =
-            diagonal_gate_circuit(&mut diag_phases, num_qubits as usize)?;
-        let qubit_map: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
 
+    // Diagonal is synthesized at reduced width (target + surviving controls), then
+    // mapped onto those same physical qubits before being expanded to full width.
+    if !up_to_diagonal {
+        let diag_phases: Vec<f64> = diagonal.iter().map(|x| x.arg()).collect();
+        let diag_circuit: CircuitData = diagonal_gate_circuit(&diag_phases)?;
+        let mut qubit_map: Vec<Qubit> = Vec::with_capacity(simplified_num_qubits as usize);
+        qubit_map.push(Qubit(0));
+        qubit_map.extend(q_controls.iter().map(|&q| Qubit(q)));
         append(&mut circuit, diag_circuit, &qubit_map)?;
     }
+    let diagonal = expand_diagonal(diagonal, &raw_ctrls, num_qubits);
 
     Ok((circuit, diagonal))
 }
@@ -721,5 +724,29 @@ mod test {
         let gates = vec![gate; 4]; // all identical → all controls removed
         let (circuit, _diag) = dec_ucg_inner(gates, 3, true, true).unwrap();
         assert!(circuit.num_qubits() > 0);
+    }
+
+    // Partial simplification: [A, B, A, B] has period-2 repetition, so mux_simp drops
+    // exactly one of the two controls. Regression test for the diagonal-synthesis bug
+    // found in PR #16908 review: the dropped qubit must not be touched by any gate when
+    // up_to_diagonal=false.
+    #[test]
+    fn test_dec_ucg_inner_up_to_diagonal_false_skips_dropped_qubit() {
+        let a = ry(0.3);
+        let b = ry(0.9);
+        let gates = vec![a, b, a, b];
+        let (circuit, _) = dec_ucg_inner(gates, 3, false, true).unwrap();
+
+        let mut touched = [false; 3];
+        for inst in circuit.data().iter() {
+            for q in circuit.get_qargs(inst.qubits) {
+                touched[q.index()] = true;
+            }
+        }
+        assert_eq!(
+            touched.iter().filter(|&&t| t).count(),
+            2,
+            "exactly one control should have been dropped by mux_simp and left untouched"
+        );
     }
 }
