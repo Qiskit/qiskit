@@ -59,7 +59,7 @@ pub enum PassSlot {
     /// A destructor for the `this` argument of a pass, at the time that the pass is destructed.
     /// *Optional*.
     ///
-    /// This will not be called if the data pointer is `NULL¬.
+    /// This will not be called if the data pointer is `NULL`.
     ///
     /// Signature:
     /// ```c
