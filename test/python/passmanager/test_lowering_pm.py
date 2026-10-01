@@ -18,7 +18,7 @@ from test import QiskitTestCase
 from collections.abc import Iterable
 from typing import Any
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, CircuitData
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import (
     IR,
@@ -32,8 +32,22 @@ from qiskit.passmanager import (
     Task,
 )
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler import generate_preset_pass_manager, CouplingMap, TranspileLayout
+from qiskit.transpiler import generate_preset_pass_manager, CouplingMap, TranspileLayout, Target
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
+
+# This is technically a private function and cannot be relied upon to be stable.
+# We nevertheless use it here to test writing a pass on the Rust-native CircuitData
+from qiskit._accelerate.target import estimate_fidelity
+
+
+class CountsIR(IR):
+    """A count-based IR."""
+
+    _qiskit_ir_name_ = "CountsIR"
+
+    def __init__(self, data: dict[str, int]) -> None:
+        super().__init__()
+        self.data = data
 
 
 class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
@@ -73,6 +87,42 @@ class DagToCircuit(Pass[DAGCircuit, QuantumCircuit]):
         return circuit
 
 
+class CircuitToCircuitData(Pass[QuantumCircuit, CircuitData]):
+    """Convert a `QuantumCircuit` to the inner `CircuitData`."""
+
+    _qiskit_pass_ir_in_ = QuantumCircuit
+    _qiskit_pass_ir_out_ = CircuitData
+
+    def _qiskit_pass_run_(self, ir, context):
+        return ir._data
+
+
+class CircuitDataToDag(Pass[CircuitData, DAGCircuit]):
+    """Convert a `CircuitData` to a `DAGCircuit`."""
+
+    _qiskit_pass_ir_in_ = CircuitData
+    _qiskit_pass_ir_out_ = DAGCircuit
+
+    def _qiskit_pass_run_(self, ir, context):
+        return QuantumCircuit._from_circuit_data(ir).to_dag(copy_operations=False)
+
+
+class EstimateFidelity(Pass[CircuitData]):
+    """Run a fidelity estimation given a target."""
+
+    _qiskit_pass_ir_in_ = CircuitData
+    _qiskit_pass_ir_out_ = CircuitData
+
+    def __init__(self, target):
+        super().__init__()
+        self.target = target
+
+    def _qiskit_pass_run_(self, ir, context):
+        context["fidelity"] = estimate_fidelity(ir, self.target)
+        context.ir_modified = False
+        return ir
+
+
 class RemoveIdentities(Pass[DAGCircuit]):
     """Remove close-to-identity gates in a DAGCircuit."""
 
@@ -99,9 +149,17 @@ class CountGates(Pass[DAGCircuit]):
         return ir
 
 
-class LyingOutput(Pass[QuantumCircuit]):
+class LyingBuiltinOutput(Pass[QuantumCircuit]):
     _qiskit_pass_ir_in_ = QuantumCircuit
     _qiskit_pass_ir_out_ = DAGCircuit  # define DAGCircuit as return, but we return a QC
+
+    def _qiskit_pass_run_(self, ir, context):
+        return ir
+
+
+class LyingOutput(Pass[QuantumCircuit]):
+    _qiskit_pass_ir_in_ = QuantumCircuit
+    _qiskit_pass_ir_out_ = CountsIR  # define CountsIR as return, but we return a QC
 
     def _qiskit_pass_run_(self, ir, context):
         return ir
@@ -113,14 +171,18 @@ class VerifyContext(Pass[DAGCircuit]):
     _qiskit_pass_ir_in_ = DAGCircuit
     _qiskit_pass_ir_out_ = DAGCircuit
 
-    def __init__(self, expect: dict[str, Any], absent: Iterable[str] = ()) -> None:
+    def __init__(
+        self, expect: dict[str, Any] = {}, present: Iterable[str] = (), absent: Iterable[str] = ()
+    ) -> None:
         """
         Args:
             expect: A dict of {key, value} elements to expect in the context.
+            present: A set of keys that should be in the context.
             absent: A set of keys that should not be in the context.
         """
         super().__init__()
         self.expect = expect
+        self.present = present
         self.absent = absent
 
     def _qiskit_pass_run_(self, ir, context):
@@ -130,6 +192,10 @@ class VerifyContext(Pass[DAGCircuit]):
 
             if value != expected_value:
                 raise ValueError("value did not match expectation")
+
+        for key in self.present:
+            if context.get(key, "___empty") == "___empty":
+                raise ValueError(f"{key} was empty")
 
         for key in self.absent:
             if context.get(key, "___empty") != "___empty":
@@ -197,16 +263,6 @@ class NamelessPass(Pass[NamelessIR]):
 
     def _qiskit_pass_run_(self, ir, context):
         return ir
-
-
-class CountsIR(IR):
-    """A count-based IR."""
-
-    _qiskit_ir_name_ = "CountsIR"
-
-    def __init__(self, data: dict[str, int]) -> None:
-        super().__init__()
-        self.data = data
 
 
 class DagToCounts(Pass[DAGCircuit, CountsIR]):
@@ -308,9 +364,6 @@ class TestLoweringPassManager(QiskitTestCase):
             with self.subTest(circuit=circuit):
                 self.assertEqual(expected, pm.run(circuit))
 
-        # TODO we can also assert something about the input circuit, e.g. whether it
-        # was copied (if we decide to copy on input)
-
     def test_empty_pm(self):
         pm = LoweringPassManager()
 
@@ -335,9 +388,9 @@ class TestLoweringPassManager(QiskitTestCase):
     def test_input_ir_mismatch(self):
         """Test calling the pass manager on a different IR than it is defined on raises."""
         pm = LoweringPassManager([RemoveIdentities()])
-        # TODO this currently prints CircuitData does not match DAGCircuit
-        # -- after Jake's update we could check this to call out QuantumCircuit and DAGCircuit
-        with self.assertRaisesRegex(TypeError, "incoming IR of type .* does not match .*"):
+        with self.assertRaisesRegex(
+            TypeError, "incoming IR of type .*QuantumCircuit.* does not match .*"
+        ):
             _ = pm.run(QuantumCircuit(1))
 
     def test_invalid_pipeline(self):
@@ -366,13 +419,13 @@ class TestLoweringPassManager(QiskitTestCase):
             pm = LoweringPassManager(
                 [CircuitToDag(), CountGates(), VerifyContext({"counts": circuit.count_ops()})]
             )
-            dag = pm.run(circuit.copy())  # TODO remove the copy if we copy on run
+            dag = pm.run(circuit)
             self.assertIsInstance(dag, DAGCircuit)
 
         with self.subTest(msg="verify removal"):
             pm.append(DeleteKeys(["counts"]))
             pm.append(VerifyContext({}, absent=["counts"]))
-            dag = pm.run(circuit)
+            dag = pm.run(circuit, copy=False)  # we can consume the IR here
             self.assertIsInstance(dag, DAGCircuit)
 
     def test_pass_context_is_invalidated(self):
@@ -445,11 +498,11 @@ class TestLoweringPassManager(QiskitTestCase):
         with self.assertRaises(AttributeError):
             pm.append(IncompletePass())
 
-    def test_mismatched_output(self):
+    def test_mismatched_builtin_output(self):
         """Test a pipeline where a pass returns another IR than it specified."""
         for pm in [
-            LoweringPassManager([LyingOutput(), DagToCircuit()]),
-            LoweringPassManager([LyingOutput()]),
+            LoweringPassManager([LyingBuiltinOutput(), DagToCircuit()]),
+            LoweringPassManager([LyingBuiltinOutput()]),
         ]:
             circuit = QuantumCircuit(2)
             circuit.cry(0.123, 0, 1)
@@ -460,6 +513,25 @@ class TestLoweringPassManager(QiskitTestCase):
             cause = ctx.exception.__cause__
             self.assertIsInstance(cause, TypeError)
             self.assertRegex(str(cause), ".* is not an instance of .*")
+
+    # TODO Enable this test once we catch the type error that the pass returns another IR
+    # than it specified in _qiskit_pass_ir_out_.
+    # def test_mismatched_custom_output(self):
+    #     """Test a pipeline where a pass returns another IR than it specified."""
+    #     for pm in [
+    #         LoweringPassManager([LyingOutput(), PopCounts(["t"])]),
+    #         LoweringPassManager([LyingOutput()]),
+    #     ]:
+    #         circuit = QuantumCircuit(2)
+    #         circuit.cry(0.123, 0, 1)
+    #         _ = pm.run(circuit)
+
+    #         with self.assertRaises(LoweringPassManagerError) as ctx:
+    #             _ = pm.run(circuit)
+
+    #         cause = ctx.exception.__cause__
+    #         self.assertIsInstance(cause, TypeError)
+    #         self.assertRegex(str(cause), ".* is not an instance of .*")
 
     def test_pass_error(self):
         """Test the error a pass is raising is propagated."""
@@ -504,3 +576,23 @@ class TestLoweringPassManager(QiskitTestCase):
 
         self.assertEqual(expect, out)
         self.assertIsInstance(out.layout, TranspileLayout)
+
+    def test_circuit_data_ir(self):
+        """Test running a pass on the Rust-native `CircuitData` IR."""
+        target = Target.from_configuration(basis_gates=["x", "sx", "cx"])
+        pm = LoweringPassManager(
+            [
+                CircuitToCircuitData(),
+                EstimateFidelity(target),
+                CircuitDataToDag(),
+                VerifyContext(present=["fidelity"]),
+            ]
+        )
+
+        circuit = QuantumCircuit(2)
+        circuit.sx(0)
+        circuit.x(0)
+        circuit.cx(0, 1)
+
+        out = pm.run(circuit, copy=False)
+        self.assertIsInstance(out, DAGCircuit)
