@@ -1050,6 +1050,10 @@ class QuantumCircuit:
     .. automethod:: reverse_bits
     """
 
+    # Marker protocol for type checkers to recognise `QuantumCircuit` as a "special form" of the
+    # passmanager `IR` without us needing to add base classes.
+    _qiskit_ir_builtin_: typing.ClassVar[None] = None
+
     instances = 0
     prefix = "circuit"
     name: str
