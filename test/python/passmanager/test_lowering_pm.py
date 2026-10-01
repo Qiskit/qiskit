@@ -26,8 +26,13 @@ from qiskit.passmanager import (
     LoweringPassManagerError,
     PassContextHandle,
     Pass,
-    GenericPass,
+    PassManagerState,
+    PropertySet,
+    WorkflowStatus,
+    Task,
 )
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.transpiler import generate_preset_pass_manager, CouplingMap, TranspileLayout
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
 
 
@@ -54,9 +59,17 @@ class DagToCircuit(Pass[DAGCircuit, QuantumCircuit]):
     _qiskit_pass_ir_in_ = DAGCircuit
     _qiskit_pass_ir_out_ = QuantumCircuit
 
+    def __init__(self, with_layout: bool = False):
+        super().__init__()
+        self.with_layout = with_layout
+
     def _qiskit_pass_run_(self, ir, context):
         context.ir_modified = True
-        return ir.to_circuit(copy_operations=False)
+        circuit = ir.to_circuit(copy_operations=False)
+        if self.with_layout and (layout := context.get("layout")) is not None:
+            property_set = LegacyDagPass._state_from_context(context).property_set
+            circuit._layout = TranspileLayout.from_property_set(ir, property_set)
+        return circuit
 
 
 class RemoveIdentities(Pass[DAGCircuit]):
@@ -220,6 +233,51 @@ class PopCounts(Pass[CountsIR]):
             context.ir_modified = True
 
         return ir
+
+
+class LegacyDagPass(Pass[DAGCircuit]):
+    """A wrapper for a legacy Python pass."""
+
+    _qiskit_pass_ir_in_ = DAGCircuit
+    _qiskit_pass_ir_out_ = DAGCircuit
+
+    # the key in the pass context under which we store the written keys in the context
+    # -- this is used to convert from/to property sets, since the PassContextHandle does
+    # not have a way to iterate over the (Python) keys
+    _legacy_keys = "___legacy_keys"
+
+    def __init__(self, legacy_task: Task[DAGCircuit, DAGCircuit]):
+        super().__init__()
+        self._task = legacy_task
+
+    def _qiskit_pass_run_(self, ir, context):
+        state = self._state_from_context(context)
+        out, out_state = self._task.execute(ir, state, None)
+        self._update_context(context, state, out_state)
+
+        return out
+
+    @staticmethod
+    def _state_from_context(context: PassContextHandle) -> PassManagerState:
+        dummy_status = WorkflowStatus()
+        property_set = PropertySet(
+            {key: context[key] for key in context.get(LegacyDagPass._legacy_keys, ())}
+        )
+        return PassManagerState(dummy_status, property_set)
+
+    @staticmethod
+    def _update_context(
+        context: PassContextHandle, old_state: PassManagerState, new_state: PassManagerState
+    ):
+        context[LegacyDagPass._legacy_keys] = []
+        for key, value in new_state.property_set.items():
+            context[LegacyDagPass._legacy_keys].append(key)
+            context[key] = value
+
+        for deleted_key in set(old_state.property_set.keys()).difference(
+            new_state.property_set.keys()
+        ):
+            del context[deleted_key]
 
 
 class TestLoweringPassManager(QiskitTestCase):
@@ -411,3 +469,38 @@ class TestLoweringPassManager(QiskitTestCase):
         cause = ctx.exception.__cause__
         self.assertIsInstance(cause, ValueError)
         self.assertRegex(str(cause), "vacation\\? not found!")
+
+    def test_legacy_pass(self):
+        pm = LoweringPassManager(
+            [CircuitToDag(), LegacyDagPass(RemoveIdentityEquivalent()), DagToCircuit()]
+        )
+
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        circuit.rz(1e-10, 0)
+        circuit.rx(1, 1)
+
+        out = pm.run(circuit)
+        self.assertEqual(out.count_ops(), {"cx": 1, "rx": 1})
+
+    def test_legacy_pipeline(self):
+        backend = GenericBackendV2(25, coupling_map=CouplingMap.from_grid(5, 5))
+        legacy_pm = generate_preset_pass_manager(backend=backend)
+        pm = LoweringPassManager(
+            [CircuitToDag()]
+            + [LegacyDagPass(task) for task in legacy_pm.to_flow_controller().tasks]
+            + [DagToCircuit(with_layout=True)]
+        )
+
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 2)
+        circuit.rz(1e-10, 0)
+        circuit.rx(1, 1)
+
+        expect = legacy_pm.run(circuit)
+        out = pm.run(circuit)
+
+        print(expect.layout)
+        print(out.layout)
+
+        self.assertEqual(expect, out)
