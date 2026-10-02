@@ -96,7 +96,7 @@ pub enum PassError {
 }
 
 /// The trait for objects that can be called as transformation [`Task`](super::Task)s.
-pub trait Pass: Send + Sync {
+pub trait Pass: Any + Send + Sync {
     /// Return the type ID of the IR expected on input.
     fn ir_id_in(&self) -> DynTypeId<'_>;
     /// Return the type ID of the IR that is emitted by the pass.

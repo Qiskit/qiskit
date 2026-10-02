@@ -270,6 +270,11 @@ class LoweringPassManager:
     Internally, this holds a handle to a low-level Rust-native pass manager.  This class then
     provides a Pythonic interface for interacting with the base object.  The corresponding object of
     the Rust-native component in the C API is :c:type:`QkPassManager`.
+
+    .. warning::
+        Due to internal limitations, users must ensure that this object does not participate in any
+        Python reference cycles; the Python garbage collector cannot fully traverse this object.  We
+        intend to lift this restriction in the future.
     """
 
     def __init__(self, tasks: Iterable[Pass] = ()) -> None:

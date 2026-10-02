@@ -14,19 +14,20 @@ use std::any::Any;
 use std::mem;
 use std::sync::{Arc, RwLock};
 
-use anyhow::anyhow;
-use pyo3::exceptions::{PyRuntimeError, PyTypeError};
+use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyTypeError};
 use pyo3::gc::PyVisit;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
-use pyo3::{PyTraverseError, intern};
+use pyo3::{PyTraverseError, import_exception, intern};
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Param;
-use qiskit_passmanager::{IR, PassContext};
+use qiskit_passmanager::{IR, PassContext, Task};
 use qiskit_util::dyn_types::*;
 use qiskit_util::py::ImportOnceCell;
+
+import_exception!(qiskit.passmanager, LoweringPassManagerError);
 
 // TODO: there'll be an abstraction we can make about `PyIrExposer` and the idea of
 // "Python-exposable types", but we're not solving everything in a PR series that's running late.
@@ -186,7 +187,7 @@ fn ir_exposer(mut ty: Bound<PyType>) -> PyResult<Box<dyn PyIrExposer>> {
 }
 
 /// Private Rust-Python boundary object that represents a handle to a pass coming from Python.
-#[pyclass]
+#[pyclass(module = "qiskit._accelerate.passmanager")]
 pub struct PyPass(Option<PyPassInner>);
 #[pymethods]
 impl PyPass {
@@ -281,17 +282,8 @@ impl qiskit_passmanager::Pass for PyPassInner {
             // internal `PassContext` from it, and we ensured that `stolen` drops as this function
             // ends, so the lifetime of the internal object actually ends with `'a`.
             let handle = unsafe { stolen.handle() };
-            self.run_py(py, ir, handle).map_err(|e| {
-                // `<PyErr as Display>` internally requires the interpreter, so we'll pull out the
-                // message while we know we're attached.
-                let native = e.to_string();
-                // Stash the exception back into the global state; when we next return to the Python
-                // interpreter we should be able to retrieve it and attach it as the cause.
-                e.restore(py);
-                anyhow!("Python execution raised an exception.")
-                    .context(native)
-                    .into()
-            })
+            self.run_py(py, ir, handle)
+                .map_err(|e| qiskit_passmanager::PassError::Runtime(e.into()))
         })
     }
 }
@@ -303,9 +295,8 @@ struct StolenContext<'a, 'b> {
 impl<'a, 'b> StolenContext<'a, 'b> {
     unsafe fn new(whence: &'b mut PassContext<'a>) -> Self {
         let stolen = mem::replace(whence, PassContext::dummy());
-        // SAFETY: per lifetime rules, 'a is longer lived than us.  If nothing else
-        // moves the `PassContext` out from us, we can put in back in `whence` in our
-        // `Drop`, guaranteeing the lifetime.
+        // SAFETY: per lifetime rules, 'a outlives us. If nothing else moves the `PassContext` out
+        // from us, we can put it back in `whence` in our `Drop`, guaranteeing the lifetime.
         let stolen = unsafe { mem::transmute::<PassContext<'a>, PassContext<'static>>(stolen) };
         Self {
             whence,
@@ -340,7 +331,7 @@ impl<'a, 'b> Drop for StolenContext<'a, 'b> {
 ///
 /// Methods on this handle object should attempt to hold locks from the [`RwLock`] for as short
 /// periods as possible.
-#[pyclass]
+#[pyclass(frozen, module = "qiskit._accelerate.passmanager")]
 pub struct PassContextHandle(Arc<RwLock<Option<PassContext<'static>>>>);
 impl PassContextHandle {
     #[inline]
@@ -389,10 +380,20 @@ impl PassContextHandle {
     }
     pub fn set_context(&self, key: String, val: Py<PyAny>) -> PyResult<()> {
         let val = Box::new(val);
-        self.with_borrow_mut(|ctx| ctx.set(key, val))
+        // Release the lock before dropping a (maybe) Python object whose destructor might run
+        // arbitrary code.
+        let _: Option<_> = self.with_borrow_mut(|ctx| ctx.set(key, val))?;
+        Ok(())
     }
     pub fn del_context(&self, key: String) -> PyResult<()> {
-        self.with_borrow_mut(|ctx| ctx.delete(key))
+        // Release the lock before dropping a (maybe) Python object whose destructor might run
+        // arbitrary code.  In Python space we raise `KeyError` if the key is not present, even if
+        // the actual deletion from the global context is deferred.
+        let _: Option<_> = self.with_borrow_mut(|ctx| match ctx.get(&key) {
+            Some(_) => Ok(ctx.delete(key)),
+            None => Err(PyKeyError::new_err(key)),
+        })??;
+        Ok(())
     }
     pub fn get_ir_modified(&self) -> PyResult<bool> {
         self.with_borrow(|ctx| ctx.ir_modified)
@@ -404,8 +405,97 @@ impl PassContextHandle {
 
 /// Wrapper around the Rust-native pass manager; we can take this as owned when we create it from
 /// Python or give a Rust-created one to Python.
-#[pyclass(name = "PassManager")]
-pub struct PyPassManager;
+#[pyclass(name = "PassManager", module = "qiskit._accelerate.passmanager")]
+pub struct PyPassManager(qiskit_passmanager::PassManager);
+#[pymethods]
+impl PyPassManager {
+    // TODO: the native `PassManager` contains type-erased objects that can (and _will_, via
+    // `PyPassInner`) own Python references.  Badly behaved Python objects can cause reference
+    // cycles that fail to be collected because we can't correctly integrate with the GC's
+    // `tp_traverse` slot (PyO3's `__traverse__`).  We need to rework the dynamic-typing system to
+    // allow arbitrary Rust and C objects to optionally integrate with the traversal logic, without
+    // requiring Python in the base interfaces.
+
+    #[new]
+    pub fn py_new() -> Self {
+        Self(Default::default())
+    }
+    pub fn push_pass(&mut self, outer: &mut PyPass) -> PyResult<()> {
+        let pass = outer
+            .0
+            .take()
+            .ok_or_else(|| PyRuntimeError::new_err("pass was already consumed"))?;
+        match self.0.try_push_task(Task::Transformation(Box::new(pass))) {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                let Task::Transformation(pass) = e else {
+                    panic!("internal logic error: we got back something we didn't put in");
+                };
+                // Restore the object to Python space, to assist debugging.
+                outer.0 = Some(
+                    *(pass as Box<dyn Any>)
+                        .downcast::<PyPassInner>()
+                        .expect("this came from a `PyPassInner`"),
+                );
+                Err(PyTypeError::new_err("ir types mismatched"))
+            }
+        }
+    }
+    pub fn run_simple<'py>(&self, ir: Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = ir.py();
+        let exposer_in = ir_exposer(ir.get_type())?;
+        let Some((ir_id_in, ir_id_out)) = self.0.ir_id_in().zip(self.0.ir_id_out()) else {
+            return Ok(ir);
+        };
+        let actual_in_id = exposer_in.object_dyn_type_id();
+        if ir_id_in != actual_in_id {
+            return Err(PyTypeError::new_err(format!(
+                "incoming IR of type {} does not match expected {}",
+                actual_in_id.describe(),
+                ir_id_in.describe()
+            )));
+        }
+        match self.0.run_erased(exposer_in.steal_from_py(ir)?) {
+            Ok((ir, _ctx)) => {
+                // TODO: this is a disgusting hack.  We _should_ have a way to associate a
+                // `PyIrExposer` / `CIrExposer` with the actual `DynTypeId` object in some form, but
+                // we don't have time to do it properly.  In lieu of that, we just try all the
+                // options...
+                let base_id = ir.dyn_type_id().to_static();
+                if base_id == DynTypeId::of::<CircuitData>() {
+                    PyCircuitExposer.to_py(py, ir)
+                } else if base_id == DynTypeId::of::<DAGCircuit>() {
+                    PyDagExposer.to_py(py, ir)
+                } else if base_id == DynTypeId::of::<PyIr>() {
+                    Ok((ir as Box<dyn Any>)
+                        .downcast::<PyIr>()
+                        .expect("`Any` type should match `DynTypeId`")
+                        .ob
+                        .into_bound(py))
+                } else {
+                    Err(PyTypeError::new_err(format!(
+                        "cannot expose out IR of type {} to Python",
+                        ir_id_out.describe()
+                    )))
+                }
+            }
+            Err(e @ qiskit_passmanager::PassError::Conversion) => {
+                Err(PyTypeError::new_err(e.to_string()))
+            }
+            Err(qiskit_passmanager::PassError::Runtime(e)) => {
+                // TODO: at some point we should add more structure.
+                let outer = LoweringPassManagerError::new_err(e.to_string());
+                // If there's a Python exception in the chain, we'll attach it as our exception's
+                // "cause".  We'll assume that if there are multiple Python exceptions, then it was
+                // the propagator's responsibility to chain them, if appropriate.
+                if let Some(pyerr) = e.chain().find_map(|e| e.downcast_ref::<PyErr>()) {
+                    outer.set_cause(py, Some(pyerr.clone_ref(py)));
+                }
+                Err(outer)
+            }
+        }
+    }
+}
 
 #[pymodule(name = "passmanager")]
 pub fn passmanager_mod(m: &Bound<'_, PyModule>) -> PyResult<()> {
