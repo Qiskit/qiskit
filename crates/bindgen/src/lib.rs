@@ -87,7 +87,7 @@ pub static QISKIT_PUBLIC_API_CRATES: &[&str] = &[
 pub static EXPORT_PREFIX: &str = "Qk";
 // Includes that cbindgen wouldn't otherwise emit.
 pub static EXPORT_INCLUDE: &[&str] = &[
-    "CustomOpMethod",
+    "CustomOpSlot",
     "IrBuiltin",
     "IrSlot",
     "PassContext",

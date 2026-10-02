@@ -57,7 +57,7 @@ Here's a quick example of what that looks like:
       }
       // Implement all required methods.
       // Build list of entries for the vtable (at least 7 required entries)
-      QkCustomOpVTableEntry entries[7] = {
+      QkCustomOpVtableEntry entries[7] = {
          {.slot = 0, .func = foo_name},
          {.slot = 1, .func = foo_num_qubits},
          {.slot = 2, .func = foo_num_clbits},
@@ -76,13 +76,13 @@ Here's a quick example of what that looks like:
       // Add to a circuit
       QkCircuit *circuit = qk_circuit_new(3, 0);
       uint32_t qubits[3] = {0, 1, 2};
-      qk_circuit_add_custom_operation(circuit, foo_3q_custom, qubits, NULL, NULL);
+      qk_circuit_custom_operation(circuit, foo_3q_custom, qubits, NULL, NULL);
    
 
 Data Types
 ==========
 
-.. doxygenenum:: QkCustomOpMethod
+.. doxygenenum:: QkCustomOpSlot
 
 Functions
 =========

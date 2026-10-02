@@ -3077,7 +3077,7 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_circuit_add_custom_operation(
+pub unsafe extern "C" fn qk_circuit_custom_operation(
     circuit: *mut CircuitData,
     operation: *mut BoxedCustomOperation,
     qubits: *const u32,

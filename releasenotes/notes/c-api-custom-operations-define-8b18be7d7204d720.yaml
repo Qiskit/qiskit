@@ -5,5 +5,5 @@ features_c:
     Any implementors should refer to the documentation defined in :ref:`capi-operations`
     for further information.
   - |
-    Add :c:func:`qk_circuit_add_custom_operation` and :c:func:`qk_dag_apply_custom_operation`
+    Add :c:func:`qk_circuit_custom_operation` and :c:func:`qk_dag_apply_custom_operation`
     to add custom operations defined in C to a circuit.

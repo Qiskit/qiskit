@@ -94,7 +94,7 @@ const _: () = unsafe { expose_by_box!(BoxedCustomOperation) };
 /// };
 ///
 /// // Create a vtable
-/// QkCustomOpVTable *foo_vtable = qk_custom_operation_vtable_new(entries);
+/// QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(entries);
 ///
 /// // Declare a sample instance
 /// struct foo_gate foo_3q = {
@@ -111,7 +111,7 @@ const _: () = unsafe { expose_by_box!(BoxedCustomOperation) };
 /// QkCircuit *circuit = qk_circuit_new(3, 0);
 /// uint32_t qubits[3] = {0, 1, 2};
 ///
-/// qk_circuit_add_custom_operation(circuit, foo_3q_custom, qubits, NULL, NULL);
+/// qk_circuit_custom_operation(circuit, foo_3q_custom, qubits, NULL, NULL);
 /// ```
 ///
 /// # Safety:
@@ -130,7 +130,7 @@ struct CustomOp {
     /// A pointer to the original gate.
     orig: *mut c_void,
     /// A pointer to a vtable designed for the original gate.
-    v_table: Arc<CustomOpVTable>,
+    v_table: Arc<CustomOpVtable>,
 }
 
 impl PartialEq for CustomOp {
@@ -226,7 +226,7 @@ impl CustomOperation for CustomOp {
 /// * ``definition(*const c_void, *const *const Param)`` -> ``*mut CircuitData``,
 /// * ``eq(*const c_void, *const c_void)`` -> ``bool``, to compare two operations of the same kind.
 #[derive(Debug, Clone)]
-pub struct CustomOpVTable {
+pub struct CustomOpVtable {
     name: unsafe extern "C" fn(*const c_void) -> *const c_char,
     num_qubits: unsafe extern "C" fn(*const c_void) -> u32,
     num_clbits: unsafe extern "C" fn(*const c_void) -> u32,
@@ -239,8 +239,8 @@ pub struct CustomOpVTable {
     eq: unsafe extern "C" fn(*const c_void, *const c_void) -> bool,
 }
 
-// SAFETY: all owned `CustomOpVTable` objects are exposed and freed using `Arc`.
-const _: () = unsafe { expose_by_arc!(CustomOpVTable) };
+// SAFETY: all owned `CustomOpVtable` objects are exposed and freed using `Arc`.
+const _: () = unsafe { expose_by_arc!(CustomOpVtable) };
 
 extern "C" fn default_num_clbits(_op: *const c_void) -> u32 {
     0
@@ -273,11 +273,11 @@ extern "C" fn default_eq(slf: *const c_void, other: *const c_void) -> bool {
     slf.eq(&other)
 }
 
-impl TryFrom<CustomOpVtablePartial> for CustomOpVTable {
-    type Error = CustomOpMethod;
+impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
+    type Error = CustomOpSlot;
 
     fn try_from(value: CustomOpVtablePartial) -> Result<Self, Self::Error> {
-        use CustomOpMethod::*;
+        use CustomOpSlot::*;
         Ok(Self {
             name: value.name.ok_or(Name)?,
             num_qubits: value.num_qubits.ok_or(NumQubits)?,
@@ -300,7 +300,7 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVTable {
 /// vtable and should always be converted to a [`CustomOpVtable`].
 /// The conversion will fail if any of the required methods listed
 /// in the documentation are not provided, and an error code with
-/// the first missing slot's [``CustomOpMethod``] index will be provided.
+/// the first missing slot's [``CustomOpSlot``] index will be provided.
 #[derive(Debug, Clone, Default)]
 pub struct CustomOpVtablePartial {
     name: Option<unsafe extern "C" fn(*const c_void) -> *const c_char>,
@@ -317,9 +317,9 @@ pub struct CustomOpVtablePartial {
 }
 
 impl CustomOpVtablePartial {
-    unsafe fn set(&mut self, slot: CustomOpMethod, ptr: *const c_void) -> bool {
+    unsafe fn set(&mut self, slot: CustomOpSlot, ptr: *const c_void) -> bool {
         match slot {
-            CustomOpMethod::Name => {
+            CustomOpSlot::Name => {
                 let ptr = unsafe {
                     std::mem::transmute::<
                         *const c_void,
@@ -328,7 +328,7 @@ impl CustomOpVtablePartial {
                 };
                 self.name.replace(ptr).is_some()
             }
-            CustomOpMethod::NumQubits => {
+            CustomOpSlot::NumQubits => {
                 let ptr = unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
                         ptr,
@@ -336,7 +336,7 @@ impl CustomOpVtablePartial {
                 };
                 self.num_qubits.replace(ptr).is_some()
             }
-            CustomOpMethod::NumClbits => {
+            CustomOpSlot::NumClbits => {
                 let ptr = unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
                         ptr,
@@ -344,7 +344,7 @@ impl CustomOpVtablePartial {
                 };
                 self.num_clbits.replace(ptr).is_some()
             }
-            CustomOpMethod::NumParams => {
+            CustomOpSlot::NumParams => {
                 let ptr = unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
                         ptr,
@@ -352,7 +352,7 @@ impl CustomOpVtablePartial {
                 };
                 self.num_params.replace(ptr).is_some()
             }
-            CustomOpMethod::Directive => {
+            CustomOpSlot::Directive => {
                 let ptr = unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
                         ptr,
@@ -360,7 +360,7 @@ impl CustomOpVtablePartial {
                 };
                 self.directive.replace(ptr).is_some()
             }
-            CustomOpMethod::IsUnitary => {
+            CustomOpSlot::IsUnitary => {
                 let ptr = unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> bool>(
                         ptr,
@@ -368,7 +368,7 @@ impl CustomOpVtablePartial {
                 };
                 self.is_unitary.replace(ptr).is_some()
             }
-            CustomOpMethod::NumCtrlQubits => {
+            CustomOpSlot::NumCtrlQubits => {
                 let ptr = unsafe {
                     std::mem::transmute::<*const c_void, unsafe extern "C" fn(*const c_void) -> u32>(
                         ptr,
@@ -376,7 +376,7 @@ impl CustomOpVtablePartial {
                 };
                 self.num_ctrl_qubits.replace(ptr).is_some()
             }
-            CustomOpMethod::Label => {
+            CustomOpSlot::Label => {
                 let ptr = unsafe {
                     std::mem::transmute::<
                         *const c_void,
@@ -385,7 +385,7 @@ impl CustomOpVtablePartial {
                 };
                 self.label.replace(ptr).is_some()
             }
-            CustomOpMethod::Definition => {
+            CustomOpSlot::Definition => {
                 let ptr = unsafe {
                     std::mem::transmute::<
                         *const c_void,
@@ -397,7 +397,7 @@ impl CustomOpVtablePartial {
                 };
                 self.definition.replace(ptr).is_some()
             }
-            CustomOpMethod::Eq => {
+            CustomOpSlot::Eq => {
                 let ptr = unsafe {
                     std::mem::transmute::<
                         *const c_void,
@@ -418,7 +418,7 @@ impl CustomOpVtablePartial {
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, derive_more::TryFrom)]
 #[try_from(repr)]
-pub enum CustomOpMethod {
+pub enum CustomOpSlot {
     Name = 0,
     NumQubits = 1,
     NumClbits = 2,
@@ -453,14 +453,14 @@ pub enum CustomOpMethod {
 ///
 /// // Build list of entries for the vtable (at least 7 required entries)
 /// QkVtableEntry entries[7] = {
-///     {.slot = QkCustomOpMethod_NumQubits, .func = foo_num_qubits},
+///     {.slot = QkCustomOpSlot_NumQubits, .func = foo_num_qubits},
 ///     // ...
 ///     // End with sentinel value
 ///     {.slot = -1, .func = NULL},
 /// };
 ///
 /// // Create a vtable
-/// QkCustomOpVTable *foo_vtable = qk_custom_operation_vtable_new(entries);
+/// QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(entries);
 ///
 /// // Declare a sample instance
 /// struct foo_gate foo_3q = {
@@ -491,7 +491,7 @@ pub enum CustomOpMethod {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_new(
     operation: *mut c_void,
-    v_table: *const CustomOpVTable,
+    v_table: *const CustomOpVtable,
 ) -> *mut BoxedCustomOperation {
     let as_custom_op = CustomOp {
         orig: operation,
@@ -504,7 +504,7 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 }
 
 /// @ingroup QkCustomOperation
-/// Builds a ``QkCustomOpVTable`` based on a list of ``QkVtableEntry``
+/// Builds a ``QkCustomOpVtable`` based on a list of ``QkVtableEntry``
 /// instances.
 ///
 /// The vtable is built from a collection of slots that hold an index and a
@@ -514,16 +514,16 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 ///
 /// | Slot                 | Arg(s) type                    | Return type   |               Index                  | Required |       Default       |
 /// |----------------------|--------------------------------|---------------|--------------------------------------|----------|---------------------|
-/// | ``name``             | `const void *`                 | `char *`      | ``QkCustomOpMethod_Name``            |    Yes   |        n/a          |
-/// | ``num_qubits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumQubits``       |    Yes   |        n/a          |
-/// | ``num_clbits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumClbits``       |    No    |       `0`           |
-/// | ``num_params``       | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumParams``       |    No    |       `0`           |
-/// | ``directive``        | `const void *`                 | `bool`        | ``QkCustomOpMethod_Directive``       |    No    |      `false`        |
-/// | ``is_unitary``       | `const void *`                 | `bool`        | ``QkCustomOpMethod_IsUnitary``       |    No    |      `true`         |
-/// | ``num_ctrl_qubits``  | `const void *`                 | `uint32_t`    | ``QkCustomOpMethod_NumCtrlQubits``   |    No    |       `0`           |
-/// | ``label``            | `const void *`                 | `char *`      | ``QkCustomOpMethod_Label``           |    No    |       `NULL`        |
-/// | ``definition``       | `const void *`, `QkParam **`   | `QkCircuit *` | ``QkCustomOpMethod_Definition``      |    No    |       `NULL`        |
-/// | ``eq``               | `const void *`, `const void *` | `bool`        | ``QkCustomOpMethod_Eq``              |    No    | Pointer comparison  |
+/// | ``name``             | `const void *`                 | `char *`      | ``QkCustomOpSlot_Name``            |    Yes   |        n/a          |
+/// | ``num_qubits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpSlot_NumQubits``       |    Yes   |        n/a          |
+/// | ``num_clbits``       | `const void *`                 | `uint32_t`    | ``QkCustomOpSlot_NumClbits``       |    No    |       `0`           |
+/// | ``num_params``       | `const void *`                 | `uint32_t`    | ``QkCustomOpSlot_NumParams``       |    No    |       `0`           |
+/// | ``directive``        | `const void *`                 | `bool`        | ``QkCustomOpSlot_Directive``       |    No    |      `false`        |
+/// | ``is_unitary``       | `const void *`                 | `bool`        | ``QkCustomOpSlot_IsUnitary``       |    No    |      `true`         |
+/// | ``num_ctrl_qubits``  | `const void *`                 | `uint32_t`    | ``QkCustomOpSlot_NumCtrlQubits``   |    No    |       `0`           |
+/// | ``label``            | `const void *`                 | `char *`      | ``QkCustomOpSlot_Label``           |    No    |       `NULL`        |
+/// | ``definition``       | `const void *`, `QkParam **`   | `QkCircuit *` | ``QkCustomOpSlot_Definition``      |    No    |       `NULL`        |
+/// | ``eq``               | `const void *`, `const void *` | `bool`        | ``QkCustomOpSlot_Eq``              |    No    | Pointer comparison  |
 ///
 /// Each function will be seen as a `void` pointer to Rust and will be transmuted
 /// to a function pointer of the correct signature.
@@ -563,7 +563,7 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     mut slots: *const VtableEntry,
-) -> *const CustomOpVTable {
+) -> *const CustomOpVtable {
     let mut vtable = CustomOpVtablePartial::default();
     loop {
         // SAFETY: per documentation, `slots` is valid for reads until we see the sentinel all-ones
@@ -574,7 +574,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
         } else {
             slots.wrapping_add(1)
         };
-        let Ok(slot) = CustomOpMethod::try_from(entry.slot) else {
+        let Ok(slot) = CustomOpSlot::try_from(entry.slot) else {
             // We assume this is a slot from a later version of Qiskit.
             // TODO: add an envvar / global to turn on debug information in these cases?
             continue;
@@ -588,21 +588,21 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     }
 
     // SAFETY: per documentation, all required methods were set.
-    (unsafe { CustomOpVTable::try_from(vtable).unwrap_unchecked() }).into_leaked()
+    (unsafe { CustomOpVtable::try_from(vtable).unwrap_unchecked() }).into_leaked()
 }
 
 /// @ingroup QkCustomOperation
-/// Frees the `QkCustomOpVTable` pointer
+/// Frees the `QkCustomOpVtable` pointer
 ///
-/// @param v_table The pointer to a `QkCustomOpVTable` object.
+/// @param v_table The pointer to a `QkCustomOpVtable` object.
 ///
 /// # Safety
 ///
 /// Undefined behavior may occur if `v_table` is a `NULL` or unaligned invalid pointer
-/// to a `QkCustomOpVTable`.
+/// to a `QkCustomOpVtable`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_operation_vtable_free(v_table: *const CustomOpVTable) {
+pub unsafe extern "C" fn qk_custom_operation_vtable_free(v_table: *const CustomOpVtable) {
     // SAFETY: if `v_table` is not nul, then it is an owned pointer as per documentation
     // all owned pointers can be given to `steal`.
-    _ = (!v_table.is_null()).then(|| unsafe { CustomOpVTable::steal(v_table.cast_mut()) })
+    _ = (!v_table.is_null()).then(|| unsafe { CustomOpVtable::steal(v_table.cast_mut()) })
 }
