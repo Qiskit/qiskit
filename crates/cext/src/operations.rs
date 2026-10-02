@@ -125,7 +125,7 @@ const _: () = unsafe { expose_by_box!(BoxedCustomOperation) };
 /// - Be preserved throughout the runtime of the program.
 ///
 /// Failure to comply with these conditions may result in undefined behavior.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct CustomOp {
     /// A pointer to the original gate.
     orig: *mut c_void,
@@ -140,7 +140,36 @@ impl PartialEq for CustomOp {
     }
 }
 
+impl Clone for CustomOp {
+    fn clone(&self) -> Self {
+        let orig = match self.v_table.clone {
+            // SAFETY: per slot documentation, `clone` accepts all pointers stored in the `orig`
+            // field and returns a new owning pointer.
+            Some(clone) => unsafe { clone(self.orig.cast_const()) },
+            None => self.orig,
+        };
+        Self {
+            orig,
+            v_table: Arc::clone(&self.v_table),
+        }
+    }
+}
+impl Drop for CustomOp {
+    fn drop(&mut self) {
+        // The no-op on `NULL` is documented in the slot documentation, and marks moved ownership of
+        // the data pointer.
+        if let Some(delete) = self.v_table.delete
+            && !self.orig.is_null()
+        {
+            // SAFETY: per documentation of `CustomOpVtable`, if the `delete` method is set, it is
+            // valid to be passed `self.orig` from any thread.
+            unsafe { delete(self.orig) };
+        }
+    }
+}
+// SAFETY: per struct documentation, the data pointer is safe to send to other threads.
 unsafe impl Send for CustomOp {}
+// SAFETY: per struct documentation, the data pointer is safe to share with other threads.
 unsafe impl Sync for CustomOp {}
 
 impl Operation for CustomOp {
@@ -225,8 +254,18 @@ impl CustomOperation for CustomOp {
 /// * ``label(*const c_void)`` ->  ``*const c_char``,
 /// * ``definition(*const c_void, *const *const Param)`` -> ``*mut CircuitData``,
 /// * ``eq(*const c_void, *const c_void)`` -> ``bool``, to compare two operations of the same kind.
+///
+/// In any custom operation, the data pointer is _owned_.  If your data pointer involves an
+/// allocation with memory-management requirements, or includes mutable data, you most likely need
+/// to implement the cloning and destruction behavior via the `Clone` and `Delete` slots.
+///
+/// `Clone` must accept the data pointer, and return a new owning allocation of the same type.
+/// `Delete` must accept the data pointer and free all memory or resources used.  `Delete` is not
+/// called if the data pointer is null.
 #[derive(Debug, Clone)]
 pub struct CustomOpVtable {
+    clone: Option<unsafe extern "C" fn(*const c_void) -> *mut c_void>,
+    delete: Option<unsafe extern "C" fn(*mut c_void)>,
     name: unsafe extern "C" fn(*const c_void) -> *const c_char,
     num_qubits: unsafe extern "C" fn(*const c_void) -> u32,
     num_clbits: unsafe extern "C" fn(*const c_void) -> u32,
@@ -289,6 +328,8 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
             label: value.label.unwrap_or(default_label),
             definition: value.definition.unwrap_or(default_definition),
             eq: value.eq.unwrap_or(default_eq),
+            clone: value.clone,
+            delete: value.delete,
         })
     }
 }
@@ -304,6 +345,8 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
 #[derive(Debug, Clone, Default)]
 pub struct CustomOpVtablePartial {
     name: Option<unsafe extern "C" fn(*const c_void) -> *const c_char>,
+    clone: Option<unsafe extern "C" fn(*const c_void) -> *mut c_void>,
+    delete: Option<unsafe extern "C" fn(*mut c_void)>,
     num_qubits: Option<unsafe extern "C" fn(*const c_void) -> u32>,
     num_clbits: Option<unsafe extern "C" fn(*const c_void) -> u32>,
     num_params: Option<unsafe extern "C" fn(*const c_void) -> u32>,
@@ -327,6 +370,21 @@ impl CustomOpVtablePartial {
                     >(ptr)
                 };
                 self.name.replace(ptr).is_some()
+            }
+            CustomOpSlot::Clone => {
+                let ptr = unsafe {
+                    std::mem::transmute::<
+                        *const c_void,
+                        unsafe extern "C" fn(*const c_void) -> *mut c_void,
+                    >(ptr)
+                };
+                self.clone.replace(ptr).is_some()
+            }
+            CustomOpSlot::Delete => {
+                let ptr = unsafe {
+                    std::mem::transmute::<*const c_void, unsafe extern "C" fn(*mut c_void)>(ptr)
+                };
+                self.delete.replace(ptr).is_some()
             }
             CustomOpSlot::NumQubits => {
                 let ptr = unsafe {
@@ -429,6 +487,8 @@ pub enum CustomOpSlot {
     Label = 7,
     Definition = 8,
     Eq = 9,
+    Clone = 10,
+    Delete = 11,
 }
 
 /// @ingroup QkCustomOperation
@@ -471,7 +531,7 @@ pub enum CustomOpSlot {
 /// QkCustomOperation foo_3q_custom = qk_custom_operation_new(&foo_3q, foo_vtable);
 /// ```
 ///
-/// @param operation A pointer to the operation struct.
+/// @param operation An owned pointer to the operation struct.
 /// @param v_table A pointer to a correctly constructed v_table designed to
 /// work with the data of the struct `operation` points to.
 ///
@@ -488,6 +548,7 @@ pub enum CustomOpSlot {
 /// Behavior is undefined if the provided `v_table` pointer is null or non-aligned.
 ///
 /// Failure to comply with these conditions may result in undefined behavior.
+///
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_new(
     operation: *mut c_void,
@@ -524,6 +585,8 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 /// | ``label``            | `const void *`                 | `char *`      | ``QkCustomOpSlot_Label``           |    No    |       `NULL`        |
 /// | ``definition``       | `const void *`, `QkParam **`   | `QkCircuit *` | ``QkCustomOpSlot_Definition``      |    No    |       `NULL`        |
 /// | ``eq``               | `const void *`, `const void *` | `bool`        | ``QkCustomOpSlot_Eq``              |    No    | Pointer comparison  |
+/// | ``clone``            | `const void *`                 | `void *`      | ``QkCustomOpSlot_Clone``           |    No    |     pointer alias   |
+/// | ``delete``           | `void *`                       | `void`        | ``QkCustomOpSlot_Delete``          |    No    |       no-op         |
 ///
 /// Each function will be seen as a `void` pointer to Rust and will be transmuted
 /// to a function pointer of the correct signature.

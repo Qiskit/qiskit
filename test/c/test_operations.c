@@ -11,18 +11,11 @@
 // that they have been altered from the originals.
 
 #include "common.h"
-#include <math.h>
 #include <qiskit.h>
 #include <stdio.h>
 #include <string.h>
 
-const char *FOO_NAME = "foo";
-const char *foo_name(const void *gate);
-uint32_t foo_num_qubits(const void *gate);
-uint32_t foo_num_clbits(const void *gate);
-uint32_t foo_num_params(const void *gate);
-bool foo_directive(const void *gate);
-bool foo_is_unitary(const void *gate);
+static const char *FOO_NAME = "foo";
 
 struct foo_gate {
     uint32_t num_qubits;
@@ -30,37 +23,34 @@ struct foo_gate {
     uint32_t num_params;
 };
 
-const char *foo_name(const void *gate) {
-    struct foo_gate *_self = (struct foo_gate *)gate;
-    // Void pointer.
-    (void)_self;
+static const char *foo_name(const struct foo_gate *gate) {
+    (void)gate; // Unused.
     return FOO_NAME;
 }
-uint32_t foo_num_qubits(const void *gate) {
-    struct foo_gate *self = (struct foo_gate *)gate;
-    return self->num_qubits;
-}
-uint32_t foo_num_clbits(const void *gate) {
-    struct foo_gate *self = (struct foo_gate *)gate;
-    return self->num_clbits;
-}
-uint32_t foo_num_params(const void *gate) {
+static uint32_t foo_num_qubits(const struct foo_gate *gate) { return gate->num_qubits; }
+static uint32_t foo_num_clbits(const struct foo_gate *gate) { return gate->num_clbits; }
+static uint32_t foo_num_params(const void *gate) {
     struct foo_gate *self = (struct foo_gate *)gate;
     return self->num_params;
 }
-bool foo_eq(const void *gate, const void *other) {
-    struct foo_gate *_self = (struct foo_gate *)gate;
-    struct foo_gate *_other = (struct foo_gate *)other;
-
-    return (_self->num_qubits == _other->num_qubits && _self->num_clbits == _other->num_clbits &&
-            _self->num_params == _other->num_params);
+static bool foo_eq(const struct foo_gate *gate, const struct foo_gate *other) {
+    return (gate->num_qubits == other->num_qubits && gate->num_clbits == other->num_clbits &&
+            gate->num_params == other->num_params);
+}
+static struct foo_gate *foo_clone(const struct foo_gate *gate) {
+    struct foo_gate *out = malloc(sizeof(*out));
+    memcpy(out, gate, sizeof(*out));
+    return out;
 }
 
-QkVtableEntry entries[5] = {
+static QkVtableEntry foo_entries[] = {
     {.slot = QkCustomOpSlot_Name, .ptr = foo_name},
+    {.slot = QkCustomOpSlot_Eq, .ptr = foo_eq},
     {.slot = QkCustomOpSlot_NumQubits, .ptr = foo_num_qubits},
     {.slot = QkCustomOpSlot_NumClbits, .ptr = foo_num_clbits},
     {.slot = QkCustomOpSlot_NumParams, .ptr = foo_num_params},
+    {.slot = QkCustomOpSlot_Clone, .ptr = foo_clone},
+    {.slot = QkCustomOpSlot_Delete, .ptr = free},
     {.slot = -1, .ptr = NULL},
 };
 
@@ -80,7 +70,7 @@ static int test_custom_operation_in_circuit(void) {
     };
 
     // Initialize Vtable
-    const QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(entries);
+    const QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(foo_entries);
 
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");
@@ -88,8 +78,8 @@ static int test_custom_operation_in_circuit(void) {
         goto exit;
     }
 
-    QkCustomOperation *test_3q = qk_custom_operation_new(&test_3q_op, foo_vtable);
-    QkCustomOperation *test_2q_1c = qk_custom_operation_new(&test_2q_op, foo_vtable);
+    QkCustomOperation *test_3q = qk_custom_operation_new(foo_clone(&test_3q_op), foo_vtable);
+    QkCustomOperation *test_2q_1c = qk_custom_operation_new(foo_clone(&test_2q_op), foo_vtable);
 
     QkCircuit *circuit = qk_circuit_new(3, 2);
     uint32_t qubits[3] = {0, 1, 2};
@@ -195,7 +185,7 @@ static int test_custom_operation_in_dag(void) {
     };
 
     // Initialize Vtable
-    const QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(entries);
+    const QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(foo_entries);
 
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");
@@ -203,8 +193,8 @@ static int test_custom_operation_in_dag(void) {
         goto exit;
     }
 
-    QkCustomOperation *test_1q = qk_custom_operation_new(&test_1q_op, foo_vtable);
-    QkCustomOperation *test_3q_1c = qk_custom_operation_new(&test_3q_op, foo_vtable);
+    QkCustomOperation *test_1q = qk_custom_operation_new(foo_clone(&test_1q_op), foo_vtable);
+    QkCustomOperation *test_3q_1c = qk_custom_operation_new(foo_clone(&test_3q_op), foo_vtable);
 
     QkDag *circuit = qk_dag_new();
     QkQuantumRegister *qreg = qk_quantum_register_new(3, "qreg0");
