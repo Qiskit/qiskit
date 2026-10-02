@@ -747,7 +747,7 @@ pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_target_entry_add_property(
     entry: *mut TargetEntry,
-    qargs: *mut u32,
+    qargs: *const u32,
     num_qubits: u32,
     duration: f64,
     error: f64,
@@ -914,7 +914,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 pub unsafe extern "C" fn qk_target_update_property(
     target: *mut Target,
     instruction: StandardGate,
-    qargs: *mut u32,
+    qargs: *const u32,
     num_qubits: u32,
     duration: f64,
     error: f64,
