@@ -1290,7 +1290,7 @@ class QuantumCircuit(IR):
     ) -> QuantumCircuit:
         """Construct a circuit from an opaque :class:`CircuitData`.
 
-        Typically this function only makes to wrap an object coming from C in the full Python
+        Typically this function is used to wrap an object coming from C in the full Python
         :class:`QuantumCircuit` class.  The :class:`CircuitData` object is the Rust-native object
         that corresponds to the C-API object :c:type:`QkCircuit`.  See its documentation for more
         detail on this opaque object.
