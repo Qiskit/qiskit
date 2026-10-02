@@ -26,6 +26,7 @@ pub enum PtrKind {
 pub enum TypeKind<T> {
     Builtin(T),
     Custom(String),
+    FuncPtr(Box<Function<T>>),
 }
 #[derive(Clone, Debug)]
 pub struct Type<T> {
@@ -130,11 +131,20 @@ pub struct Union<T> {
 }
 
 #[derive(Clone, Debug)]
+pub struct Typedef<T> {
+    /// The name of the new type.
+    pub name: String,
+    /// The type definition.
+    pub ty: Type<T>,
+}
+
+#[derive(Clone, Debug)]
 pub struct Items<T> {
     pub enums: Vec<Enum>,
     pub structs: Vec<Struct<T>>,
     pub functions: Vec<Function<T>>,
     pub unions: Vec<Union<T>>,
+    pub typedefs: Vec<Typedef<T>>,
 }
 impl<T> Default for Items<T> {
     fn default() -> Self {
@@ -143,6 +153,7 @@ impl<T> Default for Items<T> {
             structs: Default::default(),
             functions: Default::default(),
             unions: Default::default(),
+            typedefs: Default::default(),
         }
     }
 }
