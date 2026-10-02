@@ -55,7 +55,7 @@ class IR:
     signatures.
 
     Qiskit reserves the attribute and method namespace ``_qiskit_ir_*_`` for future expansion of
-    this interface.  Qiskit will not define and attributes or methods in the interface outside this
+    this interface.  Qiskit will not define any attributes or methods in the interface outside this
     namespace.
 
     .. note::
@@ -90,7 +90,7 @@ class IR:
       You must not set this attribute (nor override any other attributes or methods).
 
     * You define a new class that subclasses an existing implementation of :class:`IR`, and you want
-      it to be considered as a _new_ IR.
+      it to be considered as a *new* IR.
 
       You must set this attribute to ``None``.
 
@@ -209,7 +209,7 @@ class Pass(Generic[IRIn, IROut], abc.ABC):
     signatures in line with this documentation about per-Qiskit-version calling signatures.
 
     Qiskit reserves the attribute and method namespace ``_qiskit_pass_*_`` for future expansion of
-    this interface.  Qiskit will not define and attributes or methods in the interface outside this
+    this interface.  Qiskit will not define any attributes or methods in the interface outside this
     namespace.
     """
 

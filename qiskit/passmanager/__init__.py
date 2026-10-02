@@ -127,8 +127,8 @@ a moment to learn how to build a custom Qiskit compiler.
 This pass manager inputs and outputs an integer number, while
 performing the optimization tasks on a string data.
 Hence, input, IR, output type are integer, string, integer, respectively.
-The :meth:`.~BasePassManager._passmanager_frontend` method defines the conversion from the
-input data to IR, and :meth:`.~BasePassManager._passmanager_backend` defines
+The :meth:`~.BasePassManager._passmanager_frontend` method defines the conversion from the
+input data to IR, and :meth:`~.BasePassManager._passmanager_backend` defines
 the conversion from the IR to output data.
 The pass manager backend is also given an :code:`in_program` parameter that contains the original
 ``input_program`` to the front end, for referencing any original metadata of the input program for
