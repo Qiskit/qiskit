@@ -104,10 +104,10 @@ pub unsafe extern "C" fn qk_passmanager_push_pass(
 ///
 /// Behavior is undefined if any of the following are violated:
 ///
-/// * `pm` is a valid pointer to  `QkPassManager`.
+/// * `pm` is a valid pointer to a `QkPassManager`.
 /// * `ir` is an owning data pointer of the type indicated by `ir_in_handle`.
-/// * `ir_in_handle` points a valid `IrHandle`.
-/// * `ir_out_handle` points a valid `IrHandle`.
+/// * `ir_in_handle` points to a valid `IrHandle`.
+/// * `ir_out_handle` points to a valid `IrHandle`.
 /// * `error` is either null, or points to a storage location valid for a single write of one
 ///   `QkCompilationError *`.
 #[unsafe(no_mangle)]
@@ -142,6 +142,6 @@ pub unsafe extern "C" fn qk_passmanager_run_simple(
                 ir_out_handle.0.leak(ir_out)
             }
         }
-        Err(e) => parse_error(e),
+        Err(e) => parse_error(e.into()),
     }
 }
