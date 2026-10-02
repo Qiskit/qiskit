@@ -56,10 +56,14 @@ class PTM(QuantumChannel):
 
     .. math::
 
-        |\mathcal{E}(\rho)\rangle\!\rangle_P = S_P |\rho\rangle\!\rangle_P
+        |\mathcal{E}(\rho)\rangle\!\rangle_P = R |\rho\rangle\!\rangle_P
 
-    where :math:`|A\rangle\!\rangle_P` denotes vectorization in the Pauli basis
+    where :math:`R` is the PTM matrix defined above, and 
+    :math:`|A\rangle\!\rangle_P` denotes vectorization in the Pauli basis
     :math:`\langle i | A\rangle\!\rangle_P = \sqrt{\frac{1}{2^n}} \mbox{Tr}[P_i A]`.
+    
+    (The notation :math:`S_P` is sometimes used in literature for the PTM matrix;
+    here we use :math:`R` consistently.)
 
     See reference [1] for further details.
 

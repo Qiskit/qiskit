@@ -207,8 +207,15 @@ class CXGate(SingletonControlledGate):
     if the control qubit is in the :math:`|1\rangle` state.
     In this sense it is similar to a classical XOR gate.
 
+    Using Qiskit's little-endian convention where :math:`q_0` is the
+    control and :math:`q_1` is the target, the action on the basis states is:
+
     .. math::
-        `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
+        |a, b\rangle \rightarrow |a, a \oplus b\rangle
+
+    where :math:`a` is the control qubit state and :math:`b` is the target
+    qubit state. Equivalently, this computes the XOR of the control into
+    the target qubit.
     """
 
     _standard_gate = StandardGate.CX
