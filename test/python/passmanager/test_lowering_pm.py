@@ -65,6 +65,13 @@ class CliffordCountsIR(CountsIR):
         super().__init__(data)
 
 
+class CliffordCircuit(QuantumCircuit):
+    """An IR deriving the builtin circuit IR.
+
+    This is not actually doing any Clifford checks and is just for testing purposes.
+    """
+
+
 class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
     """A lowering pass from quantum circuit to DAG circuit.
 
@@ -594,3 +601,14 @@ class TestLoweringPassManager(QiskitTestCase):
         ir = CliffordCountsIR({"h": 2, "x": 12})
         out = pm.run(ir)
         self.assertEqual(out.data, {"x": 12})
+
+    def test_subclassed_builtin_ir(self):
+        """Test running a pass on the parent class on the subclass."""
+
+        pm = LoweringPassManager([CircuitToDag()])
+        ir = CliffordCircuit(10)
+        ir.h(range(9))
+        ir.cx(range(9), 9)
+
+        out = pm.run(ir)
+        self.assertIsInstance(out, DAGCircuit)
