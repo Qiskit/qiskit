@@ -141,8 +141,22 @@ class LookaheadSwap(TransformationPass):
 
         mapped_gates = []
         gates_remaining = list(dag.serial_layers())
+        visited_states = set()
 
         while gates_remaining:
+            state_signature = (
+                tuple(current_state.layout._v2p[qubit] for qubit in dag.qubits),
+                tuple(id(gate) for gate in gates_remaining),
+            )
+
+            if state_signature in visited_states:
+                raise TranspilerError(
+                    "LookaheadSwap detected a repeated routing state without "
+                    "making progress."
+                )
+
+            visited_states.add(state_signature)
+
             logger.debug("Top-level routing step: %d gates remaining.", len(gates_remaining))
 
             best_step = _search_forward_n_swaps(

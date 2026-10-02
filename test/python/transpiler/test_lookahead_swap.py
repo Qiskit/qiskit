@@ -22,6 +22,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from test import QiskitTestCase
+from qiskit.transpiler.exceptions import TranspilerError
 
 from ..legacy_cmaps import MELBOURNE_CMAP
 
@@ -296,6 +297,27 @@ class TestLookaheadSwap(QiskitTestCase):
         out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
 
         self.assertIsInstance(out, DAGCircuit)
+
+    def test_lookahead_swap_does_not_loop_on_repeated_swaps(self):
+        """Verify LookaheadSwap terminates on the reported circuit."""
+        coupling_map = CouplingMap(
+            [(0, 6), (0, 4), (1, 6), (1, 7), (2, 7), (3, 4), (5, 7)]
+        )
+        coupling_map.make_symmetric()
+
+        circuit = QuantumCircuit(8)
+        for a, b in [(0, 2), (0, 3), (0, 4), (1, 4), (1, 5), (3, 5)]:
+            circuit.cz(a, b)
+
+        dag = circuit_to_dag(circuit)
+
+        try:
+            out = LookaheadSwap(coupling_map).run(dag)
+        except TranspilerError as exc:
+            self.assertIn("repeated routing state", str(exc))
+        else:
+            self.assertIsInstance(out, DAGCircuit)
+            self.assertEqual(out.count_ops().get("cz", 0), 6)
 
     def test_global_phase_preservation(self):
         """Test that LookaheadSwap preserves global phase"""
