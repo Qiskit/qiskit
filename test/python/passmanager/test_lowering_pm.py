@@ -50,6 +50,9 @@ class CountsIR(IR):
         super().__init__()
         self.data = data
 
+    def __eq__(self, other: Any) -> bool:
+        return isinstance(other, CountsIR) and self.data == other.data
+
 
 class AlsoCountsIR(CountsIR):
     """A subclassed custom IR."""
@@ -59,7 +62,7 @@ class CliffordCountsIR(CountsIR):
     """An IR deriving from CountsIR."""
 
     _qiskit_ir_name_ = "CliffordCountsIR"
-    _qiskit_ir_base_ = CountsIR
+    _qiskit_ir_base_ = None  # we want this to be a **new** IR!
 
     def __init__(self, data: dict[str, int]) -> None:
         clifford_names = set(get_clifford_gate_names())
@@ -67,6 +70,24 @@ class CliffordCountsIR(CountsIR):
             raise ValueError("Non-Clifford detected!")
 
         super().__init__(data)
+
+
+class NonIRBase:
+    """A base-class that does not implement `IR`."""
+
+
+class IRBase(NonIRBase, IR):
+    """Inherit from a non-IR base class, *and* IR."""
+
+
+class IRBasePass(Pass[IRBase]):
+    """A pass on `IRBase`."""
+
+    _qiskit_pass_ir_in_ = IRBase
+    _qiskit_pass_ir_out_ = IRBase
+
+    def _qiskit_pass_run_(self, ir, context):
+        return ir
 
 
 class CliffordCircuit(QuantumCircuit):
@@ -401,7 +422,7 @@ class TestLoweringPassManager(QiskitTestCase):
 
         counts = CountsIR({"x": 42_000})
         with self.subTest(ir=counts):
-            self.assertEqual(pm.run(counts).data, counts.data)
+            self.assertEqual(pm.run(counts), counts)
 
         # even an empty PM does require `IR` input types
         with self.subTest(ir=1):
@@ -497,7 +518,7 @@ class TestLoweringPassManager(QiskitTestCase):
         circuit.t(1)
 
         out = pm.run(circuit)
-        self.assertEqual(out.data, {"t": 1})
+        self.assertEqual(CountsIR({"t": 1}), out)
 
     def test_name_collision(self):
         pm = LoweringPassManager([NamelessPass()])
@@ -613,8 +634,11 @@ class TestLoweringPassManager(QiskitTestCase):
 
         pm = LoweringPassManager([PopCounts(["h"])])
         ir = CliffordCountsIR({"h": 2, "x": 12})
-        out = pm.run(ir)
-        self.assertEqual(out.data, {"x": 12})
+
+        with self.assertRaisesRegex(
+            TypeError, "incoming IR of type .*CliffordCountsIR.* does not match .*CountsIR.*"
+        ):
+            _ = pm.run(ir)
 
     def test_subclassed_custom_ir(self):
         """Test running a pass on the parent class on the subclass."""
@@ -634,3 +658,8 @@ class TestLoweringPassManager(QiskitTestCase):
 
         out = pm.run(ir)
         self.assertIsInstance(out, DAGCircuit)
+
+    def test_subclassed_on_non_ir(self):
+        """Test a subclass that has a non-IR as parent."""
+        pm = LoweringPassManager([IRBasePass()])
+        self.assertIsInstance(pm.run(IRBase()), IRBase)
