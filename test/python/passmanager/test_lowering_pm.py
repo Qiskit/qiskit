@@ -18,6 +18,7 @@ from test import QiskitTestCase
 from collections.abc import Iterable
 from typing import Any
 
+from qiskit import capi
 from qiskit.circuit import QuantumCircuit, CircuitData
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import (
@@ -35,10 +36,6 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.transpiler import generate_preset_pass_manager, CouplingMap, TranspileLayout, Target
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
-
-# This is technically a private function and cannot be relied upon to be stable.
-# We nevertheless use it here to test writing a pass on the Rust-native CircuitData
-from qiskit._accelerate.target import estimate_fidelity
 
 
 class CountsIR(IR):
@@ -165,7 +162,10 @@ class EstimateFidelity(Pass[CircuitData]):
         self.target = target
 
     def _qiskit_pass_run_(self, ir, context):
-        context["fidelity"] = estimate_fidelity(ir, self.target)
+        c_target = capi.qk_target_borrow_from_python(self.target)
+        c_circuit = capi.qk_circuit_borrow_from_python(ir)
+
+        context["fidelity"] = capi.qk_circuit_estimate_fidelity(c_circuit, c_target)
         context.ir_modified = False
         return ir
 
@@ -443,8 +443,12 @@ class TestLoweringPassManager(QiskitTestCase):
             _ = LoweringPassManager([CircuitToDag(), CircuitToDag()])
 
         pm = LoweringPassManager([CircuitToDag()])
+        pass_ = CircuitToDag()
         with self.assertRaisesRegex(TypeError, "IR types mismatched"):
-            pm.append(CircuitToDag())
+            pm.append(pass_)
+
+        # check the pass_ we failed to put is still the same object
+        self.assertIsInstance(pass_, CircuitToDag)
 
         # the PM should still be runnable with the previously valid path
         circuit = QuantumCircuit(3)
@@ -549,7 +553,12 @@ class TestLoweringPassManager(QiskitTestCase):
             pm.append(IncompletePass())
 
     def test_mismatched_builtin_output(self):
-        """Test a pipeline where a pass returns another IR than it specified."""
+        """Test a pipeline where a pass returns another IR than it specified.
+
+        Note that we're not currently actually guaranteeing this check to happen is passes
+        lie about their input or output types. This test is sanity-checking the current state
+        and might be changed in the future. This is not an API-documented behavior.
+        """
         for pm in [
             LoweringPassManager([LyingBuiltinOutput(), DagToCircuit()]),
             LoweringPassManager([LyingBuiltinOutput()]),
