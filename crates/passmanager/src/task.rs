@@ -17,65 +17,28 @@ use qiskit_util::dyn_types::DynTypeId;
 /// A task in Qiskit's compiler framework.
 ///
 /// This is a single unit of execution flow. It describes how work is being executed, ranging
-/// from the simple execution of a single pass, over groups of passes to structured flow control,
-/// such as loops. The [`PassManager`](crate::PassManager) stores a vector of [Task]s and executes
-/// them. Adjacent passes and tasks in a pipeline must share IR types at their boundary, checked
-/// dynamically at construction.
-pub struct Task(pub(crate) TaskInner);
-
-/// The kinds of [Task].
-pub(crate) enum TaskInner {
+/// from the simple execution of a single pass, over pipelines of passes to structured flow control,
+/// such as loops. The [`PassManager`](crate::PassManager) stores a [Pipeline] of [Task]s and executes
+/// them.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Task {
     // TODO Add Loop and Switch with conditions that can be set from Python/C and
     // proper error handlings that occur during the condition evaluation.
     /// A single pass.
     Transformation(Box<dyn Pass>),
-
-    /// A group of tasks.
-    Group(Vec<Task>),
-
-    /// A sequence of named tasks.
-    Stages(Vec<(String, Task)>),
-}
-
-impl std::fmt::Debug for Task {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.0 {
-            TaskInner::Transformation(p) => {
-                f.debug_tuple("Transformation").field(&p.name()).finish()
-            }
-            TaskInner::Group(tasks) => f.debug_tuple("Group").field(tasks).finish(),
-            TaskInner::Stages(stages) => f.debug_tuple("Stages").field(stages).finish(),
-        }
-    }
+    /// A pipeline of tasks.
+    Pipeline(Pipeline),
+    /// A pipeline of named tasks.
+    Stages(StagedPipeline),
 }
 
 impl Task {
-    /// Build a task that runs a single pass.
-    pub fn transformation(pass: Box<dyn Pass>) -> Self {
-        Self(TaskInner::Transformation(pass))
-    }
-
-    /// Try to build a task that runs `tasks` in order.
-    pub fn group(tasks: Vec<Task>) -> Result<Self, Vec<Task>> {
-        if first_io_mismatch(tasks.iter()).is_some() {
-            return Err(tasks);
-        }
-        Ok(Self(TaskInner::Group(tasks)))
-    }
-
-    /// Try to build a task that runs named `stages` in order.
-    pub fn stages(stages: Vec<(String, Task)>) -> Result<Self, Vec<(String, Task)>> {
-        if first_io_mismatch(stages.iter().map(|(_name, task)| task)).is_some() {
-            return Err(stages);
-        }
-        Ok(Self(TaskInner::Stages(stages)))
-    }
-
     pub(crate) fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
-        match &self.0 {
-            TaskInner::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),
-            TaskInner::Group(group) => sequence_io_types(group.iter()),
-            TaskInner::Stages(stages) => sequence_io_types(stages.iter().map(|(_name, task)| task)),
+        match self {
+            Task::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),
+            Task::Pipeline(pipeline) => pipeline.io_types(),
+            Task::Stages(stages) => stages.io_types(),
         }
     }
 
@@ -96,15 +59,15 @@ impl Task {
             return Err(PassError::Conversion);
         }
 
-        match &self.0 {
-            TaskInner::Transformation(pass) => pass.run(ir, context),
-            TaskInner::Group(tasks) => {
-                for task in tasks.iter() {
+        match self {
+            Task::Transformation(pass) => pass.run(ir, context),
+            Task::Pipeline(pipeline) => {
+                for task in pipeline.iter() {
                     ir = task.execute(ir, context)?;
                 }
                 Ok(ir)
             }
-            TaskInner::Stages(stages) => {
+            Task::Stages(stages) => {
                 for (_name, task) in stages.iter() {
                     ir = task.execute(ir, context)?;
                 }
@@ -114,18 +77,110 @@ impl Task {
     }
 }
 
-/// Return the input and output types of a sequence of tasks if non-empty.
-pub(crate) fn sequence_io_types<'a>(
-    tasks: impl DoubleEndedIterator<Item = &'a Task>,
-) -> Option<[DynTypeId<'a>; 2]> {
-    let mut typed = tasks.filter_map(|task| task.io_types());
-    let first = typed.next()?;
-    let last = typed.next_back().unwrap_or(first);
-    Some([first[0], last[1]])
+/// A sequence of tasks to run in order.
+#[derive(Default, Debug)]
+pub struct Pipeline(Vec<Task>);
+
+impl Pipeline {
+    /// Build a pipeline of the provided `tasks`, fail if any adjacent IR types are mismatched.
+    pub fn new(tasks: Vec<Task>) -> Result<Self, Vec<Task>> {
+        if has_io_mismatch(tasks.iter()) {
+            // We may want to change the error type of this in the future to provide structured
+            // information about _what_ went wrong, but in the first implementation we're just doing
+            // the easy thing.
+            return Err(tasks);
+        }
+        Ok(Self(tasks))
+    }
+
+    /// Return the number of tasks in the pipeline.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Return whether the pipeline is empty.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Get a reference to the [Task] at a given index.
+    pub fn get(&self, index: usize) -> Option<&Task> {
+        self.0.get(index)
+    }
+
+    /// Iterate over the tasks in execution order.
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &Task> + ExactSizeIterator {
+        self.0.iter()
+    }
+
+    /// Try to push a [Task] onto the end of the pipeline, failing if the input IR type is incompatible.
+    pub fn try_push(&mut self, task: Task) -> Result<(), Task> {
+        let ours = self.io_types().map(|[_, out]| out);
+        let theirs = task.io_types().map(|[in_, _]| in_);
+        if let Some((ours, theirs)) = ours.zip(theirs)
+            && ours != theirs
+        {
+            return Err(task);
+        }
+        self.0.push(task);
+        Ok(())
+    }
+
+    pub(crate) fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
+        let mut typed = self.tasks.iter().filter_map(|task| task.io_types());
+        let first = typed.next()?;
+        let last = typed.next_back().unwrap_or(first);
+        Some([first[0], last[1]])
+    }
 }
 
-/// Return the first output and input types that disagree in a sequence of tasks, if any.
-fn first_io_mismatch<'a>(tasks: impl IntoIterator<Item = &'a Task>) -> Option<[DynTypeId<'a>; 2]> {
+/// A sequence of named tasks to be run in order.
+#[derive(Default, Debug)]
+pub struct StagedPipeline(Vec<String>, Pipeline);
+
+impl StagedPipeline {
+    /// Build a pipeline of the provided `stages`, fail if any adjacent IR types are mismatched.
+    pub fn new(stages: Vec<(String, Task)>) -> Result<Self, Vec<(String, Task)>> {
+        let (names, tasks) = stages.into_iter().unzip();
+        match Pipeline::new(tasks) {
+            Ok(pipeline) => Ok(Self(names, pipeline)),
+            Err(tasks) => Err(names.into_iter().zip(tasks).collect()),
+        }
+    }
+
+    /// Return the number of stages in the pipeline.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Return whether the pipeline contains no stages.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    /// Get a reference to the name and [Task] of the stage at a given index.
+    pub fn get(&self, index: usize) -> Option<(&str, &Task)> {
+        Option::zip(
+            self.0.get(index).map(|name| name.as_str()),
+            self.1.get(index),
+        )
+    }
+
+    /// Iterate over the stages in execution order.
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = (&str, &Task)> + ExactSizeIterator {
+        self.0
+            .iter()
+            .zip(self.1.iter())
+            .map(|(name, task)| (name.as_str(), task))
+    }
+
+    pub(crate) fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
+        self.1.io_types()
+    }
+}
+
+/// Whether any adjacent pair of tasks in a sequence has disagreeing output and input types.
+fn has_io_mismatch<'a>(tasks: impl IntoIterator<Item = &'a Task>) -> bool {
     let mut last_out: Option<DynTypeId<'a>> = None;
     for task in tasks {
         let Some([in_, out]) = task.io_types() else {
@@ -134,18 +189,17 @@ fn first_io_mismatch<'a>(tasks: impl IntoIterator<Item = &'a Task>) -> Option<[D
         if let Some(previous) = last_out
             && previous != in_
         {
-            return Some([previous, in_]);
+            return true;
         }
         last_out = Some(out);
     }
-    None
+    false
 }
 
 #[cfg(test)]
 mod test {
-    use crate::Task;
     use crate::pass::{PassError, StaticPass};
-    use crate::{IR, PassContext};
+    use crate::{IR, PassContext, Pipeline, StagedPipeline, Task};
     use anyhow::anyhow;
     use qiskit_util::{dyn_types::DynTypeId, static_dyn_typed};
 
@@ -184,18 +238,20 @@ mod test {
         let uint_ty = DynTypeId::of::<MyUint>();
         let int_ty = DynTypeId::of::<MyInt>();
 
-        let make_uint_pass = || Task::transformation(AddOne.into_pass());
+        let make_uint_pass = || Task::Transformation(AddOne.into_pass());
         assert_eq!(make_uint_pass().io_types().unwrap(), [uint_ty, uint_ty]);
 
-        let lower_pass = Task::transformation(LowerToInt.into_pass());
+        let lower_pass = Task::Transformation(LowerToInt.into_pass());
         assert_eq!(lower_pass.io_types().unwrap(), [uint_ty, int_ty]);
 
-        let stages = Task::stages(vec![("one_and_only".to_string(), make_uint_pass())]).unwrap();
-        assert_eq!(stages.io_types().unwrap(), [uint_ty, uint_ty]);
+        let one_stage = Task::Stages(
+            StagedPipeline::new(vec![("one_and_only".to_string(), make_uint_pass())]).unwrap(),
+        );
+        assert_eq!(one_stage.io_types().unwrap(), [uint_ty, uint_ty]);
 
-        let nested = Task::stages(vec![
+        let nested = StagedPipeline::new(vec![
             ("pass".to_string(), make_uint_pass()),
-            ("stages".to_string(), stages),
+            ("stages".to_string(), one_stage),
         ])
         .unwrap();
         assert_eq!(nested.io_types().unwrap(), [uint_ty, uint_ty]);
@@ -205,12 +261,16 @@ mod test {
 
     #[test]
     fn test_io_types_empty() {
-        assert!(Task::group(vec![]).unwrap().io_types().is_none());
-        assert!(Task::stages(vec![]).unwrap().io_types().is_none());
+        assert!(Pipeline::default().io_types().is_none());
+        assert!(StagedPipeline::default().io_types().is_none());
 
-        let nested_empty = Task::group(vec![
-            Task::stages(vec![("empty".to_string(), Task::group(vec![]).unwrap())]).unwrap(),
-        ])
+        let nested_empty = Pipeline::new(vec![Task::Stages(
+            StagedPipeline::new(vec![(
+                "empty".to_string(),
+                Task::Pipeline(Pipeline::default()),
+            )])
+            .unwrap(),
+        )])
         .unwrap();
         assert!(nested_empty.io_types().is_none());
     }
@@ -220,16 +280,16 @@ mod test {
         let uint_ty = DynTypeId::of::<MyUint>();
         let int_ty = DynTypeId::of::<MyInt>();
 
-        let empty = || Task::group(vec![]).unwrap();
-        let lower = || Task::transformation(LowerToInt.into_pass());
+        let empty = || Task::Pipeline(Pipeline::default());
+        let lower = || Task::Transformation(LowerToInt.into_pass());
 
-        let leading = Task::group(vec![empty(), lower()]).unwrap();
+        let leading = Pipeline::new(vec![empty(), lower()]).unwrap();
         assert_eq!(leading.io_types().unwrap(), [uint_ty, int_ty]);
 
-        let trailing = Task::group(vec![lower(), empty()]).unwrap();
+        let trailing = Pipeline::new(vec![lower(), empty()]).unwrap();
         assert_eq!(trailing.io_types().unwrap(), [uint_ty, int_ty]);
 
-        let surrounded = Task::stages(vec![
+        let surrounded = StagedPipeline::new(vec![
             ("before".to_string(), empty()),
             ("lower".to_string(), lower()),
             ("after".to_string(), empty()),
@@ -239,56 +299,201 @@ mod test {
     }
 
     #[test]
-    fn test_group_rejects_mismatch() {
+    fn test_pipeline_rejects_mismatch() {
         let tasks = vec![
-            Task::transformation(LowerToInt.into_pass()),
-            Task::transformation(AddOne.into_pass()),
+            Task::Transformation(LowerToInt.into_pass()),
+            Task::Transformation(AddOne.into_pass()),
         ];
-        assert_eq!(Task::group(tasks).unwrap_err().len(), 2);
+        assert_eq!(Pipeline::new(tasks).unwrap_err().len(), 2);
     }
 
     #[test]
     fn test_stages_reject_mismatch() {
-        let stages = vec![
+        let tasks = vec![
             (
                 "lower".to_string(),
-                Task::transformation(LowerToInt.into_pass()),
+                Task::Transformation(LowerToInt.into_pass()),
             ),
-            ("add".to_string(), Task::transformation(AddOne.into_pass())),
+            ("add".to_string(), Task::Transformation(AddOne.into_pass())),
         ];
-        assert_eq!(Task::stages(stages).unwrap_err().len(), 2);
+        assert_eq!(StagedPipeline::new(tasks).unwrap_err().len(), 2);
     }
 
     #[test]
-    fn test_group_rejects_across_empty() {
+    fn test_pipeline_rejects_across_empty() {
         let tasks = vec![
-            Task::transformation(LowerToInt.into_pass()),
-            Task::group(vec![]).unwrap(),
-            Task::transformation(AddOne.into_pass()),
+            Task::Transformation(LowerToInt.into_pass()),
+            Task::Pipeline(Pipeline::default()),
+            Task::Transformation(AddOne.into_pass()),
         ];
-        assert!(Task::group(tasks).is_err());
+        assert!(Pipeline::new(tasks).is_err());
     }
 
     #[test]
-    fn test_group_accepts_valid_chain() {
+    fn test_pipeline_accepts_valid_chain() {
         let tasks = vec![
-            Task::transformation(AddOne.into_pass()),
-            Task::transformation(LowerToInt.into_pass()),
+            Task::Transformation(AddOne.into_pass()),
+            Task::Transformation(LowerToInt.into_pass()),
         ];
-        let group = Task::group(tasks).unwrap();
+        let pipeline = Pipeline::new(tasks).unwrap();
         let expected = [DynTypeId::of::<MyUint>(), DynTypeId::of::<MyInt>()];
-        assert_eq!(group.io_types().unwrap(), expected);
+        assert_eq!(pipeline.io_types().unwrap(), expected);
     }
 
     #[test]
     fn test_empty_children_keep_types() {
         let tasks = vec![
-            Task::group(vec![]).unwrap(),
-            Task::transformation(LowerToInt.into_pass()),
-            Task::stages(vec![]).unwrap(),
+            Task::Pipeline(Pipeline::default()),
+            Task::Transformation(LowerToInt.into_pass()),
+            Task::Stages(StagedPipeline::default()),
         ];
-        let group = Task::group(tasks).unwrap();
+        let pipeline = Pipeline::new(tasks).unwrap();
         let expected = [DynTypeId::of::<MyUint>(), DynTypeId::of::<MyInt>()];
-        assert_eq!(group.io_types().unwrap(), expected);
+        assert_eq!(pipeline.io_types().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_try_push_rejects_mismatch() {
+        let mut pipeline = Pipeline::new(vec![Task::Transformation(LowerToInt.into_pass())])
+            .expect("a single task always matches");
+        assert!(
+            pipeline
+                .try_push(Task::Transformation(AddOne.into_pass()))
+                .is_err()
+        );
+        assert_eq!(pipeline.len(), 1);
+    }
+
+    #[test]
+    fn test_try_push_accepts_match() {
+        let mut pipeline = Pipeline::default();
+        pipeline
+            .try_push(Task::Transformation(AddOne.into_pass()))
+            .unwrap();
+        pipeline
+            .try_push(Task::Transformation(LowerToInt.into_pass()))
+            .unwrap();
+        assert_eq!(pipeline.len(), 2);
+        let expected = [DynTypeId::of::<MyUint>(), DynTypeId::of::<MyInt>()];
+        assert_eq!(pipeline.io_types().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_pipeline_len_and_is_empty() {
+        let empty = Pipeline::default();
+        assert_eq!(empty.len(), 0);
+        assert!(empty.is_empty());
+
+        let filled = Pipeline::new(vec![
+            Task::Transformation(AddOne.into_pass()),
+            Task::Transformation(AddOne.into_pass()),
+        ])
+        .unwrap();
+        assert_eq!(filled.len(), 2);
+        assert!(!filled.is_empty());
+    }
+
+    #[test]
+    fn test_pipeline_get() {
+        let pipeline = Pipeline::new(vec![
+            Task::Transformation(AddOne.into_pass()),
+            Task::Pipeline(Pipeline::default()),
+        ])
+        .unwrap();
+        assert!(matches!(pipeline.get(0), Some(Task::Transformation(_))));
+        assert!(matches!(pipeline.get(1), Some(Task::Pipeline(_))));
+        assert!(pipeline.get(2).is_none());
+    }
+
+    #[test]
+    fn test_pipeline_iter_is_in_order() {
+        let pipeline = Pipeline::new(vec![
+            Task::Transformation(AddOne.into_pass()),
+            Task::Transformation(LowerToInt.into_pass()),
+        ])
+        .unwrap();
+        let names: Vec<&str> = pipeline
+            .iter()
+            .map(|task| match task {
+                Task::Transformation(pass) => pass.name(),
+                _ => panic!("expected a Task::Transformation"),
+            })
+            .collect();
+        assert_eq!(names.len(), 2);
+        assert!(names[0].contains("AddOne"));
+        assert!(names[1].contains("LowerToInt"));
+    }
+
+    #[test]
+    fn test_pipeline_iter_is_double_ended() {
+        let pipeline = Pipeline::new(vec![
+            Task::Transformation(AddOne.into_pass()),
+            Task::Transformation(LowerToInt.into_pass()),
+        ])
+        .unwrap();
+        let last = pipeline.iter().next_back().unwrap();
+        assert_eq!(last.io_types().unwrap()[1], DynTypeId::of::<MyInt>());
+    }
+
+    #[test]
+    fn test_stages_len_and_is_empty() {
+        let empty = StagedPipeline::default();
+        assert_eq!(empty.len(), 0);
+        assert!(empty.is_empty());
+
+        let filled = StagedPipeline::new(vec![(
+            "only".to_string(),
+            Task::Transformation(AddOne.into_pass()),
+        )])
+        .unwrap();
+        assert_eq!(filled.len(), 1);
+        assert!(!filled.is_empty());
+    }
+
+    #[test]
+    fn test_stages_get() {
+        let stages = StagedPipeline::new(vec![
+            (
+                "first".to_string(),
+                Task::Transformation(AddOne.into_pass()),
+            ),
+            (
+                "second".to_string(),
+                Task::Transformation(LowerToInt.into_pass()),
+            ),
+        ])
+        .unwrap();
+        let (name, task) = stages.get(0).unwrap();
+        assert_eq!(name, "first");
+        assert!(matches!(task, Task::Transformation(_)));
+        assert_eq!(stages.get(1).unwrap().0, "second");
+        assert!(stages.get(2).is_none());
+    }
+
+    #[test]
+    fn test_stages_iter_is_in_order() {
+        let stages = StagedPipeline::new(vec![
+            ("init".to_string(), Task::Transformation(AddOne.into_pass())),
+            (
+                "lower".to_string(),
+                Task::Transformation(LowerToInt.into_pass()),
+            ),
+        ])
+        .unwrap();
+        let names: Vec<&str> = stages.iter().map(|(name, _task)| name).collect();
+        assert_eq!(names, ["init", "lower"]);
+    }
+
+    #[test]
+    fn test_stages_iter_is_double_ended() {
+        let stages = StagedPipeline::new(vec![
+            ("init".to_string(), Task::Transformation(AddOne.into_pass())),
+            (
+                "lower".to_string(),
+                Task::Transformation(LowerToInt.into_pass()),
+            ),
+        ])
+        .unwrap();
+        assert_eq!(stages.iter().next_back().unwrap().0, "lower");
     }
 }
