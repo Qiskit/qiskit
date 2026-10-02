@@ -414,6 +414,7 @@ static int test_dag_global_phase(void) {
     }
 
 cleanup:
+    qk_quantum_register_free(qr);
     qk_dag_free(dag);
     return result;
 }
