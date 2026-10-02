@@ -22,6 +22,7 @@ pub mod control_flow;
 pub mod dag;
 pub mod dyn_types;
 pub mod exit_codes;
+pub mod operations;
 pub mod param;
 pub mod passmanager;
 pub mod qpy;
