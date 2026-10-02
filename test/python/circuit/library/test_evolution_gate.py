@@ -295,7 +295,7 @@ class TestEvolutionGate(QiskitTestCase):
         expanded = QDrift(seed=123).expand(gate)
         self.assertEqual(expanded, [])
 
-    def test_qdrive_zero_hermitian(self):
+    def test_qdrift_zero_hermitian(self):
         gate = PauliEvolutionGate(SparsePauliOp("X", coeffs=[0]), time=1)
         expanded = QDrift(seed=123).expand(gate)
         self.assertEqual(expanded, [])
