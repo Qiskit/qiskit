@@ -120,6 +120,7 @@ static int test_custom_operation_in_circuit(void) {
     }
 
     // Retrieve operation from circuit
+    qk_circuit_instruction_clear(&inst);
     qk_circuit_get_instruction(circuit, 1, &inst);
 
     if (strcmp(inst.name, FOO_NAME)) {
@@ -163,6 +164,8 @@ static int test_custom_operation_in_circuit(void) {
     }
 cleanup:
     qk_circuit_instruction_clear(&inst);
+    qk_param_free(params[0]);
+    qk_param_free(params[1]);
     qk_circuit_free(circuit);
     qk_custom_operation_vtable_free(foo_vtable);
 exit:
@@ -260,6 +263,7 @@ static int test_custom_operation_in_dag(void) {
     }
 
     // Retrieve operation from circuit
+    qk_circuit_instruction_clear(&inst);
     qk_dag_get_instruction(circuit, ind2, &inst);
 
     if (strcmp(inst.name, FOO_NAME)) {
@@ -299,6 +303,7 @@ inst_cleanup:
 cleanup:
     qk_quantum_register_free(qreg);
     qk_classical_register_free(creg);
+    qk_param_free(params[0]);
     qk_dag_free(circuit);
     qk_custom_operation_vtable_free(foo_vtable);
 exit:
