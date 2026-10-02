@@ -81,7 +81,7 @@ typedef struct {
 /// and one to remove specific integers.
 ///
 /// Importantly, this struct is contains data that must be freed (the `*integers` pointer),
-/// and keeps a logger to count how often the deconstructor (`delete_flips`) is called.
+/// and keeps a logger to count how often the deconstructor (`free_flips`) is called.
 typedef struct {
     size_t capacity;
     size_t len;
@@ -98,22 +98,17 @@ Flips *new_flips(size_t capacity, DeleteLogger *logger) {
     return flips;
 }
 
-/// Delete the content of flips.
-void delete_flips(Flips *ir) {
-    if (ir->logger != NULL)
-        ir->logger->num_deletes++;
-
-    free(ir->integers);
-}
-
 /// Free the content *and* the flips pointer.
 void free_flips(Flips *flips) {
-    delete_flips(flips);
+    if (flips->logger != NULL)
+        flips->logger->num_deletes++;
+
+    free(flips->integers);
     free(flips);
 }
 
 static const QkVtableEntry flip_methods[2] = {
-    {.slot = QkIrSlot_Delete, .flags = 0, .ptr = (void *)&delete_flips},
+    {.slot = QkIrSlot_Delete, .flags = 0, .ptr = (void *)&free_flips},
     {.slot = -1, .flags = 0, .ptr = NULL},
 };
 
