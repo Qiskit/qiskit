@@ -107,7 +107,7 @@ class PTM(QuantumChannel):
             else:
                 input_dim = int(math.sqrt(din))
             if output_dims:
-                output_dim = np.prod(input_dims)
+                output_dim = np.prod(output_dims)
             else:
                 output_dim = int(math.sqrt(dout))
             if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
