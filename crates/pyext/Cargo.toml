@@ -29,6 +29,7 @@ qiskit-bindgen.workspace = true
 qiskit-cext-vtable = { workspace = true, features = ["python_binding"] }
 
 [dependencies]
+anyhow.workspace = true
 pyo3.workspace = true
 qiskit-accelerate.workspace = true
 qiskit-circuit = { workspace = true, features = ["passmanager"] }
