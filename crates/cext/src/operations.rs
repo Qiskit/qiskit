@@ -650,8 +650,10 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
         }
     }
 
-    // SAFETY: per documentation, all required methods were set.
-    (unsafe { CustomOpVtable::try_from(vtable).unwrap_unchecked() }).into_leaked()
+    match CustomOpVtable::try_from(vtable) {
+        Ok(full_table) => full_table.into_leaked(),
+        Err(_missing_slot) => std::ptr::null_mut(),
+    }
 }
 
 /// @ingroup QkCustomOperation

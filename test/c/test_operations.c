@@ -54,6 +54,14 @@ static QkVtableEntry foo_entries[] = {
     {.slot = -1, .ptr = NULL},
 };
 
+typedef struct {
+} Incomplete;
+
+static QkVtableEntry incomplete_slots[] = {
+    {.slot = QkCustomOpSlot_Name, .ptr = foo_name},
+    {.slot = -1, .ptr = NULL},
+};
+
 /// Test adding a custom operation in the cicuit;
 static int test_custom_operation_in_circuit(void) {
     int res = Ok;
@@ -310,10 +318,24 @@ exit:
     return res;
 }
 
+/**
+ * Test passing an incomplete vtable returns NULL and exits gracefully.
+ */
+static int test_incomplete_vtable(void) {
+    const QkCustomOpVtable *vtable = qk_custom_operation_vtable_new(incomplete_slots);
+    int result = Ok;
+    if (vtable != NULL) {
+        // qk_custom_operation_vtable_free(vtable);
+        result = EqualityError;
+    }
+    return result;
+}
+
 int test_operations(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_custom_operation_in_circuit);
     num_failed += RUN_TEST(test_custom_operation_in_dag);
+    num_failed += RUN_TEST(test_incomplete_vtable);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
