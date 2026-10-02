@@ -36,7 +36,7 @@ const _: () = unsafe { expose_by_box!(BoxedCustomOperation) };
 /// This operation object contains the minimal functionality an object
 /// should adhere to in order operate on a ``QkCircuit``.
 ///
-/// Any object that can be implemented using ``QkCustomOperation`` will be
+/// Any object that can be implemented using ``QkCustomOp`` will be
 /// dynamically dispatched to be added to the circuit. In other words,
 /// the circuit is unaware of the type of object it is accepting, but
 /// it will work with it as long as it has the functionality expected
@@ -102,7 +102,7 @@ const _: () = unsafe { expose_by_box!(BoxedCustomOperation) };
 /// };
 ///
 /// // Create the custom operation
-/// QkCustomOperation foo_3q_custom = {
+/// QkCustomOp foo_3q_custom = {
 ///     .orig = &foo_3q,
 ///     .v_table = foo_vtable,
 /// };
@@ -468,7 +468,7 @@ impl CustomOpVtablePartial {
     }
 }
 
-/// Represents the Vtable index of a ``QkCustomOperation`` coming from the
+/// Represents the Vtable index of a ``QkCustomOp`` coming from the
 /// C domain.
 ///
 /// Each named index refers to a required/optional method of the `Operation`
@@ -491,8 +491,8 @@ pub enum CustomOpSlot {
     Delete = 11,
 }
 
-/// @ingroup QkCustomOperation
-/// Builds a ``QkCustomOperation`` based on a quantum operation fully
+/// @ingroup QkCustomOp
+/// Builds a ``QkCustomOp`` based on a quantum operation fully
 /// defined in C.
 ///
 /// Here's a quick example of what that looks like:
@@ -528,14 +528,14 @@ pub enum CustomOpSlot {
 /// };
 ///
 /// // Create the custom operation
-/// QkCustomOperation foo_3q_custom = qk_custom_operation_new(&foo_3q, foo_vtable);
+/// QkCustomOp foo_3q_custom = qk_custom_operation_new(&foo_3q, foo_vtable);
 /// ```
 ///
 /// @param operation An owned pointer to the operation struct.
 /// @param v_table A pointer to a correctly constructed v_table designed to
 /// work with the data of the struct `operation` points to.
 ///
-/// @return A pointer to ``QkCustomOperation``.
+/// @return A pointer to ``QkCustomOp``.
 ///
 /// # Safety
 ///
@@ -564,7 +564,7 @@ pub unsafe extern "C" fn qk_custom_operation_new(
     BoxedCustomOperation::from(as_custom_op).into_leaked()
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 /// Builds a ``QkCustomOpVtable`` based on a list of ``QkVtableEntry``
 /// instances.
 ///
@@ -656,7 +656,7 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     }
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 /// Frees the `QkCustomOpVtable` pointer
 ///
 /// @param v_table The pointer to a `QkCustomOpVtable` object.
