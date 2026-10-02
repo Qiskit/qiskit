@@ -109,7 +109,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          - macos-26
+          - macos-15
           - windows-latest
           - ubuntu-24.04-arm
     steps:

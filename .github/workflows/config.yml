@@ -38,7 +38,7 @@ on:
 
       runner-macos-arm64:
         description: Runner image for macOS ARM64 jobs
-        value: 'macos-26'
+        value: 'macos-15'
 
       runner-windows-x86_64:
         description: Runner image for Windows x86_64 jobs
