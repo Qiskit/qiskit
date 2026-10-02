@@ -54,11 +54,14 @@ static QkVtableEntry foo_entries[] = {
     {.slot = -1, .ptr = NULL},
 };
 
-typedef struct {
-} Incomplete;
-
 static QkVtableEntry incomplete_slots[] = {
     {.slot = QkCustomOpSlot_Name, .ptr = foo_name},
+    {.slot = -1, .ptr = NULL},
+};
+
+static QkVtableEntry complete_slots_with_null[] = {
+    {.slot = QkCustomOpSlot_Name, .ptr = foo_name},
+    {.slot = QkCustomOpSlot_NumQubits, .ptr = NULL},
     {.slot = -1, .ptr = NULL},
 };
 
@@ -325,7 +328,20 @@ static int test_incomplete_vtable(void) {
     const QkCustomOpVtable *vtable = qk_custom_operation_vtable_new(incomplete_slots);
     int result = Ok;
     if (vtable != NULL) {
-        // qk_custom_operation_vtable_free(vtable);
+        qk_custom_operation_vtable_free(vtable);
+        result = EqualityError;
+    }
+    return result;
+}
+
+/**
+ * Test passing a vtable with a NULL pointer in a functional slot returns NULL and exits gracefully.
+ */
+static int test_vtable_with_null(void) {
+    const QkCustomOpVtable *vtable = qk_custom_operation_vtable_new(complete_slots_with_null);
+    int result = Ok;
+    if (vtable != NULL) {
+        qk_custom_operation_vtable_free(vtable);
         result = EqualityError;
     }
     return result;
@@ -336,6 +352,7 @@ int test_operations(void) {
     num_failed += RUN_TEST(test_custom_operation_in_circuit);
     num_failed += RUN_TEST(test_custom_operation_in_dag);
     num_failed += RUN_TEST(test_incomplete_vtable);
+    num_failed += RUN_TEST(test_vtable_with_null);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
