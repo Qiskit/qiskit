@@ -2297,11 +2297,11 @@ impl PySparseTerm {
 ///   =======  =======================================  ===============  ===========================
 ///   ``"I"``  :math:`I` (identity)                     Not stored.      Not stored.
 ///
+///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b0001`` (1)   :attr:`~.BitTerm.Z`
+///
 ///   ``"X"``  :math:`X` (Pauli X)                      ``0b0010`` (2)   :attr:`~.BitTerm.X`
 ///
 ///   ``"Y"``  :math:`Y` (Pauli Y)                      ``0b0011`` (3)   :attr:`~.BitTerm.Y`
-///
-///   ``"Z"``  :math:`Z` (Pauli Z)                      ``0b0001`` (1)   :attr:`~.BitTerm.Z`
 ///
 ///   ``"+"``  :math:`\lvert+\rangle\langle+\rvert`     ``0b1010`` (10)  :attr:`~.BitTerm.PLUS`
 ///            (projector to positive eigenstate of X)
