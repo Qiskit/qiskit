@@ -228,16 +228,14 @@ impl PassManager {
     /// Try to push a [`Task`] onto the end of the task list.
     ///
     /// Fails, returning the same task back to the caller, if the types are incompatible.
-    pub fn try_push_task(&mut self, task: Task) -> Result<(), Task> {
+    pub fn try_push_task(&mut self, task: Task) -> Result<(), TypeMismatch<Task>> {
         let ours = self.ir_id_out();
         let theirs = task.io_types().map(|[in_, _]| in_);
         if let Some((ours, theirs)) = ours.zip(theirs)
             && ours != theirs
         {
-            // We may want to change the error type of this in the future to provide structured
-            // information about _what_ went wrong, but in the first implementation we're just doing
-            // the easy thing.
-            return Err(task);
+            let error = TypeMismatchError::new(MismatchPosition::Append, ours, theirs);
+            return Err(error.reject(task));
         }
         self.tasks.push(task);
         Ok(())
@@ -246,7 +244,7 @@ impl PassManager {
     pub fn try_push_static_pass<In: IR, Out: IR>(
         &mut self,
         ob: impl StaticPass<In, Out>,
-    ) -> Result<(), Task> {
+    ) -> Result<(), TypeMismatch<Task>> {
         self.try_push_task(Task::transformation(ob.into_pass()))
     }
 
@@ -325,6 +323,12 @@ mod test {
         }
     }
 
+    #[track_caller]
+    fn assert_disagreement(error: &TypeMismatchError, first: &str, second: &str) {
+        assert!(error.first.contains(first), "{error}");
+        assert!(error.second.contains(second), "{error}");
+    }
+
     #[test]
     fn test_empty_child_keeps_type_checks() {
         let mut pm = PassManager::new();
@@ -353,7 +357,8 @@ mod test {
     fn test_incompatible_types() {
         let mut pm = PassManager::new();
         pm.try_push_static_pass(LowerToInt).unwrap();
-        assert!(pm.try_push_static_pass(AddOne).is_err());
+        let err = pm.try_push_static_pass(AddOne).unwrap_err();
+        assert_disagreement(&err.error, "MyInt", "MyUint");
     }
 
     #[test]

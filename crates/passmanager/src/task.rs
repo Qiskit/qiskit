@@ -13,6 +13,7 @@
 use crate::pass::{Pass, PassError};
 use crate::{IR, PassContext};
 use qiskit_util::dyn_types::DynTypeId;
+use thiserror::Error;
 
 /// A task in Qiskit's compiler framework.
 ///
@@ -56,17 +57,22 @@ impl Task {
     }
 
     /// Try to build a task that runs `tasks` in order.
-    pub fn group(tasks: Vec<Task>) -> Result<Self, Vec<Task>> {
-        if first_io_mismatch(tasks.iter()).is_some() {
-            return Err(tasks);
+    pub fn group(tasks: Vec<Task>) -> Result<Self, TypeMismatch<Vec<Task>>> {
+        if let Some(error) = first_io_mismatch(tasks.iter(), MismatchPosition::Group) {
+            return Err(error.reject(tasks));
         }
         Ok(Self(TaskInner::Group(tasks)))
     }
 
     /// Try to build a task that runs named `stages` in order.
-    pub fn stages(stages: Vec<(String, Task)>) -> Result<Self, Vec<(String, Task)>> {
-        if first_io_mismatch(stages.iter().map(|(_name, task)| task)).is_some() {
-            return Err(stages);
+    pub fn stages(stages: Vec<(String, Task)>) -> Result<Self, TypeMismatch<Vec<(String, Task)>>> {
+        let name_mismatch = |[first, second]: [usize; 2]| {
+            MismatchPosition::Stages([stages[first].0.clone(), stages[second].0.clone()])
+        };
+        if let Some(error) =
+            first_io_mismatch(stages.iter().map(|(_name, task)| task), name_mismatch)
+        {
+            return Err(error.reject(stages));
         }
         Ok(Self(TaskInner::Stages(stages)))
     }
@@ -124,27 +130,100 @@ pub(crate) fn sequence_io_types<'a>(
     Some([first[0], last[1]])
 }
 
-/// Return the first output and input types that disagree in a sequence of tasks, if any.
-fn first_io_mismatch<'a>(tasks: impl IntoIterator<Item = &'a Task>) -> Option<[DynTypeId<'a>; 2]> {
-    let mut last_out: Option<DynTypeId<'a>> = None;
-    for task in tasks {
+/// A runtime IR typing mismatch description.
+#[derive(Debug)]
+pub struct TypeMismatch<T> {
+    /// The requirement violation.
+    pub error: Box<TypeMismatchError>, // boxed to keep the `Err` variant small
+    /// The rejected input.
+    pub rejected: T,
+}
+
+/// Two IR types that should agree don't.
+#[derive(Debug, Error)]
+#[error("IR types `{first}` and `{second}` do not agree {at}")]
+pub struct TypeMismatchError {
+    /// The position of the mismatch.
+    pub at: MismatchPosition,
+    /// A description of the first type.
+    pub first: String,
+    /// A description of the second type.
+    pub second: String,
+}
+
+impl TypeMismatchError {
+    /// Describe the position and types of a mismatch.
+    pub(crate) fn new(at: MismatchPosition, first: DynTypeId<'_>, second: DynTypeId<'_>) -> Self {
+        Self {
+            at,
+            first: first.describe().into_owned(),
+            second: second.describe().into_owned(),
+        }
+    }
+
+    /// Attach the input that is being rejected.
+    pub(crate) fn reject<T>(self, rejected: T) -> TypeMismatch<T> {
+        TypeMismatch {
+            error: Box::new(self),
+            rejected,
+        }
+    }
+}
+
+/// Descriptor for the position of a dynamic IR type mismatch.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum MismatchPosition {
+    /// Between two positions in a group of tasks.
+    Group([usize; 2]),
+    /// Between two named stages.
+    Stages([String; 2]),
+    /// Between a pipeline and a task being appended to it.
+    Append,
+}
+
+impl std::fmt::Display for MismatchPosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MismatchPosition::Group([first, second]) => {
+                write!(f, "between tasks {first} and {second}")
+            }
+            MismatchPosition::Stages([first, second]) => {
+                write!(f, "between stages `{first}` and `{second}`")
+            }
+            MismatchPosition::Append => f.write_str("at the end of the pipeline"),
+        }
+    }
+}
+
+/// Return the position of the first two sequential tasks whose types disagree, if any.
+fn first_io_mismatch<'a>(
+    tasks: impl IntoIterator<Item = &'a Task>,
+    position: impl FnOnce([usize; 2]) -> MismatchPosition,
+) -> Option<TypeMismatchError> {
+    let mut last_out: Option<(usize, DynTypeId<'a>)> = None;
+    for (index, task) in tasks.into_iter().enumerate() {
         let Some([in_, out]) = task.io_types() else {
             continue;
         };
-        if let Some(previous) = last_out
+        if let Some((last_index, previous)) = last_out
             && previous != in_
         {
-            return Some([previous, in_]);
+            return Some(TypeMismatchError::new(
+                position([last_index, index]),
+                previous,
+                in_,
+            ));
         }
-        last_out = Some(out);
+        last_out = Some((index, out));
     }
     None
 }
 
 #[cfg(test)]
 mod test {
-    use crate::Task;
     use crate::pass::{PassError, StaticPass};
+    use crate::task::{MismatchPosition, Task, TypeMismatchError};
     use crate::{IR, PassContext};
     use anyhow::anyhow;
     use qiskit_util::{dyn_types::DynTypeId, static_dyn_typed};
@@ -177,6 +256,12 @@ mod test {
             let ir = MyInt(ir.0.try_into().map_err(|_| anyhow!("too big!"))?);
             Ok(Box::new(ir))
         }
+    }
+
+    #[track_caller]
+    fn assert_disagreement(error: &TypeMismatchError, first: &str, second: &str) {
+        assert!(error.first.contains(first), "{error}");
+        assert!(error.second.contains(second), "{error}");
     }
 
     #[test]
@@ -244,7 +329,9 @@ mod test {
             Task::transformation(LowerToInt.into_pass()),
             Task::transformation(AddOne.into_pass()),
         ];
-        assert_eq!(Task::group(tasks).unwrap_err().len(), 2);
+        let err = Task::group(tasks).unwrap_err();
+        assert_disagreement(&err.error, "MyInt", "MyUint");
+        assert_eq!(err.rejected.len(), 2);
     }
 
     #[test]
@@ -256,7 +343,15 @@ mod test {
             ),
             ("add".to_string(), Task::transformation(AddOne.into_pass())),
         ];
-        assert_eq!(Task::stages(stages).unwrap_err().len(), 2);
+        let err = Task::stages(stages).unwrap_err();
+        assert_disagreement(&err.error, "MyInt", "MyUint");
+        assert!(
+            matches!(&err.error.at, MismatchPosition::Stages([first, second])
+                if first == "lower" && second == "add"),
+            "{}",
+            err.error
+        );
+        assert_eq!(err.rejected.len(), 2);
     }
 
     #[test]
@@ -266,7 +361,51 @@ mod test {
             Task::group(vec![]).unwrap(),
             Task::transformation(AddOne.into_pass()),
         ];
-        assert!(Task::group(tasks).is_err());
+        let err = Task::group(tasks).unwrap_err();
+        assert!(
+            matches!(err.error.at, MismatchPosition::Group([0, 2])), // note we correctly skip 1
+            "{}",
+            err.error
+        );
+    }
+
+    /// Test that a reported position indexes the whole sequence, not the typed tasks.
+    #[test]
+    fn test_position_counts_empties() {
+        let empty = || Task::group(vec![]).unwrap();
+        let tasks = vec![
+            empty(),
+            empty(),
+            Task::transformation(LowerToInt.into_pass()),
+            empty(),
+            Task::transformation(AddOne.into_pass()),
+        ];
+        let err = Task::group(tasks).unwrap_err();
+        assert!(
+            matches!(err.error.at, MismatchPosition::Group([2, 4])),
+            "{}",
+            err.error
+        );
+    }
+
+    #[test]
+    fn test_stage_names_skip_empties() {
+        let stages = vec![
+            ("pad".to_string(), Task::group(vec![]).unwrap()),
+            (
+                "lower".to_string(),
+                Task::transformation(LowerToInt.into_pass()),
+            ),
+            ("gap".to_string(), Task::group(vec![]).unwrap()),
+            ("add".to_string(), Task::transformation(AddOne.into_pass())),
+        ];
+        let err = Task::stages(stages).unwrap_err();
+        assert!(
+            matches!(&err.error.at, MismatchPosition::Stages([first, second])
+                if first == "lower" && second == "add"),
+            "{}",
+            err.error
+        );
     }
 
     #[test]
