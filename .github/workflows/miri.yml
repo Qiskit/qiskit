@@ -13,7 +13,7 @@ jobs:
     name: Miri
     runs-on: ${{ inputs.runner }}
     env:
-      RUSTUP_TOOLCHAIN: nightly-2025-08-11
+      RUSTUP_TOOLCHAIN: nightly-2026-09-30
 
     steps:
       - uses: actions/checkout@v7
