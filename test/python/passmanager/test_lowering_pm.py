@@ -151,7 +151,7 @@ class CircuitDataToDag(Pass[CircuitData, DAGCircuit]):
     _qiskit_pass_ir_out_ = DAGCircuit
 
     def _qiskit_pass_run_(self, ir, context):
-        return QuantumCircuit._from_circuit_data(ir).to_dag(copy_operations=False)
+        return QuantumCircuit.from_circuit_data(ir).to_dag(copy_operations=False)
 
 
 class EstimateFidelity(Pass[CircuitData]):
