@@ -2200,6 +2200,33 @@ class TestDagEquivalence(DAGTest):
         qc2.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
         self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
+    def test_get_var_and_stretch(self):
+        """`get_var` and `get_stretch` look up by name and return `None` when absent."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        s = expr.Stretch.new("s")
+        t = expr.Stretch.new("t")
+
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        dag.add_declared_var(b)
+        dag.add_captured_var(c)
+        dag.add_declared_stretch(s)
+        dag.add_captured_stretch(t)
+
+        self.assertIs(dag.get_var("a"), a)
+        self.assertIs(dag.get_var("b"), b)
+        self.assertIs(dag.get_var("c"), c)
+        self.assertIsNone(dag.get_var("missing"))
+        # A stretch name is not a variable.
+        self.assertIsNone(dag.get_var("s"))
+
+        self.assertIs(dag.get_stretch("s"), s)
+        self.assertIs(dag.get_stretch("t"), t)
+        self.assertIsNone(dag.get_stretch("missing"))
+        self.assertIsNone(dag.get_stretch("a"))
+
     def test_present_vars(self):
         """The vars should be compared whether or not they're used."""
         a_bool = expr.Var.new("a", types.Bool())
