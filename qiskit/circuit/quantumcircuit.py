@@ -217,7 +217,9 @@ class QuantumCircuit(IR):
 
     .. autoattribute:: data
 
-    .. py::attribute:: _data
+    .. py:attribute:: _data
+        :type: CircuitData
+
         An opaque handle to the native Rust object backing :class:`QuantumCircuit`.
 
         This object corresponds directly to the C API object ``QkCircuit``.
@@ -225,10 +227,10 @@ class QuantumCircuit(IR):
         .. warning::
             No part of this object other than its existence is part of the public API in Python.
 
-        The only valid uses of this object from within the public Python API are to pass it on to a
-        Rust- or C-native extension that expects the corresponding :c:type:`QkCircuit` (or
-        equivalent). In the C API, this is :c:func:`qk_circuit_borrow_from_python` or similar
-        methods.
+        There are very few valid uses of this object within Python.  You can pass it to functions
+        that expect the C-API type :c:type:`QkCircuit`, such as those that will call
+        :c:func:`qk_circuit_borrow_from_python`; you can use it as a :class:`.passmanager.IR`; you
+        can reconstruct the full circuit with :meth:`QuantumCircuit.from_circuit_data`.
 
     Alongside the :attr:`data`, the :attr:`global_phase` of a circuit can have some impact on its
     output, if the circuit is used to describe a :class:`.Gate` that may be controlled.  This is
@@ -310,6 +312,7 @@ class QuantumCircuit(IR):
     :meth:`copy`               Make a complete copy of an existing circuit.
     :meth:`copy_empty_like`    Copy data objects from one circuit into a new one without any
                                instructions.
+    :meth:`from_circuit_data`  Recreate from the Rust-native :attr:`_data` object.
     :meth:`from_instructions`  Infer data objects needed from a list of instructions.
     :meth:`from_qasm_file`     Legacy interface to :func:`.qasm2.load`.
     :meth:`from_qasm_str`      Legacy interface to :func:`.qasm2.loads`.
@@ -342,6 +345,12 @@ class QuantumCircuit(IR):
     object that has the correct resources and all the instructions.
 
     .. automethod:: from_instructions
+
+    If you are interoperating with C or native code, you may need to access the inner backing data
+    in :attr:`QuantumCircuit._data`.  You can recreate the full circuit using
+    :meth:`from_circuit_data`.
+
+    .. automethod:: from_circuit_data
 
     :class:`QuantumCircuit` also still has two constructor methods that are legacy wrappers around
     the importers in :mod:`qiskit.qasm2`.  These automatically apply :ref:`the legacy compatibility
@@ -1265,16 +1274,40 @@ class QuantumCircuit(IR):
     def unit(self, value):
         self._unit = value
 
-    @classmethod
+    @staticmethod
     def _from_circuit_data(
-        cls, data: CircuitData, legacy_qubits: bool = False, name: str | None = None
-    ) -> typing.Self:
+        data: CircuitData, legacy_qubits: bool = False, name: str | None = None
+    ) -> QuantumCircuit:
         """A private constructor from rust space circuit data."""
-        out = QuantumCircuit(name=name)
-        out._data = data
-        out._ancillas = [bit for bit in data.qubits if isinstance(bit, AncillaQubit)]
+        out = QuantumCircuit.from_circuit_data(data, name=name)
         if legacy_qubits:
             out.ensure_physical(apply_layout=False)
+        return out
+
+    @staticmethod
+    def from_circuit_data(
+        data: CircuitData, /, *, name: str | None = None, metadata: dict | None = None
+    ) -> QuantumCircuit:
+        """Construct a circuit from an opaque :class:`CircuitData`.
+
+        Typically this function only makes to wrap an object coming from C in the full Python
+        :class:`QuantumCircuit` class.  The :class:`CircuitData` object is the Rust-native object
+        that corresponds to the C-API object :c:type:`QkCircuit`.  See its documentation for more
+        detail on this opaque object.
+
+        The reverse of this function is the :attr:`._data` attribute.
+
+        Args:
+            data: the native object containing the circuit IR.
+            name: an optional Python-only name to apply to the circuit.
+            metadata: optional, arbitrary, Python-only metadata to attach to the circuit.
+
+        Returns:
+            A full circuit object.
+        """
+        out = QuantumCircuit(name=name, metadata=metadata)
+        out._data = data
+        out._ancillas = [bit for bit in data.qubits if isinstance(bit, AncillaQubit)]
         return out
 
     @staticmethod
