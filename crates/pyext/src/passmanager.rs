@@ -437,7 +437,7 @@ impl PyPassManager {
                         .downcast::<PyPassInner>()
                         .expect("this came from a `PyPassInner`"),
                 );
-                Err(PyTypeError::new_err("ir types mismatched"))
+                Err(PyTypeError::new_err("IR types mismatched"))
             }
         }
     }
