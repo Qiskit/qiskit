@@ -23,13 +23,13 @@ typedef struct {
 } RemoveIdentity;
 
 /// The execution function for RemoveIdentity.
-void *run_remove_identity(RemoveIdentity *self, QkCircuit *ir, QkPassContext *context,
-                          QkCompilationError **error) {
+QkCircuit *run_remove_identity(RemoveIdentity *self, QkCircuit *ir, QkPassContext *context,
+                               QkCompilationError **error) {
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
 
     qk_transpiler_pass_standalone_remove_identity_equivalent(ir, self->target, 1.0);
-    return (void *)ir;
+    return ir;
 }
 
 static QkVtableEntry remove_identity_slots[2] = {
@@ -38,15 +38,15 @@ static QkVtableEntry remove_identity_slots[2] = {
 };
 
 /// The execution function for a circuit-to-dag pass.
-void *run_circuit_to_dag(void *self, QkCircuit *ir, QkPassContext *context,
-                         QkCompilationError **error) {
+QkDag *run_circuit_to_dag(void *self, QkCircuit *ir, QkPassContext *context,
+                          QkCompilationError **error) {
     UNUSED_VARIABLE(self);
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
 
     QkDag *dag = qk_circuit_to_dag(ir);
     qk_circuit_free(ir);
-    return (void *)dag;
+    return dag;
 }
 
 static QkVtableEntry circuit_to_dag_slots[2] = {
@@ -54,11 +54,12 @@ static QkVtableEntry circuit_to_dag_slots[2] = {
     {.slot = -1, .flags = 0, .ptr = NULL}};
 
 /// A pass on `QkCircuit*` that always returns an error message "task successfully failed!"
-void *always_error(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
+QkCircuit *always_error(void *self, QkCircuit *ir, QkPassContext *context,
+                        QkCompilationError **error) {
     UNUSED_VARIABLE(self);
     UNUSED_VARIABLE(context);
 
-    qk_circuit_free((QkCircuit *)ir); // we are responsible to free the IR
+    qk_circuit_free(ir); // we are responsible to free the IR
     *error = qk_compilation_error_new("task successfully failed!");
     return NULL;
 }
@@ -98,17 +99,16 @@ Flips *new_flips(size_t capacity, DeleteLogger *logger) {
 }
 
 /// Delete the content of flips.
-void delete_flips(void *ir) {
-    Flips *flips = (Flips *)ir;
-    if (flips->logger != NULL)
-        flips->logger->num_deletes++;
+void delete_flips(Flips *ir) {
+    if (ir->logger != NULL)
+        ir->logger->num_deletes++;
 
-    free(flips->integers);
+    free(ir->integers);
 }
 
 /// Free the content *and* the flips pointer.
 void free_flips(Flips *flips) {
-    delete_flips((void *)flips);
+    delete_flips(flips);
     free(flips);
 }
 
@@ -142,37 +142,35 @@ size_t num_flips(Flips *flips) {
 }
 
 /// Passes for the flips IR.
-void *inverse_cancellation(void *self, void *ir, QkPassContext *context,
-                           QkCompilationError **error) {
+Flips *inverse_cancellation(void *self, Flips *ir, QkPassContext *context,
+                            QkCompilationError **error) {
     UNUSED_VARIABLE(self);
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
 
-    Flips *flips = (Flips *)ir;
-
-    if (flips->len < 2)
+    if (ir->len < 2)
         return ir;
 
     size_t write_index = 0;
     size_t read_index = 0;
-    while (read_index < flips->len - 1) {
+    while (read_index < ir->len - 1) {
         // If the next one is not the same, write the current one.
-        if (flips->integers[read_index] != flips->integers[read_index + 1]) {
-            flips->integers[write_index++] = flips->integers[read_index];
+        if (ir->integers[read_index] != ir->integers[read_index + 1]) {
+            ir->integers[write_index++] = ir->integers[read_index];
             read_index++;
         } else {
             // .. if they were the same, increase the read index by 2
             read_index += 2;
         }
     }
-    // Handle the last element: if it was skipped, then read_index equals flips->len,
+    // Handle the last element: if it was skipped, then read_index equals ir->len,
     // if not we are one element short.
-    if (read_index == flips->len - 1) {
-        flips->integers[write_index++] = flips->integers[read_index];
+    if (read_index == ir->len - 1) {
+        ir->integers[write_index++] = ir->integers[read_index];
     }
-    flips->len = write_index;
+    ir->len = write_index;
 
-    return (void *)flips;
+    return ir;
 }
 
 static QkVtableEntry inverse_cancellation_slots[2] = {
@@ -188,26 +186,22 @@ typedef struct {
     DeleteLogger *logger;
 } PopFlips;
 
-void delete_pops(void *this) {
-    PopFlips *pop_flips = (PopFlips *)this;
-    if (pop_flips->logger != NULL) {
-        pop_flips->logger->num_deletes++;
+void delete_pops(PopFlips *this) {
+    if (this->logger != NULL) {
+        this->logger->num_deletes++;
     }
-    free(pop_flips->to_pop);
+    free(this->to_pop);
 }
 
-void *pop_flips(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
+Flips *pop_flips(PopFlips *self, Flips *flips, QkPassContext *context, QkCompilationError **error) {
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
-
-    Flips *flips = (Flips *)ir;
-    PopFlips *pop = (PopFlips *)self;
 
     size_t write_index = 0;
     for (size_t read_index = 0; read_index < flips->len; read_index++) {
         bool skip = false;
-        for (size_t i = 0; i < pop->len; i++) {
-            if (flips->integers[read_index] == pop->to_pop[i]) {
+        for (size_t i = 0; i < self->len; i++) {
+            if (flips->integers[read_index] == self->to_pop[i]) {
                 skip = true;
                 break;
             }
@@ -219,7 +213,7 @@ void *pop_flips(void *self, void *ir, QkPassContext *context, QkCompilationError
         }
     }
     flips->len = write_index;
-    return (void *)flips;
+    return flips;
 }
 
 static QkVtableEntry pop_slots[3] = {
