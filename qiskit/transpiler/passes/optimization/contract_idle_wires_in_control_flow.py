@@ -77,6 +77,7 @@ def _contract_control_flow(inst):
             name=block.name,
             global_phase=block.global_phase,
             metadata=block.metadata,
+            inputs=block.iter_input_vars(),
             captures=block.iter_captures(),
         )
         out.add_bits(
@@ -89,7 +90,8 @@ def _contract_control_flow(inst):
         out.add_bits(block.clbits)
         for creg in block.cregs:
             out.add_register(creg)
-        # Control-flow ops can only have captures and locals, and we already added the captures.
+        # Control-flow blocks can only have captures and locals, plus the loop variable of a
+        # `for` loop as its single input, and we already added the inputs and captures.
         for var in block.iter_declared_vars():
             out.add_uninitialized_var(var)
         for stretch in block.iter_declared_stretches():

@@ -2110,6 +2110,90 @@ class TestControlFlowBuilders(QiskitTestCase):
         expected.for_loop(range(3), var, body, expected.qubits, expected.clbits)
         self.assertEqual(test, expected)
 
+    def test_for_var_body_can_capture_outer_vars(self):
+        """The body of a `for` loop with a `Var` loop parameter takes the loop variable as its
+        input, and can still capture variables from the enclosing scope."""
+        i = expr.Var.new("i", types.Uint(8))
+        acc = expr.Var.new("acc", types.Uint(8))
+        cr = ClassicalRegister(4, "cr")
+
+        test = QuantumCircuit(1, 1)
+        test.add_register(cr)
+        test.add_var(acc, expr.lift(0, types.Uint(8)))
+        with test.for_loop(range(4), i) as loop_var:
+            test.measure(0, 0)
+            test.store(expr.index(cr, loop_var), test.clbits[0])
+            test.store(acc, expr.add(acc, loop_var))
+
+        expected = QuantumCircuit(1, 1)
+        expected.add_register(cr)
+        expected.add_var(acc, expr.lift(0, types.Uint(8)))
+        body = QuantumCircuit(expected.qubits, expected.clbits, cr, inputs=(i,), captures=(acc,))
+        body.measure(0, 0)
+        body.store(expr.index(cr, i), body.clbits[0])
+        body.store(acc, expr.add(acc, i))
+        expected.for_loop(range(4), i, body, expected.qubits, expected.clbits)
+
+        self.assertEqual(test, expected)
+        (test_body,) = test.data[-1].operation.blocks
+        self.assertEqual(list(test_body.iter_input_vars()), [i])
+        self.assertEqual(list(test_body.iter_captured_vars()), [acc])
+
+    def test_for_var_body_can_capture_outer_stretch(self):
+        """The body of a `for` loop with a `Var` loop parameter can capture a stretch."""
+        i = expr.Var.new("i", types.Uint(8))
+        acc = expr.Var.new("acc", types.Uint(8))
+        test = QuantumCircuit(1)
+        test.add_var(acc, expr.lift(0, types.Uint(8)))
+        s = test.add_stretch("s")
+        with test.for_loop(range(2), i):
+            test.delay(s, 0)
+            test.store(acc, i)
+
+        expected = QuantumCircuit(1)
+        expected.add_var(acc, expr.lift(0, types.Uint(8)))
+        expected.add_stretch(s)
+        body = QuantumCircuit(expected.qubits, inputs=(i,), captures=(acc, s))
+        body.delay(s, 0)
+        body.store(acc, i)
+        expected.for_loop(range(2), i, body, expected.qubits, [])
+
+        self.assertEqual(test, expected)
+        (test_body,) = test.data[-1].operation.blocks
+        self.assertEqual(list(test_body.iter_input_vars()), [i])
+        self.assertEqual(list(test_body.iter_captured_stretches()), [s])
+
+    def test_nested_for_var_loops_capture_outer_loop_var(self):
+        """An inner `for` loop with a `Var` loop parameter can read the loop variable of an outer
+        `Var` loop, which it captures, while taking its own loop variable as its input."""
+        i = expr.Var.new("i", types.Uint(8))
+        j = expr.Var.new("j", types.Uint(8))
+        acc = expr.Var.new("acc", types.Uint(8))
+
+        test = QuantumCircuit(1)
+        test.add_var(acc, expr.lift(0, types.Uint(8)))
+        with test.for_loop(range(3), i):
+            with test.for_loop(range(2), j):
+                test.store(acc, expr.add(i, j))
+                test.x(0)
+
+        expected = QuantumCircuit(1)
+        expected.add_var(acc, expr.lift(0, types.Uint(8)))
+        inner = QuantumCircuit(expected.qubits, inputs=(j,), captures=(i, acc))
+        inner.store(acc, expr.add(i, j))
+        inner.x(0)
+        outer = QuantumCircuit(expected.qubits, inputs=(i,), captures=(acc,))
+        outer.for_loop(range(2), j, inner, outer.qubits, [])
+        expected.for_loop(range(3), i, outer, expected.qubits, [])
+
+        self.assertEqual(test, expected)
+        (outer_body,) = test.data[-1].operation.blocks
+        (inner_body,) = outer_body.data[-1].operation.blocks
+        self.assertEqual(list(outer_body.iter_input_vars()), [i])
+        self.assertEqual(list(outer_body.iter_captured_vars()), [acc])
+        self.assertEqual(list(inner_body.iter_input_vars()), [j])
+        self.assertEqual(set(inner_body.iter_captured_vars()), {i, acc})
+
     def test_for_binds_parameter_to_op(self):
         """Test that the ``for`` manager binds a parameter to the resulting :obj:`.ForLoopOp` if a
         user-generated one is given, or if a generated parameter is used.  Generated parameters that

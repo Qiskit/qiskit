@@ -200,6 +200,35 @@ class TestContractIdleWiresInControlFlow(QiskitTestCase):
         self.assertNotEqual(qc, actual)  # Smoke test.
         self.assertEqual(actual, expected)
 
+    def test_handles_for_loop_var_in_contraction(self):
+        """The loop variable of a `for` loop is the input of its body, and must survive the
+        contraction alongside any variables the body captures."""
+        i = expr.Var.new("i", types.Uint(8))
+        j = expr.Var.new("j", types.Uint(8))
+        acc = expr.Var.new("acc", types.Uint(8))
+
+        qc = QuantumCircuit(3)
+        qc.add_var(acc, expr.lift(0, types.Uint(8)))
+        with qc.for_loop(range(3), i):
+            qc.store(acc, expr.add(acc, i))
+            with qc.for_loop(range(2), j):
+                with qc.if_test(expr.equal(acc, j)):
+                    qc.x(0)
+                qc.noop(1, 2)
+            qc.noop(1, 2)
+
+        expected = QuantumCircuit(3)
+        expected.add_var(acc, expr.lift(0, types.Uint(8)))
+        with expected.for_loop(range(3), i):
+            expected.store(acc, expr.add(acc, i))
+            with expected.for_loop(range(2), j):
+                with expected.if_test(expr.equal(acc, j)):
+                    expected.x(0)
+
+        actual = ContractIdleWiresInControlFlow()(qc)
+        self.assertNotEqual(qc, actual)  # Smoke test.
+        self.assertEqual(actual, expected)
+
     def test_handles_registers_in_contraction(self):
         qr = QuantumRegister(3, "q")
         cr1 = ClassicalRegister(3, "cr1")
