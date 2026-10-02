@@ -32,8 +32,8 @@ QkCircuit *run_remove_identity(RemoveIdentity *self, QkCircuit *ir, QkPassContex
     return ir;
 }
 
-static QkVtableEntry remove_identity_slots[2] = {
-    {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = run_remove_identity},
+static const QkVtableEntry remove_identity_slots[2] = {
+    {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_remove_identity},
     {.slot = -1, .flags = 0, .ptr = NULL},
 };
 
@@ -49,7 +49,7 @@ QkDag *run_circuit_to_dag(void *self, QkCircuit *ir, QkPassContext *context,
     return dag;
 }
 
-static QkVtableEntry circuit_to_dag_slots[2] = {
+static const QkVtableEntry circuit_to_dag_slots[2] = {
     {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_circuit_to_dag},
     {.slot = -1, .flags = 0, .ptr = NULL}};
 
@@ -112,13 +112,10 @@ void free_flips(Flips *flips) {
     free(flips);
 }
 
-QkIrHandle *make_flip_ir(void) {
-    QkVtableEntry flip_methods[2] = {
-        {.slot = QkIrSlot_Delete, .flags = 0, .ptr = (void *)&delete_flips},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
-    return qk_ir_handle_new("flip_ir", flip_methods);
-}
+static const QkVtableEntry flip_methods[2] = {
+    {.slot = QkIrSlot_Delete, .flags = 0, .ptr = (void *)&delete_flips},
+    {.slot = -1, .flags = 0, .ptr = NULL},
+};
 
 /// Methods for the IR.
 int apply_flip(Flips *flips, uint32_t flip) {
@@ -173,7 +170,7 @@ Flips *inverse_cancellation(void *self, Flips *ir, QkPassContext *context,
     return ir;
 }
 
-static QkVtableEntry inverse_cancellation_slots[2] = {
+static const QkVtableEntry inverse_cancellation_slots[2] = {
     {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
     {.slot = -1, .flags = 0, .ptr = NULL},
 };
@@ -216,7 +213,7 @@ Flips *pop_flips(PopFlips *self, Flips *flips, QkPassContext *context, QkCompila
     return flips;
 }
 
-static QkVtableEntry pop_slots[3] = {
+static const QkVtableEntry pop_slots[3] = {
     {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&pop_flips},
     {.slot = QkPassSlot_Delete, .flags = 0, .ptr = (void *)&delete_pops},
     {.slot = -1, .flags = 0, .ptr = NULL},
@@ -433,7 +430,7 @@ static int test_custom_ir(void) {
 
     QkPassManager *pm = qk_passmanager_new();
 
-    QkIrHandle *ir = make_flip_ir();
+    QkIrHandle *ir = qk_ir_handle_new("flips", flip_methods);
     QkPassVtable *cancellation_vtable =
         qk_pass_vtable_new("cancellation", ir, ir, inverse_cancellation_slots);
     QkPass *cancellation = qk_pass_new(NULL, cancellation_vtable);
@@ -529,7 +526,7 @@ cleanup:
  */
 static int test_invalid_pipeline(void) {
     // A pass on Flips->Flips IR.
-    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *flip_ir = qk_ir_handle_new("flips", flip_methods);
 
     QkPassVtable *cancellation_vtable =
         qk_pass_vtable_new("cancellation", flip_ir, flip_ir, inverse_cancellation_slots);
@@ -576,13 +573,10 @@ cleanup:
  */
 static int test_mismatching_input(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
-    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *flip_ir = qk_ir_handle_new("flip", flip_methods);
 
-    QkVtableEntry table[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = run_remove_identity},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
-    QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, table);
+    QkPassVtable *vtable =
+        qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
     QkTarget *target = qk_target_new(10);
     RemoveIdentity this = {target};
     QkPass *pass = qk_pass_new((void *)(&this), vtable);
@@ -611,14 +605,6 @@ static int test_mismatching_input(void) {
         goto cleanup;
     }
 
-    // at this point we know `out` is NULL (as expected) and no longer need to free it
-    // -- but the input IR should've been freed, so we check this here
-    if (logger.num_deletes != 1) {
-        printf("Input IR has not been freed despite faulty pipeline.\n");
-        result = RuntimeError;
-        goto cleanup;
-    }
-
     if (error == NULL) {
         printf("Expected error to be written, but the pointer is NULL.\n");
         result = EqualityError;
@@ -631,6 +617,14 @@ static int test_mismatching_input(void) {
         }
         qk_str_free(error_msg);
         qk_compilation_error_free(error);
+    }
+
+    // at this point we know `out` is NULL (as expected) and no longer need to free it,
+    // and the error has been freed. Now we can verify the input IR was freed, too.
+    if (logger.num_deletes != 1) {
+        printf("Input IR has not been freed despite faulty pipeline.\n");
+        result = RuntimeError;
+        goto cleanup;
     }
 
 cleanup:
@@ -648,7 +642,7 @@ cleanup:
  */
 static int test_mismatching_output(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
-    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *flip_ir = qk_ir_handle_new("flip", flip_methods);
 
     // This PM now has a pipeline built on Flips IR
     QkPassVtable *cancellation_vtable =
@@ -717,7 +711,7 @@ cleanup:
  * Test the pass' deconstructor is correctly called exactly once when the PM is freed.
  */
 static int test_pass_deconstructor_after_run(void) {
-    QkIrHandle *ir = make_flip_ir();
+    QkIrHandle *ir = qk_ir_handle_new("flip", flip_methods);
 
     QkPassVtable *pop_vtable = qk_pass_vtable_new("pop", ir, ir, pop_slots);
     size_t len = 2;
@@ -792,7 +786,7 @@ cleanup:
  * Test the pass' deconstructor is called when failing to push a pass.
  */
 static int test_pass_deconstructor_on_failure(void) {
-    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *flip_ir = qk_ir_handle_new("flip", flip_methods);
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
 
     // A pass on circuit IR.
