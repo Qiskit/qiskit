@@ -51,6 +51,10 @@ class CountsIR(IR):
         self.data = data
 
 
+class AlsoCountsIR(CountsIR):
+    """A subclassed custom IR."""
+
+
 class CliffordCountsIR(CountsIR):
     """An IR deriving from CountsIR."""
 
@@ -266,7 +270,11 @@ class InvalidPass(Pass[int, int]):
 
 
 class NamelessIR(IR):
-    """A nameless, invalid IR."""
+    """A nameless IR."""
+
+
+class AnotherNamelessIR(IR):
+    """Another nameless IR, which should not be the same as `NamelessIR`."""
 
 
 class NamelessPass(Pass[NamelessIR]):
@@ -491,9 +499,15 @@ class TestLoweringPassManager(QiskitTestCase):
         out = pm.run(circuit)
         self.assertEqual(out.data, {"t": 1})
 
-    def test_invalid_ir(self):
-        with self.assertRaises(AttributeError):
-            _ = LoweringPassManager([NamelessPass()])
+    def test_name_collision(self):
+        pm = LoweringPassManager([NamelessPass()])
+        self.assertIsInstance(pm.run(NamelessIR()), NamelessIR)
+
+        with self.assertRaisesRegex(
+            TypeError,
+            "incoming IR of type.*AnotherNamelessIR.* does not match expected .*NamelessIR.*",
+        ):
+            _ = pm.run(AnotherNamelessIR())
 
     def test_invalid_pass(self):
         """Test adding a lowering pass that didn't specify the IRs."""
@@ -594,13 +608,21 @@ class TestLoweringPassManager(QiskitTestCase):
         out = pm.run(circuit, copy=False)
         self.assertIsInstance(out, DAGCircuit)
 
-    def test_subclassed_ir(self):
-        """Test running a pass on the parent class on the subclass."""
+    def test_base_ir(self):
+        """Test running a pass on an IR defined on another IR base."""
 
         pm = LoweringPassManager([PopCounts(["h"])])
         ir = CliffordCountsIR({"h": 2, "x": 12})
         out = pm.run(ir)
         self.assertEqual(out.data, {"x": 12})
+
+    def test_subclassed_custom_ir(self):
+        """Test running a pass on the parent class on the subclass."""
+
+        pm = LoweringPassManager([PopCounts(["h"])])
+        ir = AlsoCountsIR({"h": 2, "t": 12})
+        out = pm.run(ir)
+        self.assertEqual(out.data, {"t": 12})
 
     def test_subclassed_builtin_ir(self):
         """Test running a pass on the parent class on the subclass."""
