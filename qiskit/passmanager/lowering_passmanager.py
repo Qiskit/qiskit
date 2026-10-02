@@ -46,7 +46,7 @@ class IR:
 
     Note that all methods named ``_qiskit_*_`` are interface methods that are only for Qiskit to
     call.  These are documented for implementers, but are generally not stable for users to call;
-    Qiskit may allow implementations to fulfil one of several contracts for the method, and
+    Qiskit may allow implementations to fulfill one of several contracts for the method, and
     additional alternatives may be added in new versions.  Qiskit will maintain stability within its
     own use of these protocols, but they are not stable for public consumption.
 
@@ -80,25 +80,25 @@ class IR:
     * You define a new class that subclasses :class:`IR` directly, and none of its supertypes are
       instances of :class:`IR` (the most common case).
 
-      You do not need to set this atttribute, but may explicitly set it to ``None`` (these have the
+      You do not need to set this attribute, but may explicitly set it to ``None`` (these have the
       same meaning).
 
     * You define a new class that subclasses an existing implementation of :class:`IR` for reasons
       unrelated to the :class:`IR` system.  You want instances of your subclass to be treated by the
       pass-manager system as if they're compatible with the base :class:`IR`.
 
-      You must not set this atttribute (nor override any other attributes or methods).
+      You must not set this attribute (nor override any other attributes or methods).
 
     * You define a new class that subclasses an existing implementation of :class:`IR`, and you want
       it to be considered as a _new_ IR.
 
-      You must set this atttribute to ``None``.
+      You must set this attribute to ``None``.
 
     After class creation, the value of this class variable will be set to the resolved base
     :class:`IR` implementer.
     """
 
-    def __init_subclass__(cls):
+    def __init_subclass__(cls) -> None:
         cls._qiskit_ir_name_ = cls._qiskit_ir_name_ or cls.__name__
         cls._qiskit_ir_base_ = cls._qiskit_ir_base_ or cls
 
@@ -144,7 +144,7 @@ class PassContextHandle:
         """
         return self._native.get_context(key, default)
 
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> object:
         """Get the ``key`` from the pipeline's inter-pass context.
 
         Raises:
@@ -156,11 +156,11 @@ class PassContextHandle:
             raise KeyError(f"key not found: {key}")
         return out
 
-    def __setitem__(self, key: str, value: object):
+    def __setitem__(self, key: str, value: object) -> None:
         """Set the ``key`` to a given ``value`` in the pipeline's inter-pass context."""
         self._native.set_context(key, value)
 
-    def __delitem__(self, key: str):
+    def __delitem__(self, key: str) -> None:
         """Delete the ``key`` from the pipeline's inter-pass context.
 
         Raises:
@@ -196,7 +196,7 @@ class Pass(Generic[PassIRIn, PassIROut], abc.ABC):
 
     Note that all methods named ``_qiskit_*_`` are interface methods that are only for Qiskit to
     call.  These are documented for implementers, but are generally not stable for users to call;
-    Qiskit may allow implementations to fulfil one of several contracts for the method, and
+    Qiskit may allow implementations to fulfill one of several contracts for the method, and
     additional alternatives may be added in new versions.  Qiskit will maintain stability within its
     own use of these protocols, but they are not stable for public consumption.
 
@@ -208,7 +208,7 @@ class Pass(Generic[PassIRIn, PassIROut], abc.ABC):
     namespace.
     """
 
-    _qiskit_pass_name_: str | None = None
+    _qiskit_pass_name_: str = ""
     """A human-readable name for the pass.  **Optional**.
 
     This is provided primarily for debugging purposes in pipelines."""
@@ -240,7 +240,7 @@ class Pass(Generic[PassIRIn, PassIROut], abc.ABC):
                 documentation of :class:`PassContextHandle` for more information.
 
         Returns:
-            the next IR object to use.  This must match the specified right generic from the
+            The next IR object to use.  This must match the specified right generic from the
             subclass of :class:`Pass` (or the only generic, if used in single-argument
             form).
 
@@ -264,7 +264,7 @@ class LoweringPassManager:
     the Rust-native component in the C API is :c:type:`QkPassManager`.
     """
 
-    def __init__(self, tasks: Iterable[Pass] = ()):
+    def __init__(self, tasks: Iterable[Pass] = ()) -> None:
         """
         Args:
             tasks: any tasks with which to initialize the pass manager.  Passing this is equivalent
@@ -293,7 +293,7 @@ class LoweringPassManager:
                 mutate the object.  This will typically result in the object becoming empty.
 
         Returns:
-            the compiled and lowered IR.
+            The compiled and lowered IR.
 
         Raises:
             LoweringPassManagerError: if the pipeline raised an error (or errors) related to the

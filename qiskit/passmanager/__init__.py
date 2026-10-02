@@ -280,7 +280,7 @@ Exceptions
 .. _passmanager-lowering:
 
 ------------------------------
-Multi-IR Lowering Pass Manager
+Multi-IR lowering pass manager
 ------------------------------
 
 The "new" Qiskit pass manager is :class:`LoweringPassManager`.  This is newly designed, with the
