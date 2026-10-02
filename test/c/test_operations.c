@@ -42,6 +42,14 @@ static struct foo_gate *foo_clone(const struct foo_gate *gate) {
     memcpy(out, gate, sizeof(*out));
     return out;
 }
+QkCircuit *foo_definition(const struct foo_gate *gate, QkParam **params) {
+    (void)params;
+    QkCircuit *def = qk_circuit_new(gate->num_qubits, gate->num_clbits);
+    for (uint32_t i = 0; i < gate->num_qubits; i++) {
+        qk_circuit_gate(def, QkGate_H, (uint32_t[1]){i}, NULL);
+    }
+    return def;
+}
 
 static QkVtableEntry foo_entries[] = {
     {.slot = QkCustomOpSlot_Name, .ptr = foo_name},
@@ -49,6 +57,7 @@ static QkVtableEntry foo_entries[] = {
     {.slot = QkCustomOpSlot_NumQubits, .ptr = foo_num_qubits},
     {.slot = QkCustomOpSlot_NumClbits, .ptr = foo_num_clbits},
     {.slot = QkCustomOpSlot_NumParams, .ptr = foo_num_params},
+    {.slot = QkCustomOpSlot_Definition, .ptr = foo_definition},
     {.slot = QkCustomOpSlot_Clone, .ptr = foo_clone},
     {.slot = QkCustomOpSlot_Delete, .ptr = free},
     {.slot = -1, .ptr = NULL},
@@ -392,6 +401,82 @@ cleanup:
     return ret;
 }
 
+void append_foo(QkCircuit *circuit, const QkCustomOpVtable *vtable, uint32_t num_qubits) {
+    struct foo_gate *foo = malloc(sizeof(struct foo_gate));
+    foo->num_qubits = num_qubits;
+    foo->num_clbits = 0;
+    foo->num_params = 0;
+
+    QkCustomOp *foo_op = qk_custom_operation_new(foo, vtable);
+
+    uint32_t *qubits = malloc(num_qubits * sizeof(uint32_t));
+    for (uint32_t i = 0; i < num_qubits; i++)
+        qubits[i] = i;
+
+    qk_circuit_custom_operation(circuit, foo_op, qubits, NULL, NULL);
+    free(qubits);
+}
+
+static int test_custom_op_transpile(void) {
+    int res = Ok;
+    const QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(foo_entries);
+    if (foo_vtable == NULL) {
+        printf("Retrieved a Null pointer instead of a Vtable pointer.");
+        res = NullptrError;
+        goto exit;
+    }
+
+    QkCircuit *circuit = qk_circuit_new(10, 0);
+    append_foo(circuit, foo_vtable, 3);
+    append_foo(circuit, foo_vtable, 5);
+    // TODO There currently is a bug in `transpile` which does not correctly unroll custom
+    // gates with 2 qubits or less.
+    // append_foo(circuit, foo_vtable, 2);
+
+    QkTarget *target = qk_target_new(10);
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
+    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
+
+    QkTranspileResult result = {NULL, NULL};
+    QkTranspileOptions options = qk_transpiler_default_options();
+    options.optimization_level = 0;
+    char *error = NULL;
+    qk_transpile(circuit, target, &options, &result, &error);
+    if (error != NULL) {
+        printf("Transpilation failed with\n%s\n", error);
+        qk_str_free(error);
+        goto cleanup;
+    }
+    QkOpCounts counts = qk_circuit_count_ops(result.circuit);
+    if (counts.len != 1) {
+        printf("Wrong operation count after transpile.\n");
+        res = EqualityError;
+        goto cleanup_counts;
+    }
+    if (strcmp(counts.data[0].name, "h") != 0) {
+        printf("Unexpected gate (%s) after transpile.\n", counts.data[0].name);
+        res = EqualityError;
+        goto cleanup_counts;
+    }
+    if (counts.data[0].count != 8) {
+        printf("Expected 8 H gates, got %zu.\n", counts.data[0].count);
+        res = EqualityError;
+    }
+
+cleanup_counts:
+    qk_opcounts_clear(&counts);
+cleanup:
+    qk_target_free(target);
+    qk_circuit_free(circuit);
+    qk_circuit_free(result.circuit);
+    qk_transpile_layout_free(result.layout);
+
+    qk_custom_operation_vtable_free(foo_vtable);
+
+exit:
+    return res;
+}
+
 int test_operations(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_custom_operation_in_circuit);
@@ -399,6 +484,7 @@ int test_operations(void) {
     num_failed += RUN_TEST(test_incomplete_vtable);
     num_failed += RUN_TEST(test_vtable_with_null);
     num_failed += RUN_TEST(test_dtor_calls);
+    num_failed += RUN_TEST(test_custom_op_transpile);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
