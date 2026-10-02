@@ -82,6 +82,10 @@ pub enum ExitCode {
     CircuitError = 800,
     /// Incorrect delay unit added to the circuit. Use specialized function.
     IncorrectDelayUnit = 801,
+    /// CustomOperation error
+    CustomOperation = 900,
+    /// Repeated vtable slot error
+    CustomOperationRepeatedSlot = 901,
 }
 
 impl From<ArithmeticError> for ExitCode {
