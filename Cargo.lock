@@ -2530,6 +2530,7 @@ dependencies = [
  "numpy",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-circuit-library",
  "qiskit-quantum-info",
  "qiskit-util",
  "smallvec",
