@@ -24,7 +24,7 @@ import abc
 import copy as _copy
 import typing
 from collections.abc import Iterable
-from typing import Generic, ClassVar
+from typing import Generic, ClassVar, TypeAlias
 from typing_extensions import TypeVar
 
 from qiskit._accelerate import passmanager
@@ -101,6 +101,16 @@ class IR:
     def __init_subclass__(cls) -> None:
         cls._qiskit_ir_name_ = cls._qiskit_ir_name_ or cls.__name__
         cls._qiskit_ir_base_ = cls._qiskit_ir_base_ or cls
+
+
+class _BuiltinIR(typing.Protocol):
+    _qiskit_ir_builtin_: ClassVar[None]
+
+
+AnyIR: TypeAlias = IR | _BuiltinIR
+# Using `typing_extensions.TypeVar` because `default` is only Python 3.13+.
+IRIn = TypeVar("IRIn", bound=AnyIR)
+IROut = TypeVar("IROut", bound=AnyIR, default=IRIn)
 
 
 @typing.final
@@ -182,12 +192,7 @@ class PassContextHandle:
         self._native.set_ir_modified(val)
 
 
-# Using `typing_extensions.TypeVar` because `default` is only Python 3.13+.
-PassIRIn = TypeVar("PassIRIn", bound=IR)
-PassIROut = TypeVar("PassIROut", bound=IR, default=PassIRIn)
-
-
-class Pass(Generic[PassIRIn, PassIROut], abc.ABC):
+class Pass(Generic[IRIn, IROut], abc.ABC):
     """An interface for defining passes over IRs.
 
     This is primarily an *implementation* interface.  The typical way to safely consume a
@@ -216,13 +221,13 @@ class Pass(Generic[PassIRIn, PassIROut], abc.ABC):
     # TODO: these could possibly be automatically set by `__init_subclass__` by inspection of the
     # generics, but we'd have to clearly define the semantics of `ForwardRef`, and other funky
     # type-system stuff.  For a first implementation, just require manual specification.
-    _qiskit_pass_ir_in_: type[IR]
+    _qiskit_pass_ir_in_: type[AnyIR]
     """The type of the IR that the pass expects."""
-    _qiskit_pass_ir_out_: type[IR]
+    _qiskit_pass_ir_out_: type[AnyIR]
     """The type of the IR that the pass outputs."""
 
     @abc.abstractmethod
-    def _qiskit_pass_run_(self, ir: PassIRIn, context: PassContextHandle) -> PassIROut:
+    def _qiskit_pass_run_(self, ir: IRIn, context: PassContextHandle) -> IROut:
         """Run the pass on the given IR, returning the next IR object.
 
         The pass "owns" the ``ir`` object that comes in, and can do anything it likes with it;
@@ -283,7 +288,7 @@ class LoweringPassManager:
         # We can extend this method with dispatched type-checking once we expose other tasks, etc.
         self._native.push_pass(_native_pass_from_lowering_pass(pass_))
 
-    def run(self, ir: PassIRIn, *, copy: bool = True) -> object:
+    def run(self, ir: IRIn, *, copy: bool = True) -> object:
         """Run the pipeline on the given IR.
 
         Args:
