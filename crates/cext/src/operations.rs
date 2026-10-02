@@ -565,6 +565,25 @@ pub unsafe extern "C" fn qk_custom_operation_new(
 }
 
 /// @ingroup QkCustomOp
+/// Free an owned :c:type:`QkCustomOp`.
+///
+/// You typically do not need to call this, because :c:func:`qk_circuit_custom_operation` takes
+/// ownership of the object.
+///
+/// This function is a no-op if given `NULL`.
+///
+/// @param data An owning pointer to data to free.
+///
+/// # Safety
+///
+/// Behavior is undefined if `data` is not null or a valid owning pointer to a :c:type:`QkCustomOp`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_operation_free(data: *mut BoxedCustomOperation) {
+    // SAFETY: per documentation, `data` is either null or a valid owning pointer.
+    _ = (!data.is_null()).then(|| unsafe { BoxedCustomOperation::steal(data) });
+}
+
+/// @ingroup QkCustomOp
 /// Builds a ``QkCustomOpVtable`` based on a list of ``QkVtableEntry``
 /// instances.
 ///

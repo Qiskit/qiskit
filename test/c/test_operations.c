@@ -347,12 +347,58 @@ static int test_vtable_with_null(void) {
     return result;
 }
 
+static const char *leaky_name(void *_unused) {
+    (void)_unused;
+    return "name";
+}
+static uint32_t leaky_num_qubits(void *_unused) {
+    (void)_unused;
+    return 0;
+}
+static int leaky_delete_count;
+static void leaky_delete(void *_unused) {
+    (void)_unused;
+    leaky_delete_count += 1;
+}
+static QkVtableEntry leaky_slots[] = {
+    {QkCustomOpSlot_Name, 0, leaky_name},
+    {QkCustomOpSlot_NumQubits, 0, leaky_num_qubits},
+    {QkCustomOpSlot_Delete, 0, leaky_delete},
+    {-1, 0, NULL},
+};
+
+static int test_dtor_calls(void) {
+    int ret = Ok;
+    const QkCustomOpVtable *vtable = qk_custom_operation_vtable_new(leaky_slots);
+    QkCustomOp *with_data = qk_custom_operation_new((void *)0xDEADBEEFDEADBEEF, vtable);
+    QkCustomOp *no_data = qk_custom_operation_new(NULL, vtable);
+
+    leaky_delete_count = 0;
+    qk_custom_operation_free(no_data);
+    if (leaky_delete_count) {
+        ret = EqualityError;
+        fprintf(stderr, "%s: dtor called %d times unexpectedly\n", __func__, leaky_delete_count);
+        goto cleanup;
+    }
+
+    qk_custom_operation_free(with_data);
+    if (leaky_delete_count != 1) {
+        ret = EqualityError;
+        fprintf(stderr, "%s: dtor called %d times, but expected 1\n", __func__, leaky_delete_count);
+        goto cleanup;
+    }
+cleanup:
+    qk_custom_operation_vtable_free(vtable);
+    return ret;
+}
+
 int test_operations(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_custom_operation_in_circuit);
     num_failed += RUN_TEST(test_custom_operation_in_dag);
     num_failed += RUN_TEST(test_incomplete_vtable);
     num_failed += RUN_TEST(test_vtable_with_null);
+    num_failed += RUN_TEST(test_dtor_calls);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
