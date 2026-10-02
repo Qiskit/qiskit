@@ -32,7 +32,7 @@ QkCircuit *run_remove_identity(RemoveIdentity *self, QkCircuit *ir, QkPassContex
     return ir;
 }
 
-static const QkVtableEntry remove_identity_slots[2] = {
+static const QkVtableEntry remove_identity_slots[] = {
     {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_remove_identity},
     {.slot = -1, .flags = 0, .ptr = NULL},
 };
@@ -49,7 +49,7 @@ QkDag *run_circuit_to_dag(void *self, QkCircuit *ir, QkPassContext *context,
     return dag;
 }
 
-static const QkVtableEntry circuit_to_dag_slots[2] = {
+static const QkVtableEntry circuit_to_dag_slots[] = {
     {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_circuit_to_dag},
     {.slot = -1, .flags = 0, .ptr = NULL}};
 
@@ -107,7 +107,7 @@ void free_flips(Flips *flips) {
     free(flips);
 }
 
-static const QkVtableEntry flip_methods[2] = {
+static const QkVtableEntry flip_methods[] = {
     {.slot = QkIrSlot_Delete, .flags = 0, .ptr = (void *)&free_flips},
     {.slot = -1, .flags = 0, .ptr = NULL},
 };
@@ -165,7 +165,7 @@ Flips *inverse_cancellation(void *self, Flips *ir, QkPassContext *context,
     return ir;
 }
 
-static const QkVtableEntry inverse_cancellation_slots[2] = {
+static const QkVtableEntry inverse_cancellation_slots[] = {
     {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
     {.slot = -1, .flags = 0, .ptr = NULL},
 };
@@ -208,7 +208,7 @@ Flips *pop_flips(PopFlips *self, Flips *flips, QkPassContext *context, QkCompila
     return flips;
 }
 
-static const QkVtableEntry pop_slots[3] = {
+static const QkVtableEntry pop_slots[] = {
     {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&pop_flips},
     {.slot = QkPassSlot_Delete, .flags = 0, .ptr = (void *)&delete_pops},
     {.slot = -1, .flags = 0, .ptr = NULL},
