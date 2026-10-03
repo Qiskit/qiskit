@@ -431,6 +431,7 @@ static int test_switch_case_on_register(void) {
         result = EqualityError;
         goto cleanup;
     }
+    qk_control_flow_switch_case_labels_clear(&case_labels);
 
     bool is_default = qk_control_flow_switch_is_case_default(cf_inst, 1);
     if (is_default) {
