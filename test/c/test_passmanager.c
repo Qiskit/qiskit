@@ -23,35 +23,43 @@ typedef struct {
 } RemoveIdentity;
 
 /// The execution function for RemoveIdentity.
-void *run_remove_identity(void *self, void *ir, QkPassContext *context,
-                          QkCompilationError **error) {
+QkCircuit *run_remove_identity(RemoveIdentity *self, QkCircuit *ir, QkPassContext *context,
+                               QkCompilationError **error) {
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
 
-    RemoveIdentity *self_ = (RemoveIdentity *)self;
-    qk_transpiler_pass_standalone_remove_identity_equivalent((QkCircuit *)ir, self_->target, 1.0);
-    return (void *)ir;
+    qk_transpiler_pass_standalone_remove_identity_equivalent(ir, self->target, 1.0);
+    return ir;
 }
+
+static const QkVtableEntry remove_identity_slots[] = {
+    {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_remove_identity},
+    {.slot = -1, .flags = 0, .ptr = NULL},
+};
 
 /// The execution function for a circuit-to-dag pass.
-void *run_circuit_to_dag(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
+QkDag *run_circuit_to_dag(void *self, QkCircuit *ir, QkPassContext *context,
+                          QkCompilationError **error) {
     UNUSED_VARIABLE(self);
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
 
-    QkCircuit *circuit = (QkCircuit *)ir;
-    QkDag *dag = qk_circuit_to_dag(circuit);
-    qk_circuit_free(circuit);
-    return (void *)dag;
+    QkDag *dag = qk_circuit_to_dag(ir);
+    qk_circuit_free(ir);
+    return dag;
 }
 
+static const QkVtableEntry circuit_to_dag_slots[] = {
+    {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_circuit_to_dag},
+    {.slot = -1, .flags = 0, .ptr = NULL}};
+
 /// A pass on `QkCircuit*` that always returns an error message "task successfully failed!"
-void *always_error(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
+QkCircuit *always_error(void *self, QkCircuit *ir, QkPassContext *context,
+                        QkCompilationError **error) {
     UNUSED_VARIABLE(self);
-    UNUSED_VARIABLE(ir);
     UNUSED_VARIABLE(context);
 
-    qk_circuit_free((QkCircuit *)ir); // we are responsible to free the IR
+    qk_circuit_free(ir); // we are responsible to free the IR
     *error = qk_compilation_error_new("task successfully failed!");
     return NULL;
 }
@@ -73,7 +81,7 @@ typedef struct {
 /// and one to remove specific integers.
 ///
 /// Importantly, this struct is contains data that must be freed (the `*integers` pointer),
-/// and keeps a logger to count how often the deconstructor (`delete_flips`) is called.
+/// and keeps a logger to count how often the deconstructor (`free_flips`) is called.
 typedef struct {
     size_t capacity;
     size_t len;
@@ -90,28 +98,19 @@ Flips *new_flips(size_t capacity, DeleteLogger *logger) {
     return flips;
 }
 
-/// Delete the content of flips.
-void delete_flips(void *ir) {
-    Flips *flips = (Flips *)ir;
+/// Free the content *and* the flips pointer.
+void free_flips(Flips *flips) {
     if (flips->logger != NULL)
         flips->logger->num_deletes++;
 
     free(flips->integers);
-}
-
-/// Free the content *and* the flips pointer.
-void free_flips(Flips *flips) {
-    delete_flips((void *)flips);
     free(flips);
 }
 
-QkIrHandle *make_flip_ir(void) {
-    QkVtableEntry flip_methods[2] = {
-        {.slot = QkIrSlot_Delete, .flags = 0, .ptr = (void *)&delete_flips},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
-    return qk_ir_handle_new("flip_ir", flip_methods);
-}
+static const QkVtableEntry flip_methods[] = {
+    {.slot = QkIrSlot_Delete, .flags = 0, .ptr = (void *)&free_flips},
+    {.slot = -1, .flags = 0, .ptr = NULL},
+};
 
 /// Methods for the IR.
 int apply_flip(Flips *flips, uint32_t flip) {
@@ -135,38 +134,41 @@ size_t num_flips(Flips *flips) {
 }
 
 /// Passes for the flips IR.
-void *inverse_cancellation(void *self, void *ir, QkPassContext *context,
-                           QkCompilationError **error) {
+Flips *inverse_cancellation(void *self, Flips *ir, QkPassContext *context,
+                            QkCompilationError **error) {
     UNUSED_VARIABLE(self);
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
 
-    Flips *flips = (Flips *)ir;
-
-    if (flips->len < 2)
+    if (ir->len < 2)
         return ir;
 
     size_t write_index = 0;
     size_t read_index = 0;
-    while (read_index < flips->len - 1) {
+    while (read_index < ir->len - 1) {
         // If the next one is not the same, write the current one.
-        if (flips->integers[read_index] != flips->integers[read_index + 1]) {
-            flips->integers[write_index++] = flips->integers[read_index];
+        if (ir->integers[read_index] != ir->integers[read_index + 1]) {
+            ir->integers[write_index++] = ir->integers[read_index];
             read_index++;
         } else {
             // .. if they were the same, increase the read index by 2
             read_index += 2;
         }
     }
-    // Handle the last element: if it was skipped, then read_index equals flips->len,
+    // Handle the last element: if it was skipped, then read_index equals ir->len,
     // if not we are one element short.
-    if (read_index == flips->len - 1) {
-        flips->integers[write_index++] = flips->integers[read_index];
+    if (read_index == ir->len - 1) {
+        ir->integers[write_index++] = ir->integers[read_index];
     }
-    flips->len = write_index;
+    ir->len = write_index;
 
-    return (void *)flips;
+    return ir;
 }
+
+static const QkVtableEntry inverse_cancellation_slots[] = {
+    {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
+    {.slot = -1, .flags = 0, .ptr = NULL},
+};
 
 /// A pass to pop specified integers from the Flips IR.
 /// This pass needs freeing the data it holds upon destruction.
@@ -176,26 +178,22 @@ typedef struct {
     DeleteLogger *logger;
 } PopFlips;
 
-void delete_pops(void *this) {
-    PopFlips *pop_flips = (PopFlips *)this;
-    if (pop_flips->logger != NULL) {
-        pop_flips->logger->num_deletes++;
+void delete_pops(PopFlips *this) {
+    if (this->logger != NULL) {
+        this->logger->num_deletes++;
     }
-    free(pop_flips->to_pop);
+    free(this->to_pop);
 }
 
-void *pop_flips(void *self, void *ir, QkPassContext *context, QkCompilationError **error) {
+Flips *pop_flips(PopFlips *self, Flips *flips, QkPassContext *context, QkCompilationError **error) {
     UNUSED_VARIABLE(context);
     UNUSED_VARIABLE(error);
-
-    Flips *flips = (Flips *)ir;
-    PopFlips *pop = (PopFlips *)self;
 
     size_t write_index = 0;
     for (size_t read_index = 0; read_index < flips->len; read_index++) {
         bool skip = false;
-        for (size_t i = 0; i < pop->len; i++) {
-            if (flips->integers[read_index] == pop->to_pop[i]) {
+        for (size_t i = 0; i < self->len; i++) {
+            if (flips->integers[read_index] == self->to_pop[i]) {
                 skip = true;
                 break;
             }
@@ -207,8 +205,14 @@ void *pop_flips(void *self, void *ir, QkPassContext *context, QkCompilationError
         }
     }
     flips->len = write_index;
-    return (void *)flips;
+    return flips;
 }
+
+static const QkVtableEntry pop_slots[] = {
+    {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&pop_flips},
+    {.slot = QkPassSlot_Delete, .flags = 0, .ptr = (void *)&delete_pops},
+    {.slot = -1, .flags = 0, .ptr = NULL},
+};
 
 /**
  * Test running a single RemoveIdentity pass on a circuit.
@@ -218,11 +222,7 @@ void *pop_flips(void *self, void *ir, QkPassContext *context, QkCompilationError
  */
 static int test_circuit_ir(void) {
     QkIrHandle *ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
-    QkVtableEntry table[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = run_remove_identity},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
-    QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", ir, ir, table);
+    QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", ir, ir, remove_identity_slots);
     QkTarget *target = qk_target_new(10);
     RemoveIdentity this = {target};
     QkPass *pass = qk_pass_new((void *)&this, vtable);
@@ -321,16 +321,10 @@ static int test_lowering(void) {
 
     QkTarget *target = qk_target_new(10);
     RemoveIdentity remove_identity_config = {target};
-    const QkVtableEntry remove_identity_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_remove_identity},
-        {.slot = -1, .flags = 0, .ptr = NULL}};
     QkPassVtable *remove_identity_vtable =
         qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
     QkPass *remove_identity = qk_pass_new((void *)&remove_identity_config, remove_identity_vtable);
 
-    const QkVtableEntry circuit_to_dag_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_circuit_to_dag},
-        {.slot = -1, .flags = 0, .ptr = NULL}};
     QkPassVtable *circuit_to_dag_vtable =
         qk_pass_vtable_new("circuit_to_dag", circuit_ir, dag_ir, circuit_to_dag_slots);
     QkPass *circuit_to_dag = qk_pass_new(NULL, circuit_to_dag_vtable);
@@ -431,13 +425,9 @@ static int test_custom_ir(void) {
 
     QkPassManager *pm = qk_passmanager_new();
 
-    QkIrHandle *ir = make_flip_ir();
-    QkVtableEntry cancellation_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
+    QkIrHandle *ir = qk_ir_handle_new("flips", flip_methods);
     QkPassVtable *cancellation_vtable =
-        qk_pass_vtable_new("cancellation", ir, ir, cancellation_slots);
+        qk_pass_vtable_new("cancellation", ir, ir, inverse_cancellation_slots);
     QkPass *cancellation = qk_pass_new(NULL, cancellation_vtable);
 
     int result = Ok;
@@ -531,23 +521,16 @@ cleanup:
  */
 static int test_invalid_pipeline(void) {
     // A pass on Flips->Flips IR.
-    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *flip_ir = qk_ir_handle_new("flips", flip_methods);
 
-    QkVtableEntry cancellation_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
     QkPassVtable *cancellation_vtable =
-        qk_pass_vtable_new("cancellation", flip_ir, flip_ir, cancellation_slots);
+        qk_pass_vtable_new("cancellation", flip_ir, flip_ir, inverse_cancellation_slots);
     QkPass *flip_pass = qk_pass_new(NULL, cancellation_vtable);
 
     // A pass on Circuit->Circuit IR.
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
     QkTarget *target = qk_target_new(10);
     RemoveIdentity remove_identity_config = {target};
-    const QkVtableEntry remove_identity_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_remove_identity},
-        {.slot = -1, .flags = 0, .ptr = NULL}};
     QkPassVtable *remove_identity_vtable =
         qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
     QkPass *circuit_pass = qk_pass_new((void *)&remove_identity_config, remove_identity_vtable);
@@ -585,13 +568,10 @@ cleanup:
  */
 static int test_mismatching_input(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
-    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *flip_ir = qk_ir_handle_new("flip", flip_methods);
 
-    QkVtableEntry table[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = run_remove_identity},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
-    QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, table);
+    QkPassVtable *vtable =
+        qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
     QkTarget *target = qk_target_new(10);
     RemoveIdentity this = {target};
     QkPass *pass = qk_pass_new((void *)(&this), vtable);
@@ -620,14 +600,6 @@ static int test_mismatching_input(void) {
         goto cleanup;
     }
 
-    // at this point we know `out` is NULL (as expected) and no longer need to free it
-    // -- but the input IR should've been freed, so we check this here
-    if (logger.num_deletes != 1) {
-        printf("Input IR has not been freed despite faulty pipeline.\n");
-        result = RuntimeError;
-        goto cleanup;
-    }
-
     if (error == NULL) {
         printf("Expected error to be written, but the pointer is NULL.\n");
         result = EqualityError;
@@ -640,6 +612,14 @@ static int test_mismatching_input(void) {
         }
         qk_str_free(error_msg);
         qk_compilation_error_free(error);
+    }
+
+    // at this point we know `out` is NULL (as expected) and no longer need to free it,
+    // and the error has been freed. Now we can verify the input IR was freed, too.
+    if (logger.num_deletes != 1) {
+        printf("Input IR has not been freed despite faulty pipeline.\n");
+        result = RuntimeError;
+        goto cleanup;
     }
 
 cleanup:
@@ -657,15 +637,11 @@ cleanup:
  */
 static int test_mismatching_output(void) {
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
-    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *flip_ir = qk_ir_handle_new("flip", flip_methods);
 
     // This PM now has a pipeline built on Flips IR
-    QkVtableEntry cancellation_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&inverse_cancellation},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
     QkPassVtable *cancellation_vtable =
-        qk_pass_vtable_new("cancellation", flip_ir, flip_ir, cancellation_slots);
+        qk_pass_vtable_new("cancellation", flip_ir, flip_ir, inverse_cancellation_slots);
     QkPass *cancellation = qk_pass_new(NULL, cancellation_vtable);
 
     QkPassManager *pm = qk_passmanager_new();
@@ -730,13 +706,8 @@ cleanup:
  * Test the pass' deconstructor is correctly called exactly once when the PM is freed.
  */
 static int test_pass_deconstructor_after_run(void) {
-    QkIrHandle *ir = make_flip_ir();
+    QkIrHandle *ir = qk_ir_handle_new("flip", flip_methods);
 
-    QkVtableEntry pop_slots[3] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&pop_flips},
-        {.slot = QkPassSlot_Delete, .flags = 0, .ptr = (void *)&delete_pops},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
     QkPassVtable *pop_vtable = qk_pass_vtable_new("pop", ir, ir, pop_slots);
     size_t len = 2;
     uint32_t *to_pop = malloc(len * sizeof(uint32_t));
@@ -810,25 +781,17 @@ cleanup:
  * Test the pass' deconstructor is called when failing to push a pass.
  */
 static int test_pass_deconstructor_on_failure(void) {
-    QkIrHandle *flip_ir = make_flip_ir();
+    QkIrHandle *flip_ir = qk_ir_handle_new("flip", flip_methods);
     QkIrHandle *circuit_ir = qk_ir_handle_builtin(QkIrBuiltin_Circuit);
 
     // A pass on circuit IR.
-    QkVtableEntry table[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = run_remove_identity},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
-    QkPassVtable *vtable = qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, table);
+    QkPassVtable *vtable =
+        qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
     QkTarget *target = qk_target_new(10);
     RemoveIdentity this = {target};
     QkPass *circuit_pass = qk_pass_new((void *)&this, vtable);
 
     // A pass on Flips IR.
-    QkVtableEntry pop_slots[3] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&pop_flips},
-        {.slot = QkPassSlot_Delete, .flags = 0, .ptr = (void *)&delete_pops},
-        {.slot = -1, .flags = 0, .ptr = NULL},
-    };
     QkPassVtable *pop_vtable = qk_pass_vtable_new("pop", flip_ir, flip_ir, pop_slots);
 
     int result = Ok;
@@ -883,9 +846,6 @@ static int test_failing_pass(void) {
     // Pass 1: a working circuit IR pass
     QkTarget *target = qk_target_new(10);
     RemoveIdentity remove_identity_config = {target};
-    const QkVtableEntry remove_identity_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_remove_identity},
-        {.slot = -1, .flags = 0, .ptr = NULL}};
     QkPassVtable *remove_identity_vtable =
         qk_pass_vtable_new("remove_identity", circuit_ir, circuit_ir, remove_identity_slots);
     QkPass *remove_identity = qk_pass_new((void *)&remove_identity_config, remove_identity_vtable);
@@ -899,9 +859,6 @@ static int test_failing_pass(void) {
     QkPass *failing_pass = qk_pass_new(NULL, failing_vtable);
 
     // Pass 3: a working circuit->dag IR pass
-    const QkVtableEntry circuit_to_dag_slots[2] = {
-        {.slot = QkPassSlot_RunOwned, .flags = 0, .ptr = (void *)&run_circuit_to_dag},
-        {.slot = -1, .flags = 0, .ptr = NULL}};
     QkPassVtable *circuit_to_dag_vtable =
         qk_pass_vtable_new("circuit_to_dag", circuit_ir, dag_ir, circuit_to_dag_slots);
     QkPass *circuit_to_dag = qk_pass_new(NULL, circuit_to_dag_vtable);
