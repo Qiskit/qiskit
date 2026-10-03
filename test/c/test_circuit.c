@@ -1219,6 +1219,7 @@ static int test_delay_instruction(void) {
         goto instr_cleanup;
     }
 
+    qk_circuit_instruction_clear(&instr);
     qk_circuit_get_instruction(qc, 1, &instr);
 
     QkParamKind param_kind = qk_param_kind(instr.params[0]);
@@ -1300,6 +1301,7 @@ static int test_circuit_draw(void) {
     char *circ_str = qk_circuit_draw(circuit, &config);
 
     qk_str_free(circ_str);
+    qk_param_free(angle);
     qk_circuit_free(circuit);
 
     return Ok;
@@ -1641,6 +1643,7 @@ cleanup_out_meas:
 cleanup_out_rot:
     qk_pauli_product_rotation_clear(&out_rot);
 cleanup:
+    qk_param_free(angle);
     qk_circuit_free(circuit);
     return result;
 }

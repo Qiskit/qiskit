@@ -150,13 +150,14 @@ static int test_parameter_prefix(void) {
             if (strncmp(parameter_str, settings.parameter_prefix, prefix_len) != 0) {
                 result = EqualityError;
                 qk_str_free(parameter_str);
+                qk_circuit_instruction_clear(&inst);
                 break;
             }
             qk_str_free(parameter_str);
         }
+        qk_circuit_instruction_clear(&inst);
     }
 
-    qk_circuit_instruction_clear(&inst);
     qk_circuit_free(qc);
 
     return result;
