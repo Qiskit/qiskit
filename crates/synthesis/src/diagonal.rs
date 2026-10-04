@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn test_diagonal_gate_circuit_synthesizes_diagonal() {
         let phases = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8];
-        let circuit = diagonal_gate_circuit(&mut phases.to_vec()).unwrap();
+        let circuit = diagonal_gate_circuit(phases.as_ref()).unwrap();
         let unitary = sim_unitary_circuit(&circuit).unwrap();
 
         let mut expected = Array2::zeros((8, 8));
