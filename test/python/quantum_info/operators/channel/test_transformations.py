@@ -173,6 +173,18 @@ class TestTransformations(ChannelTestCase):
             output = rho.evolve(Kraus(Choi(self.depol_choi(p))))
             self.assertEqual(output, target)
 
+    def test_choi_to_kraus_does_not_mutate_input(self):
+        """Test that converting an ill-conditioned Choi matrix to Kraus does not mutate input."""
+        # Ill-conditioned Choi matrix with condition number >= 1e10
+        choi_data = np.zeros((4, 4), dtype=complex)
+        choi_data[0, 0] = 1.0
+        choi = Choi(choi_data)
+        orig_data = choi.data.copy()
+
+        _ = Kraus(choi)
+
+        np.testing.assert_array_equal(choi.data, orig_data)
+
     def test_choi_to_stinespring(self):
         """Test Choi to Stinespring transformation."""
         # Test unitary channels

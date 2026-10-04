@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug where converting an ill-conditioned :class:`.Choi` representation
+    to :class:`.Kraus` mutated the caller's input Choi matrix in place due to
+    in-place addition of the perturbation factor.
+    Fixed `#17096 <https://github.com/Qiskit/qiskit/issues/17096>`__.
