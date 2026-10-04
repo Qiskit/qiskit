@@ -20,7 +20,7 @@ use std::collections::BTreeSet;
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use crate::diagonal::diagonal_gate_circuit;
-use crate::qsd::append;
+use crate::utils::append_with_qubit_map;
 use nalgebra::{Matrix2, MatrixView2, Vector2};
 use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
@@ -249,7 +249,7 @@ fn dec_ucg_inner(
         let mut qubit_map: Vec<Qubit> = Vec::with_capacity(simplified_num_qubits as usize);
         qubit_map.push(Qubit(0));
         qubit_map.extend(q_controls.iter().map(|&q| Qubit(q)));
-        append(&mut circuit, diag_circuit, &qubit_map)?;
+        append_with_qubit_map(&mut circuit, diag_circuit, &qubit_map)?;
     }
     let diagonal = expand_diagonal(diagonal, &raw_ctrls, num_qubits);
 

@@ -35,6 +35,7 @@ use crate::linalg::{
 use crate::matrix::two_qubit;
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
 use crate::ucrz::get_ucrz;
+use crate::utils::append_with_qubit_map;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::interner::Interned;
@@ -308,11 +309,11 @@ fn qsd_inner(
 
     // the output circuit of the block ZXZ decomposition from [2]
     let qr = (0..num_qubits).map(Qubit::new).collect::<Vec<_>>();
-    append(&mut out, left_circuit, &qr)?;
+    append_with_qubit_map(&mut out, left_circuit, &qr)?;
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
-    append(&mut out, middle_circ, &qr)?;
+    append_with_qubit_map(&mut out, middle_circ, &qr)?;
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
-    append(&mut out, right_circuit, &qr)?;
+    append_with_qubit_map(&mut out, right_circuit, &qr)?;
     if opt_a2_val && depth == 0 && dim > 4 {
         Ok(apply_a2(&out, two_qubit_decomposer)?)
     } else {
@@ -458,7 +459,7 @@ fn demultiplex(
                 one_qubit_decomposer,
                 depth + 1,
             )?;
-            append(&mut out, left_circuit, &layout[..num_qubits - 1])?;
+            append_with_qubit_map(&mut out, left_circuit, &layout[..num_qubits - 1])?;
         }
         VWType::OnlyV => (),
     }
@@ -474,7 +475,7 @@ fn demultiplex(
         (VWType::OnlyV, true) => get_ucrz(num_qubits, &mut angles, false)?.reverse()?,
         _ => get_ucrz(num_qubits, &mut angles, true)?,
     };
-    append(
+    append_with_qubit_map(
         &mut out,
         ucrz,
         &[
@@ -495,7 +496,7 @@ fn demultiplex(
                 one_qubit_decomposer,
                 depth + 1,
             )?;
-            append(&mut out, right_circuit, &layout[..num_qubits - 1])?;
+            append_with_qubit_map(&mut out, right_circuit, &layout[..num_qubits - 1])?;
         }
         VWType::OnlyW => (),
     }
@@ -520,28 +521,6 @@ fn demultiplex_verify(
     let u_check = &v_block * &d_block * &w_block;
 
     (u_block.as_ref() - u_check.as_ref()).norm_max() < VERIFY_TOL
-}
-
-pub(crate) fn append(
-    circ: &mut CircuitData,
-    new: CircuitData,
-    qubit_map: &[Qubit],
-) -> Result<(), CircuitDataError> {
-    let new_qubits_map = circ.merge_qargs(new.qargs_interner(), |x| Some(qubit_map[x.index()]));
-    circ.add_global_phase(new.global_phase())?;
-    for inst in new.into_data_iter() {
-        let out_inst = PackedInstruction {
-            op: inst.op,
-            params: inst.params,
-            qubits: new_qubits_map[inst.qubits],
-            clbits: Default::default(),
-            label: inst.label,
-            #[cfg(feature = "cache_pygates")]
-            py_op: inst.py_op,
-        };
-        circ.push(out_inst)?;
-    }
-    Ok(())
 }
 
 /// numpy's move_axis has the effect of pushing back the axis

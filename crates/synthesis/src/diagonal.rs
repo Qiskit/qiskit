@@ -10,15 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::Python;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use crate::qsd::append;
 use crate::ucrz::get_ucrz;
+use crate::utils::append_with_qubit_map;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::operations::Param;
 
 /// Synthesize a `CircuitData` implementing a diagonal gate with phases `diag_phases`,
@@ -51,7 +50,7 @@ pub(crate) fn diagonal_gate_circuit(diag_phases: &[f64]) -> Result<CircuitData, 
         let qubit_map: Vec<Qubit> = (0..num_act_qubits)
             .map(|q| Qubit((q + target_qubit) as u32))
             .collect();
-        append(&mut circuit, ucrz, &qubit_map)?;
+        append_with_qubit_map(&mut circuit, ucrz, &qubit_map)?;
         n /= 2;
     }
     circuit.add_global_phase(&Param::Float(diag_phases[0]))?;
@@ -61,7 +60,7 @@ pub(crate) fn diagonal_gate_circuit(diag_phases: &[f64]) -> Result<CircuitData, 
 /// Python-exposed entry point for synthesizing a `DiagonalGate`. `diag_phases` must have
 /// exactly `2^num_qubits` entries.
 #[pyfunction]
-pub fn synth_diagonal(py: Python, diag_phases: Vec<f64>, num_qubits: u32) -> PyResult<Py<PyAny>> {
+pub fn synth_diagonal(diag_phases: Vec<f64>, num_qubits: u32) -> PyResult<PyCircuitData> {
     let expected = 1u64 << num_qubits;
     let got = diag_phases.len();
     if got as u64 != expected {
@@ -71,9 +70,7 @@ pub fn synth_diagonal(py: Python, diag_phases: Vec<f64>, num_qubits: u32) -> PyR
     }
     let phases = diag_phases;
     let circuit = diagonal_gate_circuit(&phases).map_err(PyErr::from)?;
-    let qc = circuit.into_py_quantum_circuit(py)?;
-    qc.setattr("name", "diagonal")?;
-    Ok(qc.unbind())
+    Ok(circuit.into())
 }
 
 pub fn diagonal(m: &Bound<PyModule>) -> PyResult<()> {

@@ -29,6 +29,7 @@ pub mod ross_selinger;
 pub mod two_qubit_decompose;
 mod uc_gate;
 mod ucrz;
+mod utils;
 
 use pyo3::import_exception;
 use pyo3::prelude::*;

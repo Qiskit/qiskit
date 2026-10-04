@@ -105,7 +105,9 @@ class DiagonalGate(Gate):
         from qiskit._accelerate.synthesis.diagonal import synth_diagonal
 
         diag_phases = [cmath.phase(z) for z in self.params]
-        self.definition = synth_diagonal(diag_phases, self.num_qubits)
+        definition = QuantumCircuit._from_circuit_data(synth_diagonal(diag_phases, self.num_qubits))
+        definition.name = "diagonal"
+        self.definition = definition
 
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex

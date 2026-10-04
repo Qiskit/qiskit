@@ -16,12 +16,17 @@ use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::{Param, StandardGate};
 const EPS: f64 = 1e-10;
 
-/// This function synthesizes UCRZ without the final CX gate,
-/// unless _vw_type = ``all``.
+/// Synthesize a uniformly-controlled Rz (UCRZ) circuit for `angles`.
+///
+/// By default the final CX gate is omitted. This is used by the Quantum Shannon
+/// Decomposition (`qsd.rs`, `VWType::OnlyW`/`OnlyV`), where the surrounding recursion
+/// supplies or cancels that CX itself — omitting it here is intentional, not a partial
+/// decomposition. Pass `include_final_cx = true` when the UCRZ circuit must stand alone
+/// (e.g. `diagonal_gate_circuit`), so the final CX is included.
 pub(crate) fn get_ucrz(
     num_qubits: usize,
     angles: &mut [f64],
-    vw_type_all: bool,
+    include_final_cx: bool,
 ) -> Result<CircuitData, CircuitDataError> {
     let out_qubits = (0..num_qubits)
         .map(|_| ShareableQubit::new_anonymous())
@@ -41,7 +46,7 @@ pub(crate) fn get_ucrz(
                 &[],
                 &[q_controls[q_ctrl_index as usize], q_target],
             );
-        } else if vw_type_all && num_qubits > 1 {
+        } else if include_final_cx && num_qubits > 1 {
             let q_ctrl_index = num_qubits - 2;
             let _ = out.push_standard_gate(
                 StandardGate::CX,
