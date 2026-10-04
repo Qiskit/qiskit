@@ -97,7 +97,7 @@ fn pack_instructions(
 > {
     let mut custom_operations = HashMap::new();
     let mut custom_new_operations = Vec::new();
-    let instructions = qpy_data.circuit_data.data().to_vec();
+    let instructions = qpy_data.circuit_data.data();
     Ok((
         instructions
             .iter()
@@ -202,6 +202,9 @@ fn pack_instruction_blocks(
     inst: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> Result<Vec<formats::GenericDataPack>, QpyError> {
+    if matches!(qpy_data.caller, QpyCaller::Native) {
+        return Err(QpyError::PythonOnly("Control Flow operations"));
+    }
     let blocks = qpy_data
         .circuit_data
         .unpack_blocks_to_circuit_parameters(inst.params.as_deref())
@@ -772,7 +775,11 @@ fn pack_quantum_register(
             .collect();
 
         formats::RegisterPack::V4(formats::RegisterV4Pack {
-            register_type: RegisterType::Qreg,
+            register_type: if qreg.is_ancilla() {
+                RegisterType::Areg
+            } else {
+                RegisterType::Qreg
+            },
             standalone: qreg.is_owning() as u8,
             in_circuit: in_circuit as u8,
             name: qreg.name().to_string(),
@@ -802,7 +809,11 @@ fn pack_quantum_register(
             0
         };
         formats::RegisterPack::V18(formats::RegisterV18Pack {
-            register_type: RegisterType::Qreg,
+            register_type: if qreg.is_ancilla() {
+                RegisterType::Areg
+            } else {
+                RegisterType::Qreg
+            },
             standalone: qreg.is_owning() as u8,
             size: qreg.len() as u32,
             register_attachment,

@@ -102,6 +102,8 @@ static int test_counts_convert_to_pauli_rotations(void) {
             break;
         }
     }
+    qk_opcounts_clear(&op_counts);
+
 cleanup:
     qk_circuit_free(circuit);
     return result;

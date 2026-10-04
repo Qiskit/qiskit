@@ -63,7 +63,7 @@ use pyo3::exceptions::{
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use pyo3::types::{IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyDict, PyInt, PyIterator, PyList, PyNone, PySet, PyTuple, PyType};
 
 use rustworkx_core::dag_algo::layers;
 use rustworkx_core::err::ContractError;
@@ -373,6 +373,13 @@ pub struct DAGCircuit {
     op_names: IndexMap<String, usize>,
 }
 
+#[cfg(feature = "passmanager")]
+mod passmanager {
+    use super::DAGCircuit;
+    qiskit_util::dyn_types::static_dyn_typed!(DAGCircuit);
+    impl qiskit_passmanager::IR for DAGCircuit {}
+}
+
 #[derive(Clone, Debug)]
 struct PyLegacyResources {
     clbits: Py<PyTuple>,
@@ -502,6 +509,15 @@ pub struct PyDAGCircuit {
 
 #[pymethods]
 impl PyDAGCircuit {
+    #[classattr]
+    pub fn _qiskit_ir_builtin_(py: Python) -> Bound<PyNone> {
+        // Marker object for type checkers to recognise `DAGCircuit` as a special form of
+        // Python-available IRs, without us having to add subclasses.  (Actually, we don't generate
+        // type stubs for the Rust-defined types, so type checkers still won't be happy, but we
+        // _should_, and this is here for the principle of things.)
+        PyNone::get(py).to_owned()
+    }
+
     #[new]
     pub fn py_new(py: Python) -> Self {
         let out = DAGCircuit::new();
@@ -3590,8 +3606,8 @@ impl PyDAGCircuit {
     /// Get the list of "op" nodes in the dag.
     ///
     /// Args:
-    ///     op (Type): :class:`qiskit.circuit.Operation` subclass op nodes to
-    ///         return. If None, return all op nodes.
+    ///     op (Type | Iterable[Type]): :class:`qiskit.circuit.Operation` subclass (or iterable of
+    ///         subclasses) of op nodes to return. If None, return all op nodes.
     ///     include_directives (bool): include `barrier`, `snapshot` etc.
     ///
     /// Returns:
@@ -3600,27 +3616,48 @@ impl PyDAGCircuit {
     fn py_op_nodes(
         &self,
         py: Python,
-        op: Option<&Bound<PyType>>,
+        op: Option<&Bound<PyAny>>,
         include_directives: bool,
     ) -> PyResult<Vec<Py<PyAny>>> {
         let mut nodes = Vec::new();
-        let filter_is_nonstandard = if let Some(op) = op {
-            op.getattr(intern!(py, "_standard_gate")).ok().is_none()
-        } else {
-            true
+
+        // Accept either a single `type`, or an iterable of `type`s.  We keep the types alive by
+        // storing owned references.
+        let op_types: Option<Vec<Py<PyType>>> = match op {
+            None => None,
+            Some(obj) => {
+                if obj.is_instance_of::<PyType>() {
+                    let ty = obj.cast::<PyType>()?;
+                    Some(vec![ty.clone().unbind()])
+                } else {
+                    // Try to interpret the object as an iterable of types.
+                    let iter = obj.try_iter()?;
+                    let mut types: Vec<Py<PyType>> = Vec::new();
+                    for item in iter {
+                        let item = item?;
+                        let ty = item.cast::<PyType>()?;
+                        types.push(ty.clone().unbind());
+                    }
+                    Some(types)
+                }
+            }
         };
         for (node, weight) in self.inner.dag.node_references() {
             if let NodeType::Operation(packed) = &weight {
                 if !include_directives && packed.op.directive() {
                     continue;
                 }
-                if let Some(op_type) = op {
-                    // This middle catch is to avoid Python-space operation creation for most uses of
-                    // `op`; we're usually just looking for control-flow ops, and standard gates
-                    // aren't control-flow ops.
-                    if !(filter_is_nonstandard && packed.op.try_standard_gate().is_some())
-                        && packed.op.py_op_is_instance(op_type)?
-                    {
+                if let Some(op_types) = &op_types {
+                    // Match any requested type.
+                    let mut matched = false;
+                    for op_type in op_types {
+                        let op_type = op_type.bind(py);
+                        if packed.op.py_op_is_instance(op_type)? {
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if matched {
                         nodes.push(self.inner.unpack_into(py, node, weight)?);
                     }
                 } else {
@@ -8916,6 +8953,14 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 }
 
 impl PyDAGCircuit {
+    /// Consume this Python wrapper, returning only the Rust-native parts.
+    ///
+    /// This throws away other Python-specific tracked data.
+    #[inline]
+    pub fn into_inner(self) -> DAGCircuit {
+        self.inner
+    }
+
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
     pub fn from_circuit(
         qc: QuantumCircuitData,
