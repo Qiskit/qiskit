@@ -17,6 +17,12 @@ DAG Circuits (:mod:`qiskit.dagcircuit`)
 
 .. currentmodule:: qiskit.dagcircuit
 
+The Directed Acyclic Graph (DAG) representation of a quantum circuit is a core data structure used heavily by the transpiler. 
+
+Unlike the :class:`~qiskit.circuit.QuantumCircuit` representation, which is optimized for user construction and viewing, the DAG representation models operations as nodes in a graph with directed edges representing the flow of qubits and classical bits between them. This allows the transpiler to easily query dependencies, identify commutative operations, and safely reorder or optimize gates by leveraging graph theory algorithms.
+
+The module provides the main :class:`DAGCircuit` object, as well as various node types (:class:`DAGOpNode`, :class:`DAGInNode`, :class:`DAGOutNode`) that represent the components of the graph.
+
 Circuits as Directed Acyclic Graphs
 ===================================
 
