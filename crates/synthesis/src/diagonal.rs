@@ -26,12 +26,10 @@ use qiskit_circuit::operations::Param;
 /// consumed/overwritten as scratch space during the recursion.
 ///
 /// [1]: https://arxiv.org/pdf/quant-ph/0406176.pdf
-pub(crate) fn diagonal_gate_circuit(
-    diag_phases: &[f64],
-) -> Result<CircuitData, CircuitDataError> {
+pub(crate) fn diagonal_gate_circuit(diag_phases: &[f64]) -> Result<CircuitData, CircuitDataError> {
     let num_qubits = diag_phases.len().trailing_zeros() as usize;
     let mut diag_phases = diag_phases.to_vec();
-    
+
     // Worst-case instruction count across all recursion levels is 2 * diag_phases.len() - 3
     let capacity = 2 * diag_phases.len();
     let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, capacity, Param::Float(0.))?;
