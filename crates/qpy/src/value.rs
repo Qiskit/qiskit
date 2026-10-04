@@ -110,7 +110,7 @@ pub struct Complex64Pack {
 
 #[binrw]
 #[brw(big)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Complex64MatrixPack {
     #[brw(magic = b'o')]
     OneQubit([Complex64Pack; 4]),
@@ -123,7 +123,7 @@ pub enum Complex64MatrixPack {
 // A struct for general-size matrix
 #[binrw]
 #[brw(big)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Complex64GeneralMatrixPack {
     rows: u32,
     cols: u32,
@@ -1425,7 +1425,7 @@ mod qpy_value_tests {
             Complex64::new(7.0, 8.0),
         ]);
         let ArrayType::OneQ(unpacked) =
-            unpack_array_type(pack_array_type(ArrayType::OneQ(one_qubit))?)?
+            unpack_array_type(pack_array_type(&ArrayType::OneQ(one_qubit))?)?
         else {
             return Err(QpyError::DeserializationError(
                 "expected a one-qubit matrix".into(),
@@ -1436,7 +1436,7 @@ mod qpy_value_tests {
         let two_qubit =
             Matrix4::from_fn(|row, col| Complex64::new((row * 4 + col) as f64, (row + col) as f64));
         let ArrayType::TwoQ(unpacked) =
-            unpack_array_type(pack_array_type(ArrayType::TwoQ(two_qubit))?)?
+            unpack_array_type(pack_array_type(&ArrayType::TwoQ(two_qubit))?)?
         else {
             return Err(QpyError::DeserializationError(
                 "expected a two-qubit matrix".into(),
@@ -1448,7 +1448,7 @@ mod qpy_value_tests {
             Complex64::new((row * 5 + col) as f64, (row + col) as f64)
         });
         let ArrayType::NDArray(unpacked) =
-            unpack_array_type(pack_array_type(ArrayType::NDArray(general.clone()))?)?
+            unpack_array_type(pack_array_type(&ArrayType::NDArray(general.clone()))?)?
         else {
             return Err(QpyError::DeserializationError(
                 "expected a general matrix".into(),

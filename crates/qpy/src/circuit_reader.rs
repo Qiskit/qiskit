@@ -65,8 +65,8 @@ use crate::py_methods::{
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
     ParamRegisterValue, QPYReadData, QpyCaller, RegisterType, ValueEndian, ValueType,
-    deserialize_with_args, load_param_register_value, load_value, unpack_duration_value,
-    unpack_for_collection, unpack_generic_value,
+    deserialize_with_args, load_param_register_value, load_value, unpack_array_type,
+    unpack_duration_value, unpack_for_collection, unpack_generic_value,
 };
 
 use ndarray::{Array2, ShapeBuilder};
@@ -1403,17 +1403,197 @@ fn unpack_circuit_v18(
 }
 
 fn unpack_circuit_v19(
-    _packed_circuit: &QPYCircuit,
-    _version: u8,
-    _use_symengine: bool,
-    _annotation_handler: AnnotationHandler,
-    _caller: QpyCaller,
+    packed_circuit: &QPYCircuit,
+    version: u8,
+    use_symengine: bool,
+    annotation_handler: AnnotationHandler,
+    caller: QpyCaller,
 ) -> Result<CircuitData, QpyError> {
-    // TODO(QPY19): Decode CircuitHeaderPack::V19, including its bit interners, then decode each
-    // CircuitInstructionPack::V19 once the placeholder QPY 19 operation-data formats are defined.
-    Err(QpyError::DeserializationError(
-        "QPY 19 circuit decoding is not implemented yet".to_string(),
-    ))
+    let formats::CircuitHeaderPack::V19(header) = &packed_circuit.header else {
+        return Err(QpyError::InvalidFormat(
+            "QPY >= 19 circuit has a pre-QPY 19 header".to_string(),
+        ));
+    };
+    let mut qpy_data = QPYReadData {
+        caller,
+        circuit_data: CircuitData::with_capacity(
+            0,
+            0,
+            packed_circuit.instructions.len(),
+            Param::Float(0.0),
+        )?,
+        version,
+        use_symengine,
+        standalone_vars: HashMap::new(),
+        standalone_stretches: HashMap::new(),
+        vectors: HashMap::new(),
+        parameter_vectors: packed_circuit
+            .parameter_vectors
+            .as_ref()
+            .map(|table| {
+                table
+                    .vectors
+                    .iter()
+                    .map(|vector| {
+                        Arc::new(SymbolVector {
+                            name: vector.name.clone(),
+                            uuid: Uuid::from_bytes(vector.uuid),
+                            len: (vector.vector_size as usize).into(),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+        annotation_handler,
+    };
+    if let Some(annotation_headers) = &packed_circuit.annotation_headers {
+        qpy_data.annotation_handler.load_deserializers(
+            annotation_headers
+                .state_headers
+                .iter()
+                .map(|data| (data.namespace.clone(), data.state.clone()))
+                .collect(),
+        )?;
+    }
+
+    let global_phase = header.global_phase.to_param(&mut qpy_data)?;
+    qpy_data.circuit_data.set_global_phase_param(global_phase)?;
+    add_standalone_vars(packed_circuit, &mut qpy_data)?;
+    add_registers_and_bits(packed_circuit, &mut qpy_data)?;
+
+    let qargs = unpack_interner_entries(
+        &header.qubit_interner,
+        qpy_data.circuit_data.num_qubits(),
+        "qubit",
+        |indices| qpy_data.circuit_data.add_qargs(indices),
+    )?;
+    let cargs = unpack_interner_entries(
+        &header.clbit_interner,
+        qpy_data.circuit_data.num_clbits(),
+        "clbit",
+        |indices| qpy_data.circuit_data.add_cargs(indices),
+    )?;
+
+    for packed_instruction in &packed_circuit.instructions {
+        let formats::CircuitInstructionPack::V19(instruction) = packed_instruction else {
+            return Err(QpyError::InvalidFormat(
+                "QPY >= 19 circuit has a pre-QPY 19 instruction".to_string(),
+            ));
+        };
+        let instruction = unpack_instruction_v19(instruction, &qargs, &cargs, &mut qpy_data)?;
+        qpy_data.circuit_data.push(instruction)?;
+    }
+    Ok(qpy_data.circuit_data)
+}
+
+fn unpack_instruction_v19(
+    instruction: &formats::CircuitInstructionV19Pack,
+    qargs: &[Interned<[Qubit]>],
+    cargs: &[Interned<[Clbit]>],
+    qpy_data: &mut QPYReadData,
+) -> Result<PackedInstruction, QpyError> {
+    let qubits = *qargs.get(instruction.qargs as usize).ok_or_else(|| {
+        QpyError::InvalidBit(format!(
+            "qubit interner index {} out of range",
+            instruction.qargs
+        ))
+    })?;
+    let clbits = *cargs.get(instruction.cargs as usize).ok_or_else(|| {
+        QpyError::InvalidBit(format!(
+            "clbit interner index {} out of range",
+            instruction.cargs
+        ))
+    })?;
+    if !instruction.params.is_empty() {
+        return Err(QpyError::DeserializationError(
+            "QPY 19 instruction parameters are not implemented yet".to_string(),
+        ));
+    }
+    if instruction.annotations.is_some() {
+        return Err(QpyError::DeserializationError(
+            "QPY 19 instruction annotations are not implemented yet".to_string(),
+        ));
+    }
+    let op = match &instruction.operation_data {
+        formats::OperationData::StandardGate(discriminant) => {
+            let gate = bytemuck::checked::try_pod_read_unaligned::<
+                qiskit_circuit::operations::StandardGate,
+            >(&[*discriminant])
+            .map_err(|_| {
+                QpyError::InvalidInstruction(format!(
+                    "invalid standard-gate discriminant {discriminant}"
+                ))
+            })?;
+            PackedOperation::from_standard_gate(gate)
+        }
+        formats::OperationData::StandardInstruction(data) => {
+            let instruction = match data.discriminant {
+                0 => StandardInstruction::Barrier(
+                    qpy_data.circuit_data.get_qargs(qubits).len() as u32
+                ),
+                1 => StandardInstruction::Delay(data.delay_unit.ok_or_else(|| {
+                    QpyError::InvalidInstruction("delay instruction has no unit".to_string())
+                })?),
+                2 => StandardInstruction::Measure,
+                3 => StandardInstruction::Reset,
+                value => {
+                    return Err(QpyError::InvalidInstruction(format!(
+                        "invalid standard-instruction discriminant {value}"
+                    )));
+                }
+            };
+            PackedOperation::from_standard_instruction(instruction)
+        }
+        formats::OperationData::UnitaryGate(data) => {
+            let array = unpack_array_type(data.matrix.clone())?;
+            PackedOperation::from_unitary(Box::new(UnitaryGate { array }))
+        }
+        _ => {
+            return Err(QpyError::DeserializationError(format!(
+                "QPY 19 {:?} operation decoding is not implemented yet",
+                instruction.operation
+            )));
+        }
+    };
+    Ok(PackedInstruction {
+        op,
+        qubits,
+        clbits,
+        params: None,
+        label: instruction
+            .label
+            .as_ref()
+            .map(|label| Box::new(label.value.clone())),
+        #[cfg(feature = "cache_pygates")]
+        py_op: std::sync::OnceLock::new(),
+    })
+}
+
+fn unpack_interner_entries<T: From<u32>, I: Copy>(
+    entries: &[formats::InternerEntry],
+    num_bits: usize,
+    bit_name: &str,
+    mut intern: impl FnMut(&[T]) -> I,
+) -> Result<Vec<I>, QpyError> {
+    entries
+        .iter()
+        .map(|entry| {
+            let raw = match entry {
+                formats::InternerEntry::Single(a) => vec![*a],
+                formats::InternerEntry::Double(a, b) => vec![*a, *b],
+                formats::InternerEntry::Triple(a, b, c) => vec![*a, *b, *c],
+                formats::InternerEntry::VariableSize { bits } => bits.clone(),
+                formats::InternerEntry::All => (0..num_bits as u32).collect(),
+            };
+            if let Some(index) = raw.iter().find(|&&index| index as usize >= num_bits) {
+                return Err(QpyError::InvalidBit(format!(
+                    "{bit_name} index {index} out of range (circuit has {num_bits} {bit_name}s)"
+                )));
+            }
+            let bits: Vec<T> = raw.into_iter().map(T::from).collect();
+            Ok(intern(&bits))
+        })
+        .collect()
 }
 
 // handling for non control flow gates with conditionals, for backwards compatability
