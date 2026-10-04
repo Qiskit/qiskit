@@ -1263,6 +1263,8 @@ class QASM3Builder:
                 )
                 type_ = ast.IntType()
             elif isinstance(indexset, expr.Range):
+                # expr.Range already uses OpenQASM 3 inclusive-stop semantics, so export
+                # ``stop`` as-is (unlike Python ``range``, which needs ``stop - 1`` above).
                 indexset_ast = ast.Range(
                     start=self.build_expression(indexset.start),
                     end=self.build_expression(indexset.stop),

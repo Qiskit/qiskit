@@ -47,11 +47,17 @@ features_circuits:
     of integers, or an :class:`~qiskit.circuit.classical.expr.Range` in addition
     to the existing tuple/list forms.
 
+    **Inclusive-stop semantics.** Unlike Python's built-in :class:`range`,
+    :class:`~qiskit.circuit.classical.expr.Range` follows OpenQASM 3 and includes
+    both endpoints.  For example, ``Range(0, 5)`` iterates ``0, 1, 2, 3, 4, 5``
+    (matching OpenQASM 3 ``[0:1:5]``).  :meth:`~qiskit.circuit.classical.expr.Range.values`
+    converts that inclusive stop to a Python :class:`range` with exclusive stop
+    (``range(0, 6)``) so compile-time consumers see the same values.
+
     **Compile-time vs runtime bounds.** A :class:`~qiskit.circuit.classical.expr.Range`
     whose ``start``, ``stop``, and ``step`` are all constant (for example built
-    with :func:`~qiskit.circuit.classical.expr.lift`) behaves like a Python
-    :class:`range` at transpile time: :meth:`~qiskit.circuit.classical.expr.Range.values`
-    materializes it to a built-in :class:`range`, and
+    with :func:`~qiskit.circuit.classical.expr.lift`) can be materialized at
+    transpile time via :meth:`~qiskit.circuit.classical.expr.Range.values`, and
     :class:`~qiskit.transpiler.passes.UnrollForLoops` can unroll the loop and bind
     a compile-time :class:`~qiskit.circuit.Parameter` into the body via
     :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters`, as with historical
@@ -146,11 +152,12 @@ features_qasm:
     (https://openqasm.com/language/classical.html#for-loops).
     The :class:`~qiskit.qasm3.Exporter` exports constant and non-constant
     :class:`~qiskit.circuit.classical.expr.Range` indexsets as OpenQASM 3 range
-    expressions (with Python ``range``-like exclusive ``stop`` semantics for
-    :class:`~qiskit.circuit.classical.expr.Range`, distinct from the conversion
-    applied to built-in Python :class:`range` objects). When a for-loop uses a
-    real-time :class:`~qiskit.circuit.classical.expr.Var` loop index, the exporter
-    emits the corresponding typed loop variable in the OpenQASM 3 ``for`` header.
+    expressions with inclusive-stop semantics (``stop`` is written as-is).  Built-in
+    Python :class:`range` objects continue to be converted by subtracting one from
+    their exclusive ``stop`` so the exported OpenQASM 3 range matches the Python
+    iteration set.  When a for-loop uses a real-time
+    :class:`~qiskit.circuit.classical.expr.Var` loop index, the exporter emits the
+    corresponding typed loop variable in the OpenQASM 3 ``for`` header.
 
 upgrade_qasm:
   - |

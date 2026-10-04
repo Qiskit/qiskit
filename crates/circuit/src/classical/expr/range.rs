@@ -98,16 +98,23 @@ impl MaterializeError {
     }
 }
 
-/// Length of a Python ``range(start, stop, step)`` with the given bounds.
-fn python_range_len(start: isize, stop: isize, step: isize) -> usize {
-    let step_abs = step.unsigned_abs();
-    let diff = start.abs_diff(stop);
-    if (step > 0 && start < stop) || (step < 0 && start > stop) {
-        // `diff` is at least 1 when the direction check passes.
-        1 + (diff - 1) / step_abs
-    } else {
+/// Length of an OpenQASM 3 range ``[start:step:stop]`` (inclusive on both ends).
+///
+/// ``step`` must be positive; materialization rejects zero and unsigned bounds cannot
+/// produce a negative step.
+fn inclusive_range_len(start: isize, stop: isize, step: isize) -> usize {
+    debug_assert!(step > 0);
+    if start > stop {
         0
+    } else {
+        // Inclusive: start, start+step, ..., last ≤ stop.
+        1 + (stop - start) as usize / step as usize
     }
+}
+
+/// Convert inclusive OpenQASM 3 bounds to a Python exclusive ``range`` stop.
+fn inclusive_stop_to_python_exclusive(stop: isize) -> Result<isize, MaterializeError> {
+    stop.checked_add(1).ok_or(MaterializeError::Overflow)
 }
 
 /// Extract a constant unsigned integer from an expression, peeling implicit casts.
@@ -128,21 +135,22 @@ fn extract_const_uint(expr: &Expr) -> Result<isize, MaterializeError> {
 impl Range {
     /// Returns the length of the range.
     ///
-    /// For constant ranges, matches Python ``len(range(start, stop, step))``.  For
-    /// non-constant ranges the iteration count is unknown at compile time; returns ``1`` as a
-    /// conservative placeholder for ``ForCollection`` size/depth heuristics.
+    /// For constant ranges, matches OpenQASM 3 inclusive-stop semantics
+    /// (``len([start:step:stop])``).  For non-constant ranges the iteration count is unknown
+    /// at compile time; returns ``1`` as a conservative placeholder for ``ForCollection``
+    /// size/depth heuristics.
     pub fn len(&self) -> usize {
         if self.constant
             && let Ok((start, stop, step)) = self.try_materialize_bounds()
         {
-            return python_range_len(start, stop, step);
+            return inclusive_range_len(start, stop, step);
         }
         1
     }
 
     /// Returns whether the range is empty.
     ///
-    /// For constant ranges, matches Python ``range`` emptiness (``len() == 0``).  For
+    /// For constant ranges, matches OpenQASM 3 emptiness (``len() == 0``).  For
     /// non-constant ranges, returns ``false`` because emptiness cannot be determined statically.
     pub fn is_empty(&self) -> bool {
         if self.constant {
@@ -151,11 +159,11 @@ impl Range {
         false
     }
 
-    /// Materialize constant range bounds to integers (exclusive ``stop`` semantics).
+    /// Materialize constant range bounds to integers (inclusive ``stop`` semantics).
     ///
-    /// This is the language-agnostic counterpart of evaluating a constant range at
-    /// compile time.  Callers that need a Python ``range`` object should use
-    /// ``PyRangeExpr::values`` instead.
+    /// Returns the stored ``(start, stop, step)`` values as OpenQASM 3 would interpret them:
+    /// both ends are inclusive.  Callers that need a Python ``range`` object should use
+    /// ``PyRangeExpr::values``, which converts the inclusive stop to Python's exclusive stop.
     pub fn try_materialize_bounds(&self) -> Result<(isize, isize, isize), MaterializeError> {
         if !self.constant {
             return Err(MaterializeError::NonConstant);
@@ -216,11 +224,15 @@ fn determine_common_max_type(types: &[Type]) -> Type {
     max_type
 }
 
-/// A range expression.
+/// A range expression with OpenQASM 3 inclusive-stop semantics.
+///
+/// Unlike Python's built-in :class:`range`, both ``start`` and ``stop`` are inclusive.
+/// For example, ``Range(0, 5)`` iterates ``0, 1, 2, 3, 4, 5`` (matching OpenQASM 3
+/// ``[0:1:5]``), not Python ``range(0, 5)``.
 ///
 /// Args:
-///     start: The start value of the range.
-///     stop: The stop value of the range.
+///     start: The inclusive start value of the range.
+///     stop: The inclusive stop value of the range.
 ///     step: Optional step value for the range. Defaults to 1.
 ///     type: The resolved type of the result.
 #[pyclass(
@@ -395,13 +407,19 @@ impl PyRangeExpr {
         self.0.is_empty()
     }
 
-    /// Return a Python :class:`range` with the same bounds (constant ranges only).
+    /// Return a Python :class:`range` that yields the same values (constant ranges only).
+    ///
+    /// :class:`Range` uses OpenQASM 3 inclusive-stop semantics, so the returned Python
+    /// :class:`range` uses an exclusive stop of ``stop + 1``.  For example,
+    /// ``Range(0, 5).values()`` returns ``range(0, 6)``.
     fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let (start, stop, step) = self
             .0
             .try_materialize_bounds()
             .map_err(MaterializeError::into_pyerr)?;
-        Ok(PyRange::new_with_step(py, start, stop, step)?.into_any())
+        let py_stop =
+            inclusive_stop_to_python_exclusive(stop).map_err(MaterializeError::into_pyerr)?;
+        Ok(PyRange::new_with_step(py, start, py_stop, step)?.into_any())
     }
 
     fn accept<'py>(
@@ -587,7 +605,7 @@ mod tests {
     }
 
     #[test]
-    fn test_len_constant_matches_python_range() {
+    fn test_len_constant_matches_inclusive_openqasm_range() {
         let ty = Type::Uint(8);
         let make = |start: u64, stop: u64, step: u64| Range {
             start: Value::Uint {
@@ -608,11 +626,30 @@ mod tests {
             ty,
             constant: true,
         };
-        assert_eq!(make(0, 5, 1).len(), 5);
+        // Inclusive: [0:1:5] → 0..=5
+        assert_eq!(make(0, 5, 1).len(), 6);
         assert!(!make(0, 5, 1).is_empty());
-        assert_eq!(make(0, 10, 2).len(), 5);
-        assert_eq!(make(5, 5, 1).len(), 0);
-        assert!(make(5, 5, 1).is_empty());
+        // Inclusive: [0:2:10] → 0,2,4,6,8,10
+        assert_eq!(make(0, 10, 2).len(), 6);
+        // Inclusive singleton: [5:1:5] → [5]
+        assert_eq!(make(5, 5, 1).len(), 1);
+        assert!(!make(5, 5, 1).is_empty());
+        // Empty when start > stop with positive step
+        assert_eq!(make(6, 5, 1).len(), 0);
+        assert!(make(6, 5, 1).is_empty());
+        // Stop not on the step grid is still included as upper bound for membership,
+        // but length counts only values ≤ stop that are reachable from start.
+        assert_eq!(make(0, 9, 2).len(), 5); // 0,2,4,6,8
+    }
+
+    #[test]
+    fn test_inclusive_stop_to_python_exclusive() {
+        assert_eq!(inclusive_stop_to_python_exclusive(5).unwrap(), 6);
+        assert_eq!(inclusive_stop_to_python_exclusive(0).unwrap(), 1);
+        assert_eq!(
+            inclusive_stop_to_python_exclusive(isize::MAX),
+            Err(MaterializeError::Overflow)
+        );
     }
 
     #[test]

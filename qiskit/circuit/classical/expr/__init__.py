@@ -80,6 +80,8 @@ be used as an lvalue for :class:`.Store`, etc) if the target is also an lvalue.
 
 Loop bounds for :class:`.ForLoopOp` can be specified as expression trees using :class:`Range`,
 with ``start``, ``stop``, and ``step`` each represented as :class:`Expr` nodes.
+Unlike Python's built-in :class:`range`, both endpoints are inclusive, matching
+OpenQASM 3 range semantics.
 
 .. autoclass:: Range
     :members: values

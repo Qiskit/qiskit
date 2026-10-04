@@ -187,7 +187,7 @@ class TestUnrollForLoops(QiskitTestCase):
         self.assertEqual(result, circuit)
 
     def test_unroll_constant_expr_range(self):
-        """Constant expr.Range unrolls like a Python range (reviewer use case)."""
+        """Constant expr.Range unrolls with OpenQASM 3 inclusive-stop semantics."""
         range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
         circuit = QuantumCircuit(1, 1)
         with circuit.for_loop(range_expr):
@@ -195,7 +195,8 @@ class TestUnrollForLoops(QiskitTestCase):
             circuit.measure(0, 0)
 
         expected = QuantumCircuit(1, 1)
-        for _ in range(5):
+        # Inclusive [0:1:5] → six iterations (0..5).
+        for _ in range(0, 6):
             expected.h(0)
             expected.measure(0, 0)
 
@@ -289,13 +290,15 @@ class TestUnrollForLoops(QiskitTestCase):
         result = passmanager.run(circuit)
 
         if_ops = [inst for inst in result.data if inst.operation.name == "if_else"]
-        self.assertEqual(len(if_ops), 3)
+        # Inclusive Range(0, 3) → iterations 0,1,2,3.
+        self.assertEqual(len(if_ops), 4)
         self.assertEqual(
             [inst.operation.condition for inst in if_ops],
             [
                 expr.equal(expr.lift(0, types.Uint(8)), expr.lift(1, types.Uint(8))),
                 expr.equal(expr.lift(1, types.Uint(8)), expr.lift(1, types.Uint(8))),
                 expr.equal(expr.lift(2, types.Uint(8)), expr.lift(1, types.Uint(8))),
+                expr.equal(expr.lift(3, types.Uint(8)), expr.lift(1, types.Uint(8))),
             ],
         )
 
@@ -351,7 +354,7 @@ class TestUnrollForLoops(QiskitTestCase):
             circuit.store(expr.index(cr, i), expr.lift(True))
 
         passmanager = PassManager()
-        # Body has quantum depth 1, range has 5 values: 5*1 > max_target_depth=2 → skip unroll.
+        # Body has quantum depth 1, inclusive range has 6 values: 6*1 > max_target_depth=2 → skip.
         passmanager.append(UnrollForLoops(max_target_depth=2))
         result = passmanager.run(circuit)
         self.assertEqual(result, circuit)
