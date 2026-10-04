@@ -196,7 +196,7 @@ class TestUnrollForLoops(QiskitTestCase):
 
         expected = QuantumCircuit(1, 1)
         # Inclusive [0:1:5] → six iterations (0..5).
-        for _ in range(0, 6):
+        for _ in range(6):
             expected.h(0)
             expected.measure(0, 0)
 

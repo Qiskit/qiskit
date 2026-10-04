@@ -76,8 +76,8 @@ class TestRange(QiskitTestCase):
     def test_len_constant_matches_inclusive_openqasm_range(self):
         """Constant Range len() matches OpenQASM 3 inclusive-stop semantics."""
         range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
-        # Inclusive [0:1:5] → 0..5 inclusive (Python exclusive equivalent: range(0, 6)).
-        self.assertEqual(len(range_expr), len(range(0, 6)))
+        # Inclusive [0:1:5] → 0..5 inclusive (Python exclusive equivalent: range(6)).
+        self.assertEqual(len(range_expr), len(range(6)))
         self.assertEqual(len(range_expr), 6)
 
         range_expr = expr.Range(
@@ -102,7 +102,7 @@ class TestRange(QiskitTestCase):
     def test_values_constant(self):
         """Constant Range materializes to a Python range with inclusive stop converted."""
         range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
-        self.assertEqual(range_expr.values(), range(0, 6))
+        self.assertEqual(range_expr.values(), range(6))
         self.assertEqual(list(range_expr.values()), [0, 1, 2, 3, 4, 5])
 
     def test_values_constant_with_step(self):
