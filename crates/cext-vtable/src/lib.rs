@@ -596,6 +596,9 @@ mod classical_expr {
             export_fn!(qk_value_new_uint),
             export_fn!(qk_value_new_biguint),
             export_fn!(qk_value_free),
+            export_fn!(qk_var_kind),
+            export_fn!(qk_var_clbit),
+            export_fn!(qk_var_register),
         ]
     });
 }
