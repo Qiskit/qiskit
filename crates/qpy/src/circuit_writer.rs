@@ -55,8 +55,8 @@ use crate::params::{
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
     STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name, py_convert_to_generic_value,
-    py_pack_modifier, py_pack_param, py_pack_pauli_evolution_gate, recognize_custom_operation,
-    serialize_metadata,
+    py_pack_modifier, py_pack_param, py_pack_pauli_evolution_gate,
+    py_pack_pauli_evolution_operation, recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
@@ -238,6 +238,7 @@ fn pack_instructions_19(
     for instruction in &instructions {
         let qargs = instruction.qubits.index();
         let cargs = instruction.clbits.index();
+        let instruction_type = get_circuit_type_key(&instruction.op, qpy_data.caller)?;
 
         // Reuse the existing operation-specific extraction for now.  Besides avoiding two subtly
         // different definitions of labels and annotations, this also populates the parameter-vector
@@ -248,6 +249,11 @@ fn pack_instructions_19(
             &mut new_custom_operations,
             qpy_data,
         )?;
+        if instruction_type == CircuitInstructionType::PauliEvolutionGate {
+            custom_operations.remove(&legacy.gate_class_name);
+        }
+        let label = legacy.label;
+        let annotations = legacy.annotations;
 
         let (operation, operation_data) = match instruction.op.view() {
             OperationRef::StandardGate(gate) => (
@@ -264,6 +270,19 @@ fn pack_instructions_19(
                     matrix: pack_array_type(&gate.array)?,
                 }),
             ),
+            OperationRef::PyCustom(custom)
+                if instruction_type == CircuitInstructionType::PauliEvolutionGate =>
+            {
+                let data = qpy_data
+                    .caller
+                    .attach("pack Pauli evolution operation", |py| {
+                        py_pack_pauli_evolution_operation(custom.ob.bind(py), qpy_data)
+                    })?;
+                (
+                    formats::CircuitOperationType::PauliEvolution,
+                    formats::OperationData::PauliEvolution(data),
+                )
+            }
             OperationRef::ControlFlow(_) => (
                 formats::CircuitOperationType::ControlFlow,
                 formats::OperationData::ControlFlow(formats::ControlFlowPack {}),
@@ -289,16 +308,14 @@ fn pack_instructions_19(
             .iter()
             .map(|param| pack_param_v19(param, qpy_data))
             .collect::<Result<_, _>>()?;
-        let label = (!legacy.label.is_empty()).then_some(StringU16Pack {
-            value: legacy.label,
-        });
+        let label = (!label.is_empty()).then_some(StringU16Pack { value: label });
         packed_instructions.push(formats::CircuitInstructionV19Pack {
             operation,
             qargs,
             cargs,
             operation_data,
             params,
-            annotations: legacy.annotations,
+            annotations,
             label,
         });
     }

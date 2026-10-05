@@ -30,6 +30,7 @@ use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
@@ -63,8 +64,8 @@ use crate::params::{
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
     STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, deserialize_pauli_evolution_gate,
-    py_convert_from_generic_value, py_unpack_modifier, unpack_custom_instruction,
-    unpack_py_instruction,
+    deserialize_pauli_evolution_operation, py_convert_from_generic_value, py_unpack_modifier,
+    unpack_custom_instruction, unpack_py_instruction,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
@@ -1613,7 +1614,6 @@ fn unpack_instruction_v19(
         .iter()
         .map(|param| unpack_param_data_v19(param, qpy_data))
         .collect::<Result<Vec<_>, _>>()?;
-    let params = instruction_values_to_params(parameter_values, qpy_data)?;
     if instruction.annotations.is_some() {
         return Err(QpyError::DeserializationError(
             "QPY 19 instruction annotations are not implemented yet".to_string(),
@@ -1653,6 +1653,31 @@ fn unpack_instruction_v19(
             let array = unpack_array_type(data.matrix.clone())?;
             PackedOperation::from_unitary(Box::new(UnitaryGate { array }))
         }
+        formats::OperationData::PauliEvolution(data) => {
+            let [time] = parameter_values.as_slice() else {
+                return Err(QpyError::InvalidParameter(format!(
+                    "Pauli evolution gate requires exactly one time parameter, got {}",
+                    parameter_values.len()
+                )));
+            };
+            qpy_data
+                .caller
+                .attach("unpack Pauli evolution operation", |py| {
+                    let operation = deserialize_pauli_evolution_operation(
+                        py,
+                        &data.pauli_data,
+                        data.standalone_op,
+                        &data.synth_data,
+                        time.clone(),
+                        qpy_data,
+                    )?;
+                    Ok::<_, QpyError>(
+                        operation
+                            .extract::<OperationFromPython<CircuitData>>(py)?
+                            .operation,
+                    )
+                })?
+        }
         _ => {
             return Err(QpyError::DeserializationError(format!(
                 "QPY 19 {:?} operation decoding is not implemented yet",
@@ -1660,6 +1685,7 @@ fn unpack_instruction_v19(
             )));
         }
     };
+    let params = instruction_values_to_params(parameter_values, qpy_data)?;
     Ok(PackedInstruction {
         op,
         qubits,

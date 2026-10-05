@@ -250,7 +250,8 @@ pub struct CircuitInstructionV19Pack {
     // Interner index
     pub cargs: u32,
 
-    #[br(args(operation))]
+    #[br(args(operation, version))]
+    #[bw(args(version))]
     pub operation_data: OperationData,
 
     // Get param size from OperationData during decoding (it's either static from rust definition
@@ -300,12 +301,14 @@ pub enum CircuitOperationType {
     UnitaryGate = 4,
     Controlled = 5,
     ControlFlow = 6,
+    PauliEvolution = 7,
 }
 
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import(op_type: CircuitOperationType))]
+#[br(import(op_type: CircuitOperationType, version: u8))]
+#[bw(import(version: u8))]
 pub enum OperationData {
     // The value of the gate from qiskit_circuit::standard_gate::StandardGate
     #[br(pre_assert(op_type == CircuitOperationType::StandardGate))]
@@ -328,6 +331,9 @@ pub enum OperationData {
     // Store the circuit bodies and the condition explicitly in the pack
     #[br(pre_assert(op_type == CircuitOperationType::ControlFlow))]
     ControlFlow(ControlFlowPack),
+    // Store Pauli operators and synthesis settings directly; evolution time remains a parameter.
+    #[br(pre_assert(op_type == CircuitOperationType::PauliEvolution))]
+    PauliEvolution(#[brw(args(version))] PauliEvolutionGatePack),
 }
 
 #[binrw]
@@ -960,6 +966,25 @@ pub struct PauliEvolutionDefPack {
     pub pauli_data: Vec<PauliDataPack>,
     #[br(count = time_size)]
     pub time_data: Bytes,
+    #[br(count = synth_method_size)]
+    pub synth_data: Bytes,
+}
+
+/// QPY 19 operation payload for a Pauli-evolution gate.  Unlike the legacy custom-operation
+/// definition, the evolution time is stored in the instruction's ordinary parameter list.
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u8))]
+pub struct PauliEvolutionGatePack {
+    #[bw(calc = pauli_data.len() as u64)]
+    pub operator_size: u64,
+    pub standalone_op: u8,
+    #[bw(calc = synth_data.len() as u64)]
+    pub synth_method_size: u64,
+    #[br(count = operator_size, args { inner: (version,) })]
+    #[bw(args(version))]
+    pub pauli_data: Vec<PauliDataPack>,
     #[br(count = synth_method_size)]
     pub synth_data: Bytes,
 }
