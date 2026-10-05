@@ -99,10 +99,7 @@ jobs:
           python -m pip check
         if: ${{ inputs.install-optionals }}
       - name: Install optional non-Python dependencies
-        run: |
-          set -e
-          sudo apt-get update
-          sudo apt-get install -y graphviz
+        run: sudo tools/install_ubuntu_graphviz.sh
         if: ${{ inputs.install-optionals }}
       - name: Run Python tests
         if: ${{ !inputs.install-from-sdist }}
