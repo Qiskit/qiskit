@@ -684,6 +684,65 @@ class TestRemoveConsecutiveDiagonalGatesBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_optimize_qubit_reused_after_measure(self):
+        """Remove diagonal gates before a measure even if the qubit is used afterwards
+        qr0:-RZ--m--H--T--m--       qr0:--m--H--m--
+                 |        |               |     |
+        cr0:-----.--------.--  ==>  cr0:--.-----.--
+        """
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.rz(0.1, qr[0])
+        circuit.measure(qr[0], cr[0])
+        circuit.h(qr[0])
+        circuit.t(qr[0])
+        circuit.measure(qr[0], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr[0])
+        expected.h(qr[0])
+        expected.measure(qr[0], cr[0])
+
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_optimize_1cz_2measure_qubits_reused_after_measure(self):
+        """Remove a CZGate before measures even if both qubits are used afterwards
+        qr0:--Z--m-----H--.--m---       qr0:--m-----H--.--m---
+              |  |        |  |                |        |  |
+        qr1:--.--|-m-----(+)-|-m-  ==>  qr1:--|-m-----(+)-|-m-
+                 | |         | |              | |         | |
+        cr0:-----.-.---------.-.-       cr0:--.-.---------.-.-
+        """
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cz(qr[0], qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[0])
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[0])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[0])
+        expected.h(qr[0])
+        expected.cx(qr[0], qr[1])
+        expected.measure(qr[0], cr[0])
+        expected.measure(qr[1], cr[0])
+
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
 
 class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
     """Test situations where remove_diagonal_gates_before_measure should not optimize"""
