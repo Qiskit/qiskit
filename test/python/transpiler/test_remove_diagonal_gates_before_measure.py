@@ -22,7 +22,7 @@ from qiskit.converters import circuit_to_dag
 from test import QiskitTestCase
 
 
-class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
+class TestRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
     """Test remove_diagonal_gates_before_measure optimizations."""
 
     def test_optimize_1rz_1measure(self):
@@ -291,7 +291,7 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(pass_(test), expected)
 
 
-class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
+class TestRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
     """Test remove diagonal control gates before measure."""
 
     def test_optimize_1cz_2measure(self):
