@@ -18,6 +18,7 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info import state_fidelity
+from qiskit.quantum_info import StabilizerState
 from qiskit.quantum_info import purity
 from qiskit.quantum_info import entropy
 from qiskit.quantum_info import concurrence
@@ -26,6 +27,7 @@ from qiskit.quantum_info import mutual_information
 from qiskit.quantum_info.states import shannon_entropy
 from qiskit.quantum_info import negativity
 from test import QiskitTestCase
+from qiskit import QuantumCircuit
 
 
 class TestStateMeasures(QiskitTestCase):
@@ -51,6 +53,68 @@ class TestStateMeasures(QiskitTestCase):
         self.assertRaises(QiskitError, state_fidelity, psi1, psi2)
         self.assertRaises(QiskitError, state_fidelity, psi1, psi2, validate=True)
         self.assertEqual(state_fidelity(psi1, psi2, validate=False), 1)
+
+    def test_state_fidelity_stabilizer_state(self):
+        """Test state_fidelity function for stabilizer state inputs."""
+        state0 = StabilizerState(QuantumCircuit(1))
+
+        qc_plus = QuantumCircuit(1)
+        qc_plus.h(0)
+        state_plus = StabilizerState(qc_plus)
+
+        qc_one = QuantumCircuit(1)
+        qc_one.x(0)
+        state_one = StabilizerState(qc_one)
+
+        self.assertAlmostEqual(state_fidelity(state0, state0), 1.0, places=7)
+        self.assertAlmostEqual(state_fidelity(state0, state_plus), 0.5, places=7)
+        self.assertAlmostEqual(state_fidelity(state0, state_one), 0.0, places=7)
+
+    def test_state_fidelity_stabilizer_statevector(self):
+        """Test state_fidelity for mixed StabilizerState and Statevector inputs."""
+        qc_zero = QuantumCircuit(1)
+        state_zero = StabilizerState(qc_zero)
+
+        qc_plus = QuantumCircuit(1)
+        qc_plus.h(0)
+        state_plus = StabilizerState(qc_plus)
+        statevector_plus = Statevector.from_instruction(qc_plus)
+
+        self.assertAlmostEqual(
+            state_fidelity(state_plus, statevector_plus), 1.0, places=7
+        )
+        self.assertAlmostEqual(
+            state_fidelity(statevector_plus, state_plus), 1.0, places=7
+        )
+        self.assertAlmostEqual(
+            state_fidelity(state_zero, statevector_plus), 0.5, places=7
+        )
+        self.assertAlmostEqual(
+            state_fidelity(statevector_plus, state_zero), 0.5, places=7
+        )
+
+    def test_state_fidelity_stabilizer_density_matrix(self):
+        """Test state_fidelity for mixed StabilizerState and DensityMatrix inputs."""
+        qc_zero = QuantumCircuit(1)
+        state_zero = StabilizerState(qc_zero)
+
+        qc_plus = QuantumCircuit(1)
+        qc_plus.h(0)
+        state_plus = StabilizerState(qc_plus)
+        density_matrix_plus = DensityMatrix(qc_plus)
+
+        self.assertAlmostEqual(
+            state_fidelity(state_plus, density_matrix_plus), 1.0, places=7
+        )
+        self.assertAlmostEqual(
+            state_fidelity(density_matrix_plus, state_plus), 1.0, places=7
+        )
+        self.assertAlmostEqual(
+            state_fidelity(state_zero, density_matrix_plus), 0.5, places=7
+        )
+        self.assertAlmostEqual(
+            state_fidelity(density_matrix_plus, state_zero), 0.5, places=7
+        )
 
     def test_state_fidelity_density_matrix(self):
         """Test state_fidelity function for density matrix inputs"""
