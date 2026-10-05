@@ -1175,14 +1175,91 @@ static int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
 
-    QkExitCode delay_s_code;
-
-    delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
+    QkExitCode delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
     if (delay_s_code != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
 
+    QkDelayUnit unit_s = qk_circuit_delay_unit(qc, 0);
+    if (unit_s != QkDelayUnit_S) {
+        result = EqualityError;
+        printf("Expected 's' (0) delay unit, found (%d).\n", unit_s);
+        goto cleanup;
+    }
+
+    QkCircuitInstruction instr;
+    qk_circuit_get_instruction(qc, 0, &instr);
+    double s_delay_val = qk_param_as_real(instr.params[0]);
+
+    if (s_delay_val != 0.001) {
+        result = EqualityError;
+        printf("Expected 's' (0.001) delay value, found (%f).\n", s_delay_val);
+        goto instr_cleanup;
+    }
+
+    // Try negative duration
+    QkExitCode delay_dt_bad_code = qk_circuit_delay_dt(qc, 1, -145);
+    if (delay_dt_bad_code != QkExitCode_CInputError) {
+        printf("Unexpected exit code with negative dt duration (-145), (%u).\n", delay_dt_bad_code);
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
+    QkExitCode delay_dt_code = qk_circuit_delay_dt(qc, 1, 145);
+    if (delay_dt_code != QkExitCode_Success) {
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
+    QkDelayUnit unit_dt = qk_circuit_delay_unit(qc, 1);
+    if (unit_dt != QkDelayUnit_DT) {
+        result = EqualityError;
+        printf("Expected 'dt' (5) delay unit, found (%d).\n", unit_dt);
+        goto instr_cleanup;
+    }
+
+    qk_circuit_instruction_clear(&instr);
+    qk_circuit_get_instruction(qc, 1, &instr);
+
+    QkParamKind param_kind = qk_param_kind(instr.params[0]);
+    if (param_kind != QkParamKind_Int) {
+        result = EqualityError;
+        printf("Expected 'Int' typed param %u found (%u).\n", QkParamKind_Int, param_kind);
+        goto instr_cleanup;
+    }
+    int64_t dt_delay_val = -1;
+
+    if (!qk_param_as_int(instr.params[0], &dt_delay_val)) {
+        result = EqualityError;
+        printf("Incorrect non-integer value found for 'dt' unit duration.\n");
+        goto instr_cleanup;
+    }
+    if (dt_delay_val != 145) {
+        result = EqualityError;
+        printf("Expected 'dt' (145) delay value, found %" PRIi64 ".\n", dt_delay_val);
+        goto instr_cleanup;
+    }
+
+    // Test with a non-delay instruction
+    const uint32_t h_qubits[1] = {0};
+    QkExitCode circuit_h_code = qk_circuit_gate(qc, QkGate_H, h_qubits, NULL);
+    if (circuit_h_code != QkExitCode_Success) {
+        printf("Unexpected exit code while adding 'QkGate_H' to a circuit");
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
+    QkDelayUnit unit_unknown = qk_circuit_delay_unit(qc, 2);
+    if (unit_unknown != QkDelayUnit_Unknown) {
+        result = EqualityError;
+        printf("Expected 'unknown' (7) delay unit, for non delay gate, got '%d' instead",
+               unit_unknown);
+        goto instr_cleanup;
+    }
+
+instr_cleanup:
+    qk_circuit_instruction_clear(&instr);
 cleanup:
     qk_circuit_free(qc);
     return result;
@@ -1224,6 +1301,7 @@ static int test_circuit_draw(void) {
     char *circ_str = qk_circuit_draw(circuit, &config);
 
     qk_str_free(circ_str);
+    qk_param_free(angle);
     qk_circuit_free(circuit);
 
     return Ok;
@@ -1565,6 +1643,7 @@ cleanup_out_meas:
 cleanup_out_rot:
     qk_pauli_product_rotation_clear(&out_rot);
 cleanup:
+    qk_param_free(angle);
     qk_circuit_free(circuit);
     return result;
 }
