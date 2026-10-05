@@ -25,6 +25,7 @@ use num_complex::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyList};
+use qiskit_circuit::annotation::Annotation;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -170,9 +171,9 @@ pub fn unpack_condition(
 fn recognize_instruction_type(
     instruction: &formats::CircuitInstructionV2Pack,
     custom_instructions: &HashMap<String, CustomCircuitInstructionData>,
-) -> InstructionType {
+) -> Result<InstructionType, QpyError> {
     let name = instruction.gate_class_name.as_str();
-    if name == PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME {
+    Ok(if name == PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME {
         InstructionType::PauliProductMeasurement
     } else if name == PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME {
         InstructionType::PauliProductRotation
@@ -203,8 +204,17 @@ fn recognize_instruction_type(
     } else {
         // This can either be a standard gate, or something Pythonic.
         // For standard gate, we need both the gate class name to be standard, and the controls should be standard as well
-        let has_nonstandard_control = instruction.num_ctrl_qubits > 0
-            && (instruction.ctrl_state != (1 << instruction.num_ctrl_qubits) - 1);
+        let has_nonstandard_control = if instruction.num_ctrl_qubits > 0 {
+            if instruction.num_ctrl_qubits >= 32 {
+                return Err(QpyError::InvalidInstruction(format!(
+                    "Instruction has {} but at most 31 are supported",
+                    instruction.num_ctrl_qubits
+                )));
+            }
+            instruction.ctrl_state != (1 << instruction.num_ctrl_qubits) - 1
+        } else {
+            false
+        };
         let standard_gate_name =
             standard_gate_from_gate_class_name(instruction.gate_class_name.as_str()).is_some();
         if !has_nonstandard_control && standard_gate_name {
@@ -213,7 +223,7 @@ fn recognize_instruction_type(
             // it is either a python gate, a python instruction or a python operation; all treated in the same manner
             InstructionType::Python
         }
-    }
+    })
 }
 
 type InstructionBits = (Interned<[Qubit]>, Interned<[Clbit]>);
@@ -307,6 +317,7 @@ pub fn instruction_values_to_params(
             .map(|value| -> Result<_, QpyError> {
                 match value {
                     GenericValue::Float64(float) => Ok(Param::Float(float)),
+                    GenericValue::Int64(i64) => Ok(Param::Int(i64)),
                     GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp)),
                     GenericValue::ParameterExpressionSymbol(symbol)
                     | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
@@ -334,7 +345,7 @@ pub fn instruction_values_to_params(
 fn unpack_annotations(
     packed_annotations: &Option<formats::InstructionsAnnotationPack>,
     qpy_data: &mut QPYReadData,
-) -> Result<Vec<Py<PyAny>>, QpyError> {
+) -> Result<Vec<Arc<dyn Annotation>>, QpyError> {
     if let Some(annotations_vec) = packed_annotations {
         annotations_vec
             .annotations
@@ -357,7 +368,7 @@ pub fn unpack_instruction(
     qpy_data: &mut QPYReadData,
 ) -> Result<PackedInstruction, QpyError> {
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
-    let instruction_type = recognize_instruction_type(instruction, custom_instructions);
+    let instruction_type = recognize_instruction_type(instruction, custom_instructions)?;
     let (op, parameter_values) = match instruction_type {
         InstructionType::StandardGate => unpack_standard_gate(instruction, qpy_data)?,
         InstructionType::StandardInstruction => unpack_standard_instruction(instruction, qpy_data)?,
@@ -370,19 +381,18 @@ pub fn unpack_instruction(
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
         InstructionType::Store => unpack_store(instruction, qpy_data)?,
-        InstructionType::Custom => {
-            QpyCaller::Python.attach("Python custom instruction unpacking", |py| {
-                unpack_custom_instruction(
-                    py,
-                    instruction,
-                    label.as_deref(),
-                    qpy_data,
-                    custom_instructions,
-                )
-            })?
-        }
-        InstructionType::Python => QpyCaller::Python
-            .attach("Python instruction unpacking", |py| {
+        InstructionType::Custom => qpy_data.caller.attach("Custom instructions", |py| {
+            unpack_custom_instruction(
+                py,
+                instruction,
+                label.as_deref(),
+                qpy_data,
+                custom_instructions,
+            )
+        })?,
+        InstructionType::Python => qpy_data
+            .caller
+            .attach("Python defined instructions", |py| {
                 unpack_py_instruction(py, instruction, label.as_deref(), qpy_data)
             })?,
     };
@@ -484,7 +494,7 @@ fn unpack_pauli_product_measurement(
         ));
     }
     let z_values = unpack_generic_value(&instruction.params[0], qpy_data, ValueEndian::Big)?;
-    let z: Vec<bool> = z_values.to_boolean_vec().ok_or_else(|| {
+    let z: Vec<bool> = z_values.to_boolean_vec()?.ok_or_else(|| {
         QpyError::InvalidParameter(format!(
             "Pauli product measurement z parameter should be a boolean or integer vector, but got {:?}",
             z_values
@@ -492,7 +502,7 @@ fn unpack_pauli_product_measurement(
     })?;
 
     let x_values = unpack_generic_value(&instruction.params[1], qpy_data, ValueEndian::Big)?;
-    let x: Vec<bool> = x_values.to_boolean_vec().ok_or_else(|| {
+    let x: Vec<bool> = x_values.to_boolean_vec()?.ok_or_else(|| {
         QpyError::InvalidParameter(format!(
             "Pauli product measurement x parameter should be a boolean or integer vector, but got {:?}",
             x_values
@@ -511,7 +521,7 @@ fn unpack_pauli_product_measurement(
             })?;
             value != 0
         }
-        _ => neg_value.as_typed::<bool>().ok_or_else(|| {
+        _ => neg_value.as_typed::<bool>()?.ok_or_else(|| {
                 QpyError::InvalidParameter(format!(
                     "Pauli product measurement neg parameter should be a boolean or integer, but got {:?}",
                     neg_value
@@ -535,13 +545,13 @@ fn unpack_pauli_product_rotation(
         ));
     }
     let z_values = unpack_generic_value(&instruction.params[0], qpy_data, ValueEndian::Big)?;
-    let z = z_values.to_boolean_vec().ok_or_else(|| {
+    let z = z_values.to_boolean_vec()?.ok_or_else(|| {
         QpyError::InvalidParameter(
             "Pauli product rotation z parameter should be a boolean vector".to_string(),
         )
     })?;
     let x_values = unpack_generic_value(&instruction.params[1], qpy_data, ValueEndian::Big)?;
-    let x = x_values.to_boolean_vec().ok_or_else(|| {
+    let x = x_values.to_boolean_vec()?.ok_or_else(|| {
         QpyError::InvalidParameter(
             "Pauli product rotation x parameter should be a boolean vector".to_string(),
         )
@@ -551,7 +561,7 @@ fn unpack_pauli_product_rotation(
         qpy_data,
         ValueEndian::LittleForV17AndBelow,
     )?;
-    let angle = generic_value_to_param(&angle_value)?;
+    let angle = generic_value_to_param(&angle_value, qpy_data)?;
     let rotation = PauliProductRotation { z, x, angle };
     let pbc = Box::new(PauliBased::PauliProductRotation(rotation));
     let op = PackedOperation::from_pauli_based(pbc);
@@ -857,10 +867,17 @@ fn unpack_transpile_layout<'py>(
                 &packed_register.register_type,
             ),
         };
-        if *register_type == RegisterType::Qreg {
-            let register = QuantumRegister::new_owning(name.clone(), bit_indices_len as u32);
-            extra_register_map.insert(name.as_str(), register);
-        }
+        match register_type {
+            RegisterType::Qreg => extra_register_map.insert(
+                name.as_str(),
+                QuantumRegister::new_owning(name.clone(), bit_indices_len as u32),
+            ),
+            RegisterType::Areg => extra_register_map.insert(
+                name.as_str(),
+                QuantumRegister::new_ancilla_owning(name.clone(), bit_indices_len as u32),
+            ),
+            _ => None,
+        };
     }
     // add the registers from the circuit, to streamline the search phase
     for qreg in circuit_data.qregs() {
@@ -1061,14 +1078,36 @@ fn add_standalone_vars(
     Ok(())
 }
 
+fn get_bit<'a, T>(bits: &'a [T], index: usize, err_name: &str) -> Result<&'a T, QpyError> {
+    bits.get(index)
+        .ok_or(QpyError::InvalidBit(format!("{err_name}: {index}")))
+}
+
+fn get_bit_mut<'a, T>(
+    bits: &'a mut [T],
+    index: usize,
+    err_name: &str,
+) -> Result<&'a mut T, QpyError> {
+    bits.get_mut(index)
+        .ok_or(QpyError::InvalidBit(format!("{err_name}: {index}")))
+}
+
 fn add_registers_and_bits(
     packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> Result<(), QpyError> {
     let num_qubits = packed_circuit.header.num_qubits as usize;
     let num_clbits = packed_circuit.header.num_clbits as usize;
-    let mut qubits: Vec<Option<ShareableQubit>> = vec![None; num_qubits];
-    let mut clbits: Vec<Option<ShareableClbit>> = vec![None; num_clbits];
+    let mut qubits: Vec<Option<ShareableQubit>> = Vec::new();
+    qubits
+        .try_reserve_exact(num_qubits)
+        .map_err(QpyError::AllocationError)?;
+    qubits.extend((0..num_qubits).map(|_| None));
+    let mut clbits: Vec<Option<ShareableClbit>> = Vec::new();
+    clbits
+        .try_reserve_exact(num_clbits)
+        .map_err(QpyError::AllocationError)?;
+    clbits.extend((0..num_clbits).map(|_| None));
     let mut qregs = Vec::new();
     let mut cregs = Vec::new();
 
@@ -1081,17 +1120,26 @@ fn add_registers_and_bits(
                     non_standalone_registers.push(raw_register);
                 } else {
                     match packed_register.register_type {
-                        RegisterType::Qreg => {
-                            let qreg = QuantumRegister::new_owning(
-                                &packed_register.name,
-                                packed_register.bit_indices.len() as u32,
-                            );
+                        RegisterType::Qreg | RegisterType::Areg => {
+                            let qreg = match packed_register.register_type {
+                                RegisterType::Qreg => QuantumRegister::new_owning(
+                                    &packed_register.name,
+                                    packed_register.bit_indices.len() as u32,
+                                ),
+                                RegisterType::Areg => QuantumRegister::new_ancilla_owning(
+                                    packed_register.name.clone(),
+                                    packed_register.bit_indices.len() as u32,
+                                ),
+                                _ => unreachable!(),
+                            };
                             for (qubit, &index) in
                                 qreg.bits().zip(packed_register.bit_indices.iter())
                             {
                                 if index >= 0 {
                                     // index can be -1, indicating this bit is not in the circuit
-                                    qubits[index as usize] = Some(qubit);
+                                    let circuit_qubit =
+                                        get_bit_mut(&mut qubits, index as usize, "Qubit")?;
+                                    *circuit_qubit = Some(qubit);
                                 }
                             }
                             if packed_register.in_circuit != 0 {
@@ -1108,7 +1156,9 @@ fn add_registers_and_bits(
                             {
                                 if index >= 0 {
                                     // index can be -1, indicating this bit is not in the circuit
-                                    clbits[index as usize] = Some(clbit);
+                                    let circuit_clbit =
+                                        get_bit_mut(&mut clbits, index as usize, "Clbit")?;
+                                    *circuit_clbit = Some(clbit);
                                 }
                             }
                             if packed_register.in_circuit != 0 {
@@ -1123,16 +1173,25 @@ fn add_registers_and_bits(
                     non_standalone_registers.push(raw_register);
                 } else {
                     match packed_register.register_type {
-                        RegisterType::Qreg => {
-                            let qreg = QuantumRegister::new_owning(
-                                &packed_register.name,
-                                packed_register.size,
-                            );
+                        RegisterType::Qreg | RegisterType::Areg => {
+                            let qreg = match packed_register.register_type {
+                                RegisterType::Qreg => QuantumRegister::new_owning(
+                                    &packed_register.name,
+                                    packed_register.size,
+                                ),
+                                RegisterType::Areg => QuantumRegister::new_ancilla_owning(
+                                    packed_register.name.clone(),
+                                    packed_register.size,
+                                ),
+                                _ => unreachable!(),
+                            };
+
                             if packed_register.register_attachment == 1 {
                                 let start = packed_register.start_index;
                                 for i in 0..packed_register.size {
                                     let index = start + i;
-                                    qubits[index as usize] = qreg.get(i as usize);
+                                    let qubit = get_bit_mut(&mut qubits, index as usize, "Qubit")?;
+                                    *qubit = qreg.get(i as usize);
                                 }
                             } else if packed_register.register_attachment == 0 {
                                 for (qubit, &index) in
@@ -1140,7 +1199,9 @@ fn add_registers_and_bits(
                                 {
                                     if index != u32::MAX {
                                         // index can be -1, indicating this bit is not in the circuit
-                                        qubits[index as usize] = Some(qubit);
+                                        let index_qubit =
+                                            get_bit_mut(&mut qubits, index as usize, "Qubit")?;
+                                        *index_qubit = Some(qubit);
                                     }
                                 }
                             } else {
@@ -1161,7 +1222,8 @@ fn add_registers_and_bits(
                                 let start = packed_register.start_index;
                                 for i in 0..packed_register.size {
                                     let index = start + i;
-                                    clbits[index as usize] = creg.get(i as usize);
+                                    let clbit = get_bit_mut(&mut clbits, index as usize, "Clbit")?;
+                                    *clbit = creg.get(i as usize);
                                 }
                             } else if packed_register.register_attachment == 0 {
                                 for (clbit, &index) in
@@ -1169,7 +1231,9 @@ fn add_registers_and_bits(
                                 {
                                     if index != u32::MAX {
                                         // index can be -1, indicating this bit is not in the circuit
-                                        clbits[index as usize] = Some(clbit);
+                                        let index_clbit =
+                                            get_bit_mut(&mut clbits, index as usize, "Clbit")?;
+                                        *index_clbit = Some(clbit);
                                     }
                                 }
                             } else {
@@ -1206,19 +1270,33 @@ fn add_registers_and_bits(
     for raw_register in non_standalone_registers {
         match raw_register {
             formats::RegisterPack::V4(packed_register) => match packed_register.register_type {
-                RegisterType::Qreg => {
+                RegisterType::Qreg | RegisterType::Areg => {
                     let bits: Vec<ShareableQubit> = packed_register
                         .bit_indices
                         .iter()
                         .filter_map(|&index| {
                             if index >= 0 {
-                                Some(final_qubit_list[index as usize].clone())
+                                let qubit = get_bit(&final_qubit_list, index as usize, "Qubit");
+                                Some(qubit.cloned())
                             } else {
                                 None
                             }
                         })
-                        .collect();
-                    let qreg = QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
+                        .collect::<Result<_, QpyError>>()?;
+                    let qreg = match packed_register.register_type {
+                        RegisterType::Qreg => {
+                            QuantumRegister::new_alias(Some(packed_register.name.clone()), bits)
+                        }
+                        RegisterType::Areg => {
+                            QuantumRegister::new_ancilla_alias(packed_register.name.clone(), bits)
+                                .ok_or_else(|| {
+                                QpyError::InvalidRegister(
+                                    "all bits from an ancilla register must be ancillas".to_owned(),
+                                )
+                            })?
+                        }
+                        _ => unreachable!(),
+                    };
                     qregs.push(qreg);
                 }
                 RegisterType::Creg => {
@@ -1227,12 +1305,13 @@ fn add_registers_and_bits(
                         .iter()
                         .filter_map(|&index| {
                             if index >= 0 {
-                                Some(final_clbit_list[index as usize].clone())
+                                let clbit = get_bit(&final_clbit_list, index as usize, "Clbit");
+                                Some(clbit.cloned())
                             } else {
                                 None
                             }
                         })
-                        .collect();
+                        .collect::<Result<_, QpyError>>()?;
                     let creg =
                         ClassicalRegister::new_alias(Some(packed_register.name.clone()), bits);
                     cregs.push(creg);
@@ -1245,20 +1324,34 @@ fn add_registers_and_bits(
                     ));
                 }
                 match packed_register.register_type {
-                    RegisterType::Qreg => {
+                    RegisterType::Qreg | RegisterType::Areg => {
                         let bits: Vec<ShareableQubit> = packed_register
                             .bit_indices
                             .iter()
                             .filter_map(|&index| {
                                 if index != u32::MAX {
-                                    Some(final_qubit_list[index as usize].clone())
+                                    let qubit = get_bit(&final_qubit_list, index as usize, "Qubit");
+                                    Some(qubit.cloned())
                                 } else {
                                     None
                                 }
                             })
-                            .collect();
-                        let qreg =
-                            QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
+                            .collect::<Result<_, QpyError>>()?;
+                        let qreg = match packed_register.register_type {
+                            RegisterType::Qreg => {
+                                QuantumRegister::new_alias(Some(packed_register.name.clone()), bits)
+                            }
+                            RegisterType::Areg => QuantumRegister::new_ancilla_alias(
+                                packed_register.name.clone(),
+                                bits,
+                            )
+                            .ok_or_else(|| {
+                                QpyError::InvalidRegister(
+                                    "all bits from an ancilla register must be ancillas".to_owned(),
+                                )
+                            })?,
+                            _ => unreachable!(),
+                        };
                         qregs.push(qreg);
                     }
                     RegisterType::Creg => {
@@ -1267,12 +1360,13 @@ fn add_registers_and_bits(
                             .iter()
                             .filter_map(|&index| {
                                 if index != u32::MAX {
-                                    Some(final_clbit_list[index as usize].clone())
+                                    let clbit = get_bit(&final_clbit_list, index as usize, "Clbit");
+                                    Some(clbit.cloned())
                                 } else {
                                     None
                                 }
                             })
-                            .collect();
+                            .collect::<Result<_, QpyError>>()?;
                         let creg =
                             ClassicalRegister::new_alias(Some(packed_register.name.clone()), bits);
                         cregs.push(creg);
@@ -1310,7 +1404,12 @@ pub(crate) fn unpack_circuit(
     // create an empty circuit; we'll fill data as we go along
     let mut qpy_data = QPYReadData {
         caller,
-        circuit_data: CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?,
+        circuit_data: CircuitData::try_with_capacity(
+            0,
+            0,
+            instruction_capacity,
+            Param::Float(0.0),
+        )?,
         version,
         use_symengine,
         standalone_vars: HashMap::new(),
@@ -1347,12 +1446,15 @@ pub(crate) fn unpack_circuit(
             .annotation_handler
             .load_deserializers(annotation_deserializers_data)?;
     }
-    let global_phase = generic_value_to_param(&load_value(
-        packed_circuit.header.global_phase_type,
-        &packed_circuit.header.global_phase_data,
-        &mut qpy_data,
-        ValueEndian::Big,
-    )?)?;
+    let global_phase = generic_value_to_param(
+        &load_value(
+            packed_circuit.header.global_phase_type,
+            &packed_circuit.header.global_phase_data,
+            &mut qpy_data,
+            ValueEndian::Big,
+        )?,
+        &qpy_data,
+    )?;
     qpy_data.circuit_data.set_global_phase_param(global_phase)?;
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;
