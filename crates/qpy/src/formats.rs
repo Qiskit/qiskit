@@ -24,6 +24,8 @@ use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::operations::DelayUnit;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
+use num_bigint::BigUint;
+use num_complex::Complex64;
 
 /// The QPY file header
 /// This is up-to-date with all the header data found in QPY13.
@@ -343,10 +345,62 @@ fn encode_optional_delay_unit(unit: &Option<DelayUnit>) -> Option<u8> {
     unit.map(|unit| unit as u8)
 }
 
+// this is a non generic version of the `GenericDataPack`
+// avoiding length storage where it is not required and the need to pre-serialize the data
 #[binrw]
+#[brw(big)]
 #[derive(Debug)]
-pub struct ParamDataPack {
-    // placeholder; this should be an improved, nongeneric version of GenericDataPack
+pub enum ParamDataPack {
+    #[brw(magic = b'b')]
+    Bool(u8), // TODO: make this an actual boolean
+
+    #[brw(magic = b'i')]
+    Int64(i64),
+    
+    #[brw(magic = b'I')]
+    BigInt(BigUint),
+
+    #[brw(magic = b'f')]
+    Float64(f64),
+
+    #[brw(magic = b'c')]
+    Complex64(Complex64),
+
+    #[brw(magic = b'd')]
+    CaseDefault,
+
+    #[brw(magic = b'r')]
+    Range(i64, i64, i64), // start, stop, step
+
+    #[brw(magic = b'n')]
+    NumpyObject(Bytes), // this should be avoided if possible
+
+    #[brw(magic = b'T')]
+    Tuple, // TODO: implement this
+
+    #[brw(magic = b'p')]
+    Parameter(ParameterSymbolPack),
+
+    #[brw(magic = b'v')]
+    ParameterVectorElement(ParameterVectorElementPack),
+
+    #[brw(magic = b'e')]
+    ParameterExpression(ParameterExpressionPack),
+
+    #[brw(magic = b's')]
+    String(StringU16Pack),
+
+    #[brw(magic = b'z')]
+    Null,
+
+    #[brw(magic = b'x')]
+    Expression(ExpressionPack),
+
+    #[brw(magic = b'm')]
+    Modifier(ModifierPack),
+
+    #[brw(magic = b'q')]
+    Circuit(QPYCircuit),
 }
 
 #[binrw]
