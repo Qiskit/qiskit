@@ -1146,21 +1146,17 @@ pub(crate) fn get_circuit_type_key(
 
 pub(crate) fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> Result<Bytes, QpyError> {
     let packed_expression = formats::ExpressionPack {
-        expression: exp.clone(),
-        _phantom: Default::default(),
+        expression: crate::expr::pack_expression(exp, qpy_data)?,
     };
-    serialize_with_args(&packed_expression, (qpy_data,))
+    serialize(&packed_expression)
 }
 
 pub(crate) fn deserialize_expression(
     raw_expression: &Bytes,
     qpy_data: &QPYReadData,
 ) -> Result<Expr, QpyError> {
-    let (exp_pack, _) = deserialize_with_args::<formats::ExpressionPack, (&QPYReadData,)>(
-        raw_expression,
-        (qpy_data,),
-    )?;
-    Ok(exp_pack.expression)
+    let (exp_pack, _) = deserialize::<formats::ExpressionPack>(raw_expression)?;
+    crate::expr::unpack_expression(exp_pack.expression, qpy_data)
 }
 
 pub(crate) fn pack_standalone_var(

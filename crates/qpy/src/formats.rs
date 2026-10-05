@@ -12,20 +12,17 @@
 
 use crate::bytes::Bytes;
 use crate::error::{QpyError, to_binrw_error};
-use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, Complex64MatrixPack, Complex64Pack, ExpressionType,
-    ExpressionVarDeclaration, ModifierType, ProgramType, QPYReadData, QPYWriteData, RegisterType,
-    StringU16Pack, SymbolicEncoding, ValueType, pack_biguint, unpack_biguint,
+    ExpressionVarDeclaration, ModifierType, ProgramType, RegisterType, StringU16Pack,
+    SymbolicEncoding, ValueType, pack_biguint, unpack_biguint,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
-use qiskit_circuit::classical::expr::Expr;
-use qiskit_circuit::operations::DelayUnit;
-use std::io::{Read, Seek, Write};
-use std::marker::PhantomData;
 use num_bigint::BigUint;
 use num_complex::Complex64;
+use qiskit_circuit::operations::DelayUnit;
+use std::io::{Read, Seek, Write};
 
 /// The QPY file header
 /// This is up-to-date with all the header data found in QPY13.
@@ -356,7 +353,7 @@ pub enum ParamDataPack {
 
     #[brw(magic = b'i')]
     Int64(i64),
-    
+
     #[brw(magic = b'I')]
     BigInt(
         #[br(map = unpack_biguint)]
@@ -1366,23 +1363,13 @@ pub struct MappingItem {
 }
 
 // *****Expression handling (used in expr.rs)*****
-// expressions are stored as a consecutive list of expression elements
-// that encode a tree structure in inorder traversal
-// since QPY doesn't explicitly store the number of elements in the expression
-// we need to manually handle byte-level reading along with parsing the expression
+// Expressions are recursive, self-delimiting trees. References to circuit objects remain in their
+// wire representation here and are resolved only after the surrounding circuit has been built.
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import(qpy_read_data: &QPYReadData))]
-#[bw(import(qpy_write_data: &'a QPYWriteData<'a>))]
-pub struct ExpressionPack<'a> {
-    #[br(parse_with = read_expression, args(qpy_read_data))]
-    #[bw(write_with = write_expression, args(qpy_write_data))]
-    pub expression: Expr,
-
-    #[br(ignore)]
-    #[bw(ignore)]
-    pub _phantom: PhantomData<&'a Option<Expr>>,
+pub struct ExpressionPack {
+    pub expression: PackedExpression,
 }
 
 // The types of values for elements of the expression - boolean and specific-width ints
@@ -1400,13 +1387,11 @@ pub enum ExpressionTypePack {
     Duration,
 }
 
-// The various node types in an expression:
-// Either a variable, a stretch, a concrete value, a cast,
-// a unary op, a binary op or an index.
-// These correspond to qiskit_circuit::classical::expr::expr
+/// Context-free representation of a classical expression in the QPY wire format.
+/// Circuit references remain encoded as indices or names until the circuit reader resolves them.
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
-pub enum ExpressionElementPack {
+pub enum PackedExpression {
     #[brw(magic = b'x')]
     Var(ExpressionTypePack, ExpressionVarElementPack),
     #[brw(magic = b's')]
@@ -1414,13 +1399,22 @@ pub enum ExpressionElementPack {
     #[brw(magic = b'v')]
     Value(ExpressionTypePack, ExpressionValueElementPack),
     #[brw(magic = b'c')]
-    Cast(ExpressionTypePack, u8),
+    Cast(ExpressionTypePack, u8, Box<PackedExpression>),
     #[brw(magic = b'u')]
-    Unary(ExpressionTypePack, u8),
+    Unary(ExpressionTypePack, u8, Box<PackedExpression>),
     #[brw(magic = b'b')]
-    Binary(ExpressionTypePack, u8),
+    Binary(
+        ExpressionTypePack,
+        u8,
+        Box<PackedExpression>,
+        Box<PackedExpression>,
+    ),
     #[brw(magic = b'i')]
-    Index(ExpressionTypePack),
+    Index(
+        ExpressionTypePack,
+        Box<PackedExpression>,
+        Box<PackedExpression>,
+    ),
 }
 
 // An expression's var data - either a clbit, a register, or given by a uuid (for a standalone var)
