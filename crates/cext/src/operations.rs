@@ -888,7 +888,7 @@ pub unsafe extern "C" fn qk_custom_operation_label(
 
     if let Some(as_custom_op) = borrowed_inst.downcast_ref::<CustomOp>() {
         // Use vtable directly to avoid converting
-        unsafe { ((&*as_custom_op.v_table).label)(as_custom_op.orig) }
+        unsafe { (as_custom_op.v_table.label)(as_custom_op.orig) }
     } else if let Some(label) = borrowed_inst.label() {
         CString::new(label)
             .expect("Label should not contain null bytes")
