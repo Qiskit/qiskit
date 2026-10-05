@@ -18,6 +18,7 @@ import numpy as np
 import ddt
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import Gate
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
 from qiskit.circuit.parameter import Parameter
@@ -1015,6 +1016,13 @@ measure q0[1] -> c0[1];
         self.assertEqual(strict.count_ops().get("cx", 0), 2)
         self.assertEqual(approx.count_ops().get("cx", 0), 0)
         self.assertEqual(default, strict)
+
+    def test_custom_gates_sharing_wire(self):
+        """Custom gates sharing a wire are not cancelled"""
+        circ = QuantumCircuit(2)
+        circ.append(Gate("foo", 1, []), [1])
+        circ.append(Gate("bar", 2, []), [0, 1])
+        self.assertEqual(CommutativeCancellation()(circ), circ)
 
 
 if __name__ == "__main__":

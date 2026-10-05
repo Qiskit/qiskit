@@ -945,6 +945,7 @@ int test_target_instruction_supported(void) {
             qk_param_free(param);
             goto cleanup;
         }
+        qk_param_free(param);
 
         // Test standard instructions reset and measure
         if (!(qk_target_instruction_supported(sample_target, "measure", qargs, NULL) ==

@@ -16,14 +16,16 @@ import io
 import struct
 
 from qiskit.circuit import (
-    Qubit,
+    AncillaRegister,
     ClassicalRegister,
-    Parameter,
-    ParameterVector,
     QuantumCircuit,
     QuantumRegister,
+    Qubit,
+    Parameter,
+    ParameterVector,
 )
 from qiskit.circuit.classical import expr
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider.generic_backend_v2 import GenericBackendV2
@@ -35,7 +37,7 @@ from qiskit.transpiler.coupling import CouplingMap
 from test import QiskitTestCase
 
 
-def _dump(qc: QuantumCircuit, version: int) -> bytes:
+def _dump(qc: QuantumCircuit, version: int | None = None) -> bytes:
     buf = io.BytesIO()
     dump(qc, buf, version=version)
     return buf.getvalue()
@@ -108,6 +110,33 @@ class TestV17VsV18(QiskitTestCase):
             qc.h(0)
         self.assertNotEqual(_dump(qc, 17), _dump(qc, 18))
 
+    def test_custom_gate_dump_is_deterministic(self):
+        class MyGate(Gate):
+            def __init__(self):
+                super().__init__("my_gate", 1, [])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.h(0)
+                self.definition = qc
+
+        # Start with baseline:
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        self.assertEqual(
+            _dump(qc),
+            _dump(qc),
+            "Dumping same circuit (no custom gate) should produce the same dump",
+        )
+
+        # Now with custom gate:
+        qc.append(MyGate(), [0])
+        self.assertEqual(
+            _dump(qc),
+            _dump(qc),
+            "Dumping same circuit (with custom gate) should produce the same dump",
+        )
+
     def test_switch_case_labels_bytes_differ_v17_vs_v18(self):
         """v17 and v18 serialise SwitchCase integer labels in different byte order."""
         body = QuantumCircuit(1)
@@ -117,6 +146,22 @@ class TestV17VsV18(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         qc.switch(expr.bit_and(cr, 3), [(1, body.copy()), (2, body.copy())], [0], [])
         self.assertNotEqual(_dump(qc, 17), _dump(qc, 18))
+
+    def test_ancilla_register_round_trip(self):
+        """Ancilla register and qubit types survive serialization."""
+        circuit = QuantumCircuit(AncillaRegister(2, "ancilla"))
+        loaded = load(io.BytesIO(_dump(circuit, 18)))[0]
+        self.assertIsInstance(loaded.qregs[0], AncillaRegister)
+        self.assertEqual(loaded, circuit)
+
+        ar = AncillaRegister(2, "ancilla")
+        qr = QuantumRegister(2, "q")
+        circuit = QuantumCircuit(qr, ar)
+        circuit.cx(qr[0], ar[0])
+        loaded = load(io.BytesIO(_dump(circuit, 18)))[0]
+        self.assertIsInstance(loaded.qregs[0], QuantumRegister)
+        self.assertIsInstance(loaded.qregs[1], AncillaRegister)
+        self.assertEqual(loaded, circuit)
 
 
 class TestV18RegisterParam(QiskitTestCase):

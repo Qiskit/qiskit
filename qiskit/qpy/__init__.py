@@ -577,9 +577,8 @@ per bit term than the equivalent version 17 payload.  No other field of `SPARSE_
 changes, and the meaning of `bitterm_data_len` is unaffected because it counts elements rather
 than bytes.
 
-Changes to REGISTER_PACK
-~~~~~~~~~~~~~~~~~~~~~~~~
-
+Changes to REGISTERS
+~~~~~~~~~~~~~~~~~~~~
 The representation of registers defined in :ref:`qpy_registers` and updated in :ref:`qpy_version_4`)
 in QPY has changed in Version 18. The first change is the type of register
 index mapping array from ``int64_t`` to ``uint32_t`` (which is what it was prior to QPY v4). The original
@@ -587,6 +586,11 @@ change to ``int64_t`` was done to enable using -1 as a sentinel value for a bit 
 is not actually needed as we can use the max value of a ``uint32_t`` (4294967295) as the sentinel value.
 In version 18 values of 4294967295 should be treated as -1 was in previous QPY and the bit in that array
 position is not in the circuit.
+
+Version 18 also adds ``'a'`` as a value for the ``type`` field to represent an
+:class:`.AncillaRegister`. Previously, ancilla registers were encoded as ``'q'`` and were
+therefore deserialized as ordinary :class:`.QuantumRegister` objects. The existing ``'q'`` and
+``'c'`` values continue to represent quantum and classical registers, respectively.
 
 The :ref:`qpy_registers` header format has also been updated to
 
@@ -608,6 +612,18 @@ name with the bit indices be a length of 1 and that contains the
 starting index of the register. The indices are then the range of length
 ``size`` from that starting index. For example, if the starting index is 5
 and the ``size`` is 10 the indices are 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
+
+Changes to CUSTOM_INSTRUCTION names
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+From version 11 till 17, the names of ``CUSTOM_INSTRUCTION`` blocks were suffixed with a
+random UUID hexadecimal string (e.g. ``"my_gate_b3ecab5b4d6a4eb6bc2b2dbf18d83e1e"``), as
+described in :ref:`qpy_version_11`.  Because the UUID was generated for every
+:func:`.dump` call, repeated dumps of the same circuit produced different byte streams —
+QPY output was not deterministic.
+
+From version 18 the UUID suffix is replaced by a counter that is reset
+at the start of each :func:`.dump` call (e.g. ``"my_gate_0"``).
 
 .. _qpy_version_17:
 
@@ -1937,8 +1953,9 @@ Version 3 of the QPY format is identical to :ref:`qpy_version_2` except that it 
 a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`
 natively in QPY. To accomplish this the :ref:`qpy_custom_definition` struct now supports
 a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
-Enties in the custom instructions tables have unique name generated that start with the
-string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reserved
+Entries in the custom instructions tables have unique name generated that starts with the
+string ``"###PauliEvolutionGate_"`` followed by a uuid string (versions 11–17) or a
+counter (version 18+, see :ref:`qpy_version_18`). This gate name is reserved
 in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with a definition
 set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
 as follows:

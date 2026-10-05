@@ -1175,14 +1175,91 @@ static int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
 
-    QkExitCode delay_s_code;
-
-    delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
+    QkExitCode delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
     if (delay_s_code != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
 
+    QkDelayUnit unit_s = qk_circuit_delay_unit(qc, 0);
+    if (unit_s != QkDelayUnit_S) {
+        result = EqualityError;
+        printf("Expected 's' (0) delay unit, found (%d).\n", unit_s);
+        goto cleanup;
+    }
+
+    QkCircuitInstruction instr;
+    qk_circuit_get_instruction(qc, 0, &instr);
+    double s_delay_val = qk_param_as_real(instr.params[0]);
+
+    if (s_delay_val != 0.001) {
+        result = EqualityError;
+        printf("Expected 's' (0.001) delay value, found (%f).\n", s_delay_val);
+        goto instr_cleanup;
+    }
+
+    // Try negative duration
+    QkExitCode delay_dt_bad_code = qk_circuit_delay_dt(qc, 1, -145);
+    if (delay_dt_bad_code != QkExitCode_CInputError) {
+        printf("Unexpected exit code with negative dt duration (-145), (%u).\n", delay_dt_bad_code);
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
+    QkExitCode delay_dt_code = qk_circuit_delay_dt(qc, 1, 145);
+    if (delay_dt_code != QkExitCode_Success) {
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
+    QkDelayUnit unit_dt = qk_circuit_delay_unit(qc, 1);
+    if (unit_dt != QkDelayUnit_DT) {
+        result = EqualityError;
+        printf("Expected 'dt' (5) delay unit, found (%d).\n", unit_dt);
+        goto instr_cleanup;
+    }
+
+    qk_circuit_instruction_clear(&instr);
+    qk_circuit_get_instruction(qc, 1, &instr);
+
+    QkParamKind param_kind = qk_param_kind(instr.params[0]);
+    if (param_kind != QkParamKind_Int) {
+        result = EqualityError;
+        printf("Expected 'Int' typed param %u found (%u).\n", QkParamKind_Int, param_kind);
+        goto instr_cleanup;
+    }
+    int64_t dt_delay_val = -1;
+
+    if (!qk_param_as_int(instr.params[0], &dt_delay_val)) {
+        result = EqualityError;
+        printf("Incorrect non-integer value found for 'dt' unit duration.\n");
+        goto instr_cleanup;
+    }
+    if (dt_delay_val != 145) {
+        result = EqualityError;
+        printf("Expected 'dt' (145) delay value, found %" PRIi64 ".\n", dt_delay_val);
+        goto instr_cleanup;
+    }
+
+    // Test with a non-delay instruction
+    const uint32_t h_qubits[1] = {0};
+    QkExitCode circuit_h_code = qk_circuit_gate(qc, QkGate_H, h_qubits, NULL);
+    if (circuit_h_code != QkExitCode_Success) {
+        printf("Unexpected exit code while adding 'QkGate_H' to a circuit");
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
+    QkDelayUnit unit_unknown = qk_circuit_delay_unit(qc, 2);
+    if (unit_unknown != QkDelayUnit_Unknown) {
+        result = EqualityError;
+        printf("Expected 'unknown' (7) delay unit, for non delay gate, got '%d' instead",
+               unit_unknown);
+        goto instr_cleanup;
+    }
+
+instr_cleanup:
+    qk_circuit_instruction_clear(&instr);
 cleanup:
     qk_circuit_free(qc);
     return result;
@@ -1224,6 +1301,7 @@ static int test_circuit_draw(void) {
     char *circ_str = qk_circuit_draw(circuit, &config);
 
     qk_str_free(circ_str);
+    qk_param_free(angle);
     qk_circuit_free(circuit);
 
     return Ok;
@@ -1326,6 +1404,110 @@ static int test_circuit_global_phase(void) {
 cleanup:
     qk_circuit_free(qc);
     return result;
+}
+
+/** Compare two instruction views for equality.  The field `b->params` is
+ *  ignored, and replaced by the indirect `b_params`.
+ */
+static int instruction_view_cmp(const QkCircuitInstructionView *a,
+                                const QkCircuitInstructionView *b, const QkParam *const *b_params) {
+    int ret = 0;
+    if (a->name_len != b->name_len)
+        return a->name_len < b->name_len ? -1 : 1;
+    if (a->num_qubits != b->num_qubits)
+        return a->num_qubits < b->num_qubits ? -1 : 1;
+    if (a->num_clbits != b->num_clbits)
+        return a->num_clbits < b->num_clbits ? -1 : 1;
+    if (a->num_params != b->num_params)
+        return a->num_params < b->num_params ? -1 : 1;
+    if ((ret = strncmp(a->name, b->name, a->name_len)))
+        return ret;
+    if ((ret = memcmp(a->qubits, b->qubits, sizeof(a->qubits[0]) * a->num_qubits)))
+        return ret;
+    if ((ret = memcmp(a->clbits, b->clbits, sizeof(a->qubits[0]) * a->num_clbits)))
+        return ret;
+    const size_t param_size = qk_param_stride();
+    for (size_t i = 0; i < a->num_params; i++) {
+        if (!qk_param_equal((const QkParam *)((const char *)a->params + i * param_size),
+                            b_params[i])) {
+            return 1;
+        }
+    }
+    return ret;
+}
+
+static int test_circuit_view_instruction(void) {
+    int res = Ok;
+    QkCircuitInstructionView view, expected;
+    uint32_t args[2] = {0, 1};
+
+    QkCircuit *qc = qk_circuit_new(2, 2);
+    QkParam *params[3] = {
+        qk_param_from_double(1.0),
+        qk_param_new_symbol("a"),
+        qk_param_new_symbol("b"),
+    };
+
+    qk_circuit_gate(qc, QkGate_H, args, NULL);
+    qk_circuit_view_instruction(qc, 0, &view);
+    expected = (QkCircuitInstructionView){"h", args, NULL, NULL, 1, 1, 0, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'h'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_parameterized_gate(qc, QkGate_U, args, (const QkParam *const *)params);
+    qk_circuit_view_instruction(qc, 1, &view);
+    expected = (QkCircuitInstructionView){"u", args, NULL, NULL, 1, 1, 0, 3};
+    if (instruction_view_cmp(&view, &expected, (const QkParam *const *)params)) {
+        printf("%s: failed on 'u'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_gate(qc, QkGate_CX, args, NULL);
+    qk_circuit_view_instruction(qc, 2, &view);
+    expected = (QkCircuitInstructionView){"cx", args, NULL, NULL, 2, 2, 0, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'cx'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_barrier(qc, args, 2);
+    qk_circuit_view_instruction(qc, 3, &view);
+    expected = (QkCircuitInstructionView){"barrier", args, NULL, NULL, 7, 2, 0, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'barrier'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_measure(qc, 0, 0);
+    qk_circuit_view_instruction(qc, 4, &view);
+    expected = (QkCircuitInstructionView){"measure", args, args, NULL, 7, 1, 1, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'measure 0'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_measure(qc, 1, 1);
+    qk_circuit_view_instruction(qc, 5, &view);
+    expected = (QkCircuitInstructionView){"measure", &args[1], &args[1], NULL, 7, 1, 1, 0};
+    if (instruction_view_cmp(&view, &expected, NULL)) {
+        printf("%s: failed on 'measure 1'\n", __func__);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    for (size_t i = 0; i < sizeof(params) / sizeof(params[0]); i++) {
+        qk_param_free(params[i]);
+    }
+    qk_circuit_free(qc);
+    return res;
 }
 
 /**
@@ -1461,6 +1643,7 @@ cleanup_out_meas:
 cleanup_out_rot:
     qk_pauli_product_rotation_clear(&out_rot);
 cleanup:
+    qk_param_free(angle);
     qk_circuit_free(circuit);
     return result;
 }
@@ -1704,6 +1887,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_instruction_params_ownership);
     num_failed += RUN_TEST(test_parameterized_circuit);
     num_failed += RUN_TEST(test_circuit_global_phase);
+    num_failed += RUN_TEST(test_circuit_view_instruction);
     num_failed += RUN_TEST(test_circuit_to_dag);
     num_failed += RUN_TEST(test_pbc_instructions);
     num_failed += RUN_TEST(test_estimate_fidelity);
