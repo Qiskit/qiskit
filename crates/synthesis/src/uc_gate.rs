@@ -173,6 +173,46 @@ fn push_1q_unitary(
     Ok(())
 }
 
+/// Result of [`simplify_controls`]: the surviving controls and (possibly reduced)
+/// gate list `dec_ucg_inner` needs for the rest of the decomposition.
+struct SimplifiedControls {
+    /// Surviving controls, mapped to absolute qubit indices, in the order
+    /// `dec_ucg_inner`'s CX-emission loop expects.
+    q_controls: Vec<u32>,
+    /// The (possibly reduced) single-qubit gate list.
+    gates: Vec<Matrix2<Complex64>>,
+    /// Surviving controls in `simplify`'s own 1-based numbering, as `expand_diagonal`
+    /// needs them.
+    raw_ctrls: Vec<u32>,
+}
+
+/// Drop controls `single_qubit_gates` doesn't depend on via [`simplify`] when
+/// `mux_simp` is set; otherwise keep every control as-is.
+fn simplify_controls(
+    single_qubit_gates: Vec<Matrix2<Complex64>>,
+    num_qubits: u32,
+    mux_simp: bool,
+) -> SimplifiedControls {
+    if mux_simp {
+        let num_contr = num_qubits - 1;
+        let (ctrls, gates) = simplify(&single_qubit_gates, num_contr);
+        let mut q_controls: Vec<u32> = ctrls.iter().map(|&x| num_qubits - x).collect();
+        q_controls.reverse();
+        SimplifiedControls {
+            q_controls,
+            gates,
+            raw_ctrls: ctrls,
+        }
+    } else {
+        let ctrls: Vec<u32> = (1..num_qubits).collect();
+        SimplifiedControls {
+            q_controls: ctrls.clone(),
+            gates: single_qubit_gates,
+            raw_ctrls: ctrls,
+        }
+    }
+}
+
 /// Recursively decompose a uniformly controlled one-qubit gate (`single_qubit_gates`,
 /// indexed by the bitstring of control values) into a `CircuitData` of single-qubit
 /// gates and CX gates, following the method in [1].
@@ -193,17 +233,11 @@ fn dec_ucg_inner(
         push_1q_unitary(&mut circuit, single_qubit_gates[0], Qubit(0))?;
         return Ok((circuit, vec![Complex64::ONE; 2]));
     }
-    let num_contr = num_qubits - 1;
-    let (q_controls, new_gates, raw_ctrls) = if mux_simp {
-        let (ctrls, gates) = simplify(&single_qubit_gates, num_contr);
-        let mut mapped: Vec<u32> = ctrls.iter().map(|&x| num_qubits - x).collect();
-        mapped.reverse();
-        (mapped, gates, ctrls)
-    } else {
-        let ctrls: Vec<u32> = (1..num_qubits).collect();
-        // clone for q_controls, move for raw_ctrls
-        (ctrls.clone(), single_qubit_gates, ctrls)
-    };
+    let SimplifiedControls {
+        q_controls,
+        gates: new_gates,
+        raw_ctrls,
+    } = simplify_controls(single_qubit_gates, num_qubits, mux_simp);
 
     let simplified_num_qubits = q_controls.len() as u32 + 1;
 

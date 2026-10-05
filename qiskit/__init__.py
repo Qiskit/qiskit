@@ -69,7 +69,6 @@ sys.modules["qiskit._accelerate.equivalence"] = _accelerate.equivalence
 sys.modules["qiskit._accelerate.error_map"] = _accelerate.error_map
 sys.modules["qiskit._accelerate.gates_in_basis"] = _accelerate.gates_in_basis
 sys.modules["qiskit._accelerate.isometry"] = _accelerate.isometry
-sys.modules["qiskit._accelerate.uc_gate"] = _accelerate.synthesis.uc_gate  # backward compat
 sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
     _accelerate.euler_one_qubit_decomposer
 )
