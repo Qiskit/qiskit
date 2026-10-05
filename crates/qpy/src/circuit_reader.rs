@@ -1096,8 +1096,8 @@ fn add_registers_and_bits(
     packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> Result<(), QpyError> {
-    let num_qubits = packed_circuit.header.num_qubits as usize;
-    let num_clbits = packed_circuit.header.num_clbits as usize;
+    let num_qubits = packed_circuit.header.num_qubits() as usize;
+    let num_clbits = packed_circuit.header.num_clbits() as usize;
     let mut qubits: Vec<Option<ShareableQubit>> = Vec::new();
     qubits
         .try_reserve_exact(num_qubits)
@@ -1426,6 +1426,11 @@ fn unpack_circuit_v18(
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,
 ) -> Result<CircuitData, QpyError> {
+    let formats::CircuitHeaderPack::V12(header) = &packed_circuit.header else {
+        return Err(QpyError::InvalidFormat(
+            "QPY <= 18 circuit has a QPY 19 header".to_string(),
+        ));
+    };
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut qpy_data = QPYReadData {
@@ -1474,8 +1479,8 @@ fn unpack_circuit_v18(
     }
     let global_phase = generic_value_to_param(
         &load_value(
-            packed_circuit.header.global_phase_type,
-            &packed_circuit.header.global_phase_data,
+            header.global_phase_type,
+            &header.global_phase_data,
             &mut qpy_data,
             ValueEndian::Big,
         )?,

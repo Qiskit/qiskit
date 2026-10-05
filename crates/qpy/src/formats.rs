@@ -15,9 +15,9 @@ use crate::error::{QpyError, to_binrw_error};
 use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
-    BitType, CircuitInstructionType, Complex64MatrixPack, ExpressionType, ExpressionVarDeclaration,
-    ModifierType, ProgramType, QPYReadData, QPYWriteData, RegisterType, StringU16Pack,
-    SymbolicEncoding, ValueType,
+    BitType, CircuitInstructionType, Complex64MatrixPack, Complex64Pack, ExpressionType,
+    ExpressionVarDeclaration, ModifierType, ProgramType, QPYReadData, QPYWriteData, RegisterType,
+    StringU16Pack, SymbolicEncoding, ValueType, pack_biguint, unpack_biguint,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -358,13 +358,21 @@ pub enum ParamDataPack {
     Int64(i64),
     
     #[brw(magic = b'I')]
-    BigInt(BigUint),
+    BigInt(
+        #[br(map = unpack_biguint)]
+        #[bw(map = pack_biguint)]
+        BigUint,
+    ),
 
     #[brw(magic = b'f')]
     Float64(f64),
 
     #[brw(magic = b'c')]
-    Complex64(Complex64),
+    Complex64(
+        #[br(map = |value: Complex64Pack| Complex64::new(value.re, value.im))]
+        #[bw(map = |value| Complex64Pack { re: value.re, im: value.im })]
+        Complex64,
+    ),
 
     #[brw(magic = b'd')]
     CaseDefault,
@@ -373,7 +381,12 @@ pub enum ParamDataPack {
     Range(i64, i64, i64), // start, stop, step
 
     #[brw(magic = b'n')]
-    NumpyObject(Bytes), // this should be avoided if possible
+    NumpyObject {
+        #[bw(calc = data.len() as u64)]
+        data_length: u64,
+        #[br(count = data_length)]
+        data: Bytes,
+    }, // this should be avoided if possible
 
     #[brw(magic = b'T')]
     Tuple, // TODO: implement this

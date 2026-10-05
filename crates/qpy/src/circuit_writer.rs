@@ -1085,6 +1085,7 @@ fn pack_global_phase(
 ) -> Result<formats::GlobalPhasePack, QpyError> {
     match global_phase {
         Param::Float(val) => Ok(formats::GlobalPhasePack::Float(*val)),
+        Param::Int(val) => Ok(formats::GlobalPhasePack::Float(*val as f64)),
         Param::ParameterExpression(exp) => {
             GenericValue::from_parameter_expression(exp).pack_global_phase(qpy_data)
         }
@@ -1590,7 +1591,7 @@ fn pack_circuit_v18(
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,
 ) -> Result<formats::QPYCircuit, QpyError> {
-    let mut qpy_data = QPYWriteData::new( {
+    let mut qpy_data = QPYWriteData::new(
         caller,
         circuit_data,
         version,
@@ -1663,6 +1664,7 @@ fn pack_circuit_v19(
         standalone_var_indices: HashMap::new(),
         parameter_vectors: Default::default(),
         annotation_handler,
+        custom_gate_counter: 0,
     };
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
     let header = pack_circuit_header_v19(extra.name, extra.metadata, &mut qpy_data)?;

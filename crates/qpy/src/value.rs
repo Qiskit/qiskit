@@ -101,8 +101,8 @@ pub struct StringU16Pack {
 #[brw(big)]
 #[derive(Clone, Copy, Debug)]
 pub struct Complex64Pack {
-    re: f64,
-    im: f64,
+    pub(crate) re: f64,
+    pub(crate) im: f64,
 }
 
 // For matrices occurring in quantum computing, the most common sizes are 2x2 and 4x4
@@ -327,7 +327,7 @@ pub struct QPYWriteData<'a> {
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
     pub parameter_vectors: ParameterVectorTableBuilder,
     pub annotation_handler: AnnotationHandler,
-    custom_gate_counter: u32,
+    pub custom_gate_counter: u32,
 }
 
 impl<'a> QPYWriteData<'a> {
