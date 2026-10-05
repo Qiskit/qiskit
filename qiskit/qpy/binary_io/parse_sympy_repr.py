@@ -138,7 +138,10 @@ class ParseSympyWalker(ast.NodeVisitor):
             if method is not None:
                 obj = getattr(self.stack.pop(), method)()
             elif name == "Symbol":
-                obj = self.name_map[self.stack.pop()]
+                name = self.stack.pop()
+                obj = self.name_map.get(name, None)
+                if obj is None:
+                    raise QpyError(f"Parameter: {name} not define in the QPY payload")
             else:
                 function = FUNCTION_MAPPING[name]
                 obj = function(self.stack.pop())
