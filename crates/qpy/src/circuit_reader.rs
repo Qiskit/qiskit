@@ -35,7 +35,7 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
     ControlFlowType, LoopParam, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    StandardInstruction, StandardInstructionType, Store, SwitchTarget, UnitaryGate,
+    PyRange, StandardInstruction, StandardInstructionType, Store, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -57,11 +57,14 @@ use crate::formats;
 use crate::formats::ConditionData;
 use crate::formats::QPYCircuit;
 use crate::formats::VirtualQBitPack;
-use crate::params::generic_value_to_param;
+use crate::params::{
+    generic_value_to_param, unpack_parameter_expression, unpack_parameter_vector, unpack_symbol,
+};
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
     STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, deserialize_pauli_evolution_gate,
-    py_convert_from_generic_value, unpack_custom_instruction, unpack_py_instruction,
+    py_convert_from_generic_value, py_unpack_modifier, unpack_custom_instruction,
+    unpack_py_instruction,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
@@ -73,6 +76,7 @@ use crate::value::{
 use ndarray::{Array2, ShapeBuilder};
 use npyz::NpyFile;
 use std::io::Cursor;
+use std::num::NonZero;
 
 // This is a helper struct, designed to pass data within methods
 // It is not meant to be serialized, so it's not in formats.rs
@@ -1604,11 +1608,12 @@ fn unpack_instruction_v19(
             instruction.cargs
         ))
     })?;
-    if !instruction.params.is_empty() {
-        return Err(QpyError::DeserializationError(
-            "QPY 19 instruction parameters are not implemented yet".to_string(),
-        ));
-    }
+    let parameter_values = instruction
+        .params
+        .iter()
+        .map(|param| unpack_param_data_v19(param, qpy_data))
+        .collect::<Result<Vec<_>, _>>()?;
+    let params = instruction_values_to_params(parameter_values, qpy_data)?;
     if instruction.annotations.is_some() {
         return Err(QpyError::DeserializationError(
             "QPY 19 instruction annotations are not implemented yet".to_string(),
@@ -1659,13 +1664,76 @@ fn unpack_instruction_v19(
         op,
         qubits,
         clbits,
-        params: None,
+        params,
         label: instruction
             .label
             .as_ref()
             .map(|label| Box::new(label.value.clone())),
         #[cfg(feature = "cache_pygates")]
         py_op: std::sync::OnceLock::new(),
+    })
+}
+
+fn unpack_param_data_v19(
+    value: &formats::ParamDataPack,
+    qpy_data: &mut QPYReadData,
+) -> Result<GenericValue, QpyError> {
+    Ok(match value {
+        formats::ParamDataPack::Bool(value) => GenericValue::Bool(*value != 0),
+        formats::ParamDataPack::Int64(value) => GenericValue::Int64(*value),
+        formats::ParamDataPack::BigInt(value) => GenericValue::BigInt(value.clone()),
+        formats::ParamDataPack::Float64(value) => GenericValue::Float64(*value),
+        formats::ParamDataPack::Complex64(value) => GenericValue::Complex64(*value),
+        formats::ParamDataPack::CaseDefault => GenericValue::CaseDefault,
+        formats::ParamDataPack::Range(start, stop, step) => GenericValue::Range(PyRange {
+            start: isize::try_from(*start).map_err(|_| {
+                QpyError::InvalidParameter("range start does not fit in isize".to_string())
+            })?,
+            stop: isize::try_from(*stop).map_err(|_| {
+                QpyError::InvalidParameter("range stop does not fit in isize".to_string())
+            })?,
+            step: NonZero::new(isize::try_from(*step).map_err(|_| {
+                QpyError::InvalidParameter("range step does not fit in isize".to_string())
+            })?)
+            .ok_or_else(|| QpyError::InvalidParameter("range step cannot be zero".to_string()))?,
+        }),
+        formats::ParamDataPack::NumpyObject { data, .. } => GenericValue::NumpyObject(data.clone()),
+        formats::ParamDataPack::Tuple { elements, .. } => GenericValue::Tuple(
+            elements
+                .iter()
+                .map(|element| unpack_param_data_v19(element, qpy_data))
+                .collect::<Result<_, _>>()?,
+        ),
+        formats::ParamDataPack::Parameter(value) => {
+            GenericValue::ParameterExpressionSymbol(Arc::new(unpack_symbol(value)))
+        }
+        formats::ParamDataPack::ParameterVectorElement(value) => {
+            GenericValue::ParameterExpressionVectorSymbol(Arc::new(unpack_parameter_vector(
+                value, qpy_data,
+            )?))
+        }
+        formats::ParamDataPack::ParameterExpression(value) => GenericValue::ParameterExpression(
+            Arc::new(unpack_parameter_expression(value, qpy_data)?),
+        ),
+        formats::ParamDataPack::String(value) => GenericValue::String(value.value.clone()),
+        formats::ParamDataPack::Null => GenericValue::Null,
+        formats::ParamDataPack::Expression(value) => GenericValue::Expression(
+            crate::expr::unpack_expression(value.expression.clone(), qpy_data)?,
+        ),
+        formats::ParamDataPack::Modifier(value) => GenericValue::Modifier(
+            qpy_data
+                .caller
+                .attach("unpack modifier", |py| py_unpack_modifier(py, value))?,
+        ),
+        formats::ParamDataPack::Circuit(value) => {
+            GenericValue::CircuitData(Box::new(unpack_circuit(
+                value,
+                qpy_data.version,
+                qpy_data.use_symengine,
+                qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
+            )?))
+        }
     })
 }
 

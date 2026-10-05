@@ -1389,7 +1389,7 @@ pub struct ExpressionPack {
 
 // The types of values for elements of the expression - boolean and specific-width ints
 // That can correspond to the values of specific clbits, floats and durations
-#[derive(BinWrite, BinRead, Debug)]
+#[derive(BinWrite, BinRead, Clone, Debug)]
 #[brw(big)]
 pub enum ExpressionTypePack {
     #[brw(magic = b'b')]
@@ -1404,7 +1404,7 @@ pub enum ExpressionTypePack {
 
 /// Context-free representation of a classical expression in the QPY wire format.
 /// Circuit references remain encoded as indices or names until the circuit reader resolves them.
-#[derive(BinWrite, BinRead, Debug)]
+#[derive(BinWrite, BinRead, Clone, Debug)]
 #[brw(big)]
 pub enum PackedExpression {
     #[brw(magic = b'x')]
@@ -1433,7 +1433,7 @@ pub enum PackedExpression {
 }
 
 // An expression's var data - either a clbit, a register, or given by a uuid (for a standalone var)
-#[derive(BinWrite, BinRead, Debug)]
+#[derive(BinWrite, BinRead, Clone, Debug)]
 #[brw(big)]
 pub enum ExpressionVarElementPack {
     #[brw(magic = b'C')]
@@ -1447,7 +1447,7 @@ pub enum ExpressionVarElementPack {
 // An expression register data, specifically it's name
 #[binrw]
 #[brw(big)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExpressionVarRegisterPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
@@ -1459,7 +1459,7 @@ pub struct ExpressionVarRegisterPack {
 // The storage for a value of an expression value
 // Note that integers are arbitrary large
 // TODO: this may be consolidated with GenericValue in QPY18?
-#[derive(BinWrite, BinRead, Debug)]
+#[derive(BinWrite, BinRead, Clone, Debug)]
 #[brw(big)]
 pub enum ExpressionValueElementPack {
     #[brw(magic = b'b')]
@@ -1473,7 +1473,7 @@ pub enum ExpressionValueElementPack {
 }
 
 // An enum for the various duration types and their values
-#[derive(BinWrite, BinRead, Debug)]
+#[derive(BinWrite, BinRead, Clone, Debug)]
 #[brw(big)]
 pub enum DurationPack {
     #[brw(magic = b't')] // DT
@@ -1493,7 +1493,7 @@ pub enum DurationPack {
 // A struct for storing arbitrary-length integers, as they are saved in QPY
 #[binrw]
 #[brw(big)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BigIntPack {
     #[bw(calc = bytes.len() as u8)]
     pub num_bytes: u8,

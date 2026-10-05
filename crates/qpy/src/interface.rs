@@ -466,7 +466,9 @@ pub fn native_load_qpy(data: &[u8]) -> Result<Vec<CircuitData>, QpyError> {
 mod tests {
     use super::*;
     use qiskit_circuit::Qubit;
-    use qiskit_circuit::operations::{DelayUnit, OperationRef, Param, StandardInstruction};
+    use qiskit_circuit::operations::{
+        DelayUnit, OperationRef, Param, StandardGate, StandardInstruction,
+    };
     use qiskit_circuit::packed_instruction::PackedOperation;
     use smallvec::smallvec;
 
@@ -529,5 +531,33 @@ mod tests {
 
         // The duration parameter is preserved.
         assert!(matches!(inst.params_view(), [Param::Int(d)] if *d == 13));
+    }
+
+    #[test]
+    fn qpy_v19_standard_gate_parameter_roundtrip() {
+        let version = 19;
+        let circuit = CircuitData::from_packed_operations(
+            1,
+            0,
+            [Ok((
+                PackedOperation::from_standard_gate(StandardGate::RX),
+                smallvec![Param::Float(0.25)],
+                vec![Qubit(0)],
+                Vec::new(),
+            ))],
+            0.0.into(),
+        )
+        .unwrap();
+
+        let extra = native_extra_data(&circuit, "v19_parameter_circuit", version);
+        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None).unwrap();
+        let instruction = &loaded[0].circuit_data.data()[0];
+
+        assert!(matches!(
+            instruction.op.view(),
+            OperationRef::StandardGate(StandardGate::RX)
+        ));
+        assert!(matches!(instruction.params_view(), [Param::Float(value)] if *value == 0.25));
     }
 }
