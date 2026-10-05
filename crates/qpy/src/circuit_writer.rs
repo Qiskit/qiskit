@@ -49,11 +49,14 @@ use crate::bytes::Bytes;
 use crate::error::QpyError;
 use crate::formats;
 use crate::interface::ExtraCircuitData;
-use crate::params::pack_param_obj;
+use crate::params::{
+    pack_param_obj, pack_parameter_expression, pack_parameter_vector, pack_symbol,
+};
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
     STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name, py_convert_to_generic_value,
-    py_pack_param, py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
+    py_pack_modifier, py_pack_param, py_pack_pauli_evolution_gate, recognize_custom_operation,
+    serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
@@ -63,6 +66,107 @@ use crate::value::{
 };
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
+
+fn generic_value_to_param_data_pack(
+    value: &GenericValue,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::ParamDataPack, QpyError> {
+    Ok(match value {
+        GenericValue::Bool(value) => formats::ParamDataPack::Bool(*value as u8),
+        GenericValue::Int64(value) => formats::ParamDataPack::Int64(*value),
+        GenericValue::BigInt(value) => formats::ParamDataPack::BigInt(value.clone()),
+        GenericValue::Float64(value) => formats::ParamDataPack::Float64(*value),
+        GenericValue::Complex64(value) => formats::ParamDataPack::Complex64(*value),
+        GenericValue::CaseDefault => formats::ParamDataPack::CaseDefault,
+        GenericValue::Range(value) => formats::ParamDataPack::Range(
+            i64::try_from(value.start).map_err(|_| {
+                QpyError::InvalidParameter("range start does not fit in i64".to_string())
+            })?,
+            i64::try_from(value.stop).map_err(|_| {
+                QpyError::InvalidParameter("range stop does not fit in i64".to_string())
+            })?,
+            i64::try_from(value.step.get()).map_err(|_| {
+                QpyError::InvalidParameter("range step does not fit in i64".to_string())
+            })?,
+        ),
+        GenericValue::NumpyObject(data) => {
+            formats::ParamDataPack::NumpyObject { data: data.clone() }
+        }
+        GenericValue::Tuple(values) => formats::ParamDataPack::Tuple {
+            elements: values
+                .iter()
+                .map(|value| generic_value_to_param_data_pack(value, qpy_data))
+                .collect::<Result<_, _>>()?,
+        },
+        GenericValue::ParameterExpressionSymbol(symbol) => {
+            formats::ParamDataPack::Parameter(pack_symbol(symbol))
+        }
+        GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+            formats::ParamDataPack::ParameterVectorElement(pack_parameter_vector(symbol, qpy_data)?)
+        }
+        GenericValue::ParameterExpression(expression) => {
+            formats::ParamDataPack::ParameterExpression(pack_parameter_expression(
+                expression, qpy_data,
+            )?)
+        }
+        GenericValue::String(value) => formats::ParamDataPack::String(StringU16Pack {
+            value: value.clone(),
+        }),
+        GenericValue::Null => formats::ParamDataPack::Null,
+        GenericValue::Expression(expression) => {
+            formats::ParamDataPack::Expression(formats::ExpressionPack {
+                expression: crate::expr::pack_expression(expression, qpy_data)?,
+            })
+        }
+        GenericValue::Modifier(modifier) => formats::ParamDataPack::Modifier(
+            qpy_data
+                .caller
+                .attach("pack modifier", |py| py_pack_modifier(py, modifier))?,
+        ),
+        GenericValue::CircuitData(circuit_data) => {
+            let layout = serialize(&pack_layout(None, circuit_data, qpy_data.version)?)?;
+            formats::ParamDataPack::Circuit(pack_circuit(
+                circuit_data,
+                ExtraCircuitData {
+                    name: None,
+                    metadata: "{}".into(),
+                    layout,
+                },
+                qpy_data.version,
+                qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
+            )?)
+        }
+        GenericValue::Duration(_) => {
+            return Err(QpyError::ConversionError(
+                "QPY 19 ParamDataPack does not yet define a duration variant".to_string(),
+            ));
+        }
+        GenericValue::Register(_) => {
+            return Err(QpyError::ConversionError(
+                "QPY 19 ParamDataPack does not yet define a register variant".to_string(),
+            ));
+        }
+    })
+}
+
+fn pack_param_v19(
+    param: &Param,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::ParamDataPack, QpyError> {
+    match param {
+        Param::Int(value) => Ok(formats::ParamDataPack::Int64(*value)),
+        Param::Float(value) => Ok(formats::ParamDataPack::Float64(*value)),
+        Param::ParameterExpression(expression) => generic_value_to_param_data_pack(
+            &GenericValue::from_parameter_expression(expression),
+            qpy_data,
+        ),
+        Param::Obj(value) => qpy_data.caller.attach("Python parameter", |py| {
+            let value = py_convert_to_generic_value(value.bind(py))?;
+            generic_value_to_param_data_pack(&value, qpy_data)
+        }),
+    }
+}
 
 /// packing the qubits and clbits of a specific instruction into CircuitInstructionArgPack
 fn get_packed_bit_list(
@@ -180,11 +284,11 @@ fn pack_instructions_19(
             ),
         };
 
-        let params = legacy
-            .params
-            .into_iter()
-            .map(|_| formats::ParamDataPack {})
-            .collect();
+        let params = instruction
+            .params_view()
+            .iter()
+            .map(|param| pack_param_v19(param, qpy_data))
+            .collect::<Result<_, _>>()?;
         let label = (!legacy.label.is_empty()).then_some(StringU16Pack {
             value: legacy.label,
         });

@@ -73,6 +73,7 @@ pub struct QPYCircuit {
     pub parameter_vectors: Option<ParameterVectorTablePack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
     #[br(count = header.num_instructions(), args { inner: (version, true,) })]
+    #[bw(args(version))]
     pub instructions: Vec<CircuitInstructionPack>,
     #[brw(if(version < 18), args(version,))]
     pub calibrations: Option<CalibrationsPack>,
@@ -224,18 +225,24 @@ pub enum RegisterPack {
 #[binrw]
 #[derive(Debug)]
 #[br(import (version: u8, read_bits: bool))]
+#[bw(import(version: u8))]
 pub enum CircuitInstructionPack {
     #[br(pre_assert(version <= 18))]
     V2(#[br(args(read_bits))] CircuitInstructionV2Pack),
 
     #[br(pre_assert(version >= 19))]
-    V19(CircuitInstructionV19Pack),
+    V19(
+        #[br(args(version))]
+        #[bw(args(version))]
+        CircuitInstructionV19Pack,
+    ),
 }
 
 // The data for a specific instruction in the circuit, for QPY version 19 and higher
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub struct CircuitInstructionV19Pack {
     pub operation: CircuitOperationType,
     // Interner index
@@ -250,7 +257,8 @@ pub struct CircuitInstructionV19Pack {
     // or dynamic in the body)
     #[bw(calc = params.len() as u16)]
     pub num_parameters: u16,
-    #[br(count = num_parameters as usize)]
+    #[br(count = num_parameters as usize, args { inner: (version,) })]
+    #[bw(args(version))]
     pub params: Vec<ParamDataPack>,
 
     // Whether the following optional fields are present.
@@ -347,6 +355,7 @@ fn encode_optional_delay_unit(unit: &Option<DelayUnit>) -> Option<u8> {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub enum ParamDataPack {
     #[brw(magic = b'b')]
     Bool(u8), // TODO: make this an actual boolean
@@ -386,16 +395,22 @@ pub enum ParamDataPack {
     }, // this should be avoided if possible
 
     #[brw(magic = b'T')]
-    Tuple, // TODO: implement this
+    Tuple {
+        #[bw(calc = elements.len() as u64)]
+        num_elements: u64,
+        #[br(count = num_elements, args { inner: (version,) })]
+        #[bw(args(version))]
+        elements: Vec<ParamDataPack>,
+    },
 
     #[brw(magic = b'p')]
     Parameter(ParameterSymbolPack),
 
     #[brw(magic = b'v')]
-    ParameterVectorElement(ParameterVectorElementPack),
+    ParameterVectorElement(#[brw(args(version))] ParameterVectorElementPack),
 
     #[brw(magic = b'e')]
-    ParameterExpression(ParameterExpressionPack),
+    ParameterExpression(#[brw(args(version))] ParameterExpressionPack),
 
     #[brw(magic = b's')]
     String(StringU16Pack),
@@ -410,7 +425,7 @@ pub enum ParamDataPack {
     Modifier(ModifierPack),
 
     #[brw(magic = b'q')]
-    Circuit(QPYCircuit),
+    Circuit(#[brw(args(version))] QPYCircuit),
 }
 
 #[binrw]
