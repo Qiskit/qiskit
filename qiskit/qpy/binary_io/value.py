@@ -505,7 +505,7 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
 
     payload = file_obj.read(data.expr_size)
     if use_symengine:
-        sympy_str = common.load_symengine_payload(payload)
+        expr_ = common.load_symengine_payload(payload)
     else:
         sympy_str = payload.decode(common.ENCODE)
 
@@ -546,8 +546,11 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         name_map[symbol.name] = value
-    expr_ = parse_sympy_repr(sympy_str, name_map)
-    return expr_
+    if use_symengine:
+        return ParameterExpression(name_map, str(expr_))
+    else:
+        expr_ = parse_sympy_repr(sympy_str, name_map)
+        return expr_
 
 
 def _read_parameter_expression_v13(file_obj, vectors, version):

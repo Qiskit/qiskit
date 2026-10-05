@@ -19,7 +19,7 @@ import io
 import struct
 import uuid
 
-from qiskit.utils.optionals import HAS_SYMENGINE, HAS_SYMPY
+from qiskit.utils.optionals import HAS_SYMENGINE
 
 from qiskit.qpy import formats, exceptions
 
@@ -320,7 +320,6 @@ def mapping_from_binary(binary_data, deserializer, **kwargs):
 
 
 @HAS_SYMENGINE.require_in_call("QPY versions 10 through 12 with symengine parameter serialization")
-@HAS_SYMPY.require_in_call("QPY versions 10 through 12 with symengine parameter serialization")
 def load_symengine_payload(payload: bytes):
     """Load a symengine expression from it's serialized cereal payload."""
     # This is a horrible hack to workaround the symengine version checking
@@ -332,7 +331,6 @@ def load_symengine_payload(payload: bytes):
     from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
         load_basic,
     )
-    import sympy
 
     symengine_version = symengine.__version__.split(".")
     major = payload[2]
@@ -363,4 +361,4 @@ def load_symengine_payload(payload: bytes):
         payload = bytearray(payload)
         payload[3] = minor_version
         payload = bytes(payload)
-    return sympy.srepr(sympy.sympify(load_basic(payload)))
+    return load_basic(payload)
