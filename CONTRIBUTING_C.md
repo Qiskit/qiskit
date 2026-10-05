@@ -1,41 +1,98 @@
-# C API Guidelines
+# Contributing: C API
 
-This document serves as a starting point for the C API contributing guidelines. All sections
-are open for changes and discussion.
+TODO: What is the C API for?
 
-## ABI Stability
+1. Python Extensions
+2. HPC
+3. language-agnostic API
 
-### Memory Layout & Transparency
+***
 
-Model parity will naturally gravitate towards opaqueness. As a rule of thumb, use opaque,
-`repr(Rust)` types when the model defines invariant(s) or special behavior. Use transparent,
-`repr(C)` types for "plain, old structs" without behavior. As with any rule of thumb, there are
-exceptions, particularly for performance critical scenarios. Such exceptions should be proven
-necessary with measurements.
+## Tutorial
 
-**Example: Transparent Types**
+TODO: Write step-by-step instructions, including any boilerplate:
 
-```c
-struct qk_duration {
-  uint64_t time;
-  enum qk_duration_unit unit;
-} 
-```
+1. Exposing an opaque structure.
+2. Writing `extern "C"` functions.
+3. Extending `ExitCode` with message.
 
-```c
-struct qk_circuit_array {
-  QkCircuit **data;
-  size_t len;
+***
+
+## Guidelines
+
+### Structures
+
+There are 2 ways we can define a `struct` in a C header file. Firstly, we can fully define the
+`struct`, meaning callers can access its members and allocate it themselves. These structures are
+called **transparent**. Secondly, we can forward-declare the `struct` without defining it. Since
+the actual definition lives in the source code, callers *cannot* access its members or allocate it
+themselves. These structures are called **opaque**. The second strategy is especially useful for us
+because C cannot reason about the internal layout of Rust types. `cbindgen` will generate a
+transparent definition for anything `repr(C)`. In all other cases, except fixed-width `enum` types,
+an opaque definition will be generated.
+
+**Example: Opaque Structures**
+
+```rust
+pub struct Qubit {
+    a: Complex64, 
+    b: Complex64,
 }
 ```
 
-### Fixed-width Enums
+*Note that `repr(Rust)` is implicit.*
 
-`repr(C)` guarentees a fixed width for enums, normally `sizeof(int)`. The
-[Rustonomicon](https://doc.rust-lang.org/nomicon/other-reprs.html?highlight=bindgen#reprc)
-states that `repr(C)` is correct for *any type* passed through the FFI boundary. `cbindgen`
-will correctly handle `repr(u*)` with a `typedef`, but `repr(C)` better explains intent.
- 
+**Example: Transparent Structures**
+
+```rust
+#[repr(C)]
+pub struct QubitArray {
+    pub data: **mut Qubit,
+    pub len: usize,
+}
+```
+
+*The `pub` keyword has no affect across FFI. Though, it's best practice to include `pub` for
+documentation purposes.*
+
+### Enumerations
+
+In short, C enumerations are named integer constants, and nothing more. `cbindgen` handles
+flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts. Explicitly assigning integer values
+will discourage accidental breaking changes.
+
+**Example: Enumerations**
+
+```rust
+#[repr(C)]
+pub enum QubitType {
+    Physical = 0,
+    Logical = 1,
+}
+```
+
+**Debate: Fixed-width Layout**
+
+There are several points to consider surrounding the fixed-width `enum` debate:
+
+1. `qiskit.h` already defines fixed-width layout for `enum` types.
+
+2. The [Rustonomicon](https://doc.rust-lang.org/nomicon/other-reprs.html?highlight=bindgen#reprc)
+states that `repr(C)` is the correct layout for any type passed through the FFI boundary.
+
+3. The C standard, and thus `repr(C)`, guarentees that enumeration *constants* have `sizeof(int)`
+width. For example, if `enum t` defines `T_UNKNOWN`, then `sizeof(T_UNKNOWN)` and `sizeof(int)` are
+equal. `sizeof(enum t)` is implementation defined. However, on modern Linux, Mac, and Windows,
+`sizeof(enum t)` and `sizeof(int)` are equal nonetheless. 
+
+4. `cbindgen` handles `repr(u*)` by generating a fixed-width integer `typedef` with the same name
+as the `enum` type, bloating the header file.
+
+Because `libqiskit` is user-space, applications library, `repr(C)` is likely the most maintainable
+and semantically correct layout for `enum`. If we ultimately stick with fixed-width, developers
+should use `repr(u32)` because it aligns most closely with the compiler and platform defaults for
+C enumerations.
+
 ### Platform-specific Features
 
 Avoid compiler and platform dependent features. Users could be targeting multiple platforms. For
@@ -85,6 +142,8 @@ Changes **prohibited** without incrementing the major version:
 - tightening preconditions
 - changing function signatures
 - adding `const` to function signatures (breaks function pointers)
+
+TODO: What should we do about existing API that strays from these guidelines?
 
 ## General
 
