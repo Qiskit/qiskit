@@ -27,7 +27,8 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(105, &dag::FUNCTIONS)
         .add_child(205, &param::FUNCTIONS)
         .add_child(255, &circuit_library::FUNCTIONS)
-        .add_child(305, &classical_expr::FUNCTIONS);
+        .add_child(305, &classical_expr::FUNCTIONS)
+        .add_child(380, &operations::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
@@ -45,6 +46,7 @@ pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
     ]
 });
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
+pub static FUNCTIONS_MIR: ExportedFunctions = ExportedFunctions::empty();
 
 // Below this line is close to a mirror of the actual `cext` structure.  Ideally, all of the
 // above exports would be locally within `cext` itself, but that has problems with needing to
@@ -157,6 +159,7 @@ mod circuit {
             export_fn!(qk_circuit_view_instruction),
             export_fn!(qk_circuit_delay_dt),
             export_fn!(qk_circuit_delay_unit),
+            export_fn!(qk_circuit_custom_operation),
         ]
     });
 }
@@ -230,6 +233,7 @@ mod dag {
             export_fn!(qk_dag_global_phase),
             export_fn!(qk_dag_set_global_phase),
             export_fn!(qk_dag_view_instruction),
+            export_fn!(qk_dag_apply_custom_operation),
         ]
     });
 }
@@ -270,6 +274,21 @@ mod param {
             export_fn!(qk_param_stride),
             export_fn!(qk_param_as_int),
             export_fn!(qk_param_kind),
+        ]
+    });
+}
+
+mod operations {
+    use crate::impl_::prelude::*;
+    #[cfg(feature = "addr")]
+    use qiskit_cext::operations::*;
+
+    pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
+        vec![
+            export_fn!(qk_custom_operation_vtable_new),
+            export_fn!(qk_custom_operation_vtable_free),
+            export_fn!(qk_custom_operation_new),
+            export_fn!(qk_custom_operation_free),
         ]
     });
 }

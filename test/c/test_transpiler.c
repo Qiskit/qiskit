@@ -278,6 +278,7 @@ int test_init_stage_empty(void) {
 cleanup:
     qk_target_free(target);
     qk_dag_free(dag);
+    qk_quantum_register_free(qr);
     qk_transpile_state_free(*state);
     free(state);
     return result;
@@ -320,6 +321,7 @@ int test_layout_stage_empty(void) {
 cleanup:
     qk_target_free(target);
     qk_dag_free(dag);
+    qk_quantum_register_free(qr);
     qk_transpile_state_free(*state);
     free(state);
     return result;
@@ -370,6 +372,7 @@ int test_routing_stage_empty(void) {
 cleanup:
     qk_target_free(target);
     qk_dag_free(dag);
+    qk_quantum_register_free(qr);
     qk_transpile_state_free(*state);
     free(state);
     return result;
@@ -402,6 +405,7 @@ int test_translation_stage_empty(void) {
     }
 cleanup:
     qk_target_free(target);
+    qk_quantum_register_free(qr);
     qk_dag_free(dag);
     return result;
 }
@@ -446,6 +450,7 @@ cleanup:
     qk_transpile_state_free(*state);
     free(state);
     qk_target_free(target);
+    qk_quantum_register_free(qr);
     qk_dag_free(dag);
     return result;
 }

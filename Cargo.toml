@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "2.6.0-dev"
+version = "2.7.0-dev"
 edition = "2024"
 # Keep `rust-version` in sync with `README.md` and `rust-toolchain.toml`.
 rust-version = "1.89"
@@ -64,6 +64,7 @@ qiskit-cext = { path = "crates/cext" }
 qiskit-cext-vtable = { path = "crates/cext-vtable" }
 qiskit-circuit = { path = "crates/circuit" }
 qiskit-circuit-library = { path = "crates/circuit_library" }
+qiskit-mir = { path = "crates/mir" }
 qiskit-passmanager = { path = "crates/passmanager" }
 qiskit-providers = { path = "crates/providers" }
 qiskit-qasm2 = { path = "crates/qasm2" }

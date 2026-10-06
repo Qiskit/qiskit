@@ -34,6 +34,7 @@ Transpilation:
 
    converters
    dagcircuit
+   mir
    passmanager
    synthesis
    qiskit.synthesis.unitary.aqc
