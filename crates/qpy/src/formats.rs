@@ -422,7 +422,7 @@ pub enum ParamDataPack {
         Complex64,
     ),
 
-    #[brw(magic = b'd')]
+    #[brw(magic = b'D')]
     CaseDefault,
 
     #[brw(magic = b'r')]
@@ -466,8 +466,30 @@ pub enum ParamDataPack {
     #[brw(magic = b'm')]
     Modifier(ModifierPack),
 
+    #[brw(magic = b'd')]
+    Duration(DurationPack),
+
+    #[brw(magic = b'R')]
+    Register(ParamDataRegisterPack),
+
     #[brw(magic = b'q')]
     Circuit(#[brw(args(version))] Box<QPYCircuit>),
+}
+
+/// A register-valued instruction parameter in QPY 19 and newer.
+///
+/// Unlike [`ParamRegisterPack`], this is self-delimiting because a [`ParamDataPack`] does not
+/// carry a payload length.  Register names therefore use [`StringU16Pack`], while clbits retain
+/// the compact circuit-local index used by the legacy representation.
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum ParamDataRegisterPack {
+    #[brw(magic = 1u8)]
+    Register(StringU16Pack),
+
+    #[brw(magic = 0u8)]
+    Clbit(u32),
 }
 
 #[binrw]

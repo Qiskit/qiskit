@@ -2017,6 +2017,17 @@ fn unpack_param_data_v19(
                 .caller
                 .attach("unpack modifier", |py| py_unpack_modifier(py, value))?,
         ),
+        formats::ParamDataPack::Duration(value) => {
+            GenericValue::Duration(unpack_duration(value.clone()))
+        }
+        formats::ParamDataPack::Register(value) => GenericValue::Register(match value {
+            formats::ParamDataRegisterPack::Register(name) => {
+                ParamRegisterValue::Register(creg_by_name(&name.value, qpy_data)?)
+            }
+            formats::ParamDataRegisterPack::Clbit(index) => {
+                ParamRegisterValue::ShareableClbit(clbit_at(*index, qpy_data)?)
+            }
+        }),
         formats::ParamDataPack::Circuit(value) => {
             GenericValue::CircuitData(Box::new(unpack_circuit(
                 value,

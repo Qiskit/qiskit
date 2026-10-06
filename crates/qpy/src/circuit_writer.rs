@@ -140,16 +140,19 @@ fn generic_value_to_param_data_pack(
                 qpy_data.caller,
             )?))
         }
-        GenericValue::Duration(_) => {
-            return Err(QpyError::ConversionError(
-                "QPY 19 ParamDataPack does not yet define a duration variant".to_string(),
-            ));
+        GenericValue::Duration(duration) => {
+            formats::ParamDataPack::Duration(pack_duration(duration))
         }
-        GenericValue::Register(_) => {
-            return Err(QpyError::ConversionError(
-                "QPY 19 ParamDataPack does not yet define a register variant".to_string(),
-            ));
-        }
+        GenericValue::Register(register) => formats::ParamDataPack::Register(match register {
+            ParamRegisterValue::Register(register) => {
+                formats::ParamDataRegisterPack::Register(StringU16Pack {
+                    value: register.name().to_string(),
+                })
+            }
+            ParamRegisterValue::ShareableClbit(clbit) => {
+                formats::ParamDataRegisterPack::Clbit(clbit_index(clbit, qpy_data)?)
+            }
+        }),
     })
 }
 
@@ -2047,9 +2050,6 @@ fn pack_circuit_v19(
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,
 ) -> Result<formats::QPYCircuit, QpyError> {
-    // TODO(QPY19): Build CircuitHeaderPack::V19 and its bit interners, then encode instructions as
-    // CircuitInstructionPack::V19 once the placeholder QPY 19 operation-data formats are defined.
-
     let mut qpy_data = QPYWriteData {
         caller,
         circuit_data,

@@ -87,7 +87,7 @@ const fn parse_version() -> (u8, u8, u8) {
 }
 
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
-const QPY_VERSION: u8 = 18;
+const QPY_VERSION: u8 = 19;
 
 /// Serializes native circuits into a complete binary QPY payload.
 /// # Arguments
