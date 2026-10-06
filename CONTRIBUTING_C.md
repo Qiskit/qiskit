@@ -1,12 +1,11 @@
 # Contributing: C API
 
-TODO: What is the C API for?
+The C API is designed for...
 
-1. Python Extensions
-2. HPC
-3. language-agnostic API
-
-***
+- python extension modules written in C.
+- wrapper libraries like [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
+  [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
+- high-performance computing workloads.
 
 ## Tutorial
 
@@ -15,8 +14,6 @@ TODO: Write step-by-step instructions, including any boilerplate:
 1. Exposing an opaque structure.
 2. Writing `extern "C"` functions.
 3. Extending `ExitCode` with message.
-
-***
 
 ## Guidelines
 
@@ -31,9 +28,9 @@ when the layout is `repr(C)` and opaque structures for other layouts.
 
 Use opaque structures when...
 
-1. runtime invariant(s) need enforcement.
-2. complex behavior needs encapsulation.
-3. fields are likely to change.
+- runtime invariant(s) need enforcement.
+- complex behavior needs encapsulation.
+- fields are likely to change.
 
 ```rust
 pub struct Qubit {
@@ -46,8 +43,8 @@ pub struct Qubit {
 
 Use transparent structures when...
 
-1. dealing with plain, old data without complex behavior.
-2. fields are unlikely to change.
+- dealing with plain data without complex behavior.
+- fields are unlikely to change.
 
 ```rust
 #[repr(C)]
@@ -64,7 +61,9 @@ documentation purposes.*
 
 In short, C enumerations are named integer constants, and nothing more. `cbindgen` creates mappings
 from flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts. In Qiskit, we use `repr(u*)`
-fixed-width enumerations to maintain consistency across compilers.
+fixed-width enumerations to maintain consistency across compilers. Because
+`sizeof(enum t) == sizeof(int)` is the common case on modern platforms, reach for `repr(u32)`
+first.
 
 ```rust
 #[repr(u32)]
@@ -75,14 +74,22 @@ pub enum QubitType {
 }
 ```
 
-*Assign integer values explicitly to discourage breaking changes.*
-
-*Because `sizeof(enum t) == sizeof(int)` is the common case on modern platforms, reach for
-`repr(u32)` first.*
+*Explicit integer values discourage accidental breaking changes.*
 
 ### Error Handling
 
-Choose a sentinel value when the function fails trivially.
+Choose a sentinel value when the function fails trivially. The correct sentinel value, if any, is
+domain dependent. `-1` and `0` are poor sentinels if the values have additional meaning. `-1`
+works for functions that return an array index. While rare, `0` works if the underlying domain
+value is `NonZeroU32`. Loose integer conversions are idiomatic in C, so prefer returning signed
+integer types like `int32_t` and `ptrdiff_t` when the domain value is unsigned and small. Note that
+`NAN` is problematic because `NAN != NAN`.
+
+| Type           | Sentinel    |
+| -------------- | ----------- |
+| `T *`          | `NULL`      |
+| `enum t`       | `T_UNKNOWN` |
+| `int32_t`      | `-1`        |
 
 ```rust
 #[unsafe(no_mangle)]
@@ -96,24 +103,8 @@ extern "C" fn qk_qubit_type(qubit: *const Qubit) -> QubitType {
 }
 ```
 
-| Type           | Sentinel    |
-| -------------- | ----------- |
-| `T *`          | `NULL`      |
-| `enum t`       | `T_UNKNOWN` |
-| `int32_t`      | `-1`        |
-| `uint32_t`     | `0`         |
-
-*`-1` and `0` are poor sentinels if the values have additional meaning. For example, `-1` works
-for functions that return an array index. While rare, `0` works if the underlying domain value
-could be `NonZeroU32`.*
-
-*Loose integer conversions are idiomatic in C. Prefer returning signed integer types like `int32_t`
-and `ptrdiff_t` when the domain value is small and unsigned. Use `INT_MAX` when domain values are
-likely to exceed the signed integer maximum.*
-
-*`NAN` is problematic because `NAN != NAN`.*
-
-Return `ExitCode` for non-trivial functions with multiple failure points.
+Return `ExitCode` for non-trivial functions with multiple failure points. These functions often
+write to an `out` parameter for the success case.
 
 ```rust
 #[unsafe(no_mangle)]
@@ -128,11 +119,10 @@ extern "C" fn qk_qubit_new(
 
     match Qubit::new(*a, *b) {
         Ok(qubit) => {
-            let qubit = Box::new(qubit);
-            out.write(Box::into_raw(qubit));
+            out.write(Box::new(qubit).into_raw());
             ExitCode::Success
         },
-        Err(QubitError::QubitSum) => {
+        Err(QubitError::Sum) => {
             ExitCode::QubitSum
         },
         Err(_) => {
@@ -142,9 +132,7 @@ extern "C" fn qk_qubit_new(
 }
 ```
 
-*Non-trivial functions often write to an `out` parameter for the success case.*
-
-Create static, human-readable error messages for new variants.
+Create static, human-readable error messages for `ExitCode` variants.
 
 ```rust
 #[unsafe(no_mangle)]
@@ -160,77 +148,31 @@ extern "C" fn qk_exit_code_str(code: ExitCode) -> *const c_char {
 }
 ```
 
-### Platform-specific Features
-
-Avoid compiler and platform dependent features. Users could be targeting multiple platforms. For
-example, `__int128_t` and `_Complex double` could be relevant to Qiskit, but those types are only
-available in GCC. Converging on a particular minimum C standard helps mitigate this problem. For
-example, C99 offers platform independent complex numbers in `complex.h`.
-
-### Memory Management
-
-Memory allocated by Qiskit should be free'd by Qiskit, including plain arrays and strings. For
-example, `qiskit.h` provides `qk_str_free` for leaked `CString` pointers. Future APIs might need
-ownership of some caller allocated memory. In that case, we could introduce `qk_malloc` and
-`qk_free` functions that use the same allocator as Qiskit.
-
-### Python Extensions
-
-Extension developers should be able to extract C API native pointers from a `PyObject *`. In
-sequential programming contexts, no more than one thread will access the native pointer at a given
-instant. This is true for both GIL and free-threaded Python. A simple function that returns a raw
-pointer into the data model should be sufficient.
-
-*\* See [this PR](https://github.com/Qiskit/qiskit/pull/17011) for details.*
-
-### VTables
-
-This section requires further team discussion.
-
 ### Versioning & Backwards Compatibility
 
-C and Python share the same version number, following the [SemVer](https://semver.org/)
-specification. Breaking changes are prohibited without incrementing the major version number.
+C and Python share the same version number, following [SemVer](https://semver.org/). Breaking
+changes are prohibited without incrementing the major version number.
 
-Changes **allowed** without incrementing the major version:
+Compatible changes include...
 
-- creating public functions, types, macros, constants, or headers
-- adding enum variants without changing integer values
-- adding bit flags without changing the meaning of existing bits
-- changing size and layout of opaque structs
-- changing size and layout of transparent structs with a size and version field
-- relaxing preconditions
-- bug fixes to bring behavior in line with documentation
+- creating public functions, types, macros, constants, and headers.
+- adding enum variant(s) without changing integer values.
+- adding bit flags without changing the previous meanings.
+- changing the size and layout of opaque structs.
+- relaxing preconditions.
+- fixing bugs that bring behavior in line with the documentation.
 
-Changes **prohibited** without incrementing the major version:
+Breaking changes include...
 
-- removing or renaming public functions, types, macros, constants, or headers
-- changing transparent struct fields
-- tightening preconditions
-- changing function signatures
-- adding `const` to function signatures (breaks function pointers)
+- removing or renaming public functions, types, macros, constants, and headers.
+- changing transparent struct fields.
+- tightening preconditions.
+- changing function signatures (including `const`-ness changes).
 
-TODO: What should we do about existing API that strays from these guidelines?
-
-## General
-
-### Target Audience
-
-This section requires further team discussion.
-
-### Ownership Model
-
-This section requires further team discussion.
-
-### Naming Standards
-
-Case conventions are enforced by `clippy` and `cbindgen`.
-
-#### Functions
+### Naming Conventions
 
 Function names centered around types follow the `qk_<type>_<verb>` format. 
 
-**Example: Typed Functions**
 - `qk_obs_new`
 - `qk_obs_compose`
 - `qk_circuit_add_register`
@@ -238,16 +180,32 @@ Function names centered around types follow the `qk_<type>_<verb>` format.
 
 Plain function names are more flexible.
 
-**Example: Plain Functions**
-- `qk_malloc`
-- `qk_free`
-- `qk_strdup`
+- `qk_foo`
+- `qk_str_free`
 
-### Thread-safety
 
-This section requires further team discussion.
+## Additional Topics
 
-### Documentation
+### Platform-specific Features
 
-This section requires further team discussion.
+It's best practice to avoid compiler and platform dependent features because callers could be
+targeting multiple platforms. For example, `__int128_t` and `_Complex double` are potentially
+relevant in the quantum domain, but those types are only available in GCC. In this case, we would
+be better off using the platform independent complex number utilities defined in `complex.h` since
+C99. 
+
+### Memory Management
+
+Memory allocated by Qiskit should be free'd by Qiskit, including plain arrays and strings.
+`qiskit.h` provides `qk_str_free` for leaked `CString` pointers. 
+
+### Python Extensions
+
+This section needs some more thought. Qiskit provides functions for extracting a C-native pointer
+from a `PyObject *`. The working theory is that, in sequential programming contexts, only 1 thread
+will access the pointer at a given instant. We assume this is true for both GIL-attached and free-
+threaded Python. Thus, a simple function that, given a `PyObject *`, returns a pointer into the
+data model should be sufficient.
+
+*See [this PR](https://github.com/Qiskit/qiskit/pull/17011) for details.*
 
