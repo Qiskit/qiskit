@@ -128,7 +128,7 @@ fn generic_value_to_param_data_pack(
         ),
         GenericValue::CircuitData(circuit_data) => {
             let layout = serialize(&pack_layout(None, circuit_data, qpy_data.version)?)?;
-            formats::ParamDataPack::Circuit(pack_circuit(
+            formats::ParamDataPack::Circuit(Box::new(pack_circuit(
                 circuit_data,
                 ExtraCircuitData {
                     name: None,
@@ -138,7 +138,7 @@ fn generic_value_to_param_data_pack(
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
-            )?)
+            )?))
         }
         GenericValue::Duration(_) => {
             return Err(QpyError::ConversionError(
@@ -464,7 +464,7 @@ fn pack_instructions_v19(
 fn standard_instruction_operation_data(inst: &StandardInstruction) -> formats::OperationData {
     let (inst_type, delay_unit) = match inst {
         StandardInstruction::Barrier(_) => (StandardInstructionType::Barrier, None),
-        StandardInstruction::Delay(unit) => (StandardInstructionType::Delay, Some(unit.clone())),
+        StandardInstruction::Delay(unit) => (StandardInstructionType::Delay, Some(*unit)),
         StandardInstruction::Measure => (StandardInstructionType::Measure, None),
         StandardInstruction::Reset => (StandardInstructionType::Reset, None),
     };
@@ -1365,7 +1365,14 @@ fn pack_interners(
             1 => formats::InternerEntry::Single(bits[0].0),
             2 => formats::InternerEntry::Double(bits[0].0, bits[1].0),
             3 => formats::InternerEntry::Triple(bits[0].0, bits[1].0, bits[2].0),
-            val if val == qpy_data.circuit_data.num_qubits() => formats::InternerEntry::All,
+            val if val == qpy_data.circuit_data.num_qubits()
+                && bits
+                    .iter()
+                    .enumerate()
+                    .all(|(index, bit)| bit.0 as usize == index) =>
+            {
+                formats::InternerEntry::All
+            }
             _ => formats::InternerEntry::VariableSize {
                 bits: bits.iter().map(|bit| bit.0).collect(),
             },
@@ -1380,7 +1387,14 @@ fn pack_interners(
             1 => formats::InternerEntry::Single(bits[0].0),
             2 => formats::InternerEntry::Double(bits[0].0, bits[1].0),
             3 => formats::InternerEntry::Triple(bits[0].0, bits[1].0, bits[2].0),
-            val if val == qpy_data.circuit_data.num_clbits() => formats::InternerEntry::All,
+            val if val == qpy_data.circuit_data.num_clbits()
+                && bits
+                    .iter()
+                    .enumerate()
+                    .all(|(index, bit)| bit.0 as usize == index) =>
+            {
+                formats::InternerEntry::All
+            }
             _ => formats::InternerEntry::VariableSize {
                 bits: bits.iter().map(|bit| bit.0).collect(),
             },

@@ -431,7 +431,7 @@ pub enum ParamDataPack {
     Modifier(ModifierPack),
 
     #[brw(magic = b'q')]
-    Circuit(#[brw(args(version))] QPYCircuit),
+    Circuit(#[brw(args(version))] Box<QPYCircuit>),
 }
 
 #[binrw]

@@ -566,10 +566,11 @@ mod tests {
     #[test]
     fn qpy_v19_control_flow_blocks_roundtrip() {
         let version = 19;
-        let body = CircuitData::with_capacity(1, 0, 0, Param::Float(0.0)).unwrap();
-        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0)).unwrap();
+        let body = CircuitData::with_capacity(3, 0, 0, Param::Float(0.0)).unwrap();
+        let mut circuit = CircuitData::with_capacity(3, 0, 1, Param::Float(0.0)).unwrap();
         let block = circuit.add_block(body);
-        let qargs = circuit.add_qargs(&[Qubit(0)]);
+        // A full-width argument list is not necessarily the canonical all-qubits ordering.
+        let qargs = circuit.add_qargs(&[Qubit(2), Qubit(0), Qubit(1)]);
         circuit
             .push(PackedInstruction::from_control_flow(
                 ControlFlowInstruction {
@@ -577,7 +578,7 @@ mod tests {
                         duration: None,
                         annotations: Vec::new(),
                     },
-                    num_qubits: 1,
+                    num_qubits: 3,
                     num_clbits: 0,
                 },
                 vec![block],
@@ -592,6 +593,10 @@ mod tests {
         let loaded = load_qpy(&payload, None, None).unwrap();
         let loaded_circuit = &loaded[0].circuit_data;
         let instruction = &loaded_circuit.data()[0];
+        assert_eq!(
+            loaded_circuit.get_qargs(instruction.qubits),
+            &[Qubit(2), Qubit(0), Qubit(1)]
+        );
 
         assert!(matches!(
             instruction.op.view(),
