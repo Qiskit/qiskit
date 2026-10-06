@@ -136,7 +136,11 @@ Return `ExitCode` for non-trivial functions with multiple failure points.
 
 ```rust
 #[no_mangle]
-extern "C" fn qk_qubit_new(a: Complex64, b: Complex64, out: *mut *mut Qubit) -> ExitCode {
+extern "C" fn qk_qubit_new(
+    a: *const Complex64,
+    b: *const Complex64,
+    out: *mut *mut Qubit
+) -> ExitCode {
     if out.is_null() {
         return ExitCode::NullPointerError;
     }
