@@ -55,6 +55,7 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::error::QpyError;
+use crate::expr::unpack_expression;
 use crate::formats;
 use crate::formats::ConditionData;
 use crate::formats::QPYCircuit;
@@ -1655,8 +1656,8 @@ fn unpack_instruction_v19(
             };
             PackedOperation::from_standard_instruction(instruction)
         }
-        formats::OperationData::UnitaryGate(data) => {
-            let array = unpack_array_type(data.matrix.clone())?;
+        formats::OperationData::UnitaryGate(matrix) => {
+            let array = unpack_array_type(matrix.clone())?;
             PackedOperation::from_unitary(Box::new(UnitaryGate { array }))
         }
         formats::OperationData::PauliEvolution(data) => {
@@ -1697,6 +1698,59 @@ fn unpack_instruction_v19(
                 num_clbits: qpy_data.circuit_data.get_cargs(clbits).len() as u32,
             }))
         }
+        formats::OperationData::PauliProductMeasurement(data) => {
+            if !parameter_values.is_empty() {
+                return Err(QpyError::InvalidParameter(format!(
+                    "Pauli product measurement requires no parameters, got {}",
+                    parameter_values.len()
+                )));
+            }
+            let z = unpack_bool_vector(&data.z)?;
+            let x = unpack_bool_vector(&data.x)?;
+            if z.len() != x.len() {
+                return Err(QpyError::InvalidParameter(
+                    "Pauli product measurement z and x vectors have different lengths".to_string(),
+                ));
+            }
+            PackedOperation::from_pauli_based(Box::new(PauliBased::PauliProductMeasurement(
+                PauliProductMeasurement {
+                    z,
+                    x,
+                    neg: data.neg != 0,
+                },
+            )))
+        }
+        formats::OperationData::PauliProductRotation(data) => {
+            let [angle_value] = parameter_values.as_slice() else {
+                return Err(QpyError::InvalidParameter(format!(
+                    "Pauli product rotation requires exactly one angle parameter, got {}",
+                    parameter_values.len()
+                )));
+            };
+            let z = unpack_bool_vector(&data.z)?;
+            let x = unpack_bool_vector(&data.x)?;
+            if z.len() != x.len() {
+                return Err(QpyError::InvalidParameter(
+                    "Pauli product rotation z and x vectors have different lengths".to_string(),
+                ));
+            }
+            let angle = generic_value_to_param(angle_value, qpy_data)?;
+            PackedOperation::from_pauli_based(Box::new(PauliBased::PauliProductRotation(
+                PauliProductRotation { z, x, angle },
+            )))
+        }
+        formats::OperationData::Store(lvalue, rvalue) => {
+            if !parameter_values.is_empty() {
+                return Err(QpyError::InvalidParameter(format!(
+                    "store requires no parameters, got {}",
+                    parameter_values.len()
+                )));
+            }
+            PackedOperation::from_store(Box::new(Store::new(
+                unpack_expression(lvalue.clone(), qpy_data)?,
+                unpack_expression(rvalue.clone(), qpy_data)?,
+            )))
+        }
         _ => {
             return Err(QpyError::DeserializationError(format!(
                 "QPY 19 {:?} operation decoding is not implemented yet",
@@ -1717,6 +1771,20 @@ fn unpack_instruction_v19(
         #[cfg(feature = "cache_pygates")]
         py_op: std::sync::OnceLock::new(),
     })
+}
+
+fn unpack_bool_vector(data: &formats::BoolVectorPack) -> Result<Vec<bool>, QpyError> {
+    let num_bits = usize::try_from(data.num_bits).map_err(|_| {
+        QpyError::InvalidParameter("boolean vector length does not fit in memory".to_string())
+    })?;
+    if data.data.len() != num_bits.div_ceil(8) {
+        return Err(QpyError::InvalidParameter(
+            "invalid bit-packed boolean vector length".to_string(),
+        ));
+    }
+    Ok((0..num_bits)
+        .map(|index| data.data[index / 8] & (1 << (index % 8)) != 0)
+        .collect())
 }
 
 fn unpack_param_data_v19(

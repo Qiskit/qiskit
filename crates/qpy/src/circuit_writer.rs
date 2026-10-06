@@ -359,9 +359,8 @@ fn pack_instructions_v19(
         // Reuse the existing operation-specific extraction for now.  Besides avoiding two subtly
         // different definitions of labels and annotations, this also populates the parameter-vector
         // and custom-operation tables as required by the surrounding circuit packer.
-        let (label, annotations) = if let OperationRef::ControlFlow(control_flow) =
-            instruction.op.view()
-        {
+        let operation_view = instruction.op.view();
+        let (label, annotations) = if let OperationRef::ControlFlow(control_flow) = operation_view {
             let annotations = match &control_flow.control_flow {
                 ControlFlow::Box { annotations, .. } => pack_annotations(annotations, qpy_data)?,
                 _ => None,
@@ -369,6 +368,16 @@ fn pack_instructions_v19(
             (
                 instruction.label.as_deref().cloned().unwrap_or_default(),
                 annotations,
+            )
+        } else if matches!(
+            operation_view,
+            OperationRef::PauliProductMeasurement(_)
+                | OperationRef::PauliProductRotation(_)
+                | OperationRef::Store(_)
+        ) {
+            (
+                instruction.label.as_deref().cloned().unwrap_or_default(),
+                None,
             )
         } else {
             let legacy = pack_instruction(
@@ -394,9 +403,7 @@ fn pack_instructions_v19(
             ),
             OperationRef::Unitary(gate) => (
                 formats::CircuitOperationType::UnitaryGate,
-                formats::OperationData::UnitaryGate(formats::UnitaryGatePack {
-                    matrix: pack_array_type(&gate.array)?,
-                }),
+                formats::OperationData::UnitaryGate(pack_array_type(&gate.array)?),
             ),
             OperationRef::PyCustom(custom)
                 if instruction_type == CircuitInstructionType::PauliEvolutionGate =>
@@ -418,14 +425,35 @@ fn pack_instructions_v19(
                     qpy_data,
                 )?),
             ),
+            OperationRef::PauliProductMeasurement(measurement) => (
+                formats::CircuitOperationType::PauliProductMeasurement,
+                formats::OperationData::PauliProductMeasurement(
+                    formats::PauliProductMeasurementPack {
+                        z: pack_bool_vector(&measurement.z)?,
+                        x: pack_bool_vector(&measurement.x)?,
+                        neg: measurement.neg as u8,
+                    },
+                ),
+            ),
+            OperationRef::PauliProductRotation(rotation) => (
+                formats::CircuitOperationType::PauliProductRotation,
+                formats::OperationData::PauliProductRotation(formats::PauliProductRotationPack {
+                    z: pack_bool_vector(&rotation.z)?,
+                    x: pack_bool_vector(&rotation.x)?,
+                }),
+            ),
+            OperationRef::Store(store) => (
+                formats::CircuitOperationType::Store,
+                formats::OperationData::Store(
+                    pack_expression(store.lvalue(), qpy_data)?,
+                    pack_expression(store.rvalue(), qpy_data)?,
+                ),
+            ),
             OperationRef::PyCustom(custom) if custom.num_ctrl_qubits().unwrap_or(0) > 0 => (
                 formats::CircuitOperationType::Controlled,
                 formats::OperationData::Controlled(formats::ControlledGatePack {}),
             ),
-            OperationRef::PyCustom(_)
-            | OperationRef::PauliProductMeasurement(_)
-            | OperationRef::PauliProductRotation(_)
-            | OperationRef::Store(_) => (
+            OperationRef::PyCustom(_) => (
                 formats::CircuitOperationType::FromPython,
                 formats::OperationData::FromPython(formats::FromPythonPack {}),
             ),
@@ -459,6 +487,22 @@ fn pack_instructions_v19(
     }
 
     Ok((packed_instructions, custom_operations))
+}
+
+fn pack_bool_vector(values: &[bool]) -> Result<formats::BoolVectorPack, QpyError> {
+    let num_bits = u32::try_from(values.len()).map_err(|_| {
+        QpyError::InvalidParameter("boolean vector is too large for QPY".to_string())
+    })?;
+    let mut data = vec![0; values.len().div_ceil(8)];
+    for (index, value) in values.iter().enumerate() {
+        if *value {
+            data[index / 8] |= 1 << (index % 8);
+        }
+    }
+    Ok(formats::BoolVectorPack {
+        num_bits,
+        data: data.into(),
+    })
 }
 
 fn standard_instruction_operation_data(inst: &StandardInstruction) -> formats::OperationData {

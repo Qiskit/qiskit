@@ -302,6 +302,9 @@ pub enum CircuitOperationType {
     Controlled = 5,
     ControlFlow = 6,
     PauliEvolution = 7,
+    PauliProductMeasurement = 8,
+    PauliProductRotation = 9,
+    Store = 10,
 }
 
 #[binrw]
@@ -324,7 +327,7 @@ pub enum OperationData {
     FromPython(FromPythonPack),
     // Store the raw npy bytes of the underlying array
     #[br(pre_assert(op_type == CircuitOperationType::UnitaryGate))]
-    UnitaryGate(UnitaryGatePack),
+    UnitaryGate(Complex64MatrixPack),
     // Store the base gate and then the extra control metadata
     #[br(pre_assert(op_type == CircuitOperationType::Controlled))]
     Controlled(ControlledGatePack),
@@ -334,6 +337,39 @@ pub enum OperationData {
     // Store Pauli operators and synthesis settings directly; evolution time remains a parameter.
     #[br(pre_assert(op_type == CircuitOperationType::PauliEvolution))]
     PauliEvolution(#[brw(args(version))] PauliEvolutionGatePack),
+    #[br(pre_assert(op_type == CircuitOperationType::PauliProductMeasurement))]
+    PauliProductMeasurement(PauliProductMeasurementPack),
+    #[br(pre_assert(op_type == CircuitOperationType::PauliProductRotation))]
+    PauliProductRotation(PauliProductRotationPack),
+    #[br(pre_assert(op_type == CircuitOperationType::Store))]
+    Store(PackedExpression, PackedExpression),
+}
+
+/// A bit-packed boolean vector.  Bits are stored least-significant-bit first in each byte.
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct BoolVectorPack {
+    pub num_bits: u32,
+    #[br(count = (num_bits as usize).div_ceil(8))]
+    pub data: Bytes,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct PauliProductMeasurementPack {
+    pub z: BoolVectorPack,
+    pub x: BoolVectorPack,
+    pub neg: u8,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct PauliProductRotationPack {
+    pub z: BoolVectorPack,
+    pub x: BoolVectorPack,
 }
 
 #[binrw]
@@ -438,12 +474,6 @@ pub enum ParamDataPack {
 #[derive(Debug)]
 pub struct FromPythonPack {
     // placeholder
-}
-
-#[binrw]
-#[derive(Debug)]
-pub struct UnitaryGatePack {
-    pub matrix: Complex64MatrixPack,
 }
 
 #[binrw]

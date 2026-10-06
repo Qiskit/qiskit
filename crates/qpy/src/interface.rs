@@ -465,13 +465,17 @@ pub fn native_load_qpy(data: &[u8]) -> Result<Vec<CircuitData>, QpyError> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use qiskit_circuit::Qubit;
+    use num_bigint::BigUint;
+    use qiskit_circuit::bit::ShareableClbit;
+    use qiskit_circuit::classical::expr::{Expr, Value, Var};
+    use qiskit_circuit::classical::types::Type;
     use qiskit_circuit::instruction::Parameters;
     use qiskit_circuit::operations::{
-        ControlFlow, ControlFlowInstruction, DelayUnit, OperationRef, Param, StandardGate,
-        StandardInstruction,
+        ControlFlow, ControlFlowInstruction, DelayUnit, OperationRef, Param, PauliBased,
+        PauliProductMeasurement, PauliProductRotation, StandardGate, StandardInstruction, Store,
     };
     use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+    use qiskit_circuit::{Clbit, Qubit};
     use smallvec::smallvec;
 
     /// Builds the [`ExtraCircuitData`] required to serialize a native circuit that carries no
@@ -609,5 +613,116 @@ mod tests {
             .unpack_blocks_to_circuit_parameters(instruction.params.as_deref())
             .unwrap();
         assert!(matches!(blocks, Parameters::Blocks(blocks) if blocks.len() == 1));
+    }
+
+    #[test]
+    fn qpy_v19_pauli_product_operations_roundtrip() {
+        let version = 19;
+        // Nine entries exercise both a full byte and a partial byte in the packed vectors.
+        let z = vec![true, false, true, false, true, false, true, false, true];
+        let x = vec![false, true, false, true, false, true, false, true, false];
+        let circuit = CircuitData::from_packed_operations(
+            9,
+            1,
+            [
+                Ok((
+                    PackedOperation::from_pauli_based(Box::new(
+                        PauliBased::PauliProductMeasurement(PauliProductMeasurement {
+                            z: z.clone(),
+                            x: x.clone(),
+                            neg: true,
+                        }),
+                    )),
+                    smallvec![],
+                    (0..9).map(Qubit).collect(),
+                    vec![Clbit(0)],
+                )),
+                Ok((
+                    PackedOperation::from_pauli_based(Box::new(PauliBased::PauliProductRotation(
+                        PauliProductRotation {
+                            z: z.clone(),
+                            x: x.clone(),
+                            angle: Param::Float(0.25),
+                        },
+                    ))),
+                    smallvec![Param::Float(0.25)],
+                    (0..9).map(Qubit).collect(),
+                    vec![],
+                )),
+            ],
+            0.0.into(),
+        )
+        .unwrap();
+
+        let extra = native_extra_data(&circuit, "v19_pauli_products", version);
+        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None).unwrap();
+        let instructions = loaded[0].circuit_data.data();
+
+        assert!(matches!(
+            instructions[0].op.view(),
+            OperationRef::PauliProductMeasurement(PauliProductMeasurement {
+                z: loaded_z,
+                x: loaded_x,
+                neg: true,
+            }) if loaded_z == &z && loaded_x == &x
+        ));
+        assert!(matches!(
+            instructions[1].op.view(),
+            OperationRef::PauliProductRotation(PauliProductRotation {
+                z: loaded_z,
+                x: loaded_x,
+                angle: Param::Float(0.25),
+            }) if loaded_z == &z && loaded_x == &x
+        ));
+        assert!(matches!(
+            instructions[1].params_view(),
+            [Param::Float(0.25)]
+        ));
+    }
+
+    #[test]
+    fn qpy_v19_store_roundtrip() {
+        let version = 19;
+        let bit = ShareableClbit::new_anonymous();
+        let mut circuit =
+            CircuitData::new(None, Some(vec![bit.clone()]), Param::Float(0.0)).unwrap();
+        circuit
+            .push(PackedInstruction {
+                op: PackedOperation::from_store(Box::new(Store::new(
+                    Expr::Var(Var::Bit { bit }),
+                    Expr::Value(Value::Uint {
+                        raw: BigUint::from(1u8),
+                        ty: Type::Bool,
+                    }),
+                ))),
+                qubits: Default::default(),
+                clbits: Default::default(),
+                params: None,
+                label: Some(Box::new("assignment".to_string())),
+                #[cfg(feature = "cache_pygates")]
+                py_op: Default::default(),
+            })
+            .unwrap();
+
+        let extra = native_extra_data(&circuit, "v19_store", version);
+        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None).unwrap();
+        let instruction = &loaded[0].circuit_data.data()[0];
+        let OperationRef::Store(store) = instruction.op.view() else {
+            panic!(
+                "expected a store operation, got {:?}",
+                instruction.op.view()
+            );
+        };
+        assert!(matches!(store.lvalue(), Expr::Var(Var::Bit { .. })));
+        assert!(matches!(
+            store.rvalue(),
+            Expr::Value(Value::Uint { raw, ty: Type::Bool }) if raw == &BigUint::from(1u8)
+        ));
+        assert_eq!(
+            instruction.label.as_deref().map(String::as_str),
+            Some("assignment")
+        );
     }
 }
