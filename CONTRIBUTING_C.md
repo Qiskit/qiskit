@@ -29,7 +29,7 @@ the actual definition lives in the source code, callers *cannot* access its memb
 themselves. These structures are called **opaque**. `cbindgen` generates transparent structures
 when the layout is `repr(C)` and opaque structures for other layouts. 
 
-**Use opaque structures when...**
+Use opaque structures when...
 
 1. runtime invariant(s) need enforcement.
 2. complex behavior needs encapsulation.
@@ -44,7 +44,7 @@ pub struct Qubit {
 
 *Note that `repr(Rust)` is implicit.*
 
-**Use transparent structures when...**
+Use transparent structures when...
 
 1. dealing with plain, old data without complex behavior.
 2. fields are unlikely to change.
@@ -68,14 +68,15 @@ from flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts.
 ```rust
 #[repr(C)]
 pub enum QubitType {
-    Physical = 0,
-    Logical = 1,
+    Unknown = 0,
+    Physical = 1,
+    Logical = 2,
 }
 ```
 
 *Assign integer values explicitly to discourage breaking changes.*
 
-**Debate: Fixed-width Layout**
+#### Fixed-width Layouts
 
 There are several points to consider surrounding the fixed-width `enum` debate:
 
@@ -85,9 +86,9 @@ There are several points to consider surrounding the fixed-width `enum` debate:
 states that `repr(C)` is the correct layout for any type passed through the FFI boundary.
 
 3. The C standard, and thus `repr(C)`, guarentees that enumeration *constants* have `sizeof(int)`
-width. For example, if `enum t` defines `T_UNKNOWN`, then `sizeof(T_UNKNOWN)` and `sizeof(int)` are
-equal. `sizeof(enum t)` is implementation defined. However, on modern Linux, Mac, and Windows,
-`sizeof(enum t)` and `sizeof(int)` are equal nonetheless. 
+width. For example, if `enum t` defines `T_UNKNOWN`, then `sizeof(T_UNKNOWN) == sizeof(int)`.
+The next thing to consider is that `sizeof(enum t)` is implementation defined. However, on modern
+Linux, MacOS, and Windows, `sizeof(enum t) == sizeof(int)` nonetheless. 
 
 4. `cbindgen` handles `repr(u*)` by generating a fixed-width integer `typedef` with the same name
 as the `enum` type, bloating the header file.
@@ -96,6 +97,64 @@ Because `libqiskit` is user-space, applications library, `repr(C)` is likely the
 and semantically correct layout for `enum`. If we ultimately stick with fixed-width, developers
 should use `repr(u32)` because it aligns most closely with the compiler and platform defaults for
 C enumerations.
+
+### Error Handling
+
+Choose a sentinel value when the function fails trivially.
+
+```rust
+extern "C" fn qk_qubit_type(qubit: *const Qubit) -> QubitType {
+    if qubit.is_null() {
+        QubitType::Unknown
+    } else {
+        let qubit = unsafe { &*qubit };
+        qubit.kind.into()
+    }
+}
+```
+
+| Type           | Sentinel    |
+| -------------- | ----------- |
+| `T *`          | `NULL`      |
+| `enum t`       | `T_UNKNOWN` |
+| `int`          | `-1`        |
+| `unsigned int` | `0`         |
+
+*`-1` and `0` are poor sentinels if the values have additional meaning. For example, `-1` works
+for functions that return an array index. `0` works if the underlying domain value is
+`NonZero(u32)`.*
+
+*`UINT_MAX` and the like are cumbersome because callers must include `limits.h`. Also, consider
+that the statement `if (result == UINT_MAX)` looks more like bounds check than anything else. Loose
+integer conversions are idiomatic in C, so prefer returning signed integer types like `int32_t` and
+`ptrdiff_t` when the domain value is unsigned.*
+
+*`NAN` is problematic because `NAN != NAN`.*
+
+Return `ExitCode` for non-trivial functions with multiple failure points.
+
+```rust
+
+```
+
+*Such non-trivial functions often write to an `out` parameter for the success case.*
+
+Create static, human-readable error messages for new variants.
+
+```c
+const char *qk_exit_code_str(enum qk_exit_code code) {
+    switch (result) {
+    case QK_EXIT_CODE_OK:
+        return "success";
+    case QK_EXIT_CODE_INPUT:
+        return "invalid input";
+    case QK_EXIT_CODE_NULL:
+        return "unexpected null pointer";
+    default:
+        return "unhandled error";
+  }
+}
+```
 
 ### Platform-specific Features
 
@@ -158,45 +217,6 @@ This section requires further team discussion.
 ### Ownership Model
 
 This section requires further team discussion.
-
-### Error Handling
-
-The error model should be simple and consistent.
-
-1. Use sentinel values when the function fails trivially.
-2. Return `ExitCode` for non-trivial functions with multiple failure points. These functions often
-   mutate an `out` parameter for the success case.
-
-**Example: Sentinel Values**
-
-| Type           | Sentinel    |
-| -------------- | ----------- |
-| `T *`          | `NULL`      |
-| `enum t`       | `T_UNKNOWN` |
-| `int`          | `-1`        |
-| `unsigned int` | `0`         |
-
-*\* `-1` and `0` are poor sentinels if the values have additional meaning. For example, `-1` is
-fine for functions that return an index because it's an invariant.*
-
-Each `ExitCode` should have a static, human-readable error message.
-
-**Example: Error Messages**
-
-```c
-const char *qk_exit_code_str(enum qk_exit_code code) {
-    switch (result) {
-    case QK_EXIT_CODE_OK:
-        return "success";
-    case QK_EXIT_CODE_INPUT:
-        return "invalid input";
-    case QK_EXIT_CODE_NULL:
-        return "unexpected null pointer";
-    default:
-        return "unhandled error";
-  }
-}
-```
 
 ### Naming Standards
 
