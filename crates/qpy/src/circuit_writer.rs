@@ -367,7 +367,9 @@ fn pack_instructions_v19(qpy_data: &mut QPYWriteData) -> Result<PackedInstructio
 
         let custom_index = if matches!(
             instruction_type,
-            CircuitInstructionType::Gate | CircuitInstructionType::Instruction
+            CircuitInstructionType::Gate
+                | CircuitInstructionType::Instruction
+                | CircuitInstructionType::ControlledGate
         ) && matches!(operation_view, OperationRef::PyCustom(_))
             && matches!(qpy_data.caller, QpyCaller::Python)
         {

@@ -31,7 +31,7 @@ use qiskit_circuit::bit::{
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::instruction::{Parameters, create_py_op};
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
@@ -88,6 +88,8 @@ pub struct CustomCircuitInstructionData {
     pub gate_type: CircuitInstructionType,
     pub num_qubits: u32,
     pub num_clbits: u32,
+    pub num_ctrl_qubits: u32,
+    pub ctrl_state: u32,
     pub definition_circuit: Option<Py<PyAny>>,
     pub base_gate_raw: Bytes,
 }
@@ -1017,6 +1019,8 @@ fn read_custom_instructions(
             gate_type: operation.gate_type,
             num_qubits: operation.num_qubits,
             num_clbits: operation.num_clbits,
+            num_ctrl_qubits: operation.num_ctrl_qubits,
+            ctrl_state: operation.ctrl_state,
             definition_circuit: definition,
             base_gate_raw: operation.base_gate_raw.clone(),
         };
@@ -1692,6 +1696,7 @@ fn unpack_instruction_v19(
                     py,
                     name,
                     data,
+                    custom_instructions,
                     &parameter_values,
                     instruction.label.as_ref().map(|label| label.value.as_str()),
                     qpy_data,
@@ -1837,13 +1842,19 @@ fn unpack_custom_instruction_v19(
     py: Python<'_>,
     serialized_name: &str,
     data: &CustomCircuitInstructionData,
+    custom_instructions: &HashMap<String, CustomCircuitInstructionData>,
     parameter_values: &[GenericValue],
     label: Option<&str>,
-    qpy_data: &QPYReadData,
+    qpy_data: &mut QPYReadData,
 ) -> Result<PackedOperation, QpyError> {
-    let name = serialized_name
+    let mut name = serialized_name
         .rsplit_once('_')
         .map_or(serialized_name, |(name, _)| name);
+    if data.gate_type == CircuitInstructionType::ControlledGate
+        && data.ctrl_state < (1u32 << data.num_ctrl_qubits) - 1
+    {
+        name = name.rsplit_once('_').map_or(name, |(name, _)| name);
+    }
     let py_params = parameter_values
         .iter()
         .map(|value| {
@@ -1864,6 +1875,30 @@ fn unpack_custom_instruction_v19(
             data.num_clbits,
             py_params,
         ))?,
+        CircuitInstructionType::ControlledGate => {
+            let packed_base_gate = deserialize_with_args::<
+                formats::CircuitInstructionV2Pack,
+                (bool,),
+            >(&data.base_gate_raw, (false,))?
+            .0;
+            let base_gate = unpack_instruction(&packed_base_gate, custom_instructions, qpy_data)?;
+            let params = qpy_data
+                .circuit_data
+                .unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
+            let py_base_gate = create_py_op(
+                py,
+                base_gate.op.view(),
+                params,
+                base_gate.label.as_deref().map(String::as_str),
+            )?;
+            let kwargs = PyDict::new(py);
+            kwargs.set_item("num_ctrl_qubits", data.num_ctrl_qubits)?;
+            kwargs.set_item("ctrl_state", data.ctrl_state)?;
+            kwargs.set_item("base_gate", py_base_gate)?;
+            imports::CONTROLLED_GATE
+                .get_bound(py)
+                .call((name, data.num_qubits, py_params), Some(&kwargs))?
+        }
         other => {
             return Err(QpyError::DeserializationError(format!(
                 "QPY 19 custom instruction type {other:?} is not implemented"
