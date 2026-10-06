@@ -63,10 +63,11 @@ documentation purposes.*
 ### Enumerations
 
 In short, C enumerations are named integer constants, and nothing more. `cbindgen` creates mappings
-from flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts.
+from flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts. In Qiskit, we use `repr(u*)`
+fixed-width enumerations to maintain consistency across compilers.
 
 ```rust
-#[repr(C)]
+#[repr(u32)]
 pub enum QubitType {
     Unknown = 0,
     Physical = 1,
@@ -76,34 +77,15 @@ pub enum QubitType {
 
 *Assign integer values explicitly to discourage breaking changes.*
 
-#### Fixed-width Layouts
-
-There are several points to consider surrounding the fixed-width `enum` debate:
-
-1. `qiskit.h` already defines fixed-width layout for `enum` types.
-
-2. The [Rustonomicon](https://doc.rust-lang.org/nomicon/other-reprs.html?highlight=bindgen#reprc)
-states that `repr(C)` is the correct layout for any type passed through the FFI boundary.
-
-3. The C standard, and thus `repr(C)`, guarentees that enumeration *constants* have `sizeof(int)`
-width. For example, if `enum t` defines `T_UNKNOWN`, then `sizeof(T_UNKNOWN) == sizeof(int)`.
-The next thing to consider is that `sizeof(enum t)` is implementation defined. However, on modern
-Linux, MacOS, and Windows, `sizeof(enum t) == sizeof(int)` nonetheless. 
-
-4. `cbindgen` handles `repr(u*)` by generating a fixed-width integer `typedef` with the same name
-as the `enum` type, bloating the header file.
-
-Because `libqiskit` is a user-space, applications library, `repr(C)` is likely the most maintainable
-and semantically correct layout for `enum`. If we ultimately stick with fixed-width integer layout,
-developers should use `repr(u32)` because it aligns most closely with the compiler and platform
-defaults for C enumerations.
+*Because `sizeof(enum t) == sizeof(int)` is the common case on modern platforms, reach for
+`repr(u32)` first.*
 
 ### Error Handling
 
 Choose a sentinel value when the function fails trivially.
 
 ```rust
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn qk_qubit_type(qubit: *const Qubit) -> QubitType {
     if qubit.is_null() {
         QubitType::Unknown
@@ -125,17 +107,16 @@ extern "C" fn qk_qubit_type(qubit: *const Qubit) -> QubitType {
 for functions that return an array index. While rare, `0` works if the underlying domain value
 could be `NonZeroU32`.*
 
-*`UINT_MAX` and the like are cumbersome because callers must include `limits.h`. Also, consider
-that the statement `if (result == UINT_MAX)` looks more like a saturation check than anything else.
-Loose integer conversions are idiomatic in C, so prefer returning signed integer types like
-`int32_t` and `ptrdiff_t` when the domain value is unsigned.*
+*Loose integer conversions are idiomatic in C. Prefer returning signed integer types like `int32_t`
+and `ptrdiff_t` when the domain value is small and unsigned. Use `INT_MAX` when domain values are
+likely to exceed the signed integer maximum.*
 
 *`NAN` is problematic because `NAN != NAN`.*
 
 Return `ExitCode` for non-trivial functions with multiple failure points.
 
 ```rust
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn qk_qubit_new(
     a: *const Complex64,
     b: *const Complex64,
@@ -166,7 +147,7 @@ extern "C" fn qk_qubit_new(
 Create static, human-readable error messages for new variants.
 
 ```rust
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn qk_exit_code_str(code: ExitCode) -> *const c_char {
     let s = match code {
         ExitCode::Success => c"success",
