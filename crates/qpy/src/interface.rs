@@ -466,10 +466,12 @@ pub fn native_load_qpy(data: &[u8]) -> Result<Vec<CircuitData>, QpyError> {
 mod tests {
     use super::*;
     use qiskit_circuit::Qubit;
+    use qiskit_circuit::instruction::Parameters;
     use qiskit_circuit::operations::{
-        DelayUnit, OperationRef, Param, StandardGate, StandardInstruction,
+        ControlFlow, ControlFlowInstruction, DelayUnit, OperationRef, Param, StandardGate,
+        StandardInstruction,
     };
-    use qiskit_circuit::packed_instruction::PackedOperation;
+    use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
     use smallvec::smallvec;
 
     /// Builds the [`ExtraCircuitData`] required to serialize a native circuit that carries no
@@ -559,5 +561,48 @@ mod tests {
             OperationRef::StandardGate(StandardGate::RX)
         ));
         assert!(matches!(instruction.params_view(), [Param::Float(value)] if *value == 0.25));
+    }
+
+    #[test]
+    fn qpy_v19_control_flow_blocks_roundtrip() {
+        let version = 19;
+        let body = CircuitData::with_capacity(1, 0, 0, Param::Float(0.0)).unwrap();
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0)).unwrap();
+        let block = circuit.add_block(body);
+        let qargs = circuit.add_qargs(&[Qubit(0)]);
+        circuit
+            .push(PackedInstruction::from_control_flow(
+                ControlFlowInstruction {
+                    control_flow: ControlFlow::Box {
+                        duration: None,
+                        annotations: Vec::new(),
+                    },
+                    num_qubits: 1,
+                    num_clbits: 0,
+                },
+                vec![block],
+                qargs,
+                Default::default(),
+                None,
+            ))
+            .unwrap();
+
+        let extra = native_extra_data(&circuit, "v19_control_flow", version);
+        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None).unwrap();
+        let loaded_circuit = &loaded[0].circuit_data;
+        let instruction = &loaded_circuit.data()[0];
+
+        assert!(matches!(
+            instruction.op.view(),
+            OperationRef::ControlFlow(ControlFlowInstruction {
+                control_flow: ControlFlow::Box { duration: None, .. },
+                ..
+            })
+        ));
+        let blocks = loaded_circuit
+            .unpack_blocks_to_circuit_parameters(instruction.params.as_deref())
+            .unwrap();
+        assert!(matches!(blocks, Parameters::Blocks(blocks) if blocks.len() == 1));
     }
 }

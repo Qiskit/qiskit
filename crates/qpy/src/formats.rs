@@ -453,9 +453,125 @@ pub struct ControlledGatePack {
 }
 
 #[binrw]
+#[brw(big)]
 #[derive(Debug)]
-pub struct ControlFlowPack {
-    // placeholder
+pub enum ControlFlowPack {
+    #[brw(magic = b'b')]
+    Box(BoxDurationPack),
+    #[brw(magic = b'k')]
+    BreakLoop,
+    #[brw(magic = b'c')]
+    ContinueLoop,
+    #[brw(magic = b'f')]
+    ForLoop(ForCollectionPack, LoopParamPack),
+    #[brw(magic = b'i')]
+    IfElse(ConditionV19Pack),
+    #[brw(magic = b's')]
+    Switch(SwitchTargetPack, CaseSpecPack),
+    #[brw(magic = b'w')]
+    While(ConditionV19Pack),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum ConditionV19Pack {
+    #[brw(magic = b'b')]
+    Bit(u32, u8),
+    #[brw(magic = b'r')]
+    Register(
+        StringU16Pack,
+        #[br(map = unpack_biguint)]
+        #[bw(map = pack_biguint)]
+        BigUint,
+    ),
+    #[brw(magic = b'e')]
+    Expression(ExpressionPack),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum BoxDurationPack {
+    #[brw(magic = b'n')]
+    None,
+    #[brw(magic = b'd')]
+    Duration(DurationPack),
+    #[brw(magic = b'e')]
+    Expression(ExpressionPack),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum ForCollectionPack {
+    #[brw(magic = b'l')]
+    List {
+        #[bw(calc = values.len() as u64)]
+        size: u64,
+        #[br(count = size)]
+        values: Vec<i64>,
+    },
+    #[brw(magic = b'r')]
+    Range(i64, i64, i64),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum LoopParamPack {
+    #[brw(magic = b'n')]
+    None,
+    #[brw(magic = b'p')]
+    Parameter(ParameterSymbolPack),
+    #[brw(magic = b'v')]
+    Variable,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum SwitchTargetPack {
+    #[brw(magic = b'b')]
+    Bit(u32),
+    #[brw(magic = b'r')]
+    Register(StringU16Pack),
+    #[brw(magic = b'e')]
+    Expression(ExpressionPack),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct CaseSpecPack {
+    #[bw(calc = labels.len() as u32)]
+    num_cases: u32,
+    #[br(count = num_cases)]
+    pub labels: Vec<CaseLabelsPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct CaseLabelsPack {
+    #[bw(calc = labels.len() as u32)]
+    num_labels: u32,
+    #[br(count = num_labels)]
+    pub labels: Vec<CaseSpecifierPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum CaseSpecifierPack {
+    #[brw(magic = b'd')]
+    Default,
+    #[brw(magic = b'i')]
+    Uint(
+        #[br(map = unpack_biguint)]
+        #[bw(map = pack_biguint)]
+        BigUint,
+    ),
 }
 
 #[binrw]

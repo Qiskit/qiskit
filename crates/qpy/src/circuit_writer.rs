@@ -60,10 +60,13 @@ use crate::py_methods::{
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
-    QPYWriteData, QpyCaller, RegisterType, StringU16Pack, ValueEndian, get_circuit_type_key,
-    pack_array_type, pack_for_collection, pack_generic_value, pack_standalone_var, pack_stretch,
-    serialize, serialize_param_register_value, serialize_with_args,
+    QPYWriteData, QpyCaller, RegisterType, StringU16Pack, ValueEndian, clbit_index,
+    deserialize_with_args, get_circuit_type_key, pack_array_type, pack_duration,
+    pack_for_collection, pack_generic_value, pack_standalone_var, pack_stretch, serialize,
+    serialize_param_register_value, serialize_with_args,
 };
+
+use crate::expr::pack_expression;
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 
@@ -115,7 +118,7 @@ fn generic_value_to_param_data_pack(
         GenericValue::Null => formats::ParamDataPack::Null,
         GenericValue::Expression(expression) => {
             formats::ParamDataPack::Expression(formats::ExpressionPack {
-                expression: crate::expr::pack_expression(expression, qpy_data)?,
+                expression: pack_expression(expression, qpy_data)?,
             })
         }
         GenericValue::Modifier(modifier) => formats::ParamDataPack::Modifier(
@@ -166,6 +169,119 @@ fn pack_param_v19(
             generic_value_to_param_data_pack(&value, qpy_data)
         }),
     }
+}
+
+fn pack_control_flow_v19(
+    control_flow: &ControlFlow,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::ControlFlowPack, QpyError> {
+    Ok(match control_flow {
+        ControlFlow::Box { duration, .. } => formats::ControlFlowPack::Box(match duration {
+            None => formats::BoxDurationPack::None,
+            Some(BoxDuration::Duration(duration)) => {
+                formats::BoxDurationPack::Duration(pack_duration(duration))
+            }
+            Some(BoxDuration::Expr(expression)) => {
+                formats::BoxDurationPack::Expression(formats::ExpressionPack {
+                    expression: pack_expression(expression, qpy_data)?,
+                })
+            }
+        }),
+        ControlFlow::BreakLoop => formats::ControlFlowPack::BreakLoop,
+        ControlFlow::ContinueLoop => formats::ControlFlowPack::ContinueLoop,
+        ControlFlow::ForLoop {
+            collection,
+            loop_param,
+        } => {
+            let collection = match collection {
+                qiskit_circuit::operations::ForCollection::List(values) => {
+                    formats::ForCollectionPack::List {
+                        values: values
+                            .iter()
+                            .map(|value| i64::try_from(*value).map_err(QpyError::from))
+                            .collect::<Result<_, _>>()?,
+                    }
+                }
+                qiskit_circuit::operations::ForCollection::PyRange(value) => {
+                    formats::ForCollectionPack::Range(
+                        i64::try_from(value.start)?,
+                        i64::try_from(value.stop)?,
+                        i64::try_from(value.step.get())?,
+                    )
+                }
+            };
+            let loop_param = match loop_param {
+                None => formats::LoopParamPack::None,
+                Some(LoopParam::Parameter(symbol)) => {
+                    formats::LoopParamPack::Parameter(pack_symbol(symbol))
+                }
+                Some(LoopParam::Variable(_)) => formats::LoopParamPack::Variable,
+            };
+            formats::ControlFlowPack::ForLoop(collection, loop_param)
+        }
+        ControlFlow::IfElse { condition } => {
+            formats::ControlFlowPack::IfElse(pack_condition_v19(condition, qpy_data)?)
+        }
+        ControlFlow::While { condition } => {
+            formats::ControlFlowPack::While(pack_condition_v19(condition, qpy_data)?)
+        }
+        ControlFlow::Switch {
+            target, label_spec, ..
+        } => {
+            let target = match target {
+                SwitchTarget::Bit(bit) => {
+                    formats::SwitchTargetPack::Bit(clbit_index(bit, qpy_data)?)
+                }
+                SwitchTarget::Register(register) => {
+                    formats::SwitchTargetPack::Register(StringU16Pack {
+                        value: register.name().to_string(),
+                    })
+                }
+                SwitchTarget::Expr(expression) => {
+                    formats::SwitchTargetPack::Expression(formats::ExpressionPack {
+                        expression: pack_expression(expression, qpy_data)?,
+                    })
+                }
+            };
+            let labels = label_spec
+                .iter()
+                .map(|labels| formats::CaseLabelsPack {
+                    labels: labels
+                        .iter()
+                        .map(|label| match label {
+                            CaseSpecifier::Default => formats::CaseSpecifierPack::Default,
+                            CaseSpecifier::Uint(value) => {
+                                formats::CaseSpecifierPack::Uint(value.clone())
+                            }
+                        })
+                        .collect(),
+                })
+                .collect();
+            formats::ControlFlowPack::Switch(target, formats::CaseSpecPack { labels })
+        }
+    })
+}
+
+fn pack_condition_v19(
+    condition: &Condition,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::ConditionV19Pack, QpyError> {
+    Ok(match condition {
+        Condition::Bit(bit, value) => {
+            formats::ConditionV19Pack::Bit(clbit_index(bit, qpy_data)?, *value as u8)
+        }
+        Condition::Register(register, value) => formats::ConditionV19Pack::Register(
+            StringU16Pack {
+                value: register.name().to_string(),
+            },
+            value.clone(),
+        ),
+        Condition::Expr(expression) => {
+            formats::ConditionV19Pack::Expression(formats::ExpressionPack {
+                expression: pack_expression(expression, qpy_data)?,
+            })
+        }
+    })
 }
 
 /// packing the qubits and clbits of a specific instruction into CircuitInstructionArgPack
@@ -221,7 +337,7 @@ fn pack_instructions(
 
 /// pack all the instructions in the circuit, returning both the packed instructions
 /// and the dictionary of custom operations generated in the process
-fn pack_instructions_19(
+fn pack_instructions_v19(
     qpy_data: &mut QPYWriteData,
 ) -> Result<
     (
@@ -243,17 +359,29 @@ fn pack_instructions_19(
         // Reuse the existing operation-specific extraction for now.  Besides avoiding two subtly
         // different definitions of labels and annotations, this also populates the parameter-vector
         // and custom-operation tables as required by the surrounding circuit packer.
-        let legacy = pack_instruction(
-            instruction,
-            &mut custom_operations,
-            &mut new_custom_operations,
-            qpy_data,
-        )?;
-        if instruction_type == CircuitInstructionType::PauliEvolutionGate {
-            custom_operations.remove(&legacy.gate_class_name);
-        }
-        let label = legacy.label;
-        let annotations = legacy.annotations;
+        let (label, annotations) = if let OperationRef::ControlFlow(control_flow) =
+            instruction.op.view()
+        {
+            let annotations = match &control_flow.control_flow {
+                ControlFlow::Box { annotations, .. } => pack_annotations(annotations, qpy_data)?,
+                _ => None,
+            };
+            (
+                instruction.label.as_deref().cloned().unwrap_or_default(),
+                annotations,
+            )
+        } else {
+            let legacy = pack_instruction(
+                instruction,
+                &mut custom_operations,
+                &mut new_custom_operations,
+                qpy_data,
+            )?;
+            if instruction_type == CircuitInstructionType::PauliEvolutionGate {
+                custom_operations.remove(&legacy.gate_class_name);
+            }
+            (legacy.label, legacy.annotations)
+        };
 
         let (operation, operation_data) = match instruction.op.view() {
             OperationRef::StandardGate(gate) => (
@@ -283,9 +411,12 @@ fn pack_instructions_19(
                     formats::OperationData::PauliEvolution(data),
                 )
             }
-            OperationRef::ControlFlow(_) => (
+            OperationRef::ControlFlow(control_flow) => (
                 formats::CircuitOperationType::ControlFlow,
-                formats::OperationData::ControlFlow(formats::ControlFlowPack {}),
+                formats::OperationData::ControlFlow(pack_control_flow_v19(
+                    &control_flow.control_flow,
+                    qpy_data,
+                )?),
             ),
             OperationRef::PyCustom(custom) if custom.num_ctrl_qubits().unwrap_or(0) > 0 => (
                 formats::CircuitOperationType::Controlled,
@@ -303,11 +434,18 @@ fn pack_instructions_19(
             ),
         };
 
-        let params = instruction
-            .params_view()
-            .iter()
-            .map(|param| pack_param_v19(param, qpy_data))
-            .collect::<Result<_, _>>()?;
+        let params = if matches!(instruction.op.view(), OperationRef::ControlFlow(_)) {
+            extract_instruction_blocks(instruction, qpy_data)
+                .iter()
+                .map(|block| generic_value_to_param_data_pack(block, qpy_data))
+                .collect::<Result<_, _>>()?
+        } else {
+            instruction
+                .params_view()
+                .iter()
+                .map(|param| pack_param_v19(param, qpy_data))
+                .collect::<Result<_, _>>()?
+        };
         let label = (!label.is_empty()).then_some(StringU16Pack { value: label });
         packed_instructions.push(formats::CircuitInstructionV19Pack {
             operation,
@@ -1740,11 +1878,7 @@ fn pack_circuit_v18(
     let layout = if extra.layout.is_empty() {
         default_layout()
     } else {
-        crate::value::deserialize_with_args::<formats::LayoutV2Pack, (u8,)>(
-            &extra.layout,
-            (version,),
-        )?
-        .0
+        deserialize_with_args::<formats::LayoutV2Pack, (u8,)>(&extra.layout, (version,))?.0
     };
     let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
         .annotation_handler
@@ -1790,7 +1924,7 @@ fn pack_circuit_v19(
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
     let header = pack_circuit_header_v19(extra.name, extra.metadata, &mut qpy_data)?;
 
-    let (instructions, mut custom_instructions_hash) = pack_instructions_19(&mut qpy_data)?;
+    let (instructions, mut custom_instructions_hash) = pack_instructions_v19(&mut qpy_data)?;
     let instructions: Vec<formats::CircuitInstructionPack> = instructions
         .into_iter()
         .map(formats::CircuitInstructionPack::V19)
@@ -1800,11 +1934,7 @@ fn pack_circuit_v19(
     let layout = if extra.layout.is_empty() {
         default_layout()
     } else {
-        crate::value::deserialize_with_args::<formats::LayoutV2Pack, (u8,)>(
-            &extra.layout,
-            (version,),
-        )?
-        .0
+        deserialize_with_args::<formats::LayoutV2Pack, (u8,)>(&extra.layout, (version,))?.0
     };
     let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
         .annotation_handler

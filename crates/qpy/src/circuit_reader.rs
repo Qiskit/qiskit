@@ -35,8 +35,9 @@ use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    ControlFlowType, LoopParam, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    PyRange, StandardInstruction, StandardInstructionType, Store, SwitchTarget, UnitaryGate,
+    ControlFlowType, ForCollection, LoopParam, Param, PauliBased, PauliProductMeasurement,
+    PauliProductRotation, PyRange, StandardInstruction, StandardInstructionType, Store,
+    SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -69,9 +70,9 @@ use crate::py_methods::{
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
-    ParamRegisterValue, QPYReadData, QpyCaller, RegisterType, ValueEndian, ValueType,
-    deserialize_with_args, load_param_register_value, load_value, unpack_array_type,
-    unpack_duration_value, unpack_for_collection, unpack_generic_value,
+    ParamRegisterValue, QPYReadData, QpyCaller, RegisterType, ValueEndian, ValueType, clbit_at,
+    creg_by_name, deserialize_with_args, load_param_register_value, load_value, unpack_array_type,
+    unpack_duration, unpack_duration_value, unpack_for_collection, unpack_generic_value,
 };
 
 use ndarray::{Array2, ShapeBuilder};
@@ -1614,7 +1615,12 @@ fn unpack_instruction_v19(
         .iter()
         .map(|param| unpack_param_data_v19(param, qpy_data))
         .collect::<Result<Vec<_>, _>>()?;
-    if instruction.annotations.is_some() {
+    if instruction.annotations.is_some()
+        && !matches!(
+            instruction.operation_data,
+            formats::OperationData::ControlFlow(_)
+        )
+    {
         return Err(QpyError::DeserializationError(
             "QPY 19 instruction annotations are not implemented yet".to_string(),
         ));
@@ -1677,6 +1683,19 @@ fn unpack_instruction_v19(
                             .operation,
                     )
                 })?
+        }
+        formats::OperationData::ControlFlow(data) => {
+            let control_flow = unpack_control_flow_v19(
+                data,
+                &parameter_values,
+                &instruction.annotations,
+                qpy_data,
+            )?;
+            PackedOperation::from_control_flow(Box::new(ControlFlowInstruction {
+                control_flow,
+                num_qubits: qpy_data.circuit_data.get_qargs(qubits).len() as u32,
+                num_clbits: qpy_data.circuit_data.get_cargs(clbits).len() as u32,
+            }))
         }
         _ => {
             return Err(QpyError::DeserializationError(format!(
@@ -1760,6 +1779,143 @@ fn unpack_param_data_v19(
                 qpy_data.caller,
             )?))
         }
+    })
+}
+
+fn unpack_control_flow_v19(
+    value: &formats::ControlFlowPack,
+    blocks: &[GenericValue],
+    annotations: &Option<formats::InstructionsAnnotationPack>,
+    qpy_data: &mut QPYReadData,
+) -> Result<ControlFlow, QpyError> {
+    Ok(match value {
+        formats::ControlFlowPack::Box(duration) => {
+            let duration = match duration {
+                formats::BoxDurationPack::None => None,
+                formats::BoxDurationPack::Duration(duration) => {
+                    Some(BoxDuration::Duration(unpack_duration(duration.clone())))
+                }
+                formats::BoxDurationPack::Expression(expression) => Some(BoxDuration::Expr(
+                    crate::expr::unpack_expression(expression.expression.clone(), qpy_data)?,
+                )),
+            };
+            ControlFlow::Box {
+                duration,
+                annotations: unpack_annotations(annotations, qpy_data)?,
+            }
+        }
+        formats::ControlFlowPack::BreakLoop => ControlFlow::BreakLoop,
+        formats::ControlFlowPack::ContinueLoop => ControlFlow::ContinueLoop,
+        formats::ControlFlowPack::ForLoop(collection, loop_param) => {
+            let collection = match collection {
+                formats::ForCollectionPack::List { values, .. } => ForCollection::List(
+                    values
+                        .iter()
+                        .map(|value| isize::try_from(*value).map_err(QpyError::from))
+                        .collect::<Result<_, _>>()?,
+                ),
+                formats::ForCollectionPack::Range(start, stop, step) => {
+                    ForCollection::PyRange(PyRange {
+                        start: isize::try_from(*start)?,
+                        stop: isize::try_from(*stop)?,
+                        step: NonZero::new(isize::try_from(*step)?).ok_or_else(|| {
+                            QpyError::InvalidParameter("range step cannot be zero".to_string())
+                        })?,
+                    })
+                }
+            };
+            let loop_param = match loop_param {
+                formats::LoopParamPack::None => None,
+                formats::LoopParamPack::Parameter(symbol) => {
+                    Some(LoopParam::Parameter(unpack_symbol(symbol)))
+                }
+                formats::LoopParamPack::Variable => {
+                    let [GenericValue::CircuitData(body)] = blocks else {
+                        return Err(QpyError::InvalidInstruction(
+                            "for loop with a variable parameter requires one body".to_string(),
+                        ));
+                    };
+                    let mut vars = body.vars_stretches_view().iter_vars(VarType::Input);
+                    let var = vars.next().ok_or_else(|| {
+                        QpyError::MissingData("for-loop input variable is missing".to_string())
+                    })?;
+                    if vars.next().is_some() {
+                        return Err(QpyError::InvalidInstruction(
+                            "for-loop body has more than one input variable".to_string(),
+                        ));
+                    }
+                    Some(LoopParam::Variable(var.clone()))
+                }
+            };
+            ControlFlow::ForLoop {
+                collection,
+                loop_param,
+            }
+        }
+        formats::ControlFlowPack::IfElse(condition) => ControlFlow::IfElse {
+            condition: unpack_condition_v19(condition, qpy_data)?,
+        },
+        formats::ControlFlowPack::While(condition) => ControlFlow::While {
+            condition: unpack_condition_v19(condition, qpy_data)?,
+        },
+        formats::ControlFlowPack::Switch(target, case_spec) => {
+            if case_spec.labels.len() != blocks.len() {
+                return Err(QpyError::InvalidInstruction(format!(
+                    "switch has {} label groups but {} blocks",
+                    case_spec.labels.len(),
+                    blocks.len()
+                )));
+            }
+            let target = match target {
+                formats::SwitchTargetPack::Bit(index) => {
+                    SwitchTarget::Bit(clbit_at(*index, qpy_data)?)
+                }
+                formats::SwitchTargetPack::Register(name) => {
+                    SwitchTarget::Register(creg_by_name(&name.value, qpy_data)?)
+                }
+                formats::SwitchTargetPack::Expression(expression) => SwitchTarget::Expr(
+                    crate::expr::unpack_expression(expression.expression.clone(), qpy_data)?,
+                ),
+            };
+            let label_spec = case_spec
+                .labels
+                .iter()
+                .map(|labels| {
+                    labels
+                        .labels
+                        .iter()
+                        .map(|label| match label {
+                            formats::CaseSpecifierPack::Default => CaseSpecifier::Default,
+                            formats::CaseSpecifierPack::Uint(value) => {
+                                CaseSpecifier::Uint(value.clone())
+                            }
+                        })
+                        .collect()
+                })
+                .collect();
+            ControlFlow::Switch {
+                target,
+                label_spec,
+                cases: blocks.len() as u32,
+            }
+        }
+    })
+}
+
+fn unpack_condition_v19(
+    condition: &formats::ConditionV19Pack,
+    qpy_data: &mut QPYReadData,
+) -> Result<Condition, QpyError> {
+    Ok(match condition {
+        formats::ConditionV19Pack::Bit(index, value) => {
+            Condition::Bit(clbit_at(*index, qpy_data)?, *value != 0)
+        }
+        formats::ConditionV19Pack::Register(name, value) => {
+            Condition::Register(creg_by_name(&name.value, qpy_data)?, value.clone())
+        }
+        formats::ConditionV19Pack::Expression(expression) => Condition::Expr(
+            crate::expr::unpack_expression(expression.expression.clone(), qpy_data)?,
+        ),
     })
 }
 
