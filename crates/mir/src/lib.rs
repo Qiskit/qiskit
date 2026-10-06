@@ -14,3 +14,5 @@
 //!
 //! This is the base crate that defines the IR, its data structures and built-in operations and
 //! algorithms.
+
+pub mod line_graph;
