@@ -93,16 +93,17 @@ Linux, MacOS, and Windows, `sizeof(enum t) == sizeof(int)` nonetheless.
 4. `cbindgen` handles `repr(u*)` by generating a fixed-width integer `typedef` with the same name
 as the `enum` type, bloating the header file.
 
-Because `libqiskit` is user-space, applications library, `repr(C)` is likely the most maintainable
-and semantically correct layout for `enum`. If we ultimately stick with fixed-width, developers
-should use `repr(u32)` because it aligns most closely with the compiler and platform defaults for
-C enumerations.
+Because `libqiskit` is a user-space, applications library, `repr(C)` is likely the most maintainable
+and semantically correct layout for `enum`. If we ultimately stick with fixed-width integer layout,
+developers should use `repr(u32)` because it aligns most closely with the compiler and platform
+defaults for C enumerations.
 
 ### Error Handling
 
 Choose a sentinel value when the function fails trivially.
 
 ```rust
+#[no_mangle]
 extern "C" fn qk_qubit_type(qubit: *const Qubit) -> QubitType {
     if qubit.is_null() {
         QubitType::Unknown
@@ -117,42 +118,55 @@ extern "C" fn qk_qubit_type(qubit: *const Qubit) -> QubitType {
 | -------------- | ----------- |
 | `T *`          | `NULL`      |
 | `enum t`       | `T_UNKNOWN` |
-| `int`          | `-1`        |
-| `unsigned int` | `0`         |
+| `int32_t`      | `-1`        |
+| `uint32_t`     | `0`         |
 
 *`-1` and `0` are poor sentinels if the values have additional meaning. For example, `-1` works
-for functions that return an array index. `0` works if the underlying domain value is
-`NonZero(u32)`.*
+for functions that return an array index. While rare, `0` works if the underlying domain value
+could be `NonZeroU32`.*
 
 *`UINT_MAX` and the like are cumbersome because callers must include `limits.h`. Also, consider
-that the statement `if (result == UINT_MAX)` looks more like bounds check than anything else. Loose
-integer conversions are idiomatic in C, so prefer returning signed integer types like `int32_t` and
-`ptrdiff_t` when the domain value is unsigned.*
+that the statement `if (result == UINT_MAX)` looks more like a saturation check than anything else.
+Loose integer conversions are idiomatic in C, so prefer returning signed integer types like
+`int32_t` and `ptrdiff_t` when the domain value is unsigned.*
 
 *`NAN` is problematic because `NAN != NAN`.*
 
 Return `ExitCode` for non-trivial functions with multiple failure points.
 
 ```rust
+#[no_mangle]
+extern "C" fn qk_qubit_new(a: Complex64, b: Complex64, out: *mut *mut Qubit) -> ExitCode {
+    if out.is_null() {
+        return ExitCode::NullPointerError;
+    }
 
+    match Qubit::new(a, b) {
+        Ok(qubit) => {
+            let qubit = Box::new(qubit);
+            out.write(Box::into_raw(qubit));
+            ExitCode::Success
+        },
+        Err(_) => ExitCode::InvalidQubit,
+    }
+}
 ```
 
-*Such non-trivial functions often write to an `out` parameter for the success case.*
+*Non-trivial functions often write to an `out` parameter for the success case.*
 
 Create static, human-readable error messages for new variants.
 
-```c
-const char *qk_exit_code_str(enum qk_exit_code code) {
-    switch (result) {
-    case QK_EXIT_CODE_OK:
-        return "success";
-    case QK_EXIT_CODE_INPUT:
-        return "invalid input";
-    case QK_EXIT_CODE_NULL:
-        return "unexpected null pointer";
-    default:
-        return "unhandled error";
-  }
+```rust
+#[no_mangle]
+extern "C" fn qk_exit_code_str(code: ExitCode) -> *const c_char {
+    let s = match code {
+        ExitCode::Success => c"success",
+        ExitCode::NullPointerError => c"unexpected null pointer",
+        ExitCode::QubitSum => c"qubit component sum not 1",
+        _ => c"unhandled error",
+    };
+
+    s.as_ptr().cast()
 }
 ```
 
