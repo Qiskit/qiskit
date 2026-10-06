@@ -141,11 +141,11 @@ extern "C" fn qk_qubit_new(
     b: *const Complex64,
     out: *mut *mut Qubit
 ) -> ExitCode {
-    if out.is_null() {
+    if a.is_null() || b.is_null() || out.is_null() {
         return ExitCode::NullPointerError;
     }
 
-    match Qubit::new(a, b) {
+    match Qubit::new(*a, *b) {
         Ok(qubit) => {
             let qubit = Box::new(qubit);
             out.write(Box::into_raw(qubit));
@@ -155,7 +155,7 @@ extern "C" fn qk_qubit_new(
             ExitCode::QubitSum
         },
         Err(_) => {
-            ExitCode::Unknown,
+            ExitCode::Unknown
         },
     }
 }
