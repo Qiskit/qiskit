@@ -330,7 +330,7 @@ pub enum OperationData {
     UnitaryGate(Complex64MatrixPack),
     // Store the base gate and then the extra control metadata
     #[br(pre_assert(op_type == CircuitOperationType::Controlled))]
-    Controlled(ControlledGatePack),
+    Controlled(#[brw(args(version))] ControlledGatePack),
     // Store the circuit bodies and the condition explicitly in the pack
     #[br(pre_assert(op_type == CircuitOperationType::ControlFlow))]
     ControlFlow(ControlFlowPack),
@@ -495,9 +495,14 @@ pub struct NamedParamDataPack {
 }
 
 #[binrw]
+#[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub struct ControlledGatePack {
-    // placeholder
+    #[brw(args(version))]
+    pub from_python: FromPythonPack,
+    pub num_ctrl_qubits: u32,
+    pub ctrl_state: u32,
 }
 
 #[binrw]

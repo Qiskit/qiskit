@@ -1580,6 +1580,13 @@ fn unpack_circuit_v19(
         "clbit",
         |indices| qpy_data.circuit_data.add_cargs(indices),
     )?;
+    let custom_instructions = read_custom_instructions(packed_circuit, &mut qpy_data)?;
+    let custom_instruction_names = packed_circuit
+        .custom_instructions
+        .custom_instructions
+        .iter()
+        .map(|operation| operation.name.as_str())
+        .collect::<Vec<_>>();
 
     for packed_instruction in &packed_circuit.instructions {
         let formats::CircuitInstructionPack::V19(instruction) = packed_instruction else {
@@ -1587,7 +1594,14 @@ fn unpack_circuit_v19(
                 "QPY >= 19 circuit has a pre-QPY 19 instruction".to_string(),
             ));
         };
-        let instruction = unpack_instruction_v19(instruction, &qargs, &cargs, &mut qpy_data)?;
+        let instruction = unpack_instruction_v19(
+            instruction,
+            &qargs,
+            &cargs,
+            &custom_instructions,
+            &custom_instruction_names,
+            &mut qpy_data,
+        )?;
         qpy_data.circuit_data.push(instruction)?;
     }
     Ok(qpy_data.circuit_data)
@@ -1597,6 +1611,8 @@ fn unpack_instruction_v19(
     instruction: &formats::CircuitInstructionV19Pack,
     qargs: &[Interned<[Qubit]>],
     cargs: &[Interned<[Clbit]>],
+    custom_instructions: &HashMap<String, CustomCircuitInstructionData>,
+    custom_instruction_names: &[&str],
     qpy_data: &mut QPYReadData,
 ) -> Result<PackedInstruction, QpyError> {
     let qubits = *qargs.get(instruction.qargs as usize).ok_or_else(|| {
@@ -1659,6 +1675,28 @@ fn unpack_instruction_v19(
         formats::OperationData::UnitaryGate(matrix) => {
             let array = unpack_array_type(matrix.clone())?;
             PackedOperation::from_unitary(Box::new(UnitaryGate { array }))
+        }
+        formats::OperationData::Custom(index) => {
+            let name = custom_instruction_names
+                .get(*index as usize)
+                .ok_or_else(|| {
+                    QpyError::MissingData(format!(
+                        "custom instruction index {index} is out of range"
+                    ))
+                })?;
+            let data = custom_instructions.get(*name).ok_or_else(|| {
+                QpyError::MissingData(format!("custom instruction data not found for {name}"))
+            })?;
+            qpy_data.caller.attach("Custom instruction", |py| {
+                unpack_custom_instruction_v19(
+                    py,
+                    name,
+                    data,
+                    &parameter_values,
+                    instruction.label.as_ref().map(|label| label.value.as_str()),
+                    qpy_data,
+                )
+            })?
         }
         formats::OperationData::PauliEvolution(data) => {
             let [time] = parameter_values.as_slice() else {
@@ -1760,15 +1798,24 @@ fn unpack_instruction_v19(
                         data,
                         &parameter_values,
                         qpy_data.circuit_data.get_qargs(qubits).len(),
+                        None,
                         qpy_data,
                     )
                 })?
         }
-        _ => {
-            return Err(QpyError::DeserializationError(format!(
-                "QPY 19 {:?} operation decoding is not implemented yet",
-                instruction.operation
-            )));
+        formats::OperationData::Controlled(data) => {
+            qpy_data
+                .caller
+                .attach("unpack Python-defined controlled gate", |py| {
+                    unpack_from_python_v19(
+                        py,
+                        &data.from_python,
+                        &parameter_values,
+                        qpy_data.circuit_data.get_qargs(qubits).len(),
+                        Some((data.num_ctrl_qubits, data.ctrl_state)),
+                        qpy_data,
+                    )
+                })?
         }
     };
     let params = instruction_values_to_params(parameter_values, qpy_data)?;
@@ -1786,11 +1833,60 @@ fn unpack_instruction_v19(
     })
 }
 
+fn unpack_custom_instruction_v19(
+    py: Python<'_>,
+    serialized_name: &str,
+    data: &CustomCircuitInstructionData,
+    parameter_values: &[GenericValue],
+    label: Option<&str>,
+    qpy_data: &QPYReadData,
+) -> Result<PackedOperation, QpyError> {
+    let name = serialized_name
+        .rsplit_once('_')
+        .map_or(serialized_name, |(name, _)| name);
+    let py_params = parameter_values
+        .iter()
+        .map(|value| {
+            generic_value_to_param(value, qpy_data)?
+                .into_pyobject(py)
+                .map_err(QpyError::from)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let object = match data.gate_type {
+        CircuitInstructionType::Gate => {
+            imports::GATE
+                .get_bound(py)
+                .call1((name, data.num_qubits, py_params))?
+        }
+        CircuitInstructionType::Instruction => imports::INSTRUCTION.get_bound(py).call1((
+            name,
+            data.num_qubits,
+            data.num_clbits,
+            py_params,
+        ))?,
+        other => {
+            return Err(QpyError::DeserializationError(format!(
+                "QPY 19 custom instruction type {other:?} is not implemented"
+            )));
+        }
+    };
+    if let Some(definition) = &data.definition_circuit {
+        object.setattr("definition", definition)?;
+    }
+    if let Some(label) = label {
+        object.setattr("label", label)?;
+    }
+    Ok(object
+        .extract::<OperationFromPython<CircuitData>>()?
+        .operation)
+}
+
 fn unpack_from_python_v19(
     py: Python<'_>,
     data: &formats::FromPythonPack,
     parameter_values: &[GenericValue],
     num_qubits: usize,
+    control: Option<(u32, u32)>,
     qpy_data: &mut QPYReadData,
 ) -> Result<PackedOperation, QpyError> {
     let gate_class = crate::py_methods::get_python_gate_class(py, &data.class_name.value)?;
@@ -1806,8 +1902,12 @@ fn unpack_from_python_v19(
             py_convert_from_generic_value(py, &value)?,
         )?;
     }
+    if let Some((num_ctrl_qubits, ctrl_state)) = control {
+        kwargs.set_item("num_ctrl_qubits", num_ctrl_qubits)?;
+        kwargs.set_item("ctrl_state", ctrl_state)?;
+    }
 
-    let object = if !data.init_params.is_empty() {
+    let object = if !kwargs.is_empty() {
         gate_class.call(PyTuple::new(py, py_params)?, Some(&kwargs))?
     } else {
         match data.class_name.value.as_str() {

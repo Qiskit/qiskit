@@ -343,11 +343,13 @@ fn pack_instructions_v19(
     (
         Vec<formats::CircuitInstructionV19Pack>,
         HashMap<String, PackedOperation>,
+        Vec<String>,
     ),
     QpyError,
 > {
     let mut custom_operations = HashMap::new();
     let mut new_custom_operations = Vec::new();
+    let mut v19_custom_operations = Vec::new();
     let instructions = qpy_data.circuit_data.data().to_vec();
     let mut packed_instructions = Vec::with_capacity(instructions.len());
 
@@ -360,6 +362,7 @@ fn pack_instructions_v19(
         // different definitions of labels and annotations, this also populates the parameter-vector
         // and custom-operation tables as required by the surrounding circuit packer.
         let operation_view = instruction.op.view();
+        let custom_count_before = new_custom_operations.len();
         let (label, annotations) = if let OperationRef::ControlFlow(control_flow) = operation_view {
             let annotations = match &control_flow.control_flow {
                 ControlFlow::Box { annotations, .. } => pack_annotations(annotations, qpy_data)?,
@@ -392,6 +395,16 @@ fn pack_instructions_v19(
             (legacy.label, legacy.annotations)
         };
 
+        let custom_index = (new_custom_operations.len() > custom_count_before
+            && matches!(
+                instruction_type,
+                CircuitInstructionType::Gate | CircuitInstructionType::Instruction
+            ))
+        .then(|| {
+            let index = v19_custom_operations.len();
+            v19_custom_operations.push(new_custom_operations.last().unwrap().clone());
+            index
+        });
         let (operation, operation_data) = match instruction.op.view() {
             OperationRef::StandardGate(gate) => (
                 formats::CircuitOperationType::StandardGate,
@@ -449,6 +462,18 @@ fn pack_instructions_v19(
                     pack_expression(store.rvalue(), qpy_data)?,
                 ),
             ),
+            OperationRef::PyCustom(_) if custom_index.is_some() => (
+                formats::CircuitOperationType::Custom,
+                formats::OperationData::Custom(custom_index.unwrap() as u64),
+            ),
+            OperationRef::PyCustom(custom) if custom.num_ctrl_qubits().unwrap_or(0) > 0 => (
+                formats::CircuitOperationType::Controlled,
+                formats::OperationData::Controlled(formats::ControlledGatePack {
+                    from_python: pack_from_python_v19(custom, qpy_data)?,
+                    num_ctrl_qubits: custom.num_ctrl_qubits().unwrap_or(0),
+                    ctrl_state: custom.ctrl_state().unwrap_or(0),
+                }),
+            ),
             OperationRef::PyCustom(custom) => (
                 formats::CircuitOperationType::FromPython,
                 formats::OperationData::FromPython(pack_from_python_v19(custom, qpy_data)?),
@@ -482,7 +507,11 @@ fn pack_instructions_v19(
         });
     }
 
-    Ok((packed_instructions, custom_operations))
+    Ok((
+        packed_instructions,
+        custom_operations,
+        v19_custom_operations,
+    ))
 }
 
 fn pack_from_python_v19(
@@ -496,15 +525,9 @@ fn pack_from_python_v19(
             let class_name = instruction.class_name(py)?;
             let init_values = match class_name.as_str() {
                 "MCXVChain" => vec![
-                    ("num_ctrl_qubits", object.getattr("num_ctrl_qubits")?),
-                    ("ctrl_state", object.getattr("ctrl_state")?),
                     ("dirty_ancillas", object.getattr("_dirty_ancillas")?),
                     ("relative_phase", object.getattr("_relative_phase")?),
                     ("action_only", object.getattr("_action_only")?),
-                ],
-                "MCPhaseGate" | "MCU1Gate" | "MCXGrayCode" | "MCXGate" | "MCXRecursive" => vec![
-                    ("num_ctrl_qubits", object.getattr("num_ctrl_qubits")?),
-                    ("ctrl_state", object.getattr("ctrl_state")?),
                 ],
                 _ => Vec::new(),
             };
@@ -1651,6 +1674,7 @@ fn pack_transpile_layout(
 
 fn pack_custom_instructions(
     custom_instructions_hash: &mut HashMap<String, PackedOperation>,
+    ordered_names: Option<Vec<String>>,
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CustomCircuitInstructionsPack, QpyError> {
     if custom_instructions_hash.is_empty() {
@@ -1659,10 +1683,23 @@ fn pack_custom_instructions(
         });
     }
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
-    let mut instructions_to_pack: Vec<String> = custom_instructions_hash.keys().cloned().collect();
     qpy_data
         .caller
         .attach("custom instructions", |py| -> Result<_, QpyError> {
+            let mut instructions_to_pack = Vec::new();
+            if let Some(names) = ordered_names {
+                for name in names {
+                    custom_instructions.push(pack_custom_instruction(
+                        py,
+                        &name,
+                        custom_instructions_hash,
+                        &mut instructions_to_pack,
+                        qpy_data,
+                    )?);
+                }
+            } else {
+                instructions_to_pack = custom_instructions_hash.keys().cloned().collect();
+            }
             while let Some(name) = instructions_to_pack.pop() {
                 custom_instructions.push(pack_custom_instruction(
                     py,
@@ -1975,7 +2012,7 @@ fn pack_circuit_v18(
         .map(formats::CircuitInstructionPack::V2)
         .collect();
     let custom_instructions =
-        pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
+        pack_custom_instructions(&mut custom_instructions_hash, None, &mut qpy_data)?;
     let layout = if extra.layout.is_empty() {
         default_layout()
     } else {
@@ -2025,13 +2062,17 @@ fn pack_circuit_v19(
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
     let header = pack_circuit_header_v19(extra.name, extra.metadata, &mut qpy_data)?;
 
-    let (instructions, mut custom_instructions_hash) = pack_instructions_v19(&mut qpy_data)?;
+    let (instructions, mut custom_instructions_hash, custom_instruction_names) =
+        pack_instructions_v19(&mut qpy_data)?;
     let instructions: Vec<formats::CircuitInstructionPack> = instructions
         .into_iter()
         .map(formats::CircuitInstructionPack::V19)
         .collect();
-    let custom_instructions =
-        pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
+    let custom_instructions = pack_custom_instructions(
+        &mut custom_instructions_hash,
+        Some(custom_instruction_names),
+        &mut qpy_data,
+    )?;
     let layout = if extra.layout.is_empty() {
         default_layout()
     } else {
