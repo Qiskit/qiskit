@@ -24,7 +24,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict, PyList};
+use pyo3::types::{PyAny, PyDict, PyList, PyString, PyTuple};
 use qiskit_circuit::annotation::Annotation;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
@@ -35,9 +35,9 @@ use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    ControlFlowType, ForCollection, LoopParam, Param, PauliBased, PauliProductMeasurement,
-    PauliProductRotation, PyRange, StandardInstruction, StandardInstructionType, Store,
-    SwitchTarget, UnitaryGate,
+    ControlFlowType, ForCollection, LoopParam, OperationRef, Param, PauliBased,
+    PauliProductMeasurement, PauliProductRotation, PyInstruction, PyRange, StandardInstruction,
+    StandardInstructionType, Store, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -1751,6 +1751,19 @@ fn unpack_instruction_v19(
                 unpack_expression(rvalue.clone(), qpy_data)?,
             )))
         }
+        formats::OperationData::FromPython(data) => {
+            qpy_data
+                .caller
+                .attach("unpack Python-defined operation", |py| {
+                    unpack_from_python_v19(
+                        py,
+                        data,
+                        &parameter_values,
+                        qpy_data.circuit_data.get_qargs(qubits).len(),
+                        qpy_data,
+                    )
+                })?
+        }
         _ => {
             return Err(QpyError::DeserializationError(format!(
                 "QPY 19 {:?} operation decoding is not implemented yet",
@@ -1771,6 +1784,72 @@ fn unpack_instruction_v19(
         #[cfg(feature = "cache_pygates")]
         py_op: std::sync::OnceLock::new(),
     })
+}
+
+fn unpack_from_python_v19(
+    py: Python<'_>,
+    data: &formats::FromPythonPack,
+    parameter_values: &[GenericValue],
+    num_qubits: usize,
+    qpy_data: &mut QPYReadData,
+) -> Result<PackedOperation, QpyError> {
+    let gate_class = crate::py_methods::get_python_gate_class(py, &data.class_name.value)?;
+    let py_params = parameter_values
+        .iter()
+        .map(|value| py_convert_from_generic_value(py, value))
+        .collect::<Result<Vec<_>, _>>()?;
+    let kwargs = PyDict::new(py);
+    for init_param in &data.init_params {
+        let value = unpack_param_data_v19(&init_param.value, qpy_data)?;
+        kwargs.set_item(
+            &init_param.name.value,
+            py_convert_from_generic_value(py, &value)?,
+        )?;
+    }
+
+    let object = if !data.init_params.is_empty() {
+        gate_class.call(PyTuple::new(py, py_params)?, Some(&kwargs))?
+    } else {
+        match data.class_name.value.as_str() {
+            "Initialize" | "StatePreparation" => {
+                if py_params
+                    .first()
+                    .is_some_and(|param| param.bind(py).is_instance_of::<PyString>())
+                {
+                    let label = py_params
+                        .iter()
+                        .map(|param| param.extract(py))
+                        .collect::<PyResult<Vec<String>>>()?
+                        .join("");
+                    gate_class.call1((label,))?
+                } else if let [param] = py_params.as_slice() {
+                    let value: f64 = param.getattr(py, "real")?.extract(py)?;
+                    gate_class.call1((value as u32, num_qubits))?
+                } else {
+                    gate_class.call1((py_params,))?
+                }
+            }
+            "QFTGate" => gate_class.call1((num_qubits,))?,
+            "UCRXGate" | "UCRYGate" | "UCRZGate" | "DiagonalGate" => {
+                gate_class.call1((py_params,))?
+            }
+            _ => gate_class.call1(PyTuple::new(py, py_params)?)?,
+        }
+    };
+    if object.getattr("name")?.extract::<String>()? != data.op_name.value {
+        object.setattr("_name", &data.op_name.value)?;
+    }
+    let operation = object
+        .extract::<OperationFromPython<CircuitData>>()?
+        .operation;
+    if let OperationRef::PyCustom(py_instruction) = operation.view() {
+        Ok(PackedOperation::from(PyInstruction {
+            op_name: data.op_name.value.clone(),
+            ..py_instruction.clone()
+        }))
+    } else {
+        Ok(operation)
+    }
 }
 
 fn unpack_bool_vector(data: &formats::BoolVectorPack) -> Result<Vec<bool>, QpyError> {

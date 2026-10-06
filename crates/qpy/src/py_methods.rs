@@ -19,7 +19,7 @@ use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{
-    IntoPyDict, PyAny, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple, PyType,
+    IntoPyDict, PyAny, PyBool, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple, PyType,
 };
 use qiskit_circuit::classical::expr::Expr;
 use std::num::NonZero;
@@ -331,7 +331,9 @@ pub(crate) fn gate_class_name(py: Python, op: &PackedOperation) -> Result<String
 
 pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> Result<ValueType, QpyError> {
     let py: Python<'_> = py_object.py();
-    if py_object.is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))? {
+    if py_object.is_instance_of::<PyBool>() {
+        return Ok(ValueType::Bool);
+    } else if py_object.is_instance(imports::PARAMETER_VECTOR_ELEMENT.get_bound(py))? {
         return Ok(ValueType::ParameterVector);
     } else if py_object.is_instance(imports::PARAMETER.get_bound(py))? {
         return Ok(ValueType::Parameter);

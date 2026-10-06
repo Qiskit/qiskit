@@ -449,13 +449,9 @@ fn pack_instructions_v19(
                     pack_expression(store.rvalue(), qpy_data)?,
                 ),
             ),
-            OperationRef::PyCustom(custom) if custom.num_ctrl_qubits().unwrap_or(0) > 0 => (
-                formats::CircuitOperationType::Controlled,
-                formats::OperationData::Controlled(formats::ControlledGatePack {}),
-            ),
-            OperationRef::PyCustom(_) => (
+            OperationRef::PyCustom(custom) => (
                 formats::CircuitOperationType::FromPython,
-                formats::OperationData::FromPython(formats::FromPythonPack {}),
+                formats::OperationData::FromPython(pack_from_python_v19(custom, qpy_data)?),
             ),
             OperationRef::CustomOperation(_) => unreachable!(
                 "pack_instruction rejects compiled custom operations before QPY 19 conversion"
@@ -487,6 +483,53 @@ fn pack_instructions_v19(
     }
 
     Ok((packed_instructions, custom_operations))
+}
+
+fn pack_from_python_v19(
+    instruction: &PyInstruction,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::FromPythonPack, QpyError> {
+    qpy_data
+        .caller
+        .attach("pack Python-defined operation", |py| {
+            let object = instruction.ob.bind(py);
+            let class_name = instruction.class_name(py)?;
+            let init_values = match class_name.as_str() {
+                "MCXVChain" => vec![
+                    ("num_ctrl_qubits", object.getattr("num_ctrl_qubits")?),
+                    ("ctrl_state", object.getattr("ctrl_state")?),
+                    ("dirty_ancillas", object.getattr("_dirty_ancillas")?),
+                    ("relative_phase", object.getattr("_relative_phase")?),
+                    ("action_only", object.getattr("_action_only")?),
+                ],
+                "MCPhaseGate" | "MCU1Gate" | "MCXGrayCode" | "MCXGate" | "MCXRecursive" => vec![
+                    ("num_ctrl_qubits", object.getattr("num_ctrl_qubits")?),
+                    ("ctrl_state", object.getattr("ctrl_state")?),
+                ],
+                _ => Vec::new(),
+            };
+            let init_params = init_values
+                .into_iter()
+                .map(|(name, value)| {
+                    Ok(formats::NamedParamDataPack {
+                        name: StringU16Pack {
+                            value: name.to_string(),
+                        },
+                        value: generic_value_to_param_data_pack(
+                            &py_convert_to_generic_value(&value)?,
+                            qpy_data,
+                        )?,
+                    })
+                })
+                .collect::<Result<Vec<_>, QpyError>>()?;
+            Ok(formats::FromPythonPack {
+                class_name: StringU16Pack { value: class_name },
+                op_name: StringU16Pack {
+                    value: instruction.op_name.clone(),
+                },
+                init_params,
+            })
+        })
 }
 
 fn pack_bool_vector(values: &[bool]) -> Result<formats::BoolVectorPack, QpyError> {

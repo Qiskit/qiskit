@@ -324,7 +324,7 @@ pub enum OperationData {
     Custom(u64),
     // Store gate class name like is done now for Python defined operations in Qiskit
     #[br(pre_assert(op_type == CircuitOperationType::FromPython))]
-    FromPython(FromPythonPack),
+    FromPython(#[brw(args(version))] FromPythonPack),
     // Store the raw npy bytes of the underlying array
     #[br(pre_assert(op_type == CircuitOperationType::UnitaryGate))]
     UnitaryGate(Complex64MatrixPack),
@@ -471,9 +471,27 @@ pub enum ParamDataPack {
 }
 
 #[binrw]
+#[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub struct FromPythonPack {
-    // placeholder
+    pub class_name: StringU16Pack,
+    pub op_name: StringU16Pack,
+    #[bw(calc = init_params.len() as u16)]
+    pub num_init_params: u16,
+    #[br(count = num_init_params, args { inner: (version,) })]
+    #[bw(args(version))]
+    pub init_params: Vec<NamedParamDataPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u8))]
+pub struct NamedParamDataPack {
+    pub name: StringU16Pack,
+    #[brw(args(version))]
+    pub value: ParamDataPack,
 }
 
 #[binrw]
