@@ -26,12 +26,14 @@ There are 2 ways we can define a `struct` in a C header file. Firstly, we can fu
 `struct`, meaning callers can access its members and allocate it themselves. These structures are
 called **transparent**. Secondly, we can forward-declare the `struct` without defining it. Since
 the actual definition lives in the source code, callers *cannot* access its members or allocate it
-themselves. These structures are called **opaque**. The second strategy is especially useful for us
-because C cannot reason about the internal layout of Rust types. `cbindgen` will generate a
-transparent definition for anything `repr(C)`. In all other cases, except fixed-width `enum` types,
-an opaque definition will be generated.
+themselves. These structures are called **opaque**. `cbindgen` generates transparent structures
+when the layout is `repr(C)` and opaque structures for other layouts. 
 
-**Example: Opaque Structures**
+**Use opaque structures when...**
+
+1. runtime invariant(s) need enforcement.
+2. complex behavior needs encapsulation.
+3. fields are likely to change.
 
 ```rust
 pub struct Qubit {
@@ -42,7 +44,10 @@ pub struct Qubit {
 
 *Note that `repr(Rust)` is implicit.*
 
-**Example: Transparent Structures**
+**Use transparent structures when...**
+
+1. dealing with plain, old data without complex behavior.
+2. fields are unlikely to change.
 
 ```rust
 #[repr(C)]
@@ -57,11 +62,8 @@ documentation purposes.*
 
 ### Enumerations
 
-In short, C enumerations are named integer constants, and nothing more. `cbindgen` handles
-flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts. Explicitly assigning integer values
-will discourage accidental breaking changes.
-
-**Example: Enumerations**
+In short, C enumerations are named integer constants, and nothing more. `cbindgen` creates mappings
+from flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts.
 
 ```rust
 #[repr(C)]
@@ -70,6 +72,8 @@ pub enum QubitType {
     Logical = 1,
 }
 ```
+
+*Assign integer values explicitly to discourage breaking changes.*
 
 **Debate: Fixed-width Layout**
 
