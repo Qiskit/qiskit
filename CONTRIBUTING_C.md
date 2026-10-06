@@ -151,7 +151,12 @@ extern "C" fn qk_qubit_new(
             out.write(Box::into_raw(qubit));
             ExitCode::Success
         },
-        Err(_) => ExitCode::InvalidQubit,
+        Err(QubitError::QubitSum) => {
+            ExitCode::QubitSum
+        },
+        Err(_) => {
+            ExitCode::Unknown,
+        },
     }
 }
 ```
