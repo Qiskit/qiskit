@@ -243,10 +243,16 @@ impl CustomClassical {
 impl std::fmt::Debug for ClassicalCallableExt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Builtin(builtin) => write!(f, "Builtin({builtin:?})"),
-            Self::Custom { num_params, .. } => write!(f, "Custom({num_params}, ..)"),
+            Self::Builtin(builtin) => f.debug_tuple("Builtin").field(builtin).finish(),
+            Self::Custom { num_params, .. } => f
+                .debug_struct("Custom")
+                .field("num_params", num_params)
+                .finish(),
             #[cfg(feature = "py")]
-            Self::Python { num_params, .. } => write!(f, "Python({num_params}, ..)"),
+            Self::Python { num_params, .. } => f
+                .debug_struct("Python")
+                .field("num_params", num_params)
+                .finish(),
         }
     }
 }

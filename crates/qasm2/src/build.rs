@@ -44,9 +44,8 @@ enum GateEntry {
 impl fmt::Debug for GateEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Standard(gate) => write!(f, "Standard({gate:?})"),
-            // Named, not expanded: the template is shared by every usage.
-            Self::Defined(template) => write!(f, "Defined({:?})", template.name),
+            Self::Standard(gate) => f.debug_tuple("Standard").field(gate).finish(),
+            Self::Defined(template) => f.debug_tuple("Defined").field(&template.name).finish(),
         }
     }
 }
