@@ -509,9 +509,16 @@ fn push_conditioned(
 
     let mut block = CircuitData::new(None, None, Param::Float(0.0))
         .map_err(|err| ParseError::new(format!("failed to create circuit: {err}")))?;
-    block
-        .add_anonymous_qubits(num_qubits)
-        .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
+    // Reuse the outer circuit's qubits to match the Python loader's register identity.
+    for qubit in qargs {
+        let bit =
+            circuit.qubits().get(*qubit).cloned().ok_or_else(|| {
+                ParseError::new(format!("qubit {} is not in the circuit", qubit.0))
+            })?;
+        block
+            .add_qubit(bit, true)
+            .map_err(|err| ParseError::new(format!("failed to build conditioned block: {err}")))?;
+    }
     // `add_creg` creates the block's first clbits, one per bit of the condition register.
     block
         .add_creg(
