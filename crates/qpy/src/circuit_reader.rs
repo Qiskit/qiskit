@@ -1635,11 +1635,11 @@ fn unpack_instruction_v19(
     if instruction.annotations.is_some()
         && !matches!(
             instruction.operation_data,
-            formats::OperationData::ControlFlow(_)
+            formats::OperationData::ControlFlow(formats::ControlFlowPack::Box(_))
         )
     {
         return Err(QpyError::DeserializationError(
-            "QPY 19 instruction annotations are not implemented yet".to_string(),
+            "non-Box instructions do not support annotations".to_string(),
         ));
     }
     let op = match &instruction.operation_data {
