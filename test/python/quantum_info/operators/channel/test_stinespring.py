@@ -107,6 +107,17 @@ class TestStinespring(ChannelTestCase):
         self.assertFalse(Stinespring((stine_l, stine_r)).is_cptp())
         self.assertFalse(Stinespring(self.UI + self.UX).is_cptp())
 
+        # Explicit tolerances control the trace-preserving check.
+        channel = Stinespring((1 + 4e-4) * np.eye(2))
+        with self.subTest("strict atol"):
+            self.assertFalse(channel.is_cptp(atol=1e-5, rtol=0))
+        with self.subTest("relaxed atol"):
+            self.assertTrue(channel.is_cptp(atol=1e-3, rtol=0))
+        with self.subTest("strict rtol"):
+            self.assertFalse(channel.is_cptp(atol=0, rtol=1e-5))
+        with self.subTest("relaxed rtol"):
+            self.assertTrue(channel.is_cptp(atol=0, rtol=1e-3))
+
     def test_conjugate(self):
         """Test conjugate method."""
         stine_l, stine_r = self.rand_matrix(16, 2), self.rand_matrix(16, 2)
