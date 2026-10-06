@@ -19,8 +19,6 @@ from ddt import ddt, data, unpack
 from qiskit.quantum_info import random_unitary
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit import QiskitError
-from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.generalized_gates import Isometry

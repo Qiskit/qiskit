@@ -8,4 +8,4 @@ performance:
     Benchmarks show an average speedup of **~18x**, ranging from **~2x** for small,
     single-qubit isometries up to **~35x** for larger 4- to 6-qubit isometries, where the
     eliminated PyO3 crossings matter most. There are no API or circuit-equivalence changes.
-    See `#PR_NUMBER <https://github.com/Qiskit/qiskit/pull/PR_NUMBER>`__ for more details.
+    See `#17151 <https://github.com/Qiskit/qiskit/pull/17151>`__ for more details.
