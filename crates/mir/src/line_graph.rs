@@ -213,7 +213,7 @@ impl<T> LineGraph<T> {
                 self.data_ends = Some([head, cur]);
                 cur
             }
-            None => self.push_main_assume_empty(weight),
+            None => self.replace_main_with_node(weight),
         }
     }
 
@@ -231,7 +231,7 @@ impl<T> LineGraph<T> {
                 self.data_ends = Some([cur, tail]);
                 cur
             }
-            None => self.push_main_assume_empty(weight),
+            None => self.replace_main_with_node(weight),
         }
     }
 
@@ -248,9 +248,9 @@ impl<T> LineGraph<T> {
 
     /// Set the main sequence to be exactly this weight.
     ///
-    /// Orphans any existing main sequence.
+    /// Orphans any existing main sequence.  This is safe to use with an empty main sequence.
     #[inline]
-    fn push_main_assume_empty(&mut self, weight: T) -> Index {
+    pub fn replace_main_with_node(&mut self, weight: T) -> Index {
         let cur = self.allocate(Node {
             weight,
             prev: None,
@@ -355,8 +355,9 @@ enum Slot<T> {
 
 /// An index into a [`LineGraph`].
 ///
-/// This almost always points to a filled slot at the point of its public exposure, though internal
-/// uses of it within [`LineGraph`] will use it to point to free slots too.
+/// This almost always points to a filled slot at the point of its public exposure from
+/// [`LineGraph`] methods, though internal uses of it within [`LineGraph`] will use it to point to
+/// free slots too, and mutations to the graph can invalidate existing indices.
 ///
 /// [`Option<Index>`] is guaranteed to have the same size as [`Index`]; you can rely on the niche
 /// optimization happening.  The value of the niche is **not** guaranteed and subject to change.
@@ -381,7 +382,7 @@ impl Index {
 
     /// The numeric value of the index.
     #[inline]
-    pub fn index(&self) -> usize {
+    pub fn index(self) -> usize {
         self.0.get() as usize
     }
 }
@@ -531,7 +532,7 @@ mod tests {
             cur = g[idx].prev();
         }
         iterated_indices_back.reverse();
-        assert_eq!(forward_indices.as_slice(), iterated_indices.as_slice());
+        assert_eq!(forward_indices.as_slice(), iterated_indices_back.as_slice());
     }
 
     #[test]
