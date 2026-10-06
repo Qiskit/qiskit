@@ -340,18 +340,14 @@ fn pack_instructions(
 
 /// pack all the instructions in the circuit, returning both the packed instructions
 /// and the dictionary of custom operations generated in the process
-fn pack_instructions_v19(
-    qpy_data: &mut QPYWriteData,
-) -> Result<
-    (
-        Vec<formats::CircuitInstructionV19Pack>,
-        HashMap<String, PackedOperation>,
-        Vec<String>,
-    ),
-    QpyError,
-> {
+type PackedInstructionsV19 = (
+    Vec<formats::CircuitInstructionV19Pack>,
+    HashMap<String, PackedOperation>,
+    Vec<String>,
+);
+
+fn pack_instructions_v19(qpy_data: &mut QPYWriteData) -> Result<PackedInstructionsV19, QpyError> {
     let mut custom_operations = HashMap::new();
-    let mut new_custom_operations = Vec::new();
     let mut v19_custom_operations = Vec::new();
     let instructions = qpy_data.circuit_data.data().to_vec();
     let mut packed_instructions = Vec::with_capacity(instructions.len());
@@ -360,54 +356,41 @@ fn pack_instructions_v19(
         let qargs = instruction.qubits.index();
         let cargs = instruction.clbits.index();
         let instruction_type = get_circuit_type_key(&instruction.op, qpy_data.caller)?;
-
-        // Reuse the existing operation-specific extraction for now.  Besides avoiding two subtly
-        // different definitions of labels and annotations, this also populates the parameter-vector
-        // and custom-operation tables as required by the surrounding circuit packer.
         let operation_view = instruction.op.view();
-        let custom_count_before = new_custom_operations.len();
-        let (label, annotations) = if let OperationRef::ControlFlow(control_flow) = operation_view {
-            let annotations = match &control_flow.control_flow {
+        let annotations = match operation_view {
+            OperationRef::ControlFlow(control_flow) => match &control_flow.control_flow {
                 ControlFlow::Box { annotations, .. } => pack_annotations(annotations, qpy_data)?,
                 _ => None,
-            };
-            (
-                instruction.label.as_deref().cloned().unwrap_or_default(),
-                annotations,
-            )
-        } else if matches!(
-            operation_view,
-            OperationRef::PauliProductMeasurement(_)
-                | OperationRef::PauliProductRotation(_)
-                | OperationRef::Store(_)
-        ) {
-            (
-                instruction.label.as_deref().cloned().unwrap_or_default(),
-                None,
-            )
-        } else {
-            let legacy = pack_instruction(
-                instruction,
-                &mut custom_operations,
-                &mut new_custom_operations,
-                qpy_data,
-            )?;
-            if instruction_type == CircuitInstructionType::PauliEvolutionGate {
-                custom_operations.remove(&legacy.gate_class_name);
-            }
-            (legacy.label, legacy.annotations)
+            },
+            _ => None,
         };
 
-        let custom_index = (new_custom_operations.len() > custom_count_before
-            && matches!(
-                instruction_type,
-                CircuitInstructionType::Gate | CircuitInstructionType::Instruction
-            ))
-        .then(|| {
-            let index = v19_custom_operations.len();
-            v19_custom_operations.push(new_custom_operations.last().unwrap().clone());
-            index
-        });
+        let custom_index = if matches!(
+            instruction_type,
+            CircuitInstructionType::Gate | CircuitInstructionType::Instruction
+        ) && matches!(operation_view, OperationRef::PyCustom(_))
+            && matches!(qpy_data.caller, QpyCaller::Python)
+        {
+            let custom_name = qpy_data.caller.attach(
+                "recognize custom operations",
+                |py| -> Result<_, QpyError> {
+                    recognize_custom_operation(
+                        py,
+                        &instruction.op,
+                        &gate_class_name(py, &instruction.op)?,
+                        qpy_data,
+                    )
+                },
+            )?;
+            custom_name.map(|name| {
+                let index = v19_custom_operations.len();
+                v19_custom_operations.push(name.clone());
+                custom_operations.insert(name, instruction.op.clone());
+                index
+            })
+        } else {
+            None
+        };
         let (operation, operation_data) = match instruction.op.view() {
             OperationRef::StandardGate(gate) => (
                 formats::CircuitOperationType::StandardGate,
@@ -467,7 +450,11 @@ fn pack_instructions_v19(
             ),
             OperationRef::PyCustom(_) if custom_index.is_some() => (
                 formats::CircuitOperationType::Custom,
-                formats::OperationData::Custom(custom_index.unwrap() as u64),
+                formats::OperationData::Custom(custom_index.ok_or_else(|| {
+                    QpyError::SerializationError(
+                        "custom operation has no custom-instruction index".to_string(),
+                    )
+                })? as u64),
             ),
             OperationRef::PyCustom(custom) if custom.num_ctrl_qubits().unwrap_or(0) > 0 => (
                 formats::CircuitOperationType::Controlled,
@@ -498,7 +485,13 @@ fn pack_instructions_v19(
                 .map(|param| pack_param_v19(param, qpy_data))
                 .collect::<Result<_, _>>()?
         };
-        let label = (!label.is_empty()).then_some(StringU16Pack { value: label });
+        let label = instruction
+            .label
+            .as_deref()
+            .filter(|label| !label.is_empty())
+            .map(|label| StringU16Pack {
+                value: label.clone(),
+            });
         packed_instructions.push(formats::CircuitInstructionV19Pack {
             operation,
             qargs,
