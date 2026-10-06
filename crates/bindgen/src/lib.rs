@@ -82,6 +82,7 @@ pub static QISKIT_PUBLIC_API_CRATES: &[&str] = &[
     "qiskit-circuit",
     "qiskit-transpiler",
     "qiskit-passmanager",
+    "qiskit-mir",
 ];
 
 pub static EXPORT_PREFIX: &str = "Qk";
