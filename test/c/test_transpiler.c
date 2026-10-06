@@ -470,8 +470,7 @@ int test_transpile_state_layout_unset(void) {
         mapping[num_qubits - i - 1] = i;
     };
 
-    QkTranspileLayout *layout =
-        qk_transpile_layout_generate_from_mapping(dag, target, mapping);
+    QkTranspileLayout *layout = qk_transpile_layout_generate_from_mapping(dag, target, mapping);
 
     QkTranspilerStageState *state = NULL;
     qk_transpile_state_new(&state);
