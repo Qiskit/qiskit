@@ -462,8 +462,10 @@ int test_transpile_state_layout_unset(void) {
     QkTarget *target = qk_target_new(num_qubits);
 
     QkDag *dag = qk_dag_new();
+
     QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
     qk_dag_add_quantum_register(dag, qr);
+    qk_quantum_register_free(qr);
 
     uint32_t *mapping = malloc(sizeof(uint32_t) * num_qubits);
     for (uint32_t i = 0; i < num_qubits; i++) {
@@ -476,16 +478,24 @@ int test_transpile_state_layout_unset(void) {
     qk_transpile_state_new(&state);
     qk_transpile_state_layout_set(state, layout);
 
-    qk_transpile_state_layout_set(state, NULL);
     QkTranspileLayout *current = qk_transpile_state_layout(state);
+    if (current == NULL) {
+        result = EqualityError;
+        printf("state layout not set");
+        goto cleanup;
+    }
+
+    qk_transpile_state_layout_set(state, NULL);
+    current = qk_transpile_state_layout(state);
 
     if (current != NULL) {
         result = EqualityError;
-        printf("state layout is still set");
+        printf("state layout exists after unset");
     } else {
         result = Ok;
     }
 
+cleanup:
     free(mapping);
     qk_transpile_state_free(state);
     qk_dag_free(dag);
