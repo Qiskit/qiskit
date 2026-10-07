@@ -370,6 +370,7 @@ fn pack_instructions_v19(qpy_data: &mut QPYWriteData) -> Result<PackedInstructio
             CircuitInstructionType::Gate
                 | CircuitInstructionType::Instruction
                 | CircuitInstructionType::ControlledGate
+                | CircuitInstructionType::AnnotatedOperation
         ) && matches!(operation_view, OperationRef::PyCustom(_))
             && matches!(qpy_data.caller, QpyCaller::Python)
         {
@@ -475,7 +476,26 @@ fn pack_instructions_v19(qpy_data: &mut QPYWriteData) -> Result<PackedInstructio
             ),
         };
 
-        let params = if matches!(instruction.op.view(), OperationRef::ControlFlow(_)) {
+        let params = if instruction_type == CircuitInstructionType::AnnotatedOperation
+            && let OperationRef::PyCustom(custom) = instruction.op.view()
+        {
+            qpy_data
+                .caller
+                .attach("pack annotated-operation modifiers", |py| {
+                    custom
+                        .ob
+                        .bind(py)
+                        .getattr("modifiers")?
+                        .try_iter()?
+                        .map(|modifier| {
+                            generic_value_to_param_data_pack(
+                                &py_convert_to_generic_value(&modifier?)?,
+                                qpy_data,
+                            )
+                        })
+                        .collect::<Result<_, QpyError>>()
+                })?
+        } else if matches!(instruction.op.view(), OperationRef::ControlFlow(_)) {
             extract_instruction_blocks(instruction, qpy_data)
                 .iter()
                 .map(|block| generic_value_to_param_data_pack(block, qpy_data))

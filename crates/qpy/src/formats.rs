@@ -150,6 +150,7 @@ impl CircuitHeaderPack {
 pub(crate) struct CircuitHeaderV19Pack {
     // global circuit data
     pub circuit_name: StringU16Pack,
+    #[brw(args(version))]
     pub global_phase: GlobalPhasePack,
     pub num_qubits: u32,
     pub num_clbits: u32,
@@ -674,6 +675,7 @@ pub enum InternerEntry {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub enum GlobalPhasePack {
     #[brw(magic = b'f')]
     Float(f64),
@@ -682,7 +684,7 @@ pub enum GlobalPhasePack {
     Parameter(ParameterSymbolPack),
 
     #[brw(magic = b'v')]
-    ParameterVectorElement(ParameterVectorElementPack),
+    ParameterVectorElement(#[brw(args(version))] ParameterVectorElementPack),
 
     #[brw(magic = b'e')]
     ParameterExpression(ParameterExpressionPack),

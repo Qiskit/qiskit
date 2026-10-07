@@ -1899,6 +1899,27 @@ fn unpack_custom_instruction_v19(
                 .get_bound(py)
                 .call((name, data.num_qubits, py_params), Some(&kwargs))?
         }
+        CircuitInstructionType::AnnotatedOperation => {
+            let packed_base_op =
+                deserialize_with_args::<formats::CircuitInstructionV2Pack, (bool,)>(
+                    &data.base_gate_raw,
+                    (false,),
+                )?
+                .0;
+            let base_op = unpack_instruction(&packed_base_op, custom_instructions, qpy_data)?;
+            let params = qpy_data
+                .circuit_data
+                .unpack_blocks_to_circuit_parameters(base_op.params.as_deref());
+            let py_base_op = create_py_op(
+                py,
+                base_op.op.view(),
+                params,
+                base_op.label.as_deref().map(String::as_str),
+            )?;
+            imports::ANNOTATED_OPERATION
+                .get_bound(py)
+                .call1((py_base_op, py_params))?
+        }
         other => {
             return Err(QpyError::DeserializationError(format!(
                 "QPY 19 custom instruction type {other:?} is not implemented"
@@ -1938,7 +1959,16 @@ fn unpack_from_python_v19(
         )?;
     }
     if let Some((num_ctrl_qubits, ctrl_state)) = control {
-        kwargs.set_item("num_ctrl_qubits", num_ctrl_qubits)?;
+        // Most standard controlled gates have a fixed number of controls, so their Python
+        // constructors do not accept `num_ctrl_qubits` (for example, `CXGate`).  The multi-
+        // controlled families below are the exceptions and need the serialized count in order
+        // to construct an object of the right size.
+        if matches!(
+            data.class_name.value.as_str(),
+            "MCPhaseGate" | "MCU1Gate" | "MCXGrayCode" | "MCXGate" | "MCXRecursive" | "MCXVChain"
+        ) {
+            kwargs.set_item("num_ctrl_qubits", num_ctrl_qubits)?;
+        }
         kwargs.set_item("ctrl_state", ctrl_state)?;
     }
 
