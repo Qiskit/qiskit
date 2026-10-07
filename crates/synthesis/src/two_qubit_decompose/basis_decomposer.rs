@@ -353,11 +353,11 @@ impl TwoQubitBasisDecomposer {
 
         let x12 = euler_q0[1][2] + euler_q0[2][0];
         let x12_is_non_zero = !abs_diff_eq!(x12, 0., epsilon = atol);
-        let mut x12_is_old_mult = None;
+        let mut x12_is_odd_mult = None;
         let mut x12_phase = 0.;
         let x12_is_pi_mult = abs_diff_eq!(x12.sin(), 0., epsilon = atol);
         if x12_is_pi_mult {
-            x12_is_old_mult = Some(abs_diff_eq!(x12.cos(), -1., epsilon = atol));
+            x12_is_odd_mult = Some(abs_diff_eq!(x12.cos(), -1., epsilon = atol));
             x12_phase = PI * x12.cos();
         }
         let x02_add = x12 - euler_q0[1][0];
@@ -387,7 +387,7 @@ impl TwoQubitBasisDecomposer {
             if x12_is_non_zero {
                 global_phase += x12_phase;
             }
-            if x12_is_non_zero && x12_is_old_mult.unwrap() {
+            if x12_is_non_zero && x12_is_odd_mult.unwrap() {
                 gates.push((
                     StandardGate::RZ.into(),
                     smallvec![-euler_q0[1][1]],
@@ -406,6 +406,11 @@ impl TwoQubitBasisDecomposer {
             gates.push((StandardGate::SX.into(), smallvec![], smallvec![0]));
             global_phase -= FRAC_PI_4;
         } else if x12_is_non_zero && !x12_is_pi_mult {
+            gates.push((
+                StandardGate::RZ.into(),
+                smallvec![euler_q0[1][1]],
+                smallvec![0],
+            ));
             if self.pulse_optimize.is_none() {
                 self.append_1q_sequence(&mut gates, &mut global_phase, rx_matrix(x12).as_view(), 0);
             } else {
