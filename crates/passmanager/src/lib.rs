@@ -163,9 +163,7 @@ pub trait IR: DynTyped + Send + Sync + 'static {}
 /// Qiskit's pass manager.
 #[derive(Default, Debug)]
 pub struct PassManager {
-    // It is UNSAFE to directly mutate the task vector since we are checking that the types
-    // match upon construction, hence the tasks are private.
-    tasks: Vec<Task>,
+    tasks: Pipeline,
 }
 
 impl PassManager {
@@ -202,7 +200,7 @@ impl PassManager {
         let mut context = PassManagerContext::new();
         for task in self.tasks.iter() {
             let mut pass_context = PassContext::spawn(&context);
-            ir = execute_task(task, ir, &mut pass_context)?;
+            ir = task.execute(ir, &mut pass_context)?;
             let PassContext { updates, .. } = pass_context;
             context.update(updates);
         }
@@ -218,29 +216,18 @@ impl PassManager {
 
     /// Get the type identifier of the input of this pipeline.
     pub fn ir_id_in(&self) -> Option<DynTypeId<'_>> {
-        sequence_io_types(self.tasks.iter()).map(|[in_, _]| in_)
+        self.tasks.io_types().map(|[in_, _]| in_)
     }
     /// Get the type identifier of the output of this pipeline.
     pub fn ir_id_out(&self) -> Option<DynTypeId<'_>> {
-        sequence_io_types(self.tasks.iter()).map(|[_, out]| out)
+        self.tasks.io_types().map(|[_, out]| out)
     }
 
     /// Try to push a [`Task`] onto the end of the task list.
     ///
     /// Fails, returning the same task back to the caller, if the types are incompatible.
     pub fn try_push_task(&mut self, task: Task) -> Result<(), Task> {
-        let ours = self.ir_id_out();
-        let theirs = task.io_types().map(|[in_, _]| in_);
-        if let Some((ours, theirs)) = ours.zip(theirs)
-            && ours != theirs
-        {
-            // We may want to change the error type of this in the future to provide structured
-            // information about _what_ went wrong, but in the first implementation we're just doing
-            // the easy thing.
-            return Err(task);
-        }
-        self.tasks.push(task);
-        Ok(())
+        self.tasks.try_push(task)
     }
 
     pub fn try_push_static_pass<In: IR, Out: IR>(
@@ -253,39 +240,6 @@ impl PassManager {
     /// Get a reference to a [Task] at a given index.
     pub fn get_task(&self, index: usize) -> Option<&Task> {
         self.tasks.get(index)
-    }
-}
-
-/// The task runner. This should not be called standalone, passes should be run
-/// via the pass manager.
-fn execute_task(
-    task: &Task,
-    mut ir: Box<dyn IR>,
-    context: &mut PassContext,
-) -> Result<Box<dyn IR>, PassError> {
-    // TODO We might be able to only type-check in the pass manager's execution method,
-    // since the pipeline is already type-checked upon construction. For now we keep it here,
-    // which is the safer choice.
-    if let Some([task_in_type, _]) = task.io_types()
-        && task_in_type != ir.dyn_type_id()
-    {
-        return Err(PassError::Conversion);
-    }
-
-    match task {
-        Task::Transformation(pass) => pass.run(ir, context),
-        Task::Group(tasks) => {
-            for task in tasks.iter() {
-                ir = execute_task(task, ir, context)?;
-            }
-            Ok(ir)
-        }
-        Task::Stages(stages) => {
-            for (_name, task) in stages.iter() {
-                ir = execute_task(task, ir, context)?;
-            }
-            Ok(ir)
-        }
     }
 }
 
@@ -362,13 +316,13 @@ mod test {
     fn test_empty_child_keeps_type_checks() {
         let mut pm = PassManager::new();
         pm.try_push_static_pass(LowerToInt).unwrap();
-        assert!(
-            pm.try_push_task(Task::Group(vec![
-                Task::Group(vec![]),
-                Task::Transformation(AddOne.into_pass()),
-            ]))
-            .is_err()
-        );
+        let inner = Pipeline::new(vec![]).unwrap();
+        let outer = Pipeline::new(vec![
+            Task::Pipeline(inner),
+            Task::Transformation(AddOne.into_pass()),
+        ])
+        .unwrap();
+        assert!(pm.try_push_task(Task::Pipeline(outer)).is_err());
     }
 
     #[test]
@@ -394,28 +348,26 @@ mod test {
     fn test_task_retrieval() {
         let make_task = || Task::Transformation(AddOne.into_pass());
 
-        let group = Task::Group(vec![make_task(), make_task()]);
-        let stages = Task::Stages(vec![("one_and_only".to_string(), make_task())]);
+        let pipeline = Pipeline::new(vec![make_task(), make_task()]).unwrap();
+        let stages = StagedPipeline::new(vec![("one_and_only".to_string(), make_task())]).unwrap();
 
         let mut pm = PassManager::new();
         pm.try_push_static_pass(AddOne).unwrap();
-        pm.try_push_task(group).unwrap();
-        pm.try_push_task(stages).unwrap();
+        pm.try_push_task(Task::Pipeline(pipeline)).unwrap();
+        pm.try_push_task(Task::Stages(stages)).unwrap();
 
         assert!(matches!(pm.get_task(0), Some(Task::Transformation(_))));
 
-        if let Some(Task::Group(group)) = pm.get_task(1) {
-            assert_eq!(group.len(), 2);
-        } else {
-            panic!("Expected a Task::Group");
-        }
+        let Some(Task::Pipeline(pipeline)) = pm.get_task(1) else {
+            panic!("expected a Task::Pipeline");
+        };
+        assert_eq!(pipeline.len(), 2);
 
-        if let Some(Task::Stages(stages)) = pm.get_task(2) {
-            assert_eq!(stages.len(), 1);
-            assert_eq!(stages[0].0, "one_and_only".to_string());
-        } else {
-            panic!("Expected a Task::Stage");
-        }
+        let Some(Task::Stages(stages)) = pm.get_task(2) else {
+            panic!("expected a Task::Stages");
+        };
+        assert_eq!(stages.len(), 1);
+        assert_eq!(stages.get(0).unwrap().0, "one_and_only");
     }
 
     #[test]
