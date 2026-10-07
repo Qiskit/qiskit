@@ -14,6 +14,7 @@ TODO: Write step-by-step instructions, including any boilerplate:
 1. Exposing an opaque structure.
 2. Writing `extern "C"` functions.
 3. Extending `ExitCode` with message.
+4. write documentation with linking, address opaque typedef 
 
 ## Guidelines
 
@@ -92,7 +93,6 @@ integer types like `int32_t` and `ptrdiff_t` when the domain value is unsigned a
 | `int32_t`      | `-1`        |
 
 ```rust
-#[unsafe(no_mangle)]
 extern "C" fn qk_qubit_type(qubit: *const Qubit) -> QubitType {
     if qubit.is_null() {
         QubitType::Unknown
@@ -107,7 +107,6 @@ Return `ExitCode` for non-trivial functions with multiple failure points. These 
 write to an `out` parameter for the success case.
 
 ```rust
-#[unsafe(no_mangle)]
 extern "C" fn qk_qubit_new(
     a: *const Complex64,
     b: *const Complex64,
@@ -135,7 +134,6 @@ extern "C" fn qk_qubit_new(
 Create static, human-readable error messages for `ExitCode` variants.
 
 ```rust
-#[unsafe(no_mangle)]
 extern "C" fn qk_exit_code_str(code: ExitCode) -> *const c_char {
     let s = match code {
         ExitCode::Success => c"success",
@@ -148,12 +146,18 @@ extern "C" fn qk_exit_code_str(code: ExitCode) -> *const c_char {
 }
 ```
 
+### Fixed-width Integers
+
+Use fixed-width integers in transparent structures and function signatures. Avoid imprecise-width
+integers such as `c_int` and `c_long`. `cbindgen` generates headers using the fixed-width integer
+types found in `inttypes.h`. For example, `i32` is mapped to `int32_t`.
+
 ### Versioning & Backwards Compatibility
 
 C and Python share the same version number, following [SemVer](https://semver.org/). Breaking
 changes are prohibited without incrementing the major version number.
 
-Compatible changes include...
+Backwards compatible changes include...
 
 - creating public functions, types, macros, constants, and headers.
 - adding enum variant(s) without changing integer values.
@@ -183,8 +187,10 @@ Plain function names are more flexible.
 - `qk_foo`
 - `qk_str_free`
 
+### Memory Management
 
-## Additional Topics
+Memory allocated by Qiskit should be free'd by Qiskit, including plain arrays and strings.
+`qiskit.h` provides `qk_str_free` for leaked `CString` pointers. 
 
 ### Platform-specific Features
 
@@ -194,18 +200,14 @@ relevant in the quantum domain, but those types are only available in GCC. In th
 be better off using the platform independent complex number utilities defined in `complex.h` since
 C99. 
 
-### Memory Management
-
-Memory allocated by Qiskit should be free'd by Qiskit, including plain arrays and strings.
-`qiskit.h` provides `qk_str_free` for leaked `CString` pointers. 
-
 ### Python Extensions
 
 This section needs some more thought. Qiskit provides functions for extracting a C-native pointer
 from a `PyObject *`. The working theory is that, in sequential programming contexts, only 1 thread
 will access the pointer at a given instant. We assume this is true for both GIL-attached and free-
-threaded Python. Thus, a simple function that, given a `PyObject *`, returns a pointer into the
-data model should be sufficient.
+threaded Python. Thus, a simple function that returns a data model pointer given a `PyObject *`
+should be sufficient.
 
 *See [this PR](https://github.com/Qiskit/qiskit/pull/17011) for details.*
 
+## Qiskit Specific Stuff
