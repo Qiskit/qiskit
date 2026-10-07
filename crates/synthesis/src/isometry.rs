@@ -54,7 +54,6 @@ fn bin_to_int(bin: &[u8]) -> usize {
 }
 
 #[inline(always)]
-#[pyfunction]
 fn k_s(k: usize, s: usize) -> usize {
     if k == 0 {
         0
@@ -65,13 +64,11 @@ fn k_s(k: usize, s: usize) -> usize {
 }
 
 #[inline(always)]
-#[pyfunction]
 fn a(k: usize, s: usize) -> usize {
     k / 2_usize.pow(s as u32)
 }
 
 #[inline(always)]
-#[pyfunction]
 fn b(k: usize, s: usize) -> usize {
     k - (a(k, s) * 2_usize.pow(s as u32))
 }
@@ -135,9 +132,9 @@ fn ucg_is_identity_up_to_global_phase(
     true
 }
 
-/// Target is always `Qubit(s)`; for this branch `control_labels` is always `0..target_label`,
-/// whose physical qubits are always the contiguous range `Qubit(s+1)..Qubit(n)` (derived above,
-/// then passed in by the caller).
+/// Appends a uniformly controlled gate, targeting `target_qubit` and controlled by
+/// `control_qubits`, to `circuit`. Returns the trailing diagonal left over, for the caller
+/// to fold into whatever comes next.
 fn append_ucg_up_to_diagonal(
     circuit: &mut CircuitData,
     single_qubit_gates: &[Array2<Complex64>],
@@ -154,17 +151,17 @@ fn append_ucg_up_to_diagonal(
     Ok(diag)
 }
 
-/// `mcg_up_to_diagonal_inner`'s returned circuit is always sized `num_ctrls + 1` (its own test
-/// asserts this) and never references an ancilla qubit, so only `target_qubit`/`control_qubits`
-/// matter for the merge.
+/// Appends a multi-controlled single-qubit `gate`, targeting `target_qubit` and controlled by
+/// `control_qubits`, to `circuit`. Returns the trailing diagonal left over, for the caller
+/// to fold into whatever comes next.
 fn append_mcg_up_to_diagonal(
     circuit: &mut CircuitData,
-    gate: Array2<Complex64>,
+    gate: &Array2<Complex64>,
     target_qubit: Qubit,
     control_qubits: &[Qubit],
 ) -> Result<Vec<Complex64>, CircuitDataError> {
     let (sub_circuit, diag) =
-        mcg_up_to_diagonal_inner(array2_to_matrix2(&gate), control_qubits.len() as u32)?;
+        mcg_up_to_diagonal_inner(array2_to_matrix2(gate), control_qubits.len() as u32)?;
     let qubit_map: Vec<Qubit> = iter::once(target_qubit)
         .chain(control_qubits.iter().copied())
         .collect();
@@ -351,8 +348,8 @@ fn apply_multi_controlled_gate(
     m
 }
 
-/// Disentangles qubit `s` of column `k`, placing gates on `circuit` as needed. `target_qubit` is
-/// always `Qubit(s)`, equivalent to the closed-form `n - 1 - (n - s - 1)`.
+/// Zeroes out qubit `s` of column `k`, appending whatever gates that takes to `circuit`.
+/// Returns the updated isometry and the diagonal correction accumulated so far.
 fn disentangle(
     circuit: &mut CircuitData,
     mut v: Array2<Complex64>,
@@ -380,7 +377,7 @@ fn disentangle(
             .collect();
 
         let diagonal_mcg =
-            append_mcg_up_to_diagonal(circuit, gate.clone(), target_qubit, &control_qubits)?;
+            append_mcg_up_to_diagonal(circuit, &gate, target_qubit, &control_qubits)?;
         let control_labels_and_target: Vec<usize> =
             control_labels.iter().copied().chain([n - s - 1]).collect();
 
@@ -420,17 +417,12 @@ fn decompose_column(
     epsilon: f64,
 ) -> Result<(Array2<Complex64>, Vec<Complex64>), CircuitDataError> {
     for s in 0..n {
-        let (v_next, diag_next) = disentangle(circuit, v, diag, column_index, s, n, epsilon)?;
-        v = v_next;
-        diag = diag_next;
+        (v, diag) = disentangle(circuit, v, diag, column_index, s, n, epsilon)?;
     }
     Ok((v, diag))
 }
-/// Orchestration entry point: disentangles every column, then applies a trailing diagonal
-/// correction if needed. Takes no `Python` token: every gate placed comes from a
-/// `StandardGate`-only sub-circuit (`dec_ucg_inner`/`mcg_up_to_diagonal_inner`/
-/// `diagonal_gate_circuit`, all of which build plain `CircuitData`) merged in directly via
-/// `append`, so there are zero PyO3 crossings in the loop.
+/// Builds the circuit that maps `iso`'s columns onto the first `2^m` basis states, column by
+/// column, then widens it with `num_ancillas_zero + num_ancillas_dirty` unused ancilla qubits.
 pub(crate) fn synth_isometry_inner(
     iso: ArrayView2<Complex64>,
     num_ancillas_zero: usize,
@@ -471,9 +463,9 @@ pub(crate) fn synth_isometry_inner(
     Ok(circuit)
 }
 
-/// Python-exposed entry point. Mirrors `mcg_up_to_diagonal_synth`/`synth_diagonal`'s own wrapper
-/// pattern (`into_py_quantum_circuit` + `setattr("name", ...)`) rather than `PyCircuitData`, to
-/// match the idiom already used by the sibling functions this module calls into.
+/// Validates that `iso`'s shape is a valid isometry (power-of-2 rows and columns, with at
+/// least as many rows as columns), then returns the circuit decomposing it, named
+/// `"isometry_to_uncompute"`.
 #[pyfunction]
 pub fn synth_isometry(
     py: Python,
@@ -534,9 +526,8 @@ mod test {
         Complex64::new(rng.sample(StandardNormal), rng.sample(StandardNormal))
     }
 
-    /// Builds a `rows x cols` matrix with orthonormal columns via Gram-Schmidt on random
-    /// complex vectors. Not Haar-random, but enough to exercise `synth_isometry_inner` on
-    /// isometries that are neither basis permutations nor simple tensor products.
+    /// A `rows x cols` matrix with orthonormal columns, built via Gram-Schmidt on random
+    /// complex vectors.
     fn random_isometry(rows: usize, cols: usize, rng: &mut Pcg64Mcg) -> Array2<Complex64> {
         let mut m: Array2<Complex64> = Array2::zeros((rows, cols));
         for col in 0..cols {
@@ -560,9 +551,8 @@ mod test {
         m
     }
 
-    /// The `rows x cols` top-left block of the `rows x rows` identity. `synth_isometry_inner`
-    /// is defined (Iten et al., Section IV.C) to map any isometry's columns onto exactly this:
-    /// `G @ iso == [I_cols; 0]`.
+    /// The `rows x cols` top-left block of the `rows x rows` identity, the expected target of
+    /// `synth_isometry_inner`.
     fn basis_columns(rows: usize, cols: usize) -> Array2<Complex64> {
         let mut out = Array2::zeros((rows, cols));
         for i in 0..cols {
@@ -687,8 +677,7 @@ mod test {
     fn test_apply_diagonal_gate_to_diag() {
         let d0 = c(2.0, 0.0);
         let d1 = c(3.0, 0.0);
-        // Only the first 3 of the 4 basis states have been visited so far by the outer
-        // column-by-column loop in `synth_isometry_inner` -- matches that partial-diag usage.
+        // Only 3 of the 4 basis states are filled in, matching a partial diag mid-loop.
         let m_diagonal = vec![c(1.0, 0.0), c(0.0, 1.0), c(1.0, 1.0)];
         let out = apply_diagonal_gate_to_diag(m_diagonal, &[0], &[d0, d1], 2);
         assert!(abs_diff_eq!(out[0], c(2.0, 0.0), epsilon = 1e-12));
@@ -754,11 +743,8 @@ mod test {
 
     #[test]
     fn test_append_ucg_up_to_diagonal_matches_direct_decomposition() {
-        // When the destination qubit map is the identity (target -> Qubit(0), controls ->
-        // Qubit(1), Qubit(2), in the sub-circuit's own natural order), folding the returned
-        // diagonal back on top must reproduce exactly what `dec_ucg_inner` computes directly
-        // with `up_to_diagonal = false` for the same gate list -- mirrors the equivalent check
-        // in mcg_up_to_diagonal.rs's test module.
+        // Folding the returned diagonal back on top must reproduce what `dec_ucg_inner`
+        // computes directly with `up_to_diagonal = false`, for the same gates.
         let gates = vec![id2(), x_gate(), hadamard(), id2()];
         let mut circuit = CircuitData::with_capacity(3, 0, 0, Param::Float(0.0)).unwrap();
         let control_qubits = [Qubit(1), Qubit(2)];
@@ -784,15 +770,13 @@ mod test {
 
     #[test]
     fn test_append_mcg_up_to_diagonal_matches_direct_decomposition() {
-        // Ground truth: a 2-controlled Hadamard is a UCGate with identity in every slot except
-        // the "both controls = 1" slot (this is exactly how `mcg_up_to_diagonal_inner` itself
-        // reduces to `dec_ucg_inner` -- see its doc comment -- so this independently rebuilds
-        // the same reduction with `up_to_diagonal = false` to get the *exact* target unitary,
-        // rather than comparing two "up to diagonal" results against each other.
+        // Ground truth: a 2-controlled Hadamard is a UCGate with identity everywhere except
+        // the "both controls = 1" slot. Rebuild it directly with `up_to_diagonal = false` to
+        // get the exact target unitary.
         let mut circuit = CircuitData::with_capacity(3, 0, 0, Param::Float(0.0)).unwrap();
         let control_qubits = [Qubit(1), Qubit(2)];
-        let diag =
-            append_mcg_up_to_diagonal(&mut circuit, hadamard(), Qubit(0), &control_qubits).unwrap();
+        let diag = append_mcg_up_to_diagonal(&mut circuit, &hadamard(), Qubit(0), &control_qubits)
+            .unwrap();
 
         let unitary = sim_unitary_circuit(&circuit).unwrap();
         // diag spans all 3 sub-circuit qubits (target + 2 controls), i.e. 2^3 = 8 entries.
@@ -821,11 +805,7 @@ mod test {
 
     #[test]
     fn test_synth_isometry_inner_identity_produces_empty_circuit() {
-        // An isometry that already equals (a block of) the identity needs no disentangling
-        // gates at all: every step of `decompose_column` finds the relevant qubit already in
-        // the right basis state, and the trailing diagonal correction is the identity too
-        // (`diag` ends up all 1s), so it is skipped as well. This exercises the "skip" side of
-        // both branches that would otherwise add gates.
+        // An isometry already equal to (a block of) the identity needs no gates at all.
         for n in 1..=3_usize {
             let iso: Array2<Complex64> = Array2::eye(1 << n);
             let circuit = synth_isometry_inner(iso.view(), 0, 0, 1e-10).unwrap();
@@ -840,10 +820,8 @@ mod test {
 
     #[test]
     fn test_synth_isometry_inner_state_prep_uniform_superposition() {
-        // m = 0 (state preparation): a 2-qubit uniform superposition needs genuine
-        // disentangling gates (unlike the identity case above), but with a single column it
-        // never pushes more than one entry onto `diag`, so it never reaches the trailing
-        // diagonal-correction branch.
+        // m = 0 (state preparation): a 2-qubit uniform superposition, unlike the identity
+        // case above, needs real disentangling gates.
         let half = c(0.5, 0.0);
         let iso: Array2<Complex64> = array![[half], [half], [half], [half]];
         let circuit = synth_isometry_inner(iso.view(), 0, 0, 1e-10).unwrap();
@@ -860,8 +838,6 @@ mod test {
     #[test]
     fn test_synth_isometry_inner_full_unitary() {
         // m = n = 2 (a full unitary): H tensored onto the more-significant qubit (label 0).
-        // With all 4 columns processed, `diag` accumulates 4 entries, making this a case that
-        // can reach the trailing diagonal-correction branch of `synth_isometry_inner`.
         let h = c(1.0 / 2.0_f64.sqrt(), 0.0);
         let z = c(0.0, 0.0);
         let iso: Array2<Complex64> =
@@ -874,12 +850,8 @@ mod test {
 
     #[test]
     fn test_synth_isometry_inner_random_isometries() {
-        // Property test: for an arbitrary isometry (not just a permutation or a simple tensor
-        // product), the returned circuit must always satisfy the defining contract of
-        // `synth_isometry_inner` (Iten et al., Section IV.C): `G @ iso == [I_m; 0]`. The spread
-        // of m-to-n shapes below, between them, exercise both the MCG pre-correction branch and
-        // the trailing diagonal-correction branch of `disentangle`/`synth_isometry_inner` many
-        // times over, without having to hand-derive exactly which (k, s) triggers each one.
+        // Property test: for an arbitrary isometry, the circuit must satisfy
+        // `G @ iso == [I_cols; 0]`, across a spread of m-to-n shapes.
         let mut rng = Pcg64Mcg::seed_from_u64(2024);
         let cases: [(usize, usize); 8] = [
             (2, 1),
@@ -907,10 +879,8 @@ mod test {
 
     #[test]
     fn test_synth_isometry_inner_ancillas_are_idle() {
-        // `num_ancillas_zero`/`num_ancillas_dirty` currently only widen `num_qubits`; no gate
-        // in the MCG-synthesis path is specialized to use them (see the module-level comment on
-        // `append_mcg_up_to_diagonal`). So adding ancillas must change `num_qubits` and nothing
-        // else: the exact same gates, on the exact same (sub-n) qubits, in the exact same order.
+        // Ancillas currently only widen `num_qubits`; they must not change the gates
+        // themselves or which (sub-n) qubits they act on.
         let mut rng = Pcg64Mcg::seed_from_u64(7);
         let iso = random_isometry(4, 2, &mut rng);
         let n = 2;
