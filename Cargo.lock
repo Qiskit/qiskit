@@ -2441,6 +2441,11 @@ name = "qiskit-mir"
 version = "2.7.0-dev"
 dependencies = [
  "bytemuck",
+ "hashbrown 0.15.5",
+ "itertools 0.15.0",
+ "qiskit-util",
+ "rustworkx-core",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
