@@ -127,18 +127,7 @@ fn generic_value_to_param_data_pack(
                 .attach("pack modifier", |py| py_pack_modifier(py, modifier))?,
         ),
         GenericValue::CircuitData(circuit_data) => {
-            let layout = serialize(&pack_layout(None, circuit_data, qpy_data.version)?)?;
-            formats::ParamDataPack::Circuit(Box::new(pack_circuit(
-                circuit_data,
-                ExtraCircuitData {
-                    name: None,
-                    metadata: "{}".into(),
-                    layout,
-                },
-                qpy_data.version,
-                qpy_data.annotation_handler.child()?,
-                qpy_data.caller,
-            )?))
+            circuit_data_to_param_data_pack(circuit_data, qpy_data)?
         }
         GenericValue::Duration(duration) => {
             formats::ParamDataPack::Duration(pack_duration(duration))
@@ -154,6 +143,24 @@ fn generic_value_to_param_data_pack(
             }
         }),
     })
+}
+
+fn circuit_data_to_param_data_pack(
+    circuit_data: &CircuitData,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::ParamDataPack, QpyError> {
+    let layout = serialize(&pack_layout(None, circuit_data, qpy_data.version)?)?;
+    Ok(formats::ParamDataPack::Circuit(Box::new(pack_circuit(
+        circuit_data,
+        ExtraCircuitData {
+            name: None,
+            metadata: "{}".into(),
+            layout,
+        },
+        qpy_data.version,
+        qpy_data.annotation_handler.child()?,
+        qpy_data.caller,
+    )?)))
 }
 
 fn pack_param_v19(
@@ -349,10 +356,15 @@ type PackedInstructionsV19 = (
 fn pack_instructions_v19(qpy_data: &mut QPYWriteData) -> Result<PackedInstructionsV19, QpyError> {
     let mut custom_operations = HashMap::new();
     let mut v19_custom_operations = Vec::new();
-    let instructions = qpy_data.circuit_data.data().to_vec();
+    // Copy the circuit-data reference out of `qpy_data` so the instructions can be borrowed while
+    // the writer state is mutated below.  Cloning the instructions is both unnecessary and, for
+    // circuits borrowed through the C API, may clone cached Python objects while the calling
+    // thread is detached from the interpreter.
+    let circuit_data = qpy_data.circuit_data;
+    let instructions = circuit_data.data();
     let mut packed_instructions = Vec::with_capacity(instructions.len());
 
-    for instruction in &instructions {
+    for instruction in instructions {
         let qargs = instruction.qubits.index();
         let cargs = instruction.clbits.index();
         let instruction_type = get_circuit_type_key(&instruction.op, qpy_data.caller)?;
@@ -513,9 +525,11 @@ fn pack_instructions_v19(qpy_data: &mut QPYWriteData) -> Result<PackedInstructio
                         .collect::<Result<_, QpyError>>()
                 })?
         } else if matches!(instruction.op.view(), OperationRef::ControlFlow(_)) {
-            extract_instruction_blocks(instruction, qpy_data)
+            instruction
+                .blocks_view()
                 .iter()
-                .map(|block| generic_value_to_param_data_pack(block, qpy_data))
+                .filter_map(|&block_id| circuit_data.blocks().get(block_id))
+                .map(|block| circuit_data_to_param_data_pack(block, qpy_data))
                 .collect::<Result<_, _>>()?
         } else {
             instruction
