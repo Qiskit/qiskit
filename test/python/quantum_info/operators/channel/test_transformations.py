@@ -174,7 +174,7 @@ class TestTransformations(ChannelTestCase):
             self.assertEqual(output, target)
 
     def test_choi_to_kraus_does_not_mutate_input(self):
-        """The numerical stabilization must not change the source Choi data."""
+        """Converting to Kraus should not modify the input Choi data."""
         choi = Choi(self.choiX)
         original = choi.data.copy()
 
