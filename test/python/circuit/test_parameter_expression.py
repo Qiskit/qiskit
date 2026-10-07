@@ -1128,8 +1128,8 @@ class TestParameterExpression(QiskitTestCase):
         Tests all combinations of ``x+1, x-1, -x+1, -x-1`` with add/sub, comparing against the
         expected simplified expression.
         """
-        # (expression, sign of x, constant); the sign and constant are used to compute the
-        # expected expression.
+        # (expression, coefficient of x, constant); the coefficient and constant are used to
+        # compute the expected expression.
         terms = [
             (param_x + 1, 1, 1),
             (param_x - 1, 1, -1),
@@ -1137,20 +1137,15 @@ class TestParameterExpression(QiskitTestCase):
             (-param_x - 1, -1, -1),
         ]
         # all ordered pairs, including an expression paired with itself
-        for (lhs, left_sign, left_const), (rhs, right_sign, right_const) in itertools.product(
+        for (lhs, left_coeff, left_const), (rhs, right_coeff, right_const) in itertools.product(
             terms, repeat=2
         ):
             with self.subTest(lhs=str(lhs), method=method, rhs=str(rhs)):
-
                 expression = getattr(lhs, method)(rhs)
 
-                # compute expected simplified experession directly
-                sign = getattr(left_sign, method)(right_sign)
+                # compute expected simplified expression directly
+                coeff = getattr(left_coeff, method)(right_coeff)
                 const = getattr(left_const, method)(right_const)
-                expected = sign * param_x + const
+                expected = coeff * param_x + const
 
-                # `assertStructurallyEqual` would be the better assertion here, but it
-                # doesn't handle simplification yet -- a cancelled symbol stays listed in
-                # `name_map`, so the expected expression won't match.  Comparing the rendered
-                # form in the meantime.
-                self.assertEqual(str(expression), str(expected))
+                self.assertStructurallyEqual(expression, expected)
