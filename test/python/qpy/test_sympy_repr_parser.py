@@ -144,6 +144,20 @@ class TestQPYRoundtrip(QiskitTestCase):
         with self.assertRaises(QpyError):
             parse_sympy_repr(py_repr_str, name_map)
 
+    @unpack
+    @idata(
+        [
+            ("Symbol('missing_quote)", SyntaxError),
+            ("Rational(a, b, c)", IndexError),
+            ("Symbol('open paren'", SyntaxError),
+            ("Symbol('missing name map')", QpyError),
+            ("Mul()", IndexError),
+        ]
+    )
+    def test_malformed_reprs(self, malformed, expected_exception):
+        with self.assertRaises(expected_exception):
+            parse_sympy_repr(malformed, {})
+
     def test_large_expr(self):
         a = Parameter("a")
         b = Parameter("b")
