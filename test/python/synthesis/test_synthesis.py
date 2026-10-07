@@ -1351,9 +1351,9 @@ class TestPulseOptimalDecompose(CheckDecompositions):
         self.assertNotIn("x", res.count_ops())
         self.assertIn("sx", res.count_ops())
 
-    def test_zsx_near_cx_boundry(self):
+    def test_zsx_near_cx_boundary(self):
         """Test that pulse-optimal decomposition returns the correct decomposition
-        near the 2-CX / 3-CX boundry. See issue 17057."""
+        near the 2-CX / 3-CX boundary. See issue 17057."""
         for c in [1e-6, 1e-7, 1e-8]:
             qc = QuantumCircuit(2)
             qc.rxx(-1.2, 0, 1)
