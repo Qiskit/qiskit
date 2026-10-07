@@ -9,12 +9,58 @@ The C API is designed for...
 
 ## Tutorial
 
-TODO: Write step-by-step instructions, including any boilerplate:
+This section serves as a step-by-step guide to extending the C API. Check out the
+[guidelines](#guidelines) for detailed information. 
 
-1. Exposing an opaque structure.
-2. Writing `extern "C"` functions.
-3. Extending `ExitCode` with message.
-4. write documentation with linking, address opaque typedef 
+Lets try exposing the hypothetical `Qubit` model to C! This model represents a single qubit using 2
+complex amplitudes, `a` and `b`. `Qubit::new` ensures that `a` and `b` form a normalized
+statevector. `Qubit::measure` collapses the statevector such that consecutive measurements are
+effectively deterministic.
+
+```rust
+// crates/quantum_info/src/qubit.rs
+
+#[derive(Debug, Error)]
+#[error("not normalized")]
+pub struct QubitError;
+
+#[derive(Debug, Clone)]
+pub struct Qubit {
+    a: Complex64,
+    b: Complex64,
+}
+
+impl Qubit {
+    pub fn new(a: Complex64, b: Complex64) -> Result<Self, QubitError> {
+        const TOL: f64 = 1e-12;
+        let len_sqr = a.norm_sqr() + b.norm_sqr();
+
+        if (len_sqr - 1.0).abs() <= TOL {
+            Ok(Self { a, b })
+        } else {
+            Err(QubitError)
+        }
+    }
+
+    pub fn measure(&mut self) -> u32 {
+        let sqr_a = self.a.norm_sqr();
+        let sqr_b = self.b.norm_sqr();
+        let p_zero = sqr_a / (sqr_a + sqr_b);
+
+        if p_zero > rand::random() {
+            self.a = Complex64::ONE;
+            self.b = Complex64::ZERO;
+            0
+        } else {
+            self.a = Complex64::ZERO;
+            self.b = Complex64::ONE;
+            1
+        }
+    }
+}
+```
+
+**TO BE CONTINUED**
 
 ## Guidelines
 
@@ -210,4 +256,3 @@ should be sufficient.
 
 *See [this PR](https://github.com/Qiskit/qiskit/pull/17011) for details.*
 
-## Qiskit Specific Stuff
