@@ -476,7 +476,24 @@ fn pack_instructions_v19(qpy_data: &mut QPYWriteData) -> Result<PackedInstructio
             ),
         };
 
-        let params = if instruction_type == CircuitInstructionType::AnnotatedOperation
+        let params = if let OperationRef::PyCustom(custom) = instruction.op.view()
+            && qpy_data
+                .caller
+                .attach("identify Clifford operation", |py| {
+                    custom
+                        .ob
+                        .bind(py)
+                        .is_instance(imports::CLIFFORD.get_bound(py))
+                        .map_err(QpyError::from)
+                })? {
+            qpy_data.caller.attach("pack Clifford tableau", |py| {
+                let tableau = custom.ob.bind(py).getattr("tableau")?;
+                Ok::<_, QpyError>(vec![generic_value_to_param_data_pack(
+                    &py_convert_to_generic_value(&tableau)?,
+                    qpy_data,
+                )?])
+            })?
+        } else if instruction_type == CircuitInstructionType::AnnotatedOperation
             && let OperationRef::PyCustom(custom) = instruction.op.view()
         {
             qpy_data

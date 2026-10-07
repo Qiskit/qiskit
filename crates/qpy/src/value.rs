@@ -1125,6 +1125,10 @@ pub(crate) fn get_circuit_type_key(
                     PyOpKind::Operation => {
                         if ob.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
                             Ok(CircuitInstructionType::AnnotatedOperation)
+                        } else if ob.is_instance(imports::CLIFFORD.get_bound(py))? {
+                            // Clifford implements Operation directly, but QPY has historically
+                            // encoded it using the generic instruction type key.
+                            Ok(CircuitInstructionType::Instruction)
                         } else {
                             Err(QpyError::InvalidInstruction(format!(
                                 "Unable to determine circuit type key for {ob:?}"
