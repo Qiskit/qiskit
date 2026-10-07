@@ -2252,6 +2252,7 @@ fn unpack_interner_entries<T: From<u32>, I: Copy>(
         .iter()
         .map(|entry| {
             let raw = match entry {
+                formats::InternerEntry::Unused => Vec::new(),
                 formats::InternerEntry::Single(a) => vec![*a],
                 formats::InternerEntry::Double(a, b) => vec![*a, *b],
                 formats::InternerEntry::Triple(a, b, c) => vec![*a, *b, *c],

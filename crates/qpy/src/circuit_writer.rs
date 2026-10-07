@@ -1516,25 +1516,57 @@ fn pack_global_phase(
 fn pack_interners(
     qpy_data: &mut QPYWriteData,
 ) -> (Vec<formats::InternerEntry>, Vec<formats::InternerEntry>) {
+    fn pack_entry<T>(bits: &[T], num_bits: usize, is_used: bool) -> formats::InternerEntry
+    where
+        T: Copy + Into<u32>,
+    {
+        let indices = bits.iter().copied().map(Into::into).collect::<Vec<_>>();
+        // Interners can retain entries that are no longer referenced after a circuit is
+        // transformed.  In particular, control-flow block compaction can leave entries whose
+        // indices refer to the enclosing circuit.  Keep the slot so instruction interner indices
+        // remain stable, but do not emit invalid bit references for these stale entries.
+        if !is_used && indices.iter().any(|&index| index as usize >= num_bits) {
+            return formats::InternerEntry::Unused;
+        }
+        match indices.as_slice() {
+            [a] => formats::InternerEntry::Single(*a),
+            [a, b] => formats::InternerEntry::Double(*a, *b),
+            [a, b, c] => formats::InternerEntry::Triple(*a, *b, *c),
+            bits if bits.len() == num_bits
+                && bits
+                    .iter()
+                    .enumerate()
+                    .all(|(index, bit)| *bit as usize == index) =>
+            {
+                formats::InternerEntry::All
+            }
+            _ => formats::InternerEntry::VariableSize { bits: indices },
+        }
+    }
+
+    let used_qargs = qpy_data
+        .circuit_data
+        .data()
+        .iter()
+        .map(|instruction| instruction.qubits.index())
+        .collect::<HashSet<_>>();
+    let used_cargs = qpy_data
+        .circuit_data
+        .data()
+        .iter()
+        .map(|instruction| instruction.clbits.index())
+        .collect::<HashSet<_>>();
     let qubit_interner = qpy_data
         .circuit_data
         .qargs_interner()
         .values()
-        .map(|bits| match bits.len() {
-            1 => formats::InternerEntry::Single(bits[0].0),
-            2 => formats::InternerEntry::Double(bits[0].0, bits[1].0),
-            3 => formats::InternerEntry::Triple(bits[0].0, bits[1].0, bits[2].0),
-            val if val == qpy_data.circuit_data.num_qubits()
-                && bits
-                    .iter()
-                    .enumerate()
-                    .all(|(index, bit)| bit.0 as usize == index) =>
-            {
-                formats::InternerEntry::All
-            }
-            _ => formats::InternerEntry::VariableSize {
-                bits: bits.iter().map(|bit| bit.0).collect(),
-            },
+        .enumerate()
+        .map(|(index, bits)| {
+            pack_entry(
+                bits,
+                qpy_data.circuit_data.num_qubits(),
+                used_qargs.contains(&(index as u32)),
+            )
         })
         .collect::<Vec<_>>();
 
@@ -1542,21 +1574,13 @@ fn pack_interners(
         .circuit_data
         .cargs_interner()
         .values()
-        .map(|bits| match bits.len() {
-            1 => formats::InternerEntry::Single(bits[0].0),
-            2 => formats::InternerEntry::Double(bits[0].0, bits[1].0),
-            3 => formats::InternerEntry::Triple(bits[0].0, bits[1].0, bits[2].0),
-            val if val == qpy_data.circuit_data.num_clbits()
-                && bits
-                    .iter()
-                    .enumerate()
-                    .all(|(index, bit)| bit.0 as usize == index) =>
-            {
-                formats::InternerEntry::All
-            }
-            _ => formats::InternerEntry::VariableSize {
-                bits: bits.iter().map(|bit| bit.0).collect(),
-            },
+        .enumerate()
+        .map(|(index, bits)| {
+            pack_entry(
+                bits,
+                qpy_data.circuit_data.num_clbits(),
+                used_cargs.contains(&(index as u32)),
+            )
         })
         .collect::<Vec<_>>();
 

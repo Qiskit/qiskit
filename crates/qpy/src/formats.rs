@@ -654,6 +654,9 @@ pub enum CaseSpecifierPack {
 #[brw(big)]
 #[derive(Debug)]
 pub enum InternerEntry {
+    /// An interner slot retained only to preserve the indices of later, live entries.
+    #[brw(magic = b'u')]
+    Unused,
     #[brw(magic = b's')]
     Single(u32),
     #[brw(magic = b'd')]
