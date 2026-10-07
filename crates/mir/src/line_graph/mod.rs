@@ -350,7 +350,7 @@ impl<T> LineGraph<T> {
     /// If you need a double-inclusive iterator, use `self.data(to).and_then(|n| n.next())` as the
     /// bound instead.
     ///
-    /// The iteration is empty if `idx` is not a valid data node.  It is not an error if `to` is not
+    /// The iteration is empty if `from` is not a valid data node.  It is not an error if `to` is not
     /// reachable from `from`, the iteration will just run to the end of the sequence.
     #[inline]
     pub fn iter_range(
@@ -378,7 +378,7 @@ impl<T> LineGraph<T> {
     /// If you need a double-inclusive iterator, use `self.data(to).and_then(|n| n.prev())` as the
     /// bound instead.
     ///
-    /// The iteration is empty if `idx` is not a valid data node.  It is not an error if `to` is not
+    /// The iteration is empty if `from` is not a valid data node.  It is not an error if `to` is not
     /// reachable from `from`, the iteration will just run to the end of the sequence.
     #[inline]
     pub fn iter_range_back(
