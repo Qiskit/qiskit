@@ -35,7 +35,7 @@ use crate::expr::{Expr, evaluate};
 use crate::ext::ClassicalEvaluator;
 use crate::parse::{ClbitId, CregId, GateId, QELIB1, QubitId};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 enum GateEntry {
     Standard(StandardGate),
     Defined(Arc<DefinedGateTemplate>),
@@ -66,7 +66,7 @@ impl GateEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum BodyInstruction {
     Gate {
         entry: GateEntry,
@@ -81,7 +81,7 @@ enum BodyInstruction {
 /// Declared once per OQ2 `gate`/`opaque` statement and shared by every usage.  `body` is `None`
 /// for `opaque`.  Its arguments stay as `Expr` because they can reference this gate's own
 /// parameters (`gate rz(theta) q { u1(theta) q; }`), which only a usage can supply.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct DefinedGateTemplate {
     name: String,
     num_qubits: u32,
@@ -145,17 +145,9 @@ impl DefinedGateTemplate {
 /// Deliberately uncached: `CircuitData::assign_parameters_inner` rebinds params through
 /// `PackedInstruction::params_mut` without touching the operation, so there would be no hook to
 /// invalidate a cached definition.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct DefinedGate {
     template: Arc<DefinedGateTemplate>,
-}
-
-/// By template identity, not structurally, since `Expr` isn't `PartialEq`: identical gates from
-/// separate `build_circuit` calls compare unequal.
-impl PartialEq for DefinedGate {
-    fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.template, &other.template)
-    }
 }
 
 impl Operation for DefinedGate {

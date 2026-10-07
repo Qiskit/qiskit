@@ -30,7 +30,7 @@ use crate::{ClassicalCallableExt, ClassicalEvaluator};
 /// inverse trigonometric functions, but these are an extension to the version as given in the
 /// arXiv paper describing OpenQASM 2.  This enum is essentially just a subset of the [TokenType]
 /// enum, to allow for better pattern-match checking in the Rust compiler.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Function {
     Cos,
     Exp,
@@ -133,6 +133,25 @@ pub enum Expr {
     Power(Box<Expr>, Box<Expr>),
     Function(Function, Box<Expr>),
     CustomFunction(ClassicalCallableExt, Vec<Expr>),
+}
+
+impl PartialEq for Expr {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Expr::Constant(a), Expr::Constant(b)) => a == b,
+            (Expr::Parameter(a), Expr::Parameter(b)) => a == b,
+            (Expr::Negate(a), Expr::Negate(b)) => a == b,
+            (Expr::Add(a, b), Expr::Add(c, d)) => a == c && b == d,
+            (Expr::Subtract(a, b), Expr::Subtract(c, d)) => a == c && b == d,
+            (Expr::Multiply(a, b), Expr::Multiply(c, d)) => a == c && b == d,
+            (Expr::Divide(a, b), Expr::Divide(c, d)) => a == c && b == d,
+            (Expr::Power(a, b), Expr::Power(c, d)) => a == c && b == d,
+            (Expr::Function(f, a), Expr::Function(g, b)) => f == g && a == b,
+            // CustomFunction contains Py<PyAny> which doesn't implement PartialEq
+            // so we treat them as not equal.
+            _ => false,
+        }
+    }
 }
 
 /// A single pending step of the iterative evaluator
