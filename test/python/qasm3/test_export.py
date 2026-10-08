@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,9 +13,10 @@
 """Test QASM3 exporter."""
 
 # We can't really help how long the lines output by the exporter are in some cases.
-# pylint: disable=line-too-long,invalid-name
+
 
 from io import StringIO
+from io import BytesIO
 from math import pi
 import re
 import warnings
@@ -25,7 +26,16 @@ from ddt import ddt, data
 
 from qiskit.exceptions import ExperimentalWarning
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Duration, Gate, ParameterVector, annotation
+from qiskit.circuit import (
+    Parameter,
+    Qubit,
+    Clbit,
+    Duration,
+    Gate,
+    ParameterVector,
+    annotation,
+    Instruction,
+)
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.circuit.library import PauliEvolutionGate
@@ -34,14 +44,34 @@ from qiskit.qasm3 import (
     dumps,
     dump,
     dumps_experimental,
+    loads,
     QASM3ExporterError,
     ExperimentalFeatures,
+    DefcalInstruction,
 )
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm3.exceptions import QASM3ImporterError
+from qiskit import qpy
 from qiskit.quantum_info import Pauli
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.utils import optionals
+from test import QiskitTestCase
+
+
+# Custom instruction for defcal testing
+class MyMeasure(Instruction):
+    """Custom measure-like instruction"""
+
+    def __init__(self):
+        super().__init__("measure_2", 1, 1, [])
+
+
+# Custom instruction for defcal testing
+class MyReset(Instruction):
+    """Custom reset-like instruction"""
+
+    def __init__(self, angle):
+        super().__init__("reset_2", 1, 0, [angle])
 
 
 class TestQASM3Functions(QiskitTestCase):
@@ -87,8 +117,11 @@ class TestCircuitQASM3(QiskitTestCase):
         # be useful for the tests must _never_ have false positive matches.  We use an explicit
         # space (`\s`) or semicolon rather than the end-of-word `\b` because we want to ensure that
         # the exporter isn't putting out invalid characters as part of the identifiers.
+        alpha = r"a-zA-Z\u0370-\u03ff"
+        id_first = rf"[{alpha}_]"
+        id_cont = rf"[{alpha}_0-9]"
         cls.register_regex = re.compile(
-            r"^\s*(let|(qu)?bit(\[\d+\])?)\s+(?P<name>\w+)[\s;]", re.U | re.M
+            rf"^\s*(let|(qu)?bit(\[\d+\])?)\s+(?P<name>{id_first}{id_cont}*)[\s;]", re.U | re.M
         )
         scalar_type_names = {
             "angle",
@@ -101,7 +134,7 @@ class TestCircuitQASM3(QiskitTestCase):
         cls.scalar_parameter_regex = re.compile(
             r"^\s*((input|output|const)\s+)?"  # Modifier
             rf"({'|'.join(scalar_type_names)})\s*(\[[^\]]+\])?\s+"  # Type name and designator
-            r"(?P<name>\w+)[\s;]",  # Parameter name
+            rf"(?P<name>{id_first}{id_cont}*)[\s;]",  # Parameter name
             re.U | re.M,
         )
         super().setUpClass()
@@ -748,7 +781,7 @@ c[1] = measure q[1];
                 "qubit[2] qr;",
                 "stretch s;",
                 "stretch t;",
-                "delay[100ms] qr[0];",
+                "delay[100.0ms] qr[0];",
                 "delay[100.0ms] qr[0];",
                 "delay[0.002ns] qr[1];",
                 "delay[s / 2.0] qr[1];",
@@ -932,7 +965,7 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                f"for {parameter.name} in {{0, 3, 4}} {{",
+                f"for int {parameter.name} in {{0, 3, 4}} {{",
                 f"  rx({parameter.name}) {qr_name}[1];",
                 "  break;",
                 "  continue;",
@@ -971,10 +1004,10 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                f"for {outer_parameter.name} in [0:3] {{",
+                f"for int {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
                 f"  rz({outer_parameter.name}) {qr_name}[1];",
-                f"  for {inner_parameter.name} in [1:2:4] {{",
+                f"  for int {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
                 f"    rz({inner_parameter.name}) {qr_name}[1];",
                 f"    rz({outer_parameter.name}) {qr_name}[0];",
@@ -1020,10 +1053,10 @@ c[1] = measure q[1];
                 # This next line will be missing until gh-7280 is fixed.
                 f"input float[64] {regular_parameter.name};",
                 f"qubit[2] {qr_name};",
-                f"for {outer_parameter.name} in [0:3] {{",
+                f"for int {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
                 f"  h {qr_name}[1];",
-                f"  for {inner_parameter.name} in [1:2:4] {{",
+                f"  for int {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
                 f"    h {qr_name}[1];",
                 f"    rx({regular_parameter.name}) {qr_name}[0];",
@@ -1051,8 +1084,34 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                "for _ in {0, 3, 4} {",
+                "for int _ in {0, 3, 4} {",
                 f"  h {qr_name}[1];",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_for_loop_with_var(self):
+        """Test that a for loop with a expr.Var instead of a Parameter outputs the expected result."""
+        qc = QuantumCircuit(1, 1)
+        cr = ClassicalRegister(5, "reps")
+        qc.add_register(cr)
+
+        with qc.for_loop(range(5), expr.Var.new("a", types.Uint(32))) as v:
+            qc.measure(0, 0)
+            qc.store(expr.index(cr, v), qc.clbits[0])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "bit[1] c;",
+                "bit[5] reps;",
+                "qubit[1] q;",
+                "for uint[32] a in [0:4] {",
+                "  c[0] = measure q[0];",
+                "  reps[a] = c[0];",
                 "}",
                 "",
             ]
@@ -1417,7 +1476,7 @@ box[a] {
                 "  rx(0.5) _gate_q_0;",
                 "}",
                 "qubit[1] q;",
-                "for b in [0:1] {",
+                "for int b in [0:1] {",
                 "  custom q[0];",
                 "}",
                 "",
@@ -1426,7 +1485,7 @@ box[a] {
         self.assertEqual(dumps(qc), expected_qasm)
 
     def test_custom_gate_with_hw_qubit_name(self):
-        """Test that the name of a custom gate that is an OQ3 hardware qubit identifer is properly
+        """Test that the name of a custom gate that is an OQ3 hardware qubit identifier is properly
         escaped when translated to OQ3."""
         mygate_circ = QuantumCircuit(1, name="$1")
         mygate_circ.x(0)
@@ -1451,21 +1510,27 @@ box[a] {
         """Test that both types of register are emitted with safely escaped names if they begin with
         invalid names. Regression test of gh-9658."""
         qc = QuantumCircuit(
-            QuantumRegister(2, name="q_{reg}"), ClassicalRegister(2, name="c_{reg}")
+            QuantumRegister(2, name="q_{reg}"),
+            ClassicalRegister(2, name="c_{reg}"),
+            QuantumRegister(2, name="²"),
+            ClassicalRegister(2, name="2c"),
+            QuantumRegister(2, name="abc?!abc$%^&"),
+            ClassicalRegister(2, name="?!abc$%^&"),
         )
-        qc.measure([0, 1], [0, 1])
+        qc.measure(qc.qubits, qc.clbits)
         out_qasm = dumps(qc)
         matches = {match_["name"] for match_ in self.register_regex.finditer(out_qasm)}
-        self.assertEqual(len(matches), 2, msg=f"Observed OQ3 output:\n{out_qasm}")
+        self.assertEqual(len(matches), 6, msg=f"Observed OQ3 output:\n{out_qasm}")
 
     def test_parameters_have_escaped_names(self):
         """Test that parameters are emitted with safely escaped names if they begin with invalid
         names. Regression test of gh-9658."""
         qc = QuantumCircuit(1)
-        qc.u(Parameter("p_{0}"), 2 * Parameter("p_?0!"), 0, 0)
+        qc.u(Parameter("p_{0}"), 2 * Parameter("2p"), Parameter("a²"), 0)
+        qc.rz(Parameter("!$abc%$&"), 0)
         out_qasm = dumps(qc)
         matches = {match_["name"] for match_ in self.scalar_parameter_regex.finditer(out_qasm)}
-        self.assertEqual(len(matches), 2, msg=f"Observed OQ3 output:\n{out_qasm}")
+        self.assertEqual(len(matches), 4, msg=f"Observed OQ3 output:\n{out_qasm}")
 
     def test_parameter_expression_after_naming_escape(self):
         """Test that :class:`.Parameter` instances are correctly renamed when they are used with
@@ -1534,6 +1599,42 @@ box[a] {
             parameter_name = self.scalar_parameter_regex.search(out_qasm)
             self.assertTrue(parameter_name, msg=f"Observed OQ3:\n{out_qasm}")
             self.assertNotEqual(keyword, parameter_name["name"])
+
+    @data("pi", "tau", "euler", "π", "τ")
+    def test_builtin_constants_as_names_are_escaped(self, builtin):
+        """Test that names colliding with OpenQASM 3 built-in constants (``pi``, ``tau``,
+        ``euler`` and their Unicode letter aliases) are escaped on export so they do not
+        collide with the predefined symbols in the global scope, and that the exported
+        program can be re-parsed with :func:`qasm3.loads`.  Regression test for #16169."""
+        with self.subTest("register"):
+            qreg = QuantumRegister(1, builtin)
+            qc = QuantumCircuit(qreg)
+            qc.x(0)
+            out_qasm = dumps(qc)
+            register_name = self.register_regex.search(out_qasm)
+            self.assertTrue(register_name, msg=f"Observed OQ3:\n{out_qasm}")
+            self.assertNotEqual(builtin, register_name["name"])
+            if optionals.HAS_QASM3_IMPORT:
+                loads(out_qasm)
+        with self.subTest("parameter"):
+            qc = QuantumCircuit(1)
+            param = Parameter(builtin)
+            qc.u(param, 0, 0, 0)
+            out_qasm = dumps(qc)
+            parameter_name = self.scalar_parameter_regex.search(out_qasm)
+            self.assertTrue(parameter_name, msg=f"Observed OQ3:\n{out_qasm}")
+            self.assertNotEqual(builtin, parameter_name["name"])
+            if optionals.HAS_QASM3_IMPORT:
+                loads(out_qasm)
+        with self.subTest("gate"):
+            named_circuit = QuantumCircuit(1, name=builtin)
+            named_circuit.h(0)
+            named_gate = named_circuit.to_gate()
+            qc = QuantumCircuit(1)
+            qc.append(named_gate, [0])
+            out_qasm = dumps(qc)
+            if optionals.HAS_QASM3_IMPORT:
+                loads(out_qasm)
 
     def test_expr_condition(self):
         """Simple test that the conditions of `if`s and `while`s can be `Expr` nodes."""
@@ -2304,6 +2405,120 @@ switch (switch_dummy_0) {
         test = dumps(qc)
         self.assertEqual(test, expected)
 
+    def test_simple_defcal(self):
+        """Test dumping custom non-unitary instructions using implicit defcals."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.append(MyMeasure(), [0], [0])
+        with qc.if_test(expr.lift(qc.clbits[0])):
+            qc.append(MyReset(2.5), [0])
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+            "reset_2": DefcalInstruction("reset_2", 1, 1, None),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = measure_2 q[0];
+if (c[0]) {
+  reset_2(2.5) q[0];
+}
+c[0] = measure q[0];
+"""
+        self.assertEqual(expected.strip(), out_qasm.strip())
+
+    def test_parameters_and_defcals_cannot_have_naming_clashes(self):
+        """Test that parameters are renamed to avoid collisions with defcal names."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.append(MyMeasure(), [0], [0])
+        with qc.if_test(expr.lift(qc.clbits[0])):
+            qc.append(MyReset(2.5), [0])
+        qc.rz(Parameter("measure_2"), 0)
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+            "reset_2": DefcalInstruction("reset_2", 1, 1, None),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        parameter_name = self.scalar_parameter_regex.search(out_qasm)
+        self.assertTrue(parameter_name)
+        self.assertIn("measure_2", parameter_name["name"])
+        self.assertNotIn(parameter_name["name"], ["measure_2", "reset_2"])
+
+    def test_defcal_overriding_instruction_name(self):
+        """Test overriding instruction names using defcals."""
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        defcals = {
+            "measure": DefcalInstruction("measure_2", 0, 1, types.Bool()),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = measure_2 q[0];
+"""
+        self.assertEqual(expected.strip(), out_qasm.strip())
+
+    def test_defcal_overriding_ctrl_flow_op_name(self):
+        """Test overriding ContinueLoopOp and BreakLoopOp instruction names using defcals."""
+        # These are edge-case control flow ops that don't subclass ControlFlowOp and
+        # therefore can be overwritten using defcals like regular instructions.
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.break_loop()
+        qc.continue_loop()
+
+        defcals = {
+            "break_loop": DefcalInstruction("my_name_break", 0, 1, types.Bool()),
+            "continue_loop": DefcalInstruction("my_name_continue", 0, 1, types.Bool()),
+        }
+        out_qasm = dumps(
+            qc,
+            includes=(),
+            basis_gates=("h", "cx"),
+            disable_constants=True,
+            implicit_defcals=defcals,
+        )
+        expected = """
+OPENQASM 3.0;
+bit[1] c;
+qubit[1] q;
+h q[0];
+c[0] = my_name_break q[0];
+c[0] = my_name_continue q[0];
+"""
+        self.assertEqual(expected.strip(), out_qasm.strip())
+
 
 class TestExperimentalFeatures(QiskitTestCase):
     """Tests of features that are hidden behind experimental flags."""
@@ -2633,19 +2848,6 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
         with self.assertRaisesRegex(QASM3ExporterError, r"classical registers .* overlap"):
             exporter.dumps(qc)
 
-    @data([1, 2, 1.1], [1j, 2])
-    def test_disallow_for_loops_with_non_integers(self, indices):
-        """Test that the exporter rejects ``for`` loops that include non-integer values in their
-        index sets."""
-        loop_body = QuantumCircuit()
-        qc = QuantumCircuit(2, 2)
-        qc.for_loop(indices, None, loop_body, [], [])
-        exporter = Exporter()
-        with self.assertRaisesRegex(
-            QASM3ExporterError, r"The values in OpenQASM 3 'for' loops must all be integers.*"
-        ):
-            exporter.dumps(qc)
-
     def test_disallow_custom_subroutine_with_parameters(self):
         """Test that the exporter throws an error instead of trying to export a subroutine with
         parameters, while this is not supported."""
@@ -2689,6 +2891,102 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
             dumps(qc, basis_gates=["U", "reset"])
         self.assertIsInstance(cm.exception.__cause__, QASM3ExporterError)
         self.assertRegex(cm.exception.__cause__.message, "cannot use the keyword 'reset'")
+
+    def test_defcal_wrong_num_parameters(self):
+        """Test that defcals must match their corresponding instruction."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 2, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_num_qubits(self):
+        """Test that defcals must have the same number of qubits as their reference instruction."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        qc.rx(Parameter("a"), 0)
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 5, 1, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_num_clbits(self):
+        """Test that defcals must have the same number of clbits as their reference instruction."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        qc.rx(Parameter("a"), 0)
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 2, types.Bool()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError,
+            "has a call signature that is inconsistent with its associated defcal",
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_wrong_return_type(self):
+        """Test that defcals must follow the allowed return types."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure_2": DefcalInstruction("measure_2", 0, 1, types.Float()),
+        }
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "returns an unsupported classical type: Float()"
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
+
+    def test_defcal_forbidden_name(self):
+        """Test that defcals must not try to overwrite reserved keywords."""
+        qc = QuantumCircuit(1, 1)
+        qc.append(MyMeasure(), [0], [0])
+        defcals = {
+            "measure": DefcalInstruction("measure", 0, 1, types.Bool()),
+        }
+
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "cannot use the keyword 'measure' as a variable name"
+        ):
+            dumps(
+                qc,
+                includes=(),
+                basis_gates=("h", "cx"),
+                disable_constants=True,
+                implicit_defcals=defcals,
+            )
 
 
 class TestQASM3ExporterRust(QiskitTestCase):
@@ -3160,9 +3458,39 @@ class TestQASM3ExporterRust(QiskitTestCase):
         )
         self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
 
+    def test_delay_units(self):
+        """Each delay unit should round-trip through ``dumps_experimental`` with the
+        correct label and a numerically correct value.  OpenQASM 3 has no ``ps``
+        unit, so picoseconds are emitted as nanoseconds (1 ps = 0.001 ns)."""
+        cases = [
+            ("ns", 1, r"delay\[1ns\]"),
+            ("us", 1, r"delay\[1us\]"),
+            ("ms", 1, r"delay\[1ms\]"),
+            ("s", 1, r"delay\[1s\]"),
+            ("dt", 1, r"delay\[1dt\]"),
+            ("ps", 1337, r"delay\[1\.337ns\]"),
+        ]
+        for unit, value, expected_pattern in cases:
+            with self.subTest(unit=unit, value=value):
+                qc = QuantumCircuit(1)
+                qc.delay(value, 0, unit=unit)
+                self.assertRegex(dumps_experimental(qc), expected_pattern)
+
+    def test_delay_qpy_roundtrip(self):
+        qc = QuantumCircuit(1)
+        qc.delay(1, 0)
+        no_qpy = dumps_experimental(qc)
+
+        with BytesIO() as buf:
+            qpy.dump(qc, buf)
+            buf.seek(0)
+            qpy_roundtrip = qpy.load(buf)[0]
+
+        with_qpy = dumps_experimental(qpy_roundtrip)
+        self.assertEqual(no_qpy, with_qpy)
+
     def test_annotations(self):
         """Test that the annotation-serialisation framework works."""
-        # pylint: disable=missing-class-docstring,missing-function-docstring
         assert_in = self.assertIn
         assert_equal = self.assertEqual
 
@@ -3200,7 +3528,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 base, sub = annotation.namespace.split(".", 1)
                 assert_equal(base, "my")
                 assert_in(sub, ("int", "str"))
@@ -3214,7 +3542,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 if annotation.namespace == "static.global":
                     nonlocal skip_triggered
                     skip_triggered = True
@@ -3226,7 +3554,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 # This is registered as the global handler, but should only be called when handling
                 # `static.global`.
                 assert_equal(annotation.namespace, "static.global")

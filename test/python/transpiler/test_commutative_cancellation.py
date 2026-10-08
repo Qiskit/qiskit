@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,8 +15,10 @@
 import unittest
 
 import numpy as np
+import ddt
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import Gate
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
 from qiskit.circuit.parameter import Parameter
@@ -25,9 +27,10 @@ from qiskit.transpiler.target import Target
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 
+@ddt.ddt
 class TestCommutativeCancellation(QiskitTestCase):
     """Test the CommutativeCancellation pass."""
 
@@ -80,6 +83,82 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.rx(1.0, qr[0])
         expected.global_phase = 0.5
         self.assertEqual(expected, new_circuit)
+
+    def test_2pi_multiples(self):
+        """Test 2pi multiples are handled with the correct phase they introduce."""
+        for eps in [0, 1e-10, -1e-10]:
+            for sign in [-1, 1]:
+                qc = QuantumCircuit(1)
+                qc.rz(sign * np.pi + eps, 0)
+                qc.rz(sign * np.pi, 0)
+
+                with self.subTest(msg="single 2pi", sign=sign, eps=eps):
+                    tqc = CommutativeCancellation()(qc)
+                    self.assertEqual(0, len(tqc.count_ops()))
+                    self.assertAlmostEqual(np.pi, tqc.global_phase)
+
+            for sign_x in [-1, 1]:
+                for sign_z in [-1, 1]:
+                    qc = QuantumCircuit(2)
+                    qc.rx(sign_x * np.pi + eps, 0)
+                    qc.rx(sign_x * np.pi, 0)
+                    qc.rz(sign_z * np.pi, 1)
+                    qc.rz(sign_z * np.pi, 1)
+
+                    with self.subTest(msg="two 2pi", sign_x=sign_x, sign_z=sign_z, eps=eps):
+                        tqc = CommutativeCancellation()(qc)
+                        self.assertEqual(0, len(tqc.count_ops()))
+                        self.assertAlmostEqual(0, tqc.global_phase)
+
+    def test_4pi_multiples(self):
+        """Test 4pi multiples are removed w/o changing the global phase."""
+        for eps in [0, 1e-10, -1e-10]:
+            for sign in [-1, 1]:
+                qc = QuantumCircuit(1)
+                qc.rz(sign * np.pi + eps, 0)
+                qc.rz(sign * 6 * np.pi, 0)
+                qc.rz(sign * np.pi, 0)
+
+                with self.subTest(sign=sign, eps=eps):
+                    tqc = CommutativeCancellation()(qc)
+                    self.assertEqual(0, len(tqc.count_ops()))
+                    self.assertAlmostEqual(0, tqc.global_phase)
+
+    def test_fixed_rotation_accumulation(self):
+        """Test accumulating gates with fixed angles (T, S) works correctly."""
+        cc = CommutativeCancellation()
+
+        # test for U1, P and RZ as target gate
+        for gate_cls in [RZGate, PhaseGate, U1Gate]:
+            qc = QuantumCircuit(1)
+            gate = gate_cls(0.2)
+            qc.append(gate, [0])
+            qc.t(0)
+            qc.s(0)
+
+            tqc = cc(qc)
+            self.assertTrue(np.allclose(Operator(qc).data, Operator(tqc).data))
+
+    @ddt.data(RZGate(np.pi / 4), PhaseGate(np.pi / 4), U1Gate(np.pi / 4))
+    def test_p_u1_2pi_accumulation(self, gate):
+        """Test different Z rotations."""
+        basis = ["t", "rz", "cx"]
+        if gate.name not in basis:
+            basis = [gate.name] + basis
+        cc = CommutativeCancellation(basis_gates=basis)
+        reps = (7, 15, 23, 31)
+
+        tqcs = []
+        for rep in reps:
+            qc = QuantumCircuit(1)
+            qc.append(gate, [0])
+            for _ in range(rep):
+                qc.t(0)
+            tqcs.append(cc(qc))
+
+        phase = -gate.params[0] / 2 if gate.name == "rz" else 0.0
+        expected = [QuantumCircuit(1, global_phase=phase)] * len(tqcs)
+        self.assertEqual(tqcs, expected)
 
     def test_commutative_circuit1(self):
         """A simple circuit where three CNOTs commute, the first and the last cancel.
@@ -150,9 +229,85 @@ class TestCommutativeCancellation(QiskitTestCase):
             )
         )
         new_circuit = passmanager.run(circuit)
-        expected = QuantumCircuit(qr)
+        expected = QuantumCircuit(qr, global_phase=np.pi)  # RX(2pi) = -I = exp(i pi) I
 
         self.assertEqual(expected, new_circuit)
+        self.assertTrue(np.allclose(Operator(circuit).data, Operator(expected).data))
+
+    @combine(
+        basis_gates=[["rz", "sx", "x"], ["rz", "sx"], ["rz", "rx"]],
+        circuit_gate=["x", "rx", "sx"],
+        name="basis_gates={basis_gates}_circuit_gate={circuit_gate}",
+    )
+    def test_xgate_accumulation(self, basis_gates, circuit_gate):
+        circuit = QuantumCircuit(2)
+        if circuit_gate == "rx":
+            circuit.rx(np.pi / 2, 0)
+            circuit.rx(np.pi / 2, 0)
+        elif circuit_gate == "sx":
+            circuit.sx(0)
+            circuit.sx(0)
+        else:
+            circuit.x(0)
+            circuit.x(0)
+            circuit.x(0)
+        commuter_pass = CommutativeCancellation(basis_gates=basis_gates)
+        result = commuter_pass(circuit)
+        op_counts = result.count_ops()
+        self.assertEqual(Operator(circuit), Operator(result))
+        if "x" in basis_gates or "x" == circuit_gate:
+            self.assertEqual(op_counts.get("x", 0), 1)
+            self.assertNotIn("sx", op_counts)
+            self.assertNotIn("rx", op_counts)
+        elif "sx" in basis_gates or "sx" == circuit_gate:
+            self.assertEqual(op_counts.get("sx", 0), 2)
+            self.assertNotIn("x", op_counts)
+            self.assertNotIn("rx", op_counts)
+        else:
+            self.assertEqual(op_counts.get("rx", 0), 1)
+            self.assertNotIn("sx", op_counts)
+            self.assertNotIn("x", op_counts)
+
+    @combine(
+        basis_gates=[["rz", "sx", "x"], ["u1", "sx"], ["p", "sx"]],
+        circuit_gate=["t", "tdg", "s", "sdg", "rz", "z"],
+        name="basis_gates={basis_gates}_circuit_gate={circuit_gate}",
+    )
+    def test_zgate_accumulation(self, basis_gates, circuit_gate):
+        circuit = QuantumCircuit(2)
+        if circuit_gate == "t":
+            circuit.t(0)
+            circuit.t(0)
+            circuit.t(0)
+            circuit.t(0)
+        elif circuit_gate == "tdg":
+            circuit.tdg(0)
+            circuit.tdg(0)
+            circuit.tdg(0)
+            circuit.tdg(0)
+        elif circuit_gate == "s":
+            circuit.s(0)
+            circuit.s(0)
+        elif circuit_gate == "sdg":
+            circuit.sdg(0)
+            circuit.sdg(0)
+        elif circuit_gate == "rz":
+            circuit.rz(np.pi / 2, 0)
+            circuit.rz(np.pi / 2, 0)
+        else:
+            circuit.z(0)
+            circuit.z(0)
+            circuit.z(0)
+        commuter_pass = CommutativeCancellation(basis_gates=basis_gates)
+        result = commuter_pass(circuit)
+        op_counts = result.count_ops()
+        self.assertEqual(Operator(circuit), Operator(result))
+        if "rz" in basis_gates or circuit_gate == "rz":
+            self.assertEqual(op_counts, {"rz": 1})
+        elif "u1" in basis_gates:
+            self.assertEqual(op_counts, {"u1": 1})
+        else:
+            self.assertEqual(op_counts, {"p": 1})
 
     def test_2_alternating_cnots(self):
         """A simple circuit where nothing should be cancelled.
@@ -670,9 +825,9 @@ class TestCommutativeCancellation(QiskitTestCase):
             (test.clbits[0], True), base_test1.copy(), base_test2.copy(), test.qubits, test.clbits
         )
 
-        expected = QuantumCircuit(3, 3)
+        expected = QuantumCircuit(3, 3, global_phase=np.pi / 2)
         expected.h(0)
-        expected.rx(np.pi + 0.2, 0)
+        expected.rx(np.pi + 0.2, 0)  # transforming X into RX(pi) introduces a pi/2 global phase
         expected.measure(0, 0)
         expected.x(0)
 
@@ -826,6 +981,48 @@ measure q0[1] -> c0[1];
 
         # The actual asseertion.
         self.assertTrue(left.structurally_equal(right))
+
+    @ddt.data(2, 3, 4)
+    def test_negative_x_rotations(self, num_sxdg):
+        qc = QuantumCircuit(1)
+        for _ in range(num_sxdg):
+            qc.sxdg(0)
+
+        expected = qc.copy_empty_like()
+        for _ in range(4 - num_sxdg):
+            expected.sx(0)
+
+        pass_ = CommutativeCancellation(["sx", "rz"])
+        self.assertEqual(pass_(qc), expected)
+
+    def test_approximation_degree(self):
+        """Test that approximation_degree controls commutation-based cancellation.
+
+        A small RZ rotation between two CX gates prevents the CX gates from canceling with
+        ``approximation_degree=1.0``. The CX gates do cancel with maximal approximation
+        ``approximation_degree=0.0``. Omitting ``approximation_degree`` has the same
+        behavior as ``1.0``.
+        """
+        eps = 1e-5
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rz(eps, 1)
+        qc.cx(0, 1)
+
+        strict = CommutativeCancellation(approximation_degree=1.0)(qc)
+        approx = CommutativeCancellation(approximation_degree=0.0)(qc)
+        default = CommutativeCancellation()(qc)
+
+        self.assertEqual(strict.count_ops().get("cx", 0), 2)
+        self.assertEqual(approx.count_ops().get("cx", 0), 0)
+        self.assertEqual(default, strict)
+
+    def test_custom_gates_sharing_wire(self):
+        """Custom gates sharing a wire are not cancelled"""
+        circ = QuantumCircuit(2)
+        circ.append(Gate("foo", 1, []), [1])
+        circ.append(Gate("bar", 2, []), [0, 1])
+        self.assertEqual(CommutativeCancellation()(circ), circ)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,9 +14,8 @@
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit.library.basis_change import QFTGate
+from qiskit.circuit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.library import QFTGate
 
 
 def adder_qft_d00(
@@ -56,7 +55,7 @@ def adder_qft_d00(
         annotated: If ``True``, creates appropriate control and inverse operations as
             ``AnnotatedOperation`` objects.
 
-    **References:**
+    References:
 
     [1] T. G. Draper, Addition on a Quantum Computer, 2000.
     `arXiv:quant-ph/0008033 <https://arxiv.org/pdf/quant-ph/0008033.pdf>`_

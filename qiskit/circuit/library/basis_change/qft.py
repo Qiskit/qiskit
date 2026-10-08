@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -92,8 +92,7 @@ class QFT(BlueprintCircuit):
         insert_barriers: bool = False,
         name: str | None = None,
     ) -> None:
-        """Construct a new QFT circuit.
-
+        """
         Args:
             num_qubits: The number of qubits on which the QFT acts.
             approximation_degree: The degree of approximation (0 for no approximation).
@@ -101,6 +100,7 @@ class QFT(BlueprintCircuit):
             inverse: If True, the inverse Fourier transform is constructed.
             insert_barriers: If True, barriers are inserted as visualization improvement.
             name: The name of the circuit.
+
         """
         if name is None:
             name = "IQFT" if inverse else "QFT"
@@ -213,7 +213,7 @@ class QFT(BlueprintCircuit):
         """
         return self._inverse
 
-    def inverse(self, annotated: bool = False) -> "QFT":
+    def inverse(self, annotated: bool = False) -> QFT:
         """Invert this circuit.
 
         Args:

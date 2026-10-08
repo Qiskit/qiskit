@@ -1,0 +1,5 @@
+---
+features_synthesis:
+  - |
+    The general unitary synthesis algorithm :func:`.qs_decomposition` has been
+    rewritten in Rust greatly improving the runtime performance of the function.

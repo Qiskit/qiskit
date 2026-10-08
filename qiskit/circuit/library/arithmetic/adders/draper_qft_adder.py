@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,24 +25,32 @@ class DraperQFTAdder(Adder):
     r"""A circuit that uses QFT to perform in-place addition on two qubit registers.
 
     For registers with :math:`n` qubits, the QFT adder can perform addition modulo
-    :math:`2^n` (with ``kind="fixed"``) or ordinary addition by adding a carry qubits (with
+    :math:`2^n` (with ``kind="fixed"``) or ordinary addition by adding a carry qubit (with
     ``kind="half"``).
 
-    As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
-    registers is as follows:
+    As an example, a QFT adder circuit that performs an ordinary addition on two 2-qubit
+    sized registers is as follows:
 
     .. code-block:: text
 
-         a_0:   ─────────■──────■────────────────────────■────────────────
-                         │      │                        │
-         a_1:   ─────────┼──────┼────────■──────■────────┼────────────────
-                ┌──────┐ │P(π)  │        │      │        │       ┌───────┐
-         b_0:   ┤0     ├─■──────┼────────┼──────┼────────┼───────┤0      ├
-                │      │        │P(π/2)  │P(π)  │        │       │       │
-         b_1:   ┤1 qft ├────────■────────■──────┼────────┼───────┤1 iqft ├
-                │      │                        │P(π/2)  │P(π/4) │       │
-        cout_0: ┤2     ├────────────────────────■────────■───────┤2      ├
-                └──────┘                                         └───────┘
+         a_0: ─────────■──────■────────────────────────■────────────────
+                       │      │                        │
+         a_1: ─────────┼──────┼────────■──────■────────┼────────────────
+              ┌──────┐ │P(π)  │        │      │        │       ┌───────┐
+         b_0: ┤0     ├─■──────┼────────┼──────┼────────┼───────┤0      ├
+              │      │        │P(π/2)  │P(π)  │        │       │       │
+         b_1: ┤1 QFT ├────────■────────■──────┼────────┼───────┤1 IQFT ├
+              │      │                        │P(π/2)  │P(π/4) │       │
+        cout: ┤2     ├────────────────────────■────────■───────┤2      ├
+              └──────┘                                         └───────┘
+
+    .. note::
+
+        The QFT and inverse-QFT blocks in this implementation omit their swap networks,
+        which reverses the qubit order for a more efficient implementation. This affects
+        which qubits the controlled-phase gates act on. This drawing represents how the
+        adder is implemented in Qiskit; it should not be used as instructions for building
+        the circuit manually.
 
     .. seealso::
 
@@ -57,7 +65,7 @@ class DraperQFTAdder(Adder):
         :class:`.AdderGate`: A generic inplace adder. This
             is functionally equivalent to ``kind="half"``.
 
-    **References:**
+    References:
 
     [1] T. G. Draper, Addition on a Quantum Computer, 2000.
     `arXiv:quant-ph/0008033 <https://arxiv.org/pdf/quant-ph/0008033.pdf>`_

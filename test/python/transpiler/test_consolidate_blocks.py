@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -30,12 +30,18 @@ from qiskit.circuit.library import (
     RZGate,
     RZZGate,
 )
+from qiskit.circuit.classical import expr
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
-from qiskit.transpiler.passes import ConsolidateBlocks, Collect1qRuns, Collect2qBlocks
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.transpiler.passes import (
+    ConsolidateBlocks,
+    Collect1qRuns,
+    Collect2qBlocks,
+    CollectMultiQBlocks,
+)
+from test import QiskitTestCase
 
 
 @ddt
@@ -414,6 +420,38 @@ class TestConsolidateBlocks(QiskitTestCase):
         pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
 
+    def test_identity_unitary_is_removed_up_to_phase(self):
+        """Test that a 2q identity (up to phase) unitary is removed."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.rz(2 * np.pi, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5, global_phase=np.pi), pm.run(qc))
+
+    def test_approximation_degree(self):
+        """Test setting the approximation degree."""
+        angle = 1e-2
+        qc = QuantumCircuit(1)
+        qc.rz(angle, 0)
+
+        with self.subTest(approximation_degree=1):
+            pm = PassManager([Collect1qRuns(), ConsolidateBlocks(approximation_degree=1)])
+            out = pm.run(qc)
+
+            expect = QuantumCircuit(1)
+            expect.unitary(RZGate(angle).to_matrix(), [0])
+
+            self.assertEqual(out, expect)
+
+        with self.subTest(approximation_degree=0.1):
+            pm = PassManager([Collect1qRuns(), ConsolidateBlocks(approximation_degree=0.1)])
+            out = pm.run(qc)
+            self.assertEqual(out, QuantumCircuit(1))
+
     def test_identity_1q_unitary_is_removed(self):
         """Test that a 1q identity unitary is removed without a basis."""
         qc = QuantumCircuit(5)
@@ -423,6 +461,22 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.h(0)
         pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
+
+    def test_identity_1q_unitary_is_removed_up_to_phase(self):
+        """Test that a 1q identity unitary is removed without a basis."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.rz(2 * np.pi, 0)
+        qc.h(0)
+        pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5, global_phase=np.pi), pm.run(qc))
+
+    def test_toffoli_is_not_removed(self):
+        """Test that toffoli gate is not removed during consolidated block pass."""
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+        pm = PassManager([CollectMultiQBlocks(max_block_size=3), ConsolidateBlocks()])
+        self.assertTrue(Operator(qc).equiv(Operator(pm.run(qc))))
 
     def test_descent_into_control_flow(self):
         """Test consolidation in blocks when control flow op is the same as at top level."""
@@ -691,3 +745,205 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected = QuantumCircuit(2)
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
+
+    def test_collection_inside_control_flow(self):
+        """Test that we handle consolidation based on the physical qubits, not the local indices."""
+        num_qubits = 3
+        target = Target(num_qubits=num_qubits)
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(num_qubits - 1)})
+
+        # If the block's numbering system is used, this would always be inside the basis and so
+        # would not consolidate.
+        block = QuantumCircuit(2)
+        block.cx(0, 1)
+
+        # We'll add this block to the main circuit with qubits (1, 2) flipped, so the first if is
+        # still in-basis and the second is still out of basis.
+        outer = QuantumCircuit(3)
+        outer.if_test(expr.lift(True), block, [0, 2], [])
+        outer.if_test(expr.lift(True), block, [0, 1], [])
+
+        qc = QuantumCircuit(num_qubits)
+        # In basis.
+        qc.if_test(expr.lift(True), block, [0, 1], [])
+        # Out of basis.
+        qc.if_test(expr.lift(True), block, [0, 2], [])
+        # Use a different node order, so the first nested block is in basis and the second is out.
+        qc.if_test(expr.lift(True), outer, [0, 2, 1], [])
+
+        out = ConsolidateBlocks(target=target)(qc)
+        # First should be unchanged.
+        self.assertEqual(out.data[0].operation.blocks[0], block)
+        # Second should be a unitary.
+        self.assertEqual(out.data[1].operation.blocks[0].data[0].name, "unitary")
+
+        actual_outer = out.data[2].operation.blocks[0]
+        self.assertEqual(actual_outer.data[0].operation.blocks[0], block)
+        self.assertEqual(actual_outer.data[1].operation.blocks[0].data[0].name, "unitary")
+
+    def test_pass_reuse(self):
+        """Test that the pass can be used more than once on different circuits."""
+        # It matters that these have different numbers of qubits.
+        hadamard = QuantumCircuit(1, 1)
+        hadamard.h(0)
+        hadamard.measure(0, 0)
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+
+        def make_pass():
+            return ConsolidateBlocks(force_consolidate=True)
+
+        shared = make_pass()
+        self.assertEqual(shared(hadamard), make_pass()(hadamard))
+        self.assertEqual(shared(bell), make_pass()(bell))
+
+    def test_invalid_python_data_does_not_panic(self):
+        """If a user feeds in invalid/old data, Rust space shouldn't panic."""
+        # It doesn't really matter _what_ the failure mode is, just that we should return a regular
+        # Python `Exception` and not panic.
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        not_an_op_node = dag.input_map[qc.qubits[0]]
+
+        pass_ = ConsolidateBlocks()
+        pass_.property_set["run_list"] = [[not_an_op_node]]
+        with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
+            pass_.run(dag)
+        pass_.property_set.pop("run_list", None)
+
+        pass_.property_set["block_list"] = [[not_an_op_node]]
+        with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
+            pass_.run(dag)
+
+    def test_force_consolidate_incomplete_basis(self):
+        """Test force_consolidate works even if the basis doesn't allow selecting a decomposer."""
+        qc = QuantumCircuit(1)
+        qc.rx(0.2, 0)
+
+        pm = PassManager(
+            [
+                Collect1qRuns(),
+                ConsolidateBlocks(basis_gates=["u"], force_consolidate=True),
+            ]
+        )
+
+        out = pm.run(qc)
+        self.assertEqual(set(out.count_ops().keys()), {"unitary"})
+
+    def test_determinism_with_multiple_two_qubits_gates_in_basis(self):
+        """
+        Test that the basis gate is chosen deterministically when the basis set
+        contains multiple parametric or non-parametric two-qubits gates.
+        """
+        with self.subTest("parametric"):
+            # rzz appears first in KAK_GATE_PARAM_NAMES
+            pass_ = ConsolidateBlocks(basis_gates=["ryy", "rzz"])
+            self.assertEqual(pass_.basis_gate_name, "rzz")
+
+        with self.subTest("non-parametric"):
+            # cx appears first in KAK_GATE_NAMES
+            pass_ = ConsolidateBlocks(basis_gates=["ecr", "cx", "cz"])
+            self.assertEqual(pass_.basis_gate_name, "cz")
+
+
+class TestCollect1qRuns(QiskitTestCase):
+    """
+    Additional correctness tests for the Collect1qRuns transpiler pass.
+    """
+
+    def test_filter(self):
+        """Test filter_fn argument."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.t(0)
+        qc.cx(0, 1)
+        qc.h(1)
+        qc.s(1)
+        qc.tdg(1)
+
+        with self.subTest("filter_fn is not specified"):
+            pm = PassManager([Collect1qRuns()])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(len(runs), 2)
+
+        with self.subTest("filter_fn is None"):
+            pm = PassManager([Collect1qRuns(filter_fn=None)])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(len(runs), 2)
+
+        with self.subTest("only runs with at least one S-gate"):
+
+            def at_least_one_s_gate(_dag, run):
+                return any(node.op.name == "s" for node in run)
+
+            pm = PassManager([Collect1qRuns(filter_fn=at_least_one_s_gate)])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(len(runs), 1)
+
+        with self.subTest("only runs without H-gates"):
+
+            def no_h_gates(_dag, run):
+                return all(node.op.name != "h" for node in run)
+
+            pm = PassManager([Collect1qRuns(filter_fn=no_h_gates)])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(len(runs), 0)
+
+
+class TestCollect2qBlocks(QiskitTestCase):
+    """
+    Additional correctness tests for the Collect2qBlocks transpiler pass.
+    """
+
+    def test_filter(self):
+        """Test filter_fn argument."""
+        qc = QuantumCircuit(3)
+        qc.h(0)  # first block
+        qc.cx(0, 1)  # first block
+        qc.cx(1, 2)  # second block
+        qc.cx(2, 1)  # second block
+        qc.cx(1, 0)  # third block
+        qc.cx(0, 1)  # third block
+        qc.cx(1, 0)  # third block
+
+        with self.subTest("filter_fn is not specified"):
+            pm = PassManager([Collect2qBlocks()])
+            pm.run(qc)
+            blocks = pm.property_set.get("block_list", [])
+            self.assertEqual(len(blocks), 3)
+
+        with self.subTest("filter_fn is None"):
+            pm = PassManager([Collect2qBlocks(filter_fn=None)])
+            pm.run(qc)
+            blocks = pm.property_set.get("block_list", [])
+            self.assertEqual(len(blocks), 3)
+
+        with self.subTest("only blocks with at least 3 gates"):
+
+            def at_least_three_gates(_dag, run):
+                return len(run) >= 3
+
+            pm = PassManager([Collect2qBlocks(filter_fn=at_least_three_gates)])
+            pm.run(qc)
+            blocks = pm.property_set.get("block_list", [])
+            self.assertEqual(len(blocks), 1)
+
+        with self.subTest("only blocks with at least 4 gates"):
+
+            def at_least_four_gates(_dag, run):
+                return len(run) >= 4
+
+            pm = PassManager([Collect2qBlocks(filter_fn=at_least_four_gates)])
+            pm.run(qc)
+            blocks = pm.property_set.get("block_list", [])
+            self.assertEqual(len(blocks), 0)

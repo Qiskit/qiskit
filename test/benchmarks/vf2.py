@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import dataclasses
 
@@ -106,46 +105,80 @@ class VF2LayoutSuite:
 
     # Heavy hex stuff.
 
-    def time_heavy_hex_line(self, state: State, num_physical_qubits, directional, line_qubits):
+    def time_heavy_hex_line(
+        self,
+        state: State,
+        num_physical_qubits,
+        directional,
+        line_qubits,
+        call_limit,
+    ):
         pass_ = VF2Layout(
-            seed=-1, target=state.heavy_hex[num_physical_qubits], strict_direction=directional
+            seed=-1,
+            target=state.heavy_hex[num_physical_qubits],
+            strict_direction=directional,
+            max_trials=0,
+            call_limit=call_limit,
         )
         pass_.run(state.dag["line", line_qubits])
 
-    time_heavy_hex_line.params = ((115, 1081), (False, True), (10, 57))
-    time_heavy_hex_line.param_names = ("num_physical_qubits", "directional", "line_qubits")
+    time_heavy_hex_line.params = ((115, 1081), (False, True), (10, 57), (None, 1_000_000))
+    time_heavy_hex_line.param_names = (
+        "num_physical_qubits",
+        "directional",
+        "line_qubits",
+        "call_limit",
+    )
 
     def time_heavy_hex_trivial(self, state: State, num_physical_qubits):
         pass_ = VF2Layout(
-            seed=-1, target=state.heavy_hex[num_physical_qubits], strict_direction=False
+            seed=-1,
+            target=state.heavy_hex[num_physical_qubits],
+            strict_direction=False,
+            max_trials=0,
         )
         pass_.run(state.dag["heavy hex", num_physical_qubits])
 
     time_heavy_hex_trivial.params = ((57,),)
     time_heavy_hex_trivial.param_names = ("num_physical_qubits",)
 
-    def time_heavy_hex_impossible(self, state: State, num_physical_qubits):
+    def time_heavy_hex_impossible(self, state: State, num_physical_qubits, call_limit):
         pass_ = VF2Layout(
-            seed=-1, target=state.heavy_hex[num_physical_qubits], strict_direction=False
+            seed=-1,
+            target=state.heavy_hex[num_physical_qubits],
+            strict_direction=False,
+            max_trials=0,
+            call_limit=call_limit,
         )
         pass_.run(state.dag["line", num_physical_qubits])
 
-    time_heavy_hex_impossible.params = ((57,),)
-    time_heavy_hex_impossible.param_names = ("num_physical_qubits",)
+    time_heavy_hex_impossible.params = ((57,), (None, 1_000_000))
+    time_heavy_hex_impossible.param_names = ("num_physical_qubits", "call_limit")
 
     # Grid stuff.
 
-    def time_grid_line(self, state: State, num_physical_qubits, directional, line_qubits):
+    def time_grid_line(
+        self, state: State, num_physical_qubits, directional, line_qubits, call_limit
+    ):
         pass_ = VF2Layout(
-            seed=-1, target=state.grid[num_physical_qubits], strict_direction=directional
+            seed=-1,
+            target=state.grid[num_physical_qubits],
+            strict_direction=directional,
+            max_trials=0,
+            call_limit=call_limit,
         )
         pass_.run(state.dag["line", line_qubits])
 
-    time_grid_line.params = ((121, 256), (False, True), (10, 20))
-    time_grid_line.param_names = ("num_physical_qubits", "directional", "line_qubits")
+    time_grid_line.params = ((121, 256), (False, True), (10, 20), (None, 1_000_000))
+    time_grid_line.param_names = ("num_physical_qubits", "directional", "line_qubits", "call_limit")
 
     def time_grid_trivial(self, state: State, num_physical_qubits):
-        pass_ = VF2Layout(seed=-1, target=state.grid[num_physical_qubits], strict_direction=False)
+        pass_ = VF2Layout(
+            seed=-1,
+            target=state.grid[num_physical_qubits],
+            strict_direction=False,
+            max_trials=0,
+        )
         pass_.run(state.dag["grid", num_physical_qubits])
 
     time_grid_trivial.params = ((49,),)

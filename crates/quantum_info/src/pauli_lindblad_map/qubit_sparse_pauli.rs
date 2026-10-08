@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,35 +12,43 @@
 
 use hashbrown::HashSet;
 
-use numpy::{PyArray1, PyArrayMethods, PyReadonlyArray1};
+use ndarray::Array2;
+#[cfg(feature = "python")]
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods, PyReadonlyArray1};
+#[cfg(feature = "python")]
 use pyo3::{
+    IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
     intern,
     prelude::*,
-    sync::GILOnceCell,
+    sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
-    IntoPyObjectExt, PyErr,
 };
+use std::collections::btree_map;
+
+#[cfg(feature = "python")]
 use std::{
-    collections::btree_map,
+    iter::zip,
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
 
-use qiskit_circuit::{
-    imports::ImportOnceCell,
-    slice::{PySequenceIndex, SequenceIndex},
-};
+#[cfg(feature = "python")]
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
-static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
-static PAULI_PY_ENUM: GILOnceCell<Py<PyType>> = GILOnceCell::new();
-static PAULI_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
+#[cfg(feature = "python")]
+use crate::imports;
+
+#[cfg(feature = "python")]
+static PAULI_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
+#[cfg(feature = "python")]
+static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `Pauli`s, but doing so in Python would
+/// not allowing the stored values to be outside the valid `Pauli`\ s, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
 /// sister class of `Pauli` to `QubitSparsePauli` and `QubitSparsePauliList` as a scoped class.
 ///
@@ -59,7 +67,7 @@ static PAULI_INTO_PY: GILOnceCell<[Option<Py<PyAny>>; 16]> = GILOnceCell::new();
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `Pauli`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// `Pauli`\ s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
 /// which we transmute into slices of `Pauli`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
@@ -110,7 +118,7 @@ impl Pauli {
     /// returning `Ok(None)` for it.  All other letters outside the alphabet return the complete
     /// error condition.
     #[inline]
-    fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
+    pub fn try_from_u8(value: u8) -> Result<Option<Self>, PauliFromU8Error> {
         match value {
             b'I' => Ok(None),
             b'X' => Ok(Some(Pauli::X)),
@@ -161,13 +169,17 @@ impl ::std::convert::TryFrom<u8> for Pauli {
 /// failures on entry to Rust from Python space will automatically raise `TypeError`.
 #[derive(Error, Debug)]
 pub enum CoherenceError {
+    #[error("`phases` ({phases}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
+    MismatchedPhaseCount { phases: usize, qspl: usize },
     #[error("`rates` ({rates}) must be the same length as `qubit_sparse_pauli_list` ({qspl})")]
     MismatchedTermCount { rates: usize, qspl: usize },
     #[error("`paulis` ({paulis}) and `indices` ({indices}) must be the same length")]
     MismatchedItemCount { paulis: usize, indices: usize },
     #[error("the first item of `boundaries` ({0}) must be 0")]
     BadInitialBoundary(usize),
-    #[error("the last item of `boundaries` ({last}) must match the length of `paulis` and `indices` ({items})")]
+    #[error(
+        "the last item of `boundaries` ({last}) must match the length of `paulis` and `indices` ({items})"
+    )]
     BadFinalBoundary { last: usize, items: usize },
     #[error("all qubit indices must be less than the number of qubits")]
     BitIndexTooHigh,
@@ -368,7 +380,7 @@ impl QubitSparsePauliList {
     /// Clear all the elements of the list.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction of elements in the list may not need to reallocate.
+    /// subtraction of elements in the list may not need to reallocate.
     pub fn clear(&mut self) {
         self.paulis.clear();
         self.indices.clear();
@@ -477,6 +489,16 @@ impl QubitSparsePauliList {
         Ok(())
     }
 
+    // Return a Vec of dense labels representing this Pauli list
+    pub fn to_dense_label_list(&self) -> Vec<String> {
+        let mut dense_label_list = Vec::with_capacity(self.num_terms());
+
+        for qubit_sparse_pauli in self.iter() {
+            dense_label_list.push(qubit_sparse_pauli.to_term().to_dense_label());
+        }
+        dense_label_list
+    }
+
     /// Apply a transpiler layout.
     pub fn apply_layout(
         &self,
@@ -511,6 +533,26 @@ impl QubitSparsePauliList {
                 Ok(out)
             }
         }
+    }
+
+    // Check if the elements of `self` commute with the elements of `other`.
+    pub fn commutes(&self, other: &QubitSparsePauliList) -> Result<Array2<bool>, ArithmeticError> {
+        if self.num_qubits != other.num_qubits {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits,
+                right: other.num_qubits,
+            });
+        }
+
+        Ok(Array2::from_shape_fn(
+            (self.num_terms(), other.num_terms()),
+            |(i, j)| {
+                self.term(i)
+                    .to_term()
+                    .commutes(&other.term(j).to_term())
+                    .unwrap()
+            },
+        ))
     }
 }
 
@@ -577,6 +619,14 @@ impl QubitSparsePauliView<'_> {
         }
     }
 
+    pub fn num_ys(self) -> isize {
+        let mut num_ys = 0;
+        for pauli in self.paulis {
+            num_ys += (*pauli == Pauli::Y) as isize;
+        }
+        num_ys
+    }
+
     pub fn to_sparse_str(self) -> String {
         let paulis = self
             .indices
@@ -624,6 +674,59 @@ impl QubitSparsePauli {
             paulis,
             indices,
         })
+    }
+
+    pub fn from_dense_label(label: &str) -> Result<QubitSparsePauli, LabelError> {
+        let label: &[u8] = label.as_ref();
+        let num_qubits = label.len() as u32;
+        let mut paulis = Vec::new();
+        let mut indices = Vec::new();
+        // The only valid characters in the alphabet are ASCII, so if we see something other than
+        // ASCII, we're already in the failure path.
+        for (i, letter) in label.iter().rev().enumerate() {
+            match Pauli::try_from_u8(*letter) {
+                Ok(Some(term)) => {
+                    paulis.push(term);
+                    indices.push(i as u32);
+                }
+                Ok(None) => (),
+                Err(_) => {
+                    return Err(LabelError::OutsideAlphabet);
+                }
+            }
+        }
+        Ok(unsafe {
+            QubitSparsePauli::new_unchecked(
+                num_qubits,
+                paulis.into_boxed_slice(),
+                indices.into_boxed_slice(),
+            )
+        })
+    }
+
+    // Return a dense label representing this Pauli
+    pub fn to_dense_label(&self) -> String {
+        let mut pauli_str = "".to_string();
+
+        let mut current_idx = 0;
+
+        for (index, pauli) in self.indices().iter().zip(self.paulis().iter()) {
+            if *index > current_idx {
+                pauli_str =
+                    (0..(index - current_idx)).map(|_| "I").collect::<String>() + &pauli_str;
+                current_idx = *index;
+            }
+            pauli_str = pauli.py_label().to_string() + &pauli_str;
+            current_idx += 1;
+        }
+
+        if current_idx < self.num_qubits() {
+            pauli_str = (0..(self.num_qubits() - current_idx))
+                .map(|_| "I")
+                .collect::<String>()
+                + &pauli_str;
+        }
+        pauli_str
     }
 
     /// Create a new [QubitSparsePauli] from the raw components without checking data coherence.
@@ -761,7 +864,7 @@ impl QubitSparsePauli {
         }
     }
 
-    // Check if `self` commutes with `other`
+    // Check if `self` commutes with `other`.
     pub fn commutes(&self, other: &QubitSparsePauli) -> Result<bool, ArithmeticError> {
         if self.num_qubits != other.num_qubits {
             return Err(ArithmeticError::MismatchedQubits {
@@ -811,32 +914,42 @@ impl ::std::fmt::Display for InnerWriteError {
     }
 }
 
+#[cfg(feature = "python")]
 impl From<InnerReadError> for PyErr {
     fn from(value: InnerReadError) -> PyErr {
         PyRuntimeError::new_err(value.to_string())
     }
 }
+
+#[cfg(feature = "python")]
 impl From<InnerWriteError> for PyErr {
     fn from(value: InnerWriteError) -> PyErr {
         PyRuntimeError::new_err(value.to_string())
     }
 }
 
+#[cfg(feature = "python")]
 impl From<PauliFromU8Error> for PyErr {
     fn from(value: PauliFromU8Error) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
+
+#[cfg(feature = "python")]
 impl From<CoherenceError> for PyErr {
     fn from(value: CoherenceError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
+
+#[cfg(feature = "python")]
 impl From<LabelError> for PyErr {
     fn from(value: LabelError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
+
+#[cfg(feature = "python")]
 impl From<ArithmeticError> for PyErr {
     fn from(value: ArithmeticError) -> PyErr {
         PyValueError::new_err(value.to_string())
@@ -845,6 +958,7 @@ impl From<ArithmeticError> for PyErr {
 
 /// The single-character string label used to represent this term in the
 /// :class:`QubitSparsePauliList` alphabet.
+#[cfg(feature = "python")]
 #[pyfunction]
 #[pyo3(name = "label")]
 fn pauli_label(py: Python<'_>, slf: Pauli) -> &Bound<'_, PyString> {
@@ -864,6 +978,7 @@ fn pauli_label(py: Python<'_>, slf: Pauli) -> &Bound<'_, PyString> {
 ///
 /// The resulting class is attached to `QubitSparsePauliList` as a class attribute, and its
 /// `__qualname__` is set to reflect this.
+#[cfg(feature = "python")]
 fn make_py_pauli(py: Python) -> PyResult<Py<PyType>> {
     let terms = [Pauli::X, Pauli::Y, Pauli::Z]
         .into_iter()
@@ -893,13 +1008,14 @@ fn make_py_pauli(py: Python) -> PyResult<Py<PyType>> {
         .getattr("property")?
         .call1((wrap_pyfunction!(pauli_label, py)?,))?;
     obj.setattr("label", label_property)?;
-    Ok(obj.downcast_into::<PyType>()?.unbind())
+    Ok(obj.cast_into::<PyType>()?.unbind())
 }
 
 // Return the relevant value from the Python-space sister enumeration.  These are Python-space
 // singletons and subclasses of Python `int`.  We only use this for interaction with "high level"
 // Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
 // efficiently.
+#[cfg(feature = "python")]
 impl<'py> IntoPyObject<'py> for Pauli {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -930,8 +1046,11 @@ impl<'py> IntoPyObject<'py> for Pauli {
     }
 }
 
-impl<'py> FromPyObject<'py> for Pauli {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+#[cfg(feature = "python")]
+impl<'a, 'py> FromPyObject<'a, 'py> for Pauli {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob
             .extract::<isize>()
             .map_err(|_| match ob.get_type().repr() {
@@ -1068,9 +1187,9 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///                                 string label and the qubits they apply to.
 ///
 ///   :meth:`from_pauli`            Raise a single :class:`~.quantum_info.Pauli` into a
-///                                 single-element :class:`.QubitSparsePauli`.
+///                                 :class:`.QubitSparsePauli`.
 ///
-///   :meth:`from_raw_parts`        Build the list from :ref:`the raw data arrays
+///   :meth:`from_raw_parts`        Build the operator from :ref:`the raw data arrays
 ///                                 <qubit-sparse-pauli-arrays>`.
 ///   ============================  ================================================================
 ///
@@ -1089,18 +1208,26 @@ impl<'py> FromPyObject<'py> for Pauli {
 ///     :param int|None num_qubits: Optional number of qubits for the operator.  For most data
 ///         inputs, this can be inferred and need not be passed.  It is only necessary for the
 ///         sparse-label format.  If given unnecessarily, it must match the data input.
-#[pyclass(name = "QubitSparsePauli", frozen, module = "qiskit.quantum_info")]
+#[cfg(feature = "python")]
+#[pyclass(
+    name = "QubitSparsePauli",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct PyQubitSparsePauli {
     inner: QubitSparsePauli,
 }
 
+#[cfg(feature = "python")]
 impl PyQubitSparsePauli {
     pub fn inner(&self) -> &QubitSparsePauli {
         &self.inner
     }
 }
 
+#[cfg(feature = "python")]
 #[pymethods]
 impl PyQubitSparsePauli {
     #[new]
@@ -1119,7 +1246,7 @@ impl PyQubitSparsePauli {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -1221,29 +1348,7 @@ impl PyQubitSparsePauli {
     #[staticmethod]
     #[pyo3(signature = (label, /))]
     fn from_label(label: &str) -> PyResult<Self> {
-        let label: &[u8] = label.as_ref();
-        let num_qubits = label.len() as u32;
-        let mut paulis = Vec::new();
-        let mut indices = Vec::new();
-        // The only valid characters in the alphabet are ASCII, so if we see something other than
-        // ASCII, we're already in the failure path.
-        for (i, letter) in label.iter().rev().enumerate() {
-            match Pauli::try_from_u8(*letter) {
-                Ok(Some(term)) => {
-                    paulis.push(term);
-                    indices.push(i as u32);
-                }
-                Ok(None) => (),
-                Err(_) => {
-                    return Err(PyErr::from(LabelError::OutsideAlphabet));
-                }
-            }
-        }
-        let inner = QubitSparsePauli::new(
-            num_qubits,
-            paulis.into_boxed_slice(),
-            indices.into_boxed_slice(),
-        )?;
+        let inner = QubitSparsePauli::from_dense_label(label)?;
         Ok(inner.into())
     }
 
@@ -1265,7 +1370,7 @@ impl PyQubitSparsePauli {
     ///         >>> assert QubitSparsePauli.from_label(label) == QubitSparsePauli.from_pauli(pauli)
     #[staticmethod]
     #[pyo3(signature = (pauli, /))]
-    fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn from_pauli(pauli: &Bound<PyAny>) -> PyResult<Self> {
         let py = pauli.py();
         let num_qubits = pauli.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
         let z = pauli
@@ -1395,21 +1500,21 @@ impl PyQubitSparsePauli {
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to compose with.
-    fn compose(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+    fn compose(&self, other: &PyQubitSparsePauli) -> PyResult<Self> {
         Ok(PyQubitSparsePauli {
             inner: self.inner.compose(&other.inner)?,
         })
     }
 
-    fn __matmul__(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+    fn __matmul__(&self, other: &PyQubitSparsePauli) -> PyResult<Self> {
         self.compose(other)
     }
 
-    /// Check if `self`` commutes with another qubit sparse pauli.
+    /// Check if `self`` commutes with another qubit sparse Pauli.
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to check for commutation with.
-    fn commutes(&self, other: PyQubitSparsePauli) -> PyResult<bool> {
+    fn commutes(&self, other: &PyQubitSparsePauli) -> PyResult<bool> {
         Ok(self.inner.commutes(&other.inner)?)
     }
 
@@ -1417,7 +1522,7 @@ impl PyQubitSparsePauli {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf = slf.borrow();
@@ -1461,6 +1566,13 @@ impl PyQubitSparsePauli {
             ),
         )
             .into_pyobject(py)
+    }
+
+    /// Return a :class:`~.quantum_info.Pauli` representing the same phaseless Pauli.
+    fn to_pauli<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        imports::PAULI_TYPE
+            .get_bound(py)
+            .call1((self.inner.to_dense_label(),))
     }
 
     /// Get a copy of this term.
@@ -1513,7 +1625,7 @@ impl PyQubitSparsePauli {
     // :class:`QubitSparsePauliList`.
     #[allow(non_snake_case)]
     #[classattr]
-    fn Pauli(py: Python) -> PyResult<Py<PyType>> {
+    pub fn Pauli(py: Python) -> PyResult<Py<PyType>> {
         PAULI_PY_ENUM
             .get_or_try_init(py, || make_py_pauli(py))
             .map(|obj| obj.clone_ref(py))
@@ -1602,6 +1714,7 @@ impl PyQubitSparsePauli {
 ///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
 ///                                ``(paulis, indices)``.
 ///   ===========================  =================================================================
+#[cfg(feature = "python")]
 #[pyclass(
     name = "QubitSparsePauliList",
     module = "qiskit.quantum_info",
@@ -1612,6 +1725,8 @@ pub struct PyQubitSparsePauliList {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
     pub inner: Arc<RwLock<QubitSparsePauliList>>,
 }
+
+#[cfg(feature = "python")]
 #[pymethods]
 impl PyQubitSparsePauliList {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -1630,7 +1745,7 @@ impl PyQubitSparsePauliList {
                 "explicitly given 'num_qubits' ({num_qubits}) does not match operator ({other_qubits})"
             )))
         };
-        if data.is_instance(PAULI_TYPE.get_bound(py))? {
+        if data.is_instance(imports::PAULI_TYPE.get_bound(py))? {
             check_num_qubits(data)?;
             return Self::from_pauli(data);
         }
@@ -1645,7 +1760,7 @@ impl PyQubitSparsePauliList {
             }
             return Self::from_label(&label).map_err(PyErr::from);
         }
-        if let Ok(pauli_list) = data.downcast_exact::<Self>() {
+        if let Ok(pauli_list) = data.cast_exact::<Self>() {
             check_num_qubits(data)?;
             let borrowed = pauli_list.borrow();
             let inner = borrowed.inner.read().map_err(|_| InnerReadError)?;
@@ -1665,7 +1780,7 @@ impl PyQubitSparsePauliList {
             };
             return Self::from_sparse_list(vec, num_qubits);
         }
-        if let Ok(term) = data.downcast_exact::<PyQubitSparsePauli>() {
+        if let Ok(term) = data.cast_exact::<PyQubitSparsePauli>() {
             return term.borrow().to_qubit_sparse_pauli_list();
         };
         if let Ok(pauli_list) = Self::from_qubit_sparse_paulis(data, num_qubits) {
@@ -1898,12 +2013,12 @@ impl PyQubitSparsePauliList {
                         "cannot construct an empty QubitSparsePauliList without knowing `num_qubits`",
                     ));
                 };
-                let py_term = first?.downcast::<PyQubitSparsePauli>()?.borrow();
+                let py_term = first?.cast::<PyQubitSparsePauli>()?.borrow();
                 py_term.inner.to_qubit_sparse_pauli_list()
             }
         };
         for bound_py_term in iter {
-            let py_term = bound_py_term?.downcast::<PyQubitSparsePauli>()?.borrow();
+            let py_term = bound_py_term?.cast::<PyQubitSparsePauli>()?.borrow();
             inner.add_qubit_sparse_pauli(py_term.inner.view())?;
         }
         Ok(inner.into())
@@ -1912,7 +2027,7 @@ impl PyQubitSparsePauliList {
     /// Clear all the elements from the list, making it equal to the empty list again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations resulting from composition may not need to reallocate.
+    /// subtraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -2013,6 +2128,49 @@ impl PyQubitSparsePauliList {
         Ok(out.unbind())
     }
 
+    /// Express the list in a dense array format.
+    ///
+    /// Each entry is a u8 following the :class:`Pauli` representation, while the rows index
+    /// distinct Paulis and the columns distinct qubits.
+    ///
+    /// Examples:
+    ///
+    ///         >>> paulis = QubitSparsePauliList.from_sparse_list(
+    ///         ...     [("ZX", (1, 4)), ("YY", (0, 3)), ("XX", (0, 1))],
+    ///         ...     num_qubits=5,
+    ///         ... )
+    ///         >>> paulis.to_dense_array()
+    #[pyo3(signature = ())]
+    fn to_dense_array(&self, py: Python) -> PyResult<Py<PyArray2<u8>>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let mut out = Array2::zeros((inner.num_terms(), inner.num_qubits.try_into().unwrap()));
+        for (idx, paulis) in inner.iter().enumerate() {
+            for (p, p_idx) in zip(paulis.paulis, paulis.indices) {
+                out[[idx, *p_idx as usize]] = *p as u8;
+            }
+        }
+        Ok(out.into_pyarray(py).unbind())
+    }
+
+    /// Check if the elements of `self`` commute with another qubit sparse Pauli list.
+    ///
+    /// Args:
+    ///     other (QubitSparsePauliList): the qubit sparse Pauli list to check for commutation with.
+    #[pyo3(signature = (other))]
+    fn commutes(&self, py: Python, other: &PyQubitSparsePauliList) -> PyResult<Py<PyArray2<bool>>> {
+        let slf_inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
+        Ok(slf_inner.commutes(&other_inner)?.into_pyarray(py).unbind())
+    }
+
+    /// Return a :class:`~.quantum_info.PauliList` representing the same phaseless list of Paulis.
+    fn to_pauli_list<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        imports::PAULI_LIST_TYPE
+            .get_bound(py)
+            .call1((inner.to_dense_label_list(),))
+    }
+
     /// Apply a transpiler layout to this qubit sparse Pauli list.
     ///
     /// This enables remapping of qubit indices, e.g. if the list is defined in terms of virtual
@@ -2048,7 +2206,7 @@ impl PyQubitSparsePauliList {
         };
 
         // Normalize the number of qubits in the layout and the layout itself, depending on the
-        // input types, before calling PauliLindbladMap.apply_layout to do the actual work.
+        // input types, before calling QubitSparsePauliList.apply_layout to do the actual work.
         let (num_qubits, layout): (u32, Option<Vec<u32>>) = if layout.is_none() {
             (num_qubits.unwrap_or(inner.num_qubits()), None)
         } else if layout.is_instance(
@@ -2100,7 +2258,7 @@ impl PyQubitSparsePauliList {
                 return PyQubitSparsePauli {
                     inner: inner.term(index).to_term(),
                 }
-                .into_bound_py_any(py)
+                .into_bound_py_any(py);
             }
             indices => indices,
         };
@@ -2116,7 +2274,7 @@ impl PyQubitSparsePauliList {
         if slf.is(&other) {
             return Ok(true);
         }
-        let Ok(other) = other.downcast_into::<Self>() else {
+        let Ok(other) = other.cast_into::<Self>() else {
             return Ok(false);
         };
         let slf_borrowed = slf.borrow();
@@ -2157,11 +2315,14 @@ impl PyQubitSparsePauliList {
     }
 }
 
+#[cfg(feature = "python")]
 impl From<QubitSparsePauli> for PyQubitSparsePauli {
     fn from(val: QubitSparsePauli) -> PyQubitSparsePauli {
         PyQubitSparsePauli { inner: val }
     }
 }
+
+#[cfg(feature = "python")]
 impl<'py> IntoPyObject<'py> for QubitSparsePauli {
     type Target = PyQubitSparsePauli;
     type Output = Bound<'py, Self::Target>;
@@ -2171,6 +2332,8 @@ impl<'py> IntoPyObject<'py> for QubitSparsePauli {
         PyQubitSparsePauli::from(self).into_pyobject(py)
     }
 }
+
+#[cfg(feature = "python")]
 impl From<QubitSparsePauliList> for PyQubitSparsePauliList {
     fn from(val: QubitSparsePauliList) -> PyQubitSparsePauliList {
         PyQubitSparsePauliList {
@@ -2178,6 +2341,8 @@ impl From<QubitSparsePauliList> for PyQubitSparsePauliList {
         }
     }
 }
+
+#[cfg(feature = "python")]
 impl<'py> IntoPyObject<'py> for QubitSparsePauliList {
     type Target = PyQubitSparsePauliList;
     type Output = Bound<'py, Self::Target>;

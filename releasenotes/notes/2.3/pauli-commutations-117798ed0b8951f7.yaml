@@ -1,0 +1,17 @@
+---
+features_transpiler:
+  - |
+    The :class:`.CommutationChecker` now supports efficient commutation checks in-between the
+    Pauli-based gates :class:`.PauliGate`, :class:`.PauliEvolutionGate` and
+    :class:`.PauliProductMeasurement` by checking if the generating Pauli operators commute.
+    This enables optimizations in particular for circuits in Pauli-based computation format,
+    expressed in terms of Pauli evolutions and Pauli product measurements.
+    Note that commutations between these Pauli-based gates and other standard gates are not yet
+    handled in the same efficient manner.
+  - |
+    Added a new argument, ``matrix_max_num_qubits``, to :meth:`.CommutationChecker.commute`.
+    This allows to limit the size of instructions for which the commutation checker is allowed
+    to compute the exponentially expensive matrix representation. This new argument allows
+    to distinguish between the size limit on instructions to handle (set via ``max_num_qubits``
+    which is newly ``None`` per default, meaning no limit) and a matrix size limit.
+

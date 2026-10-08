@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -18,10 +18,10 @@ use crate::ast::{
     Alias, Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast,
     ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float,
     GateCall, Header, Identifier, IdentifierOrSubscripted, Include, Index, IndexSet, Int,
-    IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
+    IntegerLiteral, Node, OP, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
     QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature,
     QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment, Range, Reset, Statement,
-    SubscriptedIdentifier, Uint, Unary, UnaryOp, Version, OP,
+    SubscriptedIdentifier, Uint, Unary, UnaryOp, Version,
 };
 
 #[derive(Debug)]
@@ -259,7 +259,7 @@ impl<'a> BasicPrinter<'a> {
     }
 
     fn visit_duration_literal(&mut self, expression: &DurationLiteral) {
-        write!(self.stream, "{}{}", expression.value, expression.unit).unwrap();
+        write!(self.stream, "{}", expression).unwrap();
     }
 
     fn visit_unary(&mut self, expression: &Unary) {
@@ -399,10 +399,10 @@ impl<'a> BasicPrinter<'a> {
 
     fn visit_quantum_gate_signature(&mut self, node: &QuantumGateSignature) {
         self.visit_identifier(&node.name);
-        if let Some(params) = &node.params {
-            if !params.is_empty() {
-                self.visit_expression_sequence(params, "(", ")", ", ");
-            }
+        if let Some(params) = &node.params
+            && !params.is_empty()
+        {
+            self.visit_expression_sequence(params, "(", ")", ", ");
         }
         write!(self.stream, " ").unwrap();
         let qarg_list: Vec<Expression> = node

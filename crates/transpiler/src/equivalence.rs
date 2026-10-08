@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -20,39 +20,48 @@ use rustworkx_core::petgraph::csr::IndexType;
 use rustworkx_core::petgraph::stable_graph::StableDiGraph;
 use rustworkx_core::petgraph::visit::IntoEdgeReferences;
 
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::{error::Error, fmt::Display};
 
 use exceptions::CircuitError;
 
-use ahash::RandomState;
-use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyString};
+use qiskit_util::{IndexMap, IndexSet};
 
 use rustworkx_core::petgraph::{
     graph::{EdgeIndex, NodeIndex},
     visit::EdgeRef,
 };
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::NoBlocks;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::QUANTUM_CIRCUIT;
+use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_util::py::ImportOnceCell;
+
+use crate::standard_equivalence_library::generate_standard_equivalence_library;
 
 mod exceptions {
-    use pyo3::import_exception_bound;
-    import_exception_bound! {qiskit.circuit.exceptions, CircuitError}
+    use pyo3::import_exception;
+    import_exception! {qiskit.circuit.exceptions, CircuitError}
 }
 pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGraph");
 
 // Custom Structs
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
     #[pyo3(get)]
@@ -123,7 +132,12 @@ impl Display for Key {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct Equivalence {
     #[pyo3(get)]
@@ -179,7 +193,12 @@ impl Display for Equivalence {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct NodeData {
     #[pyo3(get)]
@@ -223,7 +242,12 @@ impl Display for NodeData {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct EdgeData {
     #[pyo3(get)]
@@ -291,12 +315,18 @@ pub struct GateOper {
     params: SmallVec<[Param; 3]>,
 }
 
-impl<'py> FromPyObject<'py> for GateOper {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let op_struct: OperationFromPython = ob.extract()?;
+impl<'a, 'py> FromPyObject<'a, 'py> for GateOper {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let op_struct: OperationFromPython<NoBlocks> = ob.extract()?;
         Ok(Self {
             operation: op_struct.operation,
-            params: op_struct.params,
+            params: match op_struct.params {
+                None => smallvec![],
+                Some(Parameters::Params(params)) => params,
+                Some(Parameters::Blocks(_)) => panic!("expected params"),
+            },
         })
     }
 }
@@ -319,20 +349,17 @@ impl<'py> IntoPyObject<'py> for CircuitFromPython {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(QUANTUM_CIRCUIT
-            .get_bound(py)
-            .call_method1("_from_circuit_data", (self.0,))?
-            .clone())
+        self.0.into_py_quantum_circuit(py)
     }
 }
 
-impl FromPyObject<'_> for CircuitFromPython {
-    fn extract_bound(ob: &Bound<'_, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
-            let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<CircuitData> = data.downcast_into()?;
-            let data_extract: CircuitData = data_downcast.extract()?;
-            Ok(Self(data_extract))
+            let data = ob.getattr("_data")?.cast_into::<PyCircuitData>()?;
+            Ok(Self(data.borrow().inner.clone()))
         } else {
             Err(PyTypeError::new_err(
                 "Provided object was not an instance of QuantumCircuit",
@@ -343,21 +370,22 @@ impl FromPyObject<'_> for CircuitFromPython {
 
 // Custom Types
 type GraphType = StableDiGraph<NodeData, Option<EdgeData>>;
-type KTIType = IndexMap<Key, NodeIndex, RandomState>;
+type KTIType = IndexMap<Key, NodeIndex>;
 
 /// A library providing a one-way mapping of gates to their equivalent
 /// implementations as :class:`.QuantumCircuit` instances.
 #[pyclass(
     subclass,
     name = "BaseEquivalenceLibrary",
-    module = "qiskit._accelerate.equivalence"
+    module = "qiskit._accelerate.equivalence",
+    skip_from_py_object
 )]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {
     graph: GraphType,
     key_to_node_index: KTIType,
     rule_id: usize,
-    _graph: Option<PyObject>,
+    _graph: Option<Py<PyAny>>,
 }
 
 #[pymethods]
@@ -406,6 +434,7 @@ impl EquivalenceLibrary {
         equivalent_circuit: CircuitFromPython,
     ) -> PyResult<()> {
         self.add_equivalence(&gate.operation, &gate.params, equivalent_circuit.0)
+            .map_err(|e| CircuitError::new_err(e.message))
     }
 
     /// Check if a library contains any decompositions for gate.
@@ -439,6 +468,7 @@ impl EquivalenceLibrary {
             &gate.params,
             entry.into_iter().map(|circ| circ.0).collect(),
         )
+        .map_err(|err| CircuitError::new_err(err.message))
     }
 
     /// Gets the set of :class:`.QuantumCircuit` instances circuits from the
@@ -485,7 +515,7 @@ impl EquivalenceLibrary {
     /// Returns:
     ///     PyDiGraph: A graph object with equivalence data in each node.
     #[getter]
-    fn get_graph(&mut self, py: Python) -> PyResult<PyObject> {
+    fn get_graph(&mut self, py: Python) -> PyResult<Py<PyAny>> {
         if let Some(graph) = &self._graph {
             Ok(graph.clone_ref(py))
         } else {
@@ -512,7 +542,7 @@ impl EquivalenceLibrary {
     /// Returns:
     ///     List: Keys to the key to node index map.
     #[pyo3(name = "keys")]
-    fn py_keys(slf: PyRef<Self>) -> PyResult<PyObject> {
+    fn py_keys(slf: PyRef<Self>) -> PyResult<Py<PyAny>> {
         let py_dict = PyDict::new(slf.py());
         for key in slf.keys() {
             py_dict.set_item(key.clone(), slf.py().None())?;
@@ -563,9 +593,9 @@ impl EquivalenceLibrary {
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyDict>) -> PyResult<()> {
         slf.rule_id = state.get_item("rule_id")?.unwrap().extract()?;
         let graph_nodes_ref: Bound<PyAny> = state.get_item("graph_nodes")?.unwrap();
-        let graph_nodes: &Bound<PyList> = graph_nodes_ref.downcast()?;
+        let graph_nodes: &Bound<PyList> = graph_nodes_ref.cast()?;
         let graph_edge_ref: Bound<PyAny> = state.get_item("graph_edges")?.unwrap();
-        let graph_edges: &Bound<PyList> = graph_edge_ref.downcast()?;
+        let graph_edges: &Bound<PyList> = graph_edge_ref.cast()?;
         slf.graph = GraphType::new();
         for node_weight in graph_nodes {
             slf.graph.add_node(node_weight.extract()?);
@@ -581,7 +611,7 @@ impl EquivalenceLibrary {
         slf.key_to_node_index = state
             .get_item("key_to_node_index")?
             .unwrap()
-            .extract::<IndexMap<Key, usize, ::ahash::RandomState>>()?
+            .extract::<IndexMap<Key, usize>>()?
             .into_iter()
             .map(|(key, val)| (key, NodeIndex::new(val)))
             .collect();
@@ -600,7 +630,7 @@ impl EquivalenceLibrary {
         gate: &PackedOperation,
         params: &[Param],
         equivalent_circuit: CircuitData,
-    ) -> PyResult<()> {
+    ) -> Result<(), EquivalenceError> {
         raise_if_shape_mismatch(gate, &equivalent_circuit)?;
         raise_if_param_mismatch(params, &equivalent_circuit)?;
         let key: Key = Key::from_operation(gate);
@@ -613,7 +643,7 @@ impl EquivalenceLibrary {
         if let Some(node) = self.graph.node_weight_mut(target) {
             node.equivs.push(equiv.clone());
         }
-        let sources: IndexSet<Key, RandomState> = IndexSet::from_iter(
+        let sources: IndexSet<Key> = IndexSet::from_iter(
             equivalent_circuit
                 .iter()
                 .map(|inst| Key::from_operation(&inst.op)),
@@ -645,7 +675,7 @@ impl EquivalenceLibrary {
         gate: &PackedOperation,
         params: &[Param],
         entry: Vec<CircuitData>,
-    ) -> PyResult<()> {
+    ) -> Result<(), EquivalenceError> {
         for equiv in entry.iter() {
             raise_if_shape_mismatch(gate, equiv)?;
             raise_if_param_mismatch(params, equiv)?;
@@ -713,7 +743,10 @@ impl EquivalenceLibrary {
     }
 }
 
-fn raise_if_param_mismatch(gate_params: &[Param], circuit: &CircuitData) -> PyResult<()> {
+fn raise_if_param_mismatch(
+    gate_params: &[Param],
+    circuit: &CircuitData,
+) -> Result<(), EquivalenceError> {
     let parsed_gate_params: HashSet<Symbol> = gate_params
         .iter()
         .filter_map(|param| match param {
@@ -726,7 +759,7 @@ fn raise_if_param_mismatch(gate_params: &[Param], circuit: &CircuitData) -> PyRe
     if circuit.iter_parameters().enumerate().any(|(idx, symbol)| {
         idx >= parsed_gate_params.len() || !parsed_gate_params.contains(symbol)
     }) {
-        return Err(CircuitError::new_err(format!(
+        return Err(EquivalenceError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
         of different parameters. Gate params: {gate_params:?}. \
         Circuit params: {:?}.",
@@ -736,12 +769,15 @@ fn raise_if_param_mismatch(gate_params: &[Param], circuit: &CircuitData) -> PyRe
     Ok(())
 }
 
-fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitData) -> PyResult<()> {
+fn raise_if_shape_mismatch(
+    gate: &PackedOperation,
+    circuit: &CircuitData,
+) -> Result<(), EquivalenceError> {
     let op_ref = gate.view();
     if op_ref.num_qubits() != circuit.num_qubits() as u32
         || op_ref.num_clbits() != circuit.num_clbits() as u32
     {
-        return Err(CircuitError::new_err(format!(
+        return Err(EquivalenceError::new_err(format!(
             "Cannot add equivalence between circuit and gate \
             of different shapes. Gate: {} qubits and {} clbits. \
             Circuit: {} qubits and {} clbits.",
@@ -756,23 +792,22 @@ fn raise_if_shape_mismatch(gate: &PackedOperation, circuit: &CircuitData) -> PyR
 
 fn rebind_equiv(equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitData> {
     let (equiv_params, mut equiv_circuit) = (equiv.params, equiv.circuit);
-    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param, ::ahash::RandomState>> =
-        equiv_params
-            .iter()
-            .zip(query_params.iter())
-            .filter_map(|(param_x, param_y)| match param_x {
-                Param::ParameterExpression(param) => {
-                    // we know this expression represents a symbol
-                    let symbol = match param.try_to_symbol() {
-                        Ok(symbol) => symbol,
-                        Err(e) => return Some(Err(PyErr::from(e))),
-                    };
-                    let uuid = ParameterUuid::from_symbol(&symbol);
-                    Some(Ok((uuid, param_y)))
-                }
-                _ => None,
-            })
-            .collect();
+    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param>> = equiv_params
+        .iter()
+        .zip(query_params.iter())
+        .filter_map(|(param_x, param_y)| match param_x {
+            Param::ParameterExpression(param) => {
+                // we know this expression represents a symbol
+                let symbol = match param.try_to_symbol() {
+                    Ok(symbol) => symbol,
+                    Err(e) => return Some(Err(PyErr::from(e))),
+                };
+                let uuid = ParameterUuid::from_symbol(&symbol);
+                Some(Ok((uuid, param_y)))
+            }
+            _ => None,
+        })
+        .collect();
     equiv_circuit.assign_parameters_from_mapping(param_mapping?)?;
     Ok(equiv_circuit)
 }
@@ -800,7 +835,10 @@ impl Display for EquivalenceError {
 
 // Conversion helpers
 
-fn to_pygraph<'py, N, E>(py: Python<'py>, pet_graph: &'py StableDiGraph<N, E>) -> PyResult<PyObject>
+fn to_pygraph<'py, N, E>(
+    py: Python<'py>,
+    pet_graph: &'py StableDiGraph<N, E>,
+) -> PyResult<Py<PyAny>>
 where
     N: IntoPyObject<'py> + Clone,
     E: IntoPyObject<'py> + Clone,
@@ -822,11 +860,18 @@ where
     Ok(graph.unbind())
 }
 
+#[pyfunction]
+#[pyo3(name = "get_standard_equivalence_library")]
+fn py_get_standard_equivalence_library() -> EquivalenceLibrary {
+    generate_standard_equivalence_library()
+}
+
 pub fn equivalence(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EquivalenceLibrary>()?;
     m.add_class::<NodeData>()?;
     m.add_class::<EdgeData>()?;
     m.add_class::<Equivalence>()?;
     m.add_class::<Key>()?;
+    m.add_wrapped(wrap_pyfunction!(py_get_standard_equivalence_library))?;
     Ok(())
 }
