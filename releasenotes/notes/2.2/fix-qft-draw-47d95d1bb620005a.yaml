@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an edge case in the display of the :class:`.QFT` circuit.
+    Previously, when :meth:`.QFT.inverse` was called and then the attributes of the QFT circuit
+    were modified, the QFT was displayed as ``"IQFT_dg"``. This was incorrect, and now
+    it correctly shows ``"IQFT"``.
+    Fixed `#14758 <https://github.com/Qiskit/qiskit/issues/14758>`__.

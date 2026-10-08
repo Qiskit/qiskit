@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,6 +16,7 @@ Kraus representation of a Quantum Channel.
 
 from __future__ import annotations
 import copy
+import math
 from numbers import Number
 import numpy as np
 
@@ -47,7 +48,7 @@ class Kraus(QuantumChannel):
 
     A general operator map :math:`\mathcal{G}` can also be written using the
     generalized Kraus representation which is given by two sets of matrices
-    :math:`[A_0,...,A_{K-1}]`, :math:`[B_0,...,A_{B-1}]` such that
+    :math:`[A_0,...,A_{K-1}]`, :math:`[B_0,...,B_{K-1}]` such that
 
     .. math::
 
@@ -315,7 +316,7 @@ class Kraus(QuantumChannel):
             return ret
         # If the number is real we can update the Kraus operators
         # directly
-        val = np.sqrt(other)
+        val = math.sqrt(other)
         kraus_r = None
         kraus_l = [val * k for k in self._data[0]]
         if self._data[1] is not None:

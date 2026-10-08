@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    :class:`.MCXVChain` has two new Boolean parameters `relative_phase` and `action_only`.
+    If `action_only` the circuit does not clean the dirty qubits. If `relative_phase`
+    the gate is implemented up to a global phase. Both parameters are used to optimize the
+    decomposition of MCXVChain.
+fixes:
+  - |
+    :class:`.MCXVChain` with k controls and k-2 dirty auxiliary qubits now requires 8k-6 cx gates.

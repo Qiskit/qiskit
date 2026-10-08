@@ -1,0 +1,10 @@
+---
+features_circuits:
+  - |
+    Added a new method, :meth:`.ParameterExpression.numeric`, which converts a fully bound
+    parameter expression into the most restrictive built-in Python numeric type that accurately
+    describes the result of the symbolic evaluation.  For example, a symbolic integer will become an
+    :class:`int`, while a symbolic real number will become a :class:`float` and a complex number
+    will become a :class:`complex`.  This method includes several workarounds for peculiarities of
+    the evaluation contexts of ``symengine``, which can sometimes lead to spurious results when
+    calling :class:`complex` or :class:`float` on an expression directly.

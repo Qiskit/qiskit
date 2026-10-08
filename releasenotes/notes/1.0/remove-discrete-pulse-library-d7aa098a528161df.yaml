@@ -1,0 +1,7 @@
+---
+upgrade_pulse:
+  - |
+    The discrete pulse library (previously located at ``qiskit.pulse.library.discrete``)
+    was removed, following its deprecation in Qiskit 0.46.
+    All of the removed pulses have a :class:`~.pulse.SymbolicPulse` counterpart. Consult
+    the Qiskit 0.46 release notes for more details.

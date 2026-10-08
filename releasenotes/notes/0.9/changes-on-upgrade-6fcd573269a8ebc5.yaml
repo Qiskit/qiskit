@@ -121,7 +121,7 @@ other:
     ``qiskit.execute()`` has been changed to optimization level 1 pass manager
     defined at ``qiskit.transpile.preset_passmanagers.level1_pass_manager``.
   - |
-    All the circuit drawer backends now willl express gate parameters in a
+    All the circuit drawer backends now will express gate parameters in a
     circuit as common fractions of pi in the output visualization. If the value
     of a parameter can be expressed as a fraction of pi that will be used
     instead of the numeric equivalent.

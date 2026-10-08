@@ -6,7 +6,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,45 +14,64 @@
 set -e
 set -x
 
-# version is the source version, this is the release with which to generate
-# qpy files with to load with the version under test
-version=$1
-parts=( ${version//./ } )
-# qiskit_version is the version under test, We're testing that we can correctly
-# read the qpy files generated with source version with this version.
-qiskit_version=`./qiskit_venv/bin/python -c "import qiskit;print(qiskit.__version__)"`
-qiskit_parts=( ${qiskit_version//./ } )
+function usage {
+    echo "usage: ${BASH_SOURCE[0]} -p /path/to/qiskit/python <package> <version> <python_version>" 1>&2
+    exit 1
+}
 
-
-# If source version is less than 0.18 QPY didn't exist yet so exit fast
-if [[ ${parts[0]} -eq 0 && ${parts[1]} -lt 18 ]] ; then
-    exit 0
+python="python"
+while getopts "p:" opt; do 
+    case "$opt" in
+        p)
+            python="$OPTARG"
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift "$((OPTIND-1))"
+if [[ $# != 3 ]]; then
+    usage
 fi
 
-# If the source version is newer than the version under test exit fast because
-# there is no QPY compatibility for loading a qpy file generated from a newer
-# release with an older release of Qiskit.
-if ! ./qiskit_venv/bin/python ./compare_versions.py "$version" "$qiskit_version" ; then
-    exit 0
+# `package` is the name of the Python distribution to install (qiskit or qiskit-terra). `version` is
+# the source version: the release with which to generate qpy files with to load with the version
+# under test. 'python_version' is the (compatible) python version with which to run qiskit within the docker image,
+# in the case where docker is used.
+
+package="$1"
+version="$2"
+python_version="$3"
+
+our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
+cache_dir="$(pwd -P)/qpy_cache/$version"
+venv_dir="$(pwd -P)/venvs/$package-$version"
+
+# Use the updated constraints file for qiskit >= 2.5 (numpy >= 2.0.0 requirement).
+constraints_file="qpy_test_constraints.txt"
+
+major=${version%%.*}
+rest=${version#*.}
+minor=${rest%%[^0-9]*}
+
+if (( major > 2 || (major == 2 && minor >= 5) )); then
+    constraints_file="qpy_test_constraints25.txt"
 fi
 
-if [[ ! -d qpy_$version ]] ; then
-    echo "Building venv for qiskit-terra $version"
-    python -m venv $version
-    if [[ ${parts[0]} -eq 0 ]] ; then
-        ./$version/bin/pip install "qiskit-terra==$version"
-    else
-        ./$version/bin/pip install "qiskit==$version"
-    fi
-    mkdir qpy_$version
-    pushd qpy_$version
-    echo "Generating qpy files with qiskit-terra $version"
-    ../$version/bin/python ../test_qpy.py generate --version=$version
+if [[ ! -d $cache_dir ]] ; then
+    docker build -t $package:$version --build-arg PYTHON_VERSION=$python_version --build-arg PACKAGE_NAME=$package --build-arg PACKAGE_VERSION=$version --build-arg CONSTRAINTS_FILE=$constraints_file .
+    mkdir -p "$cache_dir"
+    pushd "$cache_dir"
+    echo "Generating QPY files with $package==$version"
+    # If the generation script fails, we still want to tidy up before exiting.
+    docker run --rm -v "${our_dir}":/work/src -v "$PWD":/work -w /work $package:$version python src/test_qpy.py generate --version="$version" || { docker rmi $package:$version; exit 1; }
+    docker rmi $package:$version
+    docker builder prune -f
 else
     echo "Using cached QPY files for $version"
-    pushd qpy_$version
+    pushd "${cache_dir}"
 fi
-echo "Loading qpy files from $version with dev qiskit-terra"
-../qiskit_venv/bin/python ../test_qpy.py load --version=$version
+echo "Loading qpy files from $version with dev Qiskit"
+"$python" "${our_dir}/test_qpy.py" load --version="$version"
 popd
-rm -rf ./$version

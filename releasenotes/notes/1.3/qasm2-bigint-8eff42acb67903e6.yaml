@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The OpenQASM 2.0 parser (:func:`.qasm2.load` and :func:`.qasm2.loads`) can now evaluate
+    gate-angle expressions including integer operands that would overflow the system-size integer.
+    These will be evaluated in a double-precision floating-point context, just like the rest of the
+    expression always has been.  Beware: an arbitrarily large integer will not necessarily be
+    exactly representable in double-precision floating-point, so there is a chance that however the
+    circuit was generated, it had already lost all numerical precision modulo :math:`2\pi`.

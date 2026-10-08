@@ -1,0 +1,17 @@
+---
+features_primitives:
+  - |
+    The subclass :class:`~.SamplerPubResult` of :class:`~.PubResult` was added,
+    which :class:`~.BaseSamplerV2` implementations can return. The main feature
+    added in this new subclass is :meth:`~.SamplerPubResult.join_data`, which 
+    joins together (a subset of) the contents of :attr:`~.PubResult.data` into 
+    a single object. This enables the following patterns:
+
+    .. code:: python
+
+        job_result =  sampler.run([pub1, pub2, pub3], shots=123).result()
+
+        # assuming all returned data entries are BitArrays
+        counts1 = job_result[0].join_data().get_counts()
+        bistrings2 = job_result[1].join_data().get_bitstrings()
+        array3 = job_result[2].join_data().array

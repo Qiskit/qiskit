@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,10 +18,13 @@ import os
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate, Parameter
 from qiskit.exceptions import QiskitError
-from qiskit.test import QiskitTestCase
-from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.qasm2 import dumps
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
+from test import QiskitTestCase
 
 
 class LoadFromQasmTest(QiskitTestCase):
@@ -184,7 +187,8 @@ class LoadFromQasmTest(QiskitTestCase):
         cr1 = ClassicalRegister(4, "c1")
         ref = QuantumCircuit(qr, cr0, cr1)
         ref.x(qr[0])
-        ref.x(qr[0]).c_if(cr1, 4)
+        with ref.if_test((cr1, 4)):
+            ref.x(qr[0])
 
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 1)
@@ -501,8 +505,9 @@ bell q[0], q[1];
         """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)
         expected_dag = circuit_to_dag(expected)
-        with self.assertWarns(DeprecationWarning):
-            circuit_result = Unroller(basis).run(circuit_dag)
-            expected_result = Unroller(basis).run(expected_dag)
+        unroller = UnrollCustomDefinitions(std_eqlib, basis)
+        basis_translator = BasisTranslator(std_eqlib, basis)
+        circuit_result = basis_translator.run(unroller.run(circuit_dag))
+        expected_result = basis_translator.run(unroller.run(expected_dag))
 
         self.assertEqual(circuit_result, expected_result)

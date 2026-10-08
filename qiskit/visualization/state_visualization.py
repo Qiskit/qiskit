@@ -4,20 +4,19 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-# pylint: disable=missing-param-doc,missing-type-doc,unused-argument
 
 """
 Visualization functions for quantum states.
 """
 
-from typing import List, Union
+import math
+
 from functools import reduce
 import colorsys
 
@@ -48,7 +47,9 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
-        filename (str): file path to save image to.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
@@ -69,10 +70,11 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
-        VisualizationError: if input is not a valid N-qubit state.
+        VisualizationError: Input is not a valid N-qubit state.
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             import numpy as np
@@ -97,7 +99,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
     num = rho.num_qubits
     if num is None:
         raise VisualizationError("Input is not a multi-qubit quantum state.")
-    max_weight = 2 ** np.ceil(np.log(np.abs(rho.data).max()) / np.log(2))
+    max_weight = 2 ** math.ceil(math.log2(np.abs(rho.data).max()))
     datareal = np.real(rho.data)
     dataimag = np.imag(rho.data)
 
@@ -124,7 +126,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         ax1.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(datareal):
-            # Convert from matrix co-ordinates to plot co-ordinates.
+            # Convert from matrix coordinates to plot coordinates.
             plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
@@ -152,7 +154,7 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         ax2.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(dataimag):
-            # Convert from matrix co-ordinates to plot co-ordinates.
+            # Convert from matrix coordinates to plot coordinates.
             plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
@@ -193,16 +195,16 @@ def plot_bloch_vector(
     cartesian and spherical systems.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
-            or [<r>, <theta>, <phi>] (spherical in radians)
+        bloch (tuple[float, float, float]): tuple of three elements where (<x>, <y>, <z>) (Cartesian)
+            or (<r>, <theta>, <phi>) (spherical in radians)
             <theta> is inclination angle from +z direction
             <phi> is azimuth from +x direction
         title (str): a string that represents the plot title
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
-        figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
-        coord_type (str): a string that specifies coordinate type for bloch
-            (Cartesian or spherical), default is Cartesian
+        figsize (tuple): Figure size in inches. Has no effect if passing ``ax``.
+        coord_type (Literal["cartesian", "spherical"]): Either ``"cartesian"`` or ``"spherical"``
+            depending on whether the input is given in Cartesian or spherical coordinates.
         font_size (float): Font size.
 
     Returns:
@@ -213,6 +215,7 @@ def plot_bloch_vector(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit.visualization import plot_bloch_vector
@@ -220,6 +223,7 @@ def plot_bloch_vector(
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            import numpy as np
@@ -236,10 +240,12 @@ def plot_bloch_vector(
         figsize = (5, 5)
     B = Bloch(axes=ax, font_size=font_size)
     if coord_type == "spherical":
-        r, theta, phi = bloch[0], bloch[1], bloch[2]
-        bloch[0] = r * np.sin(theta) * np.cos(phi)
-        bloch[1] = r * np.sin(theta) * np.sin(phi)
-        bloch[2] = r * np.cos(theta)
+        r, theta, phi = bloch
+        bloch = (
+            r * math.sin(theta) * math.cos(phi),
+            r * math.sin(theta) * math.sin(phi),
+            r * math.cos(theta),
+        )
     B.add_vectors(bloch)
     B.render(title=title)
     if ax is None:
@@ -277,7 +283,11 @@ def plot_bloch_multivector(
         reverse_bits (bool): If True, plots qubits following Qiskit's convention [Default:False].
         font_size (float): Font size for the Bloch ball figures.
         title_font_size (float): Font size for the title.
-        title_pad (float): Padding for the title (suptitle `y` position is `y=1+title_pad/100`).
+        title_pad (float): Padding for the title (suptitle ``y`` position is ``0.98``
+        and the image height will be extended by ``1 + title_pad/100``).
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -289,6 +299,7 @@ def plot_bloch_multivector(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit
@@ -303,6 +314,7 @@ def plot_bloch_multivector(
             plot_bloch_multivector(state)
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -339,6 +351,8 @@ def plot_bloch_multivector(
         width *= num
     else:
         width, height = plt.figaspect(1 / num)
+    if len(title) > 0:
+        height += 1 + title_pad / 100  # additional space for the title
     default_title_font_size = font_size if font_size is not None else 16
     title_font_size = title_font_size if title_font_size is not None else default_title_font_size
     fig = plt.figure(figsize=(width, height))
@@ -348,9 +362,13 @@ def plot_bloch_multivector(
         plot_bloch_vector(
             bloch_data[i], "qubit " + str(pos), ax=ax, figsize=figsize, font_size=font_size
         )
-    fig.suptitle(title, fontsize=title_font_size, y=1.0 + title_pad / 100)
+    fig.suptitle(title, fontsize=title_font_size, y=0.98)
     matplotlib_close_if_inline(fig)
     if filename is None:
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)
@@ -392,6 +410,9 @@ def plot_state_city(
             ax_real only the imaginary component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -405,6 +426,7 @@ def plot_state_city(
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can choose different colors for the real and imaginary parts of the density matrix.
@@ -421,6 +443,7 @@ def plot_state_city(
            plot_state_city(state, color=['midnightblue', 'crimson'], title="New State City")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can make the bars more transparent to better see the ones that are behind
@@ -513,7 +536,7 @@ def plot_state_city(
     max_font_size = int(3 * max_plot_size)
     max_zoom = 10 / (10 + np.sqrt(max_plot_size))
 
-    for (ax, dz, col, zlabel) in (
+    for ax, dz, col, zlabel in (
         (ax1, dzr, real_color, "Real"),
         (ax2, dzi, imag_color, "Imaginary"),
     ):
@@ -574,11 +597,10 @@ def plot_state_city(
         ax.set_yticks(np.arange(0.5, ly + 0.5, 1))
         if max_dz != min_dz:
             ax.axes.set_zlim3d(min_dz, max(max_dzr + 1e-9, max_dzi))
+        elif min_dz == 0:
+            ax.axes.set_zlim3d(min_dz, max(max_dzr + 1e-9, max_dzi))
         else:
-            if min_dz == 0:
-                ax.axes.set_zlim3d(min_dz, max(max_dzr + 1e-9, max_dzi))
-            else:
-                ax.axes.set_zlim3d(auto=True)
+            ax.axes.set_zlim3d(auto=True)
         ax.get_autoscalez_on()
 
         ax.xaxis.set_ticklabels(
@@ -630,6 +652,9 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
 
     Returns:
          :class:`matplotlib:matplotlib.figure.Figure` :
@@ -642,6 +667,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can set a color for all the bars.
@@ -658,6 +684,7 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
            plot_state_paulivec(state, color='midnightblue', title="New PauliVec plot")
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # If you introduce a list with less colors than bars, the color of the bars will
@@ -716,6 +743,10 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
     if return_fig:
         matplotlib_close_if_inline(fig)
     if filename is None:
+        try:
+            fig.tight_layout()
+        except AttributeError:
+            pass
         return fig
     else:
         return fig.savefig(filename)
@@ -768,7 +799,7 @@ def bit_string_index(s):
 
 
 def phase_to_rgb(complex_number):
-    """Map a phase of a complexnumber to a color in (r,g,b).
+    """Map a phase of a complex number to a color in (r,g,b).
 
     complex_number is phase is first mapped to angle in the range
     [0, 2pi] and then to the HSL color wheel
@@ -808,6 +839,10 @@ def plot_state_qsphere(
             show the phase for each basis state.
         use_degrees (bool): An optional boolean indicating whether to use
             radians or degrees for the phase values in the plot.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
+
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -815,12 +850,13 @@ def plot_state_qsphere(
 
     Raises:
         MissingOptionalLibraryError: Requires matplotlib.
-        VisualizationError: if input is not a valid N-qubit state.
+        VisualizationError: Input is not a valid N-qubit state.
 
         QiskitError: Input statevector does not have valid dimensions.
 
     Examples:
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -835,6 +871,7 @@ def plot_state_qsphere(
            plot_state_qsphere(state)
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
            # You can show the phase of each state and use
@@ -925,7 +962,9 @@ def plot_state_qsphere(
         if eigvals[idx] > 0.001:
             # get the max eigenvalue
             state = eigvecs[:, idx]
-            loc = np.absolute(state).argmax()
+            # Rounding to 13 decimals ignores machine epsilon noise (~1e-16)
+            # from the solver, ensuring 'argmax' finds the true analytical winner.
+            loc = np.round(np.absolute(state), decimals=13).argmax()
             # remove the global phase from max element
             angles = (np.angle(state[loc]) + 2 * np.pi) % (2 * np.pi)
             angleset = np.exp(-1j * angles)
@@ -970,10 +1009,10 @@ def plot_state_qsphere(
                     if show_state_phases:
                         element_angle = (np.angle(state[i]) + (np.pi * 4)) % (np.pi * 2)
                         if use_degrees:
-                            element_text += "\n$%.1f^\\circ$" % (element_angle * 180 / np.pi)
+                            element_text += f"\n${element_angle * 180 / np.pi:.1f}^\\circ$"
                         else:
                             element_angle = pi_check(element_angle, ndigits=3).replace("pi", "\\pi")
-                            element_text += "\n$%s$" % (element_angle)
+                            element_text += f"\n${element_angle}$"
                     ax.text(
                         xvalue_text,
                         yvalue_text,
@@ -1238,7 +1277,7 @@ def _shade_colors(color, normals, lightsource=None):
 
 
 def state_to_latex(
-    state: Union[Statevector, DensityMatrix], dims: bool = None, convention: str = "ket", **args
+    state: Statevector | DensityMatrix, dims: bool | None = None, convention: str = "ket", **args
 ) -> str:
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.
@@ -1254,6 +1293,9 @@ def state_to_latex(
 
     Returns:
         Latex representation of the state
+        MissingOptionalLibrary: If SymPy isn't installed and ``'latex'`` or
+            ``'latex_source'`` is selected for ``output``.
+
     """
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
@@ -1269,8 +1311,8 @@ def state_to_latex(
         suffix = f"\\\\\n\\text{{dims={dims_str}}}\n\\end{{align}}"
 
     operator_shape = state._op_shape
-    # we only use the ket convetion for qubit statevectors
-    # this means the operator shape should hve no input dimensions and all output dimensions equal to 2
+    # we only use the ket convention for qubit statevectors
+    # this means the operator shape should have no input dimensions and all output dimensions equal to 2
     is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
     if convention == "ket" and is_qubit_statevector:
         latex_str = _state_to_latex_ket(state._data, **args)
@@ -1279,7 +1321,7 @@ def state_to_latex(
     return prefix + latex_str + suffix
 
 
-def _numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
+def _numbers_to_latex_terms(numbers: list[complex], decimals: int = 10) -> list[str]:
     """Convert a list of numbers to latex formatted terms
 
     The first non-zero term is treated differently. For this term a leading + is suppressed.
@@ -1300,7 +1342,7 @@ def _numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[
 
 
 def _state_to_latex_ket(
-    data: List[complex], max_size: int = 12, prefix: str = "", decimals: int = 10
+    data: list[complex], max_size: int = 12, prefix: str = "", decimals: int = 10
 ) -> str:
     """Convert state vector to latex representation
 
@@ -1314,7 +1356,7 @@ def _state_to_latex_ket(
     Returns:
         String with LaTeX representation of the state vector
     """
-    num = int(np.log2(len(data)))
+    num = int(math.log2(len(data)))
 
     def ket_name(i):
         return bin(i)[2:].zfill(num)
@@ -1412,6 +1454,7 @@ def state_drawer(state, output=None, **drawer_args):
     **paulivec**: Matplotlib figure, rendering of statevector using `plot_state_paulivec()`.
 
     Args:
+        state: State to be drawn
         output (str): Select the output method to use for drawing the
             circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
             ``qsphere``, ``hinton``, ``bloch``, ``city`` or ``paulivec``.
@@ -1426,6 +1469,9 @@ def state_drawer(state, output=None, **drawer_args):
 
     Raises:
         MissingOptionalLibraryError: when `output` is `latex` and IPython is not installed.
+            or if SymPy isn't installed and ``'latex'`` or ``'latex_source'`` is selected for
+            ``output``.
+
         ValueError: when `output` is not a valid selection.
     """
     config = user_config.get_config()
@@ -1462,11 +1508,10 @@ def state_drawer(state, output=None, **drawer_args):
         return draw_func(state, **drawer_args)
     except KeyError as err:
         raise ValueError(
-            """'{}' is not a valid option for drawing {} objects. Please choose from:
+            f"""'{output}' is not a valid option for drawing {type(state).__name__}
+             objects. Please choose from:
             'text', 'latex', 'latex_source', 'qsphere', 'hinton',
-            'bloch', 'city' or 'paulivec'.""".format(
-                output, type(state).__name__
-            )
+            'bloch', 'city' or 'paulivec'."""
         ) from err
 
 

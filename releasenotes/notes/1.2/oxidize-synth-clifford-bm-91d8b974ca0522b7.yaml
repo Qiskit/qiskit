@@ -1,0 +1,7 @@
+---
+features_synthesis:
+  - |
+    The function :func:`.synth_clifford_bm` was ported to Rust. Recall that this function
+    optimally synthesizes :class:`.Clifford` operators on 1, 2 or 3 qubits with respect to the
+    number of CX-gates. This leads to a significant increase in performance. For Cliffords
+    over 3 qubits, the speedup in on the order of 80 times.

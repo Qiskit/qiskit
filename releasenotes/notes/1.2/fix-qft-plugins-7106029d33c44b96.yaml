@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The ``HighLevelSynthesis`` transpiler pass no longer raises an exception when
+    encountering a custom gate that is called "qft" but is not an instance of
+    :class:`~qiskit.circuit.library.QFTGate`. Instead, the synthesis plugins for
+    QFT gates ignore such a gate, and the gate's definition is used (if provided).
+
+

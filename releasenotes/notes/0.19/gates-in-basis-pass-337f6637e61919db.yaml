@@ -13,7 +13,7 @@ features:
       from qiskit.circuit import QuantumCircuit
       from qiskit.transpiler.passes import GatesInBasis
 
-      # Instatiate Pass
+      # Instantiate Pass
       basis_gates = ["cx", "h"]
       basis_check_pass = GatesInBasis(basis_gates)
       # Build circuit

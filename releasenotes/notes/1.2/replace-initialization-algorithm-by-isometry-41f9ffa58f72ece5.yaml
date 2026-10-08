@@ -1,0 +1,7 @@
+---
+features_circuits:
+  - |
+    Replacing the internal synthesis algorithm of :class:`~.library.StatePreparation`
+    and :class:`~.library.Initialize` of Shende et al. by the algorithm given in
+    :class:`~.library.Isometry` of Iten et al.
+    The new algorithm reduces the number of CX gates and the circuit depth by a factor of 2.

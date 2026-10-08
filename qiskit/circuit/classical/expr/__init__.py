@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -39,16 +39,25 @@ The expression system is based on tree representation.  All nodes in the tree ar
 
 These objects are mutable and should not be reused in a different location without a copy.
 
-The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed runtime
-variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
+All :class:`Expr` instances define a boolean :attr:`~Expr.const` attribute, which indicates
+whether the expression can be evaluated at compile time. Most expression classes infer this
+during construction based on the const-ness of their operands.
+
+The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed
+real-time variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
 
 .. autoclass:: Var
-    :members: var, name
+    :members: var, name, new
 
-Similarly, literals used in comparison (such as integers) should be lifted to :class:`Value` nodes
-with associated types.
+Similarly, literals used in expressions (such as integers) should be lifted to :class:`Value` nodes
+with associated types. A :class:`Value` is always considered a constant expression.
 
 .. autoclass:: Value
+
+Stretch variables for use in duration expressions are represented by the :class:`Stretch` node.
+
+.. autoclass:: Stretch
+    :members: var, name, new
 
 The operations traditionally associated with pre-, post- or infix operators in programming are
 represented by the :class:`Unary` and :class:`Binary` nodes as appropriate.  These each take an
@@ -61,6 +70,12 @@ and :class:`Binary.Op` respectively.
 .. autoclass:: Binary
     :members: Op
     :member-order: bysource
+
+Bit-like types (unsigned integers) can be indexed by integer types, represented by :class:`Index`.
+The result is a single bit.  The resulting expression has an associated memory location (and so can
+be used as an lvalue for :class:`.Store`, etc) if the target is also an lvalue.
+
+.. autoclass:: Index
 
 When constructing expressions, one must ensure that the types are valid for the operation.
 Attempts to construct expressions with invalid types will raise a regular Python ``TypeError``.
@@ -108,6 +123,7 @@ There are helper constructor functions for each of the unary operations.
 
 .. autofunction:: bit_not
 .. autofunction:: logic_not
+.. autofunction:: negate
 
 Similarly, the binary operations and relations have helper functions defined.
 
@@ -122,6 +138,17 @@ Similarly, the binary operations and relations have helper functions defined.
 .. autofunction:: less_equal
 .. autofunction:: greater
 .. autofunction:: greater_equal
+.. autofunction:: shift_left
+.. autofunction:: shift_right
+.. autofunction:: add
+.. autofunction:: sub
+.. autofunction:: mul
+.. autofunction:: div
+
+You can index into unsigned integers and bit-likes using another unsigned integer of any width.
+This includes in storing operations, if the target of the index is writeable.
+
+.. autofunction:: index
 
 Qiskit's legacy method for specifying equality conditions for use in conditionals is to use a
 two-tuple of a :class:`.Clbit` or :class:`.ClassicalRegister` and an integer.  This represents an
@@ -153,6 +180,11 @@ not the general structure, the iterator method :func:`iter_vars` is provided.
 
 .. autofunction:: iter_vars
 
+To iterator over all variables including stretch variables, the iterator method
+:func:`iter_identifiers` is provided.
+
+.. autofunction:: iter_identifiers
+
 Two expressions can be compared for direct structural equality by using the built-in Python ``==``
 operator.  In general, though, one might want to compare two expressions slightly more semantically,
 allowing that the :class:`Var` nodes inside them are bound to different memory-location descriptions
@@ -168,36 +200,47 @@ You can use :func:`is_lvalue` to determine whether an expression has an associat
 """
 
 __all__ = [
-    "Expr",
-    "Var",
-    "Value",
-    "Cast",
-    "Unary",
     "Binary",
+    "Cast",
+    "Expr",
     "ExprVisitor",
-    "iter_vars",
-    "structurally_equivalent",
-    "is_lvalue",
-    "lift",
-    "cast",
-    "bit_not",
-    "logic_not",
+    "Index",
+    "Stretch",
+    "Unary",
+    "Value",
+    "Var",
+    "add",
     "bit_and",
+    "bit_not",
     "bit_or",
     "bit_xor",
-    "logic_and",
-    "logic_or",
+    "cast",
+    "div",
     "equal",
-    "not_equal",
-    "less",
-    "less_equal",
     "greater",
     "greater_equal",
+    "index",
+    "is_lvalue",
+    "iter_identifiers",
+    "iter_vars",
+    "less",
+    "less_equal",
+    "lift",
     "lift_legacy_condition",
+    "logic_and",
+    "logic_not",
+    "logic_or",
+    "mul",
+    "negate",
+    "not_equal",
+    "shift_left",
+    "shift_right",
+    "structurally_equivalent",
+    "sub",
 ]
 
-from .expr import Expr, Var, Value, Cast, Unary, Binary
-from .visitors import ExprVisitor, iter_vars, structurally_equivalent, is_lvalue
+from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch
+from .visitors import ExprVisitor, iter_vars, iter_identifiers, structurally_equivalent, is_lvalue
 from .constructors import (
     lift,
     cast,
@@ -214,5 +257,13 @@ from .constructors import (
     less_equal,
     greater,
     greater_equal,
+    shift_left,
+    shift_right,
+    index,
+    add,
+    sub,
+    mul,
+    div,
     lift_legacy_condition,
+    negate,
 )

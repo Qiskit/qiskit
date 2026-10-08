@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,14 +15,15 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveResetInZeroState, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 
 class TestRemoveResetInZeroState(QiskitTestCase):
-    """Test swap-followed-by-measure optimizations."""
+    """Test remove-reset-in-zero-state optimizations."""
 
     def test_optimize_single_reset(self):
         """Remove a single reset
@@ -94,8 +95,10 @@ class TestRemoveResetInZeroStateFixedPoint(QiskitTestCase):
 
         pass_manager = PassManager()
         pass_manager.append(
-            [RemoveResetInZeroState(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"],
+            DoWhileController(
+                [RemoveResetInZeroState(), DAGFixedPoint()],
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
+            )
         )
         after = pass_manager.run(circuit)
 

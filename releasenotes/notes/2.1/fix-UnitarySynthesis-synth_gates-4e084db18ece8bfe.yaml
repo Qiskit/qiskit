@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.UnitarySynthesis` transpiler pass, where the pass ignored the
+    ``synth_gates`` parameter and only synthesized the ``unitary`` gates. The pass now correctly
+    synthesizes all gates specified in the ``synth_gates`` parameter.
+    Fixed `#14343 <https://github.com/Qiskit/qiskit/issues/14343>`__.

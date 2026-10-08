@@ -34,7 +34,7 @@ upgrade:
     until the simulation finishes executing. If you want to restore the
     previous async behavior you'll need to wrap the
     :meth:`~qiskit.providers.basicaer.QasmSimulatorPy.run` with something that
-    will run in a seperate thread or process like ``futures.ThreadPoolExecutor``
+    will run in a separate thread or process like ``futures.ThreadPoolExecutor``
     or ``futures.ProcessPoolExecutor``.
   - |
     The ``allow_sample_measuring`` option for the

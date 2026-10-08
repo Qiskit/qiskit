@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,20 +12,18 @@
 
 """UnitaryGate tests"""
 
-import json
 import numpy
 from numpy.testing import assert_allclose
 
-import qiskit
-from qiskit.circuit.library import UnitaryGate
-from qiskit.test import QiskitTestCase
+from qiskit.circuit.library import UnitaryGate, CXGate
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.quantum_info.operators import Operator
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import InverseCancellation
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase
 
 
 class TestUnitaryGate(QiskitTestCase):
@@ -35,7 +33,7 @@ class TestUnitaryGate(QiskitTestCase):
         """Test instantiation"""
         try:
             UnitaryGate([[0, 1], [1, 0]])
-        # pylint: disable=broad-except
+
         except Exception as err:
             self.fail(f"unexpected exception in init of Unitary: {err}")
 
@@ -43,7 +41,7 @@ class TestUnitaryGate(QiskitTestCase):
         """test non-unitary"""
         try:
             UnitaryGate([[1, 1], [1, 0]])
-        # pylint: disable=broad-except
+
         except Exception:
             pass
         else:
@@ -66,6 +64,11 @@ class TestUnitaryGate(QiskitTestCase):
         """test adjoint operation"""
         uni = UnitaryGate([[0, 1j], [-1j, 0]])
         self.assertTrue(numpy.array_equal(uni.adjoint().to_matrix(), uni.to_matrix()))
+
+    def test_repeat(self):
+        """test repeat operation"""
+        uni = UnitaryGate([[1, 0], [0, 1j]])
+        self.assertTrue(numpy.array_equal(Operator(uni.repeat(2)), Operator(uni) @ Operator(uni)))
 
 
 class TestUnitaryCircuit(QiskitTestCase):
@@ -103,7 +106,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         uni2q = UnitaryGate(matrix)
         qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
-        passman.append(CXCancellation())
+        passman.append(InverseCancellation([CXGate()]))
         qc2 = passman.run(qc)
         # test of qasm output
         self.log.info(dumps(qc2))
@@ -156,51 +159,6 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc_target.append(UnitaryGate(sigmax), [qr[1]])
         qc_target.append(UnitaryGate(sigmaz), [[0, 1]])
         self.assertEqual(qc, qc_target)
-
-    def test_qobj_with_unitary_matrix(self):
-        """test qobj output with unitary matrix"""
-        qr = QuantumRegister(4)
-        qc = QuantumCircuit(qr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
-        qc.rx(numpy.pi / 4, qr[0])
-        uni = UnitaryGate(matrix)
-        qc.append(uni, [qr[0], qr[1], qr[3]])
-        qc.cx(qr[3], qr[2])
-        qobj = qiskit.compiler.assemble(qc)
-        instr = qobj.experiments[0].instructions[1]
-        self.assertEqual(instr.name, "unitary")
-        assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
-        # check conversion to dict
-        qobj_dict = qobj.to_dict()
-
-        class NumpyEncoder(json.JSONEncoder):
-            """Class for encoding json str with complex and numpy arrays."""
-
-            def default(self, obj):
-                if isinstance(obj, numpy.ndarray):
-                    return obj.tolist()
-                if isinstance(obj, complex):
-                    return (obj.real, obj.imag)
-                return json.JSONEncoder.default(self, obj)
-
-        # check json serialization
-        self.assertTrue(isinstance(json.dumps(qobj_dict, cls=NumpyEncoder), str))
-
-    def test_labeled_unitary(self):
-        """test qobj output with unitary matrix"""
-        qr = QuantumRegister(4)
-        qc = QuantumCircuit(qr)
-        sigmax = numpy.array([[0, 1], [1, 0]])
-        sigmay = numpy.array([[0, -1j], [1j, 0]])
-        matrix = numpy.kron(sigmax, sigmay)
-        uni = UnitaryGate(matrix, label="xy")
-        qc.append(uni, [qr[0], qr[1]])
-        qobj = qiskit.compiler.assemble(qc)
-        instr = qobj.experiments[0].instructions[0]
-        self.assertEqual(instr.name, "unitary")
-        self.assertEqual(instr.label, "xy")
 
     def test_qasm_unitary_only_one_def(self):
         """test that a custom unitary can be converted to qasm and the
@@ -307,6 +265,6 @@ class TestUnitaryCircuit(QiskitTestCase):
     def test_unitary_control(self):
         """Test parameters of controlled - unitary."""
         mat = numpy.array([[0, 1], [1, 0]])
-        gate = UnitaryGate(mat).control()
+        gate = UnitaryGate(mat).control(annotated=False)
         self.assertTrue(numpy.allclose(gate.params, mat))
         self.assertTrue(numpy.allclose(gate.base_gate.params, mat))

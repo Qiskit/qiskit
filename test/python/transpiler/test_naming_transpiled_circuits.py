@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,20 +13,21 @@
 """Testing naming functionality of transpiled circuits"""
 
 import unittest
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit import BasicAer
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 
 class TestNamingTranspiledCircuits(QiskitTestCase):
-    """Testing the naming fuctionality for transpiled circuits."""
+    """Testing the naming functionality for transpiled circuits."""
 
     def setUp(self):
         super().setUp()
         self.basis_gates = ["u1", "u2", "u3", "cx"]
-        self.backend = BasicAer.get_backend("qasm_simulator")
+        self.backend = BasicSimulator()
 
         self.circuit0 = QuantumCircuit(name="circuit0")
         self.circuit1 = QuantumCircuit(name="circuit1")

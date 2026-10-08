@@ -1,0 +1,10 @@
+---
+features_c:
+  - |
+    The :c:func:`qk_transpiler_pass_standalone_unitary_synthesis` and
+    :c:func:`qk_transpile` now support synthesizing 3+ qubit
+    :class:`.UnitaryGate` objects in a circuit. In Qiskit 2.2 this was not
+    supported as the underlying synthesis algorithm :func:`.qs_decomposition`
+    used for 3+ qubit unitary synthesis was previously written in Python, but
+    now that it has been ported to Rust this functionality is now available
+    from C.

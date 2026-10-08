@@ -1,0 +1,7 @@
+---
+features_circuits:
+  - |
+    :class:`.QuantumCircuit` has two new methods, :meth:`~.QuantumCircuit.get_parameter` and
+    :meth:`~.QuantumCircuit.has_parameter`, which respectively retrieve a :class:`.Parameter`
+    instance used in the circuit by name, and return a boolean of whether a parameter with a
+    matching name (or the exact instance given) are used in the circuit.

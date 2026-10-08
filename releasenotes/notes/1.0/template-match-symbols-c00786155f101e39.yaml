@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The :class:`.TemplateOptimization` pass will now return parametric expressions using the native
+    symbolic expression format of :class:`.ParameterExpression`, rather than always using Sympy.
+    For most supported platforms, this means that the expressions will be Symengine objects.
+    Previously, the pass could return mismatched objects, which could lead to later failures in
+    parameter-handling code.

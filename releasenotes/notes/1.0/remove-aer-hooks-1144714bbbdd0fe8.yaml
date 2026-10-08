@@ -1,0 +1,13 @@
+---
+upgrade_misc:
+  - |
+    The object ``qiskit.Aer`` has been removed following its deprecation in Qiskit 0.46.  You can
+    instead use :attr:`qiskit_aer.Aer`, which is a drop-in replacement.
+  - |
+    Importing from ``qiskit.providers.aer`` will no longer work, following its deprecation in Qiskit
+    0.46.  You should instead import from ``qiskit_aer``, which is a drop-in replacement.
+  - |
+    Pulse jobs are no longer supported in fake backends, following the deprecation and removal
+    of the underlying simulation functionality in Aer.  For pulse-level simulation, outside
+    the context of circuit objects, consider using a special-purpose library such as
+    `Qiskit Dynamics <https://qiskit.org/ecosystem/dynamics/>`__.

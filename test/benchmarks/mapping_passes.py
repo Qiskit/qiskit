@@ -4,20 +4,33 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member,invalid-name,missing-docstring,no-name-in-module
-# pylint: disable=attribute-defined-outside-init,unsubscriptable-object
-# pylint: disable=unused-wildcard-import,wildcard-import,undefined-variable
+
+from copy import deepcopy
 
 from qiskit.transpiler import CouplingMap
-from qiskit.transpiler.passes import *
+from qiskit.transpiler.passes import (
+    FullAncillaAllocation,
+    EnlargeWithAncilla,
+    ApplyLayout,
+    SabreSwap,
+    BasicSwap,
+    Layout2qDistance,
+    DenseLayout,
+    CheckMap,
+    TrivialLayout,
+    SetLayout,
+    SabreLayout,
+    GateDirection,
+    CheckGateDirection,
+    CSPLayout,
+)
 from qiskit.converters import circuit_to_dag
-from qiskit.providers.fake_provider import FakeSingapore
 
 from .utils import random_circuit
 
@@ -35,7 +48,7 @@ class PassBenchmarks:
             n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed, max_operands=2
         )
         self.fresh_dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ["u1", "u2", "u3", "cx", "iid"]
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
         self.cmap = [
             [0, 1],
             [1, 0],
@@ -97,13 +110,7 @@ class PassBenchmarks:
         self.enlarge_dag = enlarge_pass.run(self.full_ancilla_dag)
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
-        self.dag = apply_pass.run(self.enlarge_dag)
-        self.backend_props = FakeSingapore().properties()
-
-    def time_stochastic_swap(self, _, __):
-        swap = StochasticSwap(self.coupling_map, seed=42)
-        swap.property_set["layout"] = self.layout
-        swap.run(self.dag)
+        self.dag = apply_pass.run(deepcopy(self.enlarge_dag))
 
     def time_sabre_swap(self, _, __):
         swap = SabreSwap(self.coupling_map, seed=42)
@@ -124,12 +131,12 @@ class PassBenchmarks:
     def time_layout_2q_distance(self, _, __):
         layout = Layout2qDistance(self.coupling_map)
         layout.property_set["layout"] = self.layout
-        layout.run(self.dag)
+        layout.run(self.enlarge_dag)
 
     def time_apply_layout(self, _, __):
         layout = ApplyLayout()
         layout.property_set["layout"] = self.layout
-        layout.run(self.dag)
+        layout.run(self.enlarge_dag)
 
     def time_full_ancilla_allocation(self, _, __):
         ancilla = FullAncillaAllocation(self.coupling_map)
@@ -150,9 +157,6 @@ class PassBenchmarks:
     def time_set_layout(self, _, __):
         SetLayout(self.layout).run(self.fresh_dag)
 
-    def time_noise_adaptive_layout(self, _, __):
-        NoiseAdaptiveLayout(self.backend_props).run(self.fresh_dag)
-
     def time_sabre_layout(self, _, __):
         SabreLayout(self.coupling_map, seed=42).run(self.fresh_dag)
 
@@ -169,7 +173,7 @@ class RoutedPassBenchmarks:
             n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed, max_operands=2
         )
         self.fresh_dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ["u1", "u2", "u3", "cx", "iid"]
+        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
         self.cmap = [
             [0, 1],
             [1, 0],
@@ -232,14 +236,7 @@ class RoutedPassBenchmarks:
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
         self.dag = apply_pass.run(self.enlarge_dag)
-        self.backend_props = FakeSingapore().properties()
-        self.routed_dag = StochasticSwap(self.coupling_map, seed=42).run(self.dag)
-
-    def time_cxdirection(self, _, __):
-        CXDirection(self.coupling_map).run(self.routed_dag)
-
-    def time_check_cx_direction(self, _, __):
-        CheckCXDirection(self.coupling_map).run(self.routed_dag)
+        self.routed_dag = SabreSwap(self.coupling_map, seed=42).run(self.dag)
 
     def time_gate_direction(self, _, __):
         GateDirection(self.coupling_map).run(self.routed_dag)

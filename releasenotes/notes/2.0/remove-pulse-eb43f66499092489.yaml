@@ -1,0 +1,28 @@
+---
+upgrade:
+  - |
+    Qiskit Pulse has been completely removed in this release, following its deprecation in Qiskit 1.3.
+    This include all pulse module files, pulse visualization functionality, support for ``ScheduleBlock``
+    and pulse-gate serialization/deserialization capability in QPY, calibrations management in
+    :class:`.QuantumCircuit`, :class:`.Target` and :class:`.DAGCircuit` and pulse-based fake backends.
+    For more details about the removed components related to pulse, see the corresponding sections below.
+
+    Note that Pulse migration to Qiskit Dynamics, as was the initial plan following the deprecation of Pulse,
+    has been put on hold due to Qiskit Dynamics development priorities. Users wanting to use Qiskit Pulse
+    as a frontend to supporting backends or in other uses-cases can still use it via Qiskit versions prior
+    to 2.0, which include Pulse functionality.
+
+upgrade_providers:
+  - |
+    As part of Pulse removal in Qiskit 2.0, the following methods have been removed:
+
+      * ``qiskit.providers.BackendV2.instruction_schedule_map``
+      * ``qiskit.providers.BackendV2.drive_channel``
+      * ``qiskit.providers.BackendV2.measure_channel``
+      * ``qiskit.providers.BackendV2.acquire_channel``
+      * ``qiskit.providers.BackendV2.control_channel``
+upgrade_visualization:
+  - |
+    As part of the Pulse removal in Qiskit 2.0, support for pulse drawing via
+    ``qiskit.visualization.pulse_drawer`` has been removed.
+

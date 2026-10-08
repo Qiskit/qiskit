@@ -1,0 +1,7 @@
+---
+upgrade_quantum_info:
+  - |
+    Using a :class:`~.PauliList` as an observable
+    when calling
+    :meth:`.Estimator.run` is not further supported. Users should instead explicitly convert the argument
+    using ``SparsePauliOp(pauli_list)`` first (see :class:`~.SparsePauliOp`).

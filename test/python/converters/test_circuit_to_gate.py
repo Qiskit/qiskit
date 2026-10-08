@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,9 +18,10 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Gate, Qubit
+from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from test import QiskitTestCase
 
 
 class TestCircuitToGate(QiskitTestCase):
@@ -122,3 +123,16 @@ class TestCircuitToGate(QiskitTestCase):
         compound = QuantumCircuit(1)
         compound.append(gate, [], [])
         np.testing.assert_allclose(-np.eye(2), Operator(compound), atol=1e-16)
+
+    def test_realtime_vars_rejected(self):
+        """Gates can't have realtime variables."""
+        qc = QuantumCircuit(1, inputs=[expr.Var.new("a", types.Bool())])
+        with self.assertRaisesRegex(QiskitError, "circuits with realtime classical variables"):
+            qc.to_gate()
+        qc = QuantumCircuit(1, captures=[expr.Var.new("a", types.Bool())])
+        with self.assertRaisesRegex(QiskitError, "circuits with realtime classical variables"):
+            qc.to_gate()
+        qc = QuantumCircuit(1)
+        qc.add_var("a", False)
+        with self.assertRaisesRegex(QiskitError, "circuits with realtime classical variables"):
+            qc.to_gate()

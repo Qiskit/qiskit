@@ -4,17 +4,18 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """Python-space bytecode interpreter for the output of the main Rust parser logic."""
-
 import dataclasses
-import math
-from typing import Iterable, Callable
+from collections.abc import Iterable, Callable
+from typing_extensions import Unpack
+
+import numpy as np
 
 from qiskit.circuit import (
     Barrier,
@@ -30,19 +31,10 @@ from qiskit.circuit import (
     Reset,
     library as lib,
 )
-
-# This is the same C-extension problems as described in the `__init__.py` disable near the
-# `_qasm2` import.
-from qiskit._qasm2 import (  # pylint: disable=no-name-in-module
+from qiskit.quantum_info import Operator
+from qiskit._accelerate.qasm2 import (
     OpCode,
-    UnaryOpCode,
-    BinaryOpCode,
     CustomClassical,
-    ExprConstant,
-    ExprArgument,
-    ExprUnary,
-    ExprBinary,
-    ExprCustom,
 )
 from .exceptions import QASM2ParseError
 
@@ -89,14 +81,41 @@ class CustomInstruction:
     There is a final ``builtin`` field.  This is optional, and if set true will cause the
     instruction to be defined and available within the parsing, even if there is no definition in
     any included OpenQASM 2 file.
+
+    Examples:
+
+        Instruct the importer to use Qiskit's :class:`.ECRGate` and :class:`.RZXGate` objects to
+        interpret ``gate`` statements that are known to have been created from those same objects
+        during OpenQASM 2 export::
+
+            from qiskit import qasm2
+            from qiskit.circuit import QuantumCircuit, library
+
+            qc = QuantumCircuit(2)
+            qc.ecr(0, 1)
+            qc.rzx(0.3, 0, 1)
+            qc.rzx(0.7, 1, 0)
+            qc.rzx(1.5, 0, 1)
+            qc.ecr(1, 0)
+
+            # This output string includes `gate ecr q0, q1 { ... }` and `gate rzx(p) q0, q1 { ... }`
+            # statements, since `ecr` and `rzx` are neither built-in gates nor in ``qelib1.inc``.
+            dumped = qasm2.dumps(qc)
+
+            # Tell the importer how to interpret the `gate` statements, which we know are safe
+            # because we controlled the input OpenQASM 2 source.
+            custom = [
+                qasm2.CustomInstruction("ecr", 0, 2, library.ECRGate),
+                qasm2.CustomInstruction("rzx", 1, 2, library.RZXGate),
+            ]
+
+            loaded = qasm2.loads(dumped, custom_instructions=custom)
     """
 
     name: str
     num_params: int
     num_qubits: int
-    # This should be `(float*) -> Instruction`, but the older version of Sphinx we're constrained to
-    # use in the Python 3.9 docs build chokes on it, so relax the hint.
-    constructor: Callable[..., Instruction]
+    constructor: Callable[[Unpack[tuple[float, ...]]], Instruction]
     builtin: bool = False
 
 
@@ -168,11 +187,7 @@ LEGACY_CUSTOM_INSTRUCTIONS = (
     CustomInstruction("delay", 1, 1, _generate_delay),
 )
 
-LEGACY_CUSTOM_CLASSICAL = (
-    CustomClassical("asin", 1, math.asin),
-    CustomClassical("acos", 1, math.acos),
-    CustomClassical("atan", 1, math.atan),
-)
+LEGACY_CUSTOM_CLASSICAL = tuple(CustomClassical.builtins())
 
 
 def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
@@ -192,7 +207,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
     should consider that a bug in the Rust code."""
     # The method `QuantumCircuit._append` is a semi-public method, so isn't really subject to
     # "protected access".
-    # pylint: disable=protected-access
+
     qc = QuantumCircuit()
     qubits = []
     clbits = []
@@ -227,21 +242,24 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
             )
         elif opcode == OpCode.ConditionedGate:
             gate_id, parameters, op_qubits, creg, value = op.operands
-            gate = gates[gate_id](*parameters).c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(gate, [qubits[q] for q in op_qubits]))
+            with qc.if_test((qc.cregs[creg], value)):
+                gate = gates[gate_id](*parameters)
+                qc.append(gate, [qubits[q] for q in op_qubits])
         elif opcode == OpCode.Measure:
             qubit, clbit = op.operands
             qc._append(CircuitInstruction(Measure(), (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.ConditionedMeasure:
             qubit, clbit, creg, value = op.operands
-            measure = Measure().c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(measure, (qubits[qubit],), (clbits[clbit],)))
+            with qc.if_test((qc.cregs[creg], value)):
+                measure = Measure()
+                qc.append(measure, (qubits[qubit],), (clbits[clbit],))
         elif opcode == OpCode.Reset:
             qc._append(CircuitInstruction(Reset(), (qubits[op.operands[0]],)))
         elif opcode == OpCode.ConditionedReset:
             qubit, creg, value = op.operands
-            reset = Reset().c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(reset, (qubits[qubit],)))
+            with qc.if_test((qc.cregs[creg], value)):
+                reset = Reset()
+                qc.append(reset, (qubits[qubit],))
         elif opcode == OpCode.Barrier:
             op_qubits = op.operands[0]
             qc._append(CircuitInstruction(Barrier(len(op_qubits)), [qubits[q] for q in op_qubits]))
@@ -287,7 +305,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
 
 class _DefinedGate(Gate):
     """A gate object defined by a `gate` statement in an OpenQASM 2 program.  This object lazily
-    binds its parameters to its definition, so it is only synthesised when required."""
+    binds its parameters to its definition, so it is only synthesized when required."""
 
     def __init__(self, name, num_qubits, params, gates, bytecode):
         self._gates = gates
@@ -297,7 +315,7 @@ class _DefinedGate(Gate):
     def _define(self):
         # This is a stripped-down version of the bytecode interpreter; there's very few opcodes that
         # we actually need to handle within gate bodies.
-        # pylint: disable=protected-access
+
         qubits = [Qubit() for _ in [None] * self.num_qubits]
         qc = QuantumCircuit(qubits)
         for op in self._bytecode:
@@ -305,7 +323,7 @@ class _DefinedGate(Gate):
                 gate_id, args, op_qubits = op.operands
                 qc._append(
                     CircuitInstruction(
-                        self._gates[gate_id](*(_evaluate_argument(a, self.params) for a in args)),
+                        self._gates[gate_id](*args.evaluate(self.params)),
                         [qubits[q] for q in op_qubits],
                     )
                 )
@@ -318,19 +336,23 @@ class _DefinedGate(Gate):
                 raise ValueError(f"received invalid bytecode to build gate: {op}")
         self._definition = qc
 
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        return np.asarray(Operator(self.definition), dtype=dtype)
+
     # It's fiddly to implement pickling for PyO3 types (the bytecode stream), so instead if we need
     # to pickle ourselves, we just eagerly create the definition and pickle that.
 
     def __getstate__(self):
-        return (self.name, self.num_qubits, self.params, self.definition, self.condition)
+        return (self.name, self.num_qubits, self.params, self.definition)
 
     def __setstate__(self, state):
-        name, num_qubits, params, definition, condition = state
+        name, num_qubits, params, definition = state
         super().__init__(name, num_qubits, params)
         self._gates = ()
         self._bytecode = ()
         self._definition = definition
-        self._condition = condition
 
 
 def _gate_builder(name, num_qubits, known_gates, bytecode):
@@ -354,50 +376,3 @@ def _opaque_builder(name, num_qubits):
         return Gate(name, num_qubits, params)
 
     return definer
-
-
-# The natural way to reduce returns in this function would be to use a lookup table for the opcodes,
-# but the PyO3 enum entities aren't (currently) hashable.
-def _evaluate_argument(expr, parameters):  # pylint: disable=too-many-return-statements
-    """Inner recursive function to calculate the value of a mathematical expression given the
-    concrete values in the `parameters` field."""
-    if isinstance(expr, ExprConstant):
-        return expr.value
-    if isinstance(expr, ExprArgument):
-        return parameters[expr.index]
-    if isinstance(expr, ExprUnary):
-        inner = _evaluate_argument(expr.argument, parameters)
-        opcode = expr.opcode
-        if opcode == UnaryOpCode.Negate:
-            return -inner
-        if opcode == UnaryOpCode.Cos:
-            return math.cos(inner)
-        if opcode == UnaryOpCode.Exp:
-            return math.exp(inner)
-        if opcode == UnaryOpCode.Ln:
-            return math.log(inner)
-        if opcode == UnaryOpCode.Sin:
-            return math.sin(inner)
-        if opcode == UnaryOpCode.Sqrt:
-            return math.sqrt(inner)
-        if opcode == UnaryOpCode.Tan:
-            return math.tan(inner)
-        raise ValueError(f"unhandled unary opcode: {opcode}")
-    if isinstance(expr, ExprBinary):
-        left = _evaluate_argument(expr.left, parameters)
-        right = _evaluate_argument(expr.right, parameters)
-        opcode = expr.opcode
-        if opcode == BinaryOpCode.Add:
-            return left + right
-        if opcode == BinaryOpCode.Subtract:
-            return left - right
-        if opcode == BinaryOpCode.Multiply:
-            return left * right
-        if opcode == BinaryOpCode.Divide:
-            return left / right
-        if opcode == BinaryOpCode.Power:
-            return left**right
-        raise ValueError(f"unhandled binary opcode: {opcode}")
-    if isinstance(expr, ExprCustom):
-        return expr.callable(*(_evaluate_argument(x, parameters) for x in expr.arguments))
-    raise ValueError(f"unhandled expression type: {expr}")

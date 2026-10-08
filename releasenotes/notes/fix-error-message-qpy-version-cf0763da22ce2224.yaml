@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with :func:`.qpy.load` when attempting to load a QPY format
-    version that is not supported by this version of Qiskit it will now display
-    a descriptive error message. Previously, it would raise an internal error
-    because of the incompatibility between the formats which was difficult to
-    debug. If the QPY format verison is not supported that indicates the Qiskit
-    version will need to be upgraded to read the QPY payload.

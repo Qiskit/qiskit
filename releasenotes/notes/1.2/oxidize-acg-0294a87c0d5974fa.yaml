@@ -1,0 +1,5 @@
+---
+features_synthesis:
+  - |
+    Port :func:`.synth_permutation_acg`, used to synthesize qubit permutations, to Rust.
+    This produces an approximate 3x performance improvement on 1000 qubit circuits.

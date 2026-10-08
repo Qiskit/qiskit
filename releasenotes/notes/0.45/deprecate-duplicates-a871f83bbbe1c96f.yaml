@@ -13,5 +13,5 @@ deprecations:
     * :meth:`.QuantumCircuit.i` in favor of :meth:`.QuantumCircuit.id`
 
     Note that :meth:`.QuantumCircuit.i` is the only exception to the rule above, but since
-    :meth:`.QuantumCircuit.id` more intuively represents the identity and is used more, we chose
+    :meth:`.QuantumCircuit.id` more intuitively represents the identity and is used more, we chose
     it over its counterpart.

@@ -1,10 +1,10 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -23,9 +23,10 @@ from qiskit.circuit.library import CXGate, UGate, ECRGate, RZGate
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, TranspilerError
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeTokyo
 from qiskit.transpiler.passes.layout.dense_layout import _build_error_matrix
+from test import QiskitTestCase
+
+from ..legacy_cmaps import TOKYO_CMAP
 
 
 class TestDenseLayout(QiskitTestCase):
@@ -33,7 +34,7 @@ class TestDenseLayout(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.cmap20 = FakeTokyo().configuration().coupling_map
+        self.cmap20 = TOKYO_CMAP
         self.target_19 = Target()
         rng = np.random.default_rng(12345)
         instruction_props = {
@@ -53,7 +54,7 @@ class TestDenseLayout(QiskitTestCase):
 
         # The map is a big long sparse line, except the middle 5 physical qubits are all completely
         # connected, so `DenseLayout` should always choose those.
-        left_edge_qubits = range(0, 7)
+        left_edge_qubits = range(7)
         middle_qubits = range(7, 12)
         right_edge_qubits = range(12, 20)
         cm = CouplingMap(
@@ -130,7 +131,7 @@ class TestDenseLayout(QiskitTestCase):
         circuit.cx(qr[3], qr[1])
         circuit.cx(qr[0], qr[2])
         dag = circuit_to_dag(circuit)
-        instruction_props = {edge: None for edge in CouplingMap.from_heavy_hex(3).get_edges()}
+        instruction_props = dict.fromkeys(CouplingMap.from_heavy_hex(3).get_edges())
         noiseless_target = Target()
         noiseless_target.add_instruction(CXGate(), instruction_props)
         pass_ = DenseLayout(target=noiseless_target)
@@ -158,9 +159,7 @@ class TestDenseLayout(QiskitTestCase):
     def test_target_too_small_for_circuit(self):
         """Test error is raised when target is too small for circuit."""
         target = Target()
-        target.add_instruction(
-            CXGate(), {edge: None for edge in CouplingMap.from_line(3).get_edges()}
-        )
+        target.add_instruction(CXGate(), dict.fromkeys(CouplingMap.from_line(3).get_edges()))
         dag = circuit_to_dag(QuantumCircuit(5))
         layout_pass = DenseLayout(target=target)
         with self.assertRaises(TranspilerError):

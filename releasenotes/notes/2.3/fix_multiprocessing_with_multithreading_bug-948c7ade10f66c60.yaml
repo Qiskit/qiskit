@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed a potential deadlock issue when running layout passes such as :class:`.SabreLayout`
+    with a disjoint connectivity in the :class:`.Target` and in a multiprocessing
+    context from running :meth:`.PassManager.run` or :func:`.transpile` with more
+    than one circuit. On Linux this is the default behavior when running :meth:`.PassManager.run`
+    or :func:`.transpile` with more than one circuit, on all other platforms
+    multiprocessing context has to be opted into. This was due to an underlying issue
+    in CPython tracked in `python/cpython#84559 <https://github.com/python/cpython/issues/84559>`__
+    when mixing multiprocessing and multithreading, typically Qiskit guards against mixing
+    the two methods of parallelism but in the case of handling disjoint connectivity graphs this
+    guard was missing around multithreaded rust code.

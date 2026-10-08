@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Previously one could define an invalid :class:`.PauliEvolutionGate`
+    from a list of operators, where the operators were not all defined on
+    the same number of qubits. This is now fixed, and we now raise an error
+    when the gate is defined::
+
+      from qiskit.quantum_info import Pauli, SparsePauliOp
+      from qiskit.circuit.library import PauliEvolutionGate
+
+      pauli = Pauli("XYZ")  # 3 qubits
+      op = SparsePauliOp(["XYIZ"], [1])  # 4 qubits
+      evo = PauliEvolutionGate([pauli, op], time=1)

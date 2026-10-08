@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,27 +12,29 @@
 
 from __future__ import annotations
 
-# pylint: disable=invalid-name,missing-function-docstring
-
-"""Sphinx documentation builder."""
-
 import datetime
 import doctest
+import importlib
+import inspect
+import os
+import re
+from pathlib import Path
+
+import qiskit
+
+# pylint: disable=invalid-name,missing-function-docstring,missing-module-docstring
+
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "1.0"
+version = ".".join(qiskit.__version__.split(".")[:2])
 # The full version, including alpha/beta/rc tags
-release = "1.0.0"
+release = qiskit.__version__
 
 language = "en"
-
-# This tells 'qiskit_sphinx_theme' that we're based at 'https://qiskit.org/<docs_url_prefix>'.
-# Should not include the subdirectory for the stable version.
-docs_url_prefix = "documentation"
 
 rst_prolog = f".. |version| replace:: {version}"
 
@@ -40,12 +42,20 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.mathjax",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
+    # This is used by qiskit/documentation to generate links to github.com.
+    "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
+    "sphinxcontrib.katex",
+    "breathe",
 ]
+
+breathe_projects = {"qiskit": "xml/"}
+breathe_default_project = "qiskit"
+breathe_domain_by_extension = {"h": "c"}
+breathe_show_include = False
 
 templates_path = ["_templates"]
 
@@ -75,9 +85,9 @@ modindex_common_prefix = ["qiskit."]
 # ----------------------------------------------------------------------------------
 
 intersphinx_mapping = {
-    "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
-    "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
-    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "rustworkx": ("https://www.rustworkx.org/", None),
+    "qiskit-ibm-runtime": ("https://quantum.cloud.ibm.com/docs/api/qiskit-ibm-runtime/", None),
+    "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -98,40 +108,44 @@ html_last_updated_fmt = "%Y/%m/%d"
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
 # which likely overrides the autodoc defaults.
 
+# These options impact when using `.. autoclass::` manually.
+# They do not impact the `.. autosummary::` templates.
+autodoc_default_options = {
+    "show-inheritance": True,
+}
+
 # Move type hints from signatures to the parameter descriptions (except in overload cases, where
 # that's not possible).
 autodoc_typehints = "description"
-# Only add type hints from signature to description body if the parameter has documentation.  The
-# return type is always added to the description (if in the signature).
-autodoc_typehints_description_target = "documented_params"
-
+# Tell Sphinx it does not need to attempt to parse `# type:` comments for type hints.  We don't use
+# them for documentation, and having this set causes Sphinx to use a custom static-analysis checker
+# to find type hints, which (as of Sphinx 9.1.0, at least) is not as reliable at finding type hints
+# inherited from parent classes.
+autodoc_use_type_comments = False
+# Pull class documentation from both the class docstring and the `__init__`.
 autoclass_content = "both"
+# Some type hints are too long to be understandable. So, we set up aliases to be used instead.
+autodoc_type_aliases = {
+    "EstimatorPubLike": "EstimatorPubLike",
+    "SamplerPubLike": "SamplerPubLike",
+}
 
 autosummary_generate = True
 autosummary_generate_overwrite = False
-
-# The pulse library contains some names that differ only in capitalisation, during the changeover
-# surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
-# capitalisation, this causes problems when the documentation is built on an OS/filesystem that is
-# enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
-# from happening.
-autosummary_filename_map = {
-    "qiskit.pulse.library.Constant": "qiskit.pulse.library.Constant_class.rst",
-    "qiskit.pulse.library.Sawtooth": "qiskit.pulse.library.Sawtooth_class.rst",
-    "qiskit.pulse.library.Triangle": "qiskit.pulse.library.Triangle_class.rst",
-    "qiskit.pulse.library.Cos": "qiskit.pulse.library.Cos_class.rst",
-    "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
-    "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
-    "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
-    "qiskit.pulse.library.Square": "qiskit.pulse.library.Square_fun.rst",
-    "qiskit.pulse.library.Sech": "qiskit.pulse.library.Sech_fun.rst",
-}
 
 # We only use Google-style docstrings, and allowing Napoleon to parse Numpy-style docstrings both
 # slows down the build (a little) and can sometimes result in _regular_ section headings in
 # module-level documentation being converted into surprising things.
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
+
+# Autosummary generates stub filenames based on the import name.
+# Sometimes, two distinct interfaces only differ in capitalization; this
+# creates a problem on case-insensitive OS/filesystems like macOS. So,
+# we manually avoid the clash by renaming one of the files.
+autosummary_filename_map = {
+    "qiskit.circuit.library.iqp": "qiskit.circuit.library.iqp_function",
+}
 
 
 # ----------------------------------------------------------------------------------
@@ -157,3 +171,58 @@ doctest_test_doctest_blocks = ""
 # ----------------------------------------------------------------------------------
 
 plot_html_show_formats = False
+
+
+# ----------------------------------------------------------------------------------
+# Source code links
+# ----------------------------------------------------------------------------------
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def linkcode_resolve(domain, info):
+    if domain != "py":
+        return None
+
+    module_name = info["module"]
+    if "qiskit" not in module_name:
+        return None
+
+    try:
+        module = importlib.import_module(module_name)
+    except ModuleNotFoundError:
+        return None
+
+    obj = module
+    for part in info["fullname"].split("."):
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            return None
+
+    # Unwrap decorators. This requires they used `functools.wrap()`.
+    while hasattr(obj, "__wrapped__"):
+        obj = getattr(obj, "__wrapped__")
+
+    try:
+        full_file_name = inspect.getsourcefile(obj)
+    except TypeError:
+        return None
+    if full_file_name is None:
+        return None
+    try:
+        relative_file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
+        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", relative_file_name.as_posix())
+    except ValueError:
+        return None
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except (OSError, TypeError):
+        linespec = ""
+    else:
+        ending_lineno = lineno + len(source) - 1
+        linespec = f"#L{lineno}-L{ending_lineno}"
+
+    github_branch = os.environ.get("QISKIT_DOCS_GITHUB_BRANCH_NAME", "main")
+    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/{file_name}{linespec}"

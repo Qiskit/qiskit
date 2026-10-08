@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -57,10 +57,17 @@ class Store(Instruction):
 
     This is a low-level primitive of the classical-expression handling (similar to how
     :class:`~.circuit.Measure` is a primitive for quantum measurement), and is not safe for
-    subclassing.  It is likely to become a special-case instruction in later versions of Qiskit
-    circuit and compiler internal representations."""
+    subclassing."""
+
+    # This is a compiler/backend intrinsic operation, separate to any quantum processing.
+    _directive = True
 
     def __init__(self, lvalue: expr.Expr, rvalue: expr.Expr):
+        """
+        Args:
+            lvalue: the memory location being stored into.
+            rvalue: the expression result being stored.
+        """
         if not expr.is_lvalue(lvalue):
             raise CircuitError(f"'{lvalue}' is not an l-value")
 
@@ -80,8 +87,3 @@ class Store(Instruction):
     def rvalue(self):
         """Get the r-value :class:`~.expr.Expr` node that is being written into the l-value."""
         return self.params[1]
-
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "stores cannot be conditioned with `c_if`; use a full `if_test` context instead"
-        )

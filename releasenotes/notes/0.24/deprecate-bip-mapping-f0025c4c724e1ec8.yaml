@@ -10,5 +10,5 @@ deprecations:
 
     The pass was made into a separate plugin package for two reasons, first
     the dependency on CPLEX makes it harder to use and secondly the plugin
-    packge more cleanly integrates with :func:`~.transpile`.
+    package more cleanly integrates with :func:`~.transpile`.
 

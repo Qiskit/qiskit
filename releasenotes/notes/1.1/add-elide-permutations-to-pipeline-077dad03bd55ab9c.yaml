@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The transpiler pass :class:`~.ElidePermutations`
+    runs by default with optimization level 2 and 3. Intuitively, removing
+    :class:`~.SwapGate`\s and :class:`~qiskit.circuit.library.PermutationGate`\s
+    in a virtual circuit is almost always beneficial, as it makes the circuit shorter
+    and easier to route. As :class:`~.OptimizeSwapBeforeMeasure` is a special case
+    of :class:`~.ElidePermutations`, it has been removed from optimization level 3.

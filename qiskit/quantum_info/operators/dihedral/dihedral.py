@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -46,7 +46,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      The phase polynomial is a polynomial of degree at most 3,
      in :math:`N` variables, whose coefficients are in the ring Z_8 with 8 elements.
 
-     .. code-block::
+     .. plot::
+        :include-source:
+        :nofigs:
 
          from qiskit import QuantumCircuit
          from qiskit.quantum_info import CNOTDihedral
@@ -62,7 +64,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
          # Print the CNOTDihedral element
          print(elem)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         phase polynomial =
         0 + 3*x_0 + 3*x_1 + 2*x_0*x_1
@@ -83,7 +85,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.CCZGate`.
      They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
      or :class:`~qiskit.circuit.Gate` object using the :meth:`~CNOTDihedral.to_circuit`
-     or :meth:`~CNOTDihderal.to_instruction` methods respectively. Note that this
+     or :meth:`~CNOTDihedral.to_instruction` methods respectively. Note that this
      decomposition is not necessarily optimal in terms of number of gates
      if the number of qubits is more than two.
 
@@ -97,7 +99,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             with optimal number of two qubit gates*, `Quantum 4(369), 2020
             <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
          2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-            *Scalable randomised benchmarking of non-Clifford gates*,
+            *Scalable randomized benchmarking of non-Clifford gates*,
             npj Quantum Inf 2, 16012 (2016).
     """
 
@@ -111,8 +113,8 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
         Args:
             data (CNOTDihedral or QuantumCircuit or ~qiskit.circuit.Instruction):
-                Optional, operator to initialize.
-            num_qubits (int): Optional, initialize an empty CNOTDihedral operator.
+                 operator to initialize.
+            num_qubits (int):  initialize an empty CNOTDihedral operator.
             validate (bool): if True, validates the CNOTDihedral element.
 
         Raises:
@@ -325,9 +327,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                with optimal number of two qubit gates*, `Quantum 4(369), 2020
                <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
             2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-               *Scalable randomised benchmarking of non-Clifford gates*,
+               *Scalable randomized benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
+
         from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
         return synth_cnotdihedral_full(self)
@@ -356,10 +359,11 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         _append_circuit(elem, circuit)
         return elem
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def to_matrix(self):
         """Convert operator to Numpy matrix."""
@@ -450,8 +454,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             new_qubits = [bit_indices[tup] for tup in instruction.qubits]
             if instruction.operation.name == "p":
                 params = 2 * np.pi - instruction.operation.params[0]
-                instruction.operation.params[0] = params
-                new_circ.append(instruction.operation, new_qubits)
+                new_circ.p(params, new_qubits)
             elif instruction.operation.name == "t":
                 instruction.operation.name = "tdg"
                 new_circ.append(instruction.operation, new_qubits)

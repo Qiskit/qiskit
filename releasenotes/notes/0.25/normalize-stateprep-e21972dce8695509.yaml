@@ -4,5 +4,5 @@ features:
     The instructions :class:`.StatePreparation` and :class:`~.extensions.Initialize`,
     and their associated circuit methods :meth:`.QuantumCircuit.prepare_state` and :meth:`~.QuantumCircuit.initialize`,
     gained a keyword argument ``normalize``, which can be set to ``True`` to automatically normalize
-    an array target.  By default this is ``False``, which retains the current behaviour of
+    an array target.  By default this is ``False``, which retains the current behavior of
     raising an exception when given non-normalized input.

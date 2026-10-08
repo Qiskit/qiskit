@@ -38,7 +38,7 @@ features:
     Two new functions, ``sech()`` and ``sech_deriv()`` were added to the pulse
     library module ``qiskit.pulse.pulse_lib`` for creating an unnormalized
     hyperbolic secant ``SamplePulse`` object and an unnormalized hyperbolic
-    secant derviative ``SamplePulse`` object respectively.
+    secant derivative ``SamplePulse`` object respectively.
   - |
     A new kwarg option ``vertical_compression`` was added to the
     ``QuantumCircuit.draw()`` method and the
@@ -61,7 +61,7 @@ features:
   - |
     When creating a PassManager you can now specify a callback function that
     if specified will be run after each pass is executed. This function gets
-    passed a set of kwargs on each call with the state of the pass maanger after
+    passed a set of kwargs on each call with the state of the pass manager after
     each pass execution. Currently these kwargs are:
 
      * pass\_ (Pass): the pass being run

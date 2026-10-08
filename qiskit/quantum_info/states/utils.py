@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,6 +15,7 @@ Quantum information utility functions for states.
 """
 
 from __future__ import annotations
+import math
 
 import numpy as np
 
@@ -102,17 +103,18 @@ def shannon_entropy(pvec: list | np.ndarray, base: int = 2) -> float:
     if base == 2:
 
         def logfn(x):
-            return -x * np.log2(x)
+            return -x * math.log2(x)
 
     elif base == np.e:
 
         def logfn(x):
-            return -x * np.log(x)
+            return -x * math.log(x)
 
     else:
+        log_base = math.log(base)
 
         def logfn(x):
-            return -x * np.log(x) / np.log(base)
+            return -x * math.log(x) / log_base
 
     h_val = 0.0
     for x in pvec:

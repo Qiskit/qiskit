@@ -1,0 +1,26 @@
+---
+features_transpiler:
+  - |
+    Added a new user config file option ``sabre_all_threads`` and a
+    corresponding environment variable ``QISKIT_SABRE_ALL_THREADS``. When this
+    flag is set the preset pass managers will run the :class:`.SabreLayout`
+    and :class:`.SabreSwap` transpiler passes using all the available
+    CPUs on the local system. Using this option is a tradeoff between
+    determinism of output between different computers and potentially better
+    output with fewer :class:`.SwapGate`\s.
+
+    These transpiler passes run multiple random trials in parallel and pick
+    the output which results in the fewest :class:`.SwapGate`\s. As a rule of
+    thumb, if you run more trials, this provides the algorithm more opportunities
+    to find a better result. By default, the preset pass managers use a fixed
+    number of trials, in this release 5 trials for levels 0 and 1, and 20
+    trials for levels 2 and 3, but these numbers may change in future releases
+    (and were different in historical releases). Using a fixed number of
+    trials results in deterministic results regardless of the local system,
+    because even with a fixed seed if you were to default to the number of
+    local CPUs available the results would different when running between
+    different computers.
+
+    If the default number of trials for a given optimization level is higher
+    than the number of local CPUs it will use the optimization level default
+    which is higher.

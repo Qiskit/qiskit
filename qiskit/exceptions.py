@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,10 @@
 Top-level exceptions (:mod:`qiskit.exceptions`)
 ===============================================
 
-All Qiskit-related errors raised by Qiskit are subclasses of the base:
+Exceptions
+==========
+
+All Qiskit-related exceptions raised by Qiskit are subclasses of the base:
 
 .. autoexception:: QiskitError
 
@@ -42,9 +45,46 @@ filename that cannot be used:
 
 .. autoexception:: QiskitUserConfigError
 .. autoexception:: InvalidFileError
-"""
 
-from typing import Optional
+
+Warnings
+========
+
+Some particular features of Qiskit may raise custom warnings.  In general, Qiskit will use built-in
+Python warnings (such as :exc:`DeprecationWarning`) when appropriate, but warnings related to
+Qiskit-specific functionality will be subtypes of :exc:`QiskitWarning`.
+
+.. autoexception:: QiskitWarning
+
+Related to :exc:`MissingOptionalLibraryError`, in some cases an optional dependency might be found,
+but fail to import for some other reason.  In this case, Qiskit will continue as if the dependency
+is not present, but will raise :exc:`OptionalDependencyImportWarning` to let you know about it.
+
+.. autoexception:: OptionalDependencyImportWarning
+
+When experimental features are being used, Qiskit will raise :exc:`ExperimentalWarning`.
+
+.. warning::
+
+    Qiskit experimental features can break at any minor release and their API might change without
+    previous notification. Their use is not recommended in production.
+
+.. autoexception:: ExperimentalWarning
+
+Filtering warnings
+------------------
+
+Python has built-in mechanisms to filter warnings, described in the documentation of the
+:mod:`warnings` module.  You can use these subclasses in your warning filters from within Python to
+silence warnings you are not interested in.  For example, if you are knowingly using experimental
+features and are comfortable that they may break in later versions, you can silence
+:exc:`ExperimentalWarning` like this::
+
+    import warnings
+    from qiskit.exceptions import ExperimentalWarning
+
+    warnings.filterwarnings("ignore", category=ExperimentalWarning)
+"""
 
 
 class QiskitError(Exception):
@@ -70,7 +110,7 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
     """Raised when an optional library is missing."""
 
     def __init__(
-        self, libname: str, name: str, pip_install: Optional[str] = None, msg: Optional[str] = None
+        self, libname: str, name: str, pip_install: str | None = None, msg: str | None = None
     ) -> None:
         """Set the error message.
         Args:
@@ -95,3 +135,17 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
 
 class InvalidFileError(QiskitError):
     """Raised when the file provided is not valid for the specific task."""
+
+
+class QiskitWarning(UserWarning):
+    """Common subclass of warnings for Qiskit-specific warnings being raised."""
+
+
+class OptionalDependencyImportWarning(QiskitWarning):
+    """Raised when an optional library raises errors during its import."""
+
+    # Not a subclass of `ImportWarning` because those are hidden by default.
+
+
+class ExperimentalWarning(QiskitWarning):
+    """Raised when an experimental feature is being used."""

@@ -1,0 +1,79 @@
+---
+features_circuits:
+  - |
+    A native rust representation of Qiskit's standard gate library has been added. When a standard gate
+    is added to a :class:`~.QuantumCircuit` or :class:`~.DAGCircuit` it is now represented in a more
+    efficient manner directly in Rust seamlessly. Accessing that gate object from a circuit or dag will
+    return a new Python object representing the standard gate. This leads to faster and more efficient
+    transpilation and manipulation of circuits for functionality written in Rust.
+features_misc:
+  - |
+    Added a new build-time environment variable ``QISKIT_NO_CACHE_GATES`` which
+    when set to a value of ``1`` (i.e. ``QISKIT_NO_CACHE_GATES=1``) which
+    decreases the memory overhead of a :class:`.CircuitInstruction` and
+    :class:`.DAGOpNode` object at the cost of decreased runtime on multiple
+    accesses to :attr:`.CircuitInstruction.operation` and :attr:`.DAGOpNode.op`.
+    If this environment variable is set when building the Qiskit python package
+    from source the caching of the return of these attributes will be disabled.
+upgrade_circuits:
+  - |
+    The :class:`.Operation` instances of :attr:`.DAGOpNode.op`
+    being returned will not necessarily share a common reference to the
+    underlying object anymore. This was never guaranteed to be the case and
+    mutating the :attr:`~.DAGOpNode.op` directly by reference
+    was unsound and always likely to corrupt the dag's internal state tracking
+    Due to the internal refactor of the :class:`.QuantumCircuit` and
+    :class:`.DAGCircuit` to store standard gates in rust the output object from
+    :attr:`.DAGOpNode.op` will now likely be a copy instead of a shared instance. If you
+    need to mutate an element should ensure that you either do::
+
+      op = dag_node.op
+      op.params[0] = 3.14159
+      dag_node.op = op
+
+    or::
+
+      op = dag_node.op
+      op.params[0] = 3.14159
+      dag.substitute_node(dag_node, op)
+
+    instead of doing something like::
+
+      dag_node.op.params[0] = 3.14159
+
+    which will not work for any standard gates in this release. It would have
+    likely worked by chance in a previous release but was never an API guarantee.
+  - |
+    The :class:`.Operation` instances of :attr:`.CircuitInstruction.operation`
+    being returned will not necessarily share a common reference to the
+    underlying object anymore. This was never guaranteed to be the case and
+    mutating the :attr:`~.CircuitInstruction.operation` directly by reference
+    was unsound and always likely to corrupt the circuit, especially when
+    parameters were in use. Due to the internal refactor of the QuantumCircuit
+    to store standard gates in rust the output object from
+    :attr:`.CircuitInstruction.operation` will now likely be a copy instead
+    of a shared instance. If you need to mutate an element in the circuit (which
+    is strongly **not** recommended as it's inefficient and error prone) you
+    should ensure that you do::
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(1)
+      qc.p(0)
+
+      op = qc.data[0].operation
+      op.params[0] = 3.14
+
+      qc.data[0] = qc.data[0].replace(operation=op)
+
+    instead of doing something like::
+
+      from qiskit.circuit import QuantumCircuit
+
+      qc = QuantumCircuit(1)
+      qc.p(0)
+
+      qc.data[0].operation.params[0] = 3.14
+
+    which will not work for any standard gates in this release. It would have
+    likely worked by chance in a previous release but was never an API guarantee.

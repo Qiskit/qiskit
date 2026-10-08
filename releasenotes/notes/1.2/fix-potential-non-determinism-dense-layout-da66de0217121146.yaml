@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a potential source of non-determinism in :class:`~.DenseLayout` (and
+    by extension :class:`~.SabreLayout`) when targeting a
+    :class:`.CouplingMap` or :class:`.Target` that has more than one subgraph
+    with the same degree of connectivity. In these case the exact output
+    layout from the pass could previously fluctuate based on the number of
+    local CPUs and thread execution speed.

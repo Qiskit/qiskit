@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fix `backend_utils.py` for simulator backends with BackendV2.
-    `is_simulator_backend` and `is_local_backend` returns `True`
-    if backend name that contains `simulator`.
