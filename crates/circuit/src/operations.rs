@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use qiskit_quantum_info::sparse_observable::cast_array_type;
 use approx::relative_eq;
 use qiskit_quantum_info::matrix_compressed_pauli::MatrixCompressedPaulis;
 use std::any::Any;
@@ -2280,7 +2281,7 @@ mod custom_traits {
 /// This trait has an implicit requirement to [`PartialEq`] and [`Clone`] to allow for
 /// comparison between opaque gates and dynamic cloning.
 pub trait CustomOperation:
-    Operation + Any + Debug + Send + Sync + ComparableOp + ClonableOp
+    Operation + Any + Debug + Send + Sync + ComparableOp + ClonableOp + OperationToPython
 {
     /// Return the custom label assigned to this instruction.
     fn label(&self) -> Option<&str> {
@@ -2396,6 +2397,215 @@ impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
     }
 }
 
+#[diagnostic::on_unimplemented(
+    message = "OperationToPython is required to correctly implement CustomOperation on {Self}.",
+    label = "This type needs an implementation of OperationToPython",
+    note = "Consider using an automatic trait implementation for {Self} such as `custom_operation_no_python!` or `custom_to_py!`"
+)]
+pub trait OperationToPython {
+    fn create_py_op<'py>(&self, py: Python<'py>, params: Option<SmallVec<[Param; 3]>>) -> PyResult<Bound<'py, PyAny>>; 
+}
+
+#[pyclass(name = "CustomOperation", weakref, subclass)]
+pub struct PyCustomOperation {
+    inner: Box<dyn CustomOperation>,
+    params: Option<SmallVec<[Param; 3]>>,
+}
+
+impl PyCustomOperation {
+    pub fn new(op: Box<dyn CustomOperation>, params: Option<SmallVec<[Param; 3]>>) -> Self {
+        Self { inner: op, params }
+    }
+
+    pub fn params_view(&self) -> &[Param] {
+        self.params.as_deref().unwrap_or_default()
+    }
+
+    pub fn op(&self) -> &dyn CustomOperation {
+        self.inner.as_ref()
+    }
+}
+
+#[pymethods]
+impl PyCustomOperation {
+    #[getter]
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    #[getter]
+    fn num_qubits(&self) -> u32 {
+        self.inner.num_qubits()
+    }
+
+    #[getter]
+    fn num_clbits(&self) -> u32 {
+        self.inner.num_clbits()
+    }
+
+    #[getter]
+    fn num_params(&self) -> u32 {
+        self.inner.num_params()
+    }
+
+    #[getter]
+    fn directive(&self) -> bool {
+        self.inner.directive()
+    }
+
+    #[getter]
+    fn label(&self) -> Option<&str> {
+        self.inner.label()
+    }
+
+    #[getter(params)]
+    fn py_params<'a>(&'a self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
+        self.params_view().into_bound_py_any(py)
+    }
+
+    #[getter]
+    fn definition<'py>(&'py self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
+        self.inner.definition(self.params_view()).map(|circ| circ.into_py_quantum_circuit(py)).transpose()
+    }
+
+    #[pyo3(signature = (dtype, copy = true))]
+    fn __array__<'py>(
+        &'py self,
+        py: Python<'py>,
+        dtype: Option<&Bound<'py, PyAny>>,
+        copy: Option<bool>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        // It is not possible for us to compute the matrix without copying currently
+        let _copy = copy.unwrap_or_default();
+        
+        match self.inner.matrix(self.params_view()) {
+            Ok(Some(mat)) => {
+                cast_array_type(py, mat.into_pyarray(py), dtype)
+            },
+            Ok(None) => py.None().into_bound_py_any(py),
+            // Is this the best way to handle errors??
+            Err(e) => Err(QiskitError::new_err(e.to_string())),
+        }
+    }
+
+    fn __eq__<'py>(&'py self, other: Bound<'py, PyAny>) -> PyResult<bool> {
+        let Ok(as_own) = other.cast::<Self>() else {
+            return Ok(false);
+        };
+        let as_borrowed = as_own.borrow();
+
+        // First compare by instance
+        if self.inner.as_ref() != as_borrowed.inner.as_ref() {
+            return Ok(false);
+        }
+        let compare_params = |self_params: &[Param], other_params: &[Param]| -> PyResult<bool> {
+            if self_params.len() != other_params.len() {
+                return Ok(false);
+            }
+            for (self_param, other_param) in self_params.iter().zip(other_params) {
+                if !self_param.eq(other_param)? {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        };
+
+       compare_params(self.params_view(), as_borrowed.params_view())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TestGate {
+    label: String,
+}
+
+impl Operation for TestGate {
+    fn name(&self) -> &str {
+        "test"
+    }
+
+    fn num_qubits(&self) -> u32 {
+        1
+    }
+
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+
+    fn num_params(&self) -> u32 {
+        0
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl CustomOperation for TestGate {
+    fn is_unitary(&self) -> bool {
+        true
+    }
+}
+
+macro_rules! impl_custom_op_py_skip{
+    ($op:ty) => {
+        impl $crate::operations::OperationToPython for $op {
+            fn create_py_op<'py>(&self, _py: Python<'py>, _params: Option<SmallVec<[Param; 3]>>) -> PyResult<Bound<'py, PyAny>> {
+                Err(::pyo3::exceptions::PyTypeError::new_err(format!("Operation '{}' does not implement Python visibility.", self.name())))
+            }
+        }
+    }
+}
+
+macro_rules! impl_custom_op_py_generic {
+    ($op:ty, $py_name:ident) => {
+        #[pyclass(extends = $crate::operations::PyCustomOperation, frozen, skip_from_py_object)]
+        struct $py_name;
+
+        impl $crate::operations::OperationToPython for $op {
+            fn create_py_op<'py>(&self, py: pyo3::Python<'py>, params: Option<SmallVec<[Param; 3]>>) -> PyResult<Bound<'py, PyAny>> {
+                let ob = self.clone_dyn();
+
+                let as_generic = $crate::operations::PyCustomOperation::new(ob, params);
+                pyo3::Bound::new(py, pyo3::PyClassInitializer::from(as_generic).add_subclass($py_name)).map(|op| op.into_any())
+            }
+        }
+
+        impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for $op {
+            type Error = ::pyo3::PyErr;
+            
+            fn extract(obj: pyo3::Borrowed<'a, 'py, pyo3::PyAny>) -> Result<Self, Self::Error> {
+                let opaque_clone = |op: &dyn $crate::operations::CustomOperation| -> Option<$op> {
+                    op.downcast_ref::<$op>().cloned()
+                };
+                let opaque = if let Ok(op) = obj.cast::<$py_name>() {
+                    let borrowed = op.as_super().borrow();
+                    opaque_clone(borrowed.op())
+                } else if let Ok(op) = obj.cast::<$crate::operations::PyCustomOperation>() {
+                    let borrowed = op.borrow();
+                    opaque_clone(borrowed.op())
+                } else {
+                    None
+                };
+                opaque.ok_or_else(|| pyo3::exceptions::PyTypeError::new_err(format!("Could not extract type {}", stringify!($op))))
+            }
+        }
+    }
+}
+
+/// For the custom method, we should expect a couple of things from the user:
+/// 
+/// The user is expected to:
+/// - Define a class that implements the correct type of operation: `Gate` for unitary,
+///   `Instruction` for non-unitary.
+/// - The class should have a `core` PyO3 struct which should be defined by the macro. Rust
+///   Should be able to see this struct and extract it to obtain the original type.
+/// - The class should have an alternative constructor called `_from_inner` that the rust
+///   struct should be able use for creating transfer ownership.
+
+
+impl_custom_op_py_generic!(TestGate, PyTestGate);
+
 #[cfg(test)]
 mod test {
     use approx::assert_abs_diff_eq;
@@ -2479,6 +2689,8 @@ mod test_custom_operations {
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
     struct CustomH;
     impl_static_operation!(CustomH; "h", 1, 0, 0, false);
+    impl_custom_op_py_skip!(CustomH);
+
 
     impl CustomOperation for CustomH {
         fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
@@ -2508,6 +2720,8 @@ mod test_custom_operations {
         label: Option<String>,
     }
     impl_static_operation!(ParametrizedAndLabeled; "custom_rz", 1, 0, 1, false);
+    impl_custom_op_py_skip!(ParametrizedAndLabeled);
+
     impl ParametrizedAndLabeled {
         pub fn new<T: Into<String>>(label: Option<T>) -> Self {
             Self {
@@ -2555,6 +2769,7 @@ mod test_custom_operations {
     #[derive(Debug, Copy, Clone, PartialEq)]
     struct Controlled;
     impl_static_operation!(Controlled; "controlled", 1, 0, 0, false);
+    impl_custom_op_py_skip!(Controlled);
     impl CustomOperation for Controlled {
         fn is_unitary(&self) -> bool {
             false
@@ -2568,6 +2783,7 @@ mod test_custom_operations {
     #[derive(Debug, Copy, Clone, PartialEq)]
     struct Measure2;
     impl_static_operation!(Measure2; "measure", 2, 2, 0, false);
+    impl_custom_op_py_skip!(Measure2);
     impl CustomOperation for Measure2 {
         fn is_unitary(&self) -> bool {
             false
@@ -2578,6 +2794,7 @@ mod test_custom_operations {
     #[derive(Debug, Copy, Clone, PartialEq)]
     struct Reversible;
     impl_static_operation!(Reversible; "rev", 1, 0, 0, false);
+    impl_custom_op_py_skip!(Reversible);
     impl CustomOperation for Reversible {
         fn is_unitary(&self) -> bool {
             false
@@ -2604,6 +2821,8 @@ mod test_custom_operations {
     #[derive(Debug, Clone, PartialEq)]
     struct OpaqueGate;
     impl_static_operation!(OpaqueGate; "foo", 1, 0, 0, false);
+    impl_custom_op_py_skip!(OpaqueGate);
+
     impl CustomOperation for OpaqueGate {
         fn is_unitary(&self) -> bool {
             true
