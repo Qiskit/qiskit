@@ -746,6 +746,37 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
 
+    @data(CXGate, CZGate, ECRGate)
+    def test_kak_basis_gate_consolidates_to_unitary(self, basis_gate):
+        """Consolidation honors an explicit kak_basis_gate and yields a correct unitary.
+
+        Building the block from the kak gate itself makes the test sensitive to
+        the argument being honored: gates matching the kak basis are counted as
+        basis gates, so a block of three needs only one and consolidates. If
+        the argument were dropped and CX used instead, CZ/ECR blocks would
+        have no basis gates counted and would stay unconsolidated.
+        """
+        kak = basis_gate()
+        kak_pass = ConsolidateBlocks(kak_basis_gate=kak)
+
+        with self.subTest("block in the kak basis consolidates"):
+            qc = QuantumCircuit(2)
+            for _ in range(3):
+                qc.append(kak, [0, 1])
+            res = kak_pass(qc)
+            self.assertEqual({"unitary": 1}, res.count_ops())
+            self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+
+        with self.subTest("out-of-basis block consolidates via basis_gates"):
+            foreign = "cz" if basis_gate.name != "cz" else "cx"
+            kak_pass = ConsolidateBlocks(kak_basis_gate=kak, basis_gates=[foreign])
+            qc = QuantumCircuit(2)
+            for _ in range(3):
+                qc.append(kak, [0, 1])
+            res = kak_pass(qc)
+            self.assertEqual({"unitary": 1}, res.count_ops())
+            self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+
     def test_collection_inside_control_flow(self):
         """Test that we handle consolidation based on the physical qubits, not the local indices."""
         num_qubits = 3
