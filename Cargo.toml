@@ -15,7 +15,7 @@ license = "Apache-2.0"
 #
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
-bytemuck = { version = "1.25", features = ["extern_crate_alloc"] }
+bytemuck = { version = "1.25", features = ["extern_crate_alloc", "derive"] }
 bitfield-struct = "0.13.0"
 indexmap.version = "2.10.0"
 hashbrown.version = "0.15.5"
@@ -64,6 +64,7 @@ qiskit-cext = { path = "crates/cext" }
 qiskit-cext-vtable = { path = "crates/cext-vtable" }
 qiskit-circuit = { path = "crates/circuit" }
 qiskit-circuit-library = { path = "crates/circuit_library" }
+qiskit-mir = { path = "crates/mir" }
 qiskit-passmanager = { path = "crates/passmanager" }
 qiskit-providers = { path = "crates/providers" }
 qiskit-qasm2 = { path = "crates/qasm2" }
