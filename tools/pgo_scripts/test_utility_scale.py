@@ -80,9 +80,9 @@ def _main():
         strict=False,
     )
     qaoa_circ.name = "qaoa_barabasi_albert_N100_3reps"
-    qv_circ = quantum_volume(cmap.size(), seed=123456789)
+    qv_circ = quantum_volume(100, seed=123456789)
     qv_circ.measure_all()
-    qv_circ.name = "QV12554203470773361527671578846415332832204710888928069025792"
+    qv_circ.name = "QV1267650600228229401496703205376"
     hwb_circ = qasm2.load(
         os.path.join(QASM_DIR, "hwb12.qasm"),
         include_path=qasm2.LEGACY_INCLUDE_PATH,

@@ -20,6 +20,8 @@ import warnings
 import itertools
 import numpy as np
 
+
+from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
@@ -27,7 +29,6 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, SparseObservable
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.synthesis.evolution.product_formula import real_or_fail
 
 from qiskit._accelerate.circuit_library import pauli_evolution
 
@@ -90,6 +91,9 @@ def evolved_operator_ansatz(
             layers of gate objects. Setting this to ``False`` is significantly less performant,
             especially for parameter binding, but can be desirable for a cleaner visualization.
     """
+    from qiskit.synthesis.evolution import LieTrotter
+    from qiskit.synthesis.evolution.product_formula import real_or_fail
+
     if reps < 0:
         raise ValueError("reps must be a non-negative integer.")
 
@@ -153,13 +157,9 @@ def evolved_operator_ansatz(
 
     # slower, Python-path
     if evolution is None:
-        from qiskit.synthesis.evolution import LieTrotter
-
         evolution = LieTrotter(insert_barriers=insert_barriers)
 
     circuit = QuantumCircuit(num_qubits, name=name)
-
-    from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
     for rep in range(reps):
         for i, op in enumerate(operators):
@@ -431,8 +431,6 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     def _evolve_operator(self, operator, time):
-
-        from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
         # if the operator is specified as matrix use exact matrix exponentiation
         if isinstance(operator, Operator):

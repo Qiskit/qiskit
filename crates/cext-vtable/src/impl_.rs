@@ -190,6 +190,14 @@ impl ExportedFunctions {
                 ),
         )
     }
+
+    pub fn slots(&'static self) -> Vec<Option<ExportedFunction>> {
+        let mut out = vec![None; self.len];
+        for export in self.exports(0) {
+            out[export.slot] = Some(export);
+        }
+        out
+    }
 }
 
 /// Create an entry in an `ExportedFunctions` table.

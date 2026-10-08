@@ -23,6 +23,12 @@ class CommutationAnalysis(AnalysisPass):
     This sets ``property_set['commutation_set']`` to a dictionary that describes
     the commutation relations on a given wire: all the gates on a wire
     are grouped into a set of gates that commute.
+
+    This pass is multithreaded and will potentially launch a thread pool
+    with threads equal to the number of CPUs by default. You can tune the
+    number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+    For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
     """
 
     def __init__(self, *, _commutation_checker=None):

@@ -10,71 +10,28 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::Python;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 
-use crate::error::QASM2ParseError;
+#[cfg(feature = "py")]
+use crate::bytecode::QASM2ParseError;
 
 mod bytecode;
 mod error;
 mod expr;
+mod ext;
 mod lex;
 mod parse;
 
-/// Information about a custom instruction that Python space is able to construct to pass down to
-/// us.
-#[pyclass(from_py_object)]
-#[derive(Clone)]
-pub struct CustomInstruction {
-    pub name: String,
-    pub num_params: usize,
-    pub num_qubits: usize,
-    pub builtin: bool,
-}
-
-#[pymethods]
-impl CustomInstruction {
-    #[new]
-    fn __new__(name: String, num_params: usize, num_qubits: usize, builtin: bool) -> Self {
-        Self {
-            name,
-            num_params,
-            num_qubits,
-            builtin,
-        }
-    }
-}
-
-/// Information about a custom classical function that should be defined in mathematical
-/// expressions.
-///
-/// The given `callable` must be a Python function that takes `num_params` floats, and returns a
-/// float.  The `name` is the identifier that refers to it in the OpenQASM 2 program.  This cannot
-/// clash with any defined gates.
-#[pyclass(from_py_object)]
-#[derive(Clone)]
-pub struct CustomClassical {
-    pub name: String,
-    pub num_params: usize,
-    pub callable: Py<PyAny>,
-}
-
-#[pymethods]
-impl CustomClassical {
-    #[new]
-    #[pyo3(text_signature = "(name, num_params, callable, /)")]
-    fn __new__(name: String, num_params: usize, callable: Py<PyAny>) -> Self {
-        Self {
-            name,
-            num_params,
-            callable,
-        }
-    }
-}
+pub use self::ext::{
+    ClassicalBuiltinExt, ClassicalCallableExt, ClassicalEvaluator, CustomClassical,
+    CustomInstruction,
+};
 
 /// Create a bytecode iterable from a string containing an OpenQASM 2 program.  The iterable will
 /// lex and parse the source lazily; evaluating OpenQASM 2 statements as required, without loading
 /// the entire token and parse tree into memory at once.
+#[cfg(feature = "py")]
 #[pyfunction]
 fn bytecode_from_string(
     string: String,
@@ -95,6 +52,7 @@ fn bytecode_from_string(
 /// Create a bytecode iterable from a path to a file containing an OpenQASM 2 program.  The
 /// iterable will lex and parse the source lazily; evaluating OpenQASM 2 statements as required,
 /// without loading the entire token and parse tree into memory at once.
+#[cfg(feature = "py")]
 #[pyfunction]
 fn bytecode_from_file(
     py: Python<'_>,
@@ -123,16 +81,11 @@ fn bytecode_from_file(
 /// An interface to the Rust components of the parser stack, and the types it uses to represent the
 /// output.  The principal entry points for Python are :func:`bytecode_from_string` and
 /// :func:`bytecode_from_file`, which produce iterables of :class:`Bytecode` objects.
+#[cfg(feature = "py")]
 pub fn qasm2(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_class::<bytecode::OpCode>()?;
-    module.add_class::<bytecode::UnaryOpCode>()?;
-    module.add_class::<bytecode::BinaryOpCode>()?;
     module.add_class::<bytecode::Bytecode>()?;
-    module.add_class::<bytecode::ExprConstant>()?;
-    module.add_class::<bytecode::ExprArgument>()?;
-    module.add_class::<bytecode::ExprUnary>()?;
-    module.add_class::<bytecode::ExprBinary>()?;
-    module.add_class::<bytecode::ExprCustom>()?;
+    module.add_class::<bytecode::GateBodyArguments>()?;
     module.add_class::<CustomInstruction>()?;
     module.add_class::<CustomClassical>()?;
     module.add_function(wrap_pyfunction!(bytecode_from_string, module)?)?;

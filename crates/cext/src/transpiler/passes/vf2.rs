@@ -353,7 +353,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_average(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -443,7 +443,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -481,6 +481,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
 ///
 /// The safety requirements of `qk_transpiler_pass_standalone_vf2_layout_average` must be respected
 /// for `circuit` and `target`.
+/// cbindgen:qk-vtable-rules=[no-export]
 #[deprecated(
     since = "2.3.0",
     note = "use `qk_transpiler_pass_standalone_vf2_layout_average` instead"

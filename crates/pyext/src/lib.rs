@@ -11,9 +11,17 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-pub use qiskit_cext::*;
 
 mod capi;
+mod mir;
+mod passmanager;
+
+#[cfg(feature = "mimalloc")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[inline(always)]
 #[doc(hidden)]
@@ -32,6 +40,8 @@ where
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, capi::capi_mod, "capi")?;
+    add_submodule(m, passmanager::passmanager_mod, "passmanager")?;
+    add_submodule(m, mir::mir_mod, "mir")?;
     add_submodule(m, ::qiskit_transpiler::passes::alap_schedule_analysis_mod, "alap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::asap_schedule_analysis_mod, "asap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::apply_layout_mod, "apply_layout")?;
@@ -69,6 +79,11 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::high_level_synthesis_mod, "high_level_synthesis")?;
     add_submodule(m, ::qiskit_transpiler::passes::remove_diagonal_gates_before_measure_mod, "remove_diagonal_gates_before_measure")?;
     add_submodule(m, ::qiskit_transpiler::passes::remove_identity_equiv_mod, "remove_identity_equiv")?;
+    add_submodule(
+        m,
+        ::qiskit_transpiler::passes::two_qubit_peephole_mod,
+        "two_qubit_peephole",
+    )?;
     add_submodule(m, ::qiskit_accelerate::results::results, "results")?;
     add_submodule(m, ::qiskit_transpiler::passes::sabre::sabre, "sabre")?;
     add_submodule(m, ::qiskit_accelerate::sampled_exp_val::sampled_exp_val, "sampled_exp_val")?;
