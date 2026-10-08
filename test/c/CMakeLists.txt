@@ -24,11 +24,11 @@ set (CMAKE_C_STANDARD_REQUIRED ON CACHE BOOL "Whether to fail if we can't set th
 
 enable_testing ()
 include_directories (${QISKIT_INCLUDE_PATH})
-find_library (qiskit qiskit_cext PATHS ${CARGO_LIB_DIR} REQUIRED)
+find_library (qiskit NAMES qiskit_cext qiskit PATHS ${CARGO_LIB_DIR} REQUIRED)
 
 # Convert warnings into errors. Note that MSVC and GCC/clang do not match here, and CI will
 # require all to pass without errors.
-if (MSVC) 
+if (MSVC)
     add_compile_options(/W3 /WX)
 else ()
     add_compile_options(-Wall -Wextra -Werror -Wshadow)
