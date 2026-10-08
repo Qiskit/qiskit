@@ -16,7 +16,9 @@ use std::sync::Arc;
 
 use crate::dag::COperationKind;
 use crate::exit_codes::{CInputError, ExitCode};
-use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{
+    ExposesOwnedPointers, check_ptr, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref,
+};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::StandardInstruction;
@@ -27,6 +29,9 @@ use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_transpiler::target::{InstructionProperties, Qargs, Target, TargetOperation};
 use qiskit_util::IndexMap;
 use smallvec::{SmallVec, smallvec};
+
+// SAFETY: all owned `Target` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(Target) };
 
 /// @ingroup QkTarget
 /// Construct a new ``QkTarget`` with the given number of qubits.
@@ -40,12 +45,12 @@ use smallvec::{SmallVec, smallvec};
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
+/// QkTarget *target = qk_target_new(5);
 /// ```
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
-    let target = Target::new(
+    Target::new(
         None,
         Some(num_qubits),
         None,
@@ -56,8 +61,8 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
         None,
         None,
     )
-    .unwrap();
-    Box::into_raw(Box::new(target))
+    .unwrap()
+    .into_leaked()
 }
 
 /// @ingroup QkTarget
@@ -131,8 +136,8 @@ pub unsafe extern "C" fn qk_target_convert_from_python(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     uint32_t num_qubits = qk_target_num_qubits(target);
+/// QkTarget *target = qk_target_new(5);
+/// uint32_t num_qubits = qk_target_num_qubits(target);
 /// ```
 ///
 /// # Safety
@@ -154,9 +159,9 @@ pub unsafe extern "C" fn qk_target_num_qubits(target: *const Target) -> u32 {
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     qk_target_set_dt(target, 10e-9);
-///     double dt = qk_target_dt(target);
+/// QkTarget *target = qk_target_new(5);
+/// qk_target_set_dt(target, 10e-9);
+/// double dt = qk_target_dt(target);
 /// ```
 ///
 /// # Safety
@@ -178,9 +183,9 @@ pub unsafe extern "C" fn qk_target_dt(target: *const Target) -> f64 {
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     // The value defaults to 1
-///     uint32_t granularity = qk_target_granularity(target);
+/// QkTarget *target = qk_target_new(5);
+/// // The value defaults to 1
+/// uint32_t granularity = qk_target_granularity(target);
 /// ```
 ///
 /// # Safety
@@ -202,9 +207,9 @@ pub unsafe extern "C" fn qk_target_granularity(target: *const Target) -> u32 {
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     // The value defaults to 1
-///     size_t min_length = qk_target_min_length(target);
+/// QkTarget *target = qk_target_new(5);
+/// // The value defaults to 1
+/// size_t min_length = qk_target_min_length(target);
 /// ```
 ///
 /// # Safety
@@ -226,9 +231,9 @@ pub unsafe extern "C" fn qk_target_min_length(target: *const Target) -> u32 {
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     // The value defaults to 1
-///     uint32_t pulse_alignment = qk_target_pulse_alignment(target);
+/// QkTarget *target = qk_target_new(5);
+/// // The value defaults to 1
+/// uint32_t pulse_alignment = qk_target_pulse_alignment(target);
 /// ```
 ///
 /// # Safety
@@ -250,9 +255,9 @@ pub unsafe extern "C" fn qk_target_pulse_alignment(target: *const Target) -> u32
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     // The value defaults to 0
-///     uint32_t acquire_alignment = qk_target_pulse_alignment(target);
+/// QkTarget *target = qk_target_new(5);
+/// // The value defaults to 0
+/// uint32_t acquire_alignment = qk_target_pulse_alignment(target);
 /// ```
 ///
 /// # Safety
@@ -276,8 +281,8 @@ pub unsafe extern "C" fn qk_target_acquire_alignment(target: *const Target) -> u
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     double dt = qk_target_set_dt(target, 10e-9);
+/// QkTarget *target = qk_target_new(5);
+/// double dt = qk_target_set_dt(target, 10e-9);
 /// ```
 ///
 /// # Safety
@@ -302,9 +307,9 @@ pub unsafe extern "C" fn qk_target_set_dt(target: *mut Target, dt: f64) -> ExitC
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     // The value defaults to 1
-///     qk_target_set_granularity(target, 2);
+/// QkTarget *target = qk_target_new(5);
+/// // The value defaults to 1
+/// qk_target_set_granularity(target, 2);
 /// ```
 ///
 /// # Safety
@@ -332,9 +337,9 @@ pub unsafe extern "C" fn qk_target_set_granularity(
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     // The value defaults to 1
-///     qk_target_set_min_length(target, 3);
+/// QkTarget *target = qk_target_new(5);
+/// // The value defaults to 1
+/// qk_target_set_min_length(target, 3);
 /// ```
 ///
 /// # Safety
@@ -361,9 +366,9 @@ pub unsafe extern "C" fn qk_target_set_min_length(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     // The value defaults to 1
-///     qk_target_set_pulse_alignment(target, 4);
+/// QkTarget *target = qk_target_new(5);
+/// // The value defaults to 1
+/// qk_target_set_pulse_alignment(target, 4);
 /// ```
 ///
 /// # Safety
@@ -391,9 +396,9 @@ pub unsafe extern "C" fn qk_target_set_pulse_alignment(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     // The value defaults to 0
-///     qk_target_set_acquire_alignment(target, 5);
+/// QkTarget *target = qk_target_new(5);
+/// // The value defaults to 0
+/// qk_target_set_acquire_alignment(target, 5);
 /// ```
 ///
 /// # Safety
@@ -419,13 +424,13 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     QkExitCode result = qk_target_add_instruction(target, entry);
+/// QkTarget *target = qk_target_new(5);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// QkExitCode result = qk_target_add_instruction(target, entry);
 ///
-///     QkTarget *copied = qk_target_copy(target);
+/// QkTarget *copied = qk_target_copy(target);
 /// ```
 ///
 /// # Safety
@@ -435,8 +440,7 @@ pub unsafe extern "C" fn qk_target_set_acquire_alignment(
 pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = unsafe { const_ptr_as_ref(target) };
-
-    Box::into_raw(target.clone().into())
+    target.clone().into_leaked()
 }
 
 /// @ingroup QkTarget
@@ -446,26 +450,18 @@ pub unsafe extern "C" fn qk_target_copy(target: *mut Target) -> *mut Target {
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     qk_target_free(target);
+/// QkTarget *target = qk_target_new(5);
+/// qk_target_free(target);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``QkTarget`` is not a valid, non-null pointer to a ``QkTarget``.
+/// Behavior is undefined if ``target`` is not either null or a valid pointer to a ``QkTarget``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_target_free(target: *mut Target) {
-    if !target.is_null() {
-        if !target.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(target);
-        }
-    }
+    // SAFETY: if `target` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!target.is_null()).then(|| unsafe { Target::steal(target) });
 }
 
 #[derive(Debug)]
@@ -548,6 +544,9 @@ impl TargetEntry {
     }
 }
 
+// SAFETY: all owned `TargetEntry` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(TargetEntry) };
+
 /// @ingroup QkTargetEntry
 /// Creates an entry to the ``QkTarget`` based on a ``QkGate`` instance.
 ///
@@ -560,11 +559,11 @@ impl TargetEntry {
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *had_entry = qk_target_entry_new(QkGate_H);
+/// QkTargetEntry *had_entry = qk_target_entry_new(QkGate_H);
 /// ```
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new(operation)))
+    TargetEntry::new(operation).into_leaked()
 }
 
 /// @ingroup QkTargetEntry
@@ -574,23 +573,21 @@ pub extern "C" fn qk_target_entry_new(operation: StandardGate) -> *mut TargetEnt
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new_measure();
-///     // Add fixed duration and error rates from qubits at index 0 to 4.
-///     for (uint32_t i = 0; i < 5; i++) {
-///         // Measure is a single qubit instruction
-///         uint32_t qargs[1] = {i};
-///         qk_target_entry_add_property(entry, qargs, 1, 1.928e-10, 7.9829e-11);
-///     }
+/// QkTargetEntry *entry = qk_target_entry_new_measure();
+/// // Add fixed duration and error rates from qubits at index 0 to 4.
+/// for (uint32_t i = 0; i < 5; i++) {
+///     // Measure is a single qubit instruction
+///     uint32_t qargs[1] = {i};
+///     qk_target_entry_add_property(entry, qargs, 1, 1.928e-10, 7.9829e-11);
+/// }
 ///
-///     // Add the entry to a target with 5 qubits
-///     QkTarget *measure_target = qk_target_new(5);
-///     qk_target_add_instruction(measure_target, entry);
+/// // Add the entry to a target with 5 qubits
+/// QkTarget *measure_target = qk_target_new(5);
+/// qk_target_add_instruction(measure_target, entry);
 /// ```
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new_instruction(
-        StandardInstruction::Measure,
-    )))
+    TargetEntry::new_instruction(StandardInstruction::Measure).into_leaked()
 }
 
 /// @ingroup QkTargetEntry
@@ -600,23 +597,21 @@ pub extern "C" fn qk_target_entry_new_measure() -> *mut TargetEntry {
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new_reset();
-///     // Add fixed duration and error rates from qubits at index 0 to 2.
-///     for (uint32_t i = 0; i < 3; i++) {
-///         // Reset is a single qubit instruction
-///         uint32_t qargs[1] = {i};
-///         qk_target_entry_add_property(entry, qargs, 1, 1.2e-11, 5.9e-13);
-///     }
+/// QkTargetEntry *entry = qk_target_entry_new_reset();
+/// // Add fixed duration and error rates from qubits at index 0 to 2.
+/// for (uint32_t i = 0; i < 3; i++) {
+///     // Reset is a single qubit instruction
+///     uint32_t qargs[1] = {i};
+///     qk_target_entry_add_property(entry, qargs, 1, 1.2e-11, 5.9e-13);
+/// }
 ///
-///     // Add the entry to a target with 3 qubits
-///     QkTarget *reset_target = qk_target_new(3);
-///     qk_target_add_instruction(reset_target, entry);
+/// // Add the entry to a target with 3 qubits
+/// QkTarget *reset_target = qk_target_new(3);
+/// qk_target_add_instruction(reset_target, entry);
 /// ```
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
-    Box::into_raw(Box::new(TargetEntry::new_instruction(
-        StandardInstruction::Reset,
-    )))
+    TargetEntry::new_instruction(StandardInstruction::Reset).into_leaked()
 }
 
 /// @ingroup QkTargetEntry
@@ -634,8 +629,8 @@ pub extern "C" fn qk_target_entry_new_reset() -> *mut TargetEntry {
 ///
 /// # Example
 /// ```c
-///     double crx_params[1] = {3.14};
-///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "crx_fixed")";
+/// double crx_params[1] = {3.14};
+/// QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, crx_params, "crx_fixed")";
 /// ```
 ///
 /// # Safety
@@ -665,12 +660,13 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
                 .to_string(),
         )
     };
-    Box::into_raw(Box::new(TargetEntry::new_fixed(
+    TargetEntry::new_fixed(
         operation,
         // SAFETY: per documentation, params is compatible with the operation.
         unsafe { parse_params(operation, params) },
         name_fixed,
-    )))
+    )
+    .into_leaked()
 }
 
 /// @ingroup QkTargetEntry
@@ -682,9 +678,9 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
 ///
 /// # Example
 /// ```c
-///     // Create an entry for an H gate
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
-///     size_t props_size = qk_target_entry_num_properties(entry);
+/// // Create an entry for an H gate
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
+/// size_t props_size = qk_target_entry_num_properties(entry);
 /// ```
 ///
 /// # Safety
@@ -709,27 +705,19 @@ pub unsafe extern "C" fn qk_target_entry_num_properties(entry: *const TargetEntr
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
-///     qk_target_entry_free(entry);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_H);
+/// qk_target_entry_free(entry);
 /// ```
 ///
 /// # Safety
 ///
-/// The behavior is undefined if ``entry`` is not a valid,
-/// non-null pointer to a ``QkTargetEntry`` object.
+/// The behavior is undefined if ``entry`` is not either null or a valid
+/// pointer to a ``QkTargetEntry`` object.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
-    if !entry.is_null() {
-        if !entry.is_aligned() {
-            panic!("Attempted to free a non-aligned pointer.")
-        }
-
-        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
-        // readable by Box.
-        unsafe {
-            let _ = Box::from_raw(entry);
-        }
-    }
+    // SAFETY: if `entry` is not null, then per documentation it is an owned pointer.  Per trait
+    // documentation, all owned pointers can be given to `steal`.
+    _ = (!entry.is_null()).then(|| unsafe { TargetEntry::steal(entry) });
 }
 
 /// @ingroup QkTargetEntry
@@ -747,9 +735,9 @@ pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
 /// ```
 ///
 /// # Safety
@@ -759,7 +747,7 @@ pub unsafe extern "C" fn qk_target_entry_free(entry: *mut TargetEntry) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_target_entry_add_property(
     entry: *mut TargetEntry,
-    qargs: *mut u32,
+    qargs: *const u32,
     num_qubits: u32,
     duration: f64,
     error: f64,
@@ -794,8 +782,8 @@ pub unsafe extern "C" fn qk_target_entry_add_property(
 ///
 /// # Example
 /// ```c
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     qk_target_entry_set_name(entry, "cx_gate");
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// qk_target_entry_set_name(entry, "cx_gate");
 /// ```
 ///
 /// # Safety
@@ -830,18 +818,18 @@ pub unsafe extern "C" fn qk_target_entry_set_name(
 /// Adds a gate to the ``QkTarget`` through a ``QkTargetEntry``.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param target_entry A pointer to the ``QkTargetEntry``. The pointer
-/// gets freed when added to the ``QkTarget``.
+/// @param target_entry A pointer to the ``QkTargetEntry``. This function takes ownership of the
+/// entry and frees it, regardless of the returned ``QkExitCode``.
 ///
 /// @return ``QkExitCode`` specifying if the operation was successful.
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     QkExitCode result = qk_target_add_instruction(target, entry);
+/// QkTarget *target = qk_target_new(5);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// QkExitCode result = qk_target_add_instruction(target, entry);
 /// ```
 ///
 /// # Safety
@@ -902,14 +890,14 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     double params[1] = {3.1415};
-///     QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, params, "crx_pi");
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, entry);
+/// QkTarget *target = qk_target_new(5);
+/// double params[1] = {3.1415};
+/// QkTargetEntry *entry = qk_target_entry_new_fixed(QkGate_CRX, params, "crx_pi");
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// qk_target_add_instruction(target, entry);
 ///
-///     qk_target_update_property(target, QkGate_CRX, qargs, 2, 0.0012, 1.1);
+/// qk_target_update_property(target, QkGate_CRX, qargs, 2, 0.0012, 1.1);
 /// ```
 ///
 /// # Safety
@@ -926,7 +914,7 @@ pub unsafe extern "C" fn qk_target_add_instruction(
 pub unsafe extern "C" fn qk_target_update_property(
     target: *mut Target,
     instruction: StandardGate,
-    qargs: *mut u32,
+    qargs: *const u32,
     num_qubits: u32,
     duration: f64,
     error: f64,
@@ -962,11 +950,11 @@ pub unsafe extern "C" fn qk_target_update_property(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
-///     qk_target_add_instruction(target, target_entry);
+/// QkTarget *target = qk_target_new(5);
+/// QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
+/// qk_target_add_instruction(target, target_entry);
 ///
-///     size_t num_instructions = qk_target_num_instructions(target);
+/// size_t num_instructions = qk_target_num_instructions(target);
 /// ```
 ///
 /// # Safety
@@ -995,21 +983,21 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 ///
 /// # Example
 /// ```c
-///     // Create a mock target with only a global crx entry
-///     // and 3.14 as its rotation parameter.
-///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, (double[]){3.14});
-///     qk_target_entry_add_property(crx_entry, NULL, 0, 0.0, 0.1);
-///     qk_target_add_instruction(target, crx_entry);
+/// // Create a mock target with only a global crx entry
+/// // and 3.14 as its rotation parameter.
+/// QkTarget *target = qk_target_new(5);
+/// QkTargetEntry *crx_entry = qk_target_entry_new_fixed(QkGate_CRX, (double[]){3.14});
+/// qk_target_entry_add_property(crx_entry, NULL, 0, 0.0, 0.1);
+/// qk_target_add_instruction(target, crx_entry);
 ///
-///     // Check if target is compatible with a "crx" gate
-///     // at [0, 1] with 3.14 rotation.
-///     QkParam *params[1] = {qk_param_from_double(3.14)};
-///     qk_target_instruction_supported(target, "crx", (uint32_t []){0, 1}, params);
+/// // Check if target is compatible with a "crx" gate
+/// // at [0, 1] with 3.14 rotation.
+/// QkParam *params[1] = {qk_param_from_double(3.14)};
+/// qk_target_instruction_supported(target, "crx", (uint32_t []){0, 1}, params);
 ///
-///     // Free the pointers
-///     qk_param_free(params[0]);
-///     qk_target_free(target);
+/// // Free the pointers
+/// qk_param_free(params[0]);
+/// qk_target_free(target);
 /// ```
 ///
 /// # Safety
@@ -1077,11 +1065,11 @@ pub unsafe extern "C" fn qk_target_instruction_supported(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
-///     qk_target_add_instruction(target, target_entry);
+/// QkTarget *target = qk_target_new(5);
+/// QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
+/// qk_target_add_instruction(target, target_entry);
 ///
-///     size_t op_idx = qk_target_op_index(target, "h");
+/// size_t op_idx = qk_target_op_index(target, "h");
 /// ```
 ///
 /// # Safety
@@ -1113,13 +1101,13 @@ pub unsafe extern "C" fn qk_target_op_index(target: *const Target, name: *const 
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
-///     qk_target_add_instruction(target, target_entry);
+/// QkTarget *target = qk_target_new(5);
+/// QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
+/// qk_target_add_instruction(target, target_entry);
 ///
-///     char *op_name = qk_target_op_name(target, 0);
-///     // Free after use
-///     qk_str_free(op_name);
+/// char *op_name = qk_target_op_name(target, 0);
+/// // Free after use
+/// qk_str_free(op_name);
 /// ```
 ///
 /// # Safety
@@ -1150,11 +1138,11 @@ pub unsafe extern "C" fn qk_target_op_name(target: *const Target, index: usize) 
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
-///     QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
-///     qk_target_add_instruction(target, target_entry);
+/// QkTarget *target = qk_target_new(5);
+/// QkTargetEntry *target_entry = qk_target_entry_new(QkGate_H);
+/// qk_target_add_instruction(target, target_entry);
 ///
-///     size_t num_props = qk_target_op_num_properties(target, 0);
+/// size_t num_props = qk_target_op_num_properties(target, 0);
 /// ```
 ///
 /// # Safety
@@ -1232,22 +1220,22 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
+/// QkTarget *target = qk_target_new(5);
 ///
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, entry);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// qk_target_add_instruction(target, entry);
 ///
-///     uint32_t *qargs_retrieved;
-///     uint32_t qargs_length;
-///     qk_target_op_qargs(target, 0, 0, &qargs_retrieved, &qargs_length);
-///     if (qargs_retrieved) {
-///         // We should enter this branch.
-///         printf("Number of qargs: %lu\n", qargs_length);
-///     } else {
-///         printf("Qargs are global\n");
-///     }
+/// uint32_t *qargs_retrieved;
+/// uint32_t qargs_length;
+/// qk_target_op_qargs(target, 0, 0, &qargs_retrieved, &qargs_length);
+/// if (qargs_retrieved) {
+///     // We should enter this branch.
+///     printf("Number of qargs: %lu\n", qargs_length);
+/// } else {
+///     printf("Qargs are global\n");
+/// }
 /// ```
 ///
 /// # Safety
@@ -1293,15 +1281,15 @@ pub unsafe extern "C" fn qk_target_op_qargs(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
+/// QkTarget *target = qk_target_new(5);
 ///
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, entry);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// qk_target_add_instruction(target, entry);
 ///
-///     QkInstructionProperties inst_props;
-///     qk_target_op_props(target, 0, 0, &inst_props);
+/// QkInstructionProperties inst_props;
+/// qk_target_op_props(target, 0, 0, &inst_props);
 /// ```
 ///
 /// # Safety
@@ -1454,7 +1442,7 @@ pub unsafe extern "C" fn qk_target_op_get(
                     .params_view()
                     .iter()
                     .map(|param| match param {
-                        Param::Float(_) | Param::ParameterExpression(_) => {
+                        Param::Float(_) | Param::ParameterExpression(_) | Param::Int(_) => {
                             std::ptr::from_ref(param)
                         }
                         Param::Obj(_) => panic!("Objects are not supported in the C API."),
@@ -1512,24 +1500,24 @@ pub unsafe extern "C" fn qk_target_op_get(
 ///
 /// # Example
 /// ```c
-///     QkTarget *target = qk_target_new(5);
+/// QkTarget *target = qk_target_new(5);
 ///
-///     QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
-///     uint32_t qargs[2] = {0, 1};
-///     qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
-///     qk_target_add_instruction(target, entry);
+/// QkTargetEntry *entry = qk_target_entry_new(QkGate_CX);
+/// uint32_t qargs[2] = {0, 1};
+/// qk_target_entry_add_property(entry, qargs, 2, 0.0, 0.1);
+/// qk_target_add_instruction(target, entry);
 ///
-///     QkTargetOp op;
-///     qk_target_op_get(target, 0, &op);
+/// QkTargetOp op;
+/// qk_target_op_get(target, 0, &op);
 ///
-///     // Check if the operation is a gate;
-///     if (op.op_type == QkOperationKind_Gate) {
-///         QkGate gate = qk_target_op_gate(target, 0);
-///         // Do something
-///     }
+/// // Check if the operation is a gate;
+/// if (op.op_type == QkOperationKind_Gate) {
+///     QkGate gate = qk_target_op_gate(target, 0);
+///     // Do something
+/// }
 ///
-///     // Clean up after you're done.
-///     qk_target_op_clear(&op);
+/// // Clean up after you're done.
+/// qk_target_op_clear(&op);
 /// ```
 ///
 /// # Safety

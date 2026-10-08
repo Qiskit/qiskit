@@ -693,7 +693,7 @@ class TestControlledGate(QiskitTestCase):
         if num_controls <= 2:
             num_ancillas = 0
         else:
-            num_ancillas = num_controls - 2
+            num_ancillas = (num_controls - 1) // 2
 
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)
@@ -738,10 +738,10 @@ class TestControlledGate(QiskitTestCase):
 
     def test_mcry_defaults_to_vchain(self):
         """Test mcry defaults to the v-chain mode if sufficient work qubits are provided."""
-        circuit = QuantumCircuit(5)
-        control_qubits = circuit.qubits[:3]
-        target_qubit = circuit.qubits[3]
-        additional_qubits = circuit.qubits[4:]
+        circuit = QuantumCircuit(6)
+        control_qubits = circuit.qubits[:4]
+        target_qubit = circuit.qubits[4]
+        additional_qubits = circuit.qubits[5:]
         circuit.mcry(0.2, control_qubits, target_qubit, additional_qubits)
 
         # If the v-chain mode is selected, all qubits are used. If the noancilla mode would be
@@ -749,7 +749,9 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         self.assertEqual(len(list(dag.idle_wires())), 0)
 
-    @combine(num_controls=[1, 2, 3], base_gate=[RXGate, RYGate, RZGate, CPhaseGate])
+    @combine(
+        num_controls=[1, 2, 3, 4, 5, 6], base_gate=[RXGate, RYGate, RZGate, PhaseGate, CPhaseGate]
+    )
     def test_multi_controlled_rotation_gate_with_parameter(self, num_controls, base_gate):
         """Test multi-controlled rotation gates and MCPhase gate with Parameter synthesis."""
         theta = Parameter("theta")

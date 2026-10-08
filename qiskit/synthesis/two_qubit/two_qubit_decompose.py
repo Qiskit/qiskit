@@ -343,8 +343,6 @@ class TwoQubitControlledUDecomposer:
 
     """
 
-    # Docs generated with assistance from Claude Opus 4.8 (Claude Code).
-
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
         r"""
         Args:

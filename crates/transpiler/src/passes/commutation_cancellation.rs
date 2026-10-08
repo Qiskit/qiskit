@@ -24,7 +24,7 @@ use super::analyze_commutations;
 use crate::commutation_checker::{CommutationChecker, CommutationError};
 use approx::abs_diff_eq;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_synthesis::QiskitError;
 
@@ -109,12 +109,15 @@ struct CancellationSetKey {
 #[pyfunction(name = "cancel_commutations")]
 #[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
 fn py_cancel_commutations(
-    dag: &mut DAGCircuit,
+    py: Python<'_>,
+    dag: &mut PyDAGCircuit,
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<Vec<String>>,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    cancel_commutations(dag, commutation_checker, basis_gates, approximation_degree)
+    // Release the GIL, otherwise rayon workers deadlock when they need it for Python-defined gates.
+    let dag = dag.try_write()?;
+    py.detach(|| cancel_commutations(dag, commutation_checker, basis_gates, approximation_degree))
         .map_err(Into::into)
 }
 

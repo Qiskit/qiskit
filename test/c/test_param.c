@@ -69,9 +69,19 @@ static int test_param_to_real(void) {
     double cmplx_out = qk_param_as_real(cmplx);
     double val_out = qk_param_as_real(val);
 
+    QkParamKind x_kind = qk_param_kind(x);
+    QkParamKind cmplx_kind = qk_param_kind(cmplx);
+    QkParamKind val_kind = qk_param_kind(val);
+
     qk_param_free(x);
     qk_param_free(cmplx);
     qk_param_free(val);
+
+    if (x_kind != QkParamKind_ParameterExpression ||
+        cmplx_kind != QkParamKind_ParameterExpression || val_kind != QkParamKind_Real) {
+        printf("Unexpected success/failure in qk_param_kind.\n");
+        return EqualityError;
+    }
 
     if (!isnan(x_out) || isnan(cmplx_out) || isnan(val_out)) {
         printf("Unexpected success/failure in qk_param_as_real.\n");

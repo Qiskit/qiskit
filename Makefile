@@ -37,6 +37,8 @@ lint:
 	tools/find_optional_imports.py
 	tools/find_stray_release_notes.py
 	tools/verify_images.py
+	cargo fmt --check
+	cargo clippy --all-targets -- -D warnings
 
 style:
 	black --check qiskit test tools setup.py docs/conf.py
