@@ -33,26 +33,26 @@ pub enum PauliEvolutionError {
     Matrix(#[from] MatrixError),
 }
 
-/// Time-evolution of a hermitian operator.
+/// Time-evolution of an operator.
 ///
-/// For a hermitian operator **H** and time **t**, this gate represents the unitary
+/// For an operator **H** and time **t**, this gate represents the unitary
 /// **U(t) = e<sup>-itH</sup>**.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
-    hermitian: SparseObservable,
+    operator: SparseObservable,
     time: ComparableParam,
 }
 
 impl PauliEvolution {
-    /// Construct a new [`PauliEvolution`] with a `hermitian` operator and `time` parameter.
+    /// Construct a new [`PauliEvolution`] with an `operator` and `time` parameter.
     ///
     /// # Errors
     ///
     /// Returns an error if `time` isn't a float or expression.
-    pub fn new(hermitian: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
+    pub fn new(operator: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
         if matches!(time, Param::Float(_) | Param::ParameterExpression(_)) {
             Ok(Self {
-                hermitian,
+                operator,
                 time: ComparableParam(time),
             })
         } else {
@@ -60,9 +60,9 @@ impl PauliEvolution {
         }
     }
 
-    /// Returns a reference to the `hermitian` operator.
-    pub fn hermitian(&self) -> &SparseObservable {
-        &self.hermitian
+    /// Returns a reference to the `operator`.
+    pub fn operator(&self) -> &SparseObservable {
+        &self.operator
     }
 
     /// Returns a reference to the `time` parameter.
@@ -76,12 +76,12 @@ impl PauliEvolution {
     ///
     /// # Errors
     ///
-    /// Returns an error if `time` isn't evaluated or the `hermitian` operator
+    /// Returns an error if `time` isn't evaluated or the `operator`
     /// can't be expanded into its dense matrix form.
     pub fn to_matrix(&self) -> Result<Array2<Complex64>, PauliEvolutionError> {
         if let Param::Float(time) = self.time() {
             let matrix = self
-                .hermitian()
+                .operator()
                 .to_matrix()
                 .map_err(PauliEvolutionError::from)?;
 
@@ -95,7 +95,7 @@ impl PauliEvolution {
     /// Decomposes `PauliEvolution` into its owned components.
     pub fn into_parts(self) -> PauliEvolutionParts {
         PauliEvolutionParts {
-            hermitian: self.hermitian,
+            operator: self.operator,
             time: self.time.0,
         }
     }
@@ -107,7 +107,7 @@ impl Operation for PauliEvolution {
     }
 
     fn num_qubits(&self) -> u32 {
-        self.hermitian.num_qubits()
+        self.operator.num_qubits()
     }
 
     fn num_clbits(&self) -> u32 {
@@ -156,7 +156,7 @@ impl CustomOperation for PauliEvolution {
 
 #[derive(Debug, Clone)]
 pub struct PauliEvolutionParts {
-    pub hermitian: SparseObservable,
+    pub operator: SparseObservable,
     pub time: Param,
 }
 
