@@ -23,10 +23,7 @@ from typing import Any, TypeVar
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager.passmanager import BasePassManager
-from qiskit.passmanager.base_tasks import Task
-from qiskit.passmanager.flow_controllers import FlowControllerLinear
-from qiskit.passmanager.exceptions import PassManagerError
+from qiskit.passmanager import BasePassManager, Task, FlowControllerLinear, PassManagerError
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
@@ -59,10 +56,12 @@ class PassManager(BasePassManager):
         input_program: QuantumCircuit,
         **kwargs,
     ) -> DAGCircuit:
-        self.property_set["original_qubit_indices"] = {
-            bit: i for i, bit in enumerate(input_program.qubits)
-        }
-        self.property_set["num_input_qubits"] = input_program.num_qubits
+        if self.property_set["original_qubit_indices"] is None:
+            self.property_set["original_qubit_indices"] = {
+                bit: i for i, bit in enumerate(input_program.qubits)
+            }
+        if self.property_set["num_input_qubits"] is None:
+            self.property_set["num_input_qubits"] = input_program.num_qubits
         return circuit_to_dag(input_program, copy_operations=True)
 
     def _passmanager_backend(
@@ -206,6 +205,11 @@ class PassManager(BasePassManager):
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
         `Graphviz <https://www.graphviz.org/>`__ to be installed.
+
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as pass names).  It is recommended to only call this function on trusted
+            input.
 
         Args:
             filename (str): file path to save image to.
@@ -378,7 +382,7 @@ class StagedPassManager(PassManager):
     ) -> None:
         raise NotImplementedError
 
-    # Raise NotImplemntedError on individual pass manipulation
+    # Raise NotImplementedError on individual pass manipulation
     def remove(self, index: int) -> None:
         raise NotImplementedError
 
@@ -418,7 +422,21 @@ class StagedPassManager(PassManager):
         return super().to_flow_controller()
 
     def draw(self, filename=None, style=None, raw=False):
-        """Draw the staged pass manager."""
+        """Draw the staged pass manager.
+
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as pass names).  It is recommended to only call this function on trusted
+            input.
+
+        Args:
+            filename (str): file path to save image to.
+            style (dict): keys are the pass classes and the values are the colors to make them. An
+                example can be seen in the DEFAULT_STYLE. An ordered dict can be used to ensure
+                a priority coloring when pass falls into multiple categories. Any values not
+                included in the provided dict will be filled in from the default dict.
+            raw (bool): If ``True``, save the raw Dot output instead of the image.
+        """
         from qiskit.visualization import staged_pass_manager_drawer
 
         return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw)

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Generic BackendV2 class that with a simulated ``run``."""
+"""Generic BackendV2 class with a simulated ``run``."""
 
 from __future__ import annotations
 import warnings
@@ -50,7 +50,7 @@ _NOISE_DEFAULTS = {
     "x": (2.997e-08, 5.994e-08, 9e-5, 1e-4),
     "measure": (6.99966e-07, 1.500054e-06, 1e-5, 5e-3),
     "delay": (None, None),
-    "reset": (None, None),
+    "reset": (2.212008e-06, None),
 }
 
 # Fallback values for gates with unknown noise default ranges.

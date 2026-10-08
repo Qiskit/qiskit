@@ -281,7 +281,7 @@ pub unsafe extern "C" fn qk_vf2_layout_configuration_set_score_initial(
     unsafe { (*config).0.score_initial_layout = score_initial };
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Use the VF2 algorithm to choose a layout (if possible) for the input circuit, using a
 /// noise-aware scoring heuristic based only on hardware error rates, and not the specific gates in
 /// the circuit.
@@ -353,7 +353,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_average(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -369,7 +369,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_average(
         .unwrap()
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Use the VF2 algorithm to choose a layout (if possible) for the input circuit, using a
 /// noise-aware scoring heuristic that requires the result is already fully compatible with
 /// the hardware.
@@ -443,7 +443,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
-    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -458,7 +458,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
         .unwrap()
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Deprecated version of `qk_transpiler_pass_standalone_vf2_layout_average`.
 ///
 /// This legacy interface does not use `QkVf2LayoutConfiguration`, and has a name that is not clear
@@ -481,6 +481,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
 ///
 /// The safety requirements of `qk_transpiler_pass_standalone_vf2_layout_average` must be respected
 /// for `circuit` and `target`.
+/// cbindgen:qk-vtable-rules=[no-export]
 #[deprecated(
     since = "2.3.0",
     note = "use `qk_transpiler_pass_standalone_vf2_layout_average` instead"

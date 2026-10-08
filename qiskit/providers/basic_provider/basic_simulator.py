@@ -253,7 +253,7 @@ class BasicSimulator(BackendV2):
         Args:
             qubit: index indicating the qubit to measure
 
-        Return:
+        Returns:
             pair (outcome, probability) where outcome is '0' or '1' and
             probability is the probability of the returned outcome.
         """
@@ -338,9 +338,9 @@ class BasicSimulator(BackendV2):
         """Apply a reset instruction to a qubit.
 
         Args:
-            qubit: the qubit being rest
+            qubit: the qubit being reset
 
-        This is done by doing a simulating a measurement
+        This is done by simulating a measurement
         outcome and projecting onto the outcome state while
         renormalizing.
         """
@@ -546,7 +546,7 @@ class BasicSimulator(BackendV2):
         # Find measurement operations
         measure_ops = []
         for operation in circuit.data:
-            if operation.operation.name == "measure":
+            if operation.name == "measure":
                 qubit = circuit.find_bit(operation.qubits[0]).index
                 clbit = circuit.find_bit(operation.clbits[0]).index
                 measure_ops.append((qubit, clbit))

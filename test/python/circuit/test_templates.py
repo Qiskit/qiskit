@@ -37,11 +37,15 @@ class TestTemplates(QiskitTestCase):
 
     @combine(template_circuit=circuits)
     def test_template(self, template_circuit):
-        """test to verify that all templates are equivalent to the identity"""
+        """Test that all templates are exactly equal to the identity (including global phase).
 
+        Uses strict Operator equality rather than equiv() so that a template whose
+        gate content carries a residual global phase (i.e. global_phase is not set
+        to compensate) is caught as a failure rather than silently accepted.
+        """
         target = Operator(template_circuit)
         value = Operator(np.eye(2**template_circuit.num_qubits))
-        self.assertTrue(target.equiv(value))
+        self.assertEqual(target, value)
 
 
 if __name__ == "__main__":

@@ -46,7 +46,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data.qubits, list(qr))
 
         # Test re-adding is disallowed by default.
-        with self.assertRaisesRegex(ValueError, "Existing object"):
+        with self.assertRaisesRegex(ValueError, "cannot add object"):
             data.add_qubit(qr[0])
 
         # Make sure re-adding is allowed in non-strict mode
@@ -62,7 +62,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data.qubits, qubits)
 
         # Test re-adding is disallowed by default.
-        with self.assertRaisesRegex(ValueError, "Existing object"):
+        with self.assertRaisesRegex(ValueError, "cannot add object"):
             data.add_qubit(qubits[0])
 
         # Make sure re-adding is allowed in non-strict mode
@@ -111,7 +111,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data.clbits, list(cr))
 
         # Test re-adding is disallowed by default.
-        with self.assertRaisesRegex(ValueError, "Existing object"):
+        with self.assertRaisesRegex(ValueError, "cannot add object"):
             data.add_clbit(cr[0])
 
         # Make sure re-adding is allowed in non-strict mode
@@ -127,7 +127,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         self.assertEqual(data.clbits, clbits)
 
         # Test re-adding is disallowed by default.
-        with self.assertRaisesRegex(ValueError, "Existing object"):
+        with self.assertRaisesRegex(ValueError, "cannot add object"):
             data.add_clbit(clbits[0])
 
         # Make sure re-adding is allowed in non-strict mode
@@ -441,7 +441,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         """Test using foreign bits is not allowed."""
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
-        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+        with self.assertRaisesRegex(KeyError, "is not present"):
             CircuitData(qr, cr, [CircuitInstruction(XGate(), [Qubit()], [])])
 
     def test_unregistered_bit_error_append(self):
@@ -449,7 +449,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         data = CircuitData(qr, cr)
-        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+        with self.assertRaisesRegex(KeyError, "is not present"):
             qr_foreign = QuantumRegister(1)
             data.append(CircuitInstruction(XGate(), [qr_foreign[0]], []))
 
@@ -458,7 +458,7 @@ class TestQuantumCircuitData(QiskitTestCase):
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         data = CircuitData(qr, cr, [CircuitInstruction(XGate(), [qr[0]], [])])
-        with self.assertRaisesRegex(KeyError, "not been added to this circuit"):
+        with self.assertRaisesRegex(KeyError, "is not present"):
             qr_foreign = QuantumRegister(1)
             data[0] = CircuitInstruction(XGate(), [qr_foreign[0]], [])
 

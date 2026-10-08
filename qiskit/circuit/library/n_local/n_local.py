@@ -446,7 +446,7 @@ class NLocal(BlueprintCircuit):
         """Set the number of qubits for the n-local circuit.
 
         Args:
-            The new number of qubits.
+            num_qubits: The new number of qubits.
         """
         if self._num_qubits != num_qubits:
             # invalidate the circuit
@@ -666,7 +666,7 @@ class NLocal(BlueprintCircuit):
         """Set the parameters used in the underlying circuit.
 
         Args:
-            The parameters to be used in the underlying circuit.
+            parameters: The parameters to be used in the underlying circuit.
 
         Raises:
             ValueError: If the length of ordered parameters does not match the number of

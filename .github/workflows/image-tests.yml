@@ -22,11 +22,13 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ inputs.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python-version }}
+      - name: Install Rust
+        run: rustup toolchain install --profile minimal --no-self-update
       - name: Install Image dependencies
         run: |
           set -e
@@ -50,7 +52,7 @@ jobs:
           # This variable should become redundant on release of jupyter-core 6.
           JUPYTER_PLATFORM_DIRS: 1
       - name: Store image tests diff
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ failure() }}
         with:
           name: image-test-failure-img-diffs

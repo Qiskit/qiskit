@@ -66,6 +66,9 @@ class BasePadding(TransformationPass):
             target: The :class:`~.Target` representing the target backend.
                 If it supplied and it does not support delay instruction on a qubit,
                 padding passes do not pad any idle time of the qubit.
+            durations: The instruction durations. This is mostly for legacy applications without
+                a :class:`.Target`. The ``target`` argument should typically be used instead of
+                this and if both are specified ``target`` will supersede this argument.
         """
         super().__init__()
         self.target = target

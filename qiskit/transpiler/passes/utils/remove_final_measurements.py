@@ -23,7 +23,7 @@ def calc_final_ops(dag: DAGCircuit, final_op_names: set[str]) -> list[DAGOpNode]
         final_op_names: names of the operations to find at the end of the circuit.
 
     Returns:
-    List of nodes corresponding the the relevant operations at the end of the circuit.
+    List of nodes corresponding to the relevant operations at the end of the circuit.
     """
     final_ops = []
 
@@ -35,7 +35,7 @@ def calc_final_ops(dag: DAGCircuit, final_op_names: set[str]) -> list[DAGOpNode]
         if not isinstance(node, DAGOpNode):
             continue
 
-        if node.op.name == "barrier":
+        if node.name == "barrier":
             # Barrier is final if all children are final, so we track
             # how many times we still need to encounter each barrier
             # via a child node.

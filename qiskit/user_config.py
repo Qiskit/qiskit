@@ -33,11 +33,11 @@ class UserConfig:
     circuit_reverse_bits = True
     circuit_idle_wires = False
     transpile_optimization_level = 1
+    transpiler_seed = 42
     parallel = False
     num_processes = 4
     sabre_all_threads = true
     min_qpy_version = 13
-
     """
 
     def __init__(self, filename=None):
@@ -205,6 +205,26 @@ class UserConfig:
                     )
                 self.settings["min_qpy_version"] = min_qpy_version
 
+            # Parse transpiler_seed
+            try:
+                transpiler_seed = self.config_parser.getint(
+                    "default",
+                    "transpiler_seed",
+                    fallback=None,
+                )
+            except ValueError as ve:
+                raise exceptions.QiskitUserConfigError(
+                    "transpiler_seed in the user configuration file is not a valid seed value. It "
+                    "must be a non-negative integer."
+                ) from ve
+            if transpiler_seed is not None:
+                if transpiler_seed < 0:
+                    raise exceptions.QiskitUserConfigError(
+                        "transpiler_seed in the user configuration file is a negative int. It "
+                        "must be a non-negative integer."
+                    )
+                self.settings["transpiler_seed"] = transpiler_seed
+
 
 def set_config(key, value, section=None, file_path=None):
     """Adds or modifies a user configuration
@@ -247,6 +267,7 @@ def set_config(key, value, section=None, file_path=None):
         "num_processes",
         "sabre_all_threads",
         "min_qpy_version",
+        "transpiler_seed",
     }
 
     if section in [None, "default"]:

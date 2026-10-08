@@ -131,7 +131,7 @@ class BackendV2(Backend, ABC):
 
     @property
     def instructions(self) -> list[tuple[Instruction, tuple[int]]]:
-        """A list of Instruction tuples on the backend of the form ``(instruction, (qubits)``"""
+        """A list of Instruction tuples on the backend of the form ``(instruction, (qubits))``"""
         return self.target.instructions
 
     @property
@@ -259,7 +259,7 @@ class BackendV2(Backend, ABC):
         """
         # Since the target didn't always have a qubit properties attribute
         # to ensure the behavior here is backwards compatible with earlier
-        # BacekendV2 implementations where this would raise a NotImplemented
+        # BackendV2 implementations where this would raise a NotImplemented
         # error.
         if self.target.qubit_properties is None:
             raise NotImplementedError

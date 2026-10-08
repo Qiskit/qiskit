@@ -11,7 +11,8 @@
 // that they have been altered from the originals.
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
-use rand::{Rng, SeedableRng};
+use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
@@ -52,11 +53,11 @@ pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
         max_iterations: 4,
         num_swap_trials: 20,
         num_random_trials: 20,
-        seed: Pcg64Mcg::from_os_rng().random(),
+        seed: Pcg64Mcg::try_from_rng(&mut SysRng).unwrap().random(),
     }
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the SabreLayout transpiler pass on a circuit.
 ///
 /// The SabreLayout pass chooses a layout via an iterative bidirectional routing of the input
@@ -113,18 +114,20 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let target = unsafe { const_ptr_as_ref(target) };
     let options = unsafe { const_ptr_as_ref(options) };
-    let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None, None, None)
+    let mut dag = DAGCircuit::from_circuit_data(circuit, false, None, None)
         .unwrap_or_else(|_| panic!("Internal circuit to DAG conversion failed."));
     let heuristic = heuristic::Heuristic::new(
         Some(heuristic::BasicHeuristic::new(
             1.0,
             heuristic::SetScaling::Constant,
         )),
-        Some(heuristic::LookaheadHeuristic::new(
-            0.5,
-            20,
-            heuristic::SetScaling::Size,
-        )),
+        Some(
+            heuristic::LookaheadHeuristic::new(
+                vec![0.5 / target.num_qubits.unwrap_or(20) as f64],
+                heuristic::SetScaling::Constant,
+            )
+            .expect("number of layers should be valid"),
+        ),
         Some(heuristic::DecayHeuristic::new(0.001, 5)),
         Some(10 * target.num_qubits.unwrap() as usize),
         1e-10,

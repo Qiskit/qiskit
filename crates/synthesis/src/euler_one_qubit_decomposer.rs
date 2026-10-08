@@ -31,12 +31,12 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
-use qiskit_circuit::util::c64;
 use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
+use qiskit_util::complex::c64;
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -195,9 +195,15 @@ fn circuit_u3(
         Some(atol) => atol,
         None => ANGLE_ZERO_EPSILON,
     };
-    let phi = mod_2pi(phi, atol);
-    let lam = mod_2pi(lam, atol);
-    if !simplify || theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
+    if simplify && theta.abs() < atol {
+        // At zero theta the gate is diagonal and only depends on `phi + lam`.
+        let tot = mod_2pi(phi + lam, atol);
+        if tot.abs() > atol {
+            circuit.push((StandardGate::U3, smallvec![0., 0., tot]));
+        }
+    } else {
+        let phi = mod_2pi(phi, atol);
+        let lam = mod_2pi(lam, atol);
         circuit.push((StandardGate::U3, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
@@ -260,9 +266,15 @@ fn circuit_u(
     if !simplify {
         atol = -1.0;
     }
-    let phi = mod_2pi(phi, atol);
-    let lam = mod_2pi(lam, atol);
-    if theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
+    if theta.abs() < atol {
+        // At zero theta the gate is diagonal and only depends on `phi + lam`.
+        let tot = mod_2pi(phi + lam, atol);
+        if tot.abs() > atol {
+            circuit.push((StandardGate::U, smallvec![0., 0., tot]));
+        }
+    } else {
+        let phi = mod_2pi(phi, atol);
+        let lam = mod_2pi(lam, atol);
         circuit.push((StandardGate::U, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
@@ -900,7 +912,7 @@ pub fn unitary_to_circuit(
     error_map: Option<&OneQubitGateErrorMap>,
     simplify: bool,
     atol: Option<f64>,
-) -> PyResult<Option<CircuitData>> {
+) -> PyResult<Option<PyCircuitData>> {
     let mut target_basis_set = EulerBasisSet::new();
     for basis in target_basis_list
         .iter()
@@ -928,6 +940,7 @@ pub fn unitary_to_circuit(
             }),
             Param::Float(seq.global_phase),
         )
+        .map(Into::into)
         .expect("Unexpected Qiskit python bug")
     }))
 }

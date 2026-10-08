@@ -138,7 +138,7 @@ xx_region_polytope = PolytopeData(
             equalities=[],
             name=(
                 "I ∩ A alcove ∩ "
-                "A unreflected ∩ ah slant ∩ al frustrum ∩ B alcove ∩ B unreflected ∩ AF=B3"
+                "A unreflected ∩ ah slant ∩ al frustum ∩ B alcove ∩ B unreflected ∩ AF=B3"
             ),
         ),
         ConvexPolytopeData(
@@ -162,7 +162,7 @@ xx_region_polytope = PolytopeData(
             equalities=[],
             name=(
                 "I ∩ A alcove ∩ "
-                "A reflected ∩ ah strength ∩ al frustrum ∩ B alcove ∩ B reflected ∩ AF=B3"
+                "A reflected ∩ ah strength ∩ al frustum ∩ B alcove ∩ B reflected ∩ AF=B3"
             ),
         ),
         ConvexPolytopeData(
@@ -187,7 +187,7 @@ xx_region_polytope = PolytopeData(
             equalities=[],
             name=(
                 "I ∩ A alcove ∩ "
-                "A unreflected ∩ af slant ∩ al frustrum ∩ B alcove ∩ B unreflected ∩ AF=B1"
+                "A unreflected ∩ af slant ∩ al frustum ∩ B alcove ∩ B unreflected ∩ AF=B1"
             ),
         ),
         ConvexPolytopeData(
@@ -212,7 +212,7 @@ xx_region_polytope = PolytopeData(
             equalities=[],
             name=(
                 "I ∩ A alcove ∩ "
-                "A reflected ∩ af strength ∩ al frustrum ∩ B alcove ∩ B reflected ∩ AF=B1"
+                "A reflected ∩ af strength ∩ al frustum ∩ B alcove ∩ B reflected ∩ AF=B1"
             ),
         ),
     ]
@@ -267,7 +267,7 @@ xx_lift_polytope = PolytopeData(
             equalities=[[0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0]],
             name=(
                 "I ∩ A alcove ∩ "
-                "A unreflected ∩ ah slant ∩ al frustrum ∩ B alcove ∩ B unreflected ∩ AF=B3"
+                "A unreflected ∩ ah slant ∩ al frustum ∩ B alcove ∩ B unreflected ∩ AF=B3"
             ),
         ),
         ConvexPolytopeData(
@@ -305,7 +305,7 @@ xx_lift_polytope = PolytopeData(
             equalities=[[0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0]],
             name=(
                 "I ∩ A alcove ∩ "
-                "A unreflected ∩ af slant ∩ al frustrum ∩ B alcove ∩ B unreflected ∩ AF=B1"
+                "A unreflected ∩ af slant ∩ al frustum ∩ B alcove ∩ B unreflected ∩ AF=B1"
             ),
         ),
         ConvexPolytopeData(
@@ -343,7 +343,7 @@ xx_lift_polytope = PolytopeData(
             equalities=[[0, 0, 0, 1, -1, 0, 0, 0, 0, 0, 0]],
             name=(
                 "I ∩ A alcove ∩ "
-                "A reflected ∩ af strength ∩ al frustrum ∩ B alcove ∩ B reflected ∩ AF=B1"
+                "A reflected ∩ af strength ∩ al frustum ∩ B alcove ∩ B reflected ∩ AF=B1"
             ),
         ),
         ConvexPolytopeData(
@@ -381,7 +381,7 @@ xx_lift_polytope = PolytopeData(
             equalities=[[0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0]],
             name=(
                 "I ∩ A alcove ∩ "
-                "A reflected ∩ ah strength ∩ al frustrum ∩ B alcove ∩ B reflected ∩ AF=B3"
+                "A reflected ∩ ah strength ∩ al frustum ∩ B alcove ∩ B reflected ∩ AF=B3"
             ),
         ),
     ]

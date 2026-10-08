@@ -55,6 +55,9 @@ if os.getenv("QISKIT_NO_CACHE_GATES") == "1":
 else:
     features = ["cache_pygates"]
 
+if os.getenv("QISKIT_BUILD_WITH_MIMALLOC") == "1":
+    features.append("mimalloc")
+
 
 setup(
     rust_extensions=[
@@ -64,6 +67,7 @@ setup(
             binding=Binding.PyO3,
             debug=rust_debug,
             features=features,
+            generated_files={"include": "qiskit.capi", "_ctypes.py": "qiskit.capi"},
         )
     ],
     options={"bdist_wheel": {"py_limited_api": "cp310"}},

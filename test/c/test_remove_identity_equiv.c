@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static int test_remove_identity_equiv_removes_gates(void) {
+static int test_standalone_remove_identity_equiv_removes_gates(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;
@@ -49,8 +49,36 @@ static int test_remove_identity_equiv_removes_gates(void) {
     return result;
 }
 
+static int test_remove_identity_equiv_removes_gates(void) {
+    const uint32_t num_qubits = 5;
+    QkTarget *target = qk_target_new(num_qubits);
+    int result = Ok;
+
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    uint32_t qargs[1] = {0};
+    double params_zero[1] = {0.};
+    double params[1] = {1.23};
+    qk_dag_apply_gate(dag, QkGate_I, qargs, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_RZ, qargs, params_zero, false);
+    qk_dag_apply_gate(dag, QkGate_RX, qargs, params, false);
+
+    qk_transpiler_pass_remove_identity_equivalent(dag, target, 1.0);
+    if (qk_dag_num_op_nodes(dag) != 1) {
+        result = EqualityError;
+        printf("The gates weren't removed by this circuit");
+    }
+
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    qk_target_free(target);
+    return result;
+}
+
 int test_remove_identity_equiv(void) {
     int num_failed = 0;
+    num_failed += RUN_TEST(test_standalone_remove_identity_equiv_removes_gates);
     num_failed += RUN_TEST(test_remove_identity_equiv_removes_gates);
 
     fflush(stderr);

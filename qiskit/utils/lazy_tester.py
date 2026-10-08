@@ -29,7 +29,7 @@ from .classtools import wrap_method
 
 class _RequireNow:
     """Helper callable that accepts all function signatures and simply calls
-    :meth:`.LazyDependencyManager.require_now`.  This helpful when used with :func:`.wrap_method`,
+    :meth:`.LazyDependencyManager.require_now`.  This is helpful when used with :func:`.wrap_method`,
     as the callable needs to be compatible with all signatures and be picklable."""
 
     __slots__ = ("_feature", "_tester")
@@ -261,6 +261,12 @@ class LazyImportTester(LazyDependencyManager):
                 module.  It should be valid to write ``from <module> import <name1>, <name2>, ...``.
                 If simply a string or iterable of strings, then it should be valid to write
                 ``import <module>`` for each of them.
+            name: the name of this optional dependency.
+            callback: a callback that is called immediately after the availability of the library is
+                tested with the result.  This will only be called once.
+            install: how to install this optional dependency.  Passed to
+                :class:`.MissingOptionalLibraryError` as the ``pip_install`` parameter.
+            msg: an extra message to include in the error raised if this is required.
 
         Raises:
             ValueError: if no modules are given.
@@ -344,6 +350,12 @@ class LazySubprocessTester(LazyDependencyManager):
         Args:
             command: the strings that make up the command to be run.  For example,
                 ``["pdflatex", "-version"]``.
+            name: the name of this optional dependency.
+            callback: a callback that is called immediately after the availability of the library is
+                tested with the result.  This will only be called once.
+            install: how to install this optional dependency.  Passed to
+                :class:`.MissingOptionalLibraryError` as the ``pip_install`` parameter.
+            msg: an extra message to include in the error raised if this is required.
 
         Raises:
             ValueError: if an empty command is given.

@@ -35,7 +35,7 @@ class Layout2qDistance(AnalysisPass):
         """Layout2qDistance initializer.
 
         Args:
-            coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling map.
             property_name (str): The property name to save the score. Default: layout_score
         """
         super().__init__()

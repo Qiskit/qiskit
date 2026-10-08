@@ -22,7 +22,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -154,8 +153,6 @@ class Statevector(QuantumState, TolerancesMixin):
                 print(sv1.equiv(sv2))  # True
         """
 
-        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
-
         # Handle layout extraction
         layout = None
         if not ignore_set_layout:
@@ -182,7 +179,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         return statevec
 
-    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+    def __array__(self, dtype=None, copy=None):
         dtype = self.data.dtype if dtype is None else dtype
         return np.array(self.data, dtype=dtype, copy=copy)
 
@@ -1027,7 +1024,8 @@ class Statevector(QuantumState, TolerancesMixin):
             )
 
         if obj.definition.global_phase:
-            statevec._data *= np.exp(1j * float(obj.definition.global_phase))
+            # We do not apply this in-place, just in-case we have a shallow copy of _data.
+            statevec._data = statevec._data * np.exp(1j * float(obj.definition.global_phase))
         qubits = {qubit: i for i, qubit in enumerate(obj.definition.qubits)}
         for instruction in obj.definition:
             if instruction.clbits:
