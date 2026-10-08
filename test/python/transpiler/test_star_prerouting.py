@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Test the StarPreRouting pass"""
 
@@ -19,12 +18,11 @@ import unittest
 from test import QiskitTestCase
 import ddt
 
-from qiskit.circuit.library import QFT
+from qiskit.synthesis.qft import synth_qft_full
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes import VF2Layout, ApplyLayout, SabreSwap, SabreLayout
-from qiskit.transpiler.passes.layout.vf2_utils import build_interaction_graph
 from qiskit.transpiler.passes.routing.star_prerouting import StarPreRouting
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager import PassManager
@@ -398,7 +396,7 @@ class TestStarPreRouting(QiskitTestCase):
         self.assertEqual(len(star_blocks[2].nodes), 3)
 
     def test_count_70_qft_stars(self):
-        qft_module = QFT(10, do_swaps=False).decompose()
+        qft_module = synth_qft_full(10, do_swaps=False)
         qftqc = QuantumCircuit(100)
         for i in range(10):
             qftqc.compose(qft_module, qubits=range(i * 10, (i + 1) * 10), inplace=True)
@@ -415,7 +413,7 @@ class TestStarPreRouting(QiskitTestCase):
             self.assertEqual(star_len_list.count(i), 10)
 
     def test_count_50_qft_stars(self):
-        qft_module = QFT(10, do_swaps=False).decompose()
+        qft_module = synth_qft_full(10, do_swaps=False)
         qftqc = QuantumCircuit(10)
         for _ in range(10):
             qftqc.compose(qft_module, qubits=range(10), inplace=True)
@@ -463,7 +461,7 @@ class TestStarPreRouting(QiskitTestCase):
 
     def test_routing_after_star_prerouting(self):
         nq = 6
-        qc = QFT(nq, do_swaps=False, insert_barriers=True).decompose()
+        qc = synth_qft_full(nq, do_swaps=False, insert_barriers=True)
         cm = CouplingMap.from_line(nq)
 
         pm_preroute = PassManager()
@@ -486,7 +484,7 @@ class TestStarPreRouting(QiskitTestCase):
     def test_qft_linearization(self, num_qubits):
         """Test the QFT circuit to verify if it is linearized and requires n-2 swaps."""
 
-        qc = QFT(num_qubits, do_swaps=False, insert_barriers=True).decompose()
+        qc = synth_qft_full(num_qubits, do_swaps=False, insert_barriers=True)
         dag = circuit_to_dag(qc)
         new_dag = StarPreRouting().run(dag)
         new_qc = dag_to_circuit(new_dag)
@@ -497,7 +495,13 @@ class TestStarPreRouting(QiskitTestCase):
         self.assertEqual(swap_count, cp_count - 2)
 
         # Confirm linearization by checking that the number of edges is equal to the number of nodes
-        interaction_graph = build_interaction_graph(new_dag, strict_direction=False)[0]
-        num_edges = interaction_graph.num_edges()
-        num_nodes = interaction_graph.num_nodes()
-        self.assertEqual(num_edges, num_nodes - 1)
+        def get_edge(node, dag):
+            qubits = tuple(dag.find_bit(q).index for q in node.qargs)
+            if len(qubits) != 2:
+                return None
+            return (qubits[0], qubits[1]) if qubits[0] < qubits[1] else (qubits[1], qubits[0])
+
+        edges = {
+            edge for node in new_dag.op_nodes() if (edge := get_edge(node, new_dag)) is not None
+        }
+        self.assertEqual(len(edges), new_dag.num_qubits() - 1)

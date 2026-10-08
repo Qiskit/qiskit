@@ -14,9 +14,9 @@ the C API:
   with the Rust objects from the extension code without using Python for better
   performance.
 
-To get started, see `Install the Qiskit C API <https://docs.quantum.ibm.com/guides/install-c-api>`_.
+To get started, see `Install the Qiskit C API <https://quantum.cloud.ibm.com/docs/guides/install-c-api>`_.
 To combine the C API with custom Python extensions, see
-`Extend Qiskit in Python with C <https://docs.quantum.ibm.com/guides/c-extension-for-python>`_.
+`Extend Qiskit in Python with C <https://quantum.cloud.ibm.com/docs/guides/c-extension-for-python>`_.
 
 As this interface is still new in Qiskit it should be considered experimental
 and the interface might change between minor version releases.
@@ -29,6 +29,36 @@ Quantum Circuit
    :maxdepth: 1
 
    qk-circuit
+   qk-quantum-register
+   qk-classical-register
+   qk-param
+   qk-operation
+
+Dynamic Circuits
+++++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-dynamic-circuits
+   qk-control-flow
+   qk-classical-expressions
+
+Circuit Library
++++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-circuit-library
+
+Import/Export
++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-qpy
 
 -------------------
 Quantum information
@@ -40,4 +70,43 @@ Quantum information
    qk-obs
    qk-obs-term
    qk-bit-term
+   qk-complex64
    qk-exit-code
+
+----------
+Transpiler
+----------
+
+Using the transpiler from the C API is intended to only cover
+circuits created solely via the C API. If you are in a hybrid mode where
+you're using the C API with Python you should invoke the transpiler via
+the Python :mod:`qiskit.transpiler` module instead; the functionality is
+the same Rust internals they just offer different entrypoints. The C API
+for transpilation makes assumptions about the input only using constructs
+exposed to the C Quantum Circuit API and you will potentially get incomplete
+results transpiling circuits from Python via the C API.
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-dag
+   qk-transpiler
+   qk-target
+   qk-target-entry
+   qk-neighbors
+   qk-transpile-layout
+   qk-transpiler-passes
+   qk-vf2-layout
+   qk-sabre-layout-options
+   pass-manager
+
+---------
+Utilities
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   config
+   dynamic-types
+   version

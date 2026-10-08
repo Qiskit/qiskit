@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -99,11 +99,10 @@ def pauli_twirl_2q_gates(
 
                 if twirling_gate is None:
                     custom_gates.append(gate)
+                elif twirling_gate in NAME_TO_CLASS.values():
+                    twirling_std_gate.append(twirling_gate)
                 else:
-                    if twirling_gate in NAME_TO_CLASS.values():
-                        twirling_std_gate.append(twirling_gate)
-                    else:
-                        custom_gates.append(gate)
+                    custom_gates.append(gate)
         if not custom_gates:
             custom_gates = None
         if not twirling_std_gate:
@@ -113,12 +112,11 @@ def pauli_twirl_2q_gates(
         if std_gate is None:
             twirling_std_gate = None
             custom_gates = [twirling_gate]
+        elif std_gate in NAME_TO_CLASS.values():
+            twirling_std_gate = [std_gate]
         else:
-            if std_gate in NAME_TO_CLASS.values():
-                twirling_std_gate = [std_gate]
-            else:
-                twirling_std_gate = None
-                custom_gates = [twirling_gate]
+            twirling_std_gate = None
+            custom_gates = [twirling_gate]
     else:
         twirling_std_gate = twirling_gate
     out_twirls = num_twirls
@@ -136,10 +134,10 @@ def pauli_twirl_2q_gates(
         out_list = []
         for circ in new_data:
             new_circ = QuantumCircuit._from_circuit_data(circ)
-            _copy_metadata(circuit, new_circ, "alike")
+            _copy_metadata(circuit, new_circ)
             out_list.append(new_circ)
         return out_list
     else:
         out_circ = QuantumCircuit._from_circuit_data(new_data[0])
-        _copy_metadata(circuit, out_circ, "alike")
+        _copy_metadata(circuit, out_circ)
         return out_circ

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,7 +18,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from ..legacy_cmaps import ALMADEN_CMAP
 
 
@@ -27,7 +27,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_config_from_backend_v2(self):
         """Test from_backend() with a BackendV2 instance."""
-        backend = GenericBackendV2(num_qubits=27, seed=42)
+        backend = GenericBackendV2(num_qubits=27, coupling_map=CouplingMap.from_line(27), seed=42)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
         self.assertEqual(config.coupling_map.get_edges(), backend.coupling_map.get_edges())
@@ -62,7 +62,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_invalid_user_option(self):
         """Test from_backend() with an invalid user option."""
-        backend = GenericBackendV2(num_qubits=20, seed=42)
+        backend = GenericBackendV2(num_qubits=20, coupling_map=ALMADEN_CMAP, seed=42)
         with self.assertRaises(TypeError):
             PassManagerConfig.from_backend(backend, invalid_option=None)
 

@@ -4,14 +4,14 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 
-"""
+r"""
 
 High Level Synthesis Plugins
 -----------------------------
@@ -33,11 +33,11 @@ Clifford Synthesis
     * - ``"bm"``
       - :class:`~.BMSynthesisClifford`
       - all-to-all
-      - optimal count for `n=2,3`; used in ``"default"`` for `n=2,3`
+      - optimal count for :math:`n \in \{2,3\}`; used in ``"default"`` for :math:`n \in \{2,3\}`
     * - ``"greedy"``
       - :class:`~.GreedySynthesisClifford`
       - all-to-all
-      - greedily optimizes CX-count; used in ``"default"`` for `n>=4`
+      - greedily optimizes CX-count; used in ``"default"`` for :math:`n\geq 4`
     * - ``"layers"``
       - :class:`~.LayerSynthesisClifford`
       - all-to-all
@@ -45,11 +45,11 @@ Clifford Synthesis
     * - ``"lnn"``
       - :class:`~.LayerLnnSynthesisClifford`
       - linear
-      - many CX-gates but guarantees CX-depth of at most `7*n+2`
+      - many CX-gates but guarantees CX-depth of at most :math:`7n+2`
     * - ``"default"``
       - :class:`~.DefaultSynthesisClifford`
       - all-to-all
-      - usually best for optimizing CX-count (and optimal CX-count for `n=2,3`)
+      - usually best for optimizing CX-count (and optimal CX-count for :math:`n \in \{2,3\}`)
 
 .. autosummary::
    :toctree: ../stubs/
@@ -75,7 +75,7 @@ Linear Function Synthesis
     * - ``"kms"``
       - :class:`~.KMSSynthesisLinearFunction`
       - linear
-      - many CX-gates but guarantees CX-depth of at most `5*n`
+      - many CX-gates but guarantees CX-depth of at most :math:`5n`
     * - ``"pmh"``
       - :class:`~.PMHSynthesisLinearFunction`
       - all-to-all
@@ -110,11 +110,11 @@ Permutation Synthesis
     * - ``"acg"``
       - :class:`~.ACGSynthesisPermutation`
       - all-to-all
-      - guarantees SWAP-depth of at most `2`
+      - guarantees SWAP-depth of at most :math:`2`
     * - ``"kms"``
       - :class:`~.KMSSynthesisPermutation`
       - linear
-      - many SWAP-gates, but guarantees SWAP-depth of at most `n`
+      - many SWAP-gates, but guarantees SWAP-depth of at most :math:`n`
     * - ``"token_swapper"``
       - :class:`~.TokenSwapperSynthesisPermutation`
       - any
@@ -178,47 +178,62 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisGrayCode`
       - `0`
       - `0`
-      - exponentially many CX gates; use only for small values of `k`
+      - exponentially many CX gates; use only for small values of :math:`k`
     * - ``"noaux_v24"``
       - :class:`~.MCXSynthesisNoAuxV24`
-      - `0`
-      - `0`
-      - quadratic number of CX gates; use instead of ``"gray_code"`` for large values of `k`
+      - :math:`0`
+      - :math:`0`
+      - quadratic number of CX gates :math:`8 k^2+O(k)`
+    * - ``"noaux_sp22"``
+      - :class:`~.MCXSynthesisNoAuxSP22`
+      - :math:`0`
+      - :math:`0`
+      - quadratic number of CX gates :math:`4 k^2+O(k)`
+    * - ``"noaux_hp24"``
+      - :class:`~.MCXSynthesisNoAuxHP24`
+      - :math:`0`
+      - :math:`0`
+      - linear number of CX gates; use instead of ``"noaux_sp22"`` or ``"noaux_v24"`` or ``"gray_code"`` for :math:`k>32`
     * - ``"n_clean_m15"``
       - :class:`~.MCXSynthesisNCleanM15`
-      - `k-2`
-      - `0`
-      - at most `6*k-6` CX gates
+      - :math:`\lceil(k-2)/2\rceil`
+      - :math:`0`
+      - at most :math:`6k-6` CX gates
     * - ``"n_dirty_i15"``
       - :class:`~.MCXSynthesisNDirtyI15`
-      - `0`
-      - `k-2`
-      - at most `8*k-6` CX gates
+      - :math:`0`
+      - :math:`k-2`
+      - at most :math:`8k-6` CX gates
+    * - ``"n_dirty_m15"``
+      - :class:`~.MCXSynthesisNDirtyM15`
+      - :math:`0`
+      - :math:`\lceil(k-2)/2\rceil`
+      - :math:`8k-12` CX gates for :math:`k\geq 4`
     * - ``"2_clean_kg24"``
       - :class:`~.MCXSynthesis2CleanKG24`
-      - `2`
-      - `0`
-      - at most `12*k-18` CX gates
+      - :math:`2`
+      - :math:`0`
+      - at most :math:`6k-6` CX gates
     * - ``"2_dirty_kg24"``
       - :class:`~.MCXSynthesis2DirtyKG24`
       - `0`
       - `2`
-      - at most `24*k-48` CX gates
+      - at most :math:`12k-18` CX gates
     * - ``"1_clean_kg24"``
       - :class:`~.MCXSynthesis1CleanKG24`
       - `1`
       - `0`
-      - at most `12*k-18` CX gates
+      - at most :math:`6k-6` CX gates
     * - ``"1_dirty_kg24"``
       - :class:`~.MCXSynthesis1DirtyKG24`
-      - `0`
-      - `1`
-      - at most `24*k-48` CX gates
+      - :math:`0`
+      - :math:`1`
+      - at most :math:`12k-18` CX gates
     * - ``"1_clean_b95"``
       - :class:`~.MCXSynthesis1CleanB95`
-      - `1`
-      - `0`
-      - at most `16*k-8` CX gates
+      - :math:`1`
+      - :math:`0`
+      - at most :math:`16k-8` CX gates
     * - ``"default"``
       - :class:`~.MCXSynthesisDefault`
       - any
@@ -230,8 +245,11 @@ not sufficient, the corresponding synthesis method will return `None`.
 
    MCXSynthesisGrayCode
    MCXSynthesisNoAuxV24
+   MCXSynthesisNoAuxSP22
+   MCXSynthesisNoAuxHP24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
+   MCXSynthesisNDirtyM15
    MCXSynthesis2CleanKG24
    MCXSynthesis2DirtyKG24
    MCXSynthesis1CleanKG24
@@ -253,14 +271,19 @@ MCMT Synthesis
       - Description
     * - ``"vchain"``
       - :class:`.MCMTSynthesisVChain`
-      - `k-1`
-      - `0`
+      - :math:`k-1`
+      - :math:`0`
       - uses a linear number of Toffoli gates
     * - ``"noaux"``
       - :class:`~.MCMTSynthesisNoAux`
-      - `0`
-      - `0`
+      - :math:`0`
+      - :math:`0`
       - uses Qiskit's standard control mechanism
+    * - ``"xgate"``
+      - :class:`.MCMTSynthesisXGate`
+      - :math:`0`
+      - :math:`0`
+      - uses a linear number of Toffoli gates
     * - ``"default"``
       - :class:`~.MCMTSynthesisDefault`
       - any
@@ -272,9 +295,10 @@ MCMT Synthesis
 
    MCMTSynthesisVChain
    MCMTSynthesisNoAux
+   MCMTSynthesisXGate
    MCMTSynthesisDefault
 
-   
+
 Integer comparators
 '''''''''''''''''''
 
@@ -287,8 +311,8 @@ Integer comparators
       - Auxiliary qubits
     * - ``"twos"``
       - :class:`~.IntComparatorSynthesis2s`
-      - use addition with two's complement 
-      - ``n - 1`` clean 
+      - use addition with two's complement
+      - :math:`n - 1` clean
     * - ``"noaux"``
       - :class:`~.IntComparatorSynthesisNoAux`
       - flip the target controlled on all :math:`O(2^l)` allowed integer values
@@ -305,7 +329,7 @@ Integer comparators
    IntComparatorSynthesisNoAux
    IntComparatorSynthesisDefault
 
-   
+
 Sums
 ''''
 
@@ -319,7 +343,7 @@ Sums
     * - ``"default"``
       - :class:`.WeightedSumSynthesisDefault`
       - use a V-chain based synthesis
-      - given ``s`` sum qubits, used ``s - 1 + int(s > 2)`` clean auxiliary qubits
+      - given :math:`s` sum qubits, used :math:`s - 1_{s \leq 2}` clean auxiliary qubits
 
 .. autosummary::
    :toctree: ../stubs/
@@ -337,21 +361,31 @@ Pauli Evolution Synthesis
       - Plugin class
       - Description
       - Targeted connectivity
+    * - ``"basic"``
+      - :class:`~.PauliEvolutionSynthesisBasic`
+      - use a diagonalizing Clifford per Pauli term
+      - all-to-all
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
-      - use the synthesis method from `Rustiq circuit synthesis library 
+      - use the synthesis method from `Rustiq circuit synthesis library
         <https://github.com/smartiel/rustiq-core>`_
+      - all-to-all
+    * - ``"mcts"``
+      - :class:`~.PauliEvolutionSynthesisMcts`
+      - use the Monte Carlo Tree Synthesis (MCTS) method
       - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
-      - use a diagonalizing Clifford per Pauli term
+      - Uses the best synthesis method available.
       - all-to-all
 
 .. autosummary::
    :toctree: ../stubs/
 
    PauliEvolutionSynthesisDefault
+   PauliEvolutionSynthesisBasic
    PauliEvolutionSynthesisRustiq
+   PauliEvolutionSynthesisMcts
 
 
 Modular Adder Synthesis
@@ -364,9 +398,13 @@ Modular Adder Synthesis
       - Plugin class
       - Number of clean ancillas
       - Description
+    * - ``"modular_v17"``
+      - :class:`.ModularAdderSynthesisV17`
+      - :math:`0`
+      - a modular adder without any ancillary qubits
     * - ``"ripple_cdkm"``
       - :class:`.ModularAdderSynthesisC04`
-      - 1
+      - :math:`1`
       - a ripple-carry adder
     * - ``"ripple_vbe"``
       - :class:`.ModularAdderSynthesisV95`
@@ -374,7 +412,7 @@ Modular Adder Synthesis
       - a ripple-carry adder
     * - ``"qft"``
       - :class:`.ModularAdderSynthesisD00`
-      - 0
+      - :math:`0`
       - a QFT-based adder
     * - ``"default"``
       - :class:`~.ModularAdderSynthesisDefault`
@@ -384,6 +422,7 @@ Modular Adder Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
+   ModularAdderSynthesisV17
    ModularAdderSynthesisC04
    ModularAdderSynthesisD00
    ModularAdderSynthesisV95
@@ -401,11 +440,11 @@ Half Adder Synthesis
       - Description
     * - ``"ripple_cdkm"``
       - :class:`.HalfAdderSynthesisC04`
-      - 1
+      - :math:`1`
       - a ripple-carry adder
     * - ``"ripple_r25"``
       - :class:`.HalfAdderSynthesisR25`
-      - 0
+      - :math:`0`
       - a ripple-carry adder with no ancillas
     * - ``"ripple_vbe"``
       - :class:`.HalfAdderSynthesisV95`
@@ -413,7 +452,7 @@ Half Adder Synthesis
       - a ripple-carry adder
     * - ``"qft"``
       - :class:`.HalfAdderSynthesisD00`
-      - 0
+      - :math:`0`
       - a QFT-based adder
     * - ``"default"``
       - :class:`~.HalfAdderSynthesisDefault`
@@ -441,7 +480,7 @@ Full Adder Synthesis
       - Description
     * - ``"ripple_cdkm"``
       - :class:`.FullAdderSynthesisC04`
-      - 0
+      - :math:`0`
       - a ripple-carry adder
     * - ``"ripple_vbe"``
       - :class:`.FullAdderSynthesisV95`
@@ -476,19 +515,25 @@ Multiplier Synthesis
       - a cumulative adder based on controlled adders
     * - ``"qft"``
       - :class:`.MultiplierSynthesisR17`
-      - 0
+      - :math:`0`
       - a QFT-based multiplier
+    * - ``"default"``
+      - :class:`~.MultiplierSynthesisDefault`
+      - any
+      - chooses the best algorithm based on the ancillas available
 
 .. autosummary::
    :toctree: ../stubs/
 
    MultiplierSynthesisH18
    MultiplierSynthesisR17
+   MultiplierSynthesisDefault
 
 """
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import warnings
 import numpy as np
 import rustworkx as rx
@@ -498,6 +543,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.circuit.library import (
     LinearFunction,
     QFTGate,
+    XGate,
     MCXGate,
     C3XGate,
     C4XGate,
@@ -551,6 +597,7 @@ from qiskit.synthesis.qft import (
 )
 from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15,
+    synth_mcx_n_dirty_m15,
     synth_mcx_2_dirty_kg24,
     synth_mcx_1_dirty_kg24,
     synth_mcx_n_clean_m15,
@@ -559,24 +606,49 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_sp22,
+    synth_mcx_noaux_hp24,
     synth_mcmt_vchain,
+    synth_mcmt_xgate,
 )
-from qiskit.synthesis.evolution import ProductFormula, synth_pauli_network_rustiq
+from qiskit.synthesis.evolution import (
+    ProductFormula,
+    synth_pauli_network_rustiq,
+    synth_pauli_network_mcts,
+)
 from qiskit.synthesis.arithmetic import (
     adder_ripple_c04,
     adder_qft_d00,
     adder_ripple_v95,
     adder_ripple_r25,
+    adder_modular_v17,
     multiplier_qft_r17,
     multiplier_cumulative_h18,
 )
-from qiskit.quantum_info.operators import Clifford
+from qiskit.quantum_info import Clifford, SparsePauliOp, SparseObservable
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
+from qiskit.transpiler.optimization_metric import OptimizationMetric
+from qiskit.circuit.library.pauli_evolution import _contains_projectors
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
+
+if TYPE_CHECKING:
+    from qiskit.circuit.quantumcircuitdata import CircuitInstruction
+
+
+def _is_coupling_map_all_to_all(coupling_map: CouplingMap) -> bool:
+    """Return whether the coupling map is all-to-all.
+
+    A coupling map is all-to-all if for every pair of distinct qubits
+    ``i`` and ``j`` either ``(i, j)`` or ``(j, i)`` or both are present
+    in the edge list.
+    """
+    n = coupling_map.size()
+    edges = {(min(a, b), max(a, b)) for a, b in coupling_map}
+    return len(edges) == n * (n - 1) // 2
 
 
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
@@ -1061,7 +1133,7 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
 
     References:
         1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+           `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1088,8 +1160,44 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class MCXSynthesisNDirtyM15(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate using dirty ancillas, following
+    circuit (5) for three controls and Proposition 5 for four or more controls in
+    Maslov (2016).
+
+    This plugin name is ``mcx.n_dirty_m15``. For :math:`k = 3` control qubits it requires
+    one dirty ancilla and produces 16 T gates and 14 CX gates. For :math:`k \ge 4` it requires
+    :math:`\lceil(k - 2) / 2\rceil` dirty ancillas and produces :math:`8k - 8` T gates and
+    :math:`8k - 12` CX gates.
+
+    The plugin supports the following plugin-specific options:
+
+    * num_clean_ancillas: The number of clean auxiliary qubits available.
+    * num_dirty_ancillas: The number of dirty auxiliary qubits available.
+
+    References:
+        1. D. Maslov, *Advantages of using relative-phase Toffoli gates with an application
+           to multiple control Toffoli optimization*, Phys. Rev. A 93, 022311 (2016),
+           `arXiv:1508.03273 <https://arxiv.org/abs/1508.03273>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        num_ancillas = options.get("num_clean_ancillas", 0) + options.get("num_dirty_ancillas", 0)
+        required_ancillas = (num_ctrl_qubits - 1) // 2 if num_ctrl_qubits >= 3 else 0
+        if num_ancillas < required_ancillas:
+            return None
+
+        return synth_mcx_n_dirty_m15(num_ctrl_qubits)
+
+
 class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
-    r"""Synthesis plugin for a multi-controlled X gate based on the paper by
+    r"""Synthesis plugin for a multi-controlled X gate following Proposition 4 of
     Maslov (2016).
 
     See [1] for details.
@@ -1098,16 +1206,18 @@ class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis
-    method requires :math:`k - 2` additional clean auxiliary qubits. The synthesized
-    circuit consists of :math:`2 * k - 1` qubits and at most :math:`6 * k - 6` CX gates.
+    method requires :math:`\lceil(k - 2) / 2\rceil` additional clean auxiliary qubits.
+    The synthesized circuit contains :math:`8 * k - 9` T gates and
+    :math:`6 * k - 6` CX gates.
 
     The plugin supports the following plugin-specific options:
 
     * num_clean_ancillas: The number of clean auxiliary qubits available.
 
     References:
-        1. Maslov., Phys. Rev. A 93, 022311 (2016),
-           `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
+        1. D. Maslov, *Advantages of using relative-phase Toffoli gates with an application
+           to multiple control Toffoli optimization*, Phys. Rev. A 93, 022311 (2016),
+           `arXiv:1508.03273 <https://arxiv.org/abs/1508.03273>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1123,7 +1233,7 @@ class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
         num_clean_ancillas = options.get("num_clean_ancillas", 0)
 
-        if num_ctrl_qubits >= 3 and num_clean_ancillas < num_ctrl_qubits - 2:
+        if num_ctrl_qubits >= 3 and num_clean_ancillas < (num_ctrl_qubits - 1) // 2:
             # This synthesis method is not applicable as there are not enough ancilla qubits
             return None
 
@@ -1189,8 +1299,8 @@ class MCXSynthesis2CleanKG24(HighLevelSynthesisPlugin):
     object to use this method with :class:`~.HighLevelSynthesis`.
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
-    :math:`2` additional clean ancillary qubits. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`12 * k - 18` CX gates.
+    :math:`2` additional clean ancillary qubits. The synthesized circuit consists of :math:`k + 3`
+    qubits and at most :math:`6 * k - 6` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1231,8 +1341,8 @@ class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
     object to use this method with :class:`~.HighLevelSynthesis`.
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
-    :math:`2` additional dirty ancillary qubits. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`24 * k - 48` CX gates.
+    :math:`2` additional dirty ancillary qubits. The synthesized circuit consists of :math:`k + 3`
+    qubits and at most :math:`12 * k - 18` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1254,7 +1364,9 @@ class MCXSynthesis2DirtyKG24(HighLevelSynthesisPlugin):
             return None
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
-        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0) + options.get(
+            "num_clean_ancillas", 0
+        )
 
         if num_dirty_ancillas < 2:
             return None
@@ -1274,7 +1386,7 @@ class MCXSynthesis1CleanKG24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
     :math:`1` additional clean ancillary qubit. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`12 * k - 18` CX gates.
+    qubits and at most :math:`6 * k - 6` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1316,7 +1428,7 @@ class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k\ge 3` control qubits this synthesis method requires
     :math:`1` additional dirty ancillary qubit. The synthesized circuit consists of :math:`k + 2`
-    qubits and at most :math:`24 * k - 48` CX gates.
+    qubits and at most :math:`12 * k - 18` CX gates.
 
     The plugin supports the following plugin-specific options:
 
@@ -1338,7 +1450,9 @@ class MCXSynthesis1DirtyKG24(HighLevelSynthesisPlugin):
             return None
 
         num_ctrl_qubits = high_level_object.num_ctrl_qubits
-        num_dirty_ancillas = options.get("num_dirty_ancillas", 0)
+        num_dirty_ancillas = options.get("num_dirty_ancillas", 0) + options.get(
+            "num_clean_ancillas", 0
+        )
 
         if num_dirty_ancillas < 1:
             return None
@@ -1388,7 +1502,8 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
 
     For a multi-controlled X gate with :math:`k` control qubits this synthesis
     method requires no additional clean auxiliary qubits. The synthesized
-    circuit consists of :math:`k + 1` qubits.
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is quadratic in
+    :math:`k`.
 
     References:
         1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
@@ -1411,11 +1526,29 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
         return decomposition
 
 
-class MCXSynthesisDefault(HighLevelSynthesisPlugin):
-    r"""The default synthesis plugin for a multi-controlled X gate.
+class MCXSynthesisNoAuxSP22(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled :class:`.XGate` based on the
+    implementation for :class:`.MCPhaseGate`, which is in turn based on the
+    paper by da Silva et al. [1] and the implementation in qclib [2].
 
-    This plugin name is :``mcx.default`` which can be used as the key on
-    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    See [1, 2] for details.
+
+    This plugin name is ``mcx.noaux_sp22`` which can be used as the key on
+    an :class:`.HLSConfig` object to use this method with :class:`.HighLevelSynthesis`.
+
+    For a multi-controlled :class:`.XGate` with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is quadratic in
+    :math:`k`.
+
+    References:
+
+    [1] A. J. da Silva and D. K. Park,
+    Linear-depth quantum circuits for multiqubit controlled gates,
+    `Phys. Rev. A 106, 042602
+    <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
+
+    [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -1428,16 +1561,136 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             # their definition as it should.
             return None
 
-        # Iteratively run other synthesis methods available
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_noaux_sp22(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesisNoAuxHP24(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled X gate based on the
+    paper by Huang and Palsberg.
+
+    See [1] for details.
+
+    This plugin name is :``mcx.noaux_hp24`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For a multi-controlled X gate with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is linear in
+    :math:`k`.
+
+    References:
+        1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
+           Helper Qubits*, PLDI (2024),
+           <https://dl.acm.org/doi/10.1145/3656436>`_
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_noaux_hp24(num_ctrl_qubits)
+        return decomposition
+
+
+class MCXSynthesisDefault(HighLevelSynthesisPlugin):
+    r"""The default synthesis plugin for a multi-controlled X gate.
+
+    This plugin name is :``mcx.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+
+    The plugin supports the following plugin-specific options:
+
+    * ``optimization_metric``: The optimization metric, indicating the property
+      of the output circuit (e.g., the 2-qubit gate count or the T-count) that should
+      be minimized. See :class:`.OptimizationMetric`.
+    * ``num_clean_ancillas``: The number of clean ancillary qubits available.
+    * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
+        if metric == OptimizationMetric.COUNT_T:
+            # The order is optimized towards Clifford+T -friendly synthesis methods.
+            methods = [
+                MCXSynthesis2CleanKG24,
+                MCXSynthesis1CleanKG24,
+                MCXSynthesisNCleanM15,
+                MCXSynthesisNDirtyM15,
+                MCXSynthesis2DirtyKG24,
+                MCXSynthesis1DirtyKG24,
+                MCXSynthesis1CleanB95,
+                MCXSynthesisNDirtyI15,
+                (
+                    MCXSynthesisNoAuxSP22
+                    if high_level_object.num_ctrl_qubits <= 32
+                    else MCXSynthesisNoAuxHP24
+                ),
+            ]
+        else:
+            # The order is optimized towards CX-count -friendly synthesis methods.
+            # For C3X, use NDirtyI15 since it matches NDirtyM15's 14 CX gates without
+            # using an ancilla. For larger MCX gates, NDirtyM15 uses fewer CX gates.
+            dirty_method = (
+                MCXSynthesisNDirtyI15
+                if high_level_object.num_ctrl_qubits == 3
+                else MCXSynthesisNDirtyM15
+            )
+            methods = [
+                MCXSynthesis2CleanKG24,
+                MCXSynthesis1CleanKG24,
+                MCXSynthesisNCleanM15,
+                dirty_method,
+                MCXSynthesis2DirtyKG24,
+                MCXSynthesis1DirtyKG24,
+                MCXSynthesis1CleanB95,
+                (
+                    MCXSynthesisNoAuxSP22
+                    if high_level_object.num_ctrl_qubits <= 32
+                    else MCXSynthesisNoAuxHP24
+                ),
+            ]
+
+        for method in methods:
+            if (
+                decomposition := method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
+                return decomposition
+
+        return None
+
+
+class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
+    """A default decomposition for MCMT gates."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
 
         for synthesis_method in [
-            MCXSynthesisNCleanM15,
-            MCXSynthesisNDirtyI15,
-            MCXSynthesis2CleanKG24,
-            MCXSynthesis2DirtyKG24,
-            MCXSynthesis1CleanKG24,
-            MCXSynthesis1DirtyKG24,
-            MCXSynthesis1CleanB95,
+            MCMTSynthesisXGate,
+            MCMTSynthesisVChain,
         ]:
             if (
                 decomposition := synthesis_method().run(
@@ -1445,27 +1698,6 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
                 )
             ) is not None:
                 return decomposition
-
-        # If no synthesis method was successful, fall back to the default
-        return MCXSynthesisNoAuxV24().run(
-            high_level_object, coupling_map, target, qubits, **options
-        )
-
-
-class MCMTSynthesisDefault(HighLevelSynthesisPlugin):
-    """A default decomposition for MCMT gates."""
-
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        # first try to use the V-chain synthesis if enough auxiliary qubits are available
-        if not isinstance(high_level_object, MCMTGate):
-            return None
-
-        if (
-            decomposition := MCMTSynthesisVChain().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
 
         return MCMTSynthesisNoAux().run(high_level_object, coupling_map, target, qubits, **options)
 
@@ -1484,7 +1716,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
             # no broadcasting needed (makes for better circuit diagrams)
             circuit = QuantumCircuit(high_level_object.num_qubits)
             circuit.append(
-                base_gate.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state),
+                base_gate.control(
+                    high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state, annotated=False
+                ),
                 circuit.qubits,
             )
 
@@ -1493,7 +1727,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
             for i in range(high_level_object.num_target_qubits):
                 base.append(base_gate, [i], [])
 
-            circuit = base.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state)
+            circuit = base.control(
+                high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state, annotated=False
+            )
 
         return circuit.decompose()
 
@@ -1515,6 +1751,22 @@ class MCMTSynthesisVChain(HighLevelSynthesisPlugin):
             high_level_object.num_ctrl_qubits,
             high_level_object.num_target_qubits,
             ctrl_state,
+        )
+
+
+class MCMTSynthesisXGate(HighLevelSynthesisPlugin):
+    """A synthesis for ``MCMTGate`` with X gate as the base gate."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MCMTGate):
+            return None
+
+        if not isinstance(high_level_object.base_gate, XGate):
+            return None  # this plugin only supports X gates
+
+        ctrl_state = options.get("ctrl_state", None)
+        return synth_mcmt_xgate(
+            high_level_object.num_ctrl_qubits, high_level_object.num_target_qubits, ctrl_state
         )
 
 
@@ -1565,12 +1817,13 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
     This plugin name is:``ModularAdder.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    If at least one clean auxiliary qubit is available, the :class:`ModularAdderSynthesisC04`
-    is used, otherwise :class:`ModularAdderSynthesisD00`.
-
     The plugin supports the following plugin-specific options:
 
-    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+    * ``optimization_metric``: The optimization metric, indicating the property
+      of the output circuit (e.g., the 2-qubit gate count or the T-count) that should
+      be minimized. See :class:`.OptimizationMetric`.
+    * ``num_clean_ancillas``: The number of clean ancillary qubits available.
+    * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
 
     """
 
@@ -1578,26 +1831,45 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        # For up to 5 qubits, the QFT-based adder is best
-        if high_level_object.num_state_qubits <= 5:
-            decomposition = ModularAdderSynthesisD00().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-            if decomposition is not None:
+        metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
+        if metric == OptimizationMetric.COUNT_2Q:
+            # The order is optimized towards CX -friendly synthesis methods.
+            methods = []
+            if 2 <= high_level_object.num_state_qubits <= 4:
+                methods.append(ModularAdderSynthesisD00)
+            methods.append(ModularAdderSynthesisV17)
+        else:
+            # The order is optimized towards Clifford+T -friendly synthesis methods.
+            methods = [ModularAdderSynthesisV17]
+
+        for method in methods:
+            if (
+                decomposition := method().run(
+                    high_level_object, coupling_map, target, qubits, **options
+                )
+            ) is not None:
                 return decomposition
 
-        # Otherwise, the following decomposition is best (if there are enough ancillas)
-        if (
-            decomposition := ModularAdderSynthesisC04().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
-        ) is not None:
-            return decomposition
+        return None
 
-        # Otherwise, use the QFT-adder again
-        return ModularAdderSynthesisD00().run(
-            high_level_object, coupling_map, target, qubits, **options
-        )
+
+class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
+    r"""A modular adder (modulo :math:`2^n`) without any ancillary qubits.
+
+    The plugin name is :``ModularAdder.v17`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    This plugin requires no auxiliary qubits.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, ModularAdderGate):
+            return None
+
+        num_state_qubits = high_level_object.num_state_qubits
+
+        return adder_modular_v17(num_state_qubits)
 
 
 class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):
@@ -1899,16 +2171,105 @@ class MultiplierSynthesisR17(HighLevelSynthesisPlugin):
         )
 
 
+class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
+    """THe default multiplier plugin.
+
+    This plugin name is:``Multiplier.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, MultiplierGate):
+            return None
+
+        # The H18 algorithm is better both for CX-count and T-count
+        return multiplier_cumulative_h18(
+            high_level_object.num_state_qubits, high_level_object.num_result_qubits
+        )
+
+
+def _cx_size_for_pauli_evo(circuit: QuantumCircuit) -> int:
+    """
+    Estimate the number of CX-gates in a circuit produced by one of the PauliEvolutionGate
+    synthesis algorithms (``basic``, ``rustiq`` or ``mcts``).
+
+    This function is only called for PauliEvolutionGates without projectors. In this case,
+    in addition to CX gates, ``basic`` can produce two-qubit rxx, ryy, rzz, and rzx rotations,
+    while ``rustiq`` and ``mcts`` can produce swaps. These two-qubit gates are counted according
+    to the number of CX gates required to decompose them.
+    """
+    ops = circuit.count_ops()
+    return (
+        ops.get("cx", 0)
+        + 2 * (ops.get("rxx", 0) + ops.get("ryy", 0) + ops.get("rzz", 0) + ops.get("rzx", 0))
+        + 3 * ops.get("swap", 0)
+    )
+
+
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
     This plugin name is:``PauliEvolution.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
+    This plugin runs other implemented synthesis plugins, forwarding all options to
+    the selected plugins. The choice of which synthesis plugins to run is heuristic.
+    The current implementation generally runs :class:`PauliEvolutionSynthesisBasic`,
+    but might run :class:`PauliEvolutionSynthesisMcts` to minimize the CX count
+    if suitable. This selection is subject to change and should not be relied upon.
+
+    For greater control, specify :class:`~.HLSConfig` with the relevant synthesis plugins
+    directly.
+
+    The following plugin option directly influences this plugin:
+
+    * optimization_level: The optimization level used to select the synthesis
+      algorithm. Higher levels generate potentially more optimized circuits,
+      at the expense of longer transpilation time.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, PauliEvolutionGate):
+            return None
+
+        synth_object = PauliEvolutionSynthesisBasic().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
+
+        # Currently we only run the MCTS method for higher optimization levels, for all-to-all
+        # connectivity, for Pauli evolution gates without projector terms, and with
+        # preserve_order=True.
+        if (
+            (options.get("optimization_level", 2) >= 2)
+            and options.get("preserve_order", True)
+            and (not _contains_projectors(high_level_object))
+            and ((coupling_map is None) or _is_coupling_map_all_to_all(coupling_map))
+        ):
+            synth_mcts = PauliEvolutionSynthesisMcts().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+            # TODO: In this initial implementation, choose the better circuit based on the number of
+            # CX gates, using their CX decompositions. Experimentally, this seems to work well both
+            # when the targeted basis set contains CX gates and when it contains RZZ gates.
+            # In a follow-up, investigate whether target-aware heuristics could improve the
+            # results further.
+            if _cx_size_for_pauli_evo(synth_mcts) < _cx_size_for_pauli_evo(synth_object):
+                synth_object = synth_mcts
+
+        return synth_object
+
+
+class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
+    """Synthesize a :class:`.PauliEvolutionGate` using the basic synthesis algorithm.
+
+    This plugin name is:``PauliEvolution.basic`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
     The following plugin option can be set:
 
     * preserve_order: If ``False``, allow re-ordering the Pauli terms in the Hamiltonian to
-        reduce the circuit depth of the decomposition.
+      reduce the circuit depth of the decomposition.
 
     """
 
@@ -1917,13 +2278,15 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             # Don't do anything if a gate is called "evolution" but is not an
             # actual PauliEvolutionGate
             return None
-
         algo = high_level_object.synthesis
 
+        original_preserve_order = algo.preserve_order
         if "preserve_order" in options and isinstance(algo, ProductFormula):
             algo.preserve_order = options["preserve_order"]
 
-        return algo.synthesize(high_level_object)
+        synth_object = algo.synthesize(high_level_object)
+        algo.preserve_order = original_preserve_order
+        return synth_object
 
 
 class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
@@ -1941,15 +2304,15 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
     The plugin supports the following additional options:
 
     * optimize_count (bool): if `True` the synthesis algorithm will try to optimize
-        the 2-qubit gate count; and if `False` then the 2-qubit depth.
+      the 2-qubit gate count; and if `False` then the 2-qubit depth.
     * preserve_order (bool): whether the order of paulis should be preserved, up to
-        commutativity.
+      commutativity.
     * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
     * upto_phase (bool): if `True`, the global phase of the returned circuit may
-        differ from the global phase of the given pauli network.
+      differ from the global phase of the given pauli network.
     * resynth_clifford_method (int): describes the strategy to synthesize the final
-        Clifford operator. Allowed values are `0` (naive approach), `1` (qiskit
-        greedy synthesis), `2` (rustiq isometry synthesis).
+      Clifford operator. Allowed values are `0` (naive approach), `1` (qiskit
+      greedy synthesis), `2` (rustiq isometry synthesis).
 
     References:
         1. Timothée Goubault de Brugière and Simon Martiel,
@@ -1964,7 +2327,32 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             # actual PauliEvolutionGate
             return None
 
-        algo = high_level_object.synthesis
+        # The synthesis function synth_pauli_network_rustiq does not support SparseObservables,
+        # so we need to convert them to SparsePauliOps.
+        if isinstance(high_level_object.operator, SparsePauliOp):
+            pauli_op = high_level_object.operator
+
+        elif isinstance(high_level_object.operator, SparseObservable):
+            pauli_op = SparsePauliOp.from_sparse_observable(high_level_object.operator)
+
+        elif isinstance(high_level_object.operator, list):
+            pauli_op = []
+            for op in high_level_object.operator:
+                if isinstance(op, SparseObservable):
+                    pauli_op.append(SparsePauliOp.from_sparse_observable(op))
+                else:
+                    pauli_op.append(op)
+
+        else:
+            raise TranspilerError("Invalid PauliEvolutionGate.")
+
+        evo = PauliEvolutionGate(
+            pauli_op,
+            time=high_level_object.time,
+            label=high_level_object.label,
+            synthesis=high_level_object.synthesis,
+        )
+        algo = evo.synthesis
 
         if not isinstance(algo, ProductFormula):
             warnings.warn(
@@ -1974,19 +2362,19 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             )
             return None
 
+        original_preserve_order = algo.preserve_order
         if "preserve_order" in options:
             algo.preserve_order = options["preserve_order"]
 
-        num_qubits = high_level_object.num_qubits
-        pauli_network = algo.expand(high_level_object)
-
+        num_qubits = evo.num_qubits
+        pauli_network = algo.expand(evo)
         optimize_count = options.get("optimize_count", True)
         preserve_order = options.get("preserve_order", True)
         upto_clifford = options.get("upto_clifford", False)
         upto_phase = options.get("upto_phase", False)
         resynth_clifford_method = options.get("resynth_clifford_method", 1)
 
-        return synth_pauli_network_rustiq(
+        synth_object = synth_pauli_network_rustiq(
             num_qubits=num_qubits,
             pauli_network=pauli_network,
             optimize_count=optimize_count,
@@ -1995,6 +2383,107 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
             upto_phase=upto_phase,
             resynth_clifford_method=resynth_clifford_method,
         )
+
+        algo.preserve_order = original_preserve_order
+        return synth_object
+
+
+class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
+    """Synthesize a :class:`.PauliEvolutionGate` using Monte Carlo Tree Search (MCTS).
+
+    This plugin name is registered under the name ``"PauliEvolution.mcts"``, which can
+    be used as the key on an :class:`~.HLSConfig` object to use this method with
+    :class:`~.HighLevelSynthesis`.
+
+    The synthesis algorithm is described in [1].
+
+    On large circuits, this synthesis method may require a significant runtime.
+
+    The plugin supports the following additional options:
+
+    * preserve_order (bool): Preserve the order of Pauli rotations, up to
+      commutativity.
+    * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
+    * upto_phase (bool): if `True`, the returned circuit may differ from the input by
+      a global phase.
+    * num_simulations (int): Number of Monte Carlo simulations to perform. This value
+      must be at least 1.
+    * max_parallel_simulations (int | None): Maximum number of simulations that can be
+      performed in parallel. If integer, this value must be at least 1. The value of
+      `None` means "unlimited".
+
+    References:
+        1. Mulundano Machiya, Matt Menickelly, Paul Hovland, Ji Liu,
+           *MonteQ: A Monte Carlo Tree Search Based Quantum Circuit Synthesis Framework*,
+           `arXiv:2604.19029 <https://arxiv.org/abs/2604.19029>`_
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, PauliEvolutionGate):
+            # Don't do anything if a gate is called "evolution" but is not an
+            # actual PauliEvolutionGate
+            return None
+
+        # The synthesis function synth_pauli_network_mcts does not support SparseObservables,
+        # so we need to convert them to SparsePauliOps.
+        if isinstance(high_level_object.operator, SparsePauliOp):
+            pauli_op = high_level_object.operator
+
+        elif isinstance(high_level_object.operator, SparseObservable):
+            pauli_op = SparsePauliOp.from_sparse_observable(high_level_object.operator)
+
+        elif isinstance(high_level_object.operator, list):
+            pauli_op = []
+            for op in high_level_object.operator:
+                if isinstance(op, SparseObservable):
+                    pauli_op.append(SparsePauliOp.from_sparse_observable(op))
+                else:
+                    pauli_op.append(op)
+
+        else:
+            raise TranspilerError("Invalid PauliEvolutionGate.")
+
+        evo = PauliEvolutionGate(
+            pauli_op,
+            time=high_level_object.time,
+            label=high_level_object.label,
+            synthesis=high_level_object.synthesis,
+        )
+        algo = evo.synthesis
+
+        if not isinstance(algo, ProductFormula):
+            warnings.warn(
+                "Cannot apply MCTS if the evolution synthesis does not implement ``expand``. ",
+                stacklevel=2,
+                category=RuntimeWarning,
+            )
+            return None
+
+        original_preserve_order = algo.preserve_order
+        if "preserve_order" in options:
+            algo.preserve_order = options["preserve_order"]
+
+        num_qubits = evo.num_qubits
+        pauli_network = algo.expand(evo)
+        preserve_order = options.get("preserve_order", True)
+        upto_clifford = options.get("upto_clifford", False)
+        upto_phase = options.get("upto_phase", False)
+        num_simulations = options.get("num_simulations", 1)
+        max_parallel_simulations = options.get("max_parallel_simulations", None)
+
+        synth_object = synth_pauli_network_mcts(
+            num_qubits=num_qubits,
+            pauli_network=pauli_network,
+            preserve_order=preserve_order,
+            upto_clifford=upto_clifford,
+            upto_phase=upto_phase,
+            num_simulations=num_simulations,
+            max_parallel_simulations=max_parallel_simulations,
+        )
+        algo.preserve_order = original_preserve_order
+        algo.preserve_order = original_preserve_order
+        return synth_object
 
 
 class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
@@ -2058,6 +2547,8 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             use_physical_indices=data.use_physical_indices,
             min_qubits=0,
             unroll_definitions=data.unroll_definitions,
+            optimize_clifford_t=data.optimize_clifford_t,
+            optimization_level=data.optimization_level,
         )
 
         num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))
@@ -2094,7 +2585,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # Note that synthesize_operation also returns the output qubits on which the
         # operation is defined, however currently the plugin mechanism has no way
         # to return these (and instead the upstream code greedily grabs some ancilla
-        # qubits from the circuit). We should refactor the plugin "run" iterface to
+        # qubits from the circuit). We should refactor the plugin "run" interface to
         # return the actual ancilla qubits used.
         synthesized_base_op_result = synthesize_operation(
             operation.base_op, base_qubits, base_synthesis_data, annotated_tracker
@@ -2120,7 +2611,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
         else:
             # Apply annotations only to the middle part of the circuit.
-            (front, middle, back) = conjugate_decomp
+            front, middle, back = conjugate_decomp
             synthesized = QuantumCircuit(operation.num_qubits)
             synthesized.compose(
                 front, synthesized.qubits[num_ctrl : operation.num_qubits], inplace=True
@@ -2160,7 +2651,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                         ctrl_state=modifier.ctrl_state,
                         annotated=False,
                     )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                    controlled_qubits = list(range(modifier.num_ctrl_qubits))
                     controlled_circuit.append(controlled_op, controlled_qubits)
                 for inst in circuit:
                     inst_op = inst.operation
@@ -2171,7 +2662,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                         ctrl_state=modifier.ctrl_state,
                         annotated=False,
                     )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                    controlled_qubits = list(range(modifier.num_ctrl_qubits)) + [
                         modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
                     ]
                     controlled_circuit.append(controlled_op, controlled_qubits)
@@ -2229,7 +2720,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         return AnnotatedOperation(cur, canonical_modifiers)
 
     @staticmethod
-    def _are_inverse_ops(inst1: "CircuitInstruction", inst2: "CircuitInstruction"):
+    def _are_inverse_ops(inst1: CircuitInstruction, inst2: CircuitInstruction):
         """A very naive function that checks whether two circuit instructions are inverse of
         each other. The main use-case covered is a ``QFTGate`` and its inverse, represented as
         an ``AnnotatedOperation`` with a single ``InverseModifier``.
@@ -2290,7 +2781,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
         front_circuit = circuit.copy_empty_like()
         front_circuit.global_phase = 0
-        for i in range(0, idx):
+        for i in range(idx):
             front_circuit.append(circuit[i])
         middle_circuit = circuit.copy_empty_like()  # inherits the global phase
         for i in range(idx, ridx + 1):

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,6 +15,7 @@ from math import isclose
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
 from qiskit.circuit.library.generalized_gates import UCRYGate
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ExactReciprocal(QuantumCircuit):
@@ -25,6 +26,11 @@ class ExactReciprocal(QuantumCircuit):
         |x\rangle |0\rangle \mapsto \cos(1/x)|x\rangle|0\rangle + \sin(1/x)|x\rangle |1\rangle
     """
 
+    @deprecate_func(
+        since="2.2",
+        additional_msg="Use the class qiskit.circuit.library.ExactReciprocalGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self, num_state_qubits: int, scaling: float, neg_vals: bool = False, name: str = "1/x"
     ) -> None:
@@ -113,7 +119,7 @@ class ExactReciprocalGate(Gate):
 
         if self.neg_vals:
             circuit.append(
-                UCRYGate([-theta for theta in angles]).control(),
+                UCRYGate([-theta for theta in angles]).control(annotated=False),
                 [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1],
             )
             angles_neg = [0.0]
@@ -125,7 +131,8 @@ class ExactReciprocalGate(Gate):
                 else:
                     angles_neg.append(0.0)
             circuit.append(
-                UCRYGate(angles_neg).control(), [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1]
+                UCRYGate(angles_neg).control(annotated=False),
+                [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1],
             )
 
         self.definition = circuit

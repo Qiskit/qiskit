@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -28,6 +28,14 @@ pub enum TargetError {
         instruction: String,
         arguments: String,
     },
+    #[error(
+        "The number of parameters for {instruction}: {instruction_num} does not match the provided number of parameters: {argument_num}."
+    )]
+    ParamsMismatch {
+        instruction: String,
+        instruction_num: usize,
+        argument_num: usize,
+    },
     /// An attempt to query collection of qargs to the [Target] that are
     /// not operated on by the specified instruction.
     #[error["Provided qarg {arguments} not in this Target for '{instruction}'."]]
@@ -39,4 +47,13 @@ pub enum TargetError {
     /// not operated on by any instruction.
     #[error["{0} not in Target."]]
     QargsWithoutInstruction(String),
+    ///The specified bounds for the instruction are not valid.
+    #[error["Lower bound {low} is not less than higher bound {high}."]]
+    InvalidBounds { low: f64, high: f64 },
+}
+
+impl From<TargetError> for ::pyo3::PyErr {
+    fn from(val: TargetError) -> Self {
+        crate::TranspilerError::new_err(val.to_string())
+    }
 }

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import IntegerComparator
 from qiskit.synthesis.arithmetic import synth_integer_comparator_2s, synth_integer_comparator_greedy
 from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -63,19 +63,25 @@ class TestIntegerComparator(QiskitTestCase):
     def test_fixed_value_comparator(self, num_state_qubits, value, geq):
         """Test the fixed value comparator circuit."""
         # build the circuit with the comparator
-        for constructor in [
-            IntegerComparator,
-            synth_integer_comparator_2s,
-            synth_integer_comparator_greedy,
+        for constructor, warn in [
+            (IntegerComparator, True),
+            (synth_integer_comparator_2s, False),
+            (synth_integer_comparator_greedy, False),
         ]:
             with self.subTest(constructor=constructor):
-                comp = constructor(num_state_qubits, value, geq=geq)
+                if warn:
+                    with self.assertWarns(DeprecationWarning):
+                        comp = constructor(num_state_qubits, value, geq=geq)
+                else:
+                    comp = constructor(num_state_qubits, value, geq=geq)
+
                 self.assertComparisonIsCorrect(comp, num_state_qubits, value, geq)
 
     def test_mutability(self):
         """Test changing the arguments of the comparator."""
 
-        comp = IntegerComparator()
+        with self.assertWarns(DeprecationWarning):
+            comp = IntegerComparator()
 
         with self.subTest(msg="missing num state qubits and value"):
             with self.assertRaises(AttributeError):

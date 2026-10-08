@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -31,8 +31,8 @@ from qiskit.circuit.library import (
     ExactReciprocalGate,
     PiecewiseChebyshevGate,
 )
-from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.quantum_info import Operator, Statevector
+from test import QiskitTestCase
 
 
 @ddt
@@ -85,17 +85,55 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             return res
 
         for use_gate in [True, False]:
-            constructor = PolynomialPauliRotationsGate if use_gate else PolynomialPauliRotations
-            polynome = constructor(num_state_qubits, [2 * coeff for coeff in coeffs])
-            num_ancillas = 0 if use_gate else None
+            if use_gate:
+                polynome = PolynomialPauliRotationsGate(
+                    num_state_qubits, [2 * coeff for coeff in coeffs]
+                )
+                num_ancillas = 0
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    polynome = PolynomialPauliRotations(
+                        num_state_qubits, [2 * coeff for coeff in coeffs]
+                    )
+                num_ancillas = None
 
             with self.subTest(use_gate=use_gate):
                 self.assertFunctionIsCorrect(polynome, poly, num_ancillas)
 
+    @data(
+        ("X", "rx", "crx"),
+        ("Z", "rz", "crz"),
+    )
+    @unpack
+    def test_polynomial_function_x_z_basis(
+        self, basis, rotation_method, controlled_rotation_method
+    ):
+        """Test polynomial rotations with X and Z bases."""
+        coeffs = [0.2, -0.4]
+
+        expected = QuantumCircuit(2)
+        getattr(expected, rotation_method)(coeffs[0], 1)
+        getattr(expected, controlled_rotation_method)(coeffs[1], 0, 1)
+
+        for use_gate in [True, False]:
+            if use_gate:
+                polynomial = PolynomialPauliRotationsGate(1, coeffs, basis=basis)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    polynomial = PolynomialPauliRotations(1, coeffs, basis=basis)
+
+            with self.subTest(use_gate=use_gate, basis=basis):
+                np.testing.assert_allclose(
+                    Operator(polynomial).data,
+                    Operator(expected).data,
+                    atol=1e-8,
+                )
+
     def test_polynomial_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
 
-        polynomial_rotations = PolynomialPauliRotations()
+        with self.assertWarns(DeprecationWarning):
+            polynomial_rotations = PolynomialPauliRotations()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
@@ -127,9 +165,13 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             return offset + slope * x
 
         for use_gate in [True, False]:
-            constructor = LinearPauliRotationsGate if use_gate else LinearPauliRotations
-            linear_rotation = constructor(num_state_qubits, slope * 2, offset * 2)
-            num_ancillas = 0 if use_gate else None
+            if use_gate:
+                linear_rotation = LinearPauliRotationsGate(num_state_qubits, slope * 2, offset * 2)
+                num_ancillas = 0
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    linear_rotation = LinearPauliRotations(num_state_qubits, slope * 2, offset * 2)
+                num_ancillas = None
 
             with self.subTest(use_gate=use_gate):
                 self.assertFunctionIsCorrect(linear_rotation, linear, num_ancillas)
@@ -137,7 +179,8 @@ class TestFunctionalPauliRotations(QiskitTestCase):
     def test_linear_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
 
-        linear_rotation = LinearPauliRotations()
+        with self.assertWarns(DeprecationWarning):
+            linear_rotation = LinearPauliRotations()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
@@ -175,31 +218,31 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                     return offsets[-(i + 1)] + slopes[-(i + 1)] * (x - point)
             return 0
 
-        for use_gate in [False, True]:
-            constructor = (
-                PiecewiseLinearPauliRotationsGate if use_gate else PiecewiseLinearPauliRotations
-            )
+        slopes2 = [2 * slope for slope in slopes]
+        offsets2 = [2 * offset for offset in offsets]
 
+        for use_gate in [False, True]:
             if use_gate:
+                pw_linear_rotations = PiecewiseLinearPauliRotationsGate(
+                    num_state_qubits, breakpoints, slopes2, offsets2
+                )
                 # ancilla for the comparator bit
                 num_ancillas = int(len(breakpoints) > 1)
             else:
+                with self.assertWarns(DeprecationWarning):
+                    pw_linear_rotations = PiecewiseLinearPauliRotations(
+                        num_state_qubits, breakpoints, slopes2, offsets2
+                    )
                 num_ancillas = None  # automatically deducted
 
             with self.subTest(use_gate=use_gate):
-                pw_linear_rotations = constructor(
-                    num_state_qubits,
-                    breakpoints,
-                    [2 * slope for slope in slopes],
-                    [2 * offset for offset in offsets],
-                )
-
                 self.assertFunctionIsCorrect(pw_linear_rotations, pw_linear, num_ancillas)
 
     def test_piecewise_linear_rotations_mutability(self):
         """Test the mutability of the linear rotations circuit."""
 
-        pw_linear_rotations = PiecewiseLinearPauliRotations()
+        with self.assertWarns(DeprecationWarning):
+            pw_linear_rotations = PiecewiseLinearPauliRotations()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
@@ -250,25 +293,20 @@ class TestFunctionalPauliRotations(QiskitTestCase):
             return 0
 
         for use_gate in [False, True]:
-            constructor = (
-                PiecewisePolynomialPauliRotationsGate
-                if use_gate
-                else PiecewisePolynomialPauliRotations
-            )
-
             if use_gate:
+                pw_poly_rotations = PiecewisePolynomialPauliRotationsGate(
+                    num_state_qubits, breakpoints, coeffs
+                )
                 # ancilla for the comparator bit
                 num_ancillas = int(len(breakpoints) > 1)
             else:
+                with self.assertWarns(DeprecationWarning):
+                    pw_poly_rotations = PiecewisePolynomialPauliRotations(
+                        num_state_qubits, breakpoints, coeffs
+                    )
                 num_ancillas = None  # automatically deducted
 
             with self.subTest(use_gate=use_gate):
-                pw_poly_rotations = constructor(
-                    num_state_qubits,
-                    breakpoints,
-                    coeffs,
-                )
-
                 self.assertFunctionIsCorrect(pw_poly_rotations, pw_poly, num_ancillas)
 
     @data((1, 0.01), (5, 0.02))
@@ -309,7 +347,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         with self.subTest(msg="pw poly"):
 
-            def target(x):  # pylint: disable=function-redefined
+            def target(x):
                 if hasattr(x, "__len__"):  # support single-value inputs and arrays
                     return np.array([target(xi) for xi in x])
 

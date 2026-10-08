@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,19 +16,36 @@ use nalgebra::Matrix2;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, PyDAGCircuit, Wire};
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
-use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Qubit;
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
 use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
 
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
+pub fn py_run_split_2q_unitaries(
+    dag: &mut PyDAGCircuit,
+    requested_fidelity: f64,
+    split_swaps: bool,
+) -> PyResult<Option<(PyDAGCircuit, Vec<usize>)>> {
+    Ok(
+        run_split_2q_unitaries(dag.try_write()?, requested_fidelity, split_swaps)?.map(
+            |(out_dag, list)| {
+                // Preserve metadata
+                (
+                    PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag),
+                    list,
+                )
+            },
+        ),
+    )
+}
+
 pub fn run_split_2q_unitaries(
-    py: Python,
     dag: &mut DAGCircuit,
     requested_fidelity: f64,
     split_swaps: bool,
@@ -40,22 +57,20 @@ pub fn run_split_2q_unitaries(
     let mut has_swaps = false;
     for node in nodes {
         if let NodeType::Operation(inst) = &dag[node] {
-            let qubits = dag.get_qargs(inst.qubits).to_vec();
             // We only attempt to split UnitaryGate objects, but this could be extended in future
             // -- however we need to ensure that we can compile the resulting single-qubit unitaries
             // to the supported basis gate set.
-            if qubits.len() != 2 || !matches!(inst.op.view(), OperationRef::Unitary(_)) {
+            let OperationRef::Unitary(unitary_gate) = inst.op.view() else {
+                continue;
+            };
+            if unitary_gate.num_qubits() != 2 {
                 continue;
             }
-            let matrix = inst
-                .op
-                .matrix(inst.params_view())
-                .expect("'unitary' gates should always have a matrix form");
-            let decomp = TwoQubitWeylDecomposition::new_inner(
-                matrix.view(),
-                Some(requested_fidelity),
-                None,
-            )?;
+            let temp = dag.get_qargs(inst.qubits);
+            let qubits: [Qubit; 2] = [temp[0], temp[1]];
+            let matrix = unitary_gate.matrix_view();
+            let decomp =
+                TwoQubitWeylDecomposition::new_inner(matrix, Some(requested_fidelity), None)?;
             if matches!(decomp.specialization, Specialization::SWAPEquiv) {
                 has_swaps = true;
             }
@@ -91,7 +106,7 @@ pub fn run_split_2q_unitaries(
                         (PackedOperation::from_unitary(k1l_gate), smallvec![])
                     }
                 };
-                dag.replace_node_with_1q_ops(py, node, insert_fn)?;
+                dag.replace_node_with_1q_ops(node, insert_fn);
                 dag.add_global_phase(&Param::Float(decomp.global_phase))?;
             }
         }
@@ -102,17 +117,13 @@ pub fn run_split_2q_unitaries(
     // We have swap-like unitaries, so we create a new DAG in a manner similar to
     // The Elide Permutations pass, while also splitting the unitaries to 1-qubit gates
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
-    let mut new_dag = dag.copy_empty_like("alike")?;
-    for node in dag.topological_op_nodes()? {
-        if let NodeType::Operation(inst) = &dag.dag()[node] {
-            let qubits = dag.get_qargs(inst.qubits).to_vec();
-            if qubits.len() == 2 && inst.op.name() == "unitary" {
-                let matrix = inst
-                    .op
-                    .matrix(inst.params_view())
-                    .expect("'unitary' gates should always have a matrix form");
+    let rebuilder_callback =
+        |new_dag: &mut DAGCircuitBuilder, inst: &PackedInstruction, _node: NodeIndex| {
+            if let OperationRef::Unitary(unitary_gate) = inst.op.view()
+                && unitary_gate.num_qubits() == 2
+            {
                 let decomp = TwoQubitWeylDecomposition::new_inner(
-                    matrix.view(),
+                    unitary_gate.matrix_view(),
                     Some(requested_fidelity),
                     None,
                 )?;
@@ -160,7 +171,7 @@ pub fn run_split_2q_unitaries(
                         None,
                     )?;
                     new_dag.add_global_phase(&Param::Float(decomp.global_phase + PI4))?;
-                    continue; // skip the general instruction handling code
+                    return Ok(());
                 }
             }
             // General instruction
@@ -178,14 +189,15 @@ pub fn run_split_2q_unitaries(
                 inst.params.as_deref().cloned(),
                 inst.label.as_ref().map(|x| x.to_string()),
                 #[cfg(feature = "cache_pygates")]
-                inst.py_op.get().map(|x| x.clone_ref(py)),
+                inst.py_op.get().cloned(),
             )?;
-        }
-    }
-    Ok(Some((new_dag, mapping)))
+            Ok(())
+        };
+    dag.rebuild_dag_with(rebuilder_callback, VarsMode::Alike, BlocksMode::Keep)
+        .map(|x| Some((x, mapping)))
 }
 
 pub fn split_2q_unitaries_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_split_2q_unitaries))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_split_2q_unitaries))?;
     Ok(())
 }

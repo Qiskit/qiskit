@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,13 +17,16 @@ Common functions across several serialization and deserialization modules.
 
 import io
 import struct
+import uuid
 
 from qiskit.utils.optionals import HAS_SYMENGINE
 
 from qiskit.qpy import formats, exceptions
 
-QPY_VERSION = 14
+QPY_VERSION = 18
 QPY_COMPATIBILITY_VERSION = 13
+QPY_RUST_READ_MIN_VERSION = 13
+QPY_RUST_WRITE_MIN_VERSION = 17
 ENCODE = "utf8"
 
 
@@ -95,7 +98,11 @@ def read_mapping(file_obj, deserializer, **kwargs):
         map_header = formats.MAP_ITEM._make(
             struct.unpack(formats.MAP_ITEM_PACK, file_obj.read(formats.MAP_ITEM_SIZE))
         )
-        key = file_obj.read(map_header.key_size).decode(ENCODE)
+        if kwargs.get("version", 15) < 15:
+            key = file_obj.read(map_header.key_size).decode(ENCODE)
+        else:
+            key = uuid.UUID(bytes=file_obj.read(map_header.key_size))
+
         datum = deserializer(map_header.type, file_obj.read(map_header.size), **kwargs)
         mapping[key] = datum
 
@@ -111,8 +118,9 @@ def read_type_key(file_obj):
     Returns:
         bytes: Type key.
     """
-    key_size = struct.calcsize("!1c")
-    return struct.unpack("!1c", file_obj.read(key_size))[0]
+    return formats.TYPE_KEY._make(
+        struct.unpack(formats.TYPE_KEY_PACK, file_obj.read(formats.TYPE_KEY_SIZE))
+    ).key
 
 
 def write_generic_typed_data(file_obj, type_key, data_binary):
@@ -167,7 +175,10 @@ def write_mapping(file_obj, mapping, serializer, **kwargs):
 
     file_obj.write(struct.pack(formats.SEQUENCE_PACK, num_elements))
     for key, datum in mapping.items():
-        key_bytes = key.encode(ENCODE)
+        if kwargs.get("version", 15) < 15:
+            key_bytes = key.encode(ENCODE)
+        else:
+            key_bytes = key
         type_key, datum_bytes = serializer(datum, **kwargs)
         item_header = struct.pack(formats.MAP_ITEM_PACK, len(key_bytes), type_key, len(datum_bytes))
         file_obj.write(item_header)
@@ -182,7 +193,7 @@ def write_type_key(file_obj, type_key):
         file_obj (File): A file like object that contains the QPY binary data.
         type_key (bytes): Type key to write.
     """
-    file_obj.write(struct.pack("!1c", type_key))
+    file_obj.write(struct.pack(formats.TYPE_KEY_PACK, type_key))
 
 
 def data_to_binary(obj, serializer, **kwargs):

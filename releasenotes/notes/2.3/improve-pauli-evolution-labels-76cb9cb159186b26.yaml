@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed label generation for :class:`.PauliEvolutionGate` with 
+    :class:`.SparseObservable` operators. Labels now display Pauli operators 
+    with qubit indices (e.g., "X0 X2") instead of the concatenated string format 
+    (e.g., "XX"), improving clarity when distinguishing between different operators.

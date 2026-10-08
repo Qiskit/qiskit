@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence, Mapping
-from typing import Optional, Callable, List, Union, Dict, Tuple
+
+from collections.abc import Callable
 from functools import reduce
 import numpy as np
 
@@ -29,7 +30,7 @@ from ..n_local.n_local import NLocal
 
 
 def _normalize_entanglement(
-    entanglement: str | Mapping[int, Sequence[Sequence[int]]]
+    entanglement: str | Mapping[int, Sequence[Sequence[int]]],
 ) -> str | dict[int, list[tuple[int]]]:
     if isinstance(entanglement, str):
         return entanglement
@@ -98,6 +99,29 @@ def pauli_feature_map(
 
     Please refer to :func:`.z_feature_map` for the case of single-qubit Pauli-:math:`Z` rotations
     and to :func:`.zz_feature_map` for the single- and two-qubit Pauli-:math:`Z` rotations.
+
+    Args:
+        feature_dimension: Number of qubits in the circuit.
+        reps: The number of times the evolution layers are repeated.
+        entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+            ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
+            dictionary where the keys represent the number of qubits and the values are list
+            of integer-pairs specifying the indices of qubits that are entangled with one
+            another, for example: ``{1: [(0,), (2,)], 2: [(0,1), (2,0)]}`` or can be a
+            ``Callable[[int], Union[str | Dict[...]]]`` to return an entanglement specific for
+            a repetition.
+        alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
+        paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
+            will be used.
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
+            default mapping.
+        parameter_prefix: The prefix used if default parameters are generated.
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
+            and Hadamard layers.
+        name: The name of the circuit.
+
+    Returns:
+        A quantum circuit implementing the Pauli feature map.
 
     Examples:
 
@@ -197,8 +221,26 @@ def z_feature_map(
     strings are fixed as `['Z']`. As a result the first order expansion will be a circuit without
     entangling gates.
 
+    Args:
+        feature_dimension: Number of qubits in the circuit.
+        reps: The number of times the evolution layers are repeated.
+        entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+            ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``), a list of
+            integer-tuples, or a callable returning these types for each repetition.
+        alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
+            default mapping.
+        parameter_prefix: The prefix used if default parameters are generated.
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
+            and Hadamard layers.
+        name: The name of the circuit.
+
+    Returns:
+        A quantum circuit implementing the Z feature map.
+
     Examples:
 
+        >>> from qiskit.circuit.library import z_feature_map
         >>> prep = z_feature_map(3, reps=3, insert_barriers=True)
         >>> print(prep)
              ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐ ░ ┌───┐ ░ ┌─────────────┐
@@ -220,9 +262,10 @@ def z_feature_map(
         q_2: ┤ H ├┤ P(2.0*x[2]**2 + 2.0) ├
              └───┘└──────────────────────┘
 
-        >>> from qiskit.circuit.library import TwoLocal
-        >>> ry = TwoLocal(3, "ry", "cz", reps=1).decompose()
-        >>> classifier = z_feature_map(3, reps=1) + ry
+        >>> from qiskit.circuit.library import n_local
+        >>> circuit = n_local(3, "ry", "cz", reps=1).decompose()
+        >>> classifier = z_feature_map(3, reps=1)
+        >>> classifier.append(circuit, list(range(classifier.num_qubits)))
         >>> print(classifier)
              ┌───┐┌─────────────┐┌──────────┐      ┌──────────┐
         q_0: ┤ H ├┤ P(2.0*x[0]) ├┤ RY(θ[0]) ├─■──■─┤ RY(θ[3]) ├────────────
@@ -272,12 +315,32 @@ def zz_feature_map(
         ┤ H ├┤ P(2.0*φ(x[2])) ├─────────────────────────────────┤ X ├┤ P(2.0*φ(x[1],x[2])) ├┤ X ├
         └───┘└────────────────┘                                 └───┘└─────────────────────┘└───┘
 
-    where :math:`\varphi` is a classical non-linear function, which defaults to :math:`\varphi(x) = x`
-    if and :math:`\varphi(x,y) = (\pi - x)(\pi - y)`.
+    Here, :math:`\varphi` is a classical non-linear function, which defaults to
+    :math:`\varphi(x) = x` if :math:`|S| = 1` and
+    :math:`\varphi(x,y) = (\pi - x)(\pi - y)` if :math:`|S| > 1`, and
+    :math:`S` is the set of qubit indices describing the connections in the feature map.
+    See the docstring of :func:`pauli_feature_map` for more detail.
+
+    Args:
+        feature_dimension: Number of qubits in the circuit.
+        reps: The number of times the evolution layers are repeated.
+        entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
+            ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``), a list of
+            integer-tuples, or a callable returning these types for each repetition.
+        alpha: The Pauli rotation factor, multiplicative to the pauli rotations.
+        data_map_func: A mapping function for the data ``x`` which can be supplied to override the
+            default mapping.
+        parameter_prefix: The prefix used if default parameters are generated.
+        insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
+            and Hadamard layers.
+        name: The name of the circuit.
+
+    Returns:
+        A quantum circuit implementing the ZZ feature map.
 
     Examples:
 
-        >>> from qiskit.circuit.library import ZZFeatureMap
+        >>> from qiskit.circuit.library import zz_feature_map
         >>> prep = zz_feature_map(2, reps=1)
         >>> print(prep)
              ┌───┐┌─────────────┐
@@ -289,7 +352,7 @@ def zz_feature_map(
         >>> from qiskit.circuit.library import efficient_su2
         >>> classifier = zz_feature_map(3).compose(efficient_su2(3))
         >>> classifier.num_parameters
-        15
+        27
         >>> classifier.parameters  # 'x' for the data preparation, 'θ' for the SU2 parameters
         ParameterView([
             ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
@@ -408,34 +471,31 @@ class PauliFeatureMap(NLocal):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg=(
             "Use the pauli_feature_map function as a replacement. Note that this will no longer "
             "return a BlueprintCircuit, but just a plain QuantumCircuit."
         ),
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
-        feature_dimension: Optional[int] = None,
+        feature_dimension: int | None = None,
         reps: int = 2,
-        entanglement: Union[
-            str,
-            Dict[int, List[Tuple[int]]],
-            Callable[[int], Union[str, Dict[int, List[Tuple[int]]]]],
-        ] = "full",
+        entanglement: (
+            str | dict[int, list[tuple[int]]] | Callable[[int], str | dict[int, list[tuple[int]]]]
+        ) = "full",
         alpha: float = 2.0,
-        paulis: Optional[List[str]] = None,
-        data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        paulis: list[str] | None = None,
+        data_map_func: Callable[[np.ndarray], float] | None = None,
         parameter_prefix: str = "x",
         insert_barriers: bool = False,
         name: str = "PauliFeatureMap",
     ) -> None:
-        """Create a new Pauli expansion circuit.
-
+        """
         Args:
             feature_dimension: Number of qubits in the circuit.
-            reps: The number of repeated circuits.
+            reps: The number of times the evolution layers are repeated.
             entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
                 ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``) or can be a
                 dictionary where the keys represent the number of qubits and the values are list
@@ -446,11 +506,12 @@ class PauliFeatureMap(NLocal):
             alpha: The Pauli rotation factor, multiplicative to the pauli rotations
             paulis: A list of strings for to-be-used paulis. If None are provided, ``['Z', 'ZZ']``
                 will be used.
-            data_map_func: A mapping function for data x which can be supplied to override the
-                default mapping from :meth:`self_product`.
+            data_map_func: A mapping function for the data ``x`` which can be supplied to override the
+                default mapping.
             parameter_prefix: The prefix used if default parameters are generated.
-            insert_barriers: If True, barriers are inserted in between the evolution instructions
-                and hadamard layers.
+            insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
+                and Hadamard layers.
+            name: Name of the circuit.
 
         """
 
@@ -471,8 +532,8 @@ class PauliFeatureMap(NLocal):
         self._alpha = alpha
 
     def _parameter_generator(
-        self, rep: int, block: int, indices: List[int]
-    ) -> Optional[List[Parameter]]:
+        self, rep: int, block: int, indices: list[int]
+    ) -> list[Parameter] | None:
         """If certain blocks should use certain parameters this method can be overridden."""
         params = [self.ordered_parameters[i] for i in indices]
         return params
@@ -483,7 +544,7 @@ class PauliFeatureMap(NLocal):
         return self.feature_dimension
 
     @property
-    def paulis(self) -> List[str]:
+    def paulis(self) -> list[str]:
         """The Pauli strings used in the entanglement of the qubits.
 
         Returns:
@@ -492,7 +553,7 @@ class PauliFeatureMap(NLocal):
         return self._paulis
 
     @paulis.setter
-    def paulis(self, paulis: List[str]) -> None:
+    def paulis(self, paulis: list[str]) -> None:
         """Set the pauli strings.
 
         Args:

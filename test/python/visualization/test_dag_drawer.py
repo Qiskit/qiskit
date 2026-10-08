@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,11 +15,12 @@
 import os
 import tempfile
 import unittest
+import itertools
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit, Clbit, Store, ClassicalRegister
 from qiskit.visualization import dag_drawer
 from qiskit.exceptions import InvalidFileError
-from qiskit.visualization import VisualizationError
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.converters import circuit_to_dag, circuit_to_dagdependency
 from qiskit.utils import optionals as _optionals
 from qiskit.dagcircuit import DAGCircuit
@@ -47,6 +48,46 @@ class TestDagDrawer(QiskitVisualizationTestCase):
 
     @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_empty_style(self):
+        """
+        Test that dag_drawer() with an empty dict returns a plain DAG
+        """
+        dag_drawer(self.dag, style={})
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
+    def test_dag_drawer_custom_style(self):
+        """
+        Test dag with various custom styles
+        """
+
+        style = {
+            "fontsize": 12,
+            "bgcolor": "white",
+            "dpi": 10,
+            "pad": 0,
+            "nodecolor": "green",
+            "inputnodecolor": "blue",
+            "inputnodefontcolor": "white",
+            "outputnodecolor": "red",
+            "outputnodefontcolor": "white",
+            "opnodecolor": "black",
+            "opnodefontcolor": "white",
+            "edgecolor": "black",
+            "qubitedgecolor": "black",
+            "clbitedgecolor": "black",
+        }
+
+        for r in range(2):
+            combinations = itertools.combinations(style, r)
+            for c in combinations:
+                curr_style = {x: style[x] for x in c}
+                dag_drawer(self.dag, style=curr_style)
+
+        dag_drawer(self.dag, style=style)
+
+    @unittest.skipUnless(_optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_checks_filename_correct_format(self):
         """filename must contain name and extension"""
         with self.assertRaisesRegex(
@@ -69,7 +110,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_no_register(self):
         """Test dag visualization with a circuit with no registers."""
-        from PIL import Image  # pylint: disable=import-error
+        from PIL import Image
 
         qubit = Qubit()
         clbit = Clbit()
@@ -88,7 +129,7 @@ class TestDagDrawer(QiskitVisualizationTestCase):
     @unittest.skipUnless(_optionals.HAS_PIL, "PIL not installed")
     def test_dag_drawer_with_dag_dep(self):
         """Test dag dependency visualization."""
-        from PIL import Image  # pylint: disable=import-error
+        from PIL import Image
 
         bits = [Qubit(), Clbit()]
         qr = QuantumRegister(4, "qr")

@@ -3,6 +3,6 @@ features:
   - |
     Support for the Linux aarch64 platform has been promoted to tier 1 support as documented in:
 
-    https://docs.quantum.ibm.com/guides/install-qiskit#operating-system-support
+    https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support
 
     from its previous support level of tier 2 in the 1.x release series.

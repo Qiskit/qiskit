@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,7 +22,7 @@ import numpy as np
 from ddt import ddt
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.library import RealAmplitudes
+from qiskit.circuit.library import real_amplitudes
 from qiskit.primitives import BackendEstimatorV2, StatevectorEstimator
 from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
@@ -34,14 +34,35 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.utils import optionals
 from ..legacy_cmaps import LAGOS_CMAP
 
-BACKENDS = [
-    BasicSimulator(),
-    GenericBackendV2(
+
+def _basic_simulator():
+    return BasicSimulator()
+
+
+def _generic_backend_v2():
+    return GenericBackendV2(
         num_qubits=7,
         basis_gates=["id", "rz", "sx", "x", "cx", "reset"],
         coupling_map=LAGOS_CMAP,
         seed=42,
-    ),
+    )
+
+
+class _BackendFactory:
+    def __init__(self, name, factory):
+        self.__name__ = name
+        self._factory = factory
+
+    def __call__(self):
+        return self._factory()
+
+    def __repr__(self):
+        return self.__name__
+
+
+BACKENDS = [
+    _BackendFactory("basic_simulator", _basic_simulator),
+    _BackendFactory("generic_backend_v2", _generic_backend_v2),
 ]
 
 
@@ -56,7 +77,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         self._seed = 12
         self._rng = np.random.default_rng(self._seed)
         self._options = {"default_precision": self._precision, "seed_simulator": self._seed}
-        self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
+        self.ansatz = QuantumCircuit(2)
+        self.ansatz.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
@@ -68,7 +90,11 @@ class TestBackendEstimatorV2(QiskitTestCase):
         )
         self.expvals = -1.0284380963435145, -1.284366511861733
 
-        self.psi = (RealAmplitudes(num_qubits=2, reps=2), RealAmplitudes(num_qubits=2, reps=3))
+        ra_2_reps = QuantumCircuit(2)
+        ra_2_reps.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
+        ra_3_reps = QuantumCircuit(2)
+        ra_3_reps.append(real_amplitudes(num_qubits=2, reps=3), [0, 1])
+        self.psi = (ra_2_reps, ra_3_reps)
         self.params = tuple(psi.parameters for psi in self.psi)
         self.hamiltonian = (
             SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)]),
@@ -84,6 +110,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_estimator_run(self, backend, abelian_grouping):
         """Test Estimator.run()"""
+        backend = backend()
         psi1, psi2 = self.psi
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
         theta1, theta2, theta3 = self.theta
@@ -131,6 +158,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_estimator_with_pub(self, backend, abelian_grouping):
         """Test estimator with explicit EstimatorPubs."""
+        backend = backend()
         psi1, psi2 = self.psi
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
         theta1, theta2, theta3 = self.theta
@@ -157,6 +185,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_estimator_run_no_params(self, backend, abelian_grouping):
         """test for estimator without parameters"""
+        backend = backend()
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         circuit = pm.run(circuit)
@@ -169,6 +198,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_single_circuit_observable(self, backend, abelian_grouping):
         """Test for single circuit and single observable case."""
+        backend = backend()
         est = BackendEstimatorV2(backend=backend, options=self._options)
         est.options.abelian_grouping = abelian_grouping
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
@@ -227,6 +257,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_1qubit(self, backend, abelian_grouping):
         """Test for 1-qubit cases"""
+        backend = backend()
         qc = QuantumCircuit(1)
         qc2 = QuantumCircuit(1)
         qc2.x(0)
@@ -257,6 +288,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_2qubits(self, backend, abelian_grouping):
         """Test for 2-qubit cases (to check endian)"""
+        backend = backend()
         qc = QuantumCircuit(2)
         qc2 = QuantumCircuit(2)
         qc2.x(0)
@@ -296,6 +328,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_errors(self, backend, abelian_grouping):
         """Test for errors"""
+        backend = backend()
         qc = QuantumCircuit(1)
         qc2 = QuantumCircuit(2)
 
@@ -333,7 +366,9 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_numpy_params(self, backend, abelian_grouping):
         """Test for numpy array as parameter values"""
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        backend = backend()
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
@@ -361,6 +396,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_precision(self, backend, abelian_grouping):
         """Test for precision"""
+        backend = backend()
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
         estimator.options.abelian_grouping = abelian_grouping
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
@@ -383,6 +419,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_diff_precision(self, backend, abelian_grouping):
         """Test for running different precisions at once"""
+        backend = backend()
         estimator = BackendEstimatorV2(backend=backend, options=self._options)
         estimator.options.abelian_grouping = abelian_grouping
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
@@ -404,7 +441,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         backend = AerSimulator()
         seed = 123
-        qc = RealAmplitudes(num_qubits=2, reps=1)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=1), [0, 1])
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
         op = [SparsePauliOp("IX"), SparsePauliOp("YI")]
@@ -443,7 +481,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 return 1
 
         backend = FakeBackendLimitedCircuits(num_qubits=5)
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        qc = QuantumCircuit(2)
+        qc.append(real_amplitudes(num_qubits=2, reps=2), [0, 1])
         # Note: two qubit-wise commuting groups
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5

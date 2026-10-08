@@ -1,3 +1,5 @@
+.. _capi-obs:
+
 =====
 QkObs
 =====
@@ -149,7 +151,7 @@ can be in any order while representing the same observable, since addition is co
 the summation order).
 
 These two categories of representation degeneracy can cause the operator equality,
-``qk_obs_equal``, to claim that two observables are not equal, despite representating the same
+``qk_obs_equal``, to claim that two observables are not equal, despite representing the same
 object.  In these cases, it can be convenient to define some *canonical form*, which allows
 observables to be compared structurally.
 You can put a ``QkObs`` in canonical form by using the ``qk_obs_canonicalize`` function.
@@ -165,19 +167,19 @@ structurally by comparing their simplified forms.
     .. code-block:: c
 
         bool equivalent(QkObs *left, QkObs *right, double tol) {
-            // compare a canonicalized version of left - right to the zero observable
-            QkObs *neg_right = qk_obs_mul(right, -1);
-            QkObs *diff = qk_obs_add(left, neg_right);
-            QkObs *canonical = qk_obs_canonicalize(diff, tol);
+          // compare a canonicalized version of left - right to the zero observable
+          QkObs *neg_right = qk_obs_multiply(right, &(QkComplex64){-1, 0});
+          QkObs *diff = qk_obs_add(left, neg_right);
+          QkObs *canonical = qk_obs_canonicalize(diff, tol);
 
-            QkObs *zero = qk_obs_zero(qk_obs_num_qubits(left));
-            bool equiv = qk_obs_equal(diff, zero);
-            // free all temporary variables
-            qk_obs_free(neg_right);
-            qk_obs_free(diff);
-            qk_obs_free(canonical);
-            qk_obs_free(zero);
-            return equiv;
+          QkObs *zero = qk_obs_zero(qk_obs_num_qubits(left));
+          bool equiv = qk_obs_equal(diff, zero);
+          // free all temporary variables
+          qk_obs_free(neg_right);
+          qk_obs_free(diff);
+          qk_obs_free(canonical);
+          qk_obs_free(zero);
+          return equiv;
         }
 
 .. note::
@@ -213,23 +215,26 @@ of the number of terms, you can iterate over all observable terms as
 Construction
 ============
 
-``QkObs`` can be constructed by initializing an empty observable (with ``qk_obs_zero``) and
-iteratively adding terms (with ``qk_obs_add_term``). Alternatively, an observable can be
-constructed from "raw" data (with ``qk_obs_new``) if all internal data is specified. This requires
-care to ensure the data is coherent and results in a valid observable.
+``QkObs`` can be constructed by initializing an empty observable (with ``qk_obs_zero`` or
+``qk_obs_with_capacity``) and iteratively adding terms (with
+``qk_obs_add_term``). Alternatively, an observable can be constructed from "raw"
+data (with ``qk_obs_new``) if all internal data is specified. This requires care
+to ensure the data is coherent and results in a valid observable.
 
 .. _qkobs-constructors:
 .. table:: Constructors
 
-  ===================  =========================================================================
-  Function             Summary
-  ===================  =========================================================================
-  ``qk_obs_zero``      Construct an empty observable on a given number of qubits.
+  ========================  =========================================================================
+  Function                  Summary
+  ========================  =========================================================================
+  ``qk_obs_zero``           Construct an empty observable on a given number of qubits.
 
-  ``qk_obs_identity``  Construct the identity observable on a given number of qubits.
+  ``qk_obs_with_capacity``  Construct an empty observable with a pre-allocated capacity.
 
-  ``qk_obs_new``       Construct an observable from :ref:`the raw data arrays <qkobs-arrays>`.
-  ===================  =========================================================================
+  ``qk_obs_identity``       Construct the identity observable on a given number of qubits.
+
+  ``qk_obs_new``            Construct an observable from :ref:`the raw data arrays <qkobs-arrays>`.
+  ========================  =========================================================================
 
 
 Mathematical manipulation
@@ -238,11 +243,14 @@ Mathematical manipulation
 ``QkObs`` supports fundamental arithmetic operations in between observables or with scalars.
 You can:
 
-* add two observables using ``qk_obs_add``
+* add two observables using ``qk_obs_add`` and ``qk_obs_add_inplace``
 
-* multiply by a complex number with ``qk_obs_multiply``
+* multiply by a complex number with ``qk_obs_multiply`` and ``qk_obs_multiply_inplace``
 
 * compose (multiply) two observables via ``qk_obs_compose`` and ``qk_obs_compose_map``
+
+* compute ``left + scalar * right`` for two observables and a complex scalar with
+  ``qk_obs_scaled_add`` and ``qk_obs_scaled_add_inplace``
 
 
 Functions

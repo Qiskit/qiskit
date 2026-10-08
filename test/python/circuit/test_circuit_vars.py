@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import itertools
 
@@ -176,13 +175,13 @@ class TestCircuitVars(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         qc = QuantumCircuit()
         a_other = qc.add_var(a, expr.lift(True))
-        self.assertIs(a, a_other)
+        self.assertEqual(a, a_other)
 
     def test_add_stretch_returns_input(self):
         a = expr.Stretch.new("a")
         qc = QuantumCircuit()
         a_other = qc.add_stretch(a)
-        self.assertIs(a, a_other)
+        self.assertEqual(a, a_other)
 
     def test_stretch_circuit_equality(self):
         a = expr.Stretch.new("a")
@@ -236,7 +235,7 @@ class TestCircuitVars(QiskitTestCase):
         a = expr.Var.new("a", types.Bool())
         qc = QuantumCircuit()
         a_other = qc.add_input(a)
-        self.assertIs(a, a_other)
+        self.assertEqual(a, a_other)
 
     def test_cannot_have_both_inputs_and_captures(self):
         a = expr.Var.new("a", types.Bool())
@@ -488,12 +487,12 @@ class TestCircuitVars(QiskitTestCase):
         b = expr.Var.new("b", types.Uint(8))
 
         qc = QuantumCircuit(inputs=[a], declarations={b: expr.Value(0xFF, types.Uint(8))})
-        self.assertIs(qc.get_var("a"), a)
-        self.assertIs(qc.get_var("b"), b)
+        self.assertEqual(qc.get_var("a"), a)
+        self.assertEqual(qc.get_var("b"), b)
 
         qc = QuantumCircuit(captures=[a, b])
-        self.assertIs(qc.get_var("a"), a)
-        self.assertIs(qc.get_var("b"), b)
+        self.assertEqual(qc.get_var("a"), a)
+        self.assertEqual(qc.get_var("b"), b)
 
         qc = QuantumCircuit(
             inputs=[],
@@ -502,8 +501,8 @@ class TestCircuitVars(QiskitTestCase):
                 b: expr.Value(0xFF, types.Uint(8)),
             },
         )
-        self.assertIs(qc.get_var("a"), a)
-        self.assertIs(qc.get_var("b"), b)
+        self.assertEqual(qc.get_var("a"), a)
+        self.assertEqual(qc.get_var("b"), b)
 
     def test_get_stretch_success(self):
         a = expr.Stretch.new("a")
@@ -511,12 +510,12 @@ class TestCircuitVars(QiskitTestCase):
 
         qc = QuantumCircuit(captures=[a])
         qc.add_stretch(b)
-        self.assertIs(qc.get_stretch("a"), a)
-        self.assertIs(qc.get_stretch("b"), b)
+        self.assertEqual(qc.get_stretch("a"), a)
+        self.assertEqual(qc.get_stretch("b"), b)
 
         qc = QuantumCircuit(captures=[a, b])
-        self.assertIs(qc.get_stretch("a"), a)
-        self.assertIs(qc.get_stretch("b"), b)
+        self.assertEqual(qc.get_stretch("a"), a)
+        self.assertEqual(qc.get_stretch("b"), b)
 
     def test_get_var_missing(self):
         qc = QuantumCircuit()
@@ -540,23 +539,23 @@ class TestCircuitVars(QiskitTestCase):
 
     def test_get_var_default(self):
         qc = QuantumCircuit()
-        self.assertIs(qc.get_var("a", None), None)
+        self.assertEqual(qc.get_var("a", None), None)
 
         missing = "default"
         a = expr.Var.new("a", types.Bool())
         qc.add_input(a)
-        self.assertIs(qc.get_var("c", missing), missing)
-        self.assertIs(qc.get_var("c", a), a)
+        self.assertEqual(qc.get_var("c", missing), missing)
+        self.assertEqual(qc.get_var("c", a), a)
 
     def test_get_stretch_default(self):
         qc = QuantumCircuit()
-        self.assertIs(qc.get_stretch("a", None), None)
+        self.assertEqual(qc.get_stretch("a", None), None)
 
         missing = "default"
         a = expr.Stretch.new("a")
         qc.add_stretch(a)
-        self.assertIs(qc.get_stretch("c", missing), missing)
-        self.assertIs(qc.get_stretch("c", a), a)
+        self.assertEqual(qc.get_stretch("c", missing), missing)
+        self.assertEqual(qc.get_stretch("c", a), a)
 
     def test_has_var(self):
         a = expr.Var.new("a", types.Bool())

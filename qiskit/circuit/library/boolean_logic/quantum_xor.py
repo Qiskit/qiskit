@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,6 @@
 
 """Bitwise XOR circuit and gate."""
 
-from typing import Optional
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
@@ -30,19 +29,18 @@ class XOR(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Instead, for xor-ing with a specified amount, use BitwiseXorGate,"
         "and for xor-ing with a random amount, use random_bitwise_xor.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
         num_qubits: int,
-        amount: Optional[int] = None,
-        seed: Optional[int] = None,
+        amount: int | None = None,
+        seed: int | None = None,
     ) -> None:
-        """Return a circuit implementing bitwise xor.
-
+        """
         Args:
             num_qubits: the width of circuit.
             amount: the xor amount in decimal form.
@@ -52,13 +50,14 @@ class XOR(QuantumCircuit):
             CircuitError: if the xor bitstring exceeds available qubits.
 
         Reference Circuit:
-            .. plot::
-               :alt: Diagram illustrating the previously described circuit.
 
-               from qiskit.circuit.library import XOR
-               from qiskit.visualization.library import _generate_circuit_library_visualization
-               circuit = XOR(5, seed=42)
-               _generate_circuit_library_visualization(circuit)
+        .. plot::
+            :alt: Diagram illustrating the previously described circuit.
+
+            from qiskit.circuit.library import XOR
+            from qiskit.visualization.library import _generate_circuit_library_visualization
+            circuit = XOR(5, seed=42)
+            _generate_circuit_library_visualization(circuit)
         """
         circuit = QuantumCircuit(num_qubits, name="xor")
 
@@ -137,7 +136,6 @@ class BitwiseXorGate(Gate):
             and self.amount == other.amount
         )
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         r"""Return inverted BitwiseXorGate gate (itself).
 

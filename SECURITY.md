@@ -12,7 +12,11 @@ The 1.0.x series will be supported with bug fixes, until the release of 1.1.0, w
 The last version of the previous major release, 0.46.x, is supported with bug fixes until six months after the final release of 1.0.0,
 and for one year with any security fixes.
 
-We provide more detail on [the release and support schedule of Qiskit in our documentation](https://docs.quantum.ibm.com/open-source/qiskit-sdk-version-strategy).
+We provide more detail on [the release and support schedule of Qiskit in our documentation](https://quantum.cloud.ibm.com/docs/open-source/qiskit-sdk-version-strategy).
+
+## Remediation Process
+
+The repository's remediation process is explained in [the "security" section of the maintainers' guide](/MAINTAINING.md#security).
 
 ## Reporting a Vulnerability
 
