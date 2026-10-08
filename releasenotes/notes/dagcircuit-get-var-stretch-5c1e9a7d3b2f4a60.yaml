@@ -1,0 +1,8 @@
+---
+features_circuit:
+  - |
+    Added :meth:`.DAGCircuit.get_var` and :meth:`.DAGCircuit.get_stretch`, which
+    return the :class:`~.expr.Var` or :class:`~.expr.Stretch` with a given name,
+    or ``None`` if there is no such object in the DAG. These mirror the existing
+    lookup methods on :class:`.QuantumCircuit`, and complement
+    :meth:`.DAGCircuit.has_var` and :meth:`.DAGCircuit.has_stretch`.

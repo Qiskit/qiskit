@@ -4698,6 +4698,42 @@ impl PyDAGCircuit {
         }
     }
 
+    /// Get the realtime variable with the given name.
+    ///
+    /// See also:
+    ///     :meth:`has_var`, to check whether a variable is present.
+    ///
+    /// Args:
+    ///     name: the name of the variable to look up.
+    ///
+    /// Returns:
+    ///     The :class:`~.expr.Var` with that name, or ``None`` if no such variable exists.
+    #[pyo3(name = "get_var")]
+    fn py_get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        match self.inner.vars_stretches.get_var(name) {
+            Some(var) => var.clone().into_py_any(py),
+            None => Ok(py.None()),
+        }
+    }
+
+    /// Get the stretch with the given name.
+    ///
+    /// See also:
+    ///     :meth:`has_stretch`, to check whether a stretch is present.
+    ///
+    /// Args:
+    ///     name: the name of the stretch to look up.
+    ///
+    /// Returns:
+    ///     The :class:`~.expr.Stretch` with that name, or ``None`` if no such stretch exists.
+    #[pyo3(name = "get_stretch")]
+    fn py_get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        match self.inner.vars_stretches.get_stretch(name) {
+            Some(stretch) => stretch.clone().into_py_any(py),
+            None => Ok(py.None()),
+        }
+    }
+
     /// Is this stretch in the DAG?
     ///
     /// Args:
