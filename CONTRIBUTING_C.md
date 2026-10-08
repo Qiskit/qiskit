@@ -342,7 +342,7 @@ pub unsafe extern "C" fn qk_qubit_measure(qubit: *mut Qubit) -> u32 {
 
 /// @ingroup OkQubit
 ///
-/// Cleanup the ``QkQubit``, doing nothing if `qubit` is `NULL`.
+/// Cleanup the ``QkQubit`` or nothing if `qubit` is `NULL`.
 ///
 /// @param qubit A pointer to the ``QkQubit``.
 #[unsafe(no_mangle)]
