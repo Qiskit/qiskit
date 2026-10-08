@@ -4,8 +4,9 @@ The C API is designed for...
 
 - python extension modules written in C.
 - wrapper libraries like [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
-  [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
+  [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp)
 - high-performance computing workloads.
+- python-free qiskit
 
 ## Tutorial
 
@@ -256,3 +257,21 @@ should be sufficient.
 
 *See [this PR](https://github.com/Qiskit/qiskit/pull/17011) for details.*
 
+### Documentation
+
+#### Safety
+
+`unsafe` enables actions that are otherwise prohibited in safe Rust. In writing FFI code, we often
+dereference raw pointers and call unsafe functions within an `unsafe` block. Such code is unsafe
+because the compiler cannot check the validitiy of the operation statically. As the programmer, you
+make some assumption(s) about why the potentially unsafe operation is, in fact, safe. Those
+assumptions should be documented in a **safety comment** so that future programmers understand the
+assumptions you've made.
+
+```rust
+unsafe extern "C" fn qk_circuit_free(circuit: *mut Circuit) {
+    // SAFETY: As per documentation, `circuit` is allocated by `qk_circuit_new`.
+    let circuit = unsafe { Box::from_raw(circuit) };
+    drop(circuit)
+}
+```
