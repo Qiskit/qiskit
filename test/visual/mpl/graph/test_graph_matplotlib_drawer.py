@@ -198,6 +198,28 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.99)
 
+    def test_plot_state_city_colors(self):
+        """test for plot_state_city with colors"""
+        circuit = QuantumCircuit(1)
+        circuit.x(0)
+
+        # getting the state using quantum_info
+        state = Statevector(circuit)
+
+        fname = "state_city_colors.png"
+        self.graph_state_drawer(
+            state=state, output="city", filename=fname, color=["blue", "#204940"]
+        )
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
     def test_plot_state_paulivec(self):
         """test for plot_state_paulivec"""
         circuit = QuantumCircuit(1)
