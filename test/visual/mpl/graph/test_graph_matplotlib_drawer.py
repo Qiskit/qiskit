@@ -16,6 +16,7 @@ import unittest
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from numpy import pi
 
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals
@@ -200,11 +201,15 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def test_plot_state_city_colors(self):
         """test for plot_state_city with colors"""
-        circuit = QuantumCircuit(1)
-        circuit.x(0)
+
+        qc = QuantumCircuit(2)
+        qc.h([0, 1])
+        qc.cz(0, 1)
+        qc.ry(pi / 3, 0)
+        qc.rx(pi / 5, 1)
 
         # getting the state using quantum_info
-        state = Statevector(circuit)
+        state = Statevector(qc)
 
         fname = "state_city_colors.png"
         self.graph_state_drawer(
