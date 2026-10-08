@@ -206,7 +206,7 @@ static int test_for_nested_break_continue(void) {
     for (size_t i = 0; i < loop_elements.len; i++) {
         if (loop_elements.elements[i] != (ptrdiff_t)i + 1) {
             fprintf(stderr, "Expected loop_elements.elements[%zu] == %zu, got %td\n", i, i + 1,
-                   loop_elements.elements[i]);
+                    loop_elements.elements[i]);
             result = EqualityError;
             goto cleanup;
         }
@@ -236,14 +236,15 @@ static int test_for_nested_break_continue(void) {
     QkLoopParamKind param_kind = qk_control_flow_loop_param_kind(cf_inst);
     if (param_kind != QkLoopParamKind_Parameter) {
         fprintf(stderr, "Expected loop parameter kind to be QkLoopParamKind_Parameter, got %d\n",
-               param_kind);
+                param_kind);
         result = EqualityError;
         goto cleanup;
     }
 
     QkSymbolInfo symbol_info = qk_control_flow_loop_symbol_info(cf_inst);
     if (symbol_info.ty != QkSymbolType_Standalone) {
-        fprintf(stderr, "Expected symbol type to be QkSymbolType_Standalone, got %d\n", symbol_info.ty);
+        fprintf(stderr, "Expected symbol type to be QkSymbolType_Standalone, got %d\n",
+                symbol_info.ty);
         result = EqualityError;
         goto cleanup;
     }
@@ -398,7 +399,8 @@ static int test_switch_case_on_register(void) {
     // Test case 0: single label (1<<80) - 1
     uint64_t bit_width = qk_control_flow_switch_case_labels_bit_width(cf_inst, 0);
     if (bit_width <= 64) {
-        fprintf(stderr, "Expected label width to be larger than 64 bits, got %" PRIu64 "\n", bit_width);
+        fprintf(stderr, "Expected label width to be larger than 64 bits, got %" PRIu64 "\n",
+                bit_width);
         result = EqualityError;
         goto cleanup;
     }
@@ -415,7 +417,7 @@ static int test_switch_case_on_register(void) {
     for (size_t l = 0; l < 3; l++) {
         if (case_labels.labels[l] != l + 1) {
             fprintf(stderr, "Expected label %zu for case 1, got %" PRIu64 "\n", l + 1,
-                   case_labels.labels[l]);
+                    case_labels.labels[l]);
             qk_control_flow_switch_case_labels_clear(&case_labels);
             result = EqualityError;
             goto cleanup;
@@ -716,16 +718,18 @@ static int test_for_loop_over_range(void) {
     int64_t start, stop, step;
     qk_control_flow_loop_range(cf_inst, &start, &stop, &step);
     if (start != 1 || stop != 10 || step != 3) {
-        fprintf(stderr, "Expected a for-loop over Range(1,10,3), got Range(%" PRIi64 ",%" PRIi64 ",%" PRIi64
-               ")\n",
-               start, stop, step);
+        fprintf(stderr,
+                "Expected a for-loop over Range(1,10,3), got Range(%" PRIi64 ",%" PRIi64 ",%" PRIi64
+                ")\n",
+                start, stop, step);
         result = EqualityError;
         goto cleanup;
     }
 
     QkLoopParamKind param_kind = qk_control_flow_loop_param_kind(cf_inst);
     if (param_kind != QkLoopParamKind_Variable) {
-        fprintf(stderr, "Expected loop parameter kind to be QkLoopParamKind_Variable, got %d\n", param_kind);
+        fprintf(stderr, "Expected loop parameter kind to be QkLoopParamKind_Variable, got %d\n",
+                param_kind);
         result = EqualityError;
         goto cleanup;
     }
@@ -757,7 +761,7 @@ static int test_while_on_register_large_condition(void) {
     uint64_t cond_bit_width = qk_control_flow_condition_reg_cond_bit_width(cf_inst);
     if (cond_bit_width <= 64) {
         fprintf(stderr, "Expected condition width to be larger than 64 bits, got %" PRIu64 "\n",
-               cond_bit_width);
+                cond_bit_width);
         result = EqualityError;
         goto cleanup;
     }

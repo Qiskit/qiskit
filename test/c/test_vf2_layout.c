@@ -83,8 +83,8 @@ static int test_vf2_average_line(void) {
     for (uint32_t i = 0; i < num_qubits; i++) {
         uint32_t phys = qk_vf2_layout_result_map_virtual_qubit(layout_result, i);
         if (phys != expected[i]) {
-            fprintf(stderr, "%s: Unexpected layout result virtual qubit %d mapped to %d\n", __func__, phys,
-                   expected[i]);
+            fprintf(stderr, "%s: Unexpected layout result virtual qubit %d mapped to %d\n",
+                    __func__, phys, expected[i]);
             result = EqualityError;
             goto layout_cleanup;
         }
@@ -321,7 +321,8 @@ static int test_vf2_exact_no_improvement(void) {
     for (uint32_t i = 0; i < num_qubits; i++) {
         uint32_t mapped = qk_vf2_layout_result_map_virtual_qubit(layout_result, i);
         if (mapped != i) {
-            fprintf(stderr, "%s: no-improvement result falsely mapped %u to %u\n", __func__, mapped, i);
+            fprintf(stderr, "%s: no-improvement result falsely mapped %u to %u\n", __func__, mapped,
+                    i);
             goto cleanup;
         }
     }
@@ -380,7 +381,8 @@ static int test_vf2_exact_remap(void) {
         // The correct result is {4, 3, 2, 1, 0}.
         uint32_t mapped = qk_vf2_layout_result_map_virtual_qubit(layout_result, i);
         if (mapped != num_qubits - i - 1) {
-            fprintf(stderr, "%s: improvement result falsely mapped %u to %u\n", __func__, mapped, i);
+            fprintf(stderr, "%s: improvement result falsely mapped %u to %u\n", __func__, mapped,
+                    i);
             goto cleanup;
         }
     }

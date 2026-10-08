@@ -96,8 +96,8 @@ static int test_circuit_copy(void) {
     qk_circuit_free(qc);
     qk_circuit_free(copy);
     if (num_instructions == num_copy_instructions) {
-        fprintf(stderr, "The number of instructions %zu is equal to the copied %zu", num_instructions,
-               num_copy_instructions);
+        fprintf(stderr, "The number of instructions %zu is equal to the copied %zu",
+                num_instructions, num_copy_instructions);
         return EqualityError;
     }
     return Ok;
@@ -140,8 +140,8 @@ static int test_circuit_copy_with_instructions(void) {
     size_t num_instructions = qk_circuit_num_instructions(qc);
     size_t num_copy_instructions = qk_circuit_num_instructions(copy);
     if (num_instructions != num_copy_instructions) {
-        fprintf(stderr, "The number of instructions %zu does not equal the copied %zu", num_instructions,
-               num_copy_instructions);
+        fprintf(stderr, "The number of instructions %zu does not equal the copied %zu",
+                num_instructions, num_copy_instructions);
         return EqualityError;
     }
 
@@ -165,8 +165,8 @@ static int test_circuit_copy_with_instructions(void) {
     qk_circuit_free(qc);
     qk_circuit_free(copy);
     if (num_instructions == num_copy_instructions) {
-        fprintf(stderr, "The number of instructions %zu is equal to the copied %zu", num_instructions,
-               num_copy_instructions);
+        fprintf(stderr, "The number of instructions %zu is equal to the copied %zu",
+                num_instructions, num_copy_instructions);
         return EqualityError;
     }
     return Ok;
@@ -194,7 +194,7 @@ static int test_circuit_copy_empty_like(void) {
 
     if (num_copy_instructions != 0) {
         fprintf(stderr, "Expected no operations in the copied-empty-like circuit, but got %zu\n",
-               num_copy_instructions);
+                num_copy_instructions);
         return EqualityError;
     }
     return Ok;
@@ -993,7 +993,8 @@ static int test_not_unitary_gate(void) {
 
     int result = Ok;
     if (exit_code != QkExitCode_ExpectedUnitary) {
-        fprintf(stderr, "Got exit code %i but expected %i\n", exit_code, QkExitCode_ExpectedUnitary);
+        fprintf(stderr, "Got exit code %i but expected %i\n", exit_code,
+                QkExitCode_ExpectedUnitary);
         result = EqualityError;
         goto cleanup;
     }
@@ -1201,7 +1202,8 @@ static int test_delay_instruction(void) {
     // Try negative duration
     QkExitCode delay_dt_bad_code = qk_circuit_delay_dt(qc, 1, -145);
     if (delay_dt_bad_code != QkExitCode_CInputError) {
-        fprintf(stderr, "Unexpected exit code with negative dt duration (-145), (%u).\n", delay_dt_bad_code);
+        fprintf(stderr, "Unexpected exit code with negative dt duration (-145), (%u).\n",
+                delay_dt_bad_code);
         result = RuntimeError;
         goto instr_cleanup;
     }
@@ -1254,7 +1256,7 @@ static int test_delay_instruction(void) {
     if (unit_unknown != QkDelayUnit_Unknown) {
         result = EqualityError;
         fprintf(stderr, "Expected 'unknown' (7) delay unit, for non delay gate, got '%d' instead",
-               unit_unknown);
+                unit_unknown);
         goto instr_cleanup;
     }
 
@@ -1566,13 +1568,16 @@ static int test_pbc_instructions(void) {
 
     QkOperationKind op_kind = qk_circuit_instruction_kind(circuit, 0);
     if (op_kind != QkOperationKind_PauliProductRotation) {
-        fprintf(stderr, "Operation kind of instruction 0 is not QkOperationKind_PauliProductRotation.\n");
+        fprintf(stderr,
+                "Operation kind of instruction 0 is not QkOperationKind_PauliProductRotation.\n");
         result = EqualityError;
         goto cleanup;
     }
     op_kind = qk_circuit_instruction_kind(circuit, 1);
     if (op_kind != QkOperationKind_PauliProductMeasurement) {
-        fprintf(stderr, "Operation kind of instruction 1 is not QkOperationKind_PauliProductMeasurement.\n");
+        fprintf(
+            stderr,
+            "Operation kind of instruction 1 is not QkOperationKind_PauliProductMeasurement.\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -1592,8 +1597,8 @@ static int test_pbc_instructions(void) {
     }
     for (size_t i = 0; i < rotation.len; ++i) {
         if (out_rot.x[i] != x[i] || out_rot.z[i] != z[i]) {
-            fprintf(stderr, "(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, z[i],
-                   x[i], out_rot.z[i], out_rot.x[i]);
+            fprintf(stderr, "(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n",
+                    i, z[i], x[i], out_rot.z[i], out_rot.x[i]);
             result = EqualityError;
             goto cleanup_out_rot;
         }
@@ -1601,7 +1606,8 @@ static int test_pbc_instructions(void) {
     if (!qk_param_equal(out_rot.angle, angle)) {
         char *out_str = qk_param_str(out_rot.angle);
         char *expected_str = qk_param_str(angle);
-        fprintf(stderr, "Angle (%s) does not match the original angle (%s).\n", out_str, expected_str);
+        fprintf(stderr, "Angle (%s) does not match the original angle (%s).\n", out_str,
+                expected_str);
         qk_str_free(out_str);
         qk_str_free(expected_str);
         result = EqualityError;
@@ -1625,15 +1631,15 @@ static int test_pbc_instructions(void) {
     }
     for (size_t i = 0; i < measure.len; ++i) {
         if (out_meas->x[i] != xm[i] || out_meas->z[i] != zm[i]) {
-            fprintf(stderr, "(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n", i, zm[i],
-                   xm[i], out_meas->z[i], out_meas->x[i]);
+            fprintf(stderr, "(z, x) term at %zu does not match. Expected (%d, %d), got (%d, %d)\n",
+                    i, zm[i], xm[i], out_meas->z[i], out_meas->x[i]);
             result = EqualityError;
             goto cleanup_out_meas;
         }
     }
     if (out_meas->flip_outcome != measure.flip_outcome) {
-        fprintf(stderr, "Flip (%i) does not match the original flip (%i).\n", out_meas->flip_outcome,
-               measure.flip_outcome);
+        fprintf(stderr, "Flip (%i) does not match the original flip (%i).\n",
+                out_meas->flip_outcome, measure.flip_outcome);
         result = EqualityError;
     }
 
@@ -1727,15 +1733,16 @@ static int test_basic_register_queries(void) {
         name = qk_quantum_register_name(qr_retrieved);
 
         if (strcmp(name, expected_names[qreg_idx]) != 0) {
-            fprintf(stderr, "Expected quantum register name %s, got '%s'\n", expected_names[qreg_idx], name);
+            fprintf(stderr, "Expected quantum register name %s, got '%s'\n",
+                    expected_names[qreg_idx], name);
             result = EqualityError;
             goto cleanup_name;
         }
 
         size_t num_bits = qk_quantum_register_num_bits(qr_retrieved);
         if (num_bits != expected_bits[qreg_idx]) {
-            fprintf(stderr, "Expected quantum register size %zu, got %zu\n", expected_bits[qreg_idx],
-                   num_bits);
+            fprintf(stderr, "Expected quantum register size %zu, got %zu\n",
+                    expected_bits[qreg_idx], num_bits);
             result = EqualityError;
             goto cleanup_name;
         }
@@ -1804,8 +1811,8 @@ static int test_register_bits(void) {
         }
         // Positions should be 1, 2, 3, since the circuit has an anonymous qubit
         if (bit_indices[bit] != (uint32_t)bit + 1) {
-            fprintf(stderr, "Expected QR1 bit %zu to have circuit index %zu, got %" PRIu32 "\n", bit,
-                   bit + 1, bit_indices[bit]);
+            fprintf(stderr, "Expected QR1 bit %zu to have circuit index %zu, got %" PRIu32 "\n",
+                    bit, bit + 1, bit_indices[bit]);
             result = EqualityError;
             goto cleanup_bit_indices;
         }
@@ -1817,8 +1824,9 @@ static int test_register_bits(void) {
 
     for (size_t bit = 0; bit < 2; bit++) {
         if (reg_circuit_bits[bit] != UINT32_MAX) {
-            fprintf(stderr, "Expected QR2 bit %zu to NOT be in circuit, got bit index %" PRIu32 "\n", bit,
-                   reg_circuit_bits[bit]);
+            fprintf(stderr,
+                    "Expected QR2 bit %zu to NOT be in circuit, got bit index %" PRIu32 "\n", bit,
+                    reg_circuit_bits[bit]);
             result = EqualityError;
             goto cleanup_qr2;
         }
@@ -1831,8 +1839,8 @@ static int test_register_bits(void) {
     // Positions should be 2, 3, since the circuit has two anonymous clbits
     for (size_t bit = 0; bit < 2; bit++) {
         if (reg_circuit_bits[bit] != (uint32_t)bit + 2) {
-            fprintf(stderr, "Expected CR1 bit %zu to have circuit index %zu, got %" PRIu32 "\n", bit,
-                   bit + 2, reg_circuit_bits[bit]);
+            fprintf(stderr, "Expected CR1 bit %zu to have circuit index %zu, got %" PRIu32 "\n",
+                    bit, bit + 2, reg_circuit_bits[bit]);
             result = EqualityError;
             goto cleanup_cr1;
         }
@@ -1843,7 +1851,7 @@ static int test_register_bits(void) {
 
     if (reg_circuit_bits[0] != UINT32_MAX) {
         fprintf(stderr, "Expected CR2 bit 0 to NOT be in circuit, got bit index %" PRIu32 "\n",
-               reg_circuit_bits[0]);
+                reg_circuit_bits[0]);
         result = EqualityError;
     }
 

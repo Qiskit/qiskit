@@ -372,7 +372,8 @@ static int test_target_entry_construction(void) {
     // Test length
     const size_t length = qk_target_entry_num_properties(property_map);
     if (length != 0) {
-        fprintf(stderr, "The initial length of the provided property map was not zero: %zu", length);
+        fprintf(stderr, "The initial length of the provided property map was not zero: %zu",
+                length);
         result = EqualityError;
         goto cleanup;
     }
@@ -446,13 +447,14 @@ static int test_target_add_instruction(void) {
     uint32_t current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 1) {
         fprintf(stderr, "The number of qubits this target is compatible with is not 1: %u",
-               current_num_qubits);
+                current_num_qubits);
         result = EqualityError;
         goto cleanup;
     }
     size_t current_size = qk_target_num_instructions(target);
     if (current_size != 1) {
-        fprintf(stderr, "The size of this target is not correct: Expected 1, got %zu", current_size);
+        fprintf(stderr, "The size of this target is not correct: Expected 1, got %zu",
+                current_size);
         result = EqualityError;
         goto cleanup;
     }
@@ -484,13 +486,14 @@ static int test_target_add_instruction(void) {
     current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 2) {
         fprintf(stderr, "The number of qubits this target is compatible with is not 2: %u",
-               current_num_qubits);
+                current_num_qubits);
         result = EqualityError;
         goto cleanup;
     }
     current_size = qk_target_num_instructions(target);
     if (current_size != 2) {
-        fprintf(stderr, "The size of this target is not correct: Expected 2, got %zu", current_size);
+        fprintf(stderr, "The size of this target is not correct: Expected 2, got %zu",
+                current_size);
         result = EqualityError;
         goto cleanup;
     }
@@ -522,13 +525,14 @@ static int test_target_add_instruction(void) {
     current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 3) {
         fprintf(stderr, "The number of qubits this target is compatible with is not 3: %d",
-               current_num_qubits);
+                current_num_qubits);
         result = EqualityError;
         goto cleanup;
     }
     current_size = qk_target_num_instructions(target);
     if (current_size != 3) {
-        fprintf(stderr, "The size of this target is not correct: Expected 3, got %zu", current_size);
+        fprintf(stderr, "The size of this target is not correct: Expected 3, got %zu",
+                current_size);
         result = EqualityError;
         goto cleanup;
     }
@@ -557,14 +561,15 @@ static int test_target_add_instruction(void) {
     current_num_qubits = qk_target_num_qubits(target);
     if (current_num_qubits != 3) {
         fprintf(stderr, "The number of qubits this target is compatible with is not 3: %d",
-               current_num_qubits);
+                current_num_qubits);
         result = EqualityError;
         goto cleanup;
     }
 
     current_size = qk_target_num_instructions(target);
     if (current_size != 4) {
-        fprintf(stderr, "The size of this target is not correct: Expected 4, got %zu", current_size);
+        fprintf(stderr, "The size of this target is not correct: Expected 4, got %zu",
+                current_size);
         result = EqualityError;
         goto cleanup;
     }
@@ -586,7 +591,8 @@ static int test_target_add_instruction(void) {
     qk_target_add_instruction(target, reset);
     current_size = qk_target_num_instructions(target);
     if (current_size != 5) {
-        fprintf(stderr, "The size of this target is not correct: Expected 5, got %zu", current_size);
+        fprintf(stderr, "The size of this target is not correct: Expected 5, got %zu",
+                current_size);
         result = EqualityError;
         goto cleanup;
     }
@@ -631,7 +637,8 @@ static int test_target_update_instruction(void) {
     QkExitCode result_2 = qk_target_update_property(target, QkGate_CH, qargs, 2,
                                                     cx_new_inst_duration, cx_new_inst_error);
     if (result_2 != QkExitCode_TargetInvalidInstKey) {
-        fprintf(stderr, "The function did not fail as expected when querying the wrong instruction.");
+        fprintf(stderr,
+                "The function did not fail as expected when querying the wrong instruction.");
         result = RuntimeError;
         goto cleanup;
     }
@@ -672,8 +679,8 @@ static int test_target_iteration(void) {
 
         char *name = qk_target_op_name(target, op_idx);
         if (strcmp(name, names[(int)op_idx]) != 0) {
-            fprintf(stderr, "Unexpected operation name at index %zu, expected: %s, got %s.\n", op_idx,
-                   names[(int)op_idx], name);
+            fprintf(stderr, "Unexpected operation name at index %zu, expected: %s, got %s.\n",
+                    op_idx, names[(int)op_idx], name);
             result = EqualityError;
             goto cleanup;
         }
@@ -686,7 +693,8 @@ static int test_target_iteration(void) {
             // cx
             if (op_idx == 4) {
                 if (!compare_qargs(qargs, cx_qargs[props_idx], qargs_len)) {
-                    fprintf(stderr, 
+                    fprintf(
+                        stderr,
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
                     print_qargs(cx_qargs[props_idx], qargs_len);
@@ -698,17 +706,19 @@ static int test_target_iteration(void) {
                 }
 
                 if (props.duration != cx_props[props_idx][0]) {
-                    fprintf(stderr, "Unexpected duration value found for operation %s at qarg index: %zu. "
-                           "Expected: %f, got: %f.\n",
-                           name, props_idx, props.duration, cx_props[props_idx][0]);
+                    fprintf(stderr,
+                            "Unexpected duration value found for operation %s at qarg index: %zu. "
+                            "Expected: %f, got: %f.\n",
+                            name, props_idx, props.duration, cx_props[props_idx][0]);
                     result = EqualityError;
                     goto cleanup;
                 }
 
                 if (props.error != cx_props[props_idx][1]) {
-                    fprintf(stderr, "Unexpected error value found for operation %s at qarg index: %zu. "
-                           "Expected: %f, got: %f.\n",
-                           name, props_idx, props.error, cx_props[props_idx][1]);
+                    fprintf(stderr,
+                            "Unexpected error value found for operation %s at qarg index: %zu. "
+                            "Expected: %f, got: %f.\n",
+                            name, props_idx, props.error, cx_props[props_idx][1]);
                     result = EqualityError;
                     goto cleanup;
                 }
@@ -716,7 +726,8 @@ static int test_target_iteration(void) {
             // Global y
             else if (op_idx == 5) {
                 if (!compare_qargs(qargs, NULL, 0)) {
-                    fprintf(stderr, 
+                    fprintf(
+                        stderr,
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
                     print_qargs(NULL, 0);
@@ -730,7 +741,8 @@ static int test_target_iteration(void) {
             // Global phase
             else if (op_idx == 6) {
                 if (!compare_qargs(qargs, (uint32_t[]){0}, 0)) {
-                    fprintf(stderr, 
+                    fprintf(
+                        stderr,
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
                     print_qargs((uint32_t[]){0}, 0);
@@ -744,7 +756,8 @@ static int test_target_iteration(void) {
             // id, rz, sx, x, measure, reset
             else {
                 if (!compare_qargs(qargs, &single_qarg[props_idx], qargs_len)) {
-                    fprintf(stderr, 
+                    fprintf(
+                        stderr,
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
                     print_qargs(&single_qarg[props_idx], qargs_len);
@@ -757,17 +770,19 @@ static int test_target_iteration(void) {
 
                 if (op_idx > 6) {
                     if (props.duration != 1e-6) {
-                        fprintf(stderr, "Unexpected duration value found for operation %s at qarg index: "
-                               "%zu. Expected: %f, got: %f.\n",
-                               name, props_idx, props.duration, 1e-6);
+                        fprintf(stderr,
+                                "Unexpected duration value found for operation %s at qarg index: "
+                                "%zu. Expected: %f, got: %f.\n",
+                                name, props_idx, props.duration, 1e-6);
                         result = EqualityError;
                         goto cleanup;
                     }
 
                     if (props.error != 1e-4) {
-                        fprintf(stderr, "Unexpected error value found for operation %s at qarg index: %zu. "
-                               "Expected: %f, got: %f.\n",
-                               name, props_idx, props.error, 1e-4);
+                        fprintf(stderr,
+                                "Unexpected error value found for operation %s at qarg index: %zu. "
+                                "Expected: %f, got: %f.\n",
+                                name, props_idx, props.error, 1e-4);
                         result = EqualityError;
                         goto cleanup;
                     }
@@ -844,7 +859,7 @@ static int test_target_indexing(void) {
     qk_target_op_qargs(target, cx_idx, 1, &cx_qargs, &cx_qargs_len);
     if (!compare_qargs(cx_qargs, (uint32_t[2]){4, 3}, cx_qargs_len)) {
         fprintf(stderr, "Retrieved incorrect qargs, expected [4, 3], got [%u, %u]\n", cx_qargs[0],
-               cx_qargs[1]);
+                cx_qargs[1]);
         result = EqualityError;
         goto cleanup;
     }
@@ -853,12 +868,13 @@ static int test_target_indexing(void) {
 
     if (cx_props.duration != 3.0577e-11) {
         fprintf(stderr, "Retrieved incorrect duration property, expected 3.0577e-11, got %lf.\n",
-               cx_props.duration);
+                cx_props.duration);
         result = EqualityError;
         goto cleanup;
     }
     if (cx_props.error != 0.00713) {
-        fprintf(stderr, "Retrieved incorrect error property, expected 0.00713, got %lf.\n", cx_props.error);
+        fprintf(stderr, "Retrieved incorrect error property, expected 0.00713, got %lf.\n",
+                cx_props.error);
         result = EqualityError;
         goto cleanup;
     }
@@ -924,9 +940,10 @@ int test_target_instruction_supported(void) {
             if (qk_target_instruction_supported(sample_target, gate_names[gate], qargs,
                                                 gate != 3 ? NULL : rz_params) !=
                 (should_be_true || gate == 1)) {
-                fprintf(stderr, "This target did not correctly demonstrate compatibility with %s and qargs "
-                       "[%d]",
-                       gate_names[gate], qubit);
+                fprintf(stderr,
+                        "This target did not correctly demonstrate compatibility with %s and qargs "
+                        "[%d]",
+                        gate_names[gate], qubit);
                 result = EqualityError;
                 goto cleanup;
             }
@@ -938,9 +955,10 @@ int test_target_instruction_supported(void) {
                                             (QkParam *[]){
                                                 param,
                                             })) {
-            fprintf(stderr, "This target did not correctly demonstrate compatibility with 'rz' and qargs "
-                   "[%d]",
-                   qubit);
+            fprintf(stderr,
+                    "This target did not correctly demonstrate compatibility with 'rz' and qargs "
+                    "[%d]",
+                    qubit);
             result = EqualityError;
             qk_param_free(param);
             goto cleanup;
@@ -950,7 +968,8 @@ int test_target_instruction_supported(void) {
         // Test standard instructions reset and measure
         if (!(qk_target_instruction_supported(sample_target, "measure", qargs, NULL) ==
               (qubit < 2))) {
-            fprintf(stderr, 
+            fprintf(
+                stderr,
                 "This target did not correctly demonstrate compatibility with 'measure' and qargs "
                 "[%d]",
                 qubit);
@@ -965,9 +984,11 @@ int test_target_instruction_supported(void) {
     };
     for (int i = 0; i < 8; i++) {
         if (!qk_target_instruction_supported(sample_target, "cx", qarg_samples[i], NULL)) {
-            fprintf(stderr, "This target did incorrectly demonstrate compatibility with 'cx' and qargs [%d, "
-                   "%d]",
-                   qarg_samples[i][0], qarg_samples[i][1]);
+            fprintf(
+                stderr,
+                "This target did incorrectly demonstrate compatibility with 'cx' and qargs [%d, "
+                "%d]",
+                qarg_samples[i][0], qarg_samples[i][1]);
             result = EqualityError;
             goto cleanup;
         }
@@ -976,7 +997,8 @@ int test_target_instruction_supported(void) {
     uint32_t cx_qargs[2] = {3, 2};
     // Instruction should not show compatibility with (3, 2)
     if (qk_target_instruction_supported(sample_target, "cx", cx_qargs, NULL)) {
-        fprintf(stderr, "This target did incorrectly demonstrate compatibility with 'cx' and qargs [3, 2]");
+        fprintf(stderr,
+                "This target did incorrectly demonstrate compatibility with 'cx' and qargs [3, 2]");
         result = EqualityError;
         goto cleanup;
     }
@@ -1002,8 +1024,8 @@ static int test_target_operation(void) {
         qk_target_op_get(target, inst_idx, &op);
 
         if (strcmp(op.name, names[inst_idx]) != 0) {
-            fprintf(stderr, "The operation names did not match. Expected %s, got %s\n", names[inst_idx],
-                   op.name);
+            fprintf(stderr, "The operation names did not match. Expected %s, got %s\n",
+                    names[inst_idx], op.name);
             result = EqualityError;
             break;
         }
@@ -1012,21 +1034,22 @@ static int test_target_operation(void) {
         if (inst_idx < 7) {
             if (op.op_type != QkOperationKind_Gate) {
                 fprintf(stderr, "The operation's type did not match, expected Gate, got %s\n",
-                       op_types[(size_t)op.op_type]);
+                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
                 break;
             }
             QkGate gate = qk_target_op_gate(target, inst_idx);
             if (gate != std_gates[inst_idx]) {
-                fprintf(stderr, "The gate type did not match. Expected %i, got %i\n", std_gates[inst_idx],
-                       gate);
+                fprintf(stderr, "The gate type did not match. Expected %i, got %i\n",
+                        std_gates[inst_idx], gate);
                 result = EqualityError;
                 break;
             }
             if (inst_idx == 1) {
                 double param_val = qk_param_as_real(op.params[0]);
                 if (param_val != 3.14) {
-                    fprintf(stderr, 
+                    fprintf(
+                        stderr,
                         "The param value for instruction '%s' did not match. Expected %f, got %f\n",
                         op.name, 3.14, param_val);
                     result = EqualityError;
@@ -1034,9 +1057,11 @@ static int test_target_operation(void) {
                 }
             } else {
                 if (op.params == NULL && op.num_params != 0) {
-                    fprintf(stderr, "The param values for instruction '%s' did not match. Got length %u for "
-                           "NULL params.\n",
-                           op.name, op.num_params);
+                    fprintf(
+                        stderr,
+                        "The param values for instruction '%s' did not match. Got length %u for "
+                        "NULL params.\n",
+                        op.name, op.num_params);
                     result = EqualityError;
                     break;
                 }
@@ -1044,14 +1069,14 @@ static int test_target_operation(void) {
         } else if (inst_idx == 7) {
             if (op.op_type != QkOperationKind_Measure) {
                 fprintf(stderr, "The operation's type did not match, expected Measure, got %s\n",
-                       op_types[(size_t)op.op_type]);
+                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
                 break;
             }
         } else {
             if (op.op_type != QkOperationKind_Reset) {
                 fprintf(stderr, "The operation's type did not match, expected Reset, got %s\n",
-                       op_types[(size_t)op.op_type]);
+                        op_types[(size_t)op.op_type]);
                 result = EqualityError;
                 break;
             }

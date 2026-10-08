@@ -78,7 +78,7 @@ static int test_sabre_layout_applies_layout(void) {
     for (uint32_t i = 0; i < 5; i++) {
         if (result_initial_layout[i] != expected_initial_layout[i]) {
             fprintf(stderr, "Initial layout maps qubit %d to %d, expected %d instead\n", i,
-                   result_initial_layout[i], expected_initial_layout[i]);
+                    result_initial_layout[i], expected_initial_layout[i]);
             result = EqualityError;
             goto cleanup;
         }
@@ -90,7 +90,7 @@ static int test_sabre_layout_applies_layout(void) {
     for (uint32_t i = 0; i < 5; i++) {
         if (result_permutation[i] != expected_permutation[i]) {
             fprintf(stderr, "Output permutation maps qubit %d to %d, expected %d instead\n", i,
-                   result_permutation[i], expected_permutation[i]);
+                    result_permutation[i], expected_permutation[i]);
             result = EqualityError;
             goto cleanup;
         }
@@ -176,7 +176,7 @@ static int test_sabre_layout_no_swap(void) {
     for (uint32_t i = 0; i < 5; i++) {
         if (result_initial_layout[i] != expected_initial_layout[i]) {
             fprintf(stderr, "Initial layout maps qubit %d to %d, expected %d instead\n", i,
-                   result_initial_layout[i], expected_initial_layout[i]);
+                    result_initial_layout[i], expected_initial_layout[i]);
             result = EqualityError;
             goto cleanup;
         }
@@ -187,7 +187,7 @@ static int test_sabre_layout_no_swap(void) {
     for (uint32_t i = 0; i < 5; i++) {
         if (result_permutation[i] != expected_permutation[i]) {
             fprintf(stderr, "Output permutation maps qubit %d to %d, expected %d instead\n", i,
-                   result_permutation[i], expected_permutation[i]);
+                    result_permutation[i], expected_permutation[i]);
             result = EqualityError;
             goto cleanup;
         }

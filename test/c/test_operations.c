@@ -115,26 +115,26 @@ static int test_custom_operation_in_circuit(void) {
     qk_circuit_get_instruction(circuit, 0, &inst);
 
     if (strcmp(inst.name, FOO_NAME)) {
-        fprintf(stderr, "Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
-               inst.name);
+        fprintf(stderr, "Retrieved incorrect instruction name. Expected '%s', got '%s'.\n",
+                FOO_NAME, inst.name);
         res = EqualityError;
         goto cleanup;
     }
     if (inst.num_qubits != test_3q_op.num_qubits) {
-        fprintf(stderr, "Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
-               test_3q_op.num_qubits, inst.num_qubits);
+        fprintf(stderr, "Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n",
+                inst.name, test_3q_op.num_qubits, inst.num_qubits);
         res = EqualityError;
         goto cleanup;
     }
     if (inst.num_clbits != test_3q_op.num_clbits) {
-        fprintf(stderr, "Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name,
-               test_3q_op.num_clbits, inst.num_clbits);
+        fprintf(stderr, "Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n",
+                inst.name, test_3q_op.num_clbits, inst.num_clbits);
         res = EqualityError;
         goto cleanup;
     }
     if (inst.num_params != test_3q_op.num_params) {
-        fprintf(stderr, "Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
-               test_3q_op.num_params, inst.num_params);
+        fprintf(stderr, "Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n",
+                inst.name, test_3q_op.num_params, inst.num_params);
         res = EqualityError;
         goto cleanup;
     }
@@ -144,26 +144,26 @@ static int test_custom_operation_in_circuit(void) {
     qk_circuit_get_instruction(circuit, 1, &inst);
 
     if (strcmp(inst.name, FOO_NAME)) {
-        fprintf(stderr, "Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
-               inst.name);
+        fprintf(stderr, "Retrieved incorrect instruction name. Expected '%s', got '%s'.\n",
+                FOO_NAME, inst.name);
         res = EqualityError;
         goto cleanup;
     }
     if (inst.num_qubits != test_2q_op.num_qubits) {
-        fprintf(stderr, "Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
-               test_2q_op.num_qubits, inst.num_qubits);
+        fprintf(stderr, "Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n",
+                inst.name, test_2q_op.num_qubits, inst.num_qubits);
         res = EqualityError;
         goto cleanup;
     }
     if (inst.num_clbits != test_2q_op.num_clbits) {
-        fprintf(stderr, "Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name,
-               test_2q_op.num_clbits, inst.num_clbits);
+        fprintf(stderr, "Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n",
+                inst.name, test_2q_op.num_clbits, inst.num_clbits);
         res = EqualityError;
         goto cleanup;
     }
     if (inst.num_params != test_2q_op.num_params) {
-        fprintf(stderr, "Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
-               test_2q_op.num_params, inst.num_params);
+        fprintf(stderr, "Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n",
+                inst.name, test_2q_op.num_params, inst.num_params);
         res = EqualityError;
         goto cleanup;
     }
@@ -171,14 +171,16 @@ static int test_custom_operation_in_circuit(void) {
     QkOperationKind kind = qk_circuit_instruction_kind(circuit, 0);
 
     if (kind != 8) {
-        fprintf(stderr, "Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        fprintf(stderr, "Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8,
+                kind);
         res = EqualityError;
         goto cleanup;
     }
     kind = qk_circuit_instruction_kind(circuit, 1);
 
     if (kind != 8) {
-        fprintf(stderr, "Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        fprintf(stderr, "Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8,
+                kind);
         res = EqualityError;
         goto cleanup;
     }
@@ -250,26 +252,26 @@ static int test_custom_operation_in_dag(void) {
     qk_dag_get_instruction(circuit, ind1, &inst);
 
     if (strcmp(inst.name, FOO_NAME)) {
-        fprintf(stderr, "Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
-               inst.name);
+        fprintf(stderr, "Retrieved incorrect instruction name. Expected '%s', got '%s'.\n",
+                FOO_NAME, inst.name);
         res = EqualityError;
         goto inst_cleanup;
     }
     if (inst.num_qubits != test_1q_op.num_qubits) {
-        fprintf(stderr, "Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
-               test_1q_op.num_qubits, inst.num_qubits);
+        fprintf(stderr, "Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n",
+                inst.name, test_1q_op.num_qubits, inst.num_qubits);
         res = EqualityError;
         goto inst_cleanup;
     }
     if (inst.num_clbits != test_1q_op.num_clbits) {
-        fprintf(stderr, "Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name,
-               test_1q_op.num_clbits, inst.num_clbits);
+        fprintf(stderr, "Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n",
+                inst.name, test_1q_op.num_clbits, inst.num_clbits);
         res = EqualityError;
         goto cleanup;
     }
     if (inst.num_params != test_1q_op.num_params) {
-        fprintf(stderr, "Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
-               test_1q_op.num_params, inst.num_params);
+        fprintf(stderr, "Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n",
+                inst.name, test_1q_op.num_params, inst.num_params);
         res = EqualityError;
         goto inst_cleanup;
     }
@@ -277,7 +279,8 @@ static int test_custom_operation_in_dag(void) {
     QkOperationKind kind = qk_dag_op_node_kind(circuit, ind2);
 
     if (kind != 8) {
-        fprintf(stderr, "Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        fprintf(stderr, "Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8,
+                kind);
         res = EqualityError;
         goto cleanup;
     }
@@ -287,26 +290,26 @@ static int test_custom_operation_in_dag(void) {
     qk_dag_get_instruction(circuit, ind2, &inst);
 
     if (strcmp(inst.name, FOO_NAME)) {
-        fprintf(stderr, "Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
-               inst.name);
+        fprintf(stderr, "Retrieved incorrect instruction name. Expected '%s', got '%s'.\n",
+                FOO_NAME, inst.name);
         res = EqualityError;
         goto inst_cleanup;
     }
     if (inst.num_qubits != test_3q_op.num_qubits) {
-        fprintf(stderr, "Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
-               test_3q_op.num_qubits, inst.num_qubits);
+        fprintf(stderr, "Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n",
+                inst.name, test_3q_op.num_qubits, inst.num_qubits);
         res = EqualityError;
         goto inst_cleanup;
     }
     if (inst.num_clbits != test_3q_op.num_clbits) {
-        fprintf(stderr, "Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name,
-               test_3q_op.num_clbits, inst.num_clbits);
+        fprintf(stderr, "Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n",
+                inst.name, test_3q_op.num_clbits, inst.num_clbits);
         res = EqualityError;
         goto inst_cleanup;
     }
     if (inst.num_params != test_3q_op.num_params) {
-        fprintf(stderr, "Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
-               test_3q_op.num_params, inst.num_params);
+        fprintf(stderr, "Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n",
+                inst.name, test_3q_op.num_params, inst.num_params);
         res = EqualityError;
         goto inst_cleanup;
     }
@@ -314,7 +317,8 @@ static int test_custom_operation_in_dag(void) {
     kind = qk_dag_op_node_kind(circuit, ind2);
 
     if (kind != 8) {
-        fprintf(stderr, "Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        fprintf(stderr, "Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8,
+                kind);
         res = EqualityError;
         goto cleanup;
     }

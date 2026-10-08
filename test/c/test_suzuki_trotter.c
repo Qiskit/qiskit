@@ -197,31 +197,35 @@ static int test_tri_ising_hamiltonian(void) {
             if (count.count != num_zzz_terms) {
                 result = EqualityError;
                 fprintf(stderr, "Expected %zu %s gates, but found %zu\n", num_zzz_terms, count.name,
-                       count.count);
+                        count.count);
                 goto cleanup;
             }
         } else if (strcmp(count.name, "h") == 0) {
             if (count.count != 2 * num_zzz_terms) {
                 result = EqualityError;
-                fprintf(stderr, "Expected %zu h gates, but found %zu\n", 2 * num_zzz_terms, count.count);
+                fprintf(stderr, "Expected %zu h gates, but found %zu\n", 2 * num_zzz_terms,
+                        count.count);
                 goto cleanup;
             }
         } else if (strcmp(count.name, "cx") == 0) {
             if (count.count != 4 * num_zzz_terms) {
                 result = EqualityError;
-                fprintf(stderr, "Expected %zu cx gates, but found %zu\n", 4 * num_zzz_terms, count.count);
+                fprintf(stderr, "Expected %zu cx gates, but found %zu\n", 4 * num_zzz_terms,
+                        count.count);
                 goto cleanup;
             }
         } else if (strcmp(count.name, "rzz") == 0) {
             if (count.count != num_zz_terms) {
                 result = EqualityError;
-                fprintf(stderr, "Expected %zu rzz gates, but found %zu\n", num_zz_terms, count.count);
+                fprintf(stderr, "Expected %zu rzz gates, but found %zu\n", num_zz_terms,
+                        count.count);
                 goto cleanup;
             }
         } else if (strcmp(count.name, "rzz") == 0) {
             if (count.count != num_zz_terms) {
                 result = EqualityError;
-                fprintf(stderr, "Expected %zu rzz gates, but found %zu\n", num_zz_terms, count.count);
+                fprintf(stderr, "Expected %zu rzz gates, but found %zu\n", num_zz_terms,
+                        count.count);
                 goto cleanup;
             }
         } else if (strcmp(count.name, "rx") == 0) {

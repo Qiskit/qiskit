@@ -78,7 +78,7 @@ static int test_expr_info_structs(void) {
     QkCastExprInfo cast_info = qk_expr_cast_info(index_info.index);
     if (cast_info.ty.ty != QkExprType_Uint || cast_info.ty.width != 1) {
         fprintf(stderr, "Expected Cast to Uint(1), got type %d width %d\n", cast_info.ty.ty,
-               cast_info.ty.width);
+                cast_info.ty.width);
         result = EqualityError;
         goto cleanup;
     }
@@ -152,7 +152,8 @@ static int test_op_types_roundtrip(void) {
 
         QkUnaryExprInfo unary_info = qk_expr_unary_info(expr);
         if (unary_info.op != expected_op) {
-            fprintf(stderr, "Unary op type mismatch: expected %d, got %d\n", expected_op, unary_info.op);
+            fprintf(stderr, "Unary op type mismatch: expected %d, got %d\n", expected_op,
+                    unary_info.op);
             result = EqualityError;
             goto cleanup;
         }
@@ -244,14 +245,15 @@ static int test_expr_kind_and_type(void) {
             }
 
             if (result_type.ty != type_info.ty) {
-                fprintf(stderr, "Type mismatch: expected %d, got %d\n", type_info.ty, result_type.ty);
+                fprintf(stderr, "Type mismatch: expected %d, got %d\n", type_info.ty,
+                        result_type.ty);
                 result = EqualityError;
                 goto cleanup;
             }
 
             if (type_info.ty == QkExprType_Uint && result_type.width != type_info.width) {
                 fprintf(stderr, "Width mismatch for Uint: expected %d, got %d\n", type_info.width,
-                       result_type.width);
+                        result_type.width);
                 result = EqualityError;
                 goto cleanup;
             }
@@ -317,7 +319,8 @@ static int test_expr_var(void) {
         }
 
         if (type_info.ty == QkExprType_Uint && var_type.width != type_info.width) {
-            fprintf(stderr, "Var width mismatch: expected %d, got %d\n", type_info.width, var_type.width);
+            fprintf(stderr, "Var width mismatch: expected %d, got %d\n", type_info.width,
+                    var_type.width);
             result = EqualityError;
             goto cleanup;
         }
@@ -486,7 +489,8 @@ static int test_expr_value(void) {
             }
 
             if (result_duration.value.dt != 12345) {
-                fprintf(stderr, "Expected dt value 12345, got %" PRId64 "\n", result_duration.value.dt);
+                fprintf(stderr, "Expected dt value 12345, got %" PRId64 "\n",
+                        result_duration.value.dt);
                 result = EqualityError;
                 goto cleanup;
             }
@@ -513,7 +517,8 @@ static int test_expr_value(void) {
             }
 
             if (value_type_info.width != 4) {
-                fprintf(stderr, "Expected Uint width to be 4, got %" PRIu32 "\n", value_type_info.width);
+                fprintf(stderr, "Expected Uint width to be 4, got %" PRIu32 "\n",
+                        value_type_info.width);
                 result = EqualityError;
                 goto cleanup;
             }

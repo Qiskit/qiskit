@@ -40,7 +40,7 @@ static int test_all_to_all(void) {
     }
     if (neighbors.neighbors || neighbors.partition) {
         fprintf(stderr, "%s: pointers should be null but are (%p, %p)\n", __func__,
-               (void *)neighbors.neighbors, (void *)neighbors.partition);
+                (void *)neighbors.neighbors, (void *)neighbors.partition);
         res = EqualityError;
         goto cleanup;
     }
@@ -53,7 +53,7 @@ static int test_all_to_all(void) {
     qk_neighbors_clear(&neighbors);
     if (neighbors.neighbors || neighbors.partition) {
         fprintf(stderr, "%s: `qk_neighbors_free` wrote non-null pointers (%p, %p)\n", __func__,
-               (void *)neighbors.neighbors, (void *)neighbors.partition);
+                (void *)neighbors.neighbors, (void *)neighbors.partition);
         res = EqualityError;
         goto cleanup;
     }
@@ -87,7 +87,7 @@ static int test_multiq(void) {
     }
     if (!neighbors.neighbors || !neighbors.partition) {
         fprintf(stderr, "%s: pointers should be non-null but are (%p, %p)\n", __func__,
-               (void *)neighbors.neighbors, (void *)neighbors.partition);
+                (void *)neighbors.neighbors, (void *)neighbors.partition);
         res = NullptrError;
         goto cleanup_target;
     }
@@ -113,7 +113,7 @@ cleanup_neighbors:
     qk_neighbors_clear(&neighbors);
     if (neighbors.neighbors || neighbors.partition) {
         fprintf(stderr, "%s: `qk_neighbors_free` wrote non-null pointers (%p, %p)\n", __func__,
-               (void *)neighbors.neighbors, (void *)neighbors.partition);
+                (void *)neighbors.neighbors, (void *)neighbors.partition);
         res = EqualityError;
         goto cleanup_target;
     }

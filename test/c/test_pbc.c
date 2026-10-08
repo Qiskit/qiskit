@@ -85,13 +85,15 @@ static int test_counts_convert_to_pauli_rotations(void) {
     for (size_t i = 0; i < op_counts.len; i++) {
         if (strcmp(op_counts.data[i].name, "pauli_product_rotation") == 0) {
             if (op_counts.data[i].count != expected_ppr) {
-                fprintf(stderr, "Expected %zu PPR but found %zu\n", expected_ppr, op_counts.data[i].count);
+                fprintf(stderr, "Expected %zu PPR but found %zu\n", expected_ppr,
+                        op_counts.data[i].count);
                 result = EqualityError;
                 break;
             }
         } else if (strcmp(op_counts.data[i].name, "pauli_product_measurement") == 0) {
             if (op_counts.data[i].count != 2) {
-                fprintf(stderr, "Expected %zu PPM but found %zu\n", expected_ppm, op_counts.data[i].count);
+                fprintf(stderr, "Expected %zu PPM but found %zu\n", expected_ppm,
+                        op_counts.data[i].count);
                 result = EqualityError;
                 break;
             }
@@ -141,7 +143,8 @@ int check_paulis(enum Pauli *expected_paulis, bool *x, bool *z, size_t len) {
             expected_z = true;
         }
         if (x[i] != expected_x || z[i] != expected_z) {
-            fprintf(stderr, "Expected (%i, %i) but got (%i, %i)\n", expected_x, expected_z, x[i], z[i]);
+            fprintf(stderr, "Expected (%i, %i) but got (%i, %i)\n", expected_x, expected_z, x[i],
+                    z[i]);
             result = EqualityError;
             break;
         }
@@ -356,7 +359,8 @@ static int test_litinski_noop(void) {
 
     int result = Ok;
     if (qk_circuit_num_instructions(circuit) != 1) {
-        fprintf(stderr, "Expected 1 instructions, but found %zu", qk_circuit_num_instructions(circuit));
+        fprintf(stderr, "Expected 1 instructions, but found %zu",
+                qk_circuit_num_instructions(circuit));
         result = EqualityError;
         goto cleanup;
     }

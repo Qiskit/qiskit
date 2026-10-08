@@ -311,8 +311,9 @@ static int test_pairwise_with_3_qubits(void) {
     QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 3, entanglement_blocks,
                                                1, &settings);
     if (qc != NULL) {
-        fprintf(stderr, "Inconsistent result when testing pairwise entanglement with 3 qubits: A null "
-               "response was expected, but a circuit was obtained.");
+        fprintf(stderr,
+                "Inconsistent result when testing pairwise entanglement with 3 qubits: A null "
+                "response was expected, but a circuit was obtained.");
         qk_circuit_free(qc);
         return EqualityError;
     }
@@ -331,7 +332,7 @@ static int test_full_entanglement_with_3_qubit_gate_for_2_qubits(void) {
 
     if (qc != NULL) {
         fprintf(stderr, "Inconsistent result when testing 2 qubits with a 3 qubit gate: A null "
-               "response was expected, but a circuit was returned.");
+                        "response was expected, but a circuit was returned.");
         qk_circuit_free(qc);
         return EqualityError;
     }

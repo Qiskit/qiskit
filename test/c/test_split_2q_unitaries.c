@@ -71,7 +71,8 @@ static int test_standalone_split_2q_unitaries_x_y_unitary(void) {
     int result = Ok;
     if (split_result != NULL) {
         result = EqualityError;
-        fprintf(stderr, "Permutation returned for a circuit that shouldn't isn't a swap equivalent\n");
+        fprintf(stderr,
+                "Permutation returned for a circuit that shouldn't isn't a swap equivalent\n");
         qk_transpile_layout_free(split_result);
         goto cleanup;
     }
@@ -137,7 +138,7 @@ static int test_standalone_split_2q_unitaries_swap_x_y_unitary(void) {
     for (int i = 0; i < 2; i++) {
         if (permutation[i] != expected[i]) {
             fprintf(stderr, "Permutation at position %d not as expected, found %u expected %u\n", i,
-                   permutation[i], expected[i]);
+                    permutation[i], expected[i]);
             goto cleanup;
         }
     }
@@ -309,7 +310,7 @@ static int test_split_2q_unitaries_swap_x_y_unitary(void) {
     for (int i = 0; i < 2; i++) {
         if (permutation[i] != expected[i]) {
             fprintf(stderr, "Permutation at position %d not as expected, found %u expected %u\n", i,
-                   permutation[i], expected[i]);
+                    permutation[i], expected[i]);
             goto cleanup;
         }
     }

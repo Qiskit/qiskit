@@ -254,7 +254,8 @@ static int test_peephole_overcomplete_target(void) {
             goto target_cleanup;
         }
         if (result_rzx_props != QkExitCode_Success) {
-            fprintf(stderr, "Unexpected error occurred when adding property to a RZX gate entry.\n");
+            fprintf(stderr,
+                    "Unexpected error occurred when adding property to a RZX gate entry.\n");
             result = RuntimeError;
             goto target_cleanup;
         }
@@ -288,15 +289,17 @@ static int test_peephole_overcomplete_target(void) {
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     size_t num_instructions = qk_circuit_num_instructions(qc);
     if (num_instructions != 135) {
-        fprintf(stderr, "Circuit not simplified as expected 135 instructions, got: %zu\n", num_instructions);
+        fprintf(stderr, "Circuit not simplified as expected 135 instructions, got: %zu\n",
+                num_instructions);
         result = EqualityError;
         goto cleanup;
     }
     if (op_counts.len != 3) {
         char *circuit_drawing = qk_circuit_draw(qc, NULL);
-        fprintf(stderr, "More than 3 types of gates in circuit, it should only contain RX, RZ, and RZX but "
-               "the circuit is: %s\n",
-               circuit_drawing);
+        fprintf(stderr,
+                "More than 3 types of gates in circuit, it should only contain RX, RZ, and RZX but "
+                "the circuit is: %s\n",
+                circuit_drawing);
         qk_str_free(circuit_drawing);
         result = EqualityError;
         goto cleanup;
@@ -307,7 +310,7 @@ static int test_peephole_overcomplete_target(void) {
         int rzx_gate = strcmp(op_counts.data[i].name, "rzx");
         if (rzx_gate && rx_gate && rz_gate) {
             fprintf(stderr, "Gate type of %s found in the circuit which isn't expected\n",
-                   op_counts.data[i].name);
+                    op_counts.data[i].name);
             result = EqualityError;
             goto cleanup;
         }

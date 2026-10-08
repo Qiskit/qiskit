@@ -76,23 +76,25 @@ bool compare_circuits(const QkCircuit *res, const QkCircuit *expected) {
         qk_circuit_get_instruction(expected, i, &expected_inst);
         int result = strcmp(res_inst.name, expected_inst.name);
         if (result != 0) {
-            fprintf(stderr, "Gate %zu have different gates %s was found and expected %s\n", i, res_inst.name,
-                   expected_inst.name);
+            fprintf(stderr, "Gate %zu have different gates %s was found and expected %s\n", i,
+                    res_inst.name, expected_inst.name);
             qk_circuit_instruction_clear(&res_inst);
             qk_circuit_instruction_clear(&expected_inst);
             return false;
         }
         if (res_inst.num_qubits != expected_inst.num_qubits) {
-            fprintf(stderr, "Gate %zu have different number of qubits %d was found and expected %d\n", i,
-                   res_inst.num_qubits, expected_inst.num_qubits);
+            fprintf(stderr,
+                    "Gate %zu have different number of qubits %d was found and expected %d\n", i,
+                    res_inst.num_qubits, expected_inst.num_qubits);
             qk_circuit_instruction_clear(&res_inst);
             qk_circuit_instruction_clear(&expected_inst);
             return false;
         }
         for (uint32_t j = 0; j < res_inst.num_qubits; j++) {
             if (res_inst.qubits[j] != expected_inst.qubits[j]) {
-                fprintf(stderr, "Qubit %d for gate %zu are different %d was found and expected %d\n", j, i,
-                       res_inst.qubits[j], expected_inst.qubits[j]);
+                fprintf(stderr,
+                        "Qubit %d for gate %zu are different %d was found and expected %d\n", j, i,
+                        res_inst.qubits[j], expected_inst.qubits[j]);
                 fprintf(stderr, "Expected circuit instructions:\n");
                 print_circuit(expected);
                 fprintf(stderr, "Result circuit:\n");
@@ -103,24 +105,27 @@ bool compare_circuits(const QkCircuit *res, const QkCircuit *expected) {
             }
         }
         if (res_inst.num_clbits != expected_inst.num_clbits) {
-            fprintf(stderr, "Gate %zu have different number of clbits %d was found and expected %d\n", i,
-                   res_inst.num_clbits, expected_inst.num_clbits);
+            fprintf(stderr,
+                    "Gate %zu have different number of clbits %d was found and expected %d\n", i,
+                    res_inst.num_clbits, expected_inst.num_clbits);
             qk_circuit_instruction_clear(&res_inst);
             qk_circuit_instruction_clear(&expected_inst);
             return false;
         }
         for (uint32_t j = 0; j < res_inst.num_clbits; j++) {
             if (res_inst.clbits[j] != expected_inst.clbits[j]) {
-                fprintf(stderr, "Clbit %d for gate %zu are different %d was found and expected %d\n", j, i,
-                       res_inst.clbits[j], expected_inst.clbits[j]);
+                fprintf(stderr,
+                        "Clbit %d for gate %zu are different %d was found and expected %d\n", j, i,
+                        res_inst.clbits[j], expected_inst.clbits[j]);
                 qk_circuit_instruction_clear(&res_inst);
                 qk_circuit_instruction_clear(&expected_inst);
                 return false;
             }
         }
         if (res_inst.num_params != expected_inst.num_params) {
-            fprintf(stderr, "Gate %zu have different number of params %d was found and expected %d\n", i,
-                   res_inst.num_params, expected_inst.num_params);
+            fprintf(stderr,
+                    "Gate %zu have different number of params %d was found and expected %d\n", i,
+                    res_inst.num_params, expected_inst.num_params);
             qk_circuit_instruction_clear(&res_inst);
             qk_circuit_instruction_clear(&expected_inst);
             return false;
@@ -130,8 +135,9 @@ bool compare_circuits(const QkCircuit *res, const QkCircuit *expected) {
                 char *res_str = qk_param_str(res_inst.params[j]);
                 char *expected_str = qk_param_str(expected_inst.params[j]);
 
-                fprintf(stderr, "Parameter %d for gate %zu are different %s was found and expected %s\n", j,
-                       i, res_str, expected_str);
+                fprintf(stderr,
+                        "Parameter %d for gate %zu are different %s was found and expected %s\n", j,
+                        i, res_str, expected_str);
                 qk_str_free(res_str);
                 qk_str_free(expected_str);
                 qk_circuit_instruction_clear(&res_inst);

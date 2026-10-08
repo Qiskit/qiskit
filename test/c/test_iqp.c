@@ -144,7 +144,7 @@ static int test_random_iqp(void) {
         qk_circuit_get_instruction(iqp, i, &inst);
         if (inst.num_qubits != 1 && inst.num_qubits != 2) {
             fprintf(stderr, "Random IQP has instruction with num_qubits = %u at index %zu\n",
-                   inst.num_qubits, i);
+                    inst.num_qubits, i);
             result = EqualityError;
             qk_circuit_instruction_clear(&inst);
             goto cleanup;

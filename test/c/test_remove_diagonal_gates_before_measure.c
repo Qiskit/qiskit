@@ -46,8 +46,9 @@ int test_standalone_remove_z_gate(void) {
     qk_circuit_get_instruction(qc, 0, &inst);
 
     if (0 != strcmp("measure", inst.name)) {
-        fprintf(stderr, "Circuit should contain a single 'measure' instruction. Instead, it has one: '%s'.",
-               inst.name);
+        fprintf(stderr,
+                "Circuit should contain a single 'measure' instruction. Instead, it has one: '%s'.",
+                inst.name);
         result = EqualityError;
         goto cleanup_inst;
     }
@@ -94,8 +95,9 @@ int test_remove_z_gate(void) {
     qk_dag_get_instruction(dag, op_nodes[0], &inst);
 
     if (0 != strcmp("measure", inst.name)) {
-        fprintf(stderr, "DAG should contain a single 'measure' instruction. Instead, it has one: '%s'.",
-               inst.name);
+        fprintf(stderr,
+                "DAG should contain a single 'measure' instruction. Instead, it has one: '%s'.",
+                inst.name);
         result = EqualityError;
     }
 

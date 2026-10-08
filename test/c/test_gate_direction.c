@@ -50,7 +50,8 @@ static int test_standalone_check_gate_direction(void) {
 
     if ((result = qk_circuit_gate(circuit, QkGate_CX, qargs, NULL)) != QkExitCode_Success ||
         (result = qk_circuit_gate(circuit, QkGate_CX, &qargs[1], NULL)) != QkExitCode_Success) {
-        fprintf(stderr, "Unexpected error encountered while adding CX gates in test_check_gate_direction.");
+        fprintf(stderr,
+                "Unexpected error encountered while adding CX gates in test_check_gate_direction.");
         goto cleanup;
     }
 
@@ -60,7 +61,7 @@ static int test_standalone_check_gate_direction(void) {
     else {
         if ((result = qk_circuit_gate(circuit, QkGate_CX, &qargs[2], NULL)) != QkExitCode_Success) {
             fprintf(stderr, "Unexpected error encountered while adding a CX gate in "
-                   "test_check_gate_direction.");
+                            "test_check_gate_direction.");
             goto cleanup;
         }
         check_pass = qk_transpiler_pass_standalone_check_gate_direction(circuit, target);
