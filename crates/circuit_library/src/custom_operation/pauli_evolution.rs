@@ -178,25 +178,16 @@ impl PartialEq for ComparableParam {
 }
 
 fn evolve_matrix(matrix: &Array2<Complex64>, time: f64) -> Array2<Complex64> {
-    debug_assert_eq!(matrix.nrows(), matrix.ncols());
+    debug_assert!(matrix.is_square());
+
+    let minus_i_time = Complex64::new(0.0, -time);
+    let row_major_elems = matrix.iter().map(|element| element * minus_i_time);
 
     let dim = matrix.nrows();
-    let matrix = DMatrix::from_row_iterator(dim, dim, matrix.iter().copied());
+    let matrix = DMatrix::from_row_iterator(dim, dim, row_major_elems);
 
-    let solver = matrix.symmetric_eigen();
-    let eigenvectors = solver.eigenvectors;
-    let eigenvalues = solver.eigenvalues;
-
-    let mut diagonal = DMatrix::zeros(dim, dim);
-    for i in 0..dim {
-        let phase = -time * eigenvalues[i];
-        diagonal[(i, i)] = Complex64::new(phase.cos(), phase.sin());
-    }
-
-    let adjoint = eigenvectors.adjoint();
-    let evolved = eigenvectors * diagonal * adjoint;
-
-    Array2::from_shape_fn((dim, dim), |(i, j)| evolved[(i, j)])
+    let matrix = matrix.exp();
+    Array2::from_shape_fn((dim, dim), |(row, col)| matrix[(row, col)])
 }
 
 #[cfg(test)]
