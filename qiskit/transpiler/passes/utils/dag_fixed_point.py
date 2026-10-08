@@ -12,7 +12,13 @@
 
 """Check if the DAG has reached a fixed point."""
 
+from __future__ import annotations
+
 from copy import deepcopy
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -25,8 +31,8 @@ class DAGFixedPoint(AnalysisPass):
     ``property_set['dag_fixed_point']`` as a boolean.
     """
 
-    def run(self, dag):
-        """Run the DAGFixedPoint pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the DAGFixedPoint pass on ``dag``."""
         if self.property_set["_dag_fixed_point_previous_dag"] is None:
             self.property_set["dag_fixed_point"] = False
         else:

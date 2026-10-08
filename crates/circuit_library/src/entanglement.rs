@@ -87,7 +87,7 @@ fn shift_circular_alternating(
     let shifted = circular(num_qubits, block_size)
         .skip(split as usize)
         .chain(circular(num_qubits, block_size).take(split as usize));
-    if offset % 2 == 0 {
+    if offset.is_multiple_of(2) {
         Box::new(shifted)
     } else {
         // if the offset is odd, reverse the indices inside the qubit block (e.g. turn CX

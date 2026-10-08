@@ -729,11 +729,11 @@ static int test_target_iteration(void) {
             }
             // Global phase
             else if (op_idx == 6) {
-                if (!compare_qargs(qargs, (uint32_t[]){}, 0)) {
+                if (!compare_qargs(qargs, (uint32_t[]){0}, 0)) {
                     printf(
                         "Unexpected qargs found for operation %s at qarg index: %zu. Expected: '",
                         name, props_idx);
-                    print_qargs((uint32_t[]){}, 0);
+                    print_qargs((uint32_t[]){0}, 0);
                     printf("', found '");
                     print_qargs(qargs, qargs_len);
                     printf("'\n");
@@ -945,6 +945,7 @@ int test_target_instruction_supported(void) {
             qk_param_free(param);
             goto cleanup;
         }
+        qk_param_free(param);
 
         // Test standard instructions reset and measure
         if (!(qk_target_instruction_supported(sample_target, "measure", qargs, NULL) ==

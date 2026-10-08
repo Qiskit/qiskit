@@ -171,7 +171,7 @@ pub(crate) fn _append_reverse_permutation_lnn_kms(gates: &mut LnnGatesVec, num_q
         _append_cx_stage2(gates, num_qubits);
     });
 
-    if num_qubits % 2 == 0 {
+    if num_qubits.is_multiple_of(2) {
         _append_cx_stage1(gates, num_qubits);
     }
 }

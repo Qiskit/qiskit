@@ -61,11 +61,11 @@ class UGate(Gate):
 
     .. note::
 
-        The matrix representation shown here is the same as in the `OpenQASM 3.0 specification
-        <https://openqasm.com/language/gates.html#built-in-gates>`_,
-        which differs from the `OpenQASM 2.0 specification
-        <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
-        :math:`e^{i(\phi+\lambda)/2}`.
+        The matrix representation shown here differs from the `OpenQASM 3.0 specification
+        <https://openqasm.com/language/gates.html#built-in-gates>`_ by a global phase of
+        :math:`e^{-i\theta/2}`.  It differs from the
+        `OpenQASM 2.0 specification <https://doi.org/10.48550/arXiv.1707.03429>`_ 
+        by a global phase of :math:`e^{i(\phi+\lambda)/2}`.
 
     Examples:
 

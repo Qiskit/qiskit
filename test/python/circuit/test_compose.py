@@ -550,6 +550,23 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(output, expected)
 
+    def test_compose_front_smaller_circuit(self):
+        """Test composing a smaller circuit at the front with explicit qubits mapping."""
+
+        qc_base = QuantumCircuit(2)
+        qc_base.h(0)
+
+        qc_x = QuantumCircuit(1)
+        qc_x.x(0)
+
+        output = qc_base.compose(qc_x, qubits=[0], front=True)
+
+        expected = QuantumCircuit(2)
+        expected.x(0)
+        expected.h(0)
+
+        self.assertEqual(output, expected)
+
     def test_compose_adds_parameters(self):
         """Test the composed circuit contains all parameters."""
         a, b = Parameter("a"), Parameter("b")
@@ -954,6 +971,28 @@ class TestCircuitCompose(QiskitTestCase):
             base.compose(attempt, [1, 1], [0, 1])
         with self.assertRaisesRegex(CircuitError, "Duplicate clbits"):
             base.compose(attempt, [0, 1], [1, 1])
+
+    def test_rejects_rhs_with_too_many_qubits(self):
+        """Test that compose rejects a circuit with too many qubits."""
+        base = QuantumCircuit(1)
+        attempt = QuantumCircuit(2)
+
+        with self.assertRaisesRegex(
+            CircuitError,
+            r"Cannot compose onto a circuit with fewer qubits \(2 > 1\)\.",
+        ):
+            base.compose(attempt)
+
+    def test_rejects_rhs_with_too_many_clbits(self):
+        """Test that compose rejects a circuit with too many classical bits."""
+        base = QuantumCircuit(1, 1)
+        attempt = QuantumCircuit(1, 2)
+
+        with self.assertRaisesRegex(
+            CircuitError,
+            r"Cannot compose onto a circuit with fewer classical bits \(2 > 1\)\.",
+        ):
+            base.compose(attempt)
 
     def test_cannot_mix_inputs_and_captures(self):
         """The rules about mixing `input` and `capture` vars should still apply."""

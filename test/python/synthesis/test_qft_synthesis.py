@@ -58,6 +58,12 @@ class TestQFTLNN(QiskitTestCase):
         with self.subTest(msg="synthesized QFT circuit do not have LNN connectivity"):
             self.assertTrue(check_lnn_connectivity(qft_lnn))
 
+    @data(50, 100, 1000)
+    def test_create_large_circuit(self, num_qubits):
+        """Test creating large QFT circuits."""
+        qft = synth_qft_line(num_qubits)
+        self.assertEqual(set(qft.count_ops()), {"p", "cx", "h"})
+
 
 @ddt
 class TestQFTFull(QiskitTestCase):
@@ -110,6 +116,12 @@ class TestQFTFull(QiskitTestCase):
             original = QFT(num_qubits, name="SomeRandomName")
         synthesized = synth_qft_full(num_qubits, name="SomeRandomName")
         self.assertEqual(original.name, synthesized.name)
+
+    @data(50, 100, 1000)
+    def test_create_large_circuit(self, num_qubits):
+        """Test creating large QFT circuits."""
+        qft = synth_qft_full(num_qubits)
+        self.assertEqual(set(qft.count_ops()), {"cp", "h", "swap"})
 
 
 if __name__ == "__main__":

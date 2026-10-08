@@ -55,7 +55,9 @@ fn _initialize_phase_schedule(mat_z: ArrayView2<bool>) -> Array2<usize> {
 fn _shuffle(labels: &[usize], start_from: usize) -> Vec<usize> {
     let mut shuffled_labels = labels.to_owned();
     shuffled_labels[start_from..]
-        .chunks_exact_mut(2)
+        .as_chunks_mut::<2>()
+        .0
+        .iter_mut()
         .for_each(|pair| pair.swap(0, 1));
     shuffled_labels
 }
@@ -150,7 +152,7 @@ fn _update_phase_schedule(
                     (k != i)
                         && (k != j)
                         && (order_comp[min(k, j)] < order_comp[i])
-                        && (phase_schedule[[min(k, j), max(k, j)]] % 4 != 0)
+                        && !phase_schedule[[min(k, j), max(k, j)]].is_multiple_of(4)
                 })
                 .collect();
 

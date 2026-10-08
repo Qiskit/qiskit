@@ -23,7 +23,7 @@ def is_permutation(x: np.ndarray) -> bool:
     Checks if array is really an index permutation.
 
     Args:
-        1D-array of integers that supposedly represents a permutation.
+        x: 1D-array of integers that supposedly represents a permutation.
 
     Returns:
         True, if array is really a permutation of indices.

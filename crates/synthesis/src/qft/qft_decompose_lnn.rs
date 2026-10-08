@@ -74,7 +74,7 @@ pub fn synth_qft_line(
         for j in i..num_qubits - 1 {
             let q0 = num_qubits - j + i - 1;
             let q1 = num_qubits - j + i - 2;
-            let phase = PI / (2_u32.pow((j - i + 2) as u32) as f64);
+            let phase = PI / 2.0_f64.powi((j - i + 2) as i32);
 
             if j - i + 2 < num_qubits - approximation_degree + 1 {
                 append_phase(&mut instructions, q0, phase);

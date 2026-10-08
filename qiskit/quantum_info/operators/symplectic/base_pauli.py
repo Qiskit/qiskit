@@ -295,13 +295,40 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
-        """Heisenberg picture evolution of a Pauli by a Clifford."""
+        """Evolve a Pauli by a Clifford (default is Heisenberg frame)."""
 
-        if frame == "s":
-            adj = other
-        else:
-            adj = other.adjoint()
+        if frame == "h":
+            # Heisenberg evolution C^dg.P.C.
 
+            # Pinning signs (phases) is expensive. We can pin the 2N signs of `C^dg`'s rows, or
+            # just the L signs of the result `(C^dg.P.C)`; pin whichever set is smaller. This
+            # simple threshold (2N vs L) was near-optimal for benchmarks up to 250 qubits.
+            if 2 * other.num_qubits <= self._x.shape[0]:
+                # Few qubits, many Paulis: Compute C^dg (pins signs) and evolve by it
+                other = other.adjoint()  # O(N^3)
+                return self._evolve_clifford(other, qargs=qargs, frame="s")
+
+            # Many qubits, few Paulis: Get result's signs by enforcing round-trip signs are +1,
+            # never paying for C^dg's signs. Build `inv` with ZX tableau of C^dg but wrong signs
+            # via the cheap part of `Clifford._conjugate_transpose` (at time of writing):
+            inv = other.copy()
+            tmp = inv.destab_x.copy()
+            inv.destab_x = inv.stab_z.T
+            inv.destab_z = inv.destab_z.T
+            inv.stab_x = inv.stab_x.T
+            inv.stab_z = tmp.T
+            # Evolving by `inv` gives the correct ZX content of C^dg.P.C but wrong signs:
+            ret = self._evolve_clifford(inv, qargs=qargs, frame="s")
+            # Recover the signs by evolving back: C.(C^dg.P.C).C^dg = P. Since `ret`
+            # already has the right ZX content, evolving it forward reproduces P's ZX content
+            # exactly; only the signs can differ.
+            fwd = ret._evolve_clifford(other, qargs=qargs, frame="s")
+            # Evolution merely adds to the phase (is linear), so `ret`'s phase error passes
+            # unchanged into `fwd`; read it off as `fwd.phase - self.phase` and subtract it:
+            ret.phase -= fwd.phase - self.phase
+            return ret
+
+        # Schrodinger evolution C.P.C^dg.
         if qargs is None:
             qargs_ = slice(None)
         else:
@@ -316,17 +343,21 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._z[:, qargs_] = False
 
         idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
+        # Only iterate rows of `other` selected by at least one Pauli in `self`:
+        keep = np.nonzero(idx.any(axis=0))[0]
         for idx_, row in zip(
-            idx.T,
-            PauliList.from_symplectic(z=adj.z, x=adj.x, phase=2 * adj.phase),
+            idx[:, keep].T,
+            PauliList.from_symplectic(
+                z=other.z[keep], x=other.x[keep], phase=2 * other.phase[keep]
+            ),
+            strict=True,
         ):
             # most of the logic below is to properly index if self is a PauliList (2D),
             # while not trying to index if the object is just a Pauli (1D).
-            if idx_.any():
-                if np.sum(idx_) == num_paulis:
-                    ret.compose(row, qargs=qargs, inplace=True)
-                else:
-                    ret[idx_] = ret[idx_].compose(row, qargs=qargs)
+            if np.sum(idx_) == num_paulis:
+                ret.compose(row, qargs=qargs, inplace=True)
+            else:
+                ret[idx_] = ret[idx_].compose(row, qargs=qargs)
 
         return ret
 
@@ -636,6 +667,22 @@ def _evolve_sdg(base_pauli, qubit):
     return base_pauli
 
 
+def _evolve_sx(base_pauli, qubit):
+    """Update P -> SX.P.SXdg"""
+    z = base_pauli._z[:, qubit]
+    base_pauli._x[:, qubit] ^= z
+    base_pauli._phase -= z.T.astype(base_pauli._phase.dtype)
+    return base_pauli
+
+
+def _evolve_sxdg(base_pauli, qubit):
+    """Update P -> SXdg.P.SX"""
+    z = base_pauli._z[:, qubit]
+    base_pauli._x[:, qubit] ^= z
+    base_pauli._phase += z.T.astype(base_pauli._phase.dtype)
+    return base_pauli
+
+
 def _evolve_i(base_pauli, qubit):
     """Update P -> P"""
     return base_pauli
@@ -690,6 +737,15 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
     return base_pauli
 
 
+def _evolve_dcx(base_pauli, qctrl, qtrgt):
+    """Update P -> DCX.P.DCXdg"""
+    base_pauli._x[:, qtrgt] ^= base_pauli._x[:, qctrl]
+    base_pauli._z[:, qctrl] ^= base_pauli._z[:, qtrgt]
+    base_pauli._x[:, qctrl] ^= base_pauli._x[:, qtrgt]
+    base_pauli._z[:, qtrgt] ^= base_pauli._z[:, qctrl]
+    return base_pauli
+
+
 def _evolve_swap(base_pauli, q1, q2):
     """Update P -> SWAP.P.SWAP"""
     x1 = base_pauli._x[:, q1].copy()
@@ -698,6 +754,22 @@ def _evolve_swap(base_pauli, q1, q2):
     base_pauli._z[:, q1] = base_pauli._z[:, q2]
     base_pauli._x[:, q2] = x1
     base_pauli._z[:, q2] = z1
+    return base_pauli
+
+
+def _evolve_iswap(base_pauli, q1, q2):
+    """Update P -> iSWAP.P.iSWAP"""
+    x1 = base_pauli._x[:, q1].copy()
+    z1 = base_pauli._z[:, q1].copy()
+    x2 = base_pauli._x[:, q2].copy()
+    z2 = base_pauli._z[:, q2].copy()
+
+    base_pauli._x[:, q1] = x2
+    base_pauli._x[:, q2] = x1
+    base_pauli._z[:, q1] = x1 ^ x2 ^ z2
+    base_pauli._z[:, q2] = x1 ^ x2 ^ z1
+
+    base_pauli._phase += np.logical_xor(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -740,13 +812,17 @@ _basis_1q = {
     "s": _evolve_s,
     "sdg": _evolve_sdg,
     "sinv": _evolve_sdg,
+    "sx": _evolve_sx,
+    "sxdg": _evolve_sxdg,
 }
 _basis_2q = {
     "cx": _evolve_cx,
     "cz": _evolve_cz,
     "cy": _evolve_cy,
     "swap": _evolve_swap,
+    "iswap": _evolve_iswap,
     "ecr": _evolve_ecr,
+    "dcx": _evolve_dcx,
 }
 
 # Non-Clifford gates

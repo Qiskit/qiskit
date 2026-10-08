@@ -201,7 +201,7 @@ fn _default_reduce(parameters: Vec<Param>) -> Param {
         let acc = parameters.iter().fold(Param::Float(1.0), |acc, param| {
             multiply_params(acc, add_param(param, -PI))
         });
-        if parameters.len() % 2 == 0 {
+        if parameters.len().is_multiple_of(2) {
             acc
         } else {
             multiply_param(&acc, -1.0) // take care of parity

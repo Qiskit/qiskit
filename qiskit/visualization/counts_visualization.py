@@ -440,7 +440,7 @@ def _unify_labels(data):
 def _plot_data(data, labels, number_to_keep, kind="counts"):
     """Generate the data needed for plotting counts.
 
-    Parameters:
+    Args:
         data (list or dict): This is either a list of dictionaries or a single
             dict containing the values to represent (ex {'001': 130})
         labels (list): The list of bitstring labels for the plot.
