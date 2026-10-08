@@ -138,7 +138,9 @@ impl CustomOperation for PauliEvolution {
             Param::Float(time) => {
                 *time *= -1.0;
             }
-            _ => (),
+            _ => {
+                unreachable!();
+            }
         }
 
         let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
@@ -149,8 +151,7 @@ impl CustomOperation for PauliEvolution {
         &self,
         _params: &[Param],
     ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
-        let matrix = self.to_matrix().map(Some)?;
-        Ok(matrix)
+        self.to_matrix().map(Some).map_err(Box::from)
     }
 }
 
