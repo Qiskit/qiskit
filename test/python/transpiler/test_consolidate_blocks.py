@@ -851,6 +851,38 @@ class TestConsolidateBlocks(QiskitTestCase):
             pass_ = ConsolidateBlocks(basis_gates=["ecr", "cx", "cz"])
             self.assertEqual(pass_.basis_gate_name, "cz")
 
+    @data(CZGate, ECRGate)
+    def test_kak_basis_gate_drives_consolidation(self, kak_gate):
+        """Test that ``kak_basis_gate`` selects the KAK basis used by the pass.
+
+        A block of four copies of a non-default KAK gate (CZ or ECR) interleaved
+        with single-qubit rotations realizes a generic two-qubit unitary, which any
+        such basis can synthesize in at most three applications. Passing that gate as
+        ``kak_basis_gate`` therefore makes the consolidation heuristic
+        (``num_basis_gates < basis_count``) fire and collapse the block into a single
+        :class:`.UnitaryGate`. Under the default CX basis there are no ``cx`` gates to
+        count, so the heuristic never fires and the block is left untouched. This
+        confirms ``kak_basis_gate`` sets both the gate counted by the heuristic and
+        the decomposer used to estimate the basis-gate cost.
+        """
+        qc = QuantumCircuit(2)
+        for _ in range(4):
+            qc.append(kak_gate(), [0, 1])
+            qc.rx(0.3, 0)
+            qc.rz(0.5, 1)
+
+        # With the matching KAK basis, the four basis gates collapse to one unitary.
+        with_basis = ConsolidateBlocks(kak_basis_gate=kak_gate())(qc)
+        self.assertEqual({"unitary": 1}, with_basis.count_ops())
+        self.assertEqual(Operator(qc), Operator(with_basis))
+
+        # With the default CX basis, there are no cx gates to count, so the heuristic
+        # never consolidates and the original block is preserved unchanged.
+        with_default = ConsolidateBlocks()(qc)
+        self.assertNotIn("unitary", with_default.count_ops())
+        self.assertEqual(4, with_default.count_ops()[kak_gate().name])
+        self.assertEqual(Operator(qc), Operator(with_default))
+
 
 class TestCollect1qRuns(QiskitTestCase):
     """
