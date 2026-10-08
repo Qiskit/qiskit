@@ -291,25 +291,27 @@ class HoareOptimizer(TransformationPass):
             gate1, gate2 = sequence[0].op, sequence[1].op.inverse()
         except CircuitError:
             return False
-        par1, par2 = gate1.params, gate2.params
-        def1, def2 = gate1.definition, gate2.definition
 
-        if isinstance(gate1, ControlledGate):
+        # Recursively unwrap ControlledGate wrappers to compare underlying target operations.
+        # See: https://github.com/Qiskit/qiskit/issues/17056
+        while isinstance(gate1, ControlledGate) and gate1.base_gate is not None:
             gate1 = gate1.base_gate
-        gate1 = gate1.base_class
-        if isinstance(gate2, ControlledGate):
+        while isinstance(gate2, ControlledGate) and gate2.base_gate is not None:
             gate2 = gate2.base_gate
-        gate2 = gate2.base_class
 
-        # equality of gates can be determined via type and parameters, unless
-        # the gates have no specific type, in which case definition is used
-        # or they are unitary gates, in which case matrix equality is used
-        if gate1 is Gate and gate2 is Gate:
-            return def1 == def2 and def1 and def2
-        elif gate1 is UnitaryGate and gate2 is UnitaryGate:
-            return matrix_equal(par1[0], par2[0], ignore_phase=True)
+        # For generic Gate instances without a specific type, compare their definitions.
+        if (
+            getattr(gate1, "base_class", None) is Gate
+            and getattr(gate2, "base_class", None) is Gate
+        ):
+            return bool(gate1.definition and gate2.definition and gate1.definition == gate2.definition)
+        # UnitaryGate equality is determined modulo global phase.
+        if isinstance(gate1, UnitaryGate) and isinstance(gate2, UnitaryGate):
+            return matrix_equal(gate1.params[0], gate2.params[0], ignore_phase=True)
 
-        return gate1 == gate2 and par1 == par2
+        # Compare gate instances structurally (Issue #17056: preserves custom __eq__
+        # such as PauliProductRotationGate checking Pauli axes, and Instruction.__eq__).
+        return gate1 == gate2
 
     def _seq_as_one(self, sequence):
         """use z3 solver to determine if the gates in the sequence are either

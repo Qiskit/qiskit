@@ -19,9 +19,16 @@ from qiskit.utils import optionals
 from qiskit.transpiler.passes import HoareOptimizer
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumCircuit
-from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
+from qiskit.circuit.library import (
+    CSwapGate,
+    PauliEvolutionGate,
+    PauliProductRotationGate,
+    RZGate,
+    SwapGate,
+    XGate,
+)
 from qiskit.dagcircuit import DAGOpNode
-from qiskit.quantum_info import Statevector
+from qiskit.quantum_info import Pauli, Statevector
 from test import QiskitTestCase
 
 
@@ -696,6 +703,56 @@ class TestHoareOptimizer(QiskitTestCase):
 
         self.assertEqual(simplified, expected)
 
+    def test_pauli_evolution_and_rotation_cancellation(self):
+        """Test that PauliEvolutionGate and PauliProductRotationGate are not cancelled
+        when they have different Pauli operators, but are cancelled when they match."""
+        optimizer = HoareOptimizer()
+
+        # a. Non-cancellation when Pauli operators differ (e.g. X with 0.3 and Z with -0.3)
+        for gate_type in (PauliEvolutionGate, PauliProductRotationGate):
+            circuit = QuantumCircuit(1)
+            circuit.append(gate_type(Pauli("X"), 0.3), [0])
+            circuit.append(gate_type(Pauli("Z"), -0.3), [0])
+            output = optimizer(circuit)
+            self.assertEqual(sum(output.count_ops().values()), 2)
+            self.assertTrue(Statevector(circuit).equiv(Statevector(output)))
+
+        # b. Genuine cancellation when Pauli operators match with opposite signs (e.g. X with 0.3 and X with -0.3)
+        for gate_type in (PauliEvolutionGate, PauliProductRotationGate):
+            circuit_cancel = QuantumCircuit(1)
+            circuit_cancel.append(gate_type(Pauli("X"), 0.3), [0])
+            circuit_cancel.append(gate_type(Pauli("X"), -0.3), [0])
+            output_cancel = optimizer(circuit_cancel)
+            self.assertEqual(output_cancel.count_ops(), {})
+            self.assertTrue(Statevector.from_label("0").equiv(Statevector(output_cancel)))
+
+        # c. Direct _is_identity unit tests
+        self.assertFalse(
+            optimizer._is_identity(
+                [DAGOpNode(op=PauliEvolutionGate(Pauli("X"), 0.3)), DAGOpNode(op=PauliEvolutionGate(Pauli("Z"), -0.3))]
+            )
+        )
+        self.assertTrue(
+            optimizer._is_identity(
+                [DAGOpNode(op=PauliEvolutionGate(Pauli("X"), 0.3)), DAGOpNode(op=PauliEvolutionGate(Pauli("X"), -0.3))]
+            )
+        )
+        self.assertFalse(
+            optimizer._is_identity(
+                [
+                    DAGOpNode(op=PauliProductRotationGate(Pauli("X"), 0.3)),
+                    DAGOpNode(op=PauliProductRotationGate(Pauli("Z"), -0.3)),
+                ]
+            )
+        )
+        self.assertTrue(
+            optimizer._is_identity(
+                [
+                    DAGOpNode(op=PauliProductRotationGate(Pauli("X"), 0.3)),
+                    DAGOpNode(op=PauliProductRotationGate(Pauli("X"), -0.3)),
+                ]
+            )
+        )
 
 if __name__ == "__main__":
     unittest.main()

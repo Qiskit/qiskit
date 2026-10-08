@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue in :class:`.HoareOptimizer` where adjacent :class:`.PauliEvolutionGate`
+    or :class:`.PauliProductRotationGate` operations with differing Pauli operators were
+    incorrectly cancelled when their time or angle parameters had opposite signs.
