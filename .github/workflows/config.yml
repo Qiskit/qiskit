@@ -12,10 +12,12 @@ on:
     outputs:
       python-old:
         description: Oldest supported version of Python
+        # Logic in `wheels-build.yml` relies on this being a regular `[0-9](\.[0-9])*` version.
         value: '3.10'
 
       python-new:
         description: Newest supported version of Python
+        # Logic in `wheels-build.yml` relies on this being a regular `[0-9](\.[0-9])*` version.
         value: '3.14'
 
       c-old:
