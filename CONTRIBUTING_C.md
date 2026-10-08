@@ -6,7 +6,7 @@ The C API is designed for...
 - wrapper libraries like [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
   [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp)
 - high-performance computing workloads.
-- python-free qiskit
+- use qiskit without linking `libpython`
 
 ## Tutorial
 
