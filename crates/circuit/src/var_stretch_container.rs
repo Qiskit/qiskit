@@ -49,10 +49,6 @@ pub enum VarStretchContainerError {
     VarShadowing,
     #[error("cannot add variables that wrap `Clbit` or `ClassicalRegister` instances")]
     VarWrappingClbit,
-    #[error("circuits with input variables cannot be enclosed, so they cannot be closures")]
-    CaptureWithInputVars,
-    #[error("circuits to be enclosed with captures cannot have input variables")]
-    InputWithCaptureVars,
     #[error("cannot add stretch as its name shadows an existing identifier")]
     StretchShadowing,
 }
@@ -149,6 +145,11 @@ impl VarStretchContainer {
 
     /// Adds a new [expr::Var] to the container.
     ///
+    /// Input and captured variables may coexist in the same container: the body of a `for` loop
+    /// with a [expr::Var] loop parameter takes that parameter as its single input, and may still
+    /// capture variables from the enclosing scope.  Which variable types a circuit may hold when
+    /// it is used as a block is enforced by the control-flow operation that encloses it.
+    ///
     /// # Arguments:
     ///
     /// * var: the new variable to add.
@@ -172,19 +173,6 @@ impl VarStretchContainer {
             }
             Some(_) => {
                 return Err(VarStretchContainerError::VarShadowing);
-            }
-            _ => {}
-        }
-
-        match var_type {
-            VarType::Input
-                if self.num_vars(VarType::Capture) > 0
-                    || self.num_stretches(StretchType::Capture) > 0 =>
-            {
-                return Err(VarStretchContainerError::InputWithCaptureVars);
-            }
-            VarType::Capture if self.num_vars(VarType::Input) > 0 => {
-                return Err(VarStretchContainerError::CaptureWithInputVars);
             }
             _ => {}
         }
@@ -232,12 +220,6 @@ impl VarStretchContainer {
                 return Err(VarStretchContainerError::StretchShadowing);
             }
             _ => {}
-        }
-
-        if let StretchType::Capture = stretch_type
-            && self.num_vars(VarType::Input) > 0
-        {
-            return Err(VarStretchContainerError::CaptureWithInputVars);
         }
 
         let name = stretch.name.clone();
@@ -681,13 +663,12 @@ mod test {
                 .is_err()
         );
 
-        // Cannot add captured vars if input vars already exist
-        assert!(container.add_var(new_var("c1"), VarType::Capture).is_err());
-
+        // Input and captured vars can coexist, in either order of addition
+        container.add_var(new_var("c1"), VarType::Capture)?;
         let mut container = container.clone_as_captures();
-
-        // Cannot add input vars if there exist captured vars
-        assert!(container.add_var(new_var("in2"), VarType::Input).is_err());
+        container.add_var(new_var("in2"), VarType::Input)?;
+        assert_eq!(container.num_vars(VarType::Input), 1);
+        assert_eq!(container.num_vars(VarType::Capture), 2);
 
         Ok(())
     }
@@ -713,12 +694,9 @@ mod test {
                 .is_err()
         );
 
-        // Cannot a captured stretch if inputs already exist
-        assert!(
-            container
-                .add_stretch(new_stretch("s2"), StretchType::Capture)
-                .is_err()
-        );
+        // A captured stretch can coexist with input vars
+        container.add_stretch(new_stretch("s2"), StretchType::Capture)?;
+        assert_eq!(container.num_stretches(StretchType::Capture), 1);
 
         Ok(())
     }

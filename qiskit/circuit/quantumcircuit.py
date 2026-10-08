@@ -497,8 +497,9 @@ class QuantumCircuit(IR):
 
 
     There are also several iterator methods that you can use to get the full set of identifiers
-    tracked by a circuit.  At least one of :meth:`iter_input_vars` and :meth:`iter_captured_vars`
-    will be empty, as inputs and captures are mutually exclusive.  All of the iterators have
+    tracked by a circuit.  A circuit can hold both inputs and captures, although only the body of
+    a :class:`.ForLoopOp` with an :class:`~.expr.Var` loop parameter can be used as a control-flow
+    block while it has an input (its loop variable).  All of the iterators have
     corresponding dynamic properties on :class:`QuantumCircuit` that contain their length:
     :attr:`num_vars`, :attr:`num_stretches`, :attr:`num_input_vars`, :attr:`num_captured_vars`,
     :attr:`num_captured_stretches`, :attr:`num_declared_vars`, or :attr:`num_declared_stretches`.
@@ -1142,11 +1143,12 @@ class QuantumCircuit(IR):
                 should already be existing :class:`.expr.Var` nodes that you build from somewhere
                 else; if you need to create the inputs as well, use
                 :meth:`QuantumCircuit.add_input`.  The variables given in this argument will be
-                passed directly to :meth:`add_input`.  A circuit cannot have both ``inputs`` and
-                ``captures``.
+                passed directly to :meth:`add_input`.
             captures: any variables that this circuit scope should capture from a containing
-                scope.  The variables given here will be passed directly to :meth:`add_capture`.  A
-                circuit cannot have both ``inputs`` and ``captures``.
+                scope.  The variables given here will be passed directly to :meth:`add_capture`.
+                A circuit can have both ``inputs`` and ``captures``; for example, the body of a
+                :class:`.ForLoopOp` takes its :class:`~.expr.Var` loop parameter as an input and
+                may capture variables from the enclosing scope.
             declarations: any variables that this circuit should declare and initialize immediately.
                 You can order this input so that later declarations depend on earlier ones
                 (including inputs or captures). If you need to depend on values that will be
@@ -1160,7 +1162,6 @@ class QuantumCircuit(IR):
 
         Raises:
             CircuitError: if the circuit name, if given, is not valid.
-            CircuitError: if both ``inputs`` and ``captures`` are given.
         """
         if any(not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs):
             # check if inputs are integers, but also allow e.g. 2.0
@@ -2663,8 +2664,7 @@ class QuantumCircuit(IR):
     def num_input_vars(self) -> int:
         """The number of real-time classical variables in the circuit marked as circuit inputs.
 
-        This is the length of the :meth:`iter_input_vars` iterable.  If this is non-zero,
-        :attr:`num_captured_vars` must be zero."""
+        This is the length of the :meth:`iter_input_vars` iterable."""
         return self._data.num_input_vars
 
     @property
@@ -2672,8 +2672,7 @@ class QuantumCircuit(IR):
         """The number of real-time classical variables in the circuit marked as captured from an
         enclosing scope.
 
-        This is the length of the :meth:`iter_captured_vars` iterable.  If this is non-zero,
-        :attr:`num_input_vars` must be zero."""
+        This is the length of the :meth:`iter_captured_vars` iterable."""
         return self._data.num_captured_vars
 
     @property
@@ -2681,8 +2680,7 @@ class QuantumCircuit(IR):
         """The number of stretches in the circuit marked as captured from an
         enclosing scope.
 
-        This is the length of the :meth:`iter_captured_stretches` iterable.  If this is non-zero,
-        :attr:`num_input_vars` must be zero."""
+        This is the length of the :meth:`iter_captured_stretches` iterable."""
         return self._data.num_captured_stretches
 
     @property
@@ -2952,7 +2950,8 @@ class QuantumCircuit(IR):
             if operation.name == "box" and operation.unit == "expr":
                 _validate_expr(circuit_scope, operation.duration)
             # Verify that any variable bindings are valid.  Control-flow ops are already enforced
-            # by the class not to contain 'input' variables.
+            # by the class not to contain 'input' variables, except for the loop variable of a
+            # `ForLoopOp`, which is bound by the loop itself rather than by this scope.
             if bad_captures := {
                 var
                 for var in itertools.chain.from_iterable(

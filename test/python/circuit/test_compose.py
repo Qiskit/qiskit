@@ -994,17 +994,41 @@ class TestCircuitCompose(QiskitTestCase):
         ):
             base.compose(attempt)
 
-    def test_cannot_mix_inputs_and_captures(self):
-        """The rules about mixing `input` and `capture` vars should still apply."""
+    def test_can_mix_inputs_and_captures(self):
+        """Composing circuits combines their `input` and `capture` vars, which can coexist."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Stretch.new("c")
-        with self.assertRaisesRegex(CircuitError, "circuits with input variables cannot be"):
-            QuantumCircuit(inputs=[a]).compose(QuantumCircuit(captures=[b]))
-        with self.assertRaisesRegex(CircuitError, "circuits to be enclosed with captures cannot"):
-            QuantumCircuit(captures=[a]).compose(QuantumCircuit(inputs=[b]))
-        with self.assertRaisesRegex(CircuitError, "circuits with input variables cannot be"):
-            QuantumCircuit(inputs=[a]).compose(QuantumCircuit(captures=[c]))
+
+        out = QuantumCircuit(inputs=[a]).compose(QuantumCircuit(captures=[b]))
+        self.assertEqual(list(out.iter_input_vars()), [a])
+        self.assertEqual(list(out.iter_captures()), [b])
+
+        out = QuantumCircuit(captures=[a]).compose(QuantumCircuit(inputs=[b]))
+        self.assertEqual(list(out.iter_input_vars()), [b])
+        self.assertEqual(list(out.iter_captures()), [a])
+
+        out = QuantumCircuit(inputs=[a]).compose(QuantumCircuit(captures=[c]))
+        self.assertEqual(list(out.iter_input_vars()), [a])
+        self.assertEqual(list(out.iter_captures()), [c])
+
+    def test_compose_for_loop_var_body_with_captures(self):
+        """A `for` loop whose `Var` loop parameter is its body's input, and whose body also
+        captures outer variables, survives the recursive rebuild of blocks in `compose`."""
+        acc = expr.Var.new("acc", types.Uint(8))
+        i = expr.Var.new("i", types.Uint(8))
+
+        other = QuantumCircuit(1)
+        other.add_var(acc, 0)
+        with other.for_loop(range(3), i):
+            other.store(acc, expr.add(acc, i))
+            other.x(0)
+
+        out = QuantumCircuit(1).compose(other)
+        self.assertEqual(out, other)
+        (body,) = out.data[-1].operation.blocks
+        self.assertEqual(list(body.iter_input_vars()), [i])
+        self.assertEqual(list(body.iter_captures()), [acc])
 
     def test_reject_var_naming_collision(self):
         """We can't have multiple vars with the same name."""
