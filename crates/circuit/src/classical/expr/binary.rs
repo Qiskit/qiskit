@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -66,6 +66,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for BinaryOp {
     }
 }
 
+impl BinaryOp {
+    pub fn from_u8(value: u8) -> PyResult<BinaryOp> {
+        Ok(bytemuck::checked::cast::<u8, BinaryOp>(value))
+    }
+}
+
 impl<'py> IntoPyObject<'py> for Binary {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -123,7 +129,13 @@ impl PyBinaryOp {
 ///     left: The left-hand operand.
 ///     right: The right-hand operand.
 ///     type: The resolved type of the result.
-#[pyclass(eq, extends = PyExpr, name = "Binary", module = "qiskit._accelerate.circuit.classical.expr")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Binary",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyBinary(Binary);
 

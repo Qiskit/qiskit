@@ -4,12 +4,13 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::pointers::ExposesOwnedPointers;
 use ndarray::ArrayView2;
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
 use qiskit_circuit_library::iqp::{check_symmetric, iqp, py_random_iqp};
@@ -44,7 +45,6 @@ use qiskit_circuit_library::iqp::{check_symmetric, iqp, py_random_iqp};
 /// invalid pointer or a buffer that is too small results in undefined
 /// behaviour.
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub unsafe extern "C" fn qk_circuit_library_iqp(
     num_qubits: u32,
     interactions: *const i64, // row-major n×n
@@ -60,7 +60,7 @@ pub unsafe extern "C" fn qk_circuit_library_iqp(
             Param::Float(0.0),
         )
         .expect("qk_circuit_library_iqp: failed to build empty IQP circuit");
-        return Box::into_raw(Box::new(circuit));
+        return circuit.into_leaked();
     }
 
     // For n > 0 we require a valid interactions pointer.
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn qk_circuit_library_iqp(
     let circuit_data =
         CircuitData::from_standard_gates(num_qubits as u32, iqp(view), Param::Float(0.0))
             .expect("qk_circuit_library_iqp: failed to build CircuitData from IQP interactions");
-    Box::into_raw(Box::new(circuit_data))
+    circuit_data.into_leaked()
 }
 
 /// @ingroup QkCircuitLibrary
@@ -103,10 +103,9 @@ pub unsafe extern "C" fn qk_circuit_library_iqp(
 ///
 /// @return A newly allocated `QkCircuit*` (caller must free with `qk_circuit_free`).
 #[unsafe(no_mangle)]
-#[cfg(feature = "cbinding")]
 pub extern "C" fn qk_circuit_library_random_iqp(num_qubits: u32, seed: i64) -> *mut CircuitData {
     let seed = if seed < 0 { None } else { Some(seed as u64) };
     let circuit_data = py_random_iqp(num_qubits, seed)
         .expect("qk_circuit_library_random_iqp: failed to build random IQP circuit");
-    Box::into_raw(Box::new(circuit_data))
+    Box::into_raw(Box::new(circuit_data.into()))
 }
