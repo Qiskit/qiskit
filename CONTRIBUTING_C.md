@@ -228,7 +228,7 @@ assumptions you've made.
 ```rust
 unsafe extern "C" fn qk_circuit_free(circuit: *mut Circuit) {
     if !circuit.is_null() {
-        // SAFETY: `circuit` is non-null and allocated by `qk_circuit_new`.
+        // SAFETY: `circuit` is non-null in this block.
         let circuit = unsafe { Box::from_raw(circuit) };
         drop(circuit)
     }
@@ -246,6 +246,9 @@ effectively deterministic.
 
 ```rust
 // crates/quantum_info/src/qubit.rs
+
+use num_complex::Complex64;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 #[error("not normalized")]
@@ -294,6 +297,9 @@ the `cext` crate, including documentation and safety comments. Note that `Qubit`
 ```rust
 // crates/cext/src/qubit.rs 
 
+use std::ptr;
+
+use num_complex::Complex64;
 use quantum_info::qubit::Qubit;
 
 /// @ingroup OkQubit
@@ -307,9 +313,9 @@ use quantum_info::qubit::Qubit;
 ///         for calling ``qk_qubit_free``. Returns `NULL` if the statevector is not normalized.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qubit_new(a: *const Complex64, b: *const Complex64) -> *mut Qubit {
-    // SAFETY: Per documentation, `a` is not null.
+    // SAFETY: `a` is documented as non-null.
     let a = unsafe { *a };
-    // SAFETY: Per documentation, `b` is not null. 
+    // SAFETY: `b` is documented as non-null. 
     let b = unsafe { *b };
 
     if let Ok(qubit) = Qubit::new(a, b) {
@@ -329,7 +335,7 @@ pub unsafe extern "C" fn qk_qubit_new(a: *const Complex64, b: *const Complex64) 
 /// @return Returns an integer, `0` or `1`, representing the collapsed state.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qubit_measure(qubit: *mut Qubit) -> u32 {
-    // SAFETY: `qubit` is not null, per documentation, and allocated by `qk_qubit_new`.
+    // SAFETY: `qubit` is documented as non-null.
     let qubit = unsafe { &mut *qubit };
     qubit.measure()
 }
@@ -342,7 +348,7 @@ pub unsafe extern "C" fn qk_qubit_measure(qubit: *mut Qubit) -> u32 {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qubit_free(qubit: *mut Qubit) {
     if !qubit.is_null() {
-        // SAFETY: `qubit` is non-null and allocated by `qk_qubit_new`.
+        // SAFETY: `qubit` is non-null in this block.
         let qubit = unsafe { Box::from_raw(qubit) };
         drop(qubit)
     }
