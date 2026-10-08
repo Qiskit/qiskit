@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.circuit.library import HGate, SGate
 
 from .array import _num_to_latex, array_to_latex
 from .utils import matplotlib_close_if_inline
@@ -1276,8 +1277,76 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
+def _basis_change_gates_and_labels(ket_basis: str) -> tuple[list, tuple[str, str]]:
+    """Return the per-qubit basis-change gates and ket labels for a given basis.
+
+    The gates are applied to every qubit of the state so that the resulting amplitudes
+    are the coefficients :math:`\\langle b | \\psi \\rangle` of the state in the requested
+    basis, and the labels give the single-qubit symbols used to render the kets.
+
+    Args:
+        ket_basis: The ket basis. Must be one of ``'z'``, ``'x'``, ``'y'``, or ``'h'``.
+
+    Returns:
+        A tuple ``(gates, labels)`` where ``gates`` is the list of single-qubit gates to
+        apply to each qubit (in order) and ``labels`` is the ``(zero, one)`` pair of ket
+        symbols for that basis.
+
+    Raises:
+        VisualizationError: If the ket basis is not supported.
+    """
+    match ket_basis:
+        case "z":
+            return [], ("0", "1")
+        case "x" | "h":
+            # <+|psi>, <-|psi> are the rows of H, so the coefficients are H @ psi.
+            return [HGate()], ("+", "-")
+        case "y":
+            # <+i|psi>, <-i|psi> are the rows of H @ S^dagger, so apply S^dagger then H.
+            return [SGate().inverse(), HGate()], ("+i", "-i")
+        case _:
+            raise VisualizationError(
+                f"Ket basis {ket_basis!r} is not supported. Only 'x', 'y', 'h', and 'z' are supported."
+            )
+
+
+def _transform_state_to_ket_basis(
+    state: Statevector | DensityMatrix, ket_basis: str
+) -> tuple[Statevector | DensityMatrix, tuple[str, str]]:
+    """Transform a state into the requested ket basis.
+
+    Args:
+        state: The state to transform.
+        ket_basis: The ket basis to transform to. Must be one of ``'z'``, ``'x'``, ``'y'``,
+            or ``'h'``.
+
+    Returns:
+        A tuple ``(state, labels)`` of the transformed state and the ``(zero, one)`` ket
+        symbols used to render it.
+
+    Raises:
+        VisualizationError: If the ket basis is not supported, or is not ``'z'`` for a state
+            that is not composed solely of qubits.
+    """
+    gates, labels = _basis_change_gates_and_labels(ket_basis)
+    if not gates:
+        return state, labels
+    if set(state.dims()) != {2}:
+        raise VisualizationError(
+            f"Ket basis {ket_basis!r} is only supported for states composed of qubits."
+        )
+    for gate in gates:
+        for qubit in range(len(state.dims())):
+            state = state.evolve(gate, qargs=[qubit])
+    return state, labels
+
+
 def state_to_latex(
-    state: Statevector | DensityMatrix, dims: bool | None = None, convention: str = "ket", **args
+    state: Statevector | DensityMatrix,
+    dims: bool | None = None,
+    convention: str = "ket",
+    ket_basis: str = "z",
+    **args,
 ) -> str:
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.
@@ -1289,6 +1358,11 @@ def state_to_latex(
         dims (bool): Whether to display the state's `dims`
         convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
                 Otherwise plot as a vector
+        ket_basis (str): The single-qubit basis used for the ket notation (only applies when
+                ``convention='ket'``). One of ``'z'`` (default) for the computational basis
+                :math:`|0\\rangle, |1\\rangle`; ``'x'`` or ``'h'`` for the Hadamard basis
+                :math:`|+\\rangle, |-\\rangle`; or ``'y'`` for the :math:`|{+}i\\rangle, |{-}i\\rangle`
+                basis. Non-``'z'`` bases are only supported for states composed of qubits.
         **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
 
     Returns:
@@ -1297,6 +1371,7 @@ def state_to_latex(
             ``'latex_source'`` is selected for ``output``.
 
     """
+    state, ket_labels = _transform_state_to_ket_basis(state, ket_basis)
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
             dims = False
@@ -1315,7 +1390,7 @@ def state_to_latex(
     # this means the operator shape should have no input dimensions and all output dimensions equal to 2
     is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
     if convention == "ket" and is_qubit_statevector:
-        latex_str = _state_to_latex_ket(state._data, **args)
+        latex_str = _state_to_latex_ket(state._data, ket_labels=ket_labels, **args)
     else:
         latex_str = array_to_latex(state._data, source=True, **args)
     return prefix + latex_str + suffix
@@ -1342,7 +1417,11 @@ def _numbers_to_latex_terms(numbers: list[complex], decimals: int = 10) -> list[
 
 
 def _state_to_latex_ket(
-    data: list[complex], max_size: int = 12, prefix: str = "", decimals: int = 10
+    data: list[complex],
+    max_size: int = 12,
+    prefix: str = "",
+    decimals: int = 10,
+    ket_labels: tuple[str, str] = ("0", "1"),
 ) -> str:
     """Convert state vector to latex representation
 
@@ -1352,14 +1431,16 @@ def _state_to_latex_ket(
                  non-zero terms is larger than the max_size, then the representation is truncated.
         prefix: Latex string to be prepended to the latex, intended for labels.
         decimals: Number of decimal places to round to (default: 10).
+        ket_labels: The ``(zero, one)`` single-qubit symbols used to render each ket.
 
     Returns:
         String with LaTeX representation of the state vector
     """
     num = int(math.log2(len(data)))
+    zero_label, one_label = ket_labels
 
     def ket_name(i):
-        return bin(i)[2:].zfill(num)
+        return "".join(one_label if bit == "1" else zero_label for bit in bin(i)[2:].zfill(num))
 
     data = np.around(data, decimals)
     nonzero_indices = np.where(data != 0)[0].tolist()
