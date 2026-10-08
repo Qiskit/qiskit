@@ -16,6 +16,7 @@ import unittest
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from numpy import pi
 
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals
@@ -188,6 +189,32 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         fname = "state_city.png"
         self.graph_state_drawer(state=state, output="city", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
+    def test_plot_state_city_colors(self):
+        """test for plot_state_city with colors"""
+
+        qc = QuantumCircuit(2)
+        qc.h([0, 1])
+        qc.cz(0, 1)
+        qc.ry(pi / 3, 0)
+        qc.rx(pi / 5, 1)
+
+        # getting the state using quantum_info
+        state = Statevector(qc)
+
+        fname = "state_city_colors.png"
+        self.graph_state_drawer(
+            state=state, output="city", filename=fname, color=["blue", "#204940"]
+        )
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
