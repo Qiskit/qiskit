@@ -4,21 +4,22 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 use ndarray::{
-    azip, concatenate, s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip,
+    Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip, azip, concatenate, s,
 };
-use rand::{Rng, SeedableRng};
+use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use rayon::prelude::IntoParallelIterator;
 
-use qiskit_circuit::getenv_use_multiple_threads;
+use qiskit_util::getenv_use_multiple_threads;
 
 /// Specifies the minimum number of qubits in order to parallelize computations
 /// (this number is chosen based on several local experiments).
@@ -142,8 +143,7 @@ pub fn compute_rank_after_gauss_elim_inner(mat: ArrayView2<bool>) -> usize {
 pub fn compute_rank_inner(mat: ArrayView2<bool>) -> usize {
     let mut temp_mat = mat.to_owned();
     gauss_elimination_with_perm_inner(temp_mat.view_mut(), None, Some(false));
-    let rank = compute_rank_after_gauss_elim_inner(temp_mat.view());
-    rank
+    compute_rank_after_gauss_elim_inner(temp_mat.view())
 }
 
 /// Given a square boolean matrix mat, tries to compute its inverse.
@@ -222,7 +222,7 @@ pub fn _row_sum(row_1: ArrayView1<bool>, row_2: ArrayView1<bool>) -> Result<Arra
 pub fn random_invertible_binary_matrix_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_os_rng(),
+        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
     };
 
     let mut matrix = Array2::from_elem((num_qubits, num_qubits), false);

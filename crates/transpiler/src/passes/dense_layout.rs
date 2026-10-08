@@ -4,26 +4,25 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
-use ahash::RandomState;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexSet;
 use ndarray::prelude::*;
 use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
+use qiskit_util::IndexSet;
 use rayon::prelude::*;
 
+use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
-use qiskit_circuit::getenv_use_multiple_threads;
+use qiskit_util::getenv_use_multiple_threads;
 
 struct SubsetResult {
     pub count: usize,
@@ -35,14 +34,13 @@ struct SubsetResult {
 
 fn bfs_sort(adj_matrix: ArrayView2<f64>, start: usize, num_qubits: usize) -> Vec<usize> {
     let n = adj_matrix.shape()[0];
-    let mut next_level: IndexSet<usize, RandomState> =
-        IndexSet::with_hasher(RandomState::default());
+    let mut next_level: IndexSet<usize> = IndexSet::default();
     let mut bfs_order = Vec::with_capacity(num_qubits);
     let mut seen: HashSet<usize> = HashSet::with_capacity(n);
     next_level.insert(start);
     while !next_level.is_empty() {
         let this_level = next_level;
-        next_level = IndexSet::with_hasher(RandomState::default());
+        next_level = IndexSet::default();
         let mut found: Vec<usize> = Vec::new();
         for v in this_level {
             if !seen.contains(&v) {
@@ -110,7 +108,7 @@ pub fn py_best_subset(
     use_error: bool,
     symmetric_coupling_map: bool,
     error_matrix: PyReadonlyArray2<f64>,
-) -> (PyObject, PyObject, PyObject) {
+) -> (Py<PyAny>, Py<PyAny>, Py<PyAny>) {
     let coupling_adj_mat = coupling_adjacency.as_array();
     let err = error_matrix.as_array();
     let [rows, cols, best_map] = best_subset(

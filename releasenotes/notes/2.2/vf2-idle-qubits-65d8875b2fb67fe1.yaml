@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :class:`.VF2Layout` and :class:`.VF2PostLayout` will now correctly include (arbitrary) layout
+    assignments for completely idle qubits.  Previously this might have been observed by calls to
+    :meth:`.TranspileLayout.initial_index_layout` failing after a compilation.

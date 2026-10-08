@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -13,15 +13,16 @@
 use std::{fmt::Debug, hash::Hash, sync::OnceLock};
 
 use crate::bit::{BitLocations, Register};
-use indexmap::IndexMap;
+use crate::error::TryReserveError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict};
+use qiskit_util::IndexMap;
 
 /// Structure that keeps a mapping of bits and their locations within
 /// the circuit.
 #[derive(Debug)]
 pub struct BitLocator<B, R: Register> {
-    bit_locations: IndexMap<B, BitLocations<R>, ::ahash::RandomState>,
+    bit_locations: IndexMap<B, BitLocations<R>>,
     cached: OnceLock<Py<PyDict>>,
 }
 
@@ -67,6 +68,17 @@ where
         }
     }
 
+    /// Create an empty bit locator with a pre-allocated capacity to contain a given number. This
+    /// will return an error if the specified capacity can't be allocated.
+    pub fn try_with_capacity(capacity: usize) -> Result<Self, TryReserveError> {
+        let mut bit_locations = IndexMap::with_hasher(Default::default());
+        bit_locations.try_reserve(capacity)?;
+        Ok(Self {
+            bit_locations,
+            cached: OnceLock::new(),
+        })
+    }
+
     /// Track a bit at the given locations.
     ///
     /// If the bit was already tracked, its locations are updated with the new ones, and the old
@@ -102,8 +114,13 @@ where
 
 impl<B, R> BitLocator<B, R>
 where
-    B: Debug + Clone + Hash + Eq + for<'py> IntoPyObject<'py> + for<'py> FromPyObject<'py>,
-    R: Register + Debug + Clone + for<'py> IntoPyObject<'py> + for<'py> FromPyObject<'py>,
+    B: Debug
+        + Clone
+        + Hash
+        + Eq
+        + for<'py> IntoPyObject<'py>
+        + for<'a, 'py> FromPyObject<'a, 'py, Error: Into<PyErr>>,
+    R: Register + Debug + Clone + for<'py> IntoPyObject<'py> + for<'a, 'py> FromPyObject<'a, 'py>,
 {
     /// Get or create the cached Python dictionary that represents this.
     pub fn cached(&self, py: Python) -> &Py<PyDict> {
@@ -121,7 +138,10 @@ where
     pub fn from_py_dict(dict: &Bound<PyDict>) -> PyResult<Self> {
         let mut locator = Self::new();
         for (key, value) in dict {
-            locator.insert(key.extract()?, value.extract()?);
+            locator.insert(
+                key.extract().map_err(Into::<PyErr>::into)?,
+                value.extract()?,
+            );
         }
         Ok(locator)
     }

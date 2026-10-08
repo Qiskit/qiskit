@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,9 +13,6 @@
 # The structure of the code is based on Emanuel Malvetti's semester thesis at
 # ETH in 2018, which was supervised by Raban Iten and Prof. Renato Renner.
 
-# pylint: disable=invalid-name
-# pylint: disable=missing-param-doc
-# pylint: disable=missing-type-doc
 
 """Uniformly controlled gates (also called multiplexed gates)."""
 
@@ -62,13 +59,13 @@ class UCGate(Gate):
 
     Unnecessary controls and repeated operators can be removed as described in Ref [2].
 
-    **References:**
+    References:
 
     [1] Bergholm et al., Quantum circuits with uniformly controlled one-qubit gates (2005).
-        `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
+    `Phys. Rev. A 71, 052330 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.71.052330>`__.
 
     [2] de Carvalho et al., Quantum multiplexer simplification for state preparation (2024).
-        `arXiv:2409.05618 <https://arxiv.org/abs/2409.05618>`__.
+    `arXiv:2409.05618 <https://arxiv.org/abs/2409.05618>`__.
 
     """
 
