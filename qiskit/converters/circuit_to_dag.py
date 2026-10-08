@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,10 +19,13 @@ from qiskit._accelerate.converters import circuit_to_dag as core_circuit_to_dag
 def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_order=None):
     """Build a :class:`.DAGCircuit` object from a :class:`.QuantumCircuit`.
 
+    This is also accessible as :meth:`.QuantumCircuit.to_dag`.
+
     Args:
         circuit (QuantumCircuit): the input circuit.
         copy_operations (bool): Deep copy the operation objects
-            in the :class:`~.QuantumCircuit` for the output :class:`~.DAGCircuit`.
+            in the :class:`~.QuantumCircuit` for the output :class:`~.DAGCircuit`
+            and shallow copy the metadata.
             This should only be set to ``False`` if the input :class:`~.QuantumCircuit`
             will not be used anymore as the operations in the output
             :class:`~.DAGCircuit` will be shared instances and modifications to
@@ -55,7 +58,7 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
             circ.h(q[0])
             circ.cx(q[0], q[1])
             circ.measure(q[0], c[0])
-            circ.rz(0.5, q[1]).c_if(c, 2)
+            circ.rz(0.5, q[1])
             dag = circuit_to_dag(circ)
     """
     # If we have an instance of BluePrintCircuit, make sure it is built by calling ._build()
@@ -75,6 +78,6 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
 
     dagcircuit = core_circuit_to_dag(circuit, copy_operations, qubit_order, clbit_order)
 
-    dagcircuit.duration = circuit._duration
-    dagcircuit.unit = circuit._unit
+    dagcircuit._duration = circuit._duration
+    dagcircuit._unit = circuit._unit
     return dagcircuit

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,10 +33,11 @@ class UserConfig:
     circuit_reverse_bits = True
     circuit_idle_wires = False
     transpile_optimization_level = 1
+    transpiler_seed = 42
     parallel = False
     num_processes = 4
     sabre_all_threads = true
-
+    min_qpy_version = 13
     """
 
     def __init__(self, filename=None):
@@ -127,7 +128,7 @@ class UserConfig:
                 )
             except ValueError as err:
                 raise exceptions.QiskitUserConfigError(
-                    f"Value assigned to circuit_reverse_bits is not valid. {str(err)}"
+                    f"Value assigned to circuit_reverse_bits is not valid. {err!s}"
                 )
             if circuit_reverse_bits is not None:
                 self.settings["circuit_reverse_bits"] = circuit_reverse_bits
@@ -139,10 +140,22 @@ class UserConfig:
                 )
             except ValueError as err:
                 raise exceptions.QiskitUserConfigError(
-                    f"Value assigned to circuit_idle_wires is not valid. {str(err)}"
+                    f"Value assigned to circuit_idle_wires is not valid. {err!s}"
                 )
             if circuit_idle_wires is not None:
                 self.settings["circuit_idle_wires"] = circuit_idle_wires
+
+            # Parse circuit_measure_arrows
+            try:
+                circuit_measure_arrows = self.config_parser.getboolean(
+                    "default", "circuit_measure_arrows", fallback=None
+                )
+            except ValueError as err:
+                raise exceptions.QiskitUserConfigError(
+                    f"Value assigned to circuit_measure_arrows is not valid. {err!s}"
+                )
+            if circuit_measure_arrows is not None:
+                self.settings["circuit_measure_arrows"] = circuit_measure_arrows
 
             # Parse transpile_optimization_level
             transpile_optimization_level = self.config_parser.getint(
@@ -175,6 +188,42 @@ class UserConfig:
             )
             if sabre_all_threads is not None:
                 self.settings["sabre_all_threads"] = sabre_all_threads
+
+            # Parse min_qpy_version
+            try:
+                min_qpy_version = self.config_parser.getint(
+                    "default", "min_qpy_version", fallback=None
+                )
+            except ValueError as ve:
+                raise exceptions.QiskitUserConfigError(
+                    "min_qpy_version is not a valid QPY version."
+                ) from ve
+            if min_qpy_version:
+                if min_qpy_version < 0:
+                    raise exceptions.QiskitUserConfigError(
+                        f"min_qpy_version {min_qpy_version} is not a valid QPY version."
+                    )
+                self.settings["min_qpy_version"] = min_qpy_version
+
+            # Parse transpiler_seed
+            try:
+                transpiler_seed = self.config_parser.getint(
+                    "default",
+                    "transpiler_seed",
+                    fallback=None,
+                )
+            except ValueError as ve:
+                raise exceptions.QiskitUserConfigError(
+                    "transpiler_seed in the user configuration file is not a valid seed value. It "
+                    "must be a non-negative integer."
+                ) from ve
+            if transpiler_seed is not None:
+                if transpiler_seed < 0:
+                    raise exceptions.QiskitUserConfigError(
+                        "transpiler_seed in the user configuration file is a negative int. It "
+                        "must be a non-negative integer."
+                    )
+                self.settings["transpiler_seed"] = transpiler_seed
 
 
 def set_config(key, value, section=None, file_path=None):
@@ -217,6 +266,8 @@ def set_config(key, value, section=None, file_path=None):
         "parallel",
         "num_processes",
         "sabre_all_threads",
+        "min_qpy_version",
+        "transpiler_seed",
     }
 
     if section in [None, "default"]:
@@ -236,7 +287,7 @@ def set_config(key, value, section=None, file_path=None):
             config.write(cfgfile)
     except OSError as ex:
         raise exceptions.QiskitUserConfigError(
-            f"Unable to load the config file {filename}. Error: '{str(ex)}'"
+            f"Unable to load the config file {filename}. Error: '{ex!s}'"
         )
 
     # validates config
@@ -245,15 +296,19 @@ def set_config(key, value, section=None, file_path=None):
 
 
 def get_config():
-    """Read the config file from the default location or env var
+    """Read the config file from the default location or env var.
 
-    It will read a config file at either the default location
-    ~/.qiskit/settings.conf or if set the value of the QISKIT_SETTINGS env var.
+    It will read a config file at the location specified by the ``QISKIT_SETTINGS`` environment
+    variable if set, or ``$HOME/.qiskit/settings.conf`` if not.
 
-    It will return the parsed settings dict from the parsed config file.
+    If the environment variable ``QISKIT_IGNORE_USER_SETTINGS`` is set to the string ``TRUE``, this
+    will return an empty configuration, regardless of all other variables.
+
     Returns:
         dict: The settings dict from the parsed config file.
     """
+    if os.getenv("QISKIT_IGNORE_USER_SETTINGS", "false").lower() == "true":
+        return {}
     filename = os.getenv("QISKIT_SETTINGS", DEFAULT_FILENAME)
     if not os.path.isfile(filename):
         return {}

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in QPY (:mod:`qiskit.qpy`) where circuits containing gates of class
+    :class:`.MCMTGate` would fail to serialize.
+    See `#13965 <https://github.com/Qiskit/qiskit/issues/13965>`__.

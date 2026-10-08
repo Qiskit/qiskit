@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
 
 import os
 import pathlib
@@ -25,7 +24,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualiza
 from qiskit.utils import optionals
 from qiskit.visualization.circuit import styles, text
 from qiskit.visualization.exceptions import VisualizationError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib import figure
@@ -55,9 +54,9 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_mpl_config_with_path(self):
-        # pylint: disable=possibly-used-before-assignment
+
         # It's too easy to get too nested in a test with many context managers.
-        tempdir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
+        tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(tempdir.cleanup)
 
         clifford_style = pathlib.Path(styles.__file__).parent / "clifford.json"
@@ -129,7 +128,7 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @_latex_drawer_condition
     def test_latex_output_file_correct_format(self):
-        # pylint: disable=possibly-used-before-assignment
+
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "latex"}):
             circuit = QuantumCircuit()
             filename = "file.gif"
@@ -151,24 +150,24 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(3).c_if(cr, 10)
+        with circuit.if_test((cr, 10)):
+            circuit.x(3)
 
         expected = "\n".join(
             [
-                "                  ",
-                " q_2: ────────────",
-                "      ┌───┐ ┌───┐ ",
-                " q_3: ┤ H ├─┤ X ├─",
-                "      ├───┤ └─╥─┘ ",
-                " q_0: ┤ H ├───╫───",
-                "      ├───┤   ║   ",
-                " q_1: ┤ X ├───╫───",
-                "      └───┘┌──╨──┐",
-                " c: 4/═════╡ 0xa ╞",
-                "           └─────┘",
-                "ca: 2/════════════",
-                "                  ",
+                "                                  ",
+                " q_2: ────────────────────────────",
+                "      ┌───┐┌────── ┌───┐ ───────┐ ",
+                " q_3: ┤ H ├┤ If-0  ┤ X ├  End-0 ├─",
+                "      ├───┤└──╥─── └───┘ ───────┘ ",
+                " q_0: ┤ H ├───╫───────────────────",
+                "      ├───┤   ║                   ",
+                " q_1: ┤ X ├───╫───────────────────",
+                "      └───┘┌──╨──┐                ",
+                " c: 4/═════╡ 0xa ╞════════════════",
+                "           └─────┘                ",
+                "ca: 2/════════════════════════════",
+                "                                  ",
             ]
         )
         result = visualization.circuit_drawer(circuit, output="text", wire_order=[2, 3, 0, 1])
@@ -184,24 +183,24 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.h(3)
         circuit.x(1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(3).c_if(cr, 10)
+        with circuit.if_test((cr, 10)):
+            circuit.x(3)
 
         expected = "\n".join(
             [
-                "                  ",
-                " q_2: ────────────",
-                "      ┌───┐ ┌───┐ ",
-                " q_3: ┤ H ├─┤ X ├─",
-                "      ├───┤ └─╥─┘ ",
-                " q_0: ┤ H ├───╫───",
-                "      ├───┤   ║   ",
-                " q_1: ┤ X ├───╫───",
-                "      └───┘┌──╨──┐",
-                " c: 4/═════╡ 0xa ╞",
-                "           └─────┘",
-                "ca: 2/════════════",
-                "                  ",
+                "                                  ",
+                " q_2: ────────────────────────────",
+                "      ┌───┐┌────── ┌───┐ ───────┐ ",
+                " q_3: ┤ H ├┤ If-0  ┤ X ├  End-0 ├─",
+                "      ├───┤└──╥─── └───┘ ───────┘ ",
+                " q_0: ┤ H ├───╫───────────────────",
+                "      ├───┤   ║                   ",
+                " q_1: ┤ X ├───╫───────────────────",
+                "      └───┘┌──╨──┐                ",
+                " c: 4/═════╡ 0xa ╞════════════════",
+                "           └─────┘                ",
+                "ca: 2/════════════════════════════",
+                "                                  ",
             ]
         )
         result = visualization.circuit_drawer(

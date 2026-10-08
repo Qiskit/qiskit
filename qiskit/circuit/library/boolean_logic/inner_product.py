@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -55,6 +55,7 @@ class InnerProduct(QuantumCircuit):
 
     Reference Circuit:
         .. plot::
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit.library import InnerProduct
            from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -63,13 +64,12 @@ class InnerProduct(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.InnerProductGate instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_qubits: int) -> None:
-        """Return a circuit to compute the inner product of 2 n-qubit registers.
-
+        """
         Args:
             num_qubits: width of top and bottom registers (half total circuit width)
         """
@@ -121,6 +121,7 @@ class InnerProductGate(Gate):
 
     Reference Circuit:
         .. plot::
+           :alt: Diagram illustrating the previously described circuit.
 
            from qiskit.circuit import QuantumCircuit
            from qiskit.circuit.library import InnerProductGate

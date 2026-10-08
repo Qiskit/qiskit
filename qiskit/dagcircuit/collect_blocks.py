@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,20 +17,21 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Callable
 
-from qiskit.dagcircuit import DAGDepNode
-
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister, Bit
 from qiskit.circuit.controlflow import condition_resources
-from . import DAGOpNode, DAGCircuit, DAGDependency
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.dagnode import DAGOpNode
+from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError
 
 
 class BlockCollector:
-    """This class implements various strategies of dividing a DAG (direct acyclic graph)
+    """This class implements various strategies of dividing a DAG (directed acyclic graph)
     into blocks of nodes that satisfy certain criteria. It works both with the
     :class:`~qiskit.dagcircuit.DAGCircuit` and
     :class:`~qiskit.dagcircuit.DAGDependency` representations of a DAG, where
-    DagDependency takes into account commutativity between nodes.
+    the latter takes into account commutativity between nodes.
 
     Collecting nodes from DAGDependency generally leads to more optimal results, but is
     slower, as it requires to construct a DAGDependency beforehand. Thus, DAGCircuit should
@@ -101,17 +102,14 @@ class BlockCollector:
                 return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
             else:
                 return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
+        elif self._collect_from_back:
+            return [
+                self.dag.get_node(pred_id) for pred_id in self.dag.direct_successors(node.node_id)
+            ]
         else:
-            if self._collect_from_back:
-                return [
-                    self.dag.get_node(pred_id)
-                    for pred_id in self.dag.direct_successors(node.node_id)
-                ]
-            else:
-                return [
-                    self.dag.get_node(pred_id)
-                    for pred_id in self.dag.direct_predecessors(node.node_id)
-                ]
+            return [
+                self.dag.get_node(pred_id) for pred_id in self.dag.direct_predecessors(node.node_id)
+            ]
 
     def _direct_succs(self, node):
         """Returns direct successors of a node. This function takes into account the
@@ -123,23 +121,22 @@ class BlockCollector:
                 return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
             else:
                 return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
+        elif self._collect_from_back:
+            return [
+                self.dag.get_node(succ_id) for succ_id in self.dag.direct_predecessors(node.node_id)
+            ]
         else:
-            if self._collect_from_back:
-                return [
-                    self.dag.get_node(succ_id)
-                    for succ_id in self.dag.direct_predecessors(node.node_id)
-                ]
-            else:
-                return [
-                    self.dag.get_node(succ_id)
-                    for succ_id in self.dag.direct_successors(node.node_id)
-                ]
+            return [
+                self.dag.get_node(succ_id) for succ_id in self.dag.direct_successors(node.node_id)
+            ]
 
     def _have_uncollected_nodes(self):
         """Returns whether there are uncollected (pending) nodes"""
         return len(self._pending_nodes) > 0
 
-    def collect_matching_block(self, filter_fn: Callable) -> list[DAGOpNode | DAGDepNode]:
+    def collect_matching_block(
+        self, filter_fn: Callable, max_block_width: int | None
+    ) -> list[DAGOpNode | DAGDepNode]:
         """Iteratively collects the largest block of input nodes (that is, nodes with
         ``_in_degree`` equal to 0) that match a given filtering function.
         Examples of this include collecting blocks of swap gates,
@@ -150,6 +147,7 @@ class BlockCollector:
         Returns the block of collected nodes.
         """
         current_block = []
+        current_block_qargs = set()
         unprocessed_pending_nodes = self._pending_nodes
         self._pending_nodes = []
 
@@ -158,19 +156,28 @@ class BlockCollector:
         # - any node that match filter_fn is added to the current_block,
         #   and some of its successors may be moved to unprocessed_pending_nodes.
         while unprocessed_pending_nodes:
-            new_pending_nodes = []
-            for node in unprocessed_pending_nodes:
-                if filter_fn(node):
-                    current_block.append(node)
+            node = unprocessed_pending_nodes.pop()
 
-                    # update the _in_degree of node's successors
-                    for suc in self._direct_succs(node):
-                        self._in_degree[suc] -= 1
-                        if self._in_degree[suc] == 0:
-                            new_pending_nodes.append(suc)
-                else:
-                    self._pending_nodes.append(node)
-            unprocessed_pending_nodes = new_pending_nodes
+            if max_block_width is not None:
+                # for efficiency, only update new_qargs when max_block_width is specified
+                new_qargs = current_block_qargs.copy()
+                new_qargs.update(node.qargs)
+                width_within_budget = len(new_qargs) <= max_block_width
+            else:
+                new_qargs = set()
+                width_within_budget = True
+
+            if filter_fn(node) and width_within_budget:
+                current_block.append(node)
+                current_block_qargs = new_qargs
+
+                # update the _in_degree of node's successors
+                for suc in self._direct_succs(node):
+                    self._in_degree[suc] -= 1
+                    if self._in_degree[suc] == 0:
+                        unprocessed_pending_nodes.append(suc)
+            else:
+                self._pending_nodes.append(node)
 
         return current_block
 
@@ -181,6 +188,7 @@ class BlockCollector:
         min_block_size=2,
         split_layers=False,
         collect_from_back=False,
+        max_block_width=None,
     ):
         """Collects all blocks that match a given filtering function filter_fn.
         This iteratively finds the largest block that does not match filter_fn,
@@ -193,6 +201,8 @@ class BlockCollector:
         qubit subsets. The option ``split_layers`` allows to split collected blocks
         into layers of non-overlapping instructions. The option ``min_block_size``
         specifies the minimum number of gates in the block for the block to be collected.
+        The option ``max_block_width`` specifies the maximum number of qubits over
+        which a block can be defined.
 
         By default, blocks are collected in the direction from the inputs towards the outputs
         of the circuit. The option ``collect_from_back`` allows to change this direction,
@@ -212,8 +222,8 @@ class BlockCollector:
         # Iteratively collect non-matching and matching blocks.
         matching_blocks: list[list[DAGOpNode | DAGDepNode]] = []
         while self._have_uncollected_nodes():
-            self.collect_matching_block(not_filter_fn)
-            matching_block = self.collect_matching_block(filter_fn)
+            self.collect_matching_block(not_filter_fn, max_block_width=None)
+            matching_block = self.collect_matching_block(filter_fn, max_block_width=max_block_width)
             if matching_block:
                 matching_blocks.append(matching_block)
 
@@ -323,15 +333,18 @@ def split_block_into_layers(block: list[DAGOpNode | DAGDepNode]):
 
 class BlockCollapser:
     """This class implements various strategies of consolidating blocks of nodes
-     in a DAG (direct acyclic graph). It works both with the
-    :class:`~qiskit.dagcircuit.DAGCircuit` and
-    :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
+    in a DAG (directed acyclic graph). It works both with
+    the :class:`~qiskit.dagcircuit.DAGCircuit`
+    and :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
     """
 
     def __init__(self, dag):
         """
         Args:
             dag (Union[DAGCircuit, DAGDependency]): The input DAG.
+
+        Raises:
+            DAGCircuitError: the input object is not a DAG.
         """
 
         self.dag = dag
@@ -377,10 +390,7 @@ class BlockCollapser:
             wire_pos_map.update({qb: ix for ix, qb in enumerate(sorted_clbits)})
 
             for node in block:
-                instructions = qc.append(CircuitInstruction(node.op, node.qargs, node.cargs))
-                cond = getattr(node.op, "_condition", None)
-                if cond is not None:
-                    instructions.c_if(*cond)
+                qc.append(CircuitInstruction(node.op, node.qargs, node.cargs))
 
             # Collapse this quantum circuit into an operation.
             op = collapse_fn(qc)

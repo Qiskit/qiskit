@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -27,7 +27,7 @@ from ..standard_gates import get_standard_gate_name_mapping
 class MCMT(QuantumCircuit):
     """The multi-controlled multi-target gate, for an arbitrary singly controlled target gate.
 
-    For example, the H gate controlled on 3 qubits and acting on 2 target qubit is represented as:
+    For example, the H gate controlled on 3 qubits and acting on 2 target qubits is represented as:
 
     .. code-block:: text
 
@@ -42,14 +42,14 @@ class MCMT(QuantumCircuit):
         ┤1     ├
         └──────┘
 
-    This default implementations requires no ancilla qubits, by broadcasting the target gate
+    This default implementation requires no ancilla qubits, by broadcasting the target gate
     to the number of target qubits and using Qiskit's generic control routine to control the
     broadcasted target on the control qubits. If ancilla qubits are available, a more efficient
     variant using the so-called V-chain decomposition can be used. This is implemented in
     :class:`~qiskit.circuit.library.MCMTVChain`.
     """
 
-    @deprecate_func(since="1.3", additional_msg="Use MCMTGate instead.", pending=True)
+    @deprecate_func(since="1.4", additional_msg="Use MCMTGate instead.")
     def __init__(
         self,
         gate: Gate | Callable[[QuantumCircuit, circuit.Qubit, circuit.Qubit], circuit.Instruction],
@@ -61,12 +61,12 @@ class MCMT(QuantumCircuit):
         Args:
             gate: The gate to be applied controlled on the control qubits and applied to the target
                 qubits. Can be either a Gate or a circuit method.
-                If it is a callable, it will be casted to a Gate.
+                If it is a callable, it will be cast to a Gate.
             num_ctrl_qubits: The number of control qubits.
             num_target_qubits: The number of target qubits.
 
         Raises:
-            AttributeError: If the gate cannot be casted to a controlled gate.
+            AttributeError: If the gate cannot be cast to a controlled gate.
             AttributeError: If the number of controls or targets is 0.
         """
         if num_ctrl_qubits == 0 or num_target_qubits == 0:
@@ -76,7 +76,7 @@ class MCMT(QuantumCircuit):
             warnings.warn(
                 "Passing a callable to MCMT is pending deprecation since Qiskit 1.3. Pass a "
                 "gate instance or the gate name instead, e.g. pass 'h' instead of QuantumCircuit.h.",
-                category=PendingDeprecationWarning,
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             gate = gate.__name__
@@ -84,7 +84,7 @@ class MCMT(QuantumCircuit):
             warnings.warn(
                 "Passing a QuantumCircuit is pending deprecation since Qiskit 1.3. Pass a gate "
                 "or turn the circuit into a gate using the ``to_gate`` method, instead.",
-                category=PendingDeprecationWarning,
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             gate = gate.to_gate()
@@ -126,16 +126,17 @@ class MCMTVChain(MCMT):
     This implementation requires ancillas but is decomposed into a much shallower circuit
     than the default implementation in :class:`~qiskit.circuit.library.MCMT`.
 
-    **Expanded Circuit:**
+    Expanded circuit:
 
     .. plot::
+       :alt: Diagram illustrating the previously described circuit.
 
        from qiskit.circuit.library import MCMTVChain, ZGate
        from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = MCMTVChain(ZGate(), 2, 2)
        _generate_circuit_library_visualization(circuit.decompose())
 
-    **Examples:**
+    Examples:
 
         >>> from qiskit.circuit.library import HGate
         >>> MCMTVChain(HGate(), 3, 2).draw()
@@ -157,9 +158,8 @@ class MCMTVChain(MCMT):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="1.4",
         additional_msg="Use MCMTGate with the V-chain synthesis plugin instead.",
-        pending=True,
     )
     def __init__(
         self,
@@ -170,7 +170,7 @@ class MCMTVChain(MCMT):
         super().__init__(gate, num_ctrl_qubits, num_target_qubits)
 
     def _build(self):
-        # pylint: disable=cyclic-import
+
         from qiskit.synthesis.multi_controlled import synth_mcmt_vchain
 
         synthesized = synth_mcmt_vchain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
@@ -188,7 +188,7 @@ class MCMTVChain(MCMT):
 class MCMTGate(ControlledGate):
     """The multi-controlled multi-target gate, for an arbitrary singly controlled target gate.
 
-    For example, the H gate controlled on 3 qubits and acting on 2 target qubit is represented as:
+    For example, the H gate controlled on 3 qubits and acting on 2 target qubits is represented as:
 
     .. parsed-literal::
 
@@ -252,7 +252,7 @@ class MCMTGate(ControlledGate):
 
     def _define(self):
         """Default definition relying on gate.control. Control state is handled by superclass."""
-        # pylint: disable=cyclic-import
+
         from qiskit.transpiler.passes.synthesis.hls_plugins import MCMTSynthesisDefault
 
         self.definition = MCMTSynthesisDefault().run(self)
@@ -276,7 +276,7 @@ class MCMTGate(ControlledGate):
             warnings.warn(
                 "Passing a controlled gate to MCMT is pending deprecation since Qiskit 1.3. Pass a "
                 "single-qubit gate instance or the gate name instead, e.g. pass 'h' instead of 'ch'.",
-                category=PendingDeprecationWarning,
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             base_gate = gate.base_gate
@@ -292,20 +292,38 @@ class MCMTGate(ControlledGate):
 
         return base_gate
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None, annotated=False):
-        """Return the controlled version of the MCMT circuit."""
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a controlled version of the MCMT gate.
 
-            gate = MCMTGate(
-                self.base_gate,
-                self.num_ctrl_qubits + num_ctrl_qubits,
-                self.num_target_qubits,
-                ctrl_state=new_ctrl_state,
-            )
-        else:
-            gate = super().control(num_ctrl_qubits, label, ctrl_state, annotated=annotated)
+        The controlled gate is implemented as :class:`.MCMTGate`, regardless of the
+        value of ``annotated``.
+
+        Args:
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
+
+        Returns:
+            A controlled version of this gate.
+        """
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+
+        gate = MCMTGate(
+            self.base_gate,
+            self.num_ctrl_qubits + num_ctrl_qubits,
+            self.num_target_qubits,
+            ctrl_state=new_ctrl_state,
+            label=label,
+        )
 
         return gate
 

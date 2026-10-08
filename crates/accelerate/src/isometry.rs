@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -14,9 +14,9 @@ use std::ops::BitAnd;
 
 use approx::abs_diff_eq;
 use num_complex::{Complex64, ComplexFloat};
+use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use hashbrown::HashSet;
 use itertools::Itertools;
@@ -24,7 +24,7 @@ use ndarray::prelude::*;
 use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2};
 
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
-use qiskit_circuit::util::C_ZERO;
+use qiskit_util::complex::C_ZERO;
 
 /// Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or
 /// basis_state=1 respectively
@@ -34,10 +34,11 @@ pub fn reverse_qubit_state(
     state: [Complex64; 2],
     basis_state: usize,
     epsilon: f64,
-) -> PyObject {
+) -> Py<PyAny> {
     reverse_qubit_state_inner(&state, basis_state, epsilon)
-        .into_pyarray_bound(py)
-        .into()
+        .into_pyarray(py)
+        .into_any()
+        .unbind()
 }
 
 #[inline(always)]
@@ -81,7 +82,7 @@ pub fn find_squs_for_disentangling(
     s: usize,
     epsilon: f64,
     n: usize,
-) -> Vec<PyObject> {
+) -> Vec<Py<PyAny>> {
     let v = v.as_array();
     let k_prime = 0;
     let i_start = if b(k, s + 1) == 0 {
@@ -105,7 +106,7 @@ pub fn find_squs_for_disentangling(
     output.append(&mut squs);
     output
         .into_iter()
-        .map(|x| x.into_pyarray_bound(py).into())
+        .map(|x| x.into_pyarray(py).into_any().unbind())
         .collect()
 }
 
@@ -115,7 +116,7 @@ pub fn apply_ucg(
     m: PyReadonlyArray2<Complex64>,
     k: usize,
     single_qubit_gates: Vec<PyReadonlyArray2<Complex64>>,
-) -> PyObject {
+) -> Py<PyAny> {
     let mut m = m.as_array().to_owned();
     let shape = m.shape();
     let num_qubits = shape[0].ilog2();
@@ -132,7 +133,7 @@ pub fn apply_ucg(
             m[[i + spacing, col]] = gate[[1, 0]] * a + gate[[1, 1]] * b;
         }
     }
-    m.into_pyarray_bound(py).into()
+    m.into_pyarray(py).into_any().unbind()
 }
 
 #[inline(always)]
@@ -147,16 +148,13 @@ pub fn apply_diagonal_gate(
     m: PyReadonlyArray2<Complex64>,
     action_qubit_labels: Vec<usize>,
     diag: PyReadonlyArray1<Complex64>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let diag = diag.as_slice()?;
     let mut m = m.as_array().to_owned();
     let shape = m.shape();
     let num_qubits = shape[0].ilog2();
     let num_col = shape[1];
-    for state in std::iter::repeat([0_u8, 1_u8])
-        .take(num_qubits as usize)
-        .multi_cartesian_product()
-    {
+    for state in std::iter::repeat_n([0_u8, 1_u8], num_qubits as usize).multi_cartesian_product() {
         let diag_index = action_qubit_labels
             .iter()
             .fold(0_usize, |acc, i| (acc << 1) + state[*i] as usize);
@@ -165,7 +163,7 @@ pub fn apply_diagonal_gate(
             m[[i, j]] = diag[diag_index] * m[[i, j]]
         }
     }
-    Ok(m.into_pyarray_bound(py).into())
+    Ok(m.into_pyarray(py).into_any().unbind())
 }
 
 #[pyfunction]
@@ -179,8 +177,7 @@ pub fn apply_diagonal_gate_to_diag(
     if m_diagonal.is_empty() {
         return Ok(m_diagonal);
     }
-    for state in std::iter::repeat([0_u8, 1_u8])
-        .take(num_qubits)
+    for state in std::iter::repeat_n([0_u8, 1_u8], num_qubits)
         .multi_cartesian_product()
         .take(m_diagonal.len())
     {
@@ -228,7 +225,7 @@ pub fn apply_multi_controlled_gate(
     control_labels: Vec<usize>,
     target_label: usize,
     gate: PyReadonlyArray2<Complex64>,
-) -> PyObject {
+) -> Py<PyAny> {
     let mut m = m.as_array().to_owned();
     let gate = gate.as_array();
     let shape = m.shape();
@@ -247,12 +244,9 @@ pub fn apply_multi_controlled_gate(
             m[[e1, i]] = temp[0];
             m[[e2, i]] = temp[1];
         }
-        return m.into_pyarray_bound(py).into();
+        return m.into_pyarray(py).into_any().unbind();
     }
-    for state_free in std::iter::repeat([0_u8, 1_u8])
-        .take(free_qubits)
-        .multi_cartesian_product()
-    {
+    for state_free in std::iter::repeat_n([0_u8, 1_u8], free_qubits).multi_cartesian_product() {
         let [e1, e2] = construct_basis_states(&state_free, &control_set, target_label);
         for i in 0..num_col {
             let temp: Vec<_> = gate
@@ -264,7 +258,7 @@ pub fn apply_multi_controlled_gate(
             m[[e2, i]] = temp[1];
         }
     }
-    m.into_pyarray_bound(py).into()
+    m.into_pyarray(py).into_any().unbind()
 }
 
 #[pyfunction]
@@ -310,14 +304,14 @@ pub fn merge_ucgate_and_diag(
     py: Python,
     single_qubit_gates: Vec<PyReadonlyArray2<Complex64>>,
     diag: Vec<Complex64>,
-) -> Vec<PyObject> {
+) -> Vec<Py<PyAny>> {
     single_qubit_gates
         .iter()
         .enumerate()
         .map(|(i, raw_gate)| {
             let gate = raw_gate.as_array();
             let res = aview2(&[[diag[2 * i], C_ZERO], [C_ZERO, diag[2 * i + 1]]]).dot(&gate);
-            res.into_pyarray_bound(py).into()
+            res.into_pyarray(py).into_any().unbind()
         })
         .collect()
 }

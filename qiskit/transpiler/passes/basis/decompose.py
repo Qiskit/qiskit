@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,9 +15,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Type
 from fnmatch import fnmatch
-import warnings
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
@@ -35,7 +33,7 @@ class Decompose(TransformationPass):
     def __init__(
         self,
         gates_to_decompose: (
-            str | Type[Instruction] | Sequence[str | Type[Instruction]] | None
+            str | type[Instruction] | Sequence[str | type[Instruction]] | None
         ) = None,
         apply_synthesis: bool = False,
     ) -> None:
@@ -75,11 +73,9 @@ class Decompose(TransformationPass):
             elif getattr(node.op, "definition", None) is None:
                 # if we try to synthesize, turn the node into a DAGCircuit and run HLS
                 if self.apply_synthesis:
-                    # note that node_as_dag does not include the condition, which will
-                    # be propagated in ``substitute_node_with_dag``
                     node_as_dag = _node_to_dag(node)
                     synthesized = hls.run(node_as_dag)
-                    dag.substitute_node_with_dag(node, synthesized, propagate_condition=True)
+                    dag.substitute_node_with_dag(node, synthesized)
 
                 # else: no definition and synthesis not enabled, so we do nothing
             else:
@@ -131,17 +127,6 @@ class Decompose(TransformationPass):
 
 
 def _node_to_dag(node: DAGOpNode) -> DAGCircuit:
-    # Control flow is already handled separately, however that does not capture
-    # c_if, which we are treating here. We explicitly ignore the condition attribute,
-    # which will be handled by ``substitute_node_with_dag``, so we create a copy of the node
-    # and set the condition to None. Once ``c_if`` is removed for 2.0, this block can go, too.
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        if getattr(node.op, "condition", None) is not None:
-            op = node.op.copy()
-            op.condition = None
-            node = DAGOpNode(op, node.qargs, node.cargs)
-
     # create new dag and apply the operation
     dag = DAGCircuit()
     dag.add_qubits(node.qargs)

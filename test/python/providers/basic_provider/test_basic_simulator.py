@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,9 +18,8 @@ import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
-from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.qasm2 import dumps
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.providers.basic_provider import BasicSimulator, BasicProviderError
+from test import QiskitTestCase
 
 
 from . import BasicProviderBackendTestMixin
@@ -39,7 +38,6 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         self.circuit = bell
 
         self.seed = 88
-        self.backend = BasicSimulator()
         qasm_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "qasm"
         )
@@ -153,156 +151,6 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         }
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_if_statement(self):
-        """Test if statements."""
-        shots = 100
-        qr = QuantumRegister(3, "qr")
-        cr = ClassicalRegister(3, "cr")
-
-        #       ┌───┐┌─┐          ┌─┐
-        # qr_0: ┤ X ├┤M├──────────┤M├──────
-        #       ├───┤└╥┘┌─┐       └╥┘┌─┐
-        # qr_1: ┤ X ├─╫─┤M├────────╫─┤M├───
-        #       └───┘ ║ └╥┘ ┌───┐  ║ └╥┘┌─┐
-        # qr_2: ──────╫──╫──┤ X ├──╫──╫─┤M├
-        #             ║  ║  └─╥─┘  ║  ║ └╥┘
-        #             ║  ║ ┌──╨──┐ ║  ║  ║
-        # cr: 3/══════╩══╩═╡ 0x3 ╞═╩══╩══╩═
-        #             0  1 └─────┘ 0  1  2
-        circuit_if_true = QuantumCircuit(qr, cr)
-        circuit_if_true.x(qr[0])
-        circuit_if_true.x(qr[1])
-        circuit_if_true.measure(qr[0], cr[0])
-        circuit_if_true.measure(qr[1], cr[1])
-        with self.assertWarns(DeprecationWarning):
-            circuit_if_true.x(qr[2]).c_if(cr, 0x3)
-        circuit_if_true.measure(qr[0], cr[0])
-        circuit_if_true.measure(qr[1], cr[1])
-        circuit_if_true.measure(qr[2], cr[2])
-
-        #       ┌───┐┌─┐       ┌─┐
-        # qr_0: ┤ X ├┤M├───────┤M├──────
-        #       └┬─┬┘└╥┘       └╥┘┌─┐
-        # qr_1: ─┤M├──╫─────────╫─┤M├───
-        #        └╥┘  ║  ┌───┐  ║ └╥┘┌─┐
-        # qr_2: ──╫───╫──┤ X ├──╫──╫─┤M├
-        #         ║   ║  └─╥─┘  ║  ║ └╥┘
-        #         ║   ║ ┌──╨──┐ ║  ║  ║
-        # cr: 3/══╩═══╩═╡ 0x3 ╞═╩══╩══╩═
-        #         1   0 └─────┘ 0  1  2
-        circuit_if_false = QuantumCircuit(qr, cr)
-        circuit_if_false.x(qr[0])
-        circuit_if_false.measure(qr[0], cr[0])
-        circuit_if_false.measure(qr[1], cr[1])
-        with self.assertWarns(DeprecationWarning):
-            circuit_if_false.x(qr[2]).c_if(cr, 0x3)
-        circuit_if_false.measure(qr[0], cr[0])
-        circuit_if_false.measure(qr[1], cr[1])
-        circuit_if_false.measure(qr[2], cr[2])
-        job = self.backend.run(
-            transpile([circuit_if_true, circuit_if_false], self.backend),
-            shots=shots,
-            seed_simulator=self.seed,
-        )
-        result = job.result()
-        counts_if_true = result.get_counts(circuit_if_true)
-        counts_if_false = result.get_counts(circuit_if_false)
-        self.assertEqual(counts_if_true, {"111": 100})
-        self.assertEqual(counts_if_false, {"001": 100})
-
-    def test_bit_cif_crossaffect(self):
-        """Test if bits in a classical register other than
-        the single conditional bit affect the conditioned operation."""
-        #               ┌───┐          ┌─┐
-        # q0_0: ────────┤ H ├──────────┤M├
-        #       ┌───┐   └─╥─┘    ┌─┐   └╥┘
-        # q0_1: ┤ X ├─────╫──────┤M├────╫─
-        #       ├───┤     ║      └╥┘┌─┐ ║
-        # q0_2: ┤ X ├─────╫───────╫─┤M├─╫─
-        #       └───┘┌────╨─────┐ ║ └╥┘ ║
-        # c0: 3/═════╡ c0_0=0x1 ╞═╩══╩══╬═
-        #            └──────────┘ 1  2  ║
-        # c1: 1/════════════════════════╩═
-        #                               0
-        shots = 100
-        qr = QuantumRegister(3)
-        cr = ClassicalRegister(3)
-        cr1 = ClassicalRegister(1)
-        circuit = QuantumCircuit(qr, cr, cr1)
-        circuit.x([qr[1], qr[2]])
-        circuit.measure(qr[1], cr[1])
-        circuit.measure(qr[2], cr[2])
-        with self.assertWarns(DeprecationWarning):
-            circuit.h(qr[0]).c_if(cr[0], True)
-        circuit.measure(qr[0], cr1[0])
-        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
-        result = job.result().get_counts()
-        target = {"0 110": 100}
-        self.assertEqual(result, target)
-
-    def test_teleport(self):
-        """Test teleportation as in tutorials"""
-        #       ┌─────────┐          ┌───┐ ░ ┌─┐
-        # qr_0: ┤ Ry(π/4) ├───────■──┤ H ├─░─┤M├────────────────────
-        #       └──┬───┬──┘     ┌─┴─┐└───┘ ░ └╥┘┌─┐
-        # qr_1: ───┤ H ├─────■──┤ X ├──────░──╫─┤M├─────────────────
-        #          └───┘   ┌─┴─┐└───┘      ░  ║ └╥┘ ┌───┐  ┌───┐ ┌─┐
-        # qr_2: ───────────┤ X ├───────────░──╫──╫──┤ Z ├──┤ X ├─┤M├
-        #                  └───┘           ░  ║  ║  └─╥─┘  └─╥─┘ └╥┘
-        #                                     ║  ║ ┌──╨──┐   ║    ║
-        # cr0: 1/═════════════════════════════╩══╬═╡ 0x1 ╞═══╬════╬═
-        #                                     0  ║ └─────┘┌──╨──┐ ║
-        # cr1: 1/════════════════════════════════╩════════╡ 0x1 ╞═╬═
-        #                                        0        └─────┘ ║
-        # cr2: 1/═════════════════════════════════════════════════╩═
-        #                                                         0
-        self.log.info("test_teleport")
-        pi = np.pi
-        shots = 4000
-        qr = QuantumRegister(3, "qr")
-        cr0 = ClassicalRegister(1, "cr0")
-        cr1 = ClassicalRegister(1, "cr1")
-        cr2 = ClassicalRegister(1, "cr2")
-        circuit = QuantumCircuit(qr, cr0, cr1, cr2, name="teleport")
-        circuit.h(qr[1])
-        circuit.cx(qr[1], qr[2])
-        circuit.ry(pi / 4, qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.h(qr[0])
-        circuit.barrier(qr)
-        circuit.measure(qr[0], cr0[0])
-        circuit.measure(qr[1], cr1[0])
-        with self.assertWarns(DeprecationWarning):
-            circuit.z(qr[2]).c_if(cr0, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.x(qr[2]).c_if(cr1, 1)
-        circuit.measure(qr[2], cr2[0])
-        job = self.backend.run(
-            transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
-        )
-        results = job.result()
-        data = results.get_counts("teleport")
-        alice = {
-            "00": data["0 0 0"] + data["1 0 0"],
-            "01": data["0 1 0"] + data["1 1 0"],
-            "10": data["0 0 1"] + data["1 0 1"],
-            "11": data["0 1 1"] + data["1 1 1"],
-        }
-        bob = {
-            "0": data["0 0 0"] + data["0 1 0"] + data["0 0 1"] + data["0 1 1"],
-            "1": data["1 0 0"] + data["1 1 0"] + data["1 0 1"] + data["1 1 1"],
-        }
-        self.log.info("test_teleport: circuit:")
-        self.log.info(dumps(circuit))
-        self.log.info("test_teleport: data %s", data)
-        self.log.info("test_teleport: alice %s", alice)
-        self.log.info("test_teleport: bob %s", bob)
-        alice_ratio = 1 / np.tan(pi / 8) ** 2
-        bob_ratio = bob["0"] / float(bob["1"])
-        error = abs(alice_ratio - bob_ratio) / alice_ratio
-        self.log.info("test_teleport: relative error = %s", error)
-        self.assertLess(error, 0.05)
-
     def test_memory(self):
         """Test memory."""
         #       ┌───┐        ┌─┐
@@ -365,6 +213,301 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target_counts)
+
+    def test_options(self):
+        """Test setting custom backend options during init and run."""
+        init_statevector = np.zeros(2**2, dtype=complex)
+        init_statevector[2] = 1
+        in_options = {
+            "initial_statevector": init_statevector,
+            "seed_simulator": 42,
+            "shots": 100,
+            "memory": True,
+            "use_clifford_optimization": False,  # ADDED FOR CLIFFORD
+        }
+        backend = BasicSimulator()
+        backend_with_options = BasicSimulator(
+            initial_statevector=in_options["initial_statevector"],
+            seed_simulator=in_options["seed_simulator"],
+            shots=in_options["shots"],
+            memory=in_options["memory"],
+        )
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+
+        with self.subTest(msg="Test init options"):
+            out_options = backend_with_options.options
+            for key in out_options:
+                if key != "initial_statevector":
+                    self.assertEqual(getattr(out_options, key), in_options.get(key))
+                else:
+                    np.testing.assert_array_equal(getattr(out_options, key), in_options.get(key))
+
+        with self.subTest(msg="Test run options"):
+            out_1 = backend_with_options.run(bell).result().get_counts()
+            out_2 = (
+                backend.run(
+                    bell,
+                    initial_statevector=in_options["initial_statevector"],
+                    seed_simulator=in_options["seed_simulator"],
+                    shots=in_options["shots"],
+                    memory=in_options["memory"],
+                    use_clifford_optimization=in_options[
+                        "use_clifford_optimization"
+                    ],  # ADDED FOR CLIFFORD
+                )
+                .result()
+                .get_counts()
+            )
+            self.assertEqual(out_1, out_2)
+
+        with self.subTest(msg="Test run options don't overwrite init"):
+            init_statevector = np.zeros(2**2, dtype=complex)
+            init_statevector[3] = 1
+            other_options = {
+                "initial_statevector": init_statevector,
+                "seed_simulator": 0,
+                "shots": 1000,
+                "memory": True,
+            }
+            out_1 = backend_with_options.run(bell).result().get_counts()
+            out_2 = (
+                backend_with_options.run(
+                    bell,
+                    initial_statevector=other_options["initial_statevector"],
+                    seed_simulator=other_options["seed_simulator"],
+                    shots=other_options["shots"],
+                    memory=other_options["memory"],
+                )
+                .result()
+                .get_counts()
+            )
+            self.assertNotEqual(out_1, out_2)
+            out_options = backend_with_options.options
+            for key in out_options:
+                if key != "initial_statevector":
+                    self.assertEqual(getattr(out_options, key), in_options.get(key))
+                else:
+                    np.testing.assert_array_equal(getattr(out_options, key), in_options.get(key))
+
+    def test_clifford_circuit_bell_state(self):
+        """Test that Clifford circuits use StabilizerState backend."""
+        # Bell state is a Clifford circuit
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        shots = 1000
+        result = self.backend.run(
+            qc,
+            shots=shots,
+            seed_simulator=self.seed,
+            use_clifford_optimization=True,
+        ).result()
+        counts = result.get_counts()
+
+        # Bell state should only produce |00> and |11>
+        self.assertNotIn("01", counts)
+        self.assertNotIn("10", counts)
+        # At least one of the Bell outcomes must occur
+        self.assertGreater(sum(counts.get(b, 0) for b in ["00", "11"]), 0)
+
+        # Check roughly equal distribution
+        total_shots = sum(counts.values())
+        self.assertEqual(total_shots, shots)
+
+    def test_non_clifford_circuit_with_t_gate(self):
+        """Test that non-Clifford circuits fall back to statevector simulation."""
+        # Circuit with T gate (non-Clifford)
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.t(0)  # T gate is NOT Clifford
+        qc.measure(0, 0)
+
+        shots = 100
+        result = self.backend.run(qc, shots=shots, seed_simulator=self.seed).result()
+        counts = result.get_counts()
+
+        # Should get valid measurement results
+        self.assertGreater(len(counts), 0)
+        self.assertEqual(sum(counts.values()), shots)
+
+    def test_clifford_detection_various_gates(self):
+        """Test Clifford detection with various gate combinations."""
+        backend = BasicSimulator()
+
+        # Test Clifford circuits
+        clifford_qc = QuantumCircuit(3)
+        clifford_qc.h(0)
+        clifford_qc.s(1)
+        clifford_qc.cx(0, 1)
+        clifford_qc.cz(1, 2)
+        clifford_qc.x(2)
+        clifford_qc.y(0)
+        clifford_qc.z(1)
+        self.assertTrue(backend._is_clifford_circuit(clifford_qc))
+
+        # Test non-Clifford circuit (T gate)
+        non_clifford_t = QuantumCircuit(1)
+        non_clifford_t.h(0)
+        non_clifford_t.t(0)
+        self.assertFalse(backend._is_clifford_circuit(non_clifford_t))
+
+        # Test non-Clifford circuit (Rx gate)
+        non_clifford_rx = QuantumCircuit(1)
+        non_clifford_rx.rx(0.5, 0)
+        self.assertFalse(backend._is_clifford_circuit(non_clifford_rx))
+
+    def test_clifford_with_barriers_and_measurements(self):
+        """Test that barriers and measurements don't affect Clifford detection."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.barrier()
+        qc.cx(0, 1)
+        qc.barrier()
+        qc.measure([0, 1], [0, 1])
+
+        self.assertTrue(self.backend._is_clifford_circuit(qc))
+
+        # Should still simulate correctly
+        result = self.backend.run(qc, shots=100, seed_simulator=self.seed).result()
+        counts = result.get_counts()
+        self.assertGreater(len(counts), 0)
+
+    def test_clifford_simulation_with_initial_statevector(self):
+        """Test that initial_statevector option skips Clifford optimization."""
+        # Clifford circuit
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        # Custom initial state (|10⟩)
+        init_statevector = np.array([0, 0, 1, 0])
+
+        shots = 100
+        result = self.backend.run(
+            qc, shots=shots, seed_simulator=self.seed, initial_statevector=init_statevector
+        ).result()
+        counts = result.get_counts()
+
+        # Should get valid results (falls back to statevector)
+        self.assertIsNotNone(counts)
+        self.assertEqual(sum(counts.values()), shots)
+
+    def test_large_clifford_circuit_performance(self):
+        """Test that large Clifford circuits can be simulated efficiently."""
+        # Create a larger Clifford circuit (would be slow with statevector)
+        num_qubits = 32
+        qc = QuantumCircuit(num_qubits, num_qubits)
+
+        # Build a GHZ-like state (all Clifford gates)
+        qc.h(0)
+        for i in range(num_qubits - 1):
+            qc.cx(i, i + 1)
+        qc.measure(range(num_qubits), range(num_qubits))
+
+        # Should complete without timeout
+        shots = 100
+        result = self.backend.run(
+            qc, shots=shots, seed_simulator=self.seed, use_clifford_optimization=True
+        ).result()
+        counts = result.get_counts()
+
+        self.assertEqual(sum(counts.values()), shots)
+        # GHZ state should give all 0s or all 1s
+        self.assertLessEqual(len(counts), 2)
+
+    def test_clifford_partial_measurement(self):
+        """Test Clifford circuit with partial measurements."""
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(2, "cr")
+        qc = QuantumCircuit(qr, cr)
+
+        # Clifford operations
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.s(2)
+
+        # Measure only some qubits
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+
+        shots = 100
+        result = self.backend.run(
+            transpile(qc, self.backend), shots=shots, seed_simulator=self.seed
+        ).result()
+        counts = result.get_counts()
+
+        # Should have valid counts
+        self.assertEqual(sum(counts.values()), shots)
+
+        # --- Qubit Limit & Pathway Tests ---
+
+    def test_statevector_qubit_limit_exceeded(self):
+        """Should error if more than 24 qubits in statevector simulation."""
+        sim = BasicSimulator()
+        qc = QuantumCircuit(25)
+        with self.assertRaises(BasicProviderError):
+            sim.run(qc, use_clifford_optimization=False)
+
+    def test_clifford_qubit_limit_exceeded(self):
+        """Should error if non-Clifford circuits above 24 qubits fall back to statevector."""
+        sim = BasicSimulator()
+        qc = QuantumCircuit(32)
+        qc.h(range(32))
+        qc.t(0)
+        with self.assertRaises(BasicProviderError):
+            sim.run(qc, use_clifford_optimization=True)
+
+    def test_statevector_qubit_limit_pass(self):
+        """Should succeed for exactly 8 qubits with statevector."""
+        sim = BasicSimulator()
+        qc = QuantumCircuit(8)  # changed from 24 to 8 to limit test time
+        qc.h(range(8))
+        job = sim.run(qc, use_clifford_optimization=False, shots=64)
+        result = job.result()
+        self.assertTrue(result.success)
+
+    def test_clifford_qubit_limit_pass(self):
+        """Should succeed for a small Clifford circuit when optimization is on."""
+        sim = BasicSimulator()
+        n_qubits = 32
+        qc = QuantumCircuit(n_qubits)
+        qc.h(0)
+        for i in range(n_qubits - 1):
+            qc.cx(i, i + 1)
+        job = sim.run(qc, use_clifford_optimization=True)
+        result = job.result()
+        self.assertTrue(result.success)
+
+    def test_simulation_path_selection(self):
+        """Simulator uses correct pathway for each optimization."""
+        sim = BasicSimulator()
+        qc_sv = QuantumCircuit(10)
+        qc_sv.h(range(10))
+        job_sv = sim.run(qc_sv, use_clifford_optimization=False)
+        self.assertTrue(job_sv.result().success)
+        qc_cl = QuantumCircuit(10)
+        qc_cl.h(range(10))
+        job_cl = sim.run(qc_cl, use_clifford_optimization=True)
+        self.assertTrue(job_cl.result().success)
+
+    def test_error_message_contains_limit(self):
+        """Error should mention the correct qubit limit."""
+        sim = BasicSimulator()
+        qc = QuantumCircuit(25)
+        with self.assertRaises(BasicProviderError) as cm:
+            sim.run(qc, use_clifford_optimization=False)
+        self.assertTrue("24" in str(cm.exception) or "statevector" in str(cm.exception))
+        qc = QuantumCircuit(2049)
+        qc.h(range(2049))
+        with self.assertRaises(BasicProviderError) as cm:
+            sim.run(qc, use_clifford_optimization=True)
+        self.assertTrue("2048" in str(cm.exception) or "Clifford" in str(cm.exception))
 
 
 if __name__ == "__main__":

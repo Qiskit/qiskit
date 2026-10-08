@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,11 +15,12 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import Qubit
 from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
@@ -352,31 +353,34 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
-    def test_no_optimize_swap_with_condition(self):
-        """Do not remove swap if it has a condition
-        qr0:--X--m--       qr0:--X--m--
-              |  |               |  |
-        qr1:--X--|--  ==>  qr1:--X--|--
-              |  |               |  |
-        cr0:--1--.--       cr0:--1--.--
+    def test_optimize_swap_with_anonymous_qubit_and_reg(self):
+        """Anonymous bit doesn't mess up the indices
+        0: ─────────────       0: ────────
+                     ┌─┐               ┌─┐
+        q_0: ──────X─┤M├     q_0: ─────┤M├
+             ┌───┐ │ └╥┘ ==>      ┌───┐└╥┘
+        q_1: ┤ X ├─X──╫─     q_1: ┤ X ├─╫─
+             └───┘    ║           └───┘ ║
+        c: 1/═════════╩═     c: 1/══════╩═
+                      0                 0
         """
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(1, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.swap(qr[0], qr[1]).c_if(cr, 1)
-        circuit.measure(qr[0], cr[0])
-        dag = circuit_to_dag(circuit)
+        loose_q = Qubit()
+        qreg = QuantumRegister(2, "q")
+        creg = ClassicalRegister(1, "c")
 
-        expected = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            expected.swap(qr[0], qr[1]).c_if(cr, 1)
-        expected.measure(qr[0], cr[0])
+        # Qubit order: [loose_q, qreg[0], qreg[1]]
+        circuit = QuantumCircuit([loose_q], qreg, creg)
+        circuit.x(qreg[1])
+        circuit.swap(qreg[0], qreg[1])
+        circuit.measure(qreg[0], creg[0])
 
-        pass_ = OptimizeSwapBeforeMeasure()
-        after = pass_.run(dag)
+        expected = QuantumCircuit([loose_q], qreg, creg)
+        expected.x(qreg[1])
+        expected.measure(qreg[1], creg[0])
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        after = PassManager([OptimizeSwapBeforeMeasure()]).run(circuit)
+
+        self.assertEqual(expected, after)
 
 
 if __name__ == "__main__":

@@ -4,14 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring,invalid-name,no-member
-# pylint: disable=attribute-defined-outside-init
 
 import os
 
@@ -103,28 +101,25 @@ class TranspilerBenchSuite:
         self.basis = ["id", "rz", "sx", "x", "cx", "reset"]
 
     def time_single_gate_compile(self):
-        circ = qiskit.compiler.transpile(
+        qiskit.compiler.transpile(
             self.single_gate_circuit,
             coupling_map=self.coupling_map,
             basis_gates=self.basis,
             seed_transpiler=20220125,
         )
-        qiskit.compiler.assemble(circ)
 
     def time_cx_compile(self):
-        circ = qiskit.compiler.transpile(
+        qiskit.compiler.transpile(
             self.cx_circuit,
             coupling_map=self.coupling_map,
             basis_gates=self.basis,
             seed_transpiler=20220125,
         )
-        qiskit.compiler.assemble(circ)
 
     def time_compile_from_large_qasm(self):
-        circ = qiskit.compiler.transpile(
+        qiskit.compiler.transpile(
             self.large_qasm,
             coupling_map=self.coupling_map,
             basis_gates=self.basis,
             seed_transpiler=20220125,
         )
-        qiskit.compiler.assemble(circ)

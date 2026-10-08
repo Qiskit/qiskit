@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -39,6 +39,7 @@ class CollectCliffords(CollectAndCollapse):
         split_layers=False,
         collect_from_back=False,
         matrix_based=False,
+        max_block_width=None,
     ):
         """CollectCliffords initializer.
 
@@ -49,12 +50,15 @@ class CollectCliffords(CollectAndCollapse):
                 over disjoint qubit subsets.
             min_block_size (int): specifies the minimum number of gates in the block
                 for the block to be collected.
-            split_layers (bool): if True, splits collected blocks into sub-blocks
-                over disjoint qubit subsets.
+            split_layers (bool): if True, splits collected blocks into layers of
+                non-overlapping instructions (depth-1 sub-blocks).
             collect_from_back (bool): specifies if blocks should be collected started
                 from the end of the circuit.
             matrix_based (bool): specifies whether to collect unitary gates
                which are Clifford gates only for certain parameters (based on their unitary matrix).
+            max_block_width (int | None): specifies the maximum width of the block
+                (that is, the number of qubits over which the block is defined)
+                for the block to be collected.
         """
 
         collect_function = partial(
@@ -64,6 +68,7 @@ class CollectCliffords(CollectAndCollapse):
             min_block_size=min_block_size,
             split_layers=split_layers,
             collect_from_back=collect_from_back,
+            max_block_width=max_block_width,
         )
         collapse_function = partial(collapse_to_operation, collapse_function=_collapse_to_clifford)
 

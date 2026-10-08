@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,13 +20,13 @@ from ddt import data, ddt
 from numpy.testing import assert_allclose
 
 from qiskit import QiskitError, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import QFT, HGate
+from qiskit.circuit.library import QFTGate, HGate
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
-from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
+from qiskit.quantum_info import random_density_matrix, random_pauli, random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 logger = logging.getLogger(__name__)
@@ -691,22 +691,9 @@ class TestDensityMatrix(QiskitTestCase):
 
         self.assertDictEqual(
             state.probabilities_dict(),
-            {
-                s: p
-                for s in [
-                    "110",
-                    "111",
-                    "112",
-                    "120",
-                    "121",
-                    "311",
-                    "312",
-                    "320",
-                    "321",
-                    "322",
-                    "330",
-                ]
-            },
+            dict.fromkeys(
+                ["110", "111", "112", "120", "121", "311", "312", "320", "321", "322", "330"], p
+            ),
         )
 
         # differences due to rounding
@@ -1186,18 +1173,19 @@ class TestDensityMatrix(QiskitTestCase):
 
     def test_reverse_qargs(self):
         """Test reverse_qargs method"""
-        circ1 = QFT(5)
+        circ1 = QFTGate(5).definition
         circ2 = circ1.reverse_bits()
 
         state1 = DensityMatrix.from_instruction(circ1)
         state2 = DensityMatrix.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "requires SymPy")
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
     @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
-        qc1 = QFT(5)
+        qc1 = QFTGate(5).definition
         dm = DensityMatrix.from_instruction(qc1)
         with self.subTest(msg="str(density_matrix)"):
             str(dm)

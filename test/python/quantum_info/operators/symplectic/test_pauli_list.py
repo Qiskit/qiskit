@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -27,13 +27,29 @@ from qiskit.circuit.library import (
     CZGate,
     HGate,
     IGate,
+    ECRGate,
     SdgGate,
     SGate,
     SwapGate,
+    iSwapGate,
     XGate,
     YGate,
     ZGate,
-    ECRGate,
+    SXGate,
+    SXdgGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
 )
 from qiskit.quantum_info.operators import (
     Clifford,
@@ -41,9 +57,9 @@ from qiskit.quantum_info.operators import (
     Pauli,
     PauliList,
 )
-from qiskit.quantum_info.random import random_clifford, random_pauli_list
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.quantum_info import random_clifford, random_pauli_list
+from test import combine
+from test import QiskitTestCase
 
 from .test_pauli import pauli_group_labels
 
@@ -220,6 +236,14 @@ class TestPauliListInit(QiskitTestCase):
         pauli_list = PauliList(["IX", "-iYZ", "YY"])
         from_settings = PauliList(**pauli_list.settings)
         self.assertEqual(pauli_list, from_settings)
+
+    def test_from_symplectic_phase_check(self):
+        """Test the from_symplectic method of PauliList for phase dimension check."""
+        z = np.array([[0], [0]])
+        x = np.array([[0], [0]])
+        phase = np.array([[0], [0]])  # 2D phase
+        with self.assertRaisesRegex(ValueError, "phase should be at most 1D but has 2 dimensions."):
+            PauliList.from_symplectic(z, x, phase)
 
 
 @ddt
@@ -1560,6 +1584,15 @@ class TestPauliListMethods(QiskitTestCase):
                 value1 = pauli.insert(1, insert)
                 self.assertEqual(value1, target1)
 
+        # Insert single column to length-1 PauliList:
+        with self.subTest(msg="length-1, single-column, single-val"):
+            pauli = PauliList(["X"])
+            insert = PauliList(["Y"])
+            target0 = PauliList(["YX"])
+            value0 = pauli.insert(1, insert, qubit=True)
+            self.assertEqual(value0, target0)
+            self.assertEqual(value0.phase.shape, (1,))
+
         # Insert single column
         pauli = PauliList(["X", "Y", "Z", "-iI"])
         for i in ["I", "X", "Y", "Z", "iY"]:
@@ -1967,6 +2000,11 @@ class TestPauliListMethods(QiskitTestCase):
             HGate(),
             SGate(),
             SdgGate(),
+            SXGate(),
+            SXdgGate(),
+            RXGate(theta=np.pi / 2),
+            RYGate(theta=np.pi / 2),
+            RZGate(phi=np.pi / 2),
             Clifford(IGate()),
             Clifford(XGate()),
             Clifford(YGate()),
@@ -1998,6 +2036,17 @@ class TestPauliListMethods(QiskitTestCase):
             CYGate(),
             CZGate(),
             SwapGate(),
+            iSwapGate(),
+            CPhaseGate(theta=np.pi),
+            CRXGate(theta=np.pi),
+            CRYGate(theta=np.pi),
+            CRZGate(theta=np.pi),
+            RXXGate(theta=np.pi / 2),
+            RYYGate(theta=np.pi / 2),
+            RZZGate(theta=np.pi / 2),
+            RZXGate(theta=np.pi / 2),
+            XXMinusYYGate(theta=np.pi),
+            XXPlusYYGate(theta=-np.pi),
             ECRGate(),
             Clifford(CXGate()),
             Clifford(CYGate()),

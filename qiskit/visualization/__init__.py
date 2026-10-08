@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,7 +18,7 @@ Visualizations (:mod:`qiskit.visualization`)
 .. currentmodule:: qiskit.visualization
 
 The visualization module contain functions that visualizes measurement outcome counts, quantum
-states, circuits, pulses, devices and more.
+states, circuits, devices and more.
 
 To use visualization functions, you are required to install visualization optionals to your
 development environment:
@@ -26,6 +26,15 @@ development environment:
 .. code-block:: bash
 
    pip install 'qiskit[visualization]'
+
+.. warning::
+
+    In general, the visualization tooling in Qiskit may call system programs on arbitrary user
+    input, and should only be used on trusted inputs.  The visualization tooling provided in Qiskit
+    is mostly intended for local visualization, and deliberately allows user code injection in
+    several places, such as Graphviz node labels like register names in :meth:`.DAGCircuit.draw`, or
+    LaTeX instruction labels from :attr:`.Instruction.label` in the ``latex`` mode of
+    :meth:`.QuantumCircuit.draw`.
 
 Common Keyword Arguments
 ========================
@@ -47,6 +56,7 @@ individual documentation for exact details.
 The following example demonstrates the common usage of these arguments:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_histogram
@@ -60,6 +70,7 @@ The following example demonstrates the common usage of these arguments:
 You can specify ``legend``, ``title``, ``figsize`` and ``color`` by passing to the kwargs.
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
    :context: reset
 
@@ -103,6 +114,7 @@ Example Usage
 Here is an example of using :func:`plot_histogram` to visualize measurement outcome counts:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_histogram
@@ -144,6 +156,7 @@ Example Usage
 Here is an example of using :func:`plot_state_city` to visualize a quantum state:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit.visualization import plot_state_city
@@ -157,6 +170,7 @@ The state can be array-like list of lists, ``numpy.array``, or more commonly
 obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -172,6 +186,7 @@ obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
    plot_state_city(state)
 
 .. plot::
+   :alt: Output from the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -253,8 +268,6 @@ Exceptions
 .. autoexception:: VisualizationError
 """
 
-import os
-import sys
 
 from .array import array_to_latex
 
@@ -275,8 +288,6 @@ from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_c
 from .pass_manager_visualization import pass_manager_drawer
 from .pass_manager_visualization import staged_pass_manager_drawer
 
-from .pulse_v2 import draw as pulse_drawer
-
 from .timeline import draw as timeline_drawer
 
 from .exceptions import VisualizationError
@@ -285,6 +296,29 @@ from .exceptions import VisualizationError
 # re-imported here to allow a backwards compatible path, and should be deprecated in Terra 0.23.
 from .circuit import text, matplotlib, latex
 
-# Prepare for migration of old versioned name to unversioned name.  The `pulse_drawer_v2` name can
-# be deprecated in Terra 0.24, as `pulse_drawer` became available by that name in Terra 0.23.
-pulse_drawer_v2 = pulse_drawer
+__all__ = [
+    "VisualizationError",
+    "array_to_latex",
+    "circuit_drawer",
+    "dag_drawer",
+    "latex",
+    "matplotlib",
+    "pass_manager_drawer",
+    "plot_bloch_multivector",
+    "plot_bloch_vector",
+    "plot_circuit_layout",
+    "plot_coupling_map",
+    "plot_distribution",
+    "plot_error_map",
+    "plot_gate_map",
+    "plot_histogram",
+    "plot_state_city",
+    "plot_state_hinton",
+    "plot_state_paulivec",
+    "plot_state_qsphere",
+    "staged_pass_manager_drawer",
+    "state_drawer",
+    "text",
+    "timeline_drawer",
+    "visualize_transition",
+]

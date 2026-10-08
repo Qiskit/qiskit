@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -60,9 +60,9 @@ class UnitaryOverlap(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.unitary_overlap instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -125,16 +125,17 @@ def unitary_overlap(
     by computing the probability of being in the all-zeros bit-string, or equivalently,
     the expectation value of projector :math:`|0\rangle\langle 0|`.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
+        :alt: Circuit diagram output by the previous code.
         :include-source:
 
         import numpy as np
-        from qiskit.circuit.library import EfficientSU2, unitary_overlap
+        from qiskit.circuit.library import efficient_su2, unitary_overlap
 
         # get two circuit to prepare states of which we compute the overlap
-        circuit = EfficientSU2(2, reps=1)
+        circuit = efficient_su2(2, reps=1)
         unitary1 = circuit.assign_parameters(np.random.random(circuit.num_parameters))
         unitary2 = circuit.assign_parameters(np.random.random(circuit.num_parameters))
 

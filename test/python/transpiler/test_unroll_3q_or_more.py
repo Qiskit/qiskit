@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,9 +20,9 @@ from qiskit.circuit.library import CCXGate, RCCXGate, UnitaryGate
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.transpiler import Target
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestUnroll3qOrMore(QiskitTestCase):
@@ -62,17 +62,16 @@ class TestUnroll3qOrMore(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(1, "cr")
         circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 0)
+        with circuit.if_test((cr, 0)):
+            circuit.ccx(qr[0], qr[1], qr[2])
         dag = circuit_to_dag(circuit)
         pass_ = Unroll3qOrMore()
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
-        self.assertEqual(len(op_nodes), 15)
-        for node in op_nodes:
-            self.assertIn(node.name, ["h", "t", "tdg", "cx"])
-            with self.assertWarns(DeprecationWarning):
-                self.assertEqual(node.op.condition, (cr, 0))
+        self.assertEqual(len(op_nodes), 1)
+        self.assertEqual(len(op_nodes[0].op.blocks[0].data), 15)
+        for node in op_nodes[0].op.blocks[0].data:
+            self.assertIn(node.name, ["h", "t", "tdg", "cx", "if_else"])
 
     def test_decompose_unitary(self):
         """Test unrolling of unitary gate over 4qubits."""

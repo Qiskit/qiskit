@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The scheduling passes, :class:`.ALAPScheduleAnalysis` and :class:`.ASAPScheduleAnalysis`, will
+    now correctly handle circuits with no operations in them.  Previously they would raise a
+    :exc:`.TranspilerError` falsely claiming "No durations provided".  Fixed `#15145 <https://github.com/Qiskit/qiskit/issues/15145>`__.

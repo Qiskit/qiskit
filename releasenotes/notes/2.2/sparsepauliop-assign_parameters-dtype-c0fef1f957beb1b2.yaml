@@ -1,0 +1,6 @@
+---
+upgrade_quantum_info:
+  - |
+    :meth:`.SparsePauliOp.assign_parameters` will now set the dtype of the output
+    :attr:`~.SparsePauliOp.coeffs` array to :class:`complex` if all parameters are fully bound to
+    numeric values.

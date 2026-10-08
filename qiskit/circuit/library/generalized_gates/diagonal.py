@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -34,7 +34,11 @@ _EPS = 1e-10
 class Diagonal(QuantumCircuit):
     """Circuit implementing a diagonal transformation."""
 
-    @deprecate_func(since="1.3", additional_msg="Use DiagonalGate instead.", pending=True)
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use DiagonalGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(self, diag: Sequence[complex]) -> None:
         r"""
         Args:
@@ -82,7 +86,7 @@ class DiagonalGate(Gate):
     Theorem 7 of [1]. The code is based on Emanuel Malvetti's semester thesis
     at ETH in 2018, supervised by Raban Iten and Prof. Renato Renner.
 
-    **Reference:**
+    References:
 
     [1] Shende et al., Synthesis of Quantum Logic Circuits, 2009
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
@@ -124,7 +128,7 @@ class DiagonalGate(Gate):
 
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex
-        (in addition to the Gate parameter types) and always return build-in complex."""
+        (in addition to the Gate parameter types) and always return built-in complex."""
         if isinstance(parameter, complex):
             return complex(parameter)
         else:
@@ -152,7 +156,7 @@ class DiagonalGate(Gate):
 def _extract_rz(phi1, phi2):
     """
     Extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
-    is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2).
+    is equal to the diagonal matrix with entries exp(1j*ph1) and exp(1j*ph2).
     """
     phase = (phi1 + phi2) / 2.0
     z_angle = phi2 - phi1

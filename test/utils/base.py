@@ -4,17 +4,16 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Base TestCases for the unit tests.
 
-Implementors of unit tests for Qiskit should subclass
+Implementers of unit tests for Qiskit should subclass
 ``QiskitTestCase`` in order to take advantage of utility functions (for example,
 the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.
@@ -28,7 +27,6 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
-from qiskit.utils.parallel import get_platform_parallel_default
 from qiskit.exceptions import QiskitWarning
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
@@ -60,8 +58,6 @@ else:
 
     class BaseTestCase(unittest.TestCase):
         """Base test class."""
-
-        pass
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
@@ -95,113 +91,12 @@ class QiskitTestCase(BaseTestCase):
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)
 
-        # Numpy 2 made a few new modules private, and have warnings that trigger if you try to
-        # access attributes that _would_ have existed.  Unfortunately, Python's `warnings` module
-        # adds a field called `__warningregistry__` to any module that triggers a warning, and
-        # `unittest.TestCase.assertWarns` then queries said fields on all existing modules.  On
-        # macOS ARM, we see some (we think harmless) warnings come out of `numpy.linalg._linalg` (a
-        # now-private module) during transpilation, which means that subsequent `assertWarns` calls
-        # can spuriously trick Numpy into sending out a nonsense `DeprecationWarning`.
-        # Tracking issue: https://github.com/Qiskit/qiskit/issues/12679
         warnings.filterwarnings(
             "ignore",
-            category=DeprecationWarning,
-            message=r".*numpy\.(\w+\.)*__warningregistry__",
+            category=RuntimeWarning,
+            message="Aer not found using BasicSimulator and no noise",
+            module="qiskit.providers.fake_provider.generic_backend_v2",
         )
-
-        # We only use pandas transitively through seaborn, so it's their responsibility to mark if
-        # their use of pandas would be a problem.
-        warnings.filterwarnings(
-            "default",
-            category=DeprecationWarning,
-            # The `(?s)` magic is to force use of the `re.DOTALL` flag, because the Pandas message
-            # includes hard-break newlines all over the place.
-            message="(?s).*Pyarrow.*required dependency.*next major release of pandas",
-            module=r"seaborn(\..*)?",
-        )
-
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message="Treating CircuitInstruction as an iterable is deprecated",
-            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
-        )
-
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2197 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*qiskit\.providers\.models.*",
-            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
-        )
-
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*The `Qobj` class and related functionality.*",
-            module=r"qiskit_aer",
-        )
-
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2184 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*The abstract Provider and ProviderV1 classes are deprecated.*",
-            module="qiskit_aer",
-        )
-
-        # Remove these two filters in Qiskit 2.0.0 when we remove unit and duration
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*qiskit.*duration.*",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*qiskit.*unit.*",
-        )
-
-        # Safe to remove once `FakeBackend` is removed (2.0)
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*from_backend using V1 based backend is deprecated as of Aer 0.15*",
-            module="qiskit.providers.fake_provider.fake_backend",
-        )
-
-        warnings.filterwarnings(
-            "default",
-            category=DeprecationWarning,
-            message=r".*The property.*condition.*is deprecated.*",
-            module="qiskit_aer",
-        )
-
-        # Remove with the condition attribute in 2.0:
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*condition.*is deprecated.*",
-            module="qiskit.visualization",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*condition_bits.*is deprecated.*",
-            module="qiskit.transpiler.passes.scheduling",
-        )
-
-        allow_DeprecationWarning_message = [
-            r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
-        ]
-        for msg in allow_DeprecationWarning_message:
-            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -230,13 +125,6 @@ class QiskitTestCase(BaseTestCase):
                 "call the base tearDown."
             )
         self.__teardown_called = True
-
-        # Reset the default providers, as in practice they acts as a singleton
-        # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basic_provider import BasicProvider
-
-        with self.assertWarns(DeprecationWarning):
-            BasicProvider()._backends = BasicProvider()._verify_backends()
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""
@@ -284,24 +172,6 @@ Right circuit:
         if error_msg:
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
-
-    def enable_parallel_processing(self):
-        """
-        Enables parallel processing, for the duration of a test, on platforms
-        that support it. This is done by temporarily overriding the value of
-        the QISKIT_PARALLEL environment variable with the platform specific default.
-        """
-        parallel_default = str(get_platform_parallel_default()).upper()
-
-        def set_parallel_env(name, value):
-            os.environ[name] = value
-
-        self.addCleanup(
-            lambda value: set_parallel_env("QISKIT_PARALLEL", value),
-            os.getenv("QISKIT_PARALLEL", parallel_default),
-        )
-
-        os.environ["QISKIT_PARALLEL"] = parallel_default
 
 
 class FullQiskitTestCase(QiskitTestCase):

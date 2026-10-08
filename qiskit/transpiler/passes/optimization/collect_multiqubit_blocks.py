@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,22 +33,28 @@ class CollectMultiQBlocks(AnalysisPass):
     Some gates may not be present in any block (e.g. if the number
     of operands is greater than ``max_block_size``)
 
+    By default, blocks are collected in the direction from the inputs towards the
+    outputs of the DAG. The option ``collect_from_back`` allows to change this
+    direction, that is to collect blocks from the outputs towards the inputs.
+    Note that the blocks are still reported in a valid topological order.
+
     A Disjoint Set Union data structure (DSU) is used to maintain blocks as
     gates are processed. This data structure points each qubit to a set at all
     times and the sets correspond to current blocks. These change over time
     and the data structure allows these changes to be done quickly.
     """
 
-    def __init__(self, max_block_size=2):
+    def __init__(self, max_block_size=2, collect_from_back=False):
         super().__init__()
         self.parent = {}  # parent array for the union
 
-        # the dicts belowed are keyed by a qubit signifying the root of a
+        # the dicts below are keyed by a qubit signifying the root of a
         #    set in the DSU data structure
         self.bit_groups = {}  # current groups of bits stored at top of trees
         self.gate_groups = {}  # current gate lists for the groups
 
         self.max_block_size = max_block_size  # maximum block size
+        self.collect_from_back = collect_from_back  # backward collection
 
     def find_set(self, index):
         """DSU function for finding root of set of items
@@ -69,7 +75,7 @@ class CollectMultiQBlocks(AnalysisPass):
     def union_set(self, set1, set2):
         """DSU function for unioning two sets together
         Find the roots of each set. Then assign one to have the other
-        as its parent, thus liking the sets.
+        as its parent, thus linking the sets.
         Merges smaller set into larger set in order to have better runtime
         """
 
@@ -112,7 +118,7 @@ class CollectMultiQBlocks(AnalysisPass):
             blocks to end). After that, we process gates in order of lowest
             number of qubits acted on to largest number of qubits acted on
             because these have less chance of increasing the size of blocks
-            The key also processes all the non operation notes first so that
+            The key also processes all the non operation nodes first so that
             input nodes do not mess with the top sort of op nodes
             """
             if isinstance(x, DAGInNode):
@@ -126,6 +132,10 @@ class CollectMultiQBlocks(AnalysisPass):
             return "d"
 
         op_nodes = dag.topological_op_nodes(key=collect_key)
+
+        # When collecting from the back, the order of nodes is reversed
+        if self.collect_from_back:
+            op_nodes = reversed(list(op_nodes))
 
         for nd in op_nodes:
             can_process = True
@@ -221,6 +231,11 @@ class CollectMultiQBlocks(AnalysisPass):
         for index, item in self.parent.items():
             if item == index and len(self.gate_groups[index]) != 0:
                 block_list.append(self.gate_groups[index][:])
+
+        # When collecting from the back, both the order of the blocks
+        # and the order of nodes in each block should be reversed.
+        if self.collect_from_back:
+            block_list = [block[::-1] for block in block_list[::-1]]
 
         self.property_set["block_list"] = block_list
 

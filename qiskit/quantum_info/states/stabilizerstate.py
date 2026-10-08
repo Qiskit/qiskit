@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -24,7 +24,7 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList
+from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList, SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.circuit import QuantumCircuit, Instruction
@@ -130,7 +130,6 @@ class StabilizerState(QuantumState):
             StabilizerState: a state stabilized by stabilizers.
         """
 
-        # pylint: disable=cyclic-import
         from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizers
 
         circuit = synth_circuit_from_stabilizers(
@@ -259,7 +258,34 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.compose(other.clifford, qargs=qargs)
         return ret
 
-    def expectation_value(self, oper: Pauli, qargs: None | list = None) -> complex:
+    def expectation_value(self, oper: Pauli | SparsePauliOp, qargs: None | list = None) -> complex:
+        """Compute the expectation value of a Pauli or SparsePauliOp operator.
+
+        Args:
+            oper: A Pauli or SparsePauliOp operator to evaluate the expectation value.
+            qargs: Subsystems to apply the operator on.
+
+        Returns:
+            The expectation value.
+
+        Raises:
+            QiskitError: if oper is not a Pauli or SparsePauliOp operator.
+        """
+        if isinstance(oper, Pauli):
+            return self._expectation_value_pauli(oper, qargs)
+
+        if isinstance(oper, SparsePauliOp):
+            return sum(
+                coeff * self._expectation_value_pauli(Pauli((z, x)), qargs)
+                for z, x, coeff in zip(oper.paulis.z, oper.paulis.x, oper.coeffs)
+            )
+
+        raise QiskitError(
+            "Operator for expectation value is not a Pauli or SparsePauliOp operator, "
+            f"but {type(oper)}."
+        )
+
+    def _expectation_value_pauli(self, oper: Pauli, qargs: None | list = None) -> complex:
         """Compute the expectation value of a Pauli operator.
 
         Args:
@@ -528,14 +554,14 @@ class StabilizerState(QuantumState):
                                 subsystems (Default: None).
 
         Returns:
-            np.array: list of sampled counts if the order sampled.
+            np.array: list of sampled counts in the order sampled.
 
         Additional Information:
 
             This function implements the measurement :meth:`measure` method.
 
             The seed for random number generator used for sampling can be
-            set to a fixed value by using the stats :meth:`seed` method.
+            set to a fixed value by using the state's :meth:`seed` method.
         """
         memory = []
         for _ in range(shots):
@@ -598,7 +624,6 @@ class StabilizerState(QuantumState):
     @staticmethod
     def _phase_exponent(x1, z1, x2, z2):
         """Exponent g of i such that Pauli(x1,z1) * Pauli(x2,z2) = i^g Pauli(x1+x2,z1+z2)"""
-        # pylint: disable=invalid-name
 
         phase = (x2 * z1 * (1 + 2 * z2 + 2 * x1) - x1 * z2 * (1 + 2 * z1 + 2 * x2)) % 4
         if phase < 0:
@@ -678,7 +703,7 @@ class StabilizerState(QuantumState):
         outcome: list[str],
         outcome_prob: float,
         probs: dict[str, float],
-        outcome_bitstring: str = None,
+        outcome_bitstring: str | None = None,
     ):
         """Recursive helper function for calculating the probabilities
 
@@ -723,7 +748,7 @@ class StabilizerState(QuantumState):
             return
 
         for single_qubit_outcome in (
-            range(0, 2)
+            range(2)
             if (outcome_bitstring is None)
             else [int(outcome_bitstring[qubit_for_branching])]
         ):

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -18,18 +18,18 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
-use crate::getenv_use_multiple_threads;
-use qiskit_circuit::util::c64;
+use qiskit_util::complex::c64;
+use qiskit_util::getenv_use_multiple_threads;
 
 const PARALLEL_THRESHOLD: usize = 19;
 
 #[pulp::with_simd(fast_sum = pulp::Arch::new())]
 #[inline(always)]
 pub fn fast_sum_with_simd<S: Simd>(simd: S, values: &[f64]) -> f64 {
-    let (head, tail) = S::f64s_as_simd(values);
+    let (head, tail) = S::as_simd_f64s(values);
     let sum: f64 = head
         .iter()
-        .fold(0., |acc, chunk| acc + simd.f64s_reduce_sum(*chunk));
+        .fold(0., |acc, chunk| acc + simd.reduce_sum_f64s(*chunk));
     sum + tail.iter().sum::<f64>()
 }
 

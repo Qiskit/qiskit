@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,11 +17,11 @@ Tests for the Collect2qBlocks transpiler pass.
 import math
 import unittest
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CollectMultiQBlocks
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCollect2qBlocks(QiskitTestCase):
@@ -90,7 +90,6 @@ class TestCollect2qBlocks(QiskitTestCase):
         dag_nodes = [node for node in dag.topological_op_nodes() if node.name in good_names]
 
         # we have to convert them to sets as the ordering can be different
-        # but equivalent between python 3.5 and 3.7
         # there is no implied topology in a block, so this isn't an issue
         dag_nodes = [set(dag_nodes[:4]), set(dag_nodes[4:])]
 
@@ -127,8 +126,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         if(c0==0) u1(0.25*pi) q[1];
         if(c0==0) u2(0.25*pi, 0.25*pi) q[0];
         """
-        with self.assertWarns(DeprecationWarning):
-            qc = QuantumCircuit.from_qasm_str(qasmstr)
+        qc = QuantumCircuit.from_qasm_str(qasmstr)
 
         pass_manager = PassManager()
         pass_manager.append(CollectMultiQBlocks())
@@ -138,51 +136,6 @@ class TestCollect2qBlocks(QiskitTestCase):
         self.assertEqual(
             [["cx"]], [[n.name for n in block] for block in pass_manager.property_set["block_list"]]
         )
-
-    def test_do_not_merge_conditioned_gates(self):
-        """Validate that classically conditioned gates are never considered for
-        inclusion in a block. Note that there are cases where gates conditioned
-        on the same (register, value) pair could be correctly merged, but this is
-        not yet implemented.
-
-                 ┌─────────┐┌─────────┐┌─────────┐      ┌───┐
-        qr_0: |0>┤ U1(0.1) ├┤ U1(0.2) ├┤ U1(0.3) ├──■───┤ X ├────■───
-                 └─────────┘└────┬────┘└────┬────┘┌─┴─┐ └─┬─┘  ┌─┴─┐
-        qr_1: |0>────────────────┼──────────┼─────┤ X ├───■────┤ X ├─
-                                 │          │     └───┘   │    └─┬─┘
-        qr_2: |0>────────────────┼──────────┼─────────────┼──────┼───
-                              ┌──┴──┐    ┌──┴──┐       ┌──┴──┐┌──┴──┐
-         cr_0: 0 ═════════════╡     ╞════╡     ╞═══════╡     ╞╡     ╞
-                              │ = 0 │    │ = 0 │       │ = 0 ││ = 1 │
-         cr_1: 0 ═════════════╡     ╞════╡     ╞═══════╡     ╞╡     ╞
-                              └─────┘    └─────┘       └─────┘└─────┘
-
-        Previously the blocks collected were : [['u1', 'u1', 'u1', 'cx', 'cx', 'cx']]
-        This is now corrected to : [['cx']]
-        """
-        # ref: https://github.com/Qiskit/qiskit-terra/issues/3215
-
-        qr = QuantumRegister(3, "qr")
-        cr = ClassicalRegister(2, "cr")
-
-        qc = QuantumCircuit(qr, cr)
-        qc.p(0.1, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.p(0.2, 0).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.p(0.3, 0).c_if(cr, 0)
-        qc.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(1, 0).c_if(cr, 0)
-        with self.assertWarns(DeprecationWarning):
-            qc.cx(0, 1).c_if(cr, 1)
-
-        pass_manager = PassManager()
-        pass_manager.append(CollectMultiQBlocks())
-
-        pass_manager.run(qc)
-        for block in pass_manager.property_set["block_list"]:
-            self.assertTrue(len(block) <= 1)
 
     def test_do_not_go_across_barrier(self):
         """Validate that blocks are not collected across barriers
@@ -289,6 +242,46 @@ class TestCollect2qBlocks(QiskitTestCase):
         pass_manager.append(CollectMultiQBlocks(max_block_size=4))
 
         pass_manager.run(qc)
+
+    def test_collect_from_back(self):
+        """Test the option to collect blocks from the outputs towards
+        the inputs.
+             ┌───┐
+        q_0: ┤ H ├──■────■────■───────
+             └───┘┌─┴─┐  │    │
+        q_1: ─────┤ X ├──┼────┼───────
+                  └───┘┌─┴─┐  │
+        q_2: ──────────┤ X ├──┼───────
+                       └───┘┌─┴─┐┌───┐
+        q_3: ───────────────┤ X ├┤ H ├
+                            └───┘└───┘
+        """
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.h(3)
+
+        dag = circuit_to_dag(qc)
+        # For the circuit above, the topological order is unique
+        topo_ops = list(dag.topological_op_nodes())
+
+        # When collecting blocks of size-3 using the default direction,
+        # the first block should contain the H-gate and two CX-gates,
+        # and the second block should contain a single CX-gate and an H-gate.
+        pass_ = CollectMultiQBlocks(max_block_size=3, collect_from_back=False)
+        pass_.run(dag)
+        expected_blocks = [[topo_ops[0], topo_ops[1], topo_ops[2]], [topo_ops[3], topo_ops[4]]]
+        self.assertEqual(pass_.property_set["block_list"], expected_blocks)
+
+        # When collecting blocks of size-3 using the opposite direction,
+        # the first block should contain the H-gate and a single CX-gate,
+        # and the second block should contain two CX-gates and an H-gate.
+        pass_ = CollectMultiQBlocks(max_block_size=3, collect_from_back=True)
+        pass_.run(dag)
+        expected_blocks = [[topo_ops[0], topo_ops[1]], [topo_ops[2], topo_ops[3], topo_ops[4]]]
+        self.assertEqual(pass_.property_set["block_list"], expected_blocks)
 
 
 if __name__ == "__main__":

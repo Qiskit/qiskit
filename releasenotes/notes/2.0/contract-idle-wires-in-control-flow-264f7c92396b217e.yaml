@@ -1,0 +1,8 @@
+---
+features_transpiler:
+  - |
+    A new transpiler pass, :class:`.ContractIdleWiresInControlFlow`, is available from
+    :mod:`qiskit.transpiler.passes`.  This pass removes qubits from control-flow blocks if the
+    semantics allow this, and the qubit is idle throughout the control-flow operation.  Previously,
+    the routing stage of the preset pass managers might have done this as an accidental side-effect
+    of how they worked, but the behavior is now more properly placed in an optimization pass.

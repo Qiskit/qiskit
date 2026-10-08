@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,11 +13,24 @@
 """Schema and helper models for schema-conformant Results."""
 
 import copy
-import warnings
+from enum import Enum, IntEnum
 
-from qiskit.qobj.utils import MeasReturnType, MeasLevel
-from qiskit.qobj import QobjExperimentHeader
 from qiskit.exceptions import QiskitError
+
+
+class MeasReturnType(str, Enum):
+    """meas_return allowed values defined by legacy PulseQobjConfig object but still used by Result."""
+
+    AVERAGE = "avg"
+    SINGLE = "single"
+
+
+class MeasLevel(IntEnum):
+    """MeasLevel allowed values defined by legacy PulseQobjConfig object but still used by Result."""
+
+    RAW = 0
+    KERNELED = 1
+    CLASSIFIED = 2
 
 
 class ExperimentResultData:
@@ -26,7 +39,7 @@ class ExperimentResultData:
     def __init__(
         self, counts=None, snapshots=None, memory=None, statevector=None, unitary=None, **kwargs
     ):
-        """Initialize an ExperimentalResult Data class
+        """Initialize an ExperimentResultData class
 
         Args:
             counts (dict): A dictionary where the keys are the result in
@@ -132,8 +145,7 @@ class ExperimentResult:
             status (str): The status of the experiment
             seed (int): The seed used for simulation (if run on a simulator)
             meas_return (str): The type of measurement returned
-            header (qiskit.qobj.QobjExperimentHeader): A free form dictionary
-                header for the experiment
+            header (dict): A free form dictionary header for the experiment
             kwargs: Arbitrary extra fields
 
         Raises:
@@ -152,7 +164,7 @@ class ExperimentResult:
             self.seed = seed
         if meas_return is not None:
             if meas_return not in list(MeasReturnType):
-                raise QiskitError("%s not a valid meas_return value")
+                raise QiskitError(f"{meas_return} not a valid meas_return value")
             self.meas_return = meas_return
         self._metadata.update(kwargs)
 
@@ -197,7 +209,7 @@ class ExperimentResult:
             "meas_level": self.meas_level,
         }
         if hasattr(self, "header"):
-            out_dict["header"] = self.header.to_dict()
+            out_dict["header"] = self.header
         if hasattr(self, "status"):
             out_dict["status"] = self.status
         if hasattr(self, "seed"):
@@ -223,11 +235,6 @@ class ExperimentResult:
 
         in_data = copy.copy(data)
         data_obj = ExperimentResultData.from_dict(in_data.pop("data"))
-        if "header" in in_data:
-            with warnings.catch_warnings():
-                # The class QobjExperimentHeader is deprecated
-                warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
-                in_data["header"] = QobjExperimentHeader.from_dict(in_data.pop("header"))
         shots = in_data.pop("shots")
         success = in_data.pop("success")
 

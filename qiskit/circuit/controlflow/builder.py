@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,16 +22,17 @@ from __future__ import annotations
 import abc
 import itertools
 import typing
-from typing import Collection, Iterable, FrozenSet, Tuple, Union, Optional, Sequence
+
+from collections.abc import Collection, Iterable, Sequence
 
 from qiskit._accelerate.circuit import CircuitData
+from qiskit.circuit import Register
 from qiskit.circuit.classical import expr
-from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
+from qiskit.circuit import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
-from qiskit.circuit.quantumregister import Qubit, QuantumRegister
-from qiskit.circuit.register import Register
+from qiskit.circuit import Qubit, QuantumRegister
 
 from ._builder_utils import condition_resources, node_resources
 
@@ -54,7 +55,7 @@ class CircuitScopeInterface(abc.ABC):
     @property
     @abc.abstractmethod
     def instructions(self) -> Sequence[CircuitInstruction]:
-        """Indexable view onto the :class:`.CircuitInstruction`s backing this scope."""
+        """Indexable view onto the :class:`.CircuitInstruction` objects backing this scope."""
 
     @abc.abstractmethod
     def append(
@@ -74,11 +75,18 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def extend(self, data: CircuitData):
+    def extend(
+        self,
+        data: CircuitData,
+        qubits: list[Qubit] | None = None,
+        clbits: list[Clbit] | None = None,
+    ):
         """Appends all instructions from ``data`` to the scope.
 
         Args:
             data: The instruction listing.
+            qubits: an optional qubit remapping to apply
+            clbits: an optional clbit remapping to apply
         """
 
     @abc.abstractmethod
@@ -122,15 +130,15 @@ class CircuitScopeInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def remove_var(self, var: expr.Var):
-        """Remove a variable from the locals of this scope.
-
-        This is only called in the case that an exception occurred while initializing the variable,
-        and is not exposed to users.
+    def add_stretch(self, stretch: expr.Stretch):
+        """Add a stretch to the circuit scope.
 
         Args:
-            var: the variable to remove.  It can be assumed that this was already the subject of an
-                :meth:`add_uninitialized_var` call.
+            stretch: the stretch to add, if valid.
+
+        Raises:
+            CircuitError: if the stretch cannot be added, such as because it invalidly shadows or
+                redefines an existing name.
         """
 
     @abc.abstractmethod
@@ -145,15 +153,23 @@ class CircuitScopeInterface(abc.ABC):
         Args:
             var: the variable to validate.
 
-        Returns:
-            the same variable.
-
         Raises:
             CircuitError: if the variable is not valid for this scope.
         """
 
     @abc.abstractmethod
-    def get_var(self, name: str) -> Optional[expr.Var]:
+    def use_stretch(self, stretch: expr.Stretch):
+        """Called for every stretch being used by some circuit instruction.
+
+        Args:
+            stretch: the stretch to validate.
+
+        Raises:
+            CircuitError: if the stretch is not valid for this scope.
+        """
+
+    @abc.abstractmethod
+    def get_var(self, name: str) -> expr.Var | None:
         """Get the variable (if any) in scope with the given name.
 
         This should call up to the parent scope if in a control-flow builder scope, in case the
@@ -165,6 +181,27 @@ class CircuitScopeInterface(abc.ABC):
         Returns:
             the variable if it is found, otherwise ``None``.
         """
+
+    @abc.abstractmethod
+    def get_stretch(self, name: str) -> expr.Stretch | None:
+        """Get the stretch (if any) in scope with the given name.
+
+        This should call up to the parent scope if in a control-flow builder scope, in case the
+        stretch exists in an outer scope.
+
+        Args:
+            name: the name of the symbol to lookup.
+
+        Returns:
+            the stretch if it is found, otherwise ``None``.
+        """
+
+    @abc.abstractmethod
+    def use_qubit(self, qubit: Qubit):
+        """Called to mark that a :class:`~.circuit.Qubit` should be considered "used" by this scope,
+        without appending an explicit instruction.
+
+        The subclass may assume that the ``qubit`` is valid for the root scope."""
 
 
 class InstructionResources(typing.NamedTuple):
@@ -198,10 +235,12 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         with qc.for_loop(range(5)):
             qc.h(0)
             qc.measure(0, 0)
-            qc.break_loop().c_if(0, 0)
+            with qc.if_test((0, 0)):
+                qc.break_loop()
 
-    since ``qc.break_loop()`` needs to return a (mostly) functional
-    :obj:`~qiskit.circuit.Instruction` in order for :meth:`.InstructionSet.c_if` to work correctly.
+    ``qc.break_loop()`` needed to return a (mostly) functional
+    :obj:`~qiskit.circuit.Instruction` in order for the historical ``.InstructionSet.c_if``
+    to work correctly.
 
     When appending a placeholder instruction into a circuit scope, you should create the
     placeholder, and then ask it what resources it should be considered as using from the start by
@@ -219,8 +258,8 @@ class InstructionPlaceholder(Instruction, abc.ABC):
 
     @abc.abstractmethod
     def concrete_instruction(
-        self, qubits: FrozenSet[Qubit], clbits: FrozenSet[Clbit]
-    ) -> Tuple[Instruction, InstructionResources]:
+        self, qubits: frozenset[Qubit], clbits: frozenset[Clbit]
+    ) -> tuple[Instruction, InstructionResources]:
         """Get a concrete, complete instruction that is valid to act over all the given resources.
 
         The returned resources may not be the full width of the given resources, but will certainly
@@ -234,9 +273,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
             The caller of this function is responsible for ensuring that the inputs to this function
             are non-strict supersets of the bits returned by :meth:`placeholder_resources`.
 
-        Any condition added in by a call to :obj:`.Instruction.c_if` will be propagated through, but
-        set properties like ``duration`` will not; it doesn't make sense for control-flow operations
-        to have pulse scheduling on them.
 
         Args:
             qubits: The qubits the created instruction should be defined across.
@@ -265,33 +301,8 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         """
         raise NotImplementedError
 
-    def _copy_mutable_properties(self, instruction: Instruction) -> Instruction:
-        """Copy mutable properties from ourselves onto a non-placeholder instruction.
-
-        The mutable properties are expected to be things like ``condition``, added onto a
-        placeholder by the :meth:`c_if` method.  This mutates ``instruction``, and returns the same
-        instance that was passed.  This is mostly intended to make writing concrete versions of
-        :meth:`.concrete_instruction` easy.
-
-        The complete list of mutations is:
-
-        * ``condition``, added by :meth:`c_if`.
-
-        Args:
-            instruction: the concrete instruction instance to be mutated.
-
-        Returns:
-            The same instruction instance that was passed, but mutated to propagate the tracked
-            changes to this class.
-        """
-        instruction._condition = self._condition
-        return instruction
-
     # Provide some better error messages, just in case something goes wrong during development and
     # the placeholder type leaks out to somewhere visible.
-
-    def assemble(self):
-        raise CircuitError("Cannot assemble a placeholder instruction.")
 
     def repeat(self, n):
         raise CircuitError("Cannot repeat a placeholder instruction.")
@@ -327,15 +338,18 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
     """
 
     __slots__ = (
-        "_instructions",
-        "registers",
-        "global_phase",
         "_allow_jumps",
-        "_parent",
         "_built",
         "_forbidden_message",
-        "_vars_local",
+        "_instructions",
+        "_loop_var",
+        "_parent",
+        "_stretches_capture",
+        "_stretches_local",
         "_vars_capture",
+        "_vars_local",
+        "global_phase",
+        "registers",
     )
 
     def __init__(
@@ -346,7 +360,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         parent: CircuitScopeInterface,
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
-        forbidden_message: Optional[str] = None,
+        forbidden_message: str | None = None,
+        loop_var: expr.Var | None = None,
     ):
         """
         Args:
@@ -372,12 +387,16 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 pseudo scopes where the state machine of the builder scopes has changed into a
                 position where no instructions should be accepted, such as when inside a ``switch``
                 but outside any cases.
+            loop_var: If given, a classical var used for the loop counter
         """
         self._instructions = CircuitData(qubits, clbits)
         self.registers = set(registers)
         self.global_phase = 0.0
         self._vars_local = {}
         self._vars_capture = {}
+        self._loop_var = loop_var
+        self._stretches_local = {}
+        self._stretches_capture = {}
         self._allow_jumps = allow_jumps
         self._parent = parent
         self._built = False
@@ -411,7 +430,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
 
     @staticmethod
     def _raise_on_jump(operation):
-        # pylint: disable=cyclic-import
+
         from .break_loop import BreakLoopOp, BreakLoopPlaceholder
         from .continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
 
@@ -436,20 +455,25 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self._instructions.append(instruction)
         return instruction
 
-    def extend(self, data: CircuitData):
+    def extend(
+        self,
+        data: CircuitData,
+        qubits: list[Qubit] | None = None,
+        clbits: list[Clbit] | None = None,
+    ):
         if self._forbidden_message is not None:
             raise CircuitError(self._forbidden_message)
         if not self._allow_jumps:
             data.foreach_op(self._raise_on_jump)
-        active_qubits, active_clbits = data.active_bits()
-        # Add bits in deterministic order.
-        for b in data.qubits:
-            if b in active_qubits:
-                self.instructions.add_qubit(b, strict=False)
-        for b in data.clbits:
-            if b in active_clbits:
-                self.instructions.add_clbit(b, strict=False)
-        self.instructions.extend(data)
+        mapped_qubits = [
+            self.instructions.add_qubit(b, strict=False)
+            for b in (data.qubits if qubits is None else qubits)
+        ]
+        mapped_clbits = [
+            self.instructions.add_clbit(b, strict=False)
+            for b in (data.clbits if clbits is None else clbits)
+        ]
+        self.instructions.native_extend(data, qubits=mapped_qubits, clbits=mapped_clbits)
 
     def resolve_classical_resource(self, specifier):
         if self._built:
@@ -467,25 +491,58 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError("Cannot add resources after the scope has been built.")
         # We can shadow a name if it was declared in an outer scope, but only if we haven't already
         # captured it ourselves yet.
+        if (previous := self._stretches_local.get(var.name)) is not None:
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         if (previous := self._vars_local.get(var.name)) is not None:
             if previous == var:
                 raise CircuitError(f"'{var}' is already present in the scope")
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
-        if var.name in self._vars_capture:
+        if var.name in self._vars_capture or var.name in self._stretches_capture:
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         self._vars_local[var.name] = var
 
-    def remove_var(self, var: expr.Var):
+    def add_stretch(self, stretch: expr.Stretch):
         if self._built:
-            raise RuntimeError("exception handler 'remove_var' called after scope built")
-        self._vars_local.pop(var.name)
+            raise CircuitError("Cannot add resources after the scope has been built.")
+        # We can shadow a name if it was declared in an outer scope, but only if we haven't already
+        # captured it ourselves yet.
+        if (previous := self._vars_local.get(stretch.name)) is not None:
+            raise CircuitError(
+                f"cannot add '{stretch}' as its name shadows the existing '{previous}'"
+            )
+        if (previous := self._stretches_local.get(stretch.name)) is not None:
+            if previous == stretch:
+                raise CircuitError(f"'{stretch}' is already present in the scope")
+            raise CircuitError(
+                f"cannot add '{stretch}' as its name shadows the existing '{previous}'"
+            )
+        if stretch.name in self._vars_capture or stretch.name in self._stretches_capture:
+            raise CircuitError(
+                f"cannot add '{stretch}' as its name shadows the existing '{previous}'"
+            )
+        self._stretches_local[stretch.name] = stretch
 
     def get_var(self, name: str):
+        if name in self._stretches_local:
+            return None
+        if self._loop_var is not None and self._loop_var.name == name:
+            return self._loop_var
         if (out := self._vars_local.get(name)) is not None:
             return out
         return self._parent.get_var(name)
 
+    def get_stretch(self, name: str):
+        if name in self._vars_local:
+            return None
+        if (out := self._stretches_local.get(name)) is not None:
+            return out
+        return self._parent.get_stretch(name)
+
     def use_var(self, var: expr.Var):
+        if (local := self._stretches_local.get(var.name)) is not None:
+            raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
+        if self._loop_var is not None and self._loop_var == var:
+            return
         if (local := self._vars_local.get(var.name)) is not None:
             if local == var:
                 return
@@ -497,13 +554,38 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self._parent.use_var(var)
         self._vars_capture[var.name] = var
 
+    def use_stretch(self, stretch: expr.Stretch):
+        if (local := self._vars_local.get(stretch.name)) is not None:
+            raise CircuitError(f"cannot use '{stretch}' which is shadowed by the local '{local}'")
+        if (local := self._stretches_local.get(stretch.name)) is not None:
+            if local == stretch:
+                return
+            raise CircuitError(f"cannot use '{stretch}' which is shadowed by the local '{local}'")
+        if self._stretches_capture.get(stretch.name) == stretch:
+            return
+        if self._parent.get_stretch(stretch.name) != stretch:
+            raise CircuitError(f"cannot close over '{stretch}', which is not in scope")
+        self._parent.use_stretch(stretch)
+        self._stretches_capture[stretch.name] = stretch
+
+    def use_qubit(self, qubit: Qubit):
+        self._instructions.add_qubit(qubit, strict=False)
+
     def iter_local_vars(self):
         """Iterator over the variables currently declared in this scope."""
         return self._vars_local.values()
 
+    def iter_local_stretches(self):
+        """Iterator over the stretches currently declared in this scope."""
+        return self._stretches_local.values()
+
     def iter_captured_vars(self):
         """Iterator over the variables currently captured in this scope."""
         return self._vars_capture.values()
+
+    def iter_captured_stretches(self):
+        """Iterator over the stretches currently captured in this scope."""
+        return self._stretches_capture.values()
 
     def peek(self) -> CircuitInstruction:
         """Get the value of the most recent instruction tuple in this scope."""
@@ -518,7 +600,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError("This scope contains no instructions.")
         return self._instructions.pop()
 
-    def add_bits(self, bits: Iterable[Union[Qubit, Clbit]]):
+    def add_bits(self, bits: Iterable[Qubit | Clbit]):
         """Add extra bits to this scope that are not associated with any concrete instruction yet.
 
         This is useful for expanding a scope's resource width when it may contain ``break`` or
@@ -555,14 +637,14 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self.add_bits(register)
 
     def build(
-        self, all_qubits: FrozenSet[Qubit], all_clbits: FrozenSet[Clbit]
-    ) -> "qiskit.circuit.QuantumCircuit":
+        self, all_qubits: frozenset[Qubit], all_clbits: frozenset[Clbit]
+    ) -> qiskit.circuit.QuantumCircuit:
         """Build this scoped block into a complete :obj:`.QuantumCircuit` instance.
 
         This will build a circuit which contains all of the necessary qubits and clbits and no
         others.
 
-        The ``qubits`` and ``clbits`` arguments should be sets that contains all the resources in
+        The ``qubits`` and ``clbits`` arguments should be sets that contain all the resources in
         the outer scope; these will be passed down to inner placeholder instructions, so they can
         apply themselves across the whole scope should they need to.  The resulting
         :obj:`.QuantumCircuit` will be defined over a (nonstrict) subset of these resources.  This
@@ -583,7 +665,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             and using the minimal set of resources necessary to support them, within the enclosing
             scope.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit, SwitchCaseOp
 
         # There's actually no real problem with building a scope more than once.  This flag is more
@@ -605,12 +687,16 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             self._instructions.clbits,
             *self.registers,
             global_phase=self.global_phase,
-            captures=self._vars_capture.values(),
+            inputs=() if self._loop_var is None else (self._loop_var,),
+            captures=itertools.chain(self._vars_capture.values(), self._stretches_capture.values()),
         )
         for var in self._vars_local.values():
             # The requisite `Store` instruction to initialise the variable will have been appended
             # into the instructions.
             out.add_uninitialized_var(var)
+
+        for var in self._stretches_local.values():
+            out.add_stretch(var)
 
         # Maps placeholder index to the newly concrete instruction.
         placeholder_to_concrete = {}
@@ -670,7 +756,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         out._current_scope().extend(out_data)
         return out
 
-    def copy(self) -> "ControlFlowBuilderBlock":
+    def copy(self) -> ControlFlowBuilderBlock:
         """Return a semi-shallow copy of this builder block.
 
         The instruction lists and sets of qubits and clbits will be new instances (so mutations will
@@ -685,7 +771,10 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         out.global_phase = self.global_phase
         out._vars_local = self._vars_local.copy()
         out._vars_capture = self._vars_capture.copy()
+        out._stretches_local = self._stretches_local.copy()
+        out._stretches_capture = self._stretches_capture.copy()
         out._parent = self._parent
         out._allow_jumps = self._allow_jumps
         out._forbidden_message = self._forbidden_message
+        out._loop_var = self._loop_var
         return out

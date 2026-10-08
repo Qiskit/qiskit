@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -43,7 +43,7 @@ class FourierChecking(QuantumCircuit):
 
     Fourier checking is a special case of :math:`k`-fold forrelation [2].
 
-    **Reference:**
+    References:
 
     [1] S. Aaronson, BQP and the Polynomial Hierarchy, 2009 (Section 3.2).
     `arXiv:0910.4698 <https://arxiv.org/abs/0910.4698>`_
@@ -54,9 +54,9 @@ class FourierChecking(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.fourier_checking instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, f: Sequence[int], g: Sequence[int]) -> None:
         """Create Fourier checking circuit.
@@ -70,6 +70,7 @@ class FourierChecking(QuantumCircuit):
 
         Reference Circuit:
             .. plot::
+               :alt: Diagram illustrating the previously described circuit.
 
                from qiskit.circuit.library import FourierChecking
                from qiskit.visualization.library import _generate_circuit_library_visualization
@@ -121,16 +122,17 @@ def fourier_checking(f: Sequence[int], g: Sequence[int]) -> QuantumCircuit:
 
     Fourier checking is a special case of :math:`k`-fold forrelation [2].
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
+       :alt: Circuit diagram output by the previous code.
        :include-source:
 
        from qiskit.circuit.library import fourier_checking
        circuit = fourier_checking([1, -1, -1, -1], [1, 1, -1, -1])
        circuit.draw('mpl')
 
-    **Reference:**
+    References:
 
     [1] S. Aaronson, BQP and the Polynomial Hierarchy, 2009 (Section 3.2).
     `arXiv:0910.4698 <https://arxiv.org/abs/0910.4698>`_

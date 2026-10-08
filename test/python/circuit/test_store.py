@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 from test import QiskitTestCase
 
@@ -69,12 +68,6 @@ class TestStoreInstruction(QiskitTestCase):
         rvalue = expr.Var.new("b", types.Uint(16))
         with self.assertRaisesRegex(CircuitError, "an explicit cast is required.*may be lossy"):
             Store(lvalue, rvalue)
-
-    def test_rejects_c_if(self):
-        instruction = Store(expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool()))
-        with self.assertRaises(NotImplementedError):
-            with self.assertWarns(DeprecationWarning):
-                instruction.c_if(Clbit(), False)
 
 
 class TestStoreCircuit(QiskitTestCase):
@@ -236,11 +229,3 @@ class TestStoreCircuit(QiskitTestCase):
         qc = QuantumCircuit(inputs=[lvalue, rvalue])
         with self.assertRaisesRegex(CircuitError, "an explicit cast is required.*may be lossy"):
             qc.store(lvalue, rvalue)
-
-    def test_rejects_c_if(self):
-        a = expr.Var.new("a", types.Bool())
-        qc = QuantumCircuit([Clbit()], inputs=[a])
-        instruction_set = qc.store(a, True)
-        with self.assertRaises(NotImplementedError):
-            with self.assertWarns(DeprecationWarning):
-                instruction_set.c_if(qc.clbits[0], False)

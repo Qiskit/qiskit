@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -66,21 +66,19 @@ For example::
 ```
 """
 
-# pylint: disable=attribute-defined-outside-init
 
 import unittest
 import os
 import sys
-import warnings
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, transpile
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dump
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, SabreSwap, StochasticSwap
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, SabreSwap
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler import CouplingMap, Layout
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class CommonUtilitiesMixin:
@@ -105,15 +103,7 @@ class CommonUtilitiesMixin:
         if initial_layout:
             passmanager.append(SetLayout(Layout(initial_layout)))
 
-        with warnings.catch_warnings():
-            # TODO: remove this filter when StochasticSwap is removed
-            warnings.filterwarnings(
-                "ignore",
-                category=DeprecationWarning,
-                message=r".*StochasticSwap.*",
-            )
-            # pylint: disable=not-callable
-            passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
+        passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
         return passmanager
 
     def create_backend(self):
@@ -287,13 +277,6 @@ class TestsLookaheadSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using LookaheadSwap."""
 
     pass_class = LookaheadSwap
-
-
-class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
-    """Test SwapperCommonTestCases using StochasticSwap."""
-
-    pass_class = StochasticSwap
-    additional_args = {"seed": 0}
 
 
 class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):

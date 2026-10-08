@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -28,8 +28,8 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
 )
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.providers.basic_provider import BasicSimulator
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 class TestStagePassManagerPlugin(QiskitTestCase):
@@ -41,7 +41,6 @@ class TestStagePassManagerPlugin(QiskitTestCase):
         self.assertIn("basic", routing_passes)
         self.assertIn("sabre", routing_passes)
         self.assertIn("lookahead", routing_passes)
-        self.assertIn("stochastic", routing_passes)
         self.assertIsInstance(list_stage_plugins("init"), list)
         self.assertIsInstance(list_stage_plugins("layout"), list)
         self.assertIsInstance(list_stage_plugins("translation"), list)
@@ -119,31 +118,6 @@ class TestBuiltinPlugins(QiskitTestCase):
             optimization_level=optimization_level,
             routing_method=routing_method,
         )
-        backend = BasicSimulator()
-        counts = backend.run(tqc, shots=1000).result().get_counts()
-        self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)
-
-    @combine(
-        optimization_level=list(range(4)),
-        routing_method=["stochastic"],
-    )
-    def test_routing_plugin_stochastic(self, optimization_level, routing_method):
-        """Test stoc routing plugins (excluding error)."""
-        # Note remove once StochasticSwap gets removed
-        qc = QuantumCircuit(4)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        qc.cx(0, 3)
-        qc.measure_all()
-        with self.assertWarns(DeprecationWarning):
-            tqc = transpile(
-                qc,
-                basis_gates=["cx", "sx", "x", "rz"],
-                coupling_map=CouplingMap.from_line(4),
-                optimization_level=optimization_level,
-                routing_method=routing_method,
-            )
         backend = BasicSimulator()
         counts = backend.run(tqc, shots=1000).result().get_counts()
         self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)

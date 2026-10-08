@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,7 @@
 """Internal utilities for working with control-flow operations."""
 
 import functools
-from typing import Callable
+from collections.abc import Callable
 
 from qiskit.circuit import ControlFlowOp
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -54,12 +54,8 @@ def trivial_recurse(method):
         def bound_wrapped_method(dag):
             return out(self, dag)
 
-        control_flow_nodes = dag.control_flow_op_nodes()
-        if control_flow_nodes is not None:
-            for node in control_flow_nodes:
-                dag.substitute_node(
-                    node, map_blocks(bound_wrapped_method, node.op), propagate_condition=False
-                )
+        for node in dag.control_flow_op_nodes():
+            dag.substitute_node(node, map_blocks(bound_wrapped_method, node.op))
         return method(self, dag)
 
     return out

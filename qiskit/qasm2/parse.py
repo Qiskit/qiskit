@@ -4,17 +4,16 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """Python-space bytecode interpreter for the output of the main Rust parser logic."""
-import warnings
 import dataclasses
-import math
-from typing import Iterable, Callable
+from collections.abc import Iterable, Callable
+from typing_extensions import Unpack
 
 import numpy as np
 
@@ -35,14 +34,7 @@ from qiskit.circuit import (
 from qiskit.quantum_info import Operator
 from qiskit._accelerate.qasm2 import (
     OpCode,
-    UnaryOpCode,
-    BinaryOpCode,
     CustomClassical,
-    ExprConstant,
-    ExprArgument,
-    ExprUnary,
-    ExprBinary,
-    ExprCustom,
 )
 from .exceptions import QASM2ParseError
 
@@ -123,9 +115,7 @@ class CustomInstruction:
     name: str
     num_params: int
     num_qubits: int
-    # This should be `(float*) -> Instruction`, but the older version of Sphinx we're constrained to
-    # use in the Python 3.9 docs build chokes on it, so relax the hint.
-    constructor: Callable[..., Instruction]
+    constructor: Callable[[Unpack[tuple[float, ...]]], Instruction]
     builtin: bool = False
 
 
@@ -197,11 +187,7 @@ LEGACY_CUSTOM_INSTRUCTIONS = (
     CustomInstruction("delay", 1, 1, _generate_delay),
 )
 
-LEGACY_CUSTOM_CLASSICAL = (
-    CustomClassical("asin", 1, math.asin),
-    CustomClassical("acos", 1, math.acos),
-    CustomClassical("atan", 1, math.atan),
-)
+LEGACY_CUSTOM_CLASSICAL = tuple(CustomClassical.builtins())
 
 
 def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
@@ -221,7 +207,7 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
     should consider that a bug in the Rust code."""
     # The method `QuantumCircuit._append` is a semi-public method, so isn't really subject to
     # "protected access".
-    # pylint: disable=protected-access
+
     qc = QuantumCircuit()
     qubits = []
     clbits = []
@@ -255,37 +241,25 @@ def from_bytecode(bytecode, custom_instructions: Iterable[CustomInstruction]):
                 CircuitInstruction(gates[gate_id](*parameters), [qubits[q] for q in op_qubits])
             )
         elif opcode == OpCode.ConditionedGate:
-            warnings.warn(
-                "Conditioned gates in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
-                FutureWarning,
-                stacklevel=3,
-            )
             gate_id, parameters, op_qubits, creg, value = op.operands
-            gate = gates[gate_id](*parameters).c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(gate, [qubits[q] for q in op_qubits]))
+            with qc.if_test((qc.cregs[creg], value)):
+                gate = gates[gate_id](*parameters)
+                qc.append(gate, [qubits[q] for q in op_qubits])
         elif opcode == OpCode.Measure:
             qubit, clbit = op.operands
             qc._append(CircuitInstruction(Measure(), (qubits[qubit],), (clbits[clbit],)))
         elif opcode == OpCode.ConditionedMeasure:
-            warnings.warn(
-                "Conditioned measurements in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
-                FutureWarning,
-                stacklevel=3,
-            )
             qubit, clbit, creg, value = op.operands
-            measure = Measure().c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(measure, (qubits[qubit],), (clbits[clbit],)))
+            with qc.if_test((qc.cregs[creg], value)):
+                measure = Measure()
+                qc.append(measure, (qubits[qubit],), (clbits[clbit],))
         elif opcode == OpCode.Reset:
             qc._append(CircuitInstruction(Reset(), (qubits[op.operands[0]],)))
         elif opcode == OpCode.ConditionedReset:
-            warnings.warn(
-                "Conditioned resets in qasm2 will be loaded as an IfElseOp starting in Qiskit 2.0",
-                FutureWarning,
-                stacklevel=3,
-            )
             qubit, creg, value = op.operands
-            reset = Reset().c_if(qc.cregs[creg], value)
-            qc._append(CircuitInstruction(reset, (qubits[qubit],)))
+            with qc.if_test((qc.cregs[creg], value)):
+                reset = Reset()
+                qc.append(reset, (qubits[qubit],))
         elif opcode == OpCode.Barrier:
             op_qubits = op.operands[0]
             qc._append(CircuitInstruction(Barrier(len(op_qubits)), [qubits[q] for q in op_qubits]))
@@ -341,7 +315,7 @@ class _DefinedGate(Gate):
     def _define(self):
         # This is a stripped-down version of the bytecode interpreter; there's very few opcodes that
         # we actually need to handle within gate bodies.
-        # pylint: disable=protected-access
+
         qubits = [Qubit() for _ in [None] * self.num_qubits]
         qc = QuantumCircuit(qubits)
         for op in self._bytecode:
@@ -349,7 +323,7 @@ class _DefinedGate(Gate):
                 gate_id, args, op_qubits = op.operands
                 qc._append(
                     CircuitInstruction(
-                        self._gates[gate_id](*(_evaluate_argument(a, self.params) for a in args)),
+                        self._gates[gate_id](*args.evaluate(self.params)),
                         [qubits[q] for q in op_qubits],
                     )
                 )
@@ -371,15 +345,14 @@ class _DefinedGate(Gate):
     # to pickle ourselves, we just eagerly create the definition and pickle that.
 
     def __getstate__(self):
-        return (self.name, self.num_qubits, self.params, self.definition, self._condition)
+        return (self.name, self.num_qubits, self.params, self.definition)
 
     def __setstate__(self, state):
-        name, num_qubits, params, definition, condition = state
+        name, num_qubits, params, definition = state
         super().__init__(name, num_qubits, params)
         self._gates = ()
         self._bytecode = ()
         self._definition = definition
-        self._condition = condition
 
 
 def _gate_builder(name, num_qubits, known_gates, bytecode):
@@ -403,50 +376,3 @@ def _opaque_builder(name, num_qubits):
         return Gate(name, num_qubits, params)
 
     return definer
-
-
-# The natural way to reduce returns in this function would be to use a lookup table for the opcodes,
-# but the PyO3 enum entities aren't (currently) hashable.
-def _evaluate_argument(expr, parameters):  # pylint: disable=too-many-return-statements
-    """Inner recursive function to calculate the value of a mathematical expression given the
-    concrete values in the `parameters` field."""
-    if isinstance(expr, ExprConstant):
-        return expr.value
-    if isinstance(expr, ExprArgument):
-        return parameters[expr.index]
-    if isinstance(expr, ExprUnary):
-        inner = _evaluate_argument(expr.argument, parameters)
-        opcode = expr.opcode
-        if opcode == UnaryOpCode.Negate:
-            return -inner
-        if opcode == UnaryOpCode.Cos:
-            return math.cos(inner)
-        if opcode == UnaryOpCode.Exp:
-            return math.exp(inner)
-        if opcode == UnaryOpCode.Ln:
-            return math.log(inner)
-        if opcode == UnaryOpCode.Sin:
-            return math.sin(inner)
-        if opcode == UnaryOpCode.Sqrt:
-            return math.sqrt(inner)
-        if opcode == UnaryOpCode.Tan:
-            return math.tan(inner)
-        raise ValueError(f"unhandled unary opcode: {opcode}")
-    if isinstance(expr, ExprBinary):
-        left = _evaluate_argument(expr.left, parameters)
-        right = _evaluate_argument(expr.right, parameters)
-        opcode = expr.opcode
-        if opcode == BinaryOpCode.Add:
-            return left + right
-        if opcode == BinaryOpCode.Subtract:
-            return left - right
-        if opcode == BinaryOpCode.Multiply:
-            return left * right
-        if opcode == BinaryOpCode.Divide:
-            return left / right
-        if opcode == BinaryOpCode.Power:
-            return left**right
-        raise ValueError(f"unhandled binary opcode: {opcode}")
-    if isinstance(expr, ExprCustom):
-        return expr.callable(*(_evaluate_argument(x, parameters) for x in expr.arguments))
-    raise ValueError(f"unhandled expression type: {expr}")

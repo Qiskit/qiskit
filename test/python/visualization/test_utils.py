@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,7 +20,7 @@ from qiskit.circuit import Qubit, Clbit
 from qiskit.visualization.circuit import _utils
 from qiskit.visualization import array_to_latex
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestVisualizationUtils(QiskitTestCase):
@@ -45,7 +45,7 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions(self):
         """_get_layered_instructions without reverse_bits"""
-        (qregs, cregs, layered_ops) = _utils._get_layered_instructions(self.circuit)
+        qregs, cregs, layered_ops = _utils._get_layered_instructions(self.circuit)
 
         exp = [
             {("cx", (self.qr2[0], self.qr2[1]), ()), ("cx", (self.qr1[0], self.qr1[1]), ())},
@@ -64,7 +64,7 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions_reverse_bits(self):
         """_get_layered_instructions with reverse_bits=True"""
-        (qregs, cregs, layered_ops) = _utils._get_layered_instructions(
+        qregs, cregs, layered_ops = _utils._get_layered_instructions(
             self.circuit, reverse_bits=True
         )
 
@@ -100,7 +100,7 @@ class TestVisualizationUtils(QiskitTestCase):
         circuit.cx(qr1[1], qr1[0])
         circuit.measure(qr1[1], cr1[1])
 
-        (qregs, cregs, layered_ops) = _utils._get_layered_instructions(circuit, idle_wires=False)
+        qregs, cregs, layered_ops = _utils._get_layered_instructions(circuit, idle_wires=False)
 
         exp = [
             {("cx", (qr2[0], qr2[1]), ()), ("cx", (qr1[0], qr1[1]), ())},
@@ -133,7 +133,7 @@ class TestVisualizationUtils(QiskitTestCase):
         qc.h(2)
         qc.cx(0, 3)
 
-        (_, _, layered_ops) = _utils._get_layered_instructions(qc, justify="left")
+        _, _, layered_ops = _utils._get_layered_instructions(qc, justify="left")
 
         l_exp = [
             {
@@ -163,7 +163,7 @@ class TestVisualizationUtils(QiskitTestCase):
         qc.h(2)
         qc.cx(0, 3)
 
-        (_, _, layered_ops) = _utils._get_layered_instructions(qc, justify="right")
+        _, _, layered_ops = _utils._get_layered_instructions(qc, justify="right")
 
         r_exp = [
             {("cx", (Qubit(QuantumRegister(4, "q"), 0), Qubit(QuantumRegister(4, "q"), 3)), ())},
@@ -212,7 +212,7 @@ class TestVisualizationUtils(QiskitTestCase):
         """
         qc = QuantumCircuit.from_qasm_str(qasm)
 
-        (_, _, layered_ops) = _utils._get_layered_instructions(qc, justify="left")
+        _, _, layered_ops = _utils._get_layered_instructions(qc, justify="left")
 
         l_exp = [
             {
@@ -279,7 +279,7 @@ class TestVisualizationUtils(QiskitTestCase):
         """
         qc = QuantumCircuit.from_qasm_str(qasm)
 
-        (_, _, layered_ops) = _utils._get_layered_instructions(qc, justify="right")
+        _, _, layered_ops = _utils._get_layered_instructions(qc, justify="right")
 
         r_exp = [
             {
@@ -313,52 +313,24 @@ class TestVisualizationUtils(QiskitTestCase):
             r_exp, [{(op.name, op.qargs, op.cargs) for op in ops} for ops in layered_ops]
         )
 
-    def test_get_layered_instructions_op_with_cargs(self):
-        """Test _get_layered_instructions op with cargs right of measure
-                ┌───┐┌─┐
-        q_0: |0>┤ H ├┤M├─────────────
-                └───┘└╥┘┌───────────┐
-        q_1: |0>──────╫─┤0          ├
-                      ║ │  add_circ │
-         c_0: 0 ══════╩═╡0          ╞
-                        └───────────┘
-         c_1: 0 ═════════════════════
+    def test_get_layered_instructions_permuted_control_flow_body(self):
+        """Permuted control-flow body qubits must not be packed into a single layer.
+        See https://github.com/Qiskit/qiskit/issues/16510.
         """
-        qc = QuantumCircuit(2, 2)
-        qc.h(0)
-        qc.measure(0, 0)
-        qc_2 = QuantumCircuit(1, 1, name="add_circ")
-        with self.assertWarns(DeprecationWarning):
-            qc_2.h(0).c_if(qc_2.cregs[0], 1)
-        qc_2.measure(0, 0)
-        # This append calls ends up calling .to_instruction() which calls
-        # .c_if() internally
-        with self.assertWarns(DeprecationWarning):
-            qc.append(qc_2, [1], [0])
+        body = QuantumCircuit(3)
+        body.cz(0, 1)
+        body.h(2)
 
-        (_, _, layered_ops) = _utils._get_layered_instructions(qc)
+        # ``wire_map`` as the drawers build it for a box applied on outer qubits [0, 2, 1]:
+        # body qubit 0 -> wire 0, body qubit 1 -> wire 2, body qubit 2 -> wire 1.
+        wire_map = {body.qubits[0]: 0, body.qubits[1]: 2, body.qubits[2]: 1}
+        _, _, layered_ops = _utils._get_layered_instructions(body, wire_map=wire_map)
+        self.assertEqual([{op.name for op in ops} for ops in layered_ops], [{"cz"}, {"h"}])
 
-        expected = [
-            {("h", (Qubit(QuantumRegister(2, "q"), 0),), ())},
-            {
-                (
-                    "measure",
-                    (Qubit(QuantumRegister(2, "q"), 0),),
-                    (Clbit(ClassicalRegister(2, "c"), 0),),
-                )
-            },
-            {
-                (
-                    "add_circ",
-                    (Qubit(QuantumRegister(2, "q"), 1),),
-                    (Clbit(ClassicalRegister(2, "c"), 0),),
-                )
-            },
-        ]
-
-        self.assertEqual(
-            expected, [{(op.name, op.qargs, op.cargs) for op in ops} for ops in layered_ops]
-        )
+        # With an identity layout the two operations still share a single layer.
+        identity = {bit: idx for idx, bit in enumerate(body.qubits)}
+        _, _, layered_ops = _utils._get_layered_instructions(body, wire_map=identity)
+        self.assertEqual([{op.name for op in ops} for ops in layered_ops], [{"cz", "h"}])
 
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
     def test_generate_latex_label_nomathmode(self):
@@ -402,6 +374,7 @@ class TestVisualizationUtils(QiskitTestCase):
             _utils.generate_latex_label(r"$a$bc$_∭X∀Y"),
         )
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_array_to_latex(self):
         """Test array_to_latex produces correct latex string"""
         matrix = [

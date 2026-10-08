@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,21 +33,20 @@ data, and it's best to point to the same instance of the data where possible rat
 heap-allocating a new version of the same thing.  Where possible, the class constructors will return
 singleton instances to facilitate this.
 
-The two different types available are for Booleans (corresponding to :class:`.Clbit` and the
-literals ``True`` and ``False``), and unsigned integers (corresponding to
-:class:`.ClassicalRegister` and Python integers).
+The :class:`Bool` type represents :class:`.Clbit` and the literals ``True`` and ``False``, the
+:class:`Uint` type represents :class:`.ClassicalRegister` and Python integers, the :class:`Float`
+type represents Python floats, and the :class:`Duration` type represents a duration for use in
+timing-aware circuit operations.
 
 .. autoclass:: Bool
 .. autoclass:: Uint
-
-Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
-type, which may be slightly different to the 'classical' programming languages you are used to.
-
+.. autoclass:: Float
+.. autoclass:: Duration
 
 Working with types
 ==================
 
-There are some additional functions on these types documented in the subsequent sections. 
+There are some additional functions on these types documented in the subsequent sections.
 These are mostly expected to be used only in manipulations of the expression tree;
 users who are building expressions using the
 :ref:`user-facing construction interface <circuit-classical-expressions-expr-construction>` should
@@ -89,21 +88,26 @@ embedded into the :mod:`types` module.  You can query the casting kinds using :f
 The return values from this function are an enumeration explaining the types of cast that are
 allowed from the left type to the right type.
 
+Note that casts between :class:`Float` and :class:`Uint` are considered dangerous in either
+direction, and must be done explicitly.
+
 .. autoclass:: CastKind
 """
 
 __all__ = [
-    "Type",
     "Bool",
-    "Uint",
+    "CastKind",
+    "Duration",
+    "Float",
     "Ordering",
-    "order",
+    "Type",
+    "Uint",
+    "cast_kind",
+    "greater",
     "is_subtype",
     "is_supertype",
-    "greater",
-    "CastKind",
-    "cast_kind",
+    "order",
 ]
 
-from .types import Type, Bool, Uint
+from .types import Type, Bool, Duration, Float, Uint
 from .ordering import Ordering, order, is_subtype, is_supertype, greater, CastKind, cast_kind

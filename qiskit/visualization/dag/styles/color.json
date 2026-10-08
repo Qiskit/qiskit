@@ -1,0 +1,10 @@
+{
+  "name": "color",
+  "inputnodecolor": "green",
+  "outputnodecolor": "red",
+  "opnodecolor": "lightblue",
+  "barriercolor": "grey",
+  "directivecolor": "red",
+  "conditioncolor": "green",
+  "measurecolor": "white"
+}

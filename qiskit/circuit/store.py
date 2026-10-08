@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import typing
 
-from qiskit.utils import deprecate_func
 from .exceptions import CircuitError
 from .classical import expr, types
 from .instruction import Instruction
@@ -88,10 +87,3 @@ class Store(Instruction):
     def rvalue(self):
         """Get the r-value :class:`~.expr.Expr` node that is being written into the l-value."""
         return self.params[1]
-
-    @deprecate_func(since="1.3.0", removal_timeline="in 2.0.0")
-    def c_if(self, classical, val):
-        """:meta hidden:"""
-        raise NotImplementedError(
-            "stores cannot be conditioned with `c_if`; use a full `if_test` context instead"
-        )

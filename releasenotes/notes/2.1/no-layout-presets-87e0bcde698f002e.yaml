@@ -1,0 +1,12 @@
+---
+upgrade_transpiler:
+  - |
+    :ref:`The built-in layout plugins <transpiler-preset-stage-layout>` for the present pass
+    managers will no longer contain their principal component (e.g. a :class:`.SabreLayout` instance
+    for :ref:`the "sabre" stage <transpiler-preset-stage-layout-sabre>`) if no coupling constraints
+    are provided.  Previously, the plugins would construct invalid instances of their layout passes,
+    under an assumption that separate logic would prevent the passes from executing and raising
+    exceptions.
+
+    This should have no meaningful effect on the use of the preset pass managers or the plugins,
+    since it was already never valid to call the passes in an invalid state .

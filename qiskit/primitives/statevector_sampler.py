@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,17 +17,16 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import NDArray
 
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
-from qiskit.circuit import ControlFlowOp
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
-from .base.validation import _has_measure
+from .base.validation_v1 import _has_measure
 from .containers import (
     BitArray,
     DataBin,
@@ -95,7 +94,7 @@ class StatevectorSampler(BaseSamplerV2):
         circuit.measure([0, 1], alpha)
         circuit.measure([2], beta)
 
-        # Define a sweep over parameter values, where the second axis is over.
+        # Define a sweep over parameter values, where the second axis is over
         # the two parameters in the circuit.
         params = np.vstack([
             np.linspace(-np.pi, np.pi, 100),
@@ -212,7 +211,7 @@ def _preprocess_circuit(circuit: QuantumCircuit):
     qargs_index = {v: k for k, v in enumerate(qargs)}
     circuit = circuit.remove_final_measurements(inplace=False)
     if _has_control_flow(circuit):
-        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp and c_if")
+        raise QiskitError("StatevectorSampler cannot handle ControlFlowOp")
     if _has_measure(circuit):
         raise QiskitError("StatevectorSampler cannot handle mid-circuit measurements")
     # num_qubits is used as sentinel to fill 0 in _samples_to_packed_array
@@ -255,7 +254,7 @@ def _samples_to_packed_array(
 def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalRegister, int], int]:
     """Return the final measurement mapping for the circuit.
 
-    Parameters:
+    Args:
         circuit: Input quantum circuit.
 
     Returns:
@@ -267,7 +266,7 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
     # Find final measurements starting in back
     mapping = {}
     for item in circuit[::-1]:
-        if item.operation.name == "measure":
+        if item.name == "measure":
             loc = circuit.find_bit(item.clbits[0])
             cbit = loc.index
             qbit = circuit.find_bit(item.qubits[0]).index
@@ -275,7 +274,7 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
                 for creg in loc.registers:
                     mapping[creg] = qbit
                 active_cbits.remove(cbit)
-        elif item.operation.name not in ["barrier", "delay"]:
+        elif item.name not in ["barrier", "delay"]:
             for qq in item.qubits:
                 _temp_qubit = circuit.find_bit(qq).index
                 if _temp_qubit in active_qubits:
@@ -288,7 +287,4 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
 
 
 def _has_control_flow(circuit: QuantumCircuit) -> bool:
-    return any(
-        isinstance((op := instruction.operation), ControlFlowOp) or op._condition
-        for instruction in circuit
-    )
+    return any(instruction.is_control_flow() for instruction in circuit)

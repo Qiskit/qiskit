@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -23,7 +23,7 @@ from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, UGate, PhaseGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -149,70 +149,6 @@ class TestOptimize1qGates(QiskitTestCase):
 
         num_u1_gates_remaining = len(simplified_dag.named_nodes("p"))
         self.assertEqual(num_u1_gates_remaining, 0)
-
-    def test_ignores_conditional_rotations(self):
-        """Conditional rotations should not be considered in the chain.
-
-        qr0:--[U1]-[U1]-[U1]-[U1]-    qr0:--[U1]-[U1]-
-               ||   ||                       ||   ||
-        cr0:===.================== == cr0:===.====.===
-                    ||                            ||
-        cr1:========.=============    cr1:========.===
-        """
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0.1), [qr]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(U1Gate(0.2), [qr]).c_if(cr, 3)
-        circuit.append(U1Gate(0.3), [qr])
-        circuit.append(U1Gate(0.4), [qr])
-        dag = circuit_to_dag(circuit)
-
-        expected = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            expected.append(U1Gate(0.1), [qr]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            expected.append(U1Gate(0.2), [qr]).c_if(cr, 3)
-        expected.append(U1Gate(0.7), [qr])
-
-        pass_ = Optimize1qGates()
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
-
-    def test_ignores_conditional_rotations_phase_gates(self):
-        """Conditional rotations should not be considered in the chain.
-
-        qr0:--[U1]-[U1]-[U1]-[U1]-    qr0:--[U1]-[U1]-
-               ||   ||                       ||   ||
-        cr0:===.================== == cr0:===.====.===
-                    ||                            ||
-        cr1:========.=============    cr1:========.===
-        """
-        qr = QuantumRegister(1, "qr")
-        cr = ClassicalRegister(2, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            circuit.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
-        circuit.append(PhaseGate(0.3), [qr])
-        circuit.append(PhaseGate(0.4), [qr])
-        dag = circuit_to_dag(circuit)
-
-        expected = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            expected.append(PhaseGate(0.1), [qr]).c_if(cr, 1)
-        with self.assertWarns(DeprecationWarning):
-            expected.append(PhaseGate(0.2), [qr]).c_if(cr, 3)
-        expected.append(PhaseGate(0.7), [qr])
-
-        pass_ = Optimize1qGates(["p", "u2", "u", "cx", "id"])
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
 
     def test_in_the_back(self):
         """Optimizations can be in the back of the circuit.
