@@ -1,0 +1,8 @@
+fixes:
+  - |
+    Fix :class:`~qiskit.transpiler.passes.Optimize1qGates` producing an empty,
+    unnamed instruction when the target basis does not include "u". The pass
+    previously copied a "u" label through a "nop" rewrite without remapping,
+    leaving a default unnamed gate and potentially changing semantics. The pass
+    now guards the "nop" path with the basis check and remaps to a valid gate
+    (e.g. U3Gate), avoiding unnamed instructions.
