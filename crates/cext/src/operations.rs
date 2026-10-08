@@ -1010,7 +1010,7 @@ pub unsafe extern "C" fn qk_custom_operation_type_id(inst: *const BoxedCustomOpe
     op.v_table.as_ref() as *const _ as u64
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Returns the original pointer to the operation enclosed within.
 ///
