@@ -966,6 +966,11 @@ class QuantumCircuit(IR):
     .. automethod:: size
     .. automethod:: width
 
+    Comparing circuits
+    ------------------
+
+    .. automethod:: __eq__
+
     Accessing scheduling information
     --------------------------------
 
