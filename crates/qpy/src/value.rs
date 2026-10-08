@@ -437,6 +437,30 @@ where
         .map_err(from_binrw_error)?;
     Ok(buffer.into())
 }
+pub(crate) fn serialize_into<W, T>(writer: &mut W, value: &T) -> Result<(), QpyError>
+where
+    W: std::io::Write + std::io::Seek,
+    T: BinWrite + WriteEndian + Debug,
+    for<'a> <T as BinWrite>::Args<'a>: Default,
+{
+    value.write(writer)?;
+    Ok(())
+}
+pub(crate) fn serialize_with_args_into<W, T, A>(
+    writer: &mut W,
+    value: &T,
+    args: A,
+) -> Result<(), QpyError>
+where
+    W: std::io::Write + std::io::Seek,
+    T: BinWrite<Args<'static> = A> + WriteEndian + Debug,
+    A: Clone + Debug,
+{
+    value
+        .write_args(writer, args)
+        .map_err(from_binrw_error)?;
+    Ok(())
+}
 
 pub(crate) fn deserialize<T>(bytes: &[u8]) -> Result<(T, usize), QpyError>
 where
