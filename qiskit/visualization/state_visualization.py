@@ -547,7 +547,7 @@ def plot_state_city(
         max_dz = np.max(dz)
         min_dz = np.min(dz)
 
-        if isinstance(col, str) and col.startswith("#"):
+        if isinstance(col, str):
             col = mcolors.to_rgba_array(col)
 
         dzn = dz < 0
@@ -574,7 +574,7 @@ def plot_state_city(
             plane.set_zorder(0.75)
             ax.add_collection3d(plane)
 
-        dzp = dz >= 0
+        dzp = dz > 0
         if np.any(dzp):
             fc = generate_facecolors(
                 xpos[dzp], ypos[dzp], zpos[dzp], dx[dzp], dy[dzp], dz[dzp], col
@@ -595,6 +595,8 @@ def plot_state_city(
 
         ax.set_xticks(np.arange(0.5, lx + 0.5, 1))
         ax.set_yticks(np.arange(0.5, ly + 0.5, 1))
+        ax.axes.set_xlim3d(0, lx)
+        ax.axes.set_ylim3d(0, ly)
         if max_dz != min_dz:
             ax.axes.set_zlim3d(min_dz, max(max_dzr + 1e-9, max_dzi))
         elif min_dz == 0:
