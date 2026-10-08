@@ -70,7 +70,7 @@ impl PauliEvolution {
         &self.time.0
     }
 
-    /// Expands `PauliEvolution` into its approximate dense matrix form.
+    /// Expands `PauliEvolution` into its dense matrix form.
     ///
     /// See [`SparseObservable::to_matrix`].
     ///
