@@ -1351,6 +1351,25 @@ class TestPulseOptimalDecompose(CheckDecompositions):
         self.assertNotIn("x", res.count_ops())
         self.assertIn("sx", res.count_ops())
 
+    def test_zsx_near_cx_boundary(self):
+        """Test that pulse-optimal decomposition returns the correct decomposition
+        near the 2-CX / 3-CX boundary. See issue 17057."""
+        for c in [1e-6, 1e-7, 1e-8]:
+            qc = QuantumCircuit(2)
+            qc.rxx(-1.2, 0, 1)
+            qc.ryy(-0.6, 0, 1)
+            qc.rzz(-2.0 * c, 0, 1)
+            u = Operator(qc)
+
+            decomp = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX")(u.data)
+            self.assertEqual(Operator(decomp), u)
+            if c == 1e-8:  # synthesis using 2 CX gates
+                self.assertEqual(decomp.count_ops()["cx"], 2)
+            else:  # synthesis using 3 CX gates
+                # if c == 1e-7 then x12 isn't a multiplication of pi
+                # if c == 1e-6 then x12 is an odd multiplication of pi
+                self.assertEqual(decomp.count_ops()["cx"], 3)
+
 
 @ddt
 class TestTwoQubitDecomposeApprox(CheckDecompositions):

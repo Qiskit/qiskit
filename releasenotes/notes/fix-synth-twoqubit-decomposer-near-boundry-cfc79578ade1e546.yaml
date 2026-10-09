@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix a correctness bug in :class:`.TwoQubitBasisDecomposer` that provided faulty synthesis 
+    of certain unitary matrices near the 2-CX / 3-CX boundary.
+
+    Fixed `#17057 <https://github.com/Qiskit/qiskit/issues/17057>`__.
