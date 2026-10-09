@@ -289,7 +289,7 @@ class TestSabreSwap(QiskitTestCase):
         Regression test of gh-7950."""
         coupling = CouplingMap([(0, 2), (2, 0), (1, 2), (2, 1)])
         qc = QuantumCircuit(3, 1)
-        qc = qc.compose(CCXGate().definition, [0, 1, 2], [])  # Unroll CCX to 2q operations.
+        qc.compose(CCXGate().definition, [0, 1, 2], [], inplace=True)  # Unroll CCX to 2q operations.
         qc.h(0)
         qc.barrier()
         qc.measure(0, 0)  # This measure is 50/50 between the Z states.
