@@ -154,6 +154,22 @@ impl SymbolTable {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SymbolIdList(Vec<SymbolId>);
+
+impl SymbolIdList {
+    pub fn new(syms: Vec<SymbolId>) -> Self {
+        SymbolIdList(syms)
+    }
+    pub fn inner(&self) -> &Vec<SymbolId> {
+        &self.0
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
