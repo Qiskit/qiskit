@@ -11,13 +11,15 @@
 // that they have been altered from the originals.
 
 mod pass;
+mod task;
 
 use anyhow::Context;
 use hashbrown::{HashMap, HashSet};
 use qiskit_util::dyn_types::*;
-use std::{any::Any, fmt};
+use std::{any::Any, sync::LazyLock};
 
 pub use pass::*;
+pub use task::*;
 
 /// The pass manager execution environment.
 ///
@@ -27,7 +29,7 @@ pub use pass::*;
 pub struct PassManagerContext {
     /// The global, catch-all data. The local [PassContext] handles get read-only access to
     /// this data and after pass execution this global state is updated.
-    data: HashMap<String, Box<dyn Any>>,
+    data: HashMap<String, Box<dyn Any + Send + Sync>>,
 }
 impl PassManagerContext {
     fn new() -> Self {
@@ -43,7 +45,7 @@ impl PassManagerContext {
         }
     }
 
-    pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+    pub fn get(&self, key: impl AsRef<str>) -> Option<&(dyn Any + Send + Sync)> {
         self.data.get(key.as_ref()).map(Box::as_ref)
     }
 }
@@ -54,22 +56,27 @@ impl PassManagerContext {
 #[derive(Default, Debug)]
 struct ContextUpdates {
     /// New values to insert into the global context.
-    insertions: HashMap<String, Box<dyn Any>>,
+    insertions: HashMap<String, Box<dyn Any + Send + Sync>>,
     /// Keys to delete from the global context.
     deletions: HashSet<String>,
 }
 impl ContextUpdates {
-    fn insert(&mut self, key: String, value: Box<dyn Any>) {
+    fn insert(
+        &mut self,
+        key: String,
+        value: Box<dyn Any + Send + Sync>,
+    ) -> Option<Box<dyn Any + Send + Sync>> {
         self.deletions.remove(&key);
-        self.insertions.insert(key, value);
+        self.insertions.insert(key, value)
     }
 
-    fn delete(&mut self, key: String) {
-        self.insertions.remove(&key);
+    fn delete(&mut self, key: String) -> Option<Box<dyn Any + Send + Sync>> {
+        let out = self.insertions.remove(&key);
         self.deletions.insert(key);
+        out
     }
 
-    fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+    fn get(&self, key: impl AsRef<str>) -> Option<&(dyn Any + Send + Sync)> {
         self.insertions.get(key.as_ref()).map(|v| v.as_ref())
     }
 }
@@ -93,6 +100,18 @@ pub struct PassContext<'a> {
     updates: ContextUpdates,
 }
 
+impl PassContext<'static> {
+    /// Get a dummy version of ourselves for use as a default value in situations where we don't
+    /// need it to be linked to anything.
+    pub fn dummy() -> Self {
+        static GLOBAL: LazyLock<PassManagerContext> = LazyLock::new(PassManagerContext::default);
+        Self {
+            global_context: &GLOBAL,
+            ir_modified: true,
+            updates: ContextUpdates::default(),
+        }
+    }
+}
 impl<'a> PassContext<'a> {
     fn spawn(global_context: &'a PassManagerContext) -> Self {
         Self {
@@ -104,18 +123,25 @@ impl<'a> PassContext<'a> {
 
     /// Set a new entry in the pass context.
     /// Overwrites the existing value under that key, if it exists.
-    pub fn set(&mut self, key: String, value: Box<dyn Any>) {
-        self.updates.insert(key, value);
+    ///
+    /// Returns the previous local entry, if it existed.
+    pub fn set(
+        &mut self,
+        key: String,
+        value: Box<dyn Any + Send + Sync>,
+    ) -> Option<Box<dyn Any + Send + Sync>> {
+        self.updates.insert(key, value)
     }
 
-    pub fn delete(&mut self, key: String) {
-        self.updates.delete(key);
+    /// Delete the given key.  Returns the corresponding local value, if any.
+    pub fn delete(&mut self, key: String) -> Option<Box<dyn Any + Send + Sync>> {
+        self.updates.delete(key)
     }
 
     /// Get an entry, if it exists.
     ///
     /// This first queries from the local context, then the global.
-    pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+    pub fn get(&self, key: impl AsRef<str>) -> Option<&(dyn Any + Send + Sync)> {
         let key = key.as_ref();
 
         if self.updates.deletions.contains(key) {
@@ -133,70 +159,6 @@ impl<'a> PassContext<'a> {
 }
 /// Types that can be used as an IR by the [`PassManager`].
 pub trait IR: DynTyped + Send + Sync + 'static {}
-
-/// A task in Qiskit's compiler framework.
-///
-/// This is a single unit of execution flow. It describes how work is being executed, ranging
-/// from the simple execution of a single pass, over groups of passes to structured flow control,
-/// such as loops. The [PassManager] stores a vector of [Task]s and executes them.
-#[non_exhaustive]
-pub enum Task {
-    // TODO Add Loop and Switch with conditions that can be set from Python/C and
-    // proper error handlings that occur during the condition evaluation.
-    /// A single pass.
-    Transformation(Box<dyn Pass>),
-
-    /// A group of tasks.
-    Group(Vec<Task>),
-
-    /// A sequence of named tasks.
-    Stages(Vec<(String, Task)>),
-}
-
-impl fmt::Debug for Task {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Task::Transformation(p) => f.debug_tuple("Transformation").field(&p.name()).finish(),
-            Task::Group(tasks) => f.debug_tuple("Group").field(tasks).finish(),
-            Task::Stages(stages) => f.debug_tuple("Stages").field(stages).finish(),
-        }
-    }
-}
-
-impl Task {
-    fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
-        // TODO: the implementation of `Task` as a `pub enum` means that nothing enforces the
-        // pipeline (dynamic) type safety of `Group`, `Switch` or `Stages`; these need to be
-        // enforced during construction of the `Task`.  This might motivate a swap to a structure
-        // like
-        //
-        //      enum TaskInner {
-        //          Pass(Box<dyn Pass>),
-        //          Group(Vec<Task>),
-        //          // ...
-        //      }
-        //      pub struct Task(TaskInner);
-        //      impl Task {
-        //          pub fn group(vals: Vec<Task>) -> Result<Self, Vec<Task>) {}
-        //          // ...
-        //      }
-        match self {
-            Task::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),
-            Task::Group(group) => sequence_io_types(group.iter()),
-            Task::Stages(stages) => sequence_io_types(stages.iter().map(|(_name, task)| task)),
-        }
-    }
-}
-
-/// Return the input and output types of a sequence of tasks if non-empty.
-fn sequence_io_types<'a>(
-    tasks: impl DoubleEndedIterator<Item = &'a Task>,
-) -> Option<[DynTypeId<'a>; 2]> {
-    let mut typed = tasks.filter_map(|task| task.io_types());
-    let first = typed.next()?;
-    let last = typed.next_back().unwrap_or(first);
-    Some([first[0], last[1]])
-}
 
 /// Qiskit's pass manager.
 #[derive(Default, Debug)]
@@ -236,7 +198,7 @@ impl PassManager {
     pub fn run_erased(
         &self,
         mut ir: Box<dyn IR>,
-    ) -> anyhow::Result<(Box<dyn IR>, PassManagerContext)> {
+    ) -> Result<(Box<dyn IR>, PassManagerContext), PassError> {
         let mut context = PassManagerContext::new();
         for task in self.tasks.iter() {
             let mut pass_context = PassContext::spawn(&context);
@@ -301,6 +263,15 @@ fn execute_task(
     mut ir: Box<dyn IR>,
     context: &mut PassContext,
 ) -> Result<Box<dyn IR>, PassError> {
+    // TODO We might be able to only type-check in the pass manager's execution method,
+    // since the pipeline is already type-checked upon construction. For now we keep it here,
+    // which is the safer choice.
+    if let Some([task_in_type, _]) = task.io_types()
+        && task_in_type != ir.dyn_type_id()
+    {
+        return Err(PassError::Conversion);
+    }
+
     match task {
         Task::Transformation(pass) => pass.run(ir, context),
         Task::Group(tasks) => {
@@ -385,63 +356,6 @@ mod test {
             let ir = MyInt(ir.0.try_into().map_err(|_| anyhow!("too big!"))?);
             Ok(Box::new(ir))
         }
-    }
-
-    #[test]
-    fn test_io_types() -> Result<(), PassError> {
-        let uint_ty = DynTypeId::of::<MyUint>();
-        let int_ty = DynTypeId::of::<MyInt>();
-
-        let make_uint_pass = || Task::Transformation(AddOne.into_pass());
-        assert_eq!(make_uint_pass().io_types().unwrap(), [uint_ty, uint_ty]);
-
-        let lower_pass = Task::Transformation(LowerToInt.into_pass());
-        assert_eq!(lower_pass.io_types().unwrap(), [uint_ty, int_ty]);
-
-        let stages = Task::Stages(vec![("one_and_only".to_string(), make_uint_pass())]);
-        assert_eq!(stages.io_types().unwrap(), [uint_ty, uint_ty]);
-
-        let nested = Task::Stages(vec![
-            ("pass".to_string(), make_uint_pass()),
-            ("stages".to_string(), stages),
-        ]);
-        assert_eq!(nested.io_types().unwrap(), [uint_ty, uint_ty]);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_io_types_empty() {
-        assert!(Task::Group(vec![]).io_types().is_none());
-        assert!(Task::Stages(vec![]).io_types().is_none());
-
-        let nested_empty = Task::Group(vec![Task::Stages(vec![(
-            "empty".to_string(),
-            Task::Group(vec![]),
-        )])]);
-        assert!(nested_empty.io_types().is_none());
-    }
-
-    #[test]
-    fn test_io_types_skips_empty_children() {
-        let uint_ty = DynTypeId::of::<MyUint>();
-        let int_ty = DynTypeId::of::<MyInt>();
-
-        let empty = || Task::Group(vec![]);
-        let lower = || Task::Transformation(LowerToInt.into_pass());
-
-        let leading = Task::Group(vec![empty(), lower()]);
-        assert_eq!(leading.io_types().unwrap(), [uint_ty, int_ty]);
-
-        let trailing = Task::Group(vec![lower(), empty()]);
-        assert_eq!(trailing.io_types().unwrap(), [uint_ty, int_ty]);
-
-        let surrounded = Task::Stages(vec![
-            ("before".to_string(), empty()),
-            ("lower".to_string(), lower()),
-            ("after".to_string(), empty()),
-        ]);
-        assert_eq!(surrounded.io_types().unwrap(), [uint_ty, int_ty]);
     }
 
     #[test]

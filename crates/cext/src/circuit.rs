@@ -13,6 +13,7 @@
 use std::ffi::{CStr, CString, c_char};
 use std::ptr;
 
+use crate::ExitCode::CInputError;
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
@@ -20,6 +21,7 @@ use crate::exit_codes::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
 use crate::transpiler::target::parse_params;
 
+use bytemuck::AnyBitPattern;
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2};
 use num_complex::{Complex64, ComplexFloat};
@@ -32,8 +34,8 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
-    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, BoxedCustomOperation, DelayUnit, Operation, OperationRef, Param, PauliBased,
+    PauliProductMeasurement, PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter_table::ParameterTableError;
@@ -2485,22 +2487,55 @@ pub enum CDelayUnit {
     NS = 3,
     /// Picoseconds.
     PS = 4,
+    /// Dt
+    DT = 5,
+    /// Classical Expression
+    EXPR = 6,
+    /// Unknown
+    Unknown = 7,
 }
 
-impl From<CDelayUnit> for DelayUnit {
-    fn from(value: CDelayUnit) -> Self {
+impl From<DelayUnit> for CDelayUnit {
+    fn from(value: DelayUnit) -> Self {
         match value {
+            DelayUnit::S => CDelayUnit::S,
+            DelayUnit::MS => CDelayUnit::MS,
+            DelayUnit::US => CDelayUnit::US,
+            DelayUnit::NS => CDelayUnit::NS,
+            DelayUnit::PS => CDelayUnit::PS,
+            DelayUnit::DT => CDelayUnit::DT,
+            DelayUnit::EXPR => CDelayUnit::EXPR,
+        }
+    }
+}
+
+impl TryFrom<CDelayUnit> for DelayUnit {
+    type Error = CDelayUnit;
+    fn try_from(value: CDelayUnit) -> Result<Self, Self::Error> {
+        let res = match value {
             CDelayUnit::S => DelayUnit::S,
             CDelayUnit::MS => DelayUnit::MS,
             CDelayUnit::US => DelayUnit::US,
             CDelayUnit::NS => DelayUnit::NS,
             CDelayUnit::PS => DelayUnit::PS,
-        }
+            CDelayUnit::DT => DelayUnit::DT,
+            CDelayUnit::EXPR => DelayUnit::EXPR,
+            CDelayUnit::Unknown => return Err(value),
+        };
+        Ok(res)
     }
 }
 
 /// @ingroup QkCircuit
 /// Append a delay instruction to the circuit.
+///
+/// Some ``QkDelayUnit`` variants are not supported in this function:
+///
+/// - ``QkDelayUnit_DT`` : Returns ``QkExitCode_IncorrectDelayUnit``,
+///   use ``qk_circuit_delay_dt`` instead.
+/// - ``QkDelayUnit_EXPR`` : Returns ``QkExitCode_IncorrectDelayUnit``,
+///   not supported for inserting delays.
+/// - ``QkDelayUnit_Unknown`` : Invalid input, Returns ``QkExitCode_CInputError``.
 ///
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
@@ -2525,13 +2560,76 @@ pub unsafe extern "C" fn qk_circuit_delay(
     duration: f64,
     unit: CDelayUnit,
 ) -> ExitCode {
+    let delay_unit_variant: DelayUnit = match unit.try_into() {
+        Ok(val) => match val {
+            DelayUnit::DT | DelayUnit::EXPR => return ExitCode::IncorrectDelayUnit,
+            _ => val,
+        },
+        Err(_) => return CInputError,
+    };
+
+    let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    unsafe { qk_circuit_delay_inner(circuit, qubit, duration.into(), delay_instruction) }
+}
+
+/// @ingroup QkCircuit
+/// Append a delay instruction to the circuit with a duration in units of
+/// dt.
+///
+/// As expected with all duration, this value should be positive. Otherwise,
+/// the function will return with an input error.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
+/// @param duration The duration of the delay as an integer.
+///
+/// @return An exit code. If the duration is negative, it will return
+/// ``ExitCode_CInputError``.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(1, 0);
+/// qk_circuit_delay_dt(qc, 0, 100);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is `NULL` or unaligned.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_delay_dt(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration: i64,
+) -> ExitCode {
+    // Fast path to error if a negative duration is found.
+    if duration.is_negative() {
+        return ExitCode::CInputError;
+    }
+
+    let delay_unit_variant = DelayUnit::DT;
+
+    let duration_param: Param = Param::Int(duration);
+    let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    // SAFETY: Per documentation, the circuit pointer is non-null and aligned.
+    unsafe { qk_circuit_delay_inner(circuit, qubit, duration_param, delay_instruction) }
+}
+
+/// Adds a delay to a ``QkCircuit`` pointer.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is `NULL` or unaligned.
+unsafe fn qk_circuit_delay_inner(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration_param: Param,
+    delay_instruction: StandardInstruction,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-
-    let delay_unit_variant = unit.into();
-
-    let duration_param: Param = duration.into();
-    let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
 
     let params = Parameters::Params(smallvec![duration_param]);
     circuit
@@ -2544,6 +2642,49 @@ pub unsafe extern "C" fn qk_circuit_delay(
         .unwrap();
 
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Retrieves the duration unit of a delay instruction.
+///
+/// Users should make sure that the instruction being accessed here
+/// is a delay instruction by using ``qk_circuit_instruction_kind``.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param index The instruction index to get the delay details of.
+///     If the index is not within the circuit range it can lead to
+///     undefined behavior. Please use ``qk_circuit_num_instructions``
+///     to check the circuit's current length.
+///
+/// @return The duration unit of the delay.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(1, 0);
+/// qk_circuit_delay_dt(qc, 0, 100);
+/// QkDelayUnit unit = qk_circuit_delay_unit(qc, 0);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is `NULL`, ``circuit`` is unaligned, or ``index`` is out of bounds.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_delay_unit(
+    circuit: *const CircuitData,
+    index: usize,
+) -> CDelayUnit {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    // SAFETY: Per documentation the index has been checked to be in range
+    // of the circuit, via `qk_circuit_num_instructions`.
+    let inst = unsafe { circuit.data().get_unchecked(index) };
+
+    let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view() else {
+        return CDelayUnit::Unknown;
+    };
+
+    CDelayUnit::from(unit)
 }
 
 /// The configuration options for the ``qk_circuit_draw`` function.
@@ -2903,6 +3044,98 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
         // SAFETY: per documentation, `cf_inst` is an owned pointer that was returned by
         // `qk_circuit_get_control_flow_instruction`.
         unsafe { drop(Box::from_raw(cf_inst)) };
+    }
+}
+
+/// @ingroup QkCircuit
+/// Adds a `QkCustomOp` into the circuit. Consuming the instance in the process.
+///
+/// The addition of this `QkCustomOp` depends on its validity and can be rejected.
+/// If the operation's vtable points to a null pointer due to any errors during construction,
+/// or invalid input being received by ``qk_custom_operation_vtable_new``, the operation will be
+/// rejected and an `ExitCode` will be returned due to an unexpected null pointer.
+///
+/// @param circuit A pointer to the circuit object.
+/// @param operation The `QkCustomOp` object.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``QkParam`` values to use for the operation parameters.
+///     This can be a null pointer if there are no parameters for ``operation`` (e.g. ``QkGate_H``).
+///
+/// @return an ExitCode.
+///
+/// # Safety
+///
+/// The ``qubits``, ``clbits``, and ``params`` types are expected to be a pointer to an
+/// array of ``uint32_t`` (for ``qubits``, ``clbits``) or  ``QkParam`` (for ``params``)
+/// where the length is matching the expectations for the standard operation. If the array is
+/// insufficiently long the behavior of this function is undefined as this will read
+/// outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given operation.
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_custom_operation(
+    circuit: *mut CircuitData,
+    operation: *mut BoxedCustomOperation,
+    qubits: *const u32,
+    clbits: *const u32,
+    params: *mut *mut Param,
+) -> ExitCode {
+    // SAFETY: This pointer is non-null and aligned.
+    let boxed: Box<BoxedCustomOperation> = unsafe { Box::from_raw(operation) };
+    let op: PackedOperation = boxed.into();
+
+    let circ = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let qargs = unsafe { cast_to_bit_slice(qubits, op.num_qubits() as usize) };
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let cargs = unsafe { cast_to_bit_slice(clbits, op.num_clbits() as usize) };
+
+    // SAFETY: The pointer is either null or non-null and alligned.
+    let params = unsafe { ptr_to_params_owned(params, op.num_params() as usize) };
+
+    let ret = circ.push_packed_operation(op, params, qargs, cargs);
+    match ret {
+        Ok(()) => ExitCode::Success,
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
+        }
+        Err(_) => ExitCode::ParameterError,
+    }
+}
+
+/// Casts a pointer of u32s to a slace of circuit bits.
+pub(crate) unsafe fn cast_to_bit_slice<'a, T: From<u32> + AnyBitPattern>(
+    bits: *const u32,
+    len: usize,
+) -> &'a [T] {
+    let bits = if !bits.is_null() {
+        unsafe { std::slice::from_raw_parts(bits, len) }
+    } else {
+        Default::default()
+    };
+    bytemuck::cast_slice(bits)
+}
+
+/// Clones a list of parameters from a raw pointer to a [`Param`] array.
+pub(crate) unsafe fn ptr_to_params_owned<B>(
+    params: *mut *mut Param,
+    len: usize,
+) -> Option<Parameters<B>> {
+    if params.is_null() || len == 0 {
+        None
+    } else {
+        let params = unsafe { std::slice::from_raw_parts(params, len) };
+        Some(Parameters::Params(
+            params
+                .iter()
+                .map(|param| unsafe { const_ptr_as_ref(*param) }.clone())
+                .collect(),
+        ))
     }
 }
 
