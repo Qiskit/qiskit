@@ -460,11 +460,60 @@ cleanup:
     return result;
 }
 
+int test_transpile_state_layout_unset(void) {
+    int result = RuntimeError;
+
+    uint32_t num_qubits = 2048;
+    QkTarget *target = qk_target_new(num_qubits);
+
+    QkDag *dag = qk_dag_new();
+
+    QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    qk_quantum_register_free(qr);
+
+    uint32_t *mapping = malloc(sizeof(uint32_t) * num_qubits);
+    for (uint32_t i = 0; i < num_qubits; i++) {
+        mapping[num_qubits - i - 1] = i;
+    };
+
+    QkTranspileLayout *layout = qk_transpile_layout_generate_from_mapping(dag, target, mapping);
+
+    QkTranspilerStageState *state = NULL;
+    qk_transpile_state_new(&state);
+    qk_transpile_state_layout_set(state, layout);
+
+    QkTranspileLayout *current = qk_transpile_state_layout(state);
+    if (current == NULL) {
+        result = EqualityError;
+        printf("state layout not set");
+        goto cleanup;
+    }
+
+    qk_transpile_state_layout_set(state, NULL);
+    current = qk_transpile_state_layout(state);
+
+    if (current != NULL) {
+        result = EqualityError;
+        printf("state layout exists after unset");
+    } else {
+        result = Ok;
+    }
+
+cleanup:
+    free(mapping);
+    qk_transpile_state_free(state);
+    qk_dag_free(dag);
+    qk_target_free(target);
+    return result;
+}
+
 int test_transpiler(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_transpile_bv);
     num_failed += RUN_TEST(test_transpile_idle_qubits);
     num_failed += RUN_TEST(test_transpile_options_null);
+    num_failed += RUN_TEST(test_transpile_state_layout_unset);
     num_failed += RUN_TEST(test_init_stage_empty);
     num_failed += RUN_TEST(test_layout_stage_empty);
     num_failed += RUN_TEST(test_routing_stage_empty);
