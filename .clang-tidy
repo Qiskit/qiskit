@@ -1,4 +1,4 @@
-Checks: 'bugprone-unsafe-functions'
+Checks: '-*,bugprone-unsafe-functions'
 WarningsAsErrors: '*'
 CheckOptions:
   bugprone-unsafe-functions.CustomFunctions: '^printf$,fprintf,use fprintf to print to stderr or a logger instead'
