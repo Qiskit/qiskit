@@ -294,15 +294,15 @@ mod tests {
 
     #[test]
     fn test_not_normalized() {
-        let a = Complex64::ONE;
-        let b = Complex64::ONE;
+        let a = Complex64::new(0.50, 0.0);
+        let b = Complex64::new(0.25, 0.0);
 
         let result = Qubit::new(a, b);
         assert!(matches!(result, Err(QubitError)));
     }
 
     #[test]
-    fn test_mesasure_collapsed() {
+    fn test_measure_collapsed() {
         let a = Complex64::new(1.0 / 2.0_f64.sqrt(), 0.0);
         let b = Complex64::new(0.0, 1.0 / 2.0_f64.sqrt());
         let mut qubit = Qubit::new(a, b).expect("is normalized");
@@ -416,9 +416,9 @@ a new module, you'll create corresponding test file in `test/c`.
 #include "common.h"
 
 /**
- * Test if runtime invariants are mapped to `NULL`.
+ * Test if "not normalized" error is mapped to `NULL`.
  */
-static int test_new_invariant() {
+static int test_not_normalized() {
     complex a = { .re = 0.25, .im = 0.0 };
     complex b = { .re = 0.50, .im = 0.0 };
     QkQubit *qubit = qk_qubit_new(&a, &b);
