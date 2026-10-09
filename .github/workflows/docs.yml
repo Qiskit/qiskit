@@ -29,7 +29,7 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install --profile minimal --no-self-update
       - name: Install ubuntu docs dependencies
-        run: tools/install_ubuntu_docs_dependencies.sh
+        run: tools/install_ubuntu_docs_dependencies.bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run docs
