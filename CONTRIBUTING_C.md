@@ -101,25 +101,20 @@ Return `ExitCode` for non-trivial functions with multiple failure points. These 
 write to an `out` parameter for the success case.
 
 ```rust
-extern "C" fn qk_qubit_new(
-    a: *const Complex64,
-    b: *const Complex64,
-    out: *mut *mut Qubit
+extern "C" fn qk_obs_matrix(
+    obs: *const QkObs,
+    out: *mut *mut Complex64,
+    maxlen: usize,
 ) -> ExitCode {
-    if a.is_null() || b.is_null() || out.is_null() {
-        return ExitCode::NullPointerError;
-    }
+    let obs = unsafe { &*obs };
 
-    match Qubit::new(*a, *b) {
-        Ok(qubit) => {
-            out.write(Box::new(qubit).into_raw());
+    match obs.to_matrix() {
+        Ok(matrix) => {
+            // ...
             ExitCode::Success
         },
-        Err(QubitError::Sum) => {
-            ExitCode::QubitSum
-        },
-        Err(_) => {
-            ExitCode::Unknown
+        Err(error) => {
+            error.into()
         },
     }
 }
