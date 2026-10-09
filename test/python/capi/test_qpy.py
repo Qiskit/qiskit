@@ -15,6 +15,7 @@ import io
 import os
 from pathlib import Path
 import tempfile
+from uuid import uuid4
 
 from qiskit import QuantumCircuit, capi, qpy
 from qiskit.circuit.library import PermutationGate, QFTGate, SdgGate
@@ -23,6 +24,7 @@ from test import QiskitTestCase
 
 
 class TestQpyCAPI(QiskitTestCase):
+
     def test_min_versions(self):
         """The C API exposes its QPY read and write lower bounds at runtime."""
         self.assertEqual(capi.qk_qpy_read_min_version(), qpy.QPY_COMPATIBILITY_VERSION)
@@ -324,3 +326,57 @@ class TestQpyCAPI(QiskitTestCase):
         self.assertTrue(capi.qk_param_as_int(instruction.params[0], ctypes.byref(param_val)))
         self.assertEqual(param_val.value, 5)
         capi.qk_qpy_loaded_circuits_clear(output)
+
+    def test_valid_min_qpy_version(self):
+        """Test parsing a valid integer min_qpy_version."""
+        test_config = """
+        [default]
+        min_qpy_version = 100
+        """
+        file_path = f"test_{uuid4()}.conf"
+        self.addCleanup(os.remove, file_path)
+
+        def unset_settings():
+            del os.environ["QISKIT_SETTINGS"]
+
+        def reset_ignore_setting(value):
+            os.environ["QISKIT_IGNORE_USER_SETTINGS"] = value
+
+        settings_path = os.getenv("QISKIT_SETTINGS", None)
+        os.environ["QISKIT_SETTINGS"] = file_path
+        if settings_path is None:
+            self.addCleanup(unset_settings)
+        else:
+
+            def reset_value(value):
+                os.environ["QISKIT_SETTINGS"] = value
+
+            self.addCleanup(reset_value, settings_path)
+
+        ignore_value = os.getenv("QISKIT_IGNORE_USER_SETTINGS", None)
+        if ignore_value is not None:
+            del os.environ["QISKIT_IGNORE_USER_SETTINGS"]
+            self.addCleanup(reset_ignore_setting, ignore_value)
+        error = ctypes.POINTER(ctypes.c_char)()
+        circuit = QuantumCircuit(1)
+        with io.BytesIO() as buf:
+            dump(circuit, buf)
+            buffer = buf.getvalue()
+
+        with open(file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            length = len(buffer)
+            array_type = ctypes.c_ubyte * length
+            array_data = array_type.from_buffer(bytearray(buffer))
+            output = capi.QkQpyLoadedCircuits(None, 0)
+            result = capi.qk_qpy_load_buffer(
+                ctypes.byref(output), ctypes.POINTER(ctypes.c_ubyte)(array_data), length, error
+            )
+            self.assertEqual(result, capi.QkExitCode.QpyError.value.value)
+            error_string = ctypes.string_at(error)
+            capi.qk_str_free(error)
+            self.assertEqual(
+                error_string.decode("utf8"),
+                f"The QPY payload format version '{qpy_common.QPY_VERSION}' is below the minimum allowed that was specified: '100'",
+            )

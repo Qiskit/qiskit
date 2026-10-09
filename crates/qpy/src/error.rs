@@ -148,6 +148,11 @@ pub enum QpyError {
 
     #[error(transparent)]
     AllocationError(std::collections::TryReserveError),
+
+    #[error(
+        "The QPY payload format version '{0}' is below the minimum allowed that was specified: '{1}'"
+    )]
+    MinQpyVersionViolated(u8, u8),
 }
 
 impl From<QpyError> for PyErr {

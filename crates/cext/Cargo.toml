@@ -38,6 +38,7 @@ uuid.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 bytemuck.workspace = true
+rust-ini = "0.21.3"
 
 [features]
 python_binding = ["dep:pyo3"]
