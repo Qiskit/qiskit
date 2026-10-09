@@ -391,7 +391,8 @@ mod qubit {
     use crate::impl_::prelude::*;
     use qiskit_cext::qubit::*;
 
-    // tip: the `leaves` function accepts a `reserve` parameter. make some space for new functions!
+    // tip: the `leaves` function accepts a `reserve` parameter. it's difficult to change after
+    // it's set. make some space for new functions!
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(30, || {
         vec![
             export_fn!(qk_qubit_new),
@@ -401,3 +402,33 @@ mod qubit {
     });
 }
 ```
+
+Our C functions need tests. There's no need to test the core bevavior covered by the unit tests in
+`crates/quantum_info/qubit.rs`. Instead, we'll focus on the new behaviors introduced by the C API.
+An obvious new behavior is that `qk_qubit_new` returns `NULL` if `Qubit::new` returns `Err`. The
+C function is responsible for this mapping, so we'll write a C API test for it. When introducing
+a new module, you'll create corresponding test file in `test/c`.
+
+```c
+// test/c/test_qubit.c
+
+#include <complex.h>
+#include "common.h"
+
+/**
+ * Test if runtime invariants are mapped to `NULL`.
+ */
+static int test_new_invariant() {
+    complex a = { .re = 0.25, .im = 0.0 };
+    complex b = { .re = 0.50, .im = 0.0 };
+    QkQubit *qubit = qk_qubit_new(&a, &b);
+
+    int result = EqualityError;
+    if qubit == NULL
+        result = Ok;
+
+    qk_qubit_free(qubit);
+    return result;
+}
+```
+
