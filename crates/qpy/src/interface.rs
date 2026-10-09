@@ -34,6 +34,7 @@ use crate::value::{
     ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
     serialize_with_args,
 };
+use crate::{QPY_READ_MIN_VERSION, QPY_WRITE_MIN_VERSION};
 
 use std::io::{Cursor, Seek};
 
@@ -86,8 +87,7 @@ const fn parse_version() -> (u8, u8, u8) {
 }
 
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
-const QPY_READ_MIN_VERSION: u8 = 13;
-const QPY_WRITE_MIN_VERSION: u8 = 17;
+const QPY_VERSION: u8 = 18;
 
 /// Serializes native circuits into a complete binary QPY payload.
 /// # Arguments
@@ -101,8 +101,8 @@ const QPY_WRITE_MIN_VERSION: u8 = 17;
 ///
 /// Returns:
 /// A `Bytes` object containing the complete QPY payload.
-pub fn dump_qpy(
-    mut circuits: Vec<CircuitData>,
+pub fn dump_qpy<'a>(
+    circuits: impl ExactSizeIterator<Item = &'a CircuitData>,
     extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
@@ -129,7 +129,6 @@ pub fn dump_qpy(
         )));
     }
     let serialized_circuits: Vec<Bytes> = circuits
-        .iter_mut()
         .zip(extra_data)
         .map(|(circuit, extra)| {
             serialize_with_args::<QPYCircuit, (u8,)>(
@@ -219,9 +218,8 @@ pub fn py_dump_qpy(
             })
         })
         .collect::<Result<Vec<_>, QpyError>>()?;
-    let circuit_data = circuits.into_iter().map(|circuit| circuit.data).collect();
     let serialized_qpy = dump_qpy(
-        circuit_data,
+        circuits.iter().map(|circuit| &circuit.data),
         extra_data,
         version,
         Some(annotation_handler),
@@ -282,6 +280,32 @@ pub fn read_raw_circuits(
         circuits.push(circuit);
     }
     Ok(circuits)
+}
+
+/// Serialize native circuits using empty metadata and no transpiler layout.
+///
+/// This is a non-Python convenience interface used by the C API.
+pub fn native_dump_qpy(
+    circuits: &[&CircuitData],
+    qpy_version: Option<u8>,
+) -> Result<Vec<u8>, QpyError> {
+    let extra_data = (0..circuits.len())
+        .map(|_| ExtraCircuitData {
+            name: None,
+            // The default Python QPY metadata codec is JSON, so an empty mapping must still be
+            // represented by valid JSON for files produced through non-Python interfaces.
+            metadata: Bytes::from("{}"),
+            layout: Bytes::new(),
+        })
+        .collect();
+    dump_qpy(
+        circuits.iter().copied(),
+        extra_data,
+        qpy_version.unwrap_or(QPY_VERSION),
+        None,
+        Some(QpyCaller::Native),
+    )
+    .map(|bytes| bytes.0)
 }
 
 /// Deserializes native circuits from a complete QPY payload.
@@ -417,14 +441,93 @@ pub fn py_load_qpy(
     load_qpy(&data, Some(annotation_handler), Some(QpyCaller::Python))?
         .into_iter()
         .map(|loaded| {
-            QpyCaller::Python.attach("Python circuit construction", |py| {
-                py_circuit_data_to_quantum_circuit(
-                    py,
-                    loaded.circuit_data,
-                    &loaded.packed_circuit,
-                    metadata_deserializer.as_ref().map(Bound::as_ref),
-                )
-            })
+            py_circuit_data_to_quantum_circuit(
+                py,
+                loaded.circuit_data,
+                &loaded.packed_circuit,
+                metadata_deserializer.as_ref().map(Bound::as_ref),
+            )
         })
         .collect()
+}
+
+/// Deserialize native circuits from a complete QPY payload.
+pub fn native_load_qpy(data: &[u8]) -> Result<Vec<CircuitData>, QpyError> {
+    load_qpy(&Bytes::from(data), None, Some(QpyCaller::Native)).map(|loaded| {
+        loaded
+            .into_iter()
+            .map(|loaded| loaded.circuit_data)
+            .collect()
+    })
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use qiskit_circuit::Qubit;
+    use qiskit_circuit::operations::{DelayUnit, OperationRef, Param, StandardInstruction};
+    use qiskit_circuit::packed_instruction::PackedOperation;
+    use smallvec::smallvec;
+
+    /// Builds the [`ExtraCircuitData`] required to serialize a native circuit that carries no
+    /// Python-only metadata or transpiler layout.
+    fn native_extra_data(circuit: &CircuitData, name: &str, version: u8) -> ExtraCircuitData {
+        ExtraCircuitData {
+            name: Some(name.to_string()),
+            // Circuit metadata is always decoded with `json.loads`, and older Qiskit
+            // releases require the decoded value to be a dictionary.
+            metadata: "{}".into(),
+            layout: serialize(&pack_layout(None, circuit, version).unwrap()).unwrap(),
+        }
+    }
+
+    /// A circuit containing a single `Delay` measured in `dt` should survive a native
+    /// QPY dump/load round trip: the instruction, its `dt` unit, and its integer-typed
+    /// duration are all preserved.
+    #[test]
+    fn delay_in_dt_roundtrip() {
+        let version = QPY_WRITE_MIN_VERSION;
+
+        // Build a 1-qubit circuit with a `Delay` instruction of 13 dt value.
+        let circuit = CircuitData::from_packed_operations(
+            1,
+            0,
+            [Ok((
+                PackedOperation::from_standard_instruction(StandardInstruction::Delay(
+                    DelayUnit::DT,
+                )),
+                smallvec![Param::Int(13)],
+                vec![Qubit(0)],
+                Vec::with_capacity(0),
+            ))],
+            0.0.into(),
+        )
+        .unwrap();
+
+        // Round trip through the native QPY dump/load entry points.
+        let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
+        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None).unwrap();
+
+        // Exactly one circuit, with exactly one instruction.
+        assert_eq!(loaded.len(), 1);
+        let loaded_circuit = &loaded[0].circuit_data;
+        assert_eq!(loaded_circuit.num_qubits(), 1);
+        assert_eq!(loaded_circuit.len(), 1);
+
+        // That instruction is a `Delay` whose unit round-tripped as `dt`.
+        let inst = &loaded_circuit.data()[0];
+        let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view()
+        else {
+            panic!(
+                "expected a standard Delay instruction, got {:?}",
+                inst.op.view()
+            );
+        };
+        assert_eq!(unit, DelayUnit::DT);
+
+        // The duration parameter is preserved.
+        assert!(matches!(inst.params_view(), [Param::Int(d)] if *d == 13));
+    }
 }

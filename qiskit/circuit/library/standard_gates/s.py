@@ -159,7 +159,7 @@ class SdgGate(SingletonGate):
 
     .. math::
 
-        Sdg = \begin{pmatrix}
+        S^\dagger = \begin{pmatrix}
                 1 & 0 \\
                 0 & -i
             \end{pmatrix}
@@ -206,7 +206,7 @@ class SdgGate(SingletonGate):
         ctrl_state: int | str | None = None,
         annotated: bool | None = None,
     ):
-        """Return a controlled version of the Sdg gate.
+        r"""Return a controlled version of the :math:`S^\dagger` gate.
 
         For a single control qubit, the controlled gate is implemented as :class:`.CSdgGate`,
         regardless of the value of `annotated`.
@@ -239,7 +239,7 @@ class SdgGate(SingletonGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of Sdg (SGate).
+        r"""Return inverse of :math:`S^\dagger` (SGate).
 
         Args:
             annotated: when set to ``True``, this is typically used to return an
