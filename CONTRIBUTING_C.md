@@ -87,12 +87,12 @@ integer types like `int32_t` and `ptrdiff_t` when the domain value is unsigned a
 | `int32_t`      | `-1`        |
 
 ```rust
-extern "C" fn qk_qubit_type(qubit: *const Qubit) -> QubitType {
-    if qubit.is_null() {
-        QubitType::Unknown
+extern "C" fn qk_matrix_type(matrix: *const Matrix) -> MatrixType {
+    if matrix.is_null() {
+        MatrixType::Unknown
     } else {
-        let qubit = unsafe { &*qubit };
-        qubit.kind.into()
+        let matrix = unsafe { &*matrix };
+        matrix.kind.into()
     }
 }
 ```
@@ -103,8 +103,7 @@ write to an `out` parameter for the success case.
 ```rust
 extern "C" fn qk_obs_matrix(
     obs: *const QkObs,
-    out: *mut *mut Complex64,
-    maxlen: usize,
+    out: *mut *mut Matrix,
 ) -> ExitCode {
     let obs = unsafe { &*obs };
 
