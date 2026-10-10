@@ -851,6 +851,25 @@ class TestConsolidateBlocks(QiskitTestCase):
             pass_ = ConsolidateBlocks(basis_gates=["ecr", "cx", "cz"])
             self.assertEqual(pass_.basis_gate_name, "cz")
 
+    def test_kak_basis_gate(self):
+        """Test ConsolidateBlocks when kak_basis_gate is explicitly provided."""
+        custom_gate = CZGate()
+        pass_ = ConsolidateBlocks(kak_basis_gate=custom_gate)
+        self.assertEqual(pass_.basis_gate_name, "cz")
+        self.assertIsNotNone(pass_.decomposer)
+
+        qr = QuantumRegister(2, "qr")
+        qc = QuantumCircuit(qr)
+        qc.cx(0, 1)
+        qc.cz(0, 1)
+
+        pm = PassManager([Collect2qBlocks(), pass_])
+        out = pm.run(qc)
+        self.assertEqual(len(out.data), 1)
+        self.assertEqual(out.data[0].operation.name, "unitary")
+        self.assertEqual(process_fidelity(Operator(out.data[0].operation), Operator(qc)), 1.0)
+
+
 
 class TestCollect1qRuns(QiskitTestCase):
     """
