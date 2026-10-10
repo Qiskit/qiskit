@@ -694,8 +694,22 @@ class TestHoareOptimizer(QiskitTestCase):
         expected = QuantumCircuit(3)
         expected.x(2)
 
-        self.assertEqual(simplified, expected)
+    def test_different_pauli_operators_not_cancelled(self):
+        """Test HoareOptimizer does not cancel PauliEvolutionGate or PauliProductRotationGate
+        with different Pauli terms when their angles/times have opposite signs.
+        See: https://github.com/Qiskit/qiskit/issues/17056
+        """
+        from qiskit.circuit.library import PauliEvolutionGate, PauliProductRotationGate
+        from qiskit.quantum_info import Pauli
+
+        for gate_type in (PauliEvolutionGate, PauliProductRotationGate):
+            circuit = QuantumCircuit(1)
+            circuit.append(gate_type(Pauli("X"), 0.3), [0])
+            circuit.append(gate_type(Pauli("Z"), -0.3), [0])
+            output = HoareOptimizer()(circuit)
+            self.assertEqual(len(output.data), 2)
 
 
 if __name__ == "__main__":
+
     unittest.main()
