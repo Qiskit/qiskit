@@ -309,7 +309,8 @@ class HoareOptimizer(TransformationPass):
         elif gate1 is UnitaryGate and gate2 is UnitaryGate:
             return matrix_equal(par1[0], par2[0], ignore_phase=True)
 
-        return gate1 == gate2 and par1 == par2
+        return sequence[0].op == sequence[1].op.inverse()
+
 
     def _seq_as_one(self, sequence):
         """use z3 solver to determine if the gates in the sequence are either
