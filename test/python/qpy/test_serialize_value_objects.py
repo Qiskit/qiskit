@@ -45,6 +45,25 @@ class TestQpySerializeParameterExpression(QiskitTestCase):
 
         self.assertEqual(qc, qc_from_qpy)
 
+    def test_roundtrip_assigned_values(self):
+        """Test that an expression which was assigned a value is correctly loaded."""
+        a = Parameter("a")
+        b = Parameter("b")
+        circuit = QuantumCircuit(1)
+        circuit.rz(a.sin() * b, 0)
+        circuit = circuit.assign_parameters({a: 3})
+
+        with io.BytesIO() as container:
+            qpy.dump(circuit, container)
+            container.seek(0)
+            loaded = qpy.load(container)[0]
+
+        self.assertEqual(circuit.parameters, loaded.parameters)
+        self.assertAlmostEqual(
+            float(circuit.data[0].operation.params[0].bind({b: 2})),
+            float(loaded.data[0].operation.params[0].bind({b: 2})),
+        )
+
 
 class TestPauliEvolution(QiskitTestCase):
     """QPY serializing PauliEvolutionGate with SparseObservable and SparsePauliOp"""
