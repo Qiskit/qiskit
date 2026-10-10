@@ -155,8 +155,8 @@ on how to get access and use these systems.
 
 ## Contribution Guidelines
 
-If you'd like to contribute to Qiskit, please take a look at our
-[contribution guidelines](CONTRIBUTING.md). By participating, you are expected to uphold our [code of conduct](CODE_OF_CONDUCT.md).
+If you'd like to contribute to Qiskit, please take a look at our [developer's guide](docs/devguide/README.md).
+By participating, you are expected to uphold our [code of conduct](CODE_OF_CONDUCT.md).
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit/issues) for tracking requests and bugs. Please
 [join the Qiskit Slack community](https://qisk.it/join-slack) for discussion, comments, and questions.
