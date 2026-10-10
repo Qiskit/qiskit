@@ -1139,6 +1139,10 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertTrue(op1.equiv(op2, atol=1e-7))
         self.assertEqual(op1.coeffs.dtype, np.complex128)
 
+        op3 = op1 + 1e-10 * SparsePauliOp.from_list([("I", 1)])
+        self.assertFalse(op1.equiv(op3, atol=1e-11))
+        self.assertTrue(op1.equiv(op3, atol=1e-9))
+
     def test_eq_equiv(self):
         """Test __eq__ and equiv methods with some specific cases."""
         with self.subTest("shuffled"):

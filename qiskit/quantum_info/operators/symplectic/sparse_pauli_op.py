@@ -236,7 +236,7 @@ class SparsePauliOp(LinearOp):
             return False
         if atol is None:
             atol = self.atol
-        return np.allclose((self - other).simplify().coeffs, 0.0, atol=atol)
+        return np.allclose((self - other).simplify(atol=atol).coeffs, 0.0, atol=atol)
 
     @property
     def settings(self) -> dict:
