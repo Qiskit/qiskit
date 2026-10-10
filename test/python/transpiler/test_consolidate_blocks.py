@@ -746,6 +746,20 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
 
+    def test_consolidate_with_kak_basis_gate(self):
+        """Test that ConsolidateBlocks works with a kak_basis_gate."""
+        kak_basis_gate = CZGate()
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=kak_basis_gate, force_consolidate=True)
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+
+        pm = PassManager([Collect2qBlocks(), consolidate_pass])
+        res = pm.run(qc)
+
+        self.assertIn("cz", res.count_ops())
+        self.assertNotIn("cx", res.count_ops())
+
+
     def test_collection_inside_control_flow(self):
         """Test that we handle consolidation based on the physical qubits, not the local indices."""
         num_qubits = 3
