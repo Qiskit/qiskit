@@ -49,7 +49,7 @@ use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{NoBlocks, Qubit};
-use qiskit_util::complex::{C_M_ONE, C_ONE, IM, M_IM, c64};
+use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 
 /// Errors that can occur during two-qubit basis decomposition.
 #[derive(Error, Debug)]
@@ -467,11 +467,14 @@ impl TwoQubitBasisDecomposer {
 
         let out_unitary = compute_unitary(&gates, global_phase);
         // TODO: fix the sign problem to avoid correction here
-        if abs_diff_eq!(
-            target_decomposed.unitary_matrix[(0, 0)],
-            -out_unitary[[0, 0]],
-            epsilon = atol
-        ) {
+        // Compare the first non-zero element in 0-th row, which must exist as the matrix is unitary
+        let row = target_decomposed.unitary_matrix.row(0);
+        if row
+            .iter()
+            .zip(out_unitary.row(0).iter())
+            .find(|(val, _)| !abs_diff_eq!(**val, C_ZERO, epsilon = atol))
+            .is_some_and(|(val, out)| abs_diff_eq!(*val, -*out, epsilon = atol))
+        {
             global_phase += PI;
         }
         Some(TwoQubitGateSequence {
