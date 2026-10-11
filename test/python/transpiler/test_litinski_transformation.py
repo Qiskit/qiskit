@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import (
@@ -68,8 +68,9 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         self.assertEqual(expected, qct)
 
-    @data(True, False)
-    def test_t_tdg_gates(self, use_ppr):
+    @data((False, False), (False, True), (True, False), (True, True))
+    @unpack
+    def test_t_tdg_gates(self, use_ppr, combine_paulis):
         """Test circuit with T/Tdg gates."""
         qc = QuantumCircuit(4)
         qc.h(0)
@@ -81,15 +82,17 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.s(2)
         qc.t(2)
 
-        qct = LitinskiTransformation(use_ppr=use_ppr)(qc)
+        qct = LitinskiTransformation(use_ppr=use_ppr, combine_paulis=combine_paulis)(qc)
         ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
-
         # The rotations from t(0) and tdg(0) cancel out.
-        self.assertEqual(qct.count_ops(), {ppr_name: 2, "cx": 2, "h": 1, "s": 1})
+        num_pprs = 2 if combine_paulis else 4
+        expected_ops = {ppr_name: num_pprs, "cx": 2, "h": 1, "s": 1}
+        self.assertEqual(qct.count_ops(), expected_ops)
         self.assertEqual(Operator(qct), Operator(qc))
 
-    @data(True, False)
-    def test_rz_gates(self, use_ppr):
+    @data((False, False), (False, True), (True, False), (True, True))
+    @unpack
+    def test_rz_gates(self, use_ppr, combine_paulis):
         """Test circuit with RZ-rotation gates."""
         qc = QuantumCircuit(4)
         qc.h(0)
@@ -100,25 +103,23 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.s(2)
         qc.rz(0.1, 1)
 
-        qct = LitinskiTransformation(use_ppr=use_ppr)(qc)
+        qct = LitinskiTransformation(use_ppr=use_ppr, combine_paulis=combine_paulis)(qc)
 
-        # The rotations from rz(-0.4, 1) and rz(0.1, 1) are merged, and merged rotations
-        # are always implemented as PauliProductRotations.
+        expected_ops = {"cx": 2, "h": 1, "s": 1}
         if use_ppr:
-            expected_ops = {"pauli_product_rotation": 2, "cx": 2, "h": 1, "s": 1}
+            expected_ops["pauli_product_rotation"] = 2 if combine_paulis else 3
+        elif combine_paulis:
+            expected_ops["pauli_product_rotation"] = 1
+            expected_ops["PauliEvolution"] = 1
         else:
-            expected_ops = {
-                "PauliEvolution": 1,
-                "pauli_product_rotation": 1,
-                "cx": 2,
-                "h": 1,
-                "s": 1,
-            }
+            expected_ops["PauliEvolution"] = 3
+
         self.assertEqual(qct.count_ops(), expected_ops)
         self.assertEqual(Operator(qct), Operator(qc))
 
-    @data(True, False)
-    def test_omit_clifford_gates(self, use_ppr):
+    @data((False, False), (False, True), (True, False), (True, True))
+    @unpack
+    def test_omit_clifford_gates(self, use_ppr, combine_paulis):
         """Test fix_clifford."""
         qc = QuantumCircuit(4)
         qc.h(0)
@@ -129,18 +130,24 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.s(2)
         qc.rz(0.1, 1)
 
-        qct = LitinskiTransformation(fix_clifford=False, use_ppr=use_ppr)(qc)
+        qct = LitinskiTransformation(
+            fix_clifford=False, use_ppr=use_ppr, combine_paulis=combine_paulis
+        )(qc)
 
-        # The rotations from rz(-0.4, 1) and rz(0.1, 1) are merged, and merged rotations
-        # are always implemented as PauliProductRotations.
+        expected_ops = {}
         if use_ppr:
-            expected_ops = {"pauli_product_rotation": 2}
+            expected_ops["pauli_product_rotation"] = 2 if combine_paulis else 3
+        elif combine_paulis:
+            expected_ops["pauli_product_rotation"] = 1
+            expected_ops["PauliEvolution"] = 1
         else:
-            expected_ops = {"PauliEvolution": 1, "pauli_product_rotation": 1}
+            expected_ops["PauliEvolution"] = 3
+
         self.assertEqual(qct.count_ops(), expected_ops)
 
-    @data(True, False)
-    def test_parametric_rz_rx_ry_gates(self, use_ppr):
+    @data((False, False), (False, True), (True, False), (True, True))
+    @unpack
+    def test_parametric_rz_rx_ry_gates(self, use_ppr, combine_paulis):
         """Test circuit with parameterized RZ-rotation gates."""
         alpha = Parameter("alpha")
         beta = Parameter("beta")
@@ -156,7 +163,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.rz(0.1, 1)
         qc.ry(gamma, 1)
 
-        qct = LitinskiTransformation(use_ppr=use_ppr)(qc)
+        qct = LitinskiTransformation(use_ppr=use_ppr, combine_paulis=combine_paulis)(qc)
         ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
         self.assertEqual(qct.count_ops(), {ppr_name: 4, "cx": 2, "h": 1, "s": 1})
 
@@ -286,7 +293,8 @@ class TestLitinskiTransformation(QiskitTestCase):
         # make sure the result is correct
         self.assertEqual(qc_litinski, qc)
 
-    def test_random_circuits(self):
+    @data(False, True)
+    def test_random_circuits(self, combine_paulis):
         """Test on random Clifford+T circuits."""
 
         for trial in range(10):
@@ -303,7 +311,7 @@ class TestLitinskiTransformation(QiskitTestCase):
                 qc.tdg(1)
 
             # apply the transform
-            qc_litinski = LitinskiTransformation()(qc)
+            qc_litinski = LitinskiTransformation(combine_paulis=combine_paulis)(qc)
             ops_litinski = qc_litinski.count_ops()
 
             # make sure the transform was applied

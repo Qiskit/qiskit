@@ -89,12 +89,13 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
 type PauliBasedEntry = Option<(PackedOperation, Vec<u32>, Interned<[Clbit]>, bool)>;
 
 #[pyfunction(name = "run_litinski_transformation")]
-#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false, approximation_degree=1.0))]
+#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false, combine_paulis=false, approximation_degree=1.0))]
 pub fn py_run_litinski_transformation(
     dag: &PyDAGCircuit,
     fix_clifford: bool,
     insert_barrier: bool,
     use_ppr: bool,
+    combine_paulis: bool,
     approximation_degree: f64,
 ) -> PyResult<Option<PyDAGCircuit>> {
     Ok(run_litinski_transformation(
@@ -102,6 +103,7 @@ pub fn py_run_litinski_transformation(
         fix_clifford,
         insert_barrier,
         use_ppr,
+        combine_paulis,
         approximation_degree,
     )?
     .map(|out_dag| {
@@ -115,6 +117,7 @@ pub fn run_litinski_transformation(
     fix_clifford: bool,
     insert_barrier: bool,
     use_ppr: bool,
+    combine_paulis: bool,
     approximation_degree: f64,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
@@ -345,24 +348,34 @@ pub fn run_litinski_transformation(
                         };
                         let ppr = PauliProductRotation { z, x, angle };
 
-                        let (orig_z, orig_x) = match pauli {
-                            Pauli1q::Z => (true, false),
-                            Pauli1q::X => (false, true),
-                            Pauli1q::Y => (true, true),
-                        };
-                        add_ppr(
-                            &mut pauli_based_ops,
-                            fix_clifford.then_some(&mut clifford_ops),
-                            &mut clifford,
-                            &mut global_phase_update,
-                            ppr,
-                            indices,
-                            sign,
-                            (&[orig_z], &[orig_x], &[qubit as u32]),
-                            inst.qubits,
-                            !use_ppr,
-                            tol,
-                        );
+                        if combine_paulis {
+                            let (orig_z, orig_x) = match pauli {
+                                Pauli1q::Z => (true, false),
+                                Pauli1q::X => (false, true),
+                                Pauli1q::Y => (true, true),
+                            };
+
+                            add_ppr(
+                                &mut pauli_based_ops,
+                                fix_clifford.then_some(&mut clifford_ops),
+                                &mut clifford,
+                                &mut global_phase_update,
+                                ppr,
+                                indices,
+                                sign,
+                                (&[orig_z], &[orig_x], &[qubit as u32]),
+                                inst.qubits,
+                                !use_ppr,
+                                tol,
+                            );
+                        } else {
+                            pauli_based_ops.push(Some((
+                                PauliBased::PauliProductRotation(ppr).into(),
+                                indices,
+                                Interned::default(),
+                                !use_ppr,
+                            )));
+                        }
                     }
                 }
                 OperationRef::PauliProductRotation(rotation) => {
@@ -393,19 +406,28 @@ pub fn run_litinski_transformation(
                         let angle = multiply_param(angle, out_sign);
                         let ppr = PauliProductRotation { z, x, angle };
 
-                        add_ppr(
-                            &mut pauli_based_ops,
-                            fix_clifford.then_some(&mut clifford_ops),
-                            &mut clifford,
-                            &mut global_phase_update,
-                            ppr,
-                            indices,
-                            sign,
-                            (in_z, in_x, &indices_in),
-                            inst.qubits,
-                            false,
-                            tol,
-                        );
+                        if combine_paulis {
+                            add_ppr(
+                                &mut pauli_based_ops,
+                                fix_clifford.then_some(&mut clifford_ops),
+                                &mut clifford,
+                                &mut global_phase_update,
+                                ppr,
+                                indices,
+                                sign,
+                                (in_z, in_x, &indices_in),
+                                inst.qubits,
+                                false,
+                                tol,
+                            );
+                        } else {
+                            pauli_based_ops.push(Some((
+                                PauliBased::PauliProductRotation(ppr).into(),
+                                indices,
+                                Interned::default(),
+                                !use_ppr,
+                            )));
+                        }
                     }
                 }
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
