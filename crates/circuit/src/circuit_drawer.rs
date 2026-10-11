@@ -497,7 +497,6 @@ impl<'a> VisualizationLayer<'a> {
             StandardInstruction::Barrier(_) => {
                 for q in qargs {
                     self.0[qubit_map[q.index()].unwrap()] =
-                       
                         VisualizationElement::DirectOnWire(OnWireElement::Barrier(inst));
                 }
             }
@@ -3076,7 +3075,7 @@ q_3: ┤ X ├─■─────────────────┤ X ├
         let circuit = labeled_barrier_circuit();
         // A `barrier_label_len` of 0 selects the default of
         // `DEFAULT_BARRIER_LABEL_LEN` characters.
-        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, false).unwrap();
         let expected = "
      ┌───┐ short       a_very_long_barr...
 q_0: ┤ H ├───░─────■────────────░──────────
@@ -3095,7 +3094,7 @@ q_2: ────────░────────────────
     #[test]
     fn test_barrier_label_custom_truncation() {
         let circuit = labeled_barrier_circuit();
-        let result = draw_circuit(&circuit, false, false, Some(100), 5).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 5, false).unwrap();
         let expected = "
      ┌───┐ short       a_ver...
 q_0: ┤ H ├───░─────■──────░─────
@@ -3131,7 +3130,7 @@ q_2: ────────░────────────────
             py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, true).unwrap();
         let expected = "
 
 q_0: ─────────
@@ -3164,7 +3163,7 @@ q_2: ────░────
             py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100), 16).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), 16, false).unwrap();
         let expected = "
       0123456789abcdef
 q_0: ────────░─────────
@@ -3247,7 +3246,7 @@ q_0: ────────░─────────
                 &[Clbit(6)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80), false).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, false).unwrap();
         let expected = "
                                 ┌─┐         ┌────────┐
 q0_0: ──■────■──────────────────┤M├─■───────┤0 Z     ├
@@ -3272,7 +3271,7 @@ c2_1: ════════════════════════�
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
 
-        let result_creg_bundle = draw_circuit(&circuit, true, true, Some(80), false).unwrap();
+        let result_creg_bundle = draw_circuit(&circuit, true, true, Some(80), 0, false).unwrap();
         let expected_creg_bundle = "
                                 ┌─┐         ┌────────┐
 q0_0: ──■────■──────────────────┤M├─■───────┤0 Z     ├
