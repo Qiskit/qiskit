@@ -1402,6 +1402,7 @@ class TestPulseOptimalDecompose(CheckDecompositions):
         if eps == 1e-5:  # synthesis using no CX gates
             self.assertTrue("cx" not in list(decomp.count_ops().keys()))
         else:  # synthesis using 3 CX gates
+            # in this case, x12 is an even multiplication of pi
             self.assertEqual(decomp.count_ops()["cx"], 3)
 
     @combine(eps=[1e-7, 1e-8])
