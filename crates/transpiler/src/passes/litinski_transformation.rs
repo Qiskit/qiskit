@@ -25,6 +25,7 @@ use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 
 use super::common::{
     MINIMUM_TOL, average_gate_fidelity_below_tol, is_angle_close_to_multiple_of_pi_k,
+    sparse_paulis_commute,
 };
 use crate::TranspilerError;
 use num_complex::Complex64;
@@ -164,8 +165,10 @@ pub fn run_litinski_transformation(
     // only added to the output circuit at the end.
     let mut pauli_based_ops: Vec<PauliBasedEntry> = Vec::with_capacity(non_clifford_handled_count);
 
-    // Keep track of the clifford operations in the circuit.
-    let mut clifford_ops: Vec<&PackedInstruction> = Vec::with_capacity(clifford_count);
+    // Keep track of the clifford operations in the circuit. These include the Clifford operations
+    // from the original circuit, and the Clifford Pauli product rotations obtained by merging
+    // two rotations.
+    let mut clifford_ops: Vec<PackedInstruction> = Vec::with_capacity(clifford_count);
 
     // Apply the Litinski transformation: that is, express a given circuit as a sequence of Pauli
     // product rotations and Pauli product measurements, followed by a final Clifford operator.
@@ -344,14 +347,25 @@ pub fn run_litinski_transformation(
                         };
                         let ppr = PauliProductRotation { z, x, angle };
 
-                        // In the legacy path, the rotation is later implemented as a
-                        // PauliEvolutionGate.
-                        pauli_based_ops.push(Some((
-                            PauliBased::PauliProductRotation(ppr).into(),
+                        let (orig_z, orig_x) = match pauli {
+                            Pauli1q::Z => (true, false),
+                            Pauli1q::X => (false, true),
+                            Pauli1q::Y => (true, true),
+                        };
+                        let merge_phase_update = add_ppr(
+                            &mut pauli_based_ops,
+                            fix_clifford.then_some(&mut clifford_ops),
+                            &mut clifford,
+                            ppr,
                             indices,
-                            Interned::default(),
+                            sign,
+                            (&[orig_z], &[orig_x], &[qubit as u32]),
+                            inst.qubits,
                             !use_ppr,
-                        )));
+                            tol,
+                        );
+                        global_phase_update =
+                            radd_param(global_phase_update, Param::Float(merge_phase_update));
                     }
                 }
                 OperationRef::PauliProductRotation(rotation) => {
@@ -382,12 +396,20 @@ pub fn run_litinski_transformation(
                         let angle = multiply_param(angle, out_sign);
                         let ppr = PauliProductRotation { z, x, angle };
 
-                        pauli_based_ops.push(Some((
-                            PauliBased::PauliProductRotation(ppr).into(),
+                        let merge_phase_update = add_ppr(
+                            &mut pauli_based_ops,
+                            fix_clifford.then_some(&mut clifford_ops),
+                            &mut clifford,
+                            ppr,
                             indices,
-                            Interned::default(),
+                            sign,
+                            (in_z, in_x, &indices_in),
+                            inst.qubits,
                             false,
-                        )));
+                            tol,
+                        );
+                        global_phase_update =
+                            radd_param(global_phase_update, Param::Float(merge_phase_update));
                     }
                 }
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
@@ -437,7 +459,7 @@ pub fn run_litinski_transformation(
                 ),
             }
             if is_clifford && fix_clifford {
-                clifford_ops.push(inst);
+                clifford_ops.push(inst.clone());
             }
         }
     }
@@ -493,11 +515,149 @@ pub fn run_litinski_transformation(
             )?;
         }
         for inst in clifford_ops.into_iter() {
-            new_dag.push_back(inst.clone())?;
+            new_dag.push_back(inst)?;
         }
     }
 
     Ok(Some(new_dag.build()))
+}
+
+/// Add a Pauli product rotation to the collected Pauli-based operations, merging it with an
+/// earlier Pauli product rotation when possible.
+///
+/// The collected operations are scanned backwards. If an earlier rotation acts on the same qubits
+/// with the same Pauli, the two rotations are merged into the earlier entry. Otherwise, the scan
+/// stops at the first operation that does not commute with the new rotation, and the new rotation
+/// is appended to the collected operations.
+///
+/// If the merged rotation is equivalent to the identity (up to a global phase), the entry is
+/// removed altogether.
+///
+/// If the merged rotation `M` is a Clifford, the entry is removed and `M` is absorbed into the
+/// Clifford. The rotation `M` has the same Pauli as the new rotation, which commutes with all
+/// the later collected operations, so `M` can be moved to the end of the collected operations.
+/// Thus, if `C` is the current Clifford, the circuit is now of the form `C * M * (rotations)`,
+/// and the Clifford needs to be updated to `C * M`. Since the Pauli `Q` of `M` is obtained
+/// by evolving the original Pauli `P` of the new rotation, that is `C^dagger P C = (-1)^sign Q`,
+/// we have `C * M(Q, angle) = R(P, (-1)^sign angle) * C`. Hence we append the rotation
+/// `R(P, (-1)^sign angle)` both to the Clifford tableau and to the Clifford operations.
+///
+/// # Arguments
+///
+/// * `pauli_based_ops`: The collected Pauli-based operations.
+/// * `clifford_ops`: The Clifford operations, or `None` if these are not added to the output
+///   circuit.
+/// * `clifford`: The current Clifford.
+/// * `ppr`: The new Pauli product rotation, without I-terms.
+/// * `qubits`: The sorted qubit indices of the new rotation.
+/// * `sign`: The sign obtained when evolving the original Pauli of the new rotation.
+/// * `orig_pauli`: The original Pauli `(z, x, indices)` of the new rotation, before evolving it
+///   by the Clifford.
+/// * `orig_qubits`: The interned qubits of the original instruction.
+/// * `use_pauli_evo`: Whether the new rotation should be implemented as a PauliEvolutionGate.
+///   A merged rotation is always implemented as a PauliProductRotation.
+/// * `tol`: The tolerance to check whether the merged rotation is equivalent to the identity
+///   or is a Clifford.
+///
+/// # Returns
+///
+/// The update to the global phase, which is non-zero only when the two rotations cancel out.
+#[allow(clippy::too_many_arguments)]
+fn add_ppr(
+    pauli_based_ops: &mut Vec<PauliBasedEntry>,
+    clifford_ops: Option<&mut Vec<PackedInstruction>>,
+    clifford: &mut Clifford,
+    ppr: PauliProductRotation,
+    qubits: Vec<u32>,
+    sign: bool,
+    orig_pauli: (&[bool], &[bool], &[u32]),
+    orig_qubits: Interned<[Qubit]>,
+    use_pauli_evo: bool,
+    tol: f64,
+) -> f64 {
+    for entry in pauli_based_ops.iter_mut().rev() {
+        let Some((packed_op, entry_qubits, _, _)) = entry.as_ref() else {
+            // The entry has already been removed.
+            continue;
+        };
+
+        let (entry_z, entry_x, merged) = match packed_op.view() {
+            OperationRef::PauliProductRotation(entry_ppr) => {
+                let merged = if *entry_qubits == qubits {
+                    entry_ppr.merge_with(&ppr)
+                } else {
+                    None
+                };
+                (&entry_ppr.z, &entry_ppr.x, merged)
+            }
+            OperationRef::PauliProductMeasurement(entry_ppm) => (&entry_ppm.z, &entry_ppm.x, None),
+            _ => unreachable!(
+                "Only PPRs and PPMs are collected by the Litinski transformation pass."
+            ),
+        };
+
+        if let Some(merged) = merged {
+            // Check whether the merged rotation is equivalent to the identity.
+            if let Some(phase_update) =
+                merged
+                    .rotation_trace_and_dim()
+                    .and_then(|(tr_over_dim, dim)| {
+                        average_gate_fidelity_below_tol(tr_over_dim, dim, tol)
+                    })
+            {
+                *entry = None;
+                return phase_update;
+            }
+            // Check whether the merged rotation is a Clifford, and if so absorb it into
+            // the Clifford.
+            if let Param::Float(angle) = merged.angle
+                && let Some(multiple) =
+                    is_ppr_angle_close_to_multiple_of_pi2(&merged.z, &merged.x, angle, tol)
+            {
+                *entry = None;
+                let (orig_z, orig_x, orig_indices) = orig_pauli;
+                let orig_multiple = if sign { (4 - multiple) % 4 } else { multiple };
+                clifford.append_ppr(orig_z, orig_x, orig_indices, orig_multiple);
+                if let Some(clifford_ops) = clifford_ops {
+                    let orig_angle = Param::Float(if sign { -angle } else { angle });
+                    let orig_ppr = PauliProductRotation {
+                        z: orig_z.to_vec(),
+                        x: orig_x.to_vec(),
+                        angle: orig_angle.clone(),
+                    };
+                    clifford_ops.push(PackedInstruction {
+                        op: PauliBased::PauliProductRotation(orig_ppr).into(),
+                        qubits: orig_qubits,
+                        clbits: Interned::default(),
+                        params: Some(Box::new(Parameters::Params(smallvec![orig_angle]))),
+                        label: None,
+                        #[cfg(feature = "cache_pygates")]
+                        py_op: std::sync::OnceLock::new(),
+                    });
+                }
+                return 0.;
+            }
+            *entry = Some((
+                PauliBased::PauliProductRotation(merged).into(),
+                qubits,
+                Interned::default(),
+                false,
+            ));
+            return 0.;
+        }
+
+        if !sparse_paulis_commute(&ppr.z, &ppr.x, &qubits, entry_z, entry_x, entry_qubits) {
+            break;
+        }
+    }
+
+    pauli_based_ops.push(Some((
+        PauliBased::PauliProductRotation(ppr).into(),
+        qubits,
+        Interned::default(),
+        use_pauli_evo,
+    )));
+    0.
 }
 
 /// Create a PauliEvolutionGate for the Pauli given in the sparse ZX format (without I-terms),

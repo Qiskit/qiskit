@@ -84,7 +84,8 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation(use_ppr=use_ppr)(qc)
         ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
 
-        self.assertEqual(qct.count_ops(), {ppr_name: 4, "cx": 2, "h": 1, "s": 1})
+        # The rotations from t(0) and tdg(0) cancel out.
+        self.assertEqual(qct.count_ops(), {ppr_name: 2, "cx": 2, "h": 1, "s": 1})
         self.assertEqual(Operator(qct), Operator(qc))
 
     @data(True, False)
@@ -100,9 +101,20 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.rz(0.1, 1)
 
         qct = LitinskiTransformation(use_ppr=use_ppr)(qc)
-        ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
 
-        self.assertEqual(qct.count_ops(), {ppr_name: 3, "cx": 2, "h": 1, "s": 1})
+        # The rotations from rz(-0.4, 1) and rz(0.1, 1) are merged, and merged rotations
+        # are always implemented as PauliProductRotations.
+        if use_ppr:
+            expected_ops = {"pauli_product_rotation": 2, "cx": 2, "h": 1, "s": 1}
+        else:
+            expected_ops = {
+                "PauliEvolution": 1,
+                "pauli_product_rotation": 1,
+                "cx": 2,
+                "h": 1,
+                "s": 1,
+            }
+        self.assertEqual(qct.count_ops(), expected_ops)
         self.assertEqual(Operator(qct), Operator(qc))
 
     @data(True, False)
@@ -118,9 +130,14 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.rz(0.1, 1)
 
         qct = LitinskiTransformation(fix_clifford=False, use_ppr=use_ppr)(qc)
-        ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
 
-        self.assertEqual(qct.count_ops(), {ppr_name: 3})
+        # The rotations from rz(-0.4, 1) and rz(0.1, 1) are merged, and merged rotations
+        # are always implemented as PauliProductRotations.
+        if use_ppr:
+            expected_ops = {"pauli_product_rotation": 2}
+        else:
+            expected_ops = {"PauliEvolution": 1, "pauli_product_rotation": 1}
+        self.assertEqual(qct.count_ops(), expected_ops)
 
     @data(True, False)
     def test_parametric_rz_rx_ry_gates(self, use_ppr):
