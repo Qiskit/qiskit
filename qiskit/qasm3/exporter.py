@@ -22,6 +22,8 @@ import math
 import numbers
 import re
 
+import numpy as np
+
 from collections.abc import Iterable, Sequence
 
 from qiskit._accelerate.circuit import StandardGate
@@ -1340,7 +1342,12 @@ class QASM3Builder:
         ]
         if not self.disable_constants:
             for parameter in parameters:
-                parameter.obj = pi_check(parameter.obj, output="qasm")
+                # `pi_check` renders a single number as a multiple of pi.  Array-valued parameters,
+                # such as the pattern of a :class:`.PermutationGate`, cannot be folded that way and
+                # would raise inside `pi_check`.  The circuit drawers skip array-valued parameters
+                # for the same reason.
+                if not isinstance(parameter.obj, np.ndarray):
+                    parameter.obj = pi_check(parameter.obj, output="qasm")
         return parameters
 
     def build_defcal_call(self, instruction: CircuitInstruction, defcal: DefcalInstruction):

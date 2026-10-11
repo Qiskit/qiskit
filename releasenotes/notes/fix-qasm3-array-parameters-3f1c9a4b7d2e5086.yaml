@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed the OpenQASM 3 exporter raising a ``TypeError`` for circuits that contain an
+    instruction with an array-valued parameter, such as the pattern of a
+    :class:`.PermutationGate`.  Parameters that are single numbers are still folded into
+    multiples of pi as before.
+    Fixed `#16995 <https://github.com/Qiskit/qiskit/issues/16995>`__.

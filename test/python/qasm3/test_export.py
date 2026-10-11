@@ -38,7 +38,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, PermutationGate
 from qiskit.qasm3 import (
     Exporter,
     dumps,
@@ -363,6 +363,24 @@ class TestCircuitQASM3(QiskitTestCase):
             ]
         )
         self.assertEqual(Exporter(disable_constants=True).dumps(circuit), expected_qasm)
+
+    def test_array_parameter(self):
+        """Test an instruction with an array-valued parameter."""
+        circuit = QuantumCircuit(2)
+        circuit.append(PermutationGate([1, 0]), [0, 1])
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate permutation__1_0_ _gate_q_0, _gate_q_1 {",
+                "  swap _gate_q_0, _gate_q_1;",
+                "}",
+                "qubit[2] q;",
+                "permutation__1_0_([1 0]) q[0], q[1];",
+                "",
+            ]
+        )
+        self.assertEqual(Exporter().dumps(circuit), expected_qasm)
 
     def test_custom_gate_with_unbound_parameter(self):
         """Test custom gate with unbound parameter."""
