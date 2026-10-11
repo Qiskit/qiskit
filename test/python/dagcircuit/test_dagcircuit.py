@@ -947,6 +947,48 @@ class TestDagNodeSelection(DAGTest):
         self.assertIsInstance(op_node_1.op, HGate)
         self.assertIsInstance(op_node_2.op, HGate)
 
+    def test_get_op_nodes_multiple_types(self):
+        """dag.op_nodes(op=iterable_of_types) returns any of the requested types."""
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+
+        nodes = self.dag.op_nodes(op={Measure, Reset})
+        self.assertEqual(len(nodes), 2)
+        self.assertTrue(all(isinstance(node.op, (Measure, Reset)) for node in nodes))
+
+        # Also accept other iterables (ordering doesn't matter, only membership).
+        nodes = self.dag.op_nodes(op=(Measure, Reset))
+        self.assertEqual(len(nodes), 2)
+        self.assertTrue(all(isinstance(node.op, (Measure, Reset)) for node in nodes))
+
+    def test_get_op_nodes_multiple_types_empty(self):
+        """An empty iterable should match nothing."""
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+        self.assertEqual(self.dag.op_nodes(op=()), [])
+
+    def test_get_op_nodes_multiple_types_invalid_element(self):
+        """Non-type elements should error."""
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+        with self.assertRaises(TypeError):
+            self.dag.op_nodes(op=(Reset, 123))
+
+    def test_get_op_nodes_with_custom_gate(self):
+        """Iterable filters match custom gates and preserve subclass matching."""
+
+        class CustomXGate(XGate):
+            _standard_gate = False
+
+        self.dag.apply_operation_back(CustomXGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(XGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        nodes = self.dag.op_nodes(op=(CustomXGate, HGate))
+        self.assertEqual(len(nodes), 2)
+        self.assertTrue(all(isinstance(node.op, (CustomXGate, HGate)) for node in nodes))
+        self.assertEqual(len(self.dag.op_nodes(op=XGate)), 2)
+
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
 
@@ -2015,6 +2057,34 @@ class TestDagEquivalence(DAGTest):
         dag2 = circuit_to_dag(circ2)
 
         self.assertNotEqual(self.dag1, dag2)
+
+    def test_dag_eq_multiple_delays(self):
+        """DAG Equivalence with multiple delays of different unit types."""
+        #      ┌───┐┌────────────────┐     ┌──────────────────┐
+        # q_0: ┤ H ├┤ Delay(100[dt]) ├──■──┤ Delay(100.0[ms]) ├
+        #      └───┘└────────────────┘┌─┴─┐└┬───────────────┬─┘
+        # q_1: ───────────────────────┤ X ├─┤ Delay(1.0[s]) ├──
+        #                             └───┘ └───────────────┘
+        circ = QuantumCircuit(2, 0)
+        circ.h(0)
+        circ.delay(100, 0, "dt")
+        circ.cx(0, 1)
+        circ.delay(1, 1, "s")
+        circ.delay(100, 0, "ms")
+
+        expected = DAGCircuit()
+        expected.add_qreg(QuantumRegister(2, "q"))
+        expected.apply_operation_back(HGate(), [expected.qubits[0]], [])
+        expected.apply_operation_back(Delay(100, "dt"), [expected.qubits[0]], [])
+        expected.apply_operation_back(CXGate(), [expected.qubits[0], expected.qubits[1]], [])
+        expected.apply_operation_back(Delay(1, "s"), [expected.qubits[1]], [])
+        expected.apply_operation_back(Delay(100, "ms"), [expected.qubits[0]], [])
+
+        obtained = circuit_to_dag(circ)
+        for node1, node2 in zip(expected.op_nodes(), obtained.op_nodes()):
+            # Compare node by node to make sure it compares correctly.
+            self.assertEqual(node1, node2)
+        self.assertEqual(obtained, expected)
 
     def test_dag_neq_same_topology(self):
         """DAG equivalence check: False. Same topology."""
