@@ -1387,6 +1387,23 @@ class TestPulseOptimalDecompose(CheckDecompositions):
         else:  # synthesis using 2 CX gates
             self.assertEqual(decomp.count_ops()["cx"], 2)
 
+    @combine(eps=[1e-4, 1e-5])
+    def test_zsx_near_3_0_cx_boundary(self, eps):
+        """Test that pulse-optimal decomposition returns the correct decomposition
+        near the no-CX / 3-CX boundary. See the discussion in issue 17057."""
+        qc = QuantumCircuit(2)
+        qc.rxx(eps, 0, 1)
+        qc.ryy(eps, 0, 1)
+        qc.rzz(eps, 0, 1)
+        u = Operator(qc)
+
+        decomp = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX")(u.data)
+        self.assertAlmostEqual(average_gate_fidelity(Operator(decomp), Operator(u)), 1)
+        if eps == 1e-5:  # synthesis using no CX gates
+            self.assertTrue("cx" not in list(decomp.count_ops().keys()))
+        else:  # synthesis using 3 CX gates
+            self.assertEqual(decomp.count_ops()["cx"], 3)
+
     @combine(eps=[1e-7, 1e-8])
     def test_zsx_near_2_1_cx_boundary(self, eps):
         """Test that pulse-optimal decomposition returns the correct decomposition
