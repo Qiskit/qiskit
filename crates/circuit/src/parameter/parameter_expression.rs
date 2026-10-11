@@ -2234,24 +2234,10 @@ fn qpy_replay_inner(
             // If the extracted value resolved into a concrete value, we don't need to recurse
             // into it, since its computed value will be stored along
             // with the operation in the replay.
-            if !matches!(
-                lhs_value,
-                Some(
-                    ParameterValueType::Int(_)
-                        | ParameterValueType::Float(_)
-                        | ParameterValueType::Complex(_)
-                )
-            ) {
+            if matches!(lhs_value, Some(ParameterValueType::Parameter(_)) | None) {
                 qpy_replay_inner(&lhs, name_map, replay, unused);
             }
-            if !matches!(
-                rhs_value,
-                Some(
-                    ParameterValueType::Int(_)
-                        | ParameterValueType::Float(_)
-                        | ParameterValueType::Complex(_)
-                )
-            ) {
+            if matches!(rhs_value, Some(ParameterValueType::Parameter(_)) | None) {
                 qpy_replay_inner(&rhs, name_map, replay, unused);
             }
 
