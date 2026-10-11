@@ -1611,6 +1611,14 @@ mod tests {
         assert_eq!("global phase: 0.5", result.trim_end());
     }
 
+    #[test]
+    fn test_empty_circuit_zero_phase() {
+        let circuit = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), 0).unwrap();
+
+        assert_eq!("", result.trim_end());
+    }
+
     fn basic_circuit() -> CircuitData {
         let qreg = QuantumRegister::new_owning("q", 2);
 
