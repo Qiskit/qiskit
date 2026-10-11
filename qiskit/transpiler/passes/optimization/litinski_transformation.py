@@ -102,8 +102,8 @@ class LitinskiTransformation(TransformationPass):
             approximation_degree: Used in the tolerance computations,
                 to check how much a PPR or a rotation gate is close to a Clifford.
                 This gives the threshold for the average gate fidelity.
-            use_ppr: If ``True``, attempts to combine Pauli rotation gates while additionally
-                exploiting commutativity relations.
+            combine_paulis: If ``True``, attempts to combine Pauli rotation gates while
+                exploiting commutativity between Pauli product rotations.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
