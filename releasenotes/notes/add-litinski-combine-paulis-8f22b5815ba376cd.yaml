@@ -5,4 +5,3 @@ features_transpiler:
     When set to ``True`` (non-default), the pass additionally attempts to merge or cancel
     :class:`.PauliProductRotationGate` objects that share the same rotation axis, leveraging
     commutativity between Pauli product rotations.
- 
