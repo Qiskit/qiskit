@@ -641,7 +641,7 @@ impl<'a> VisualizationMatrix<'a> {
                 inst_layers.len() + 1
             ]; // Add 1 to account for the inputs layer
 
-        // Add wires for each qubit and clbit/creg
+        // Add input elements for each qubit and clbit/creg
         let input_layer = vis_matrix.layers.first_mut().unwrap();
         for (idx, qubit) in circuit.qubits().objects().iter().enumerate() {
             if idle_wires || vis_matrix.qubit_map[idx].is_some() {
@@ -763,11 +763,11 @@ impl<'a> VisualizationMatrix<'a> {
                             clbit_map.push(Some(input_idx));
                             input_idx += 1;
                         }
+                        continue;
                     }
-                } else {
-                    clbit_map.push(Some(input_idx));
-                    input_idx += 1;
                 }
+                clbit_map.push(Some(input_idx));
+                input_idx += 1;
             } else {
                 clbit_map.push(None);
             }
@@ -1792,6 +1792,7 @@ mod tests {
         ArrayType, DelayUnit, PauliBased, PauliProductMeasurement, PauliProductRotation,
         STANDARD_GATE_SIZE, StandardInstruction, UnitaryGate,
     };
+    use crate::packed_instruction::PackedOperation;
     use crate::parameter::parameter_expression::ParameterExpression;
     use crate::parameter::symbol_expr::Symbol;
 
@@ -3293,5 +3294,38 @@ c2: 3/════════════════════════�
             result_creg_bundle,
             expected_creg_bundle.trim_start_matches("\n")
         );
+    }
+
+    #[test]
+    fn test_anonymous_clbits_on_idle_wires() {
+        let qubits = vec![ShareableQubit::new_anonymous()];
+        let clbits = vec![
+            ShareableClbit::new_anonymous(),
+            ShareableClbit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.9)).unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
+            .unwrap();
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+                None,
+                &[Qubit(0)],
+                &[Clbit(1)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, true, false, Some(80), 0, false).unwrap();
+        let expected = "
+global phase: 0.9
+     ┌───┐┌─┐
+q_0: ┤ H ├┤M├
+     └───┘└╥┘
+           ║
+    ═══════╩═
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 }
