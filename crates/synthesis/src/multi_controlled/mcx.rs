@@ -1036,16 +1036,8 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
 ///    multiple control Toffoli optimization*, Phys. Rev. A 93, 022311 (2016),
 ///    [arXiv:1508.03273](https://arxiv.org/abs/1508.03273).
 pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
-    if num_controls == 0 {
-        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
-        circuit.x(0)?;
-        return Ok(circuit);
-    } else if num_controls == 1 {
-        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
-        circuit.cx(0, 1)?;
-        return Ok(circuit);
-    } else if num_controls == 2 {
-        return Ok(ccx());
+    if num_controls <= 2 {
+        return synth_mcx_explicit(num_controls);
     }
 
     let srts_gate = srts()?;
