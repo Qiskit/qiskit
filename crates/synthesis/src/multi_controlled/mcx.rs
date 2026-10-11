@@ -264,27 +264,27 @@ impl CircuitDataForSynthesis for CircuitData {
 
 /// Efficient synthesis for 4-controlled X-gate.
 pub fn c4x() -> CircuitData {
-    let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0)).unwrap();
-    circuit.h(4).unwrap();
-    circuit.cp(PI2, 3, 4).unwrap();
-    circuit.h(4).unwrap();
-    circuit
-        .compose(&rc3x(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)], &[])
-        .unwrap();
-    circuit.h(4).unwrap();
-    circuit.cp(-PI2, 3, 4).unwrap();
-    circuit.h(4).unwrap();
-    circuit
-        .compose(
-            &rc3x().inverse().unwrap(),
-            &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
-            &[],
-        )
-        .unwrap();
-    circuit
-        .compose(&c3sx(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])
-        .unwrap();
-    circuit
+    c4x_inner().expect("c4x is a fixed circuit with valid qubit indices and float parameters")
+}
+
+/// Fallible construction of the `c4x` circuit. Every step uses fixed, valid arguments, so
+/// the errors are propagated with `?` and handled by a single `expect` in [`c4x`].
+fn c4x_inner() -> Result<CircuitData, CircuitDataError> {
+    let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
+    circuit.h(4)?;
+    circuit.cp(PI2, 3, 4)?;
+    circuit.h(4)?;
+    circuit.compose(&rc3x(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)], &[])?;
+    circuit.h(4)?;
+    circuit.cp(-PI2, 3, 4)?;
+    circuit.h(4)?;
+    circuit.compose(
+        &rc3x().inverse()?,
+        &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
+        &[],
+    )?;
+    circuit.compose(&c3sx(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])?;
+    Ok(circuit)
 }
 
 /// Adds gates of the "action gadget" to the circuit
@@ -1603,7 +1603,6 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 ///    https://dl.acm.org/doi/10.1145/3656436.
 pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     // Handle small cases explicitly.
-    // should we use <=4? explicit cases are better than hp24 (fewer CX gates)
     if num_controls <= 1 {
         synth_mcx_explicit(num_controls).map_err(Into::into)
     } else {
