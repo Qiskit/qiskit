@@ -712,6 +712,46 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual({"unitary": 1}, res.count_ops())
         self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
 
+    @data(CXGate, CZGate, ECRGate)
+    def test_kak_basis_gate_consolidates_matching_block(self, basis_gate):
+        """Test that a block in the ``kak_basis_gate`` basis is consolidated to a unitary.
+
+        A block of three identical ``basis_gate`` gates can be rewritten with a single basis
+        gate, so it is replaced by a unitary that has the same operator as the block.  The test
+        is parameterized over several gates because ``CXGate`` is the fallback default, and a
+        test that used only ``CXGate`` would not catch a change that stops passing
+        ``kak_basis_gate`` through to the consolidation.
+        """
+        qc = QuantumCircuit(2)
+        for _ in range(3):
+            qc.append(basis_gate(), [0, 1])
+
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=basis_gate())
+        res = consolidate_pass(qc)
+
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
+
+    @data((CXGate, CZGate), (CZGate, ECRGate), (ECRGate, CXGate))
+    def test_kak_basis_gate_leaves_mismatched_block_alone(self, gates):
+        """Test that a block that is not built from the ``kak_basis_gate`` gate is left alone.
+
+        ``kak_basis_gate`` selects the gate that blocks are consolidated with, so a block of a
+        different gate is not rewritten.  Together with
+        ``test_kak_basis_gate_consolidates_matching_block`` this pins down that the argument is
+        actually used rather than silently replaced by the ``CXGate`` default.
+        """
+        basis_gate, other_gate = gates
+
+        qc = QuantumCircuit(2)
+        for _ in range(3):
+            qc.append(basis_gate(), [0, 1])
+
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=other_gate())
+        res = consolidate_pass(qc)
+
+        self.assertEqual(qc, res)
+
     @data(["rzz", "rx", "rz"], ["rzz", "rx", "rz", "cz"])
     def test_collect_and_synthesize_rzz(self, basis_gates):
         """Collect blocks with RZZ gates, and re-synthesizing it.
