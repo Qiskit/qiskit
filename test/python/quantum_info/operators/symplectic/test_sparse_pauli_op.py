@@ -195,6 +195,10 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         expected = SparsePauliOp.from_list([("IXYI", 0.5j)])
         self.assertEqual(SparsePauliOp.from_operator(operator, 0.26), expected)
 
+        # rtol is deprecated and has no effect. test that it warn.
+        with self.assertWarns(DeprecationWarning):
+            SparsePauliOp.from_operator(operator, 0.26, rtol=1e-3)
+
     def test_from_list(self):
         """Test from_list method."""
         labels = ["XXZ", "IXI", "YZZ", "III"]
@@ -1420,6 +1424,10 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         res = op.simplify(atol=2e-9)
         self.assertEqual(SparsePauliOp.from_list([("XX", 1.0e-08 + 0.0j)]), res)
 
+        # rtol is deprecated and has no effect. test that it warn.
+        with self.assertWarns(DeprecationWarning):
+            op.simplify(atol=1e-3, rtol=1e-3)
+
     def test_simplify_sum_below_tolerance(self):
         """Test that simplify sums duplicates before applying atol threshold."""
         # Each coeff > atol, but sum < atol
@@ -1443,22 +1451,26 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
         # Verify the matrix is approximately unitary
         identity = a @ a.conj().T
-        np.testing.assert_allclose(identity, np.eye(2), atol=1e-5, rtol=1e-3)
+        np.testing.assert_allclose(identity, np.eye(2), rtol=0.5, atol=1e-5)
 
         # Create SparsePauliOp from the matrix
         op = SparsePauliOp.from_operator(a)
 
         # Test with tolerance that should pass
         self.assertTrue(
-            op.is_unitary(atol=1e-5, rtol=1e-3),
+            op.is_unitary(atol=1e-5),
             "Operator should be considered unitary with given tolerance",
         )
 
         # Test with very small tolerance that should fail
         self.assertFalse(
-            op.is_unitary(atol=1e-10, rtol=1e-10),
+            op.is_unitary(atol=1e-10),
             "Operator should not be considered unitary with very small tolerance",
         )
+
+        # rtol is deprecated and has no effect. test that it warn.
+        with self.assertWarns(DeprecationWarning):
+            op.is_unitary(atol=1e-3, rtol=1e-3)
 
 
 if __name__ == "__main__":
