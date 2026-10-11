@@ -165,9 +165,7 @@ pub fn run_litinski_transformation(
     // only added to the output circuit at the end.
     let mut pauli_based_ops: Vec<PauliBasedEntry> = Vec::with_capacity(non_clifford_handled_count);
 
-    // Keep track of the clifford operations in the circuit. These include the Clifford operations
-    // from the original circuit, and the Clifford Pauli product rotations obtained by merging
-    // two rotations.
+    // Keep track of the clifford operations in the circuit.
     let mut clifford_ops: Vec<PackedInstruction> = Vec::with_capacity(clifford_count);
 
     // Apply the Litinski transformation: that is, express a given circuit as a sequence of Pauli
@@ -536,11 +534,9 @@ pub fn run_litinski_transformation(
 /// If the merged rotation `M` is a Clifford, the entry is removed and `M` is absorbed into the
 /// Clifford. The rotation `M` has the same Pauli as the new rotation, which commutes with all
 /// the later collected operations, so `M` can be moved to the end of the collected operations.
-/// Thus, if `C` is the current Clifford, the circuit is now of the form `C * M * (rotations)`,
-/// and the Clifford needs to be updated to `C * M`. Since the Pauli `Q` of `M` is obtained
-/// by evolving the original Pauli `P` of the new rotation, that is `C^dagger P C = (-1)^sign Q`,
-/// we have `C * M(Q, angle) = R(P, (-1)^sign angle) * C`. Hence we append the rotation
-/// `R(P, (-1)^sign angle)` both to the Clifford tableau and to the Clifford operations.
+/// If `C` is the current Clifford, the circuit is now of the form `(rotations) -- M -- C`.
+/// However, instead of prepending `M` to the list of Clifford gates and the current Clifford C,
+/// we can append the original Pauli rotation (with the summed angle).
 ///
 /// # Arguments
 ///
