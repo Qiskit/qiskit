@@ -4694,6 +4694,9 @@ impl PyDAGCircuit {
     /// Args:
     ///     name (str): the variable name.
     ///
+    /// Returns:
+    ///     The variable if it is found, otherwise ``None``.
+    ///
     /// See also:
     ///     :meth:`has_var` checks whether a variable is present.
     pub fn get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
@@ -4722,6 +4725,9 @@ impl PyDAGCircuit {
     ///
     /// Args:
     ///     name (str): the stretch name.
+    ///
+    /// Returns:
+    ///     The stretch if it is found, otherwise ``None``.
     ///
     /// See also:
     ///     :meth:`has_stretch` checks whether a stretch is present.
