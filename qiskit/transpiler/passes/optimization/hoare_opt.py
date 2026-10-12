@@ -268,7 +268,7 @@ class HoareOptimizer(TransformationPass):
                 continue
 
             seq = [node1, node2]
-            if append and self._is_identity(seq) and self._seq_as_one(seq):
+            if append and self._are_inverse_nodes(node1, node2) and self._seq_as_one(seq):
                 i += 1
                 for node in seq:
                     dag.remove_op_node(node)
@@ -276,40 +276,25 @@ class HoareOptimizer(TransformationPass):
                         for qbt in node.qargs:
                             self.gatecache[qbt].remove(node)
 
+    def _are_inverse_nodes(self, node1, node2) -> bool:
+        """Determine whether two nodes are inverses of each other when ignoring controls."""
+        try:
+            op1, op2 = node1.op, node2.op.inverse()
+        except Exception:
+            return False
+
+        if isinstance(op1, ControlledGate):
+            op1 = op1.base_gate
+        if isinstance(op2, ControlledGate):
+            op2 = op2.base_gate
+
+        return op1 == op2
+
     def _is_identity(self, sequence):
-        """determine whether the sequence of gates combines to the identity
-            (consider sequences of length 2 for now)
-        Args:
-            sequence (list(DAGOpNode)): gate sequence to inspect
-        Returns:
-            bool: if gate sequence combines to identity
-        """
+        """Determine whether the sequence of gates combines to the identity."""
         if len(sequence) != 2:
             raise ValueError("Invalid sequence length")
-        # some Instructions (e.g measurements) may not have an inverse.
-        try:
-            gate1, gate2 = sequence[0].op, sequence[1].op.inverse()
-        except CircuitError:
-            return False
-        par1, par2 = gate1.params, gate2.params
-        def1, def2 = gate1.definition, gate2.definition
-
-        if isinstance(gate1, ControlledGate):
-            gate1 = gate1.base_gate
-        gate1 = gate1.base_class
-        if isinstance(gate2, ControlledGate):
-            gate2 = gate2.base_gate
-        gate2 = gate2.base_class
-
-        # equality of gates can be determined via type and parameters, unless
-        # the gates have no specific type, in which case definition is used
-        # or they are unitary gates, in which case matrix equality is used
-        if gate1 is Gate and gate2 is Gate:
-            return def1 == def2 and def1 and def2
-        elif gate1 is UnitaryGate and gate2 is UnitaryGate:
-            return matrix_equal(par1[0], par2[0], ignore_phase=True)
-
-        return sequence[0].op == sequence[1].op.inverse()
+        return self._are_inverse_nodes(sequence[0], sequence[1])
 
 
     def _seq_as_one(self, sequence):
