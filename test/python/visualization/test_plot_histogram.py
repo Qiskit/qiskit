@@ -227,6 +227,16 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
             "Plot should have the same number of legend items as defined",
         )
 
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_ignore_under(self):
+        """Test ignore_under filters out counts below threshold."""
+        counts = {"00": 500, "01": 2, "10": 1, "11": 450}
+        plot = plot_histogram(counts, ignore_under=10)
+        # Only "00" and "11" should be present on the x-axis
+        x_labels = [label.get_text() for label in plot.axes[0].get_xticklabels()]
+        self.assertEqual(sorted(x_labels), ["00", "11"])
+
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

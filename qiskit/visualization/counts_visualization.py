@@ -68,6 +68,7 @@ def plot_histogram(
     title=None,
     ax=None,
     filename=None,
+    ignore_under=None,
 ):
     """Plot a histogram of input counts data.
 
@@ -97,6 +98,9 @@ def plot_histogram(
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
         filename (str): file path to save image to.
+        ignore_under (int or float): The count of values below which to ignore
+            the bitstrings. Only bitstrings with counts greater than or equal to
+            ``ignore_under`` will be plotted.
 
     Returns:
         matplotlib.Figure:
@@ -141,10 +145,13 @@ def plot_histogram(
     if not isinstance(data, list):
         data = [data]
 
+    if ignore_under is not None:
+        data = [{k: v for k, v in d.items() if v >= ignore_under} for d in data]
+
     kind = "counts"
     for dat in data:
         if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
-            next(iter(dat.values())), float
+            next(iter(dat.values()), 0), float
         ):
             kind = "distribution"
     return _plotting_core(
@@ -161,6 +168,7 @@ def plot_histogram(
         filename,
         kind=kind,
     )
+
 
 
 def plot_distribution(
