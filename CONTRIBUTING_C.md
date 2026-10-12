@@ -57,8 +57,8 @@ documentation purposes.*
 In short, C enumerations are named integer constants, and nothing more. `cbindgen` creates mappings
 from flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts. In Qiskit, we use `repr(u*)`
 fixed-width enumerations to maintain consistency across compilers. Because
-`sizeof(enum t) == sizeof(int)` is the common case on modern platforms, reach for `repr(u32)`
-first.
+`sizeof(enum t) == sizeof(int)` is the common case on modern platforms, `repr(u32)` is a reasonable
+default. Consider `repr(u8)` in performance critical scenarios.
 
 ```rust
 #[repr(u32)]
