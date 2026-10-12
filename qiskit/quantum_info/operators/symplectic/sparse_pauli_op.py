@@ -34,7 +34,7 @@ from qiskit._accelerate.sparse_observable import SparseObservable
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.circuit import Instruction, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -454,24 +454,18 @@ class SparsePauliOp(LinearOp):
         Schrödinger picture evolves the Pauli as :math:`P^\prime = C.P.C^\dagger`.
 
         Args:
-            other (Pauli or Clifford or QuantumCircuit or str): The Clifford operator to evolve by.
-            qargs (list): a list of qubits to apply the Clifford to.
-            frame (string): ``'h'`` for Heisenberg (default) or ``'s'`` for
+            other: The Clifford operator to evolve by.
+            qargs: a list of qubits to apply the Clifford to.
+            frame: ``'h'`` for Heisenberg (default) or ``'s'`` for
                 Schrödinger framework.
 
         Returns:
-            SparsePauliOp: the evolved Pauli operator :math:`C^\dagger.P.C` (Heisenberg picture)
-            or :math:`C.P.C^\dagger` (Schrödinger picture).
+            The evolved sparse Pauli operator.
 
         Raises:
             QiskitError: if the Clifford number of qubits and qargs don't match.
         """
-        if qargs is None:
-            qargs = getattr(other, "qargs", None)
-
-        from qiskit.quantum_info.operators.symplectic.clifford import Clifford
-
-        if not isinstance(other, (Pauli, Instruction, QuantumCircuit, Clifford)):
+        if isinstance(other, str):
             # Convert to a Pauli
             other = Pauli(other)
 
