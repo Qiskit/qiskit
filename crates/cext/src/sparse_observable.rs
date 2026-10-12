@@ -1068,8 +1068,8 @@ pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``str`` is not a pointer returned by ``qk_obs_str`` or
-/// ``qk_obsterm_str``.
+/// Behavior is undefined if ``string`` is not either null or a pointer returned by
+/// ``qk_obs_str`` or ``qk_obsterm_str``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
     if !string.is_null() {

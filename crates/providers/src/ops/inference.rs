@@ -16,9 +16,6 @@ use super::error::MathOpError;
 use crate::tensor::{DType, Dim, TensorType, broadcast_dims, broadcast_dims_to, promotion};
 
 /// Which dtypes an op admits.
-///
-/// An op accepts only what its evaluation covers, so that a dtype it cannot compute is rejected
-/// when the op is added rather than when it runs.
 pub(super) type Accepts = fn(DType) -> bool;
 
 /// How an op's result dtype follows from its operand's.
@@ -32,9 +29,7 @@ pub(super) fn any(_dtype: DType) -> bool {
 /// Infer the result type of an elementwise operation over two operands.
 ///
 /// The operand dtypes promote and the shapes broadcast. `accepts` is checked against the promoted
-/// dtype rather than against each operand, because the promoted dtype is the one the operation
-/// computes in. So `add` accepts a `Bit` operand alongside an `F64` one, which promote to `F64`, and
-/// rejects two `Bit` operands.
+/// dtype rather than against each operand, returning an error if rejected.
 pub(super) fn elementwise_binary(
     x: &TensorType,
     y: &TensorType,
@@ -66,9 +61,6 @@ pub(super) fn elementwise_unary(
 }
 
 /// Infer the result type of a reduction along `axis`.
-///
-/// The result does not have `axis`. Its dtype is `result_dtype` of the operand's dtype; the mean of a
-/// bit tensor is a float, for instance.
 pub(super) fn reduce(
     x: &TensorType,
     axis: usize,
@@ -106,10 +98,10 @@ fn check_accepts(dtype: DType, accepts: Accepts) -> Result<(), MathOpError> {
     Ok(())
 }
 
-/// The dtype a cast from `from` to `to` produces.
+/// Return the dtype a cast from `from` to `to` produces.
 ///
-/// This is the evaluation-time counterpart of [`cast`], which works from types. Every cast is
-/// supported except from a complex dtype to a real one.
+/// This is the evaluation-time counterpart of [`cast`]. Every cast is supported except from a
+/// complex dtype to a real one.
 pub(super) fn cast_dtype(from: DType, to: DType) -> Result<DType, MathOpError> {
     let complex = |dtype| matches!(dtype, DType::C64 | DType::C128);
     if complex(from) && !complex(to) {
@@ -118,11 +110,10 @@ pub(super) fn cast_dtype(from: DType, to: DType) -> Result<DType, MathOpError> {
     Ok(to)
 }
 
-/// The dtype an elementwise binary operation computes in.
+/// Return the dtype an elementwise binary operation computes in.
 ///
-/// This is the evaluation-time counterpart of [`elementwise_binary`], which works from types.
-/// Evaluation casts both operands to this dtype first, so the result matches the type that was
-/// inferred.
+/// This is the evaluation-time counterpart of [`elementwise_binary`]. Evaluation casts both operands
+/// to this dtype first.
 pub(super) fn promoted_dtype(x: DType, y: DType, accepts: Accepts) -> Result<DType, MathOpError> {
     let dtype = promotion(x, y);
     if !accepts(dtype) {
@@ -140,7 +131,7 @@ mod test {
     use super::*;
     use crate::tensor::{Dim, TensorError};
 
-    /// A `TensorType` of `dtype` over fixed axes `shape`.
+    /// Return a `TensorType` of `dtype` over fixed axes `shape`.
     fn ty(dtype: DType, shape: &[usize]) -> TensorType {
         TensorType {
             dtype,
