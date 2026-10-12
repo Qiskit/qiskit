@@ -11,20 +11,20 @@ jobs:
       - uses: actions/stale@v11
         with:
           stale-pr-message: |+
-            This PR seems stalling because it has been 90 days (~3 months) with no activity.
-            
+            This PR seems to be stalling because it has been 90 days (~3 months) with no activity.
+
             If you want to keep this PR alive you could:
-              
+
               - Make sure this PR has no conflicts
               - Have it ready for review (draft PRs or PRs with `WIP` in their title are not considered ready for review)
               - Address all review comments and requests for changes if they exist
-        
-            What you *should not do under any circunstances*:
-            
+
+            What you *should not do under any circumstances*:
+
               - Comment on this PR just to keep it alive
-              - Mention mention people in the comments to call their attention
+              - Mention people in the comments to call their attention
               - Hit `Update branch` button
-            
+
             <sub>As a maintainer, you can remove the `stale?` label to reset the stale timer</sub>
           close-pr-message: 'This PR was closed because it has been stalled. Feel free to submit a new PR if you think this was a mistake.'
           days-before-stale: 90
