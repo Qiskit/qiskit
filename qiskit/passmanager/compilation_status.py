@@ -21,11 +21,11 @@ class PropertySet(dict):
     """A default dictionary-like that works as a shared memory among transpilation passes.
 
     A single instance is created when a pass manager starts running and is handed from pass to
-    pass, so they can use it to communicate: a pass reads what earlier passes recorded and writes
-    in place what later passes might need.  It lives only for the duration of the run.
+    pass, so they can use it to communicate: a pass can read what earlier passes recorded and writes
+    in place what later passes might need.
 
-    Keys are free-form, so a pass should document whatever it reads and writes.  The transpiler
-    relies on some by convention, such as ``"layout"`` and ``"original_qubit_indices"`` from the
+    Keys are free-form, so a pass should document whatever it reads and writes.  Qiskit's preset 
+    pass managers may rely on some by convention, such as ``"layout"`` and ``"original_qubit_indices"`` from the
     layout stage, ``"final_layout"`` from routing, and ``"node_start_time"`` from scheduling
     analysis; see :ref:`transpiler-preset-stage-layout` and
     :ref:`transpiler-preset-stage-scheduling`.
