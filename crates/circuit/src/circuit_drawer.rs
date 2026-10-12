@@ -1091,9 +1091,12 @@ impl TextDrawer {
                             "{:<in_len$}{}{:^label_len$}",
                             input_idx.map_or("".to_string(), |q| q.to_string()),
                             Self::try_pauli_term(input_idx, inst), // in case it's a PPR/PPM gate
-                            (mid_idx == wire_idx && (total_wire & 1 == 1)) // if total wires are even, add label to bottom instead
-                                .then_some(label.clone())
-                                .unwrap_or_default(),
+                            if mid_idx == wire_idx && (total_wire & 1 == 1) {
+                                // if total wires are even, add label to bottom instead
+                                label.clone()
+                            } else {
+                                String::from("")
+                            },
                             in_len = qarg_inputs_len,
                             label_len = label_len,
                         );
@@ -1125,7 +1128,7 @@ impl TextDrawer {
                                 CONNECTING_WIRE,
                                 "",
                                 " ".repeat(Self::try_pauli_term(input_idx, inst).width()), // in case it's a PPR/PPM gate
-                                Some(label).unwrap_or_default(),
+                                label,
                                 CONNECTING_WIRE,
                                 in_len = qarg_inputs_len
                             )
