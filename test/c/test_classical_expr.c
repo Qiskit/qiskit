@@ -335,7 +335,7 @@ static int test_expr_var(void) {
         inner_test_expr_kinds_and_types(QkExprNodeKind_Var, (QkExprTypeInfo){QkExprType_Uint, 8});
     QkVarKind kind = qk_var_kind(qk_expr_as_var(expr));
     if (kind != QkVarKind_Standalone) {
-        printf("Expected QkVarKind_Standalone, got %d\n", kind);
+        fprintf(stderr, "Expected QkVarKind_Standalone, got %d\n", kind);
         result = EqualityError;
         goto cleanup;
     }
@@ -375,14 +375,14 @@ static int test_expr_var(void) {
 
     kind = qk_var_kind(var);
     if (kind != QkVarKind_Bit) {
-        printf("Expected QkVarKind_Bit, got %d\n", kind);
+        fprintf(stderr, "Expected QkVarKind_Bit, got %d\n", kind);
         result = EqualityError;
         goto cleanup_vars;
     }
 
     uint32_t clbit = qk_var_clbit(var, circuit);
     if (clbit != 1) {
-        printf("Expected bit var to wrap clbit 1, got %u\n", clbit);
+        fprintf(stderr, "Expected bit var to wrap clbit 1, got %u\n", clbit);
         result = EqualityError;
         goto cleanup_vars;
     }
@@ -390,7 +390,7 @@ static int test_expr_var(void) {
     // The same bit is not part of an unrelated circuit.
     clbit = qk_var_clbit(var, other_circuit);
     if (clbit != UINT32_MAX) {
-        printf("Expected UINT32_MAX for a foreign circuit, got %u\n", clbit);
+        fprintf(stderr, "Expected UINT32_MAX for a foreign circuit, got %u\n", clbit);
         result = EqualityError;
         goto cleanup_vars;
     }
@@ -415,7 +415,7 @@ static int test_expr_var(void) {
 
     kind = qk_var_kind(var);
     if (kind != QkVarKind_Register) {
-        printf("Expected QkVarKind_Register, got %d\n", kind);
+        fprintf(stderr, "Expected QkVarKind_Register, got %d\n", kind);
         result = EqualityError;
         goto cleanup_vars;
     }
@@ -423,19 +423,27 @@ static int test_expr_var(void) {
     // The register view is borrowed from the expression, so it must not be freed.
     const QkClassicalRegister *var_reg = qk_var_register(var);
     if (var_reg == NULL) {
-        printf("qk_var_register returned NULL for a register var\n");
+        fprintf(stderr, "qk_var_register returned NULL for a register var\n");
         result = NullptrError;
         goto cleanup_vars;
     }
 
     char *reg_name = qk_classical_register_name(var_reg);
     if (strcmp(reg_name, "c1") != 0) {
-        printf("Expected register name 'c1', got '%s'\n", reg_name);
+        fprintf(stderr, "Expected register name 'c1', got '%s'\n", reg_name);
         qk_str_free(reg_name);
         result = EqualityError;
         goto cleanup_vars;
     }
     qk_str_free(reg_name);
+
+    // Querying a variable of the wrong kind yields a sentinel rather than aborting. `var` is the
+    // register variable, so it has no classical bit to report.
+    if (qk_var_clbit(var, circuit) != UINT32_MAX) {
+        fprintf(stderr, "Expected UINT32_MAX from qk_var_clbit on a register var\n");
+        result = EqualityError;
+        goto cleanup_vars;
+    }
 
 cleanup_vars:
     inner_expr_free(var_nodes[0]);
