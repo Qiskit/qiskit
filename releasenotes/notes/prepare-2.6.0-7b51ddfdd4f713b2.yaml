@@ -1,0 +1,22 @@
+---
+prelude: |
+  Qiskit v2.6.0 is a new feature release of the Qiskit SDK.
+
+  This release introduces important new functionality into the Qiskit SDK,
+  including the following:
+
+  * **A Multi-IR Pass Manager in C and Python:** Users are now able to fully
+    define a :class:`.PassManager` from the C API which can use different
+    Intermediate Representations (IRs) as input and output. Refer to 
+    :ref:`capi-pass-manager` for guidance on how to use it.
+
+  * **Custom Operations in C:** Users are now able to fully define an 
+    :class:`.Operation` using the C API. Please refer to :ref:`capi-operations`
+    for further guidance.
+
+  * **QPY 18 and C API:**
+    * QPY serialization and de-serialization is now available via the C API.
+      Please refer to :ref:`capi-qpy`.
+    * QPY v18 with updated to the 
+      storage of :class:`.ParameterVector` objects, counter-based naming for
+      custom operations, and others.
