@@ -4,9 +4,9 @@ The C API is designed for...
 
 - python extension modules written in C.
 - wrapper libraries like [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
-  [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp)
+  [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
+- usage without linking `libpython`.
 - high-performance computing workloads.
-- use qiskit without linking `libpython`
 
 See the [tutorial](#tutorial) if this is your first time extending the C API.
 
@@ -58,7 +58,8 @@ In short, C enumerations are named integer constants, and nothing more. `cbindge
 from flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts. In Qiskit, we use `repr(u*)`
 fixed-width enumerations to maintain consistency across compilers. Because
 `sizeof(enum t) == sizeof(int)` is the common case on modern platforms, `repr(u32)` is a reasonable
-default. Consider `repr(u8)` in performance critical scenarios.
+default. Consider `repr(u8)` when the `enum` is a member of a tightly packed structure and
+performance is critical.
 
 ```rust
 #[repr(u32)]
