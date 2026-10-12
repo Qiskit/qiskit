@@ -74,7 +74,7 @@ pub enum CVarKind {
     Standalone = 0,
     /// A legacy variable that wraps a single classical bit of a circuit.
     Bit = 1,
-    /// An legacy variable that wraps a classical register of a circuit.
+    /// A legacy variable that wraps a classical register of a circuit.
     Register = 2,
 }
 
@@ -1259,12 +1259,6 @@ pub unsafe extern "C" fn qk_value_bool(value: *const Value) -> bool {
 /// @ingroup QkClassicalExpressions
 /// Return the kind of a variable.
 ///
-/// Variables come in two forms: a new-style ``QkVarKind_Standalone`` variable, which owns its
-/// storage and has a name retrievable with ``qk_var_name``; and the old-style
-/// ``QkVarKind_Bit`` and ``QkVarKind_Register`` variables, which wrap a classical bit or a
-/// classical register owned by some containing circuit. Query this first to know which of
-/// ``qk_var_name``, ``qk_var_clbit`` and ``qk_var_register`` is applicable.
-///
 /// @param var A pointer to the variable to inspect.
 ///
 /// @return The kind enum describing which concrete variable variant ``var`` contains.
@@ -1379,13 +1373,12 @@ pub unsafe extern "C" fn qk_var_type_info(var: *const Var) -> CExprTypeInfo {
 /// ``circuit``: it reports where that bit sits in ``circuit``, and ``UINT32_MAX`` if the bit is
 /// not one of them.
 ///
-/// @param var A pointer to the variable to inspect. Must be of kind ``QkVarKind_Bit``.
+/// @param var A pointer to the variable to inspect.
 /// @param circuit A pointer to the circuit to resolve the classical bit against.
 ///
-/// @return The index of the classical bit in ``circuit``, or ``UINT32_MAX`` if the bit is not
-/// part of ``circuit``.
-///
-/// Panics if ``var`` is not a bit variable. Query ``qk_var_kind`` first.
+/// @return The index of the classical bit in ``circuit``, or ``UINT32_MAX`` if ``var`` is not of
+/// kind ``QkVarKind_Bit``, or if the bit is not part of ``circuit``. Call ``qk_var_kind`` to
+/// distinguish the two cases.
 ///
 /// # Example
 /// ```c
@@ -1409,7 +1402,7 @@ pub unsafe extern "C" fn qk_var_clbit(var: *const Var, circuit: *const CircuitDa
     let circuit = unsafe { &*circuit };
 
     let Var::Bit { bit } = var else {
-        panic!("qk_var_clbit called on a non-bit variable")
+        return u32::MAX;
     };
 
     circuit.clbit_index(bit).unwrap_or(u32::MAX)
@@ -1675,7 +1668,7 @@ pub unsafe extern "C" fn inner_test_value(
     Box::into_raw(Box::new(Expr::Value(value)))
 }
 
-/// Build the two lergacy variable expressions used in the C tests.
+/// Build the two legacy variable expressions used in the C tests.
 ///
 /// The bit variable wraps the clbit of ``circuit`` at index ``clbit``, and the register variable
 /// wraps a register equal to one named ``c1`` with two bits, so both can be resolved back against

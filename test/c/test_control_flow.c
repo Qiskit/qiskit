@@ -847,7 +847,8 @@ static int test_while_on_expr(void) {
     // that we can trace back to the register it wraps.
     QkBinaryExprInfo bin_info = qk_expr_binary_info(expr);
     if (qk_expr_kind(bin_info.left) != QkExprNodeKind_Var) {
-        printf("Expected the left operand to be a Var, got %d\n", qk_expr_kind(bin_info.left));
+        fprintf(stderr, "Expected the left operand to be a Var, got %d\n",
+                qk_expr_kind(bin_info.left));
         result = EqualityError;
         goto cleanup;
     }
@@ -855,7 +856,7 @@ static int test_while_on_expr(void) {
     const QkVar *var = qk_expr_as_var(bin_info.left);
     QkVarKind var_kind = qk_var_kind(var);
     if (var_kind != QkVarKind_Register) {
-        printf("Expected QkVarKind_Register, got %d\n", var_kind);
+        fprintf(stderr, "Expected QkVarKind_Register, got %d\n", var_kind);
         result = EqualityError;
         goto cleanup;
     }
@@ -863,7 +864,7 @@ static int test_while_on_expr(void) {
     const QkClassicalRegister *creg = qk_var_register(var);
     char *reg_name = qk_classical_register_name(creg);
     if (strcmp(reg_name, "cr") != 0) {
-        printf("Expected register name 'cr', got '%s'\n", reg_name);
+        fprintf(stderr, "Expected register name 'cr', got '%s'\n", reg_name);
         qk_str_free(reg_name);
         result = EqualityError;
         goto cleanup;
