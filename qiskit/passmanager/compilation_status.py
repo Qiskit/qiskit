@@ -18,7 +18,7 @@ from enum import Enum
 
 
 class PropertySet(dict):
-    """A default dictionary-like that works as a shared memory among transpilation passes.
+    """A default dictionary-like context object, shared among compiler passes.
 
     A single instance is created when a pass manager starts running and is handed from pass to
     pass, so they can use it to communicate: a pass can read what earlier passes recorded and writes
