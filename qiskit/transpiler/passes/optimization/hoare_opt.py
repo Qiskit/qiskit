@@ -296,8 +296,8 @@ class HoareOptimizer(TransformationPass):
             raise ValueError("Invalid sequence length")
         return self._are_inverse_nodes(sequence[0], sequence[1])
 
-
     def _seq_as_one(self, sequence):
+
         """use z3 solver to determine if the gates in the sequence are either
             all executed or none of them are executed, based on control qubits
             (consider sequences of length 2 for now)
