@@ -43,35 +43,45 @@
 // clang-format on
 QkCircuit *inner_test_control_flow_circuit();
 
-// Build a circuit containing a single Box, constructed entirely through the public C API.
-//
-// This is the C equivalent of:
-// qc = QuantumCircuit(3, 3)
-// body = QuantumCircuit(2, 1)
-// body.cx(0, 1)
-// body.measure(0, 0)
-// qc.box(body, [2, 0], [1], duration=<duration>)
-//
-// Returns NULL if `qk_circuit_box` fails, in which case there is nothing left to free.
-static QkCircuit *build_box_circuit(const QkDurationInfo *duration) {
-    QkCircuit *circuit = qk_circuit_new(3, 3);
-
+// Build the body shared by the box tests.
+static QkCircuit *build_box_body(void) {
     QkCircuit *body = qk_circuit_new(2, 1);
     uint32_t cx_qubits[2] = {0, 1};
     qk_circuit_gate(body, QkGate_CX, cx_qubits, NULL);
     qk_circuit_measure(body, 0, 0);
+    return body;
+}
 
+// Build a circuit with a single box. Returns NULL if appending the box fails.
+static QkCircuit *build_box_circuit_duration_info(const QkDurationInfo *duration) {
+    QkCircuit *circuit = qk_circuit_new(3, 3);
     uint32_t box_qubits[2] = {2, 0};
     uint32_t box_clbits[1] = {1};
 
-    // `qk_circuit_box` takes ownership of `body`, so there is no need to free it.
-    QkExitCode result = qk_circuit_box(circuit, body, box_qubits, box_clbits, duration);
+    // The box takes ownership of the body.
+    QkExitCode result = qk_circuit_box_duration_info(circuit, build_box_body(), box_qubits,
+                                                     box_clbits, duration, NULL);
+    if (result != QkExitCode_Success) {
+        printf("qk_circuit_box_duration_info failed with exit code %d\n", result);
+        qk_circuit_free(circuit);
+        return NULL;
+    }
+    return circuit;
+}
+
+// As ``build_box_circuit_duration_info``, with no duration.
+static QkCircuit *build_box_circuit_no_duration(void) {
+    QkCircuit *circuit = qk_circuit_new(3, 3);
+    uint32_t box_qubits[2] = {2, 0};
+    uint32_t box_clbits[1] = {1};
+
+    // The box takes ownership of the body.
+    QkExitCode result = qk_circuit_box(circuit, build_box_body(), box_qubits, box_clbits, NULL);
     if (result != QkExitCode_Success) {
         printf("qk_circuit_box failed with exit code %d\n", result);
         qk_circuit_free(circuit);
         return NULL;
     }
-
     return circuit;
 }
 
@@ -81,7 +91,7 @@ static QkCircuit *build_box_circuit(const QkDurationInfo *duration) {
 static int test_box_construction(void) {
     int result = Ok;
     QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
-    QkCircuit *circuit = build_box_circuit(&duration);
+    QkCircuit *circuit = build_box_circuit_duration_info(&duration);
     QkControlFlowInstruction *cf_inst = NULL;
 
     if (circuit == NULL) {
@@ -204,12 +214,10 @@ cleanup:
     return result;
 }
 
-// Test that passing NULL for the duration of `qk_circuit_box` produces a Box
-// with no duration, i.e. the C equivalent of:
-// qc.box(body, [2, 0], [1])
+// Test that `qk_circuit_box` produces a Box with no duration.
 static int test_box_without_duration(void) {
     int result = Ok;
-    QkCircuit *circuit = build_box_circuit(NULL);
+    QkCircuit *circuit = build_box_circuit_no_duration();
     QkControlFlowInstruction *cf_inst = NULL;
 
     if (circuit == NULL) {
@@ -233,6 +241,85 @@ static int test_box_without_duration(void) {
 cleanup:
     qk_control_flow_instruction_free(cf_inst);
     qk_circuit_free(circuit);
+    return result;
+}
+
+// Test that a Box with a duration in ``dt`` units reads back correctly, i.e. the C equivalent of:
+// qc.box(body, [2, 0], [1], duration=100, unit="dt")
+static int test_box_duration_dt(void) {
+    int result = Ok;
+    QkDurationInfo duration = {QkDurationType_Dt, {.dt = 100}};
+    QkCircuit *circuit = build_box_circuit_duration_info(&duration);
+    QkControlFlowInstruction *cf_inst = NULL;
+
+    if (circuit == NULL) {
+        return RuntimeError;
+    }
+
+    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
+    if (cf_inst == NULL) {
+        printf("Failed to get control flow instruction\n");
+        result = NullptrError;
+        goto cleanup;
+    }
+
+    QkDurationInfo duration_info = qk_control_flow_box_duration_val_info(cf_inst);
+    if (duration_info.ty != QkDurationType_Dt || duration_info.value.dt != 100) {
+        printf("Expected a duration of 100 dt\n");
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_control_flow_instruction_free(cf_inst);
+    qk_circuit_free(circuit);
+    return result;
+}
+
+// Test that `qk_circuit_box` accepts NULL clbits and returns the index of the appended box.
+static int test_box_index(void) {
+    int result = Ok;
+    QkCircuit *circuit = qk_circuit_new(2, 0);
+    uint32_t h_qubits[1] = {0};
+    qk_circuit_gate(circuit, QkGate_H, h_qubits, NULL);
+
+    QkCircuit *body = qk_circuit_new(1, 0);
+    uint32_t box_qubits[1] = {1};
+    size_t idx = SIZE_MAX;
+    QkExitCode code = qk_circuit_box(circuit, body, box_qubits, NULL, &idx);
+    if (code != QkExitCode_Success || idx != 1) {
+        printf("Expected the box at index 1, got exit code %d and index %zu\n", code, idx);
+        result = EqualityError;
+    }
+
+    qk_circuit_free(circuit);
+    return result;
+}
+
+// Test the error codes returned when appending a box fails.
+static int test_box_errors(void) {
+    int result = Ok;
+    QkParam *outer_a = qk_param_new_symbol("a");
+    QkParam *inner_a = qk_param_new_symbol("a");
+    uint32_t qubits[1] = {0};
+
+    // A parameter in the body whose name clashes with a different one in the outer circuit.
+    QkCircuit *circuit = qk_circuit_new(1, 0);
+    const QkParam *outer_params[1] = {outer_a};
+    qk_circuit_parameterized_gate(circuit, QkGate_RX, qubits, outer_params);
+
+    QkCircuit *body = qk_circuit_new(1, 0);
+    const QkParam *inner_params[1] = {inner_a};
+    qk_circuit_parameterized_gate(body, QkGate_RX, qubits, inner_params);
+
+    QkExitCode code = qk_circuit_box(circuit, body, qubits, NULL, NULL);
+    if (code != QkExitCode_ParameterNameConflict) {
+        printf("Expected QkExitCode_ParameterNameConflict, got %d\n", code);
+        result = EqualityError;
+    }
+
+    qk_circuit_free(circuit);
+    qk_param_free(outer_a);
+    qk_param_free(inner_a);
     return result;
 }
 
@@ -854,6 +941,9 @@ int test_control_flow(void) {
 
     num_failed += RUN_TEST(test_box_construction);
     num_failed += RUN_TEST(test_box_without_duration);
+    num_failed += RUN_TEST(test_box_duration_dt);
+    num_failed += RUN_TEST(test_box_index);
+    num_failed += RUN_TEST(test_box_errors);
     num_failed += RUN_TEST(test_for_nested_break_continue);
     num_failed += RUN_TEST(test_switch_case_on_register);
     num_failed += RUN_TEST(test_while_on_bit);
