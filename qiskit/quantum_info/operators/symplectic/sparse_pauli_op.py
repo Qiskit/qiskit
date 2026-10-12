@@ -14,7 +14,7 @@ N-Qubit Sparse Pauli Operator class.
 """
 
 from __future__ import annotations
-from typing import  Literal, TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING
 
 from collections.abc import Mapping, Sequence, Iterable
 from numbers import Number

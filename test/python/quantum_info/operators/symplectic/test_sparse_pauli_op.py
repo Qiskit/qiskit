@@ -866,7 +866,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             target = bind_parameters_to_one(target)
         np.testing.assert_allclose(value_mat, target, atol=1e-8)
         np.testing.assert_array_equal(op.paulis.phase, np.zeros(op.size))
-    
+
     @combine(
         gate=(
             IGate(),
@@ -1000,6 +1000,102 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertListEqual(value, target)
         self.assertListEqual(value, value_h)
         self.assertListEqual(value_inv, value_s)
+
+    @combine(
+        gate=(
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            Clifford(HGate()),
+            Clifford(SGate()),
+        )
+    )
+    def test_evolve_sum_matrix_1q(self, gate):
+        """Test evolve of a multi-term SparsePauliOp with mixed coefficients (1-qubit gate)"""
+        coeffs = [0.5, -1.3j, 2.0 + 0.5j, -0.7]
+        labels = ["X", "Y", "Z", "I"]
+        op = SparsePauliOp.from_list(zip(labels, coeffs))
+        u = Operator(gate)
+
+        evolved = op.evolve(gate)
+
+        # Phases must be fully absorbed into coefficients — paulis.phase stays zero.
+        np.testing.assert_array_equal(evolved.paulis.phase, np.zeros(evolved.size))
+
+        # Per-term comparison
+        for c_orig, p_orig, c_evo, p_evo in zip(
+            op.coeffs, op.paulis, evolved.coeffs, evolved.paulis
+        ):
+            np.testing.assert_allclose(
+                c_evo * Operator(p_evo).data,
+                c_orig * (u.adjoint().dot(p_orig).dot(u)),
+                atol=1e-8,
+            )
+
+        # Full matrix comparison
+        target_matrix = u.adjoint().data @ op.to_matrix() @ u.data
+        np.testing.assert_allclose(evolved.to_matrix(), target_matrix, atol=1e-8)
+
+    @combine(
+        gate=(
+            CXGate(),
+            CZGate(),
+            SwapGate(),
+            Clifford(CXGate()),
+            Clifford(CZGate()),
+        )
+    )
+    def test_evolve_sum_matrix_2q(self, gate):
+        """Test evolve of a multi-term SparsePauliOp with mixed coefficients (2-qubit gate)"""
+        coeffs = [1.0, -0.5j, 0.3 + 0.2j, -1.1, 0.8j, -0.4]
+        labels = ["XX", "YZ", "ZI", "IX", "ZZ", "YY"]
+        op = SparsePauliOp.from_list(zip(labels, coeffs))
+        u = Operator(gate)
+
+        evolved = op.evolve(gate)
+
+        # Phases must be fully absorbed into coefficients — paulis.phase stays zero.
+        np.testing.assert_array_equal(evolved.paulis.phase, np.zeros(evolved.size))
+
+        # Per-term comparison
+        for c_orig, p_orig, c_evo, p_evo in zip(
+            op.coeffs, op.paulis, evolved.coeffs, evolved.paulis
+        ):
+            np.testing.assert_allclose(
+                c_evo * Operator(p_evo).data,
+                c_orig * (u.adjoint().dot(p_orig).dot(u)),
+                atol=1e-8,
+            )
+
+        # Full matrix comparison
+        target_matrix = u.adjoint().data @ op.to_matrix() @ u.data
+        np.testing.assert_allclose(evolved.to_matrix(), target_matrix, atol=1e-8)
+
+    def test_evolve_sum_matrix_qargs(self):
+        """Test evolve of a multi-term SparsePauliOp with qargs.
+
+        Applies a 2-qubit Clifford to a subset of qubits of a 4-qubit operator.
+        """
+        coeffs = [1.0, -0.5j, 0.3 + 0.2j, -1.1, 0.8j]
+        labels = ["XIIZ", "YZIX", "ZZII", "IXXY", "ZZYX"]
+        op = SparsePauliOp.from_list(zip(labels, coeffs))
+        cliff = random_clifford(2, seed=42)
+        u = Operator(cliff)
+        qargs = [1, 3]
+
+        evolved = op.evolve(cliff, qargs=qargs)
+
+        # Phases must be fully absorbed into coefficients — paulis.phase stays zero.
+        np.testing.assert_array_equal(evolved.paulis.phase, np.zeros(evolved.size))
+
+        # Full matrix comparison
+        op_full = Operator(op)
+        target_matrix = op_full.compose(u.adjoint(), qargs=qargs).dot(Operator(u), qargs=qargs).data
+        np.testing.assert_allclose(evolved.to_matrix(), target_matrix, atol=1e-8)
 
     def test_simplify(self):
         """Test simplify method"""
