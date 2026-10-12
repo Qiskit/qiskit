@@ -15,6 +15,7 @@ prelude: |
     for further guidance.
 
   * **QPY 18 and C API:**
+  
     * QPY serialization and de-serialization is now available via the C API.
       Please refer to :ref:`capi-qpy`.
     * QPY v18 with updated to the 
