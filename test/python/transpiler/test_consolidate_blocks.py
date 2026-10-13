@@ -347,6 +347,53 @@ class TestConsolidateBlocks(QiskitTestCase):
         res = consolidate_blocks_pass.run(dag)
         self.assertEqual(res, dag)
 
+    @data(CXGate, CZGate, ECRGate)
+    def test_kak_basis_gate_consolidates_redundant_block(self, basis_gate):
+        """The explicit KAK gate determines the cost of consolidating a block."""
+        qc = QuantumCircuit(2)
+        for angle in (0.2, 0.4, 0.6, 0.8):
+            qc.append(basis_gate(), [1, 0])
+            qc.rx(angle, 0)
+            qc.ry(angle, 1)
+
+        # Four basis gates exceed the at most three needed for this unitary.
+        # Keep the block short enough to exercise the gate-count heuristic.
+        result = ConsolidateBlocks(kak_basis_gate=basis_gate())(qc)
+
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result.data[0].operation, UnitaryGate)
+        self.assertEqual(Operator(result), Operator(qc))
+
+        # Ignoring a non-CX basis would count zero basis gates and leave the
+        # block unchanged, so consolidation must depend on the explicit gate.
+        if basis_gate is not CXGate:
+            self.assertEqual(ConsolidateBlocks()(qc), qc)
+
+    @data(CXGate, CZGate, ECRGate)
+    def test_kak_basis_gate_preserves_minimal_block(self, basis_gate):
+        """An explicit KAK gate does not force an already minimal block to consolidate."""
+        qc = QuantumCircuit(2)
+        qc.rx(0.2, 0)
+        qc.append(basis_gate(), [0, 1])
+
+        result = ConsolidateBlocks(kak_basis_gate=basis_gate())(qc)
+
+        self.assertEqual(result, qc)
+        self.assertEqual(Operator(result), Operator(qc))
+
+    @data(CXGate, CZGate, ECRGate)
+    def test_kak_basis_gate_outside_basis(self, basis_gate):
+        """The explicit KAK gate enables consolidation even without a KAK gate in the basis."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.swap(0, 1)
+
+        result = ConsolidateBlocks(kak_basis_gate=basis_gate(), basis_gates=["u"])(qc)
+
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result.data[0].operation, UnitaryGate)
+        self.assertEqual(Operator(result), Operator(qc))
+
     def test_single_gate_block_outside_basis(self):
         """Test that a single gate block outside the configured basis gets converted."""
         qc = QuantumCircuit(2)
