@@ -39,6 +39,7 @@ from .visualization import QiskitVisualizationTestCase, path_to_diagram_referenc
 @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
 @unittest.skipUnless(optionals.HAS_PYDOT, "pydot not installed")
 @unittest.skipUnless(optionals.HAS_PIL, "Pillow not installed")
+
 class TestPassManagerDrawer(QiskitVisualizationTestCase):
     """Qiskit pass manager drawer tests."""
 
@@ -97,6 +98,15 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
             self.assertFilesAreEqual(filename, path_to_diagram_reference("pass_manager_style.dot"))
         finally:
             os.remove(filename)
+
+    @unittest.skipUnless(
+        optionals.HAS_PYDOT and optionals.HAS_GRAPHVIZ and optionals.HAS_PIL,
+        "pydot, graphviz, and pillow are required for rendering pass manager images",
+    )
+    def test_pass_manager_drawer_tempfile_windows_permission(self):
+        """Test pass manager drawing returns a PIL Image without permission errors on temporary files."""
+        image = self.pass_manager.draw()
+        self.assertIsNotNone(image)
 
 
 if __name__ == "__main__":
