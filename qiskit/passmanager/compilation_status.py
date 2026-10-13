@@ -24,17 +24,13 @@ class PropertySet(dict):
     pass, so they can use it to communicate: a pass can read what earlier passes recorded and writes
     in place what later passes might need.
 
-    Keys are free-form, so a pass should document whatever it reads and writes.  Qiskit's preset 
+    Keys are free-form, so a pass should document whatever it reads and writes.  Qiskit's preset
     pass managers may rely on some by convention, such as ``"layout"`` and ``"original_qubit_indices"`` from the
     layout stage, ``"final_layout"`` from routing, and ``"node_start_time"`` from scheduling
     analysis; see :ref:`transpiler-preset-stage-layout` and
     :ref:`transpiler-preset-stage-scheduling`.
 
-    Unlike :class:`dict`, looking up a missing key returns ``None`` rather than raising
-    :exc:`KeyError`, so a pass can test for a property it may be the first to set::
-
-        if property_set["layout"] is None:
-            ...
+    Looking up a missing key returns ``None`` by default.
     """
 
     def __missing__(self, key):
