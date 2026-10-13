@@ -141,6 +141,25 @@ Use fixed-width integers in transparent structures and function signatures. Avoi
 integers such as `c_int` and `c_long`. `cbindgen` generates headers using the fixed-width integer
 types found in `inttypes.h`. For example, `i32` is mapped to `int32_t`.
 
+### Ownership
+
+C syntax cannot express ownership semantics, so, the ownership contract must be documented. Some
+programmers may not understand the impact of ownership on their memory management responsibility.
+Instead of writing "takes ownership" or "consumes", state what the caller _must not_ do after each
+outcome. The following function takes ownership of `entry` if it's added to the target. Note that
+the `entry` pointer is `*mut` because the internals potentially take ownership.
+
+```rust
+/// Append an instruction to the ``QkTarget`` through a ``QkTargetEntry``.
+/// 
+/// @param target A non-null pointer to the ``QkTarget``.
+/// @param entry A non-null pointer to the ``QkTargetEntry``.
+///
+/// @return Returns `QkExitCode_Success` if the instruction was added. The caller must not use
+///         or free `entry` after the instruction is added successfully.
+extern "C" fn qk_target_add_instruction(target: *mut Target, entry: *mut TargetEntry);
+```
+
 ### Versioning & Backwards Compatibility
 
 C and Python share the same version number, following [SemVer](https://semver.org/). Breaking
