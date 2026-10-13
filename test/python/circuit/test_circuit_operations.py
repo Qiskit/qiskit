@@ -18,7 +18,7 @@ import warnings
 from itertools import combinations
 
 import numpy as np
-from ddt import data, ddt
+from ddt import data, ddt, unpack
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier, AnnotatedOperation
@@ -45,6 +45,67 @@ from test import QiskitTestCase
 @ddt
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
+
+    @data(
+        ("h", (0,)),
+        ("ch", (0, 1)),
+        ("id", (0,)),
+        ("ms", (0.2, [0, 1])),
+        ("p", (0.2, 0)),
+        ("cp", (0.2, 0, 1)),
+        ("mcp", (0.2, [0, 1, 2], 3)),
+        ("r", (0.2, 0.3, 0)),
+        ("rv", (0.2, 0.3, 0.4, 0)),
+        ("rccx", (0, 1, 2)),
+        ("rcccx", (0, 1, 2, 3)),
+        ("rx", (0.2, 0)),
+        ("crx", (0.2, 0, 1)),
+        ("rxx", (0.2, 0, 1)),
+        ("ry", (0.2, 0)),
+        ("cry", (0.2, 0, 1)),
+        ("ryy", (0.2, 0, 1)),
+        ("rz", (0.2, 0)),
+        ("crz", (0.2, 0, 1)),
+        ("rzx", (0.2, 0, 1)),
+        ("rzz", (0.2, 0, 1)),
+        ("ecr", (0, 1)),
+        ("s", (0,)),
+        ("sdg", (0,)),
+        ("cs", (0, 1)),
+        ("csdg", (0, 1)),
+        ("swap", (0, 1)),
+        ("iswap", (0, 1)),
+        ("cswap", (0, 1, 2)),
+        ("sx", (0,)),
+        ("sxdg", (0,)),
+        ("csx", (0, 1)),
+        ("t", (0,)),
+        ("tdg", (0,)),
+        ("u", (0.2, 0.3, 0.4, 0)),
+        ("cu", (0.2, 0.3, 0.4, 0.5, 0, 1)),
+        ("x", (0,)),
+        ("cx", (0, 1)),
+        ("dcx", (0, 1)),
+        ("ccx", (0, 1, 2)),
+        ("mcx", ([0, 1, 2], 3)),
+        ("y", (0,)),
+        ("cy", (0, 1)),
+        ("z", (0,)),
+        ("cz", (0, 1)),
+        ("ccz", (0, 1, 2)),
+        ("pauli", ("XZ", [0, 1])),
+        ("prepare_state", ("0", [0])),
+        ("unitary", (np.eye(2), [0])),
+        ("box", (QuantumCircuit(1), [0], [])),
+    )
+    @unpack
+    def test_quantum_circuit_standard_gate_label(self, method, args):
+        """Test QuantumCircuit instruction-methods for standard gates accept labels."""
+        qc = QuantumCircuit(4)
+
+        getattr(qc, method)(*args, label="a gate label")
+
+        self.assertEqual(qc.data[-1].operation.label, "a gate label")
 
     @data(0, 1, -1, -2)
     def test_append_resolves_integers(self, index):
