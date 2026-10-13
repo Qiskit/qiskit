@@ -4782,24 +4782,22 @@ class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase):
         )
 
     def test_warning_for_none_cregbundle(self):
-        with warnings.catch_warnings(record=True, category=RuntimeWarning) as w:
+        with warnings.catch_warnings(record=True) as w:
             warnings.filterwarnings(
                 "always",
                 category=RuntimeWarning,
                 message=".*Cregbundle.*",
-                )
-            qr = QuantumRegister(1, 'q')
-            cr = ClassicalRegister(1, 'c')
+            )
+            qr = QuantumRegister(1, "q")
+            cr = ClassicalRegister(1, "c")
             qc = QuantumCircuit(qr, cr)
             with qc.while_loop((cr, 0)):
                 qc.h(qr[0])
                 qc.measure(qr[0], cr[0])
                 with qc.if_test((cr[0], 1)):
                     qc.break_loop()
-            qc.draw('text')
+            qc.draw("text")
             self.assertEqual(w, [])
-
-        
 
 
 if __name__ == "__main__":
