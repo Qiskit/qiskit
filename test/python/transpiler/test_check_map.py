@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCheckMapCX(QiskitTestCase):
@@ -65,11 +65,14 @@ class TestCheckMapCX(QiskitTestCase):
 
     def test_swap_mapped_true(self):
         """Mapped is easy to check
-        qr0:--(+)-[H]-(+)-
-               |       |
-        qr1:---.-------|--
-                       |
-        qr2:-----------.--
+
+                   ┌───┐
+        qr_0: ──■──┤ H ├──■──
+              ┌─┴─┐└───┘  │
+        qr_1: ┤ X ├───────┼──
+              └───┘     ┌─┴─┐
+        qr_2: ──────────┤ X ├
+                        └───┘
 
         CouplingMap map: [1]--[0]--[2]
         """
@@ -88,9 +91,11 @@ class TestCheckMapCX(QiskitTestCase):
 
     def test_swap_mapped_false(self):
         """Needs [0]-[1] in a [0]--[2]--[1]
-        qr0:--(+)--
-               |
-        qr1:---.---
+
+        qr_0: ──■──
+              ┌─┴─┐
+        qr_1: ┤ X ├
+              └───┘
 
         CouplingMap map: [0]--[2]--[1]
         """
@@ -107,9 +112,11 @@ class TestCheckMapCX(QiskitTestCase):
 
     def test_swap_mapped_false_target(self):
         """Needs [0]-[1] in a [0]--[2]--[1]
-        qr0:--(+)--
-               |
-        qr1:---.---
+
+        qr_0: ──■──
+              ┌─┴─┐
+        qr_1: ┤ X ├
+              └───┘
 
         CouplingMap map: [0]--[2]--[1]
         """

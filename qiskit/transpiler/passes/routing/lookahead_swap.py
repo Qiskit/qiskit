@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -172,8 +172,12 @@ class LookaheadSwap(TransformationPass):
         if self.property_set["final_layout"] is None:
             self.property_set["final_layout"] = current_state.layout
         else:
-            self.property_set["final_layout"] = current_state.layout.compose(
-                self.property_set["final_layout"], dag.qubits
+            # The "final layout" can be thought of as a "comes from" permutation that you apply at
+            # the end of the circuit to invert the routing.  So if there's an existing one, what we
+            # apply at the end of the circuit needs to set the circuit qubits so they "come from"
+            # the previous one, then those "come from" the one we've just added.
+            self.property_set["final_layout"] = self.property_set["final_layout"].compose(
+                current_state.layout, dag.qubits
             )
 
         if self.fake_run:

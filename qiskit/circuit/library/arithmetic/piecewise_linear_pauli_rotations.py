@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,6 +14,7 @@
 """Piecewise-linearly-controlled rotation."""
 
 from __future__ import annotations
+import warnings
 from collections.abc import Sequence
 import numpy as np
 
@@ -54,8 +55,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         basis: str = "Y",
         name: str = "pw_lin",
     ) -> None:
-        """Construct piecewise-linearly-controlled Pauli rotations.
-
+        """
         Args:
             num_state_qubits: The number of qubits representing the state.
             breakpoints: The breakpoints to define the piecewise-linear function.
@@ -98,7 +98,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
     @property
     def slopes(self) -> list[float] | np.ndarray:
-        """The breakpoints of the piecewise linear function.
+        """The slopes of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
         point implicitly is ``2**(num_state_qubits + 1)``.
@@ -117,7 +117,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
     @property
     def offsets(self) -> list[float] | np.ndarray:
-        """The breakpoints of the piecewise linear function.
+        """The offsets of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
         point implicitly is ``2**(num_state_qubits + 1)``.
@@ -244,33 +244,43 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         # apply comparators and controlled linear rotations
         for i, point in enumerate(self.breakpoints):
             if i == 0 and self.contains_zero_breakpoint:
-                # apply rotation
-                lin_r = LinearPauliRotations(
-                    num_state_qubits=self.num_state_qubits,
-                    slope=self.mapped_slopes[i],
-                    offset=self.mapped_offsets[i],
-                    basis=self.basis,
-                )
+                # deprecation warning is already triggered upon init, filter the rest
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    # apply rotation
+                    lin_r = LinearPauliRotations(
+                        num_state_qubits=self.num_state_qubits,
+                        slope=self.mapped_slopes[i],
+                        offset=self.mapped_offsets[i],
+                        basis=self.basis,
+                    )
                 circuit.append(lin_r.to_gate(), qr_state[:] + qr_target)
 
             else:
                 qr_compare = [qr_ancilla[0]]
                 qr_helper = qr_ancilla[1:]
 
-                # apply Comparator
-                comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    # apply Comparator
+                    comp = IntegerComparator(num_state_qubits=self.num_state_qubits, value=point)
                 qr = qr_state[:] + qr_compare[:]  # add ancilla as compare qubit
 
                 circuit.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
 
                 # apply controlled rotation
-                lin_r = LinearPauliRotations(
-                    num_state_qubits=self.num_state_qubits,
-                    slope=self.mapped_slopes[i],
-                    offset=self.mapped_offsets[i],
-                    basis=self.basis,
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+                    lin_r = LinearPauliRotations(
+                        num_state_qubits=self.num_state_qubits,
+                        slope=self.mapped_slopes[i],
+                        offset=self.mapped_offsets[i],
+                        basis=self.basis,
+                    )
+                circuit.append(
+                    lin_r.to_gate().control(annotated=False),
+                    qr_compare[:] + qr_state[:] + qr_target,
                 )
-                circuit.append(lin_r.to_gate().control(), qr_compare[:] + qr_state[:] + qr_target)
 
                 # uncompute comparator
                 circuit.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
@@ -329,7 +339,7 @@ class PiecewiseLinearPauliRotationsGate(Gate):
         super().__init__("PwLinPauliRot", num_state_qubits + 1 + num_compare_bits, [], label=label)
 
     def _define(self):
-        circuit = QuantumCircuit(self.num_qubits, name=self.name)
+        circuit = QuantumCircuit(self.num_qubits)
 
         if len(self.breakpoints) == 1:
             qr_state = circuit.qubits[: self.num_qubits - 1]
@@ -379,7 +389,9 @@ class PiecewiseLinearPauliRotationsGate(Gate):
                     offset=mapped_offsets[i],
                     basis=self.basis,
                 )
-                circuit.append(lin_r.control(), qr_compare[:] + qr_state[:] + qr_target)
+                circuit.append(
+                    lin_r.control(annotated=False), qr_compare[:] + qr_state[:] + qr_target
+                )
 
                 # uncompute comparator (which is its self-inverse)
                 circuit.append(comp, qr[:])

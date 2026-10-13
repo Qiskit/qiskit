@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import GraphState, GraphStateGate
 from qiskit.quantum_info import Clifford, Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestGraphStateLibrary(QiskitTestCase):
@@ -62,14 +62,16 @@ class TestGraphStateLibrary(QiskitTestCase):
             [0, 0, 1, 0, 1],
             [1, 0, 0, 1, 0],
         ]
-        graph_state = GraphState(adjacency_matrix)
+        with self.assertWarns(DeprecationWarning):
+            graph_state = GraphState(adjacency_matrix)
         self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
     def test_non_symmetric_circuit_raises(self):
         """Test that adjacency matrix is required to be symmetric."""
         adjacency_matrix = [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
         with self.assertRaises(CircuitError):
-            GraphState(adjacency_matrix)
+            with self.assertWarns(DeprecationWarning):
+                GraphState(adjacency_matrix)
 
     def test_graph_state_gate(self):
         """Verify correctness of GraphStatGate by checking that the gate's definition circuit
@@ -101,7 +103,8 @@ class TestGraphStateLibrary(QiskitTestCase):
             [1, 0, 0, 1, 0],
         ]
         graph_state_gate = GraphStateGate(adjacency_matrix)
-        graph_state_circuit = GraphState(adjacency_matrix)
+        with self.assertWarns(DeprecationWarning):
+            graph_state_circuit = GraphState(adjacency_matrix)
         self.assertEqual(Operator(graph_state_gate), Operator(graph_state_circuit))
 
     def test_adjacency_matrix(self):

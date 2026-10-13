@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,17 +22,19 @@ from itertools import combinations
 import typing
 import numpy as np
 import rustworkx as rx
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
-from qiskit.quantum_info import SparsePauliOp, Pauli, SparseObservable
+
+from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.circuit.quantumcircuit import ParameterValueType
+from qiskit.quantum_info import SparsePauliOp, SparseObservable
 from qiskit._accelerate.circuit_library import pauli_evolution
+import qiskit.quantum_info
 
 from .evolution_synthesis import EvolutionSynthesis
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
 
-SparsePauliLabel = typing.Tuple[str, list[int], ParameterValueType]
+SparsePauliLabel = tuple[str, list[int], ParameterValueType]
 
 
 class ProductFormula(EvolutionSynthesis):
@@ -48,7 +50,8 @@ class ProductFormula(EvolutionSynthesis):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,
@@ -64,11 +67,12 @@ class ProductFormula(EvolutionSynthesis):
                 ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
                 where all qubits are connected to one. This only takes effect when
                 ``atomic_evolution is None``.
-            atomic_evolution: A function to apply the evolution of a single :class:`.Pauli`, or
-                :class:`.SparsePauliOp` of only commuting terms, to a circuit. The function takes in
-                three arguments: the circuit to append the evolution to, the Pauli operator to
-                evolve, and the evolution time. By default, a single Pauli evolution is decomposed
-                into a chain of ``CX`` gates and a single ``RZ`` gate.
+            atomic_evolution: A function to apply the evolution of a single
+                :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
+                to a circuit. The function takes in three arguments: the circuit to append the
+                evolution to, the Pauli operator to evolve, and the evolution time. By default, a
+                single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
+                ``RZ`` gate.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. Note that setting
                 this to ``True`` is slower than ``False``. This only takes effect when
                 ``atomic_evolution is None``.
@@ -142,7 +146,7 @@ class ProductFormula(EvolutionSynthesis):
             # this is the fast path, where the whole evolution is constructed Rust-side
             cx_fountain = self._cx_structure == "fountain"
             data = pauli_evolution(num_qubits, pauli_rotations, self.insert_barriers, cx_fountain)
-            circuit = QuantumCircuit._from_circuit_data(data, add_regs=True)
+            circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
 
         return circuit
 

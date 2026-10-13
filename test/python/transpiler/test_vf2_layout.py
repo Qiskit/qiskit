@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,8 +22,9 @@ import numpy
 import rustworkx
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit import ControlFlowOp, Qubit, library as lib, Parameter
 from qiskit.transpiler import CouplingMap, Target, TranspilerError
+from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
@@ -33,7 +34,7 @@ from qiskit.circuit.library import GraphStateGate, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 from ..legacy_cmaps import TENERIFE_CMAP, RUESCHLIKON_CMAP, MANHATTAN_CMAP, YORKTOWN_CMAP
 
@@ -117,7 +118,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
         vf2_pass = VF2Layout(target=target, seed=self.seed)
         vf2_pass(qc)
         layout = vf2_pass.property_set["layout"]
-        self.assertEqual([1, 0], list(layout._p2v.keys()))
+        self.assertNotIn(2, layout.get_physical_bits())
 
     def test_2q_circuit_2q_coupling(self):
         """A simple example, without considering the direction
@@ -285,7 +286,49 @@ class TestVF2LayoutSimple(LayoutTestCase):
         vf2_pass.run(dag)
         self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
 
+    def test_determinism_all_1q(self):
+        """Test that running vf2layout on a circuit with all single qubit gates is deterministic."""
 
+        circ = QuantumCircuit(3)
+        for i in range(3):
+            circ.rx(3.14159, i)
+        circ.measure_all()
+
+        backend = GenericBackendV2(10, noise_info=True, seed=123456789)
+        layouts = []
+        for _ in range(10):
+            layout_pass = VF2Layout(target=backend.target)
+            property_set = {}
+            layout_pass(circ, property_set=property_set)
+            layouts.append(property_set["layout"])
+        self.assertEqual(10, len(layouts), "Expected 10 layouts from 10 pass executions")
+        for i, layout in enumerate(layouts):
+            self.assertIsNotNone(layout, f"A layout was not found for layout {i}")
+            self.assertEqual(
+                layouts[0], layout, f"Layout for execution {i} differs from the expected"
+            )
+
+    @combine(
+        seed=(-1, 12),  # This hits both the "seeded" and "unseeded" paths.
+        strict_direction=(True, False),
+    )
+    def test_complete_layout_with_idle_qubits(self, seed, strict_direction):
+        """Test that completely idle qubits are included in the resulting layout."""
+        # Use registerless qubits to avoid any register-based shenangigans from adding the bits
+        # automatically.
+        qc = QuantumCircuit([Qubit() for _ in range(3)])
+        qc.cx(0, 1)
+        target = Target.from_configuration(
+            num_qubits=3, basis_gates=["sx", "rz", "cx"], coupling_map=CouplingMap.from_line(3)
+        )
+        property_set = {}
+        pass_ = VF2Layout(target=target, seed=seed, strict_direction=strict_direction)
+        pass_(qc, property_set=property_set)
+        unallocated = {i for i, bit in enumerate(qc.qubits) if bit not in property_set["layout"]}
+        self.assertEqual(unallocated, set())
+
+
+@ddt.ddt
 class TestVF2LayoutLattice(LayoutTestCase):
     """Fit in 25x25 hexagonal lattice coupling map"""
 
@@ -313,6 +356,28 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = VF2Layout(self.cmap25, seed=self.seed, max_trials=1)
+        pass_.run(dag)
+        self.assertLayout(dag, self.cmap25, pass_.property_set)
+
+    @ddt.data(True, False)
+    def test_hexagonal_lattice_graph_9_in_25_no_trial_limit(self, strict_direction):
+        """A 9x9 interaction map in 25x25 coupling map"""
+        graph_9_9 = rustworkx.generators.hexagonal_lattice_graph(9, 9)
+        circuit = self.graph_state_from_pygraph(graph_9_9)
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(self.cmap25, seed=-1, max_trials=-1, strict_direction=strict_direction)
+        pass_.run(dag)
+        self.assertLayout(dag, self.cmap25, pass_.property_set)
+
+    @ddt.data(True, False)
+    def test_hexagonal_lattice_graph_9_in_25_default_trial_limit(self, strict_direction):
+        """A 9x9 interaction map in 25x25 coupling map"""
+        graph_9_9 = rustworkx.generators.hexagonal_lattice_graph(9, 9)
+        circuit = self.graph_state_from_pygraph(graph_9_9)
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(self.cmap25, seed=-1, max_trials=None, strict_direction=strict_direction)
         pass_.run(dag)
         self.assertLayout(dag, self.cmap25, pass_.property_set)
 
@@ -583,13 +648,54 @@ class TestVF2LayoutOther(LayoutTestCase):
         target.add_instruction(CXGate())
 
         vf2_pass = VF2Layout(
-            coupling_map=CouplingMap([[0, 2], [1, 2]]), target=target, seed=42, max_trials=1
+            coupling_map=CouplingMap([[0, 2], [1, 2]]), target=target, seed=-1, max_trials=1
         )
         vf2_pass.run(dag)
 
         self.assertEqual(
             vf2_pass.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.SOLUTION_FOUND
         )
+
+    def test_error_clipping(self):
+        """Out-of-range errors should clip to 0.0 and 1.0, and be safely usable."""
+        target = Target(3)
+        props_1q = {
+            # Too low.
+            (0,): InstructionProperties(error=-1e-15),
+            # Too high.
+            (1,): InstructionProperties(error=1 + 1e-15),
+            # Juuuuust right.
+            (2,): InstructionProperties(error=1e-5),
+        }
+        # Set the same 1q on both types of 1q operation because we don't want any averaging to mess
+        # with our clipping.
+        target.add_instruction(lib.SXGate(), props_1q)
+        target.add_instruction(lib.RZGate(Parameter("a")), props_1q)
+        target.add_instruction(
+            lib.CXGate(),
+            {
+                (0, 1): InstructionProperties(error=-1e-15),
+                (1, 2): InstructionProperties(error=1 + 1e-15),
+                (2, 0): InstructionProperties(error=1e-5),
+            },
+        )
+
+        # This circuit has a symmetric interaction graph, but we break the degeneracy by weighting
+        # each edge and node by different amounts, so the resulting layout will be deterministic.
+        # One qubit deliberately doesn't have any instructions so we test the zero-weighted path
+        # with all the types of clipped error too.
+        qc = QuantumCircuit(3)
+        qc.cx(1, 0)
+        qc.cx(2, 1)
+        qc.cx(2, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 2)
+        qc.cx(0, 2)
+        qc.sx(1)
+        qc.sx(2)
+
+        qc = PassManager([VF2Layout(target=target), ApplyLayout()]).run(qc)
+        self.assertEqual(qc.layout.initial_index_layout(), [1, 2, 0])
 
 
 class TestMultipleTrials(QiskitTestCase):
@@ -608,7 +714,6 @@ class TestMultipleTrials(QiskitTestCase):
                     (1, 3),
                     (2, 0),
                     (2, 1),
-                    (2, 2),
                     (2, 3),
                     (3, 0),
                     (3, 1),
@@ -653,12 +758,7 @@ class TestMultipleTrials(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=5, coupling_map=cmap, seed=1)
         vf2_pass = VF2Layout(target=backend.target, seed=-1, max_trials=1)
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        self.assertIn(
-            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 1 is >= configured max trials 1",
-            cm.output,
-        )
+        vf2_pass(qc, property_set)
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {2, 0})
 
     def test_time_limit_exceeded(self):
@@ -672,16 +772,7 @@ class TestMultipleTrials(QiskitTestCase):
         backend = GenericBackendV2(num_qubits=5, coupling_map=cmap, seed=1)
         vf2_pass = VF2Layout(target=backend.target, seed=-1, time_limit=0.0)
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        for output in cm.output:
-            if output.startswith(
-                "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:VF2Layout has taken"
-            ) and output.endswith("which exceeds configured max time: 0.0"):
-                break
-        else:
-            self.fail("No failure debug log message found")
-
+        vf2_pass(qc, property_set)
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {2, 0})
 
     def test_reasonable_limits_for_simple_layouts(self):
@@ -694,13 +785,8 @@ class TestMultipleTrials(QiskitTestCase):
         # Run without any limits set
         vf2_pass = VF2Layout(target=backend.target, seed=42)
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        self.assertIn(
-            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 717 is >= configured max trials 717",
-            cm.output,
-        )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {16, 24, 6, 7, 0})
+        vf2_pass(qc, property_set)
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {26, 11, 14, 7, 10})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""
@@ -716,11 +802,8 @@ class TestMultipleTrials(QiskitTestCase):
             max_trials=0,
         )
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        for output in cm.output:
-            self.assertNotIn("is >= configured max trials", output)
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 0})
+        vf2_pass(qc, property_set)
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 2, 0})
 
     def test_qregs_valid_layout_output(self):
         """Test that vf2 layout doesn't add extra qubits.

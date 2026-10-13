@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Gate
@@ -74,12 +74,11 @@ class WeightedAdder(BlueprintCircuit):
 
     def __init__(
         self,
-        num_state_qubits: Optional[int] = None,
-        weights: Optional[List[int]] = None,
+        num_state_qubits: int | None = None,
+        weights: list[int] | None = None,
         name: str = "adder",
     ) -> None:
-        """Computes the weighted sum controlled by state qubits.
-
+        """
         Args:
             num_state_qubits: The number of state qubits.
             weights: List of weights, one for each state qubit. If none are provided they
@@ -106,7 +105,7 @@ class WeightedAdder(BlueprintCircuit):
         return 1
 
     @property
-    def weights(self) -> List[int]:
+    def weights(self) -> list[int]:
         """The weights for the qubit states.
 
         Returns:
@@ -119,7 +118,7 @@ class WeightedAdder(BlueprintCircuit):
         return None
 
     @weights.setter
-    def weights(self, weights: List[int]) -> None:
+    def weights(self, weights: list[int]) -> None:
         """Set the weights for summing the qubit states.
 
         Args:
@@ -263,37 +262,46 @@ class WeightedAdder(BlueprintCircuit):
                         # - controlled by q_state[i]
                         circuit.x(qr_sum[j])
                         circuit.x(qr_carry[j - 1])
-                        circuit.mcx(
-                            [q_state, qr_sum[j], qr_carry[j - 1]],
-                            qr_carry[j],
-                            qr_control,
-                            mode="v-chain",
-                        )
+
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings(
+                                "ignore", category=DeprecationWarning, module="qiskit"
+                            )
+                            circuit.mcx(
+                                [q_state, qr_sum[j], qr_carry[j - 1]],
+                                qr_carry[j],
+                                qr_control,
+                                mode="v-chain",
+                            )
+
                         circuit.cx(q_state, qr_carry[j])
                         circuit.x(qr_sum[j])
                         circuit.x(qr_carry[j - 1])
                         circuit.cx(q_state, qr_sum[j])
                         circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
+                elif self.num_sum_qubits == 1:
+                    pass  # nothing to do, since nothing to add
+                elif j == 0:
+                    pass  # nothing to do, since nothing to add
+                elif j == self.num_sum_qubits - 1:
+                    # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j])
+                    # - controlled by q_state[i] / last qubit,
+                    # no carry needed by construction
+                    circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
                 else:
-                    if self.num_sum_qubits == 1:
-                        pass  # nothing to do, since nothing to add
-                    elif j == 0:
-                        pass  # nothing to do, since nothing to add
-                    elif j == self.num_sum_qubits - 1:
-                        # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j])
-                        # - controlled by q_state[i] / last qubit,
-                        # no carry needed by construction
-                        circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
-                    else:
-                        # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j], q_carry[j])
-                        # - controlled by q_state[i]
+                    # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j], q_carry[j])
+                    # - controlled by q_state[i]
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore", category=DeprecationWarning, module="qiskit"
+                        )
                         circuit.mcx(
                             [q_state, qr_sum[j], qr_carry[j - 1]],
                             qr_carry[j],
                             qr_control,
                             mode="v-chain",
                         )
-                        circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
+                    circuit.ccx(q_state, qr_carry[j - 1], qr_sum[j])
 
             # uncompute carry qubits
             for j in reversed(range(len(weight_binary))):
@@ -309,32 +317,39 @@ class WeightedAdder(BlueprintCircuit):
                         pass
                     else:
                         circuit.x(qr_carry[j - 1])
-                        circuit.mcx(
-                            [q_state, qr_sum[j], qr_carry[j - 1]],
-                            qr_carry[j],
-                            qr_control,
-                            mode="v-chain",
-                        )
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings(
+                                "ignore", category=DeprecationWarning, module="qiskit"
+                            )
+                            circuit.mcx(
+                                [q_state, qr_sum[j], qr_carry[j - 1]],
+                                qr_carry[j],
+                                qr_control,
+                                mode="v-chain",
+                            )
                         circuit.cx(q_state, qr_carry[j])
                         circuit.x(qr_carry[j - 1])
+                elif self.num_sum_qubits == 1:
+                    pass
+                elif j == 0:
+                    pass
+                elif j == self.num_sum_qubits - 1:
+                    pass
                 else:
-                    if self.num_sum_qubits == 1:
-                        pass
-                    elif j == 0:
-                        pass
-                    elif j == self.num_sum_qubits - 1:
-                        pass
-                    else:
-                        # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j], q_carry[j])
-                        # - controlled by q_state[i]
-                        circuit.x(qr_sum[j])
+                    # compute (q_sum[j] + q_carry[j-1]) into (q_sum[j], q_carry[j])
+                    # - controlled by q_state[i]
+                    circuit.x(qr_sum[j])
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore", category=DeprecationWarning, module="qiskit"
+                        )
                         circuit.mcx(
                             [q_state, qr_sum[j], qr_carry[j - 1]],
                             qr_carry[j],
                             qr_control,
                             mode="v-chain",
                         )
-                        circuit.x(qr_sum[j])
+                    circuit.x(qr_sum[j])
 
         self.append(circuit.to_gate(), self.qubits)
 

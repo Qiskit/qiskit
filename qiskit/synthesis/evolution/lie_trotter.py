@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,8 +16,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+
+from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import SparsePauliOp
+import qiskit.quantum_info
 
 from .suzuki_trotter import SuzukiTrotter
 
@@ -55,7 +57,8 @@ class LieTrotter(SuzukiTrotter):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,
@@ -70,11 +73,12 @@ class LieTrotter(SuzukiTrotter):
                 ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
                 where all qubits are connected to one. This only takes effect when
                 ``atomic_evolution is None``.
-            atomic_evolution: A function to apply the evolution of a single :class:`.Pauli`, or
-                :class:`.SparsePauliOp` of only commuting terms, to a circuit. The function takes in
-                three arguments: the circuit to append the evolution to, the Pauli operator to
-                evolve, and the evolution time. By default, a single Pauli evolution is decomposed
-                into a chain of ``CX`` gates and a single ``RZ`` gate.
+            atomic_evolution: A function to apply the evolution of a single
+                :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
+                to a circuit. The function takes in three arguments: the circuit to append the
+                evolution to, the Pauli operator to evolve, and the evolution time. By default, a
+                single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
+                ``RZ`` gate.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
             preserve_order: If ``False``, allows reordering the terms of the operator to

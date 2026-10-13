@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Backend abstract interface for providers."""
 
@@ -18,9 +17,10 @@
 from abc import ABC
 from abc import abstractmethod
 import datetime
-from typing import List, Union, Tuple
+
 
 from qiskit.circuit.gate import Instruction
+from qiskit._accelerate.target import QubitProperties
 
 
 class Backend:
@@ -33,34 +33,6 @@ class Backend:
     """
 
     version = 0
-
-
-class QubitProperties:
-    """A representation of the properties of a qubit on a backend.
-
-    This class provides the optional properties that a backend can provide for
-    a qubit. These represent the set of qubit properties that Qiskit can
-    currently work with if present. However if your backend provides additional
-    properties of qubits you should subclass this to add additional custom
-    attributes for those custom/additional properties provided by the backend.
-    """
-
-    __slots__ = ("t1", "t2", "frequency")
-
-    def __init__(self, t1=None, t2=None, frequency=None):
-        """Create a new :class:`QubitProperties` object.
-
-        Args:
-            t1: The T1 time for a qubit in seconds
-            t2: The T2 time for a qubit in seconds
-            frequency: The frequency of a qubit in Hz
-        """
-        self.t1 = t1
-        self.t2 = t2
-        self.frequency = frequency
-
-    def __repr__(self):
-        return f"QubitProperties(t1={self.t1}, t2={self.t2}, " f"frequency={self.frequency})"
 
 
 class BackendV2(Backend, ABC):
@@ -97,7 +69,7 @@ class BackendV2(Backend, ABC):
     provider to implement a stage plugin for ``translation`` or ``scheduling``
     that contains the custom compilation passes and then for the hook methods on
     the backend object to return the plugin name so that :func:`~.transpile` will
-    use it by default when targetting the backend.
+    use it by default when targeting the backend.
 
     Subclasses of this should override the public method :meth:`run` and the internal
     :meth:`_default_options`:
@@ -110,10 +82,10 @@ class BackendV2(Backend, ABC):
     def __init__(
         self,
         provider=None,
-        name: str = None,
-        description: str = None,
-        online_date: datetime.datetime = None,
-        backend_version: str = None,
+        name: str | None = None,
+        description: str | None = None,
+        online_date: datetime.datetime | None = None,
+        backend_version: str | None = None,
         **fields,
     ):
         """Initialize a BackendV2 based backend
@@ -158,17 +130,17 @@ class BackendV2(Backend, ABC):
         self._coupling_map = None
 
     @property
-    def instructions(self) -> List[Tuple[Instruction, Tuple[int]]]:
-        """A list of Instruction tuples on the backend of the form ``(instruction, (qubits)``"""
+    def instructions(self) -> list[tuple[Instruction, tuple[int]]]:
+        """A list of Instruction tuples on the backend of the form ``(instruction, (qubits))``"""
         return self.target.instructions
 
     @property
-    def operations(self) -> List[Instruction]:
+    def operations(self) -> list[Instruction]:
         """A list of :class:`~qiskit.circuit.Instruction` instances that the backend supports."""
         return list(self.target.operations)
 
     @property
-    def operation_names(self) -> List[str]:
+    def operation_names(self) -> list[str]:
         """A list of instruction names that the backend supports."""
         return list(self.target.operation_names)
 
@@ -179,7 +151,6 @@ class BackendV2(Backend, ABC):
 
         :rtype: Target
         """
-        pass
 
     @property
     def num_qubits(self) -> int:
@@ -206,7 +177,6 @@ class BackendV2(Backend, ABC):
 
         If there is no limit this will return None
         """
-        pass
 
     @classmethod
     @abstractmethod
@@ -222,10 +192,9 @@ class BackendV2(Backend, ABC):
             qiskit.providers.Options: A options object with
                 default values set
         """
-        pass
 
     @property
-    def dt(self) -> Union[float, None]:
+    def dt(self) -> float | None:
         """Return the system time resolution of input signals
 
         This is required to be implemented if the backend supports Pulse
@@ -251,7 +220,7 @@ class BackendV2(Backend, ABC):
         raise NotImplementedError
 
     @property
-    def meas_map(self) -> List[List[int]]:
+    def meas_map(self) -> list[list[int]]:
         """Return the grouping of measurements which are multiplexed
 
         This is required to be implemented if the backend supports Pulse
@@ -266,9 +235,7 @@ class BackendV2(Backend, ABC):
         """
         raise NotImplementedError
 
-    def qubit_properties(
-        self, qubit: Union[int, List[int]]
-    ) -> Union[QubitProperties, List[QubitProperties]]:
+    def qubit_properties(self, qubit: int | list[int]) -> QubitProperties | list[QubitProperties]:
         """Return QubitProperties for a given qubit.
 
         If there are no defined or the backend doesn't support querying these
@@ -292,7 +259,7 @@ class BackendV2(Backend, ABC):
         """
         # Since the target didn't always have a qubit properties attribute
         # to ensure the behavior here is backwards compatible with earlier
-        # BacekendV2 implementations where this would raise a NotImplemented
+        # BackendV2 implementations where this would raise a NotImplemented
         # error.
         if self.target.qubit_properties is None:
             raise NotImplementedError
@@ -361,4 +328,3 @@ class BackendV2(Backend, ABC):
         Returns:
             Job: The job object for the run
         """
-        pass

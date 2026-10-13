@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ Return a depth-5n circuit implementation of the -CZ-CX- transformation over LNN.
 
 Args:
     mat_z: n*n symmetric binary matrix representing a -CZ- circuit
-    mat_x: n*n invertable binary matrix representing a -CX- transformation
+    mat_x: n*n invertible binary matrix representing a -CX- transformation
 
 Output:
     QuantumCircuit: :class:`.QuantumCircuit` object containing a depth-5n circuit to implement -CZ-CX-
@@ -58,4 +58,4 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCi
            `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
     """
     circuit_data = py_synth_cx_cz_depth_line_my(mat_x.astype(bool), mat_z.astype(bool))
-    return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)
+    return QuantumCircuit._from_circuit_data(circuit_data, legacy_qubits=True)

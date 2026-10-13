@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,6 +13,10 @@
 """
 Simulator command to perform multiple pauli gates in a single pass
 """
+
+from __future__ import annotations
+
+import typing
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
@@ -20,6 +24,9 @@ from qiskit.circuit.library.standard_gates.z import ZGate
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
+
+if typing.TYPE_CHECKING:
+    from qiskit.quantum_info import SparseObservable
 
 
 class PauliGate(Gate):
@@ -44,7 +51,7 @@ class PauliGate(Gate):
         """
         gate pauli (p1 a1,...,pn an) { p1 a1; ... ; pn an; }
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         gates = {"X": XGate, "Y": YGate, "Z": ZGate}
@@ -65,7 +72,7 @@ class PauliGate(Gate):
     def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the pauli gate.
         i.e. tensor product of the paulis"""
-        # pylint: disable=cyclic-import
+
         from qiskit.quantum_info.operators import Pauli
 
         return Pauli(self.params[0]).__array__(dtype=dtype, copy=copy)
@@ -82,3 +89,9 @@ class PauliGate(Gate):
             raise CircuitError(
                 f"Parameter {parameter} should be a string of 'I', 'X', 'Y', 'Z' characters"
             )
+
+    def _extract_sparse_observable(self) -> SparseObservable:
+        from qiskit.quantum_info import SparseObservable
+
+        # The label was already validated, so we know it only contains IXYZ chars.
+        return SparseObservable(self.params[0])

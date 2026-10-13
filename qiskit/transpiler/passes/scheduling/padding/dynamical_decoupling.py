@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -116,7 +116,7 @@ class PadDynamicalDecoupling(BasePadding):
     def __init__(
         self,
         durations: InstructionDurations = None,
-        dd_sequence: list[Gate] = None,
+        dd_sequence: list[Gate] | None = None,
         qubits: list[int] | None = None,
         spacing: list[float] | None = None,
         skip_reset_qubits: bool = True,
@@ -207,12 +207,11 @@ class PadDynamicalDecoupling(BasePadding):
             mid = 1 / num_pulses
             end = mid / 2
             self._spacing = [end] + [mid] * (num_pulses - 1) + [end]
-        else:
-            if sum(self._spacing) != 1 or any(a < 0 for a in self._spacing):
-                raise TranspilerError(
-                    "The spacings must be given in terms of fractions "
-                    "of the slack period and sum to 1."
-                )
+        elif sum(self._spacing) != 1 or any(a < 0 for a in self._spacing):
+            raise TranspilerError(
+                "The spacings must be given in terms of fractions "
+                "of the slack period and sum to 1."
+            )
 
         # Check if DD sequence is identity
         if num_pulses != 1:
@@ -310,14 +309,14 @@ class PadDynamicalDecoupling(BasePadding):
 
         if not self.__is_dd_qubit(dag.qubits.index(qubit)):
             # Target physical qubit is not the target of this DD sequence.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
             return
 
         if self._skip_reset_qubits and (
             isinstance(prev_node, DAGInNode) or isinstance(prev_node.op, Reset)
         ):
             # Previous node is the start edge or reset, i.e. qubit is ground state.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
             return
 
         slack = time_interval - np.sum(self._dd_sequence_lengths[qubit])
@@ -325,7 +324,7 @@ class PadDynamicalDecoupling(BasePadding):
 
         if slack <= 0:
             # Interval too short.
-            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+            self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
             return
 
         if len(self._dd_sequence) == 1:
@@ -351,7 +350,7 @@ class PadDynamicalDecoupling(BasePadding):
                 sequence_gphase += phase
             else:
                 # Don't do anything if there's no single-qubit gate to absorb the inverse
-                self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
+                self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag._unit), qubit)
                 return
 
         def _constrained_length(values):
@@ -387,8 +386,9 @@ class PadDynamicalDecoupling(BasePadding):
             if dd_ind < len(taus):
                 tau = taus[dd_ind]
                 if tau > 0:
-                    self._apply_scheduled_op(dag, idle_after, Delay(tau, dag.unit), qubit)
-                    idle_after += tau
+                    self._apply_scheduled_op(dag, idle_after, Delay(tau, dag._unit), qubit)
+                    # Cast tau to int from np.float64 to avoid type changes
+                    idle_after += int(tau)
             if dd_ind < len(self._dd_sequence):
                 gate = self._dd_sequence[dd_ind]
                 gate_length = self._dd_sequence_lengths[qubit][dd_ind]

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ from qiskit.result import marginal_counts
 from qiskit.result import marginal_distribution
 from qiskit.result import Result
 from qiskit.exceptions import QiskitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestResultOperations(QiskitTestCase):
@@ -38,7 +38,7 @@ class TestResultOperations(QiskitTestCase):
     def generate_qiskit_result(self):
         """Generate standard Result for testing"""
         memory = [hex(ii) for ii in range(8)]
-        counts = {m: 1 for m in memory}
+        counts = dict.fromkeys(memory, 1)
         data_1 = models.ExperimentResultData(counts=counts, memory=memory)
         exp_result_header_1 = {"creg_sizes": [["c0", 4]], "memory_slots": 4}
         exp_result_1 = models.ExperimentResult(
@@ -120,6 +120,38 @@ class TestResultOperations(QiskitTestCase):
             "status=None, header=None)"
         )
         self.assertEqual(expected, repr(result))
+
+    def test_result_to_dict(self):
+        """Test that dictionary is constructed correctly for a results object."""
+        raw_counts = {"0x0": 4, "0x2": 10}
+        data = models.ExperimentResultData(counts=raw_counts)
+        exp_result_header = {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4}
+        exp_result = models.ExperimentResult(
+            shots=14, success=True, meas_level=2, data=data, header=exp_result_header
+        )
+        header = {"header-property": 1}
+        result = Result(results=[exp_result], header=header, **self.base_result_args)
+
+        expected = {
+            "backend_name": "test_backend",
+            "backend_version": "1.0.0",
+            "header": {"header-property": 1},
+            "date": None,
+            "job_id": "job-123",
+            "status": None,
+            "success": True,
+            "results": [
+                {
+                    "shots": 14,
+                    "success": True,
+                    "data": {"counts": {"0x0": 4, "0x2": 10}},
+                    "meas_level": 2,
+                    "header": {"creg_sizes": [["c0", 2], ["c0", 1], ["c1", 1]], "memory_slots": 4},
+                }
+            ],
+        }
+
+        self.assertEqual(expected, result.to_dict())
 
     def test_multiple_circuits_counts(self):
         """Test that counts are returned either as a list or a single item.

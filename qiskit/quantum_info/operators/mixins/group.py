@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -41,7 +41,7 @@ class GroupMixin(ABC):
 
         - ``&``, ``__and__`` -> :meth:`compose`
         - ``@``, ``__matmul__`` -> :meth:`dot`
-        - ``^``, ``__xor__`` -> `:meth:`tensor`
+        - ``^``, ``__xor__`` -> :meth:`tensor`
         - ``**``, ``__pow__`` -> :meth:`power`
 
     The following abstract methods must be implemented by subclasses
@@ -62,6 +62,9 @@ class GroupMixin(ABC):
         return self.tensor(other)
 
     def __matmul__(self, other) -> Self:
+        # Allow Statevector @ Operator to call Statevector.evolve
+        if other.__class__.__name__ == "Statevector":
+            return other.evolve(self)
         return self.dot(other)
 
     @abstractmethod
@@ -106,7 +109,7 @@ class GroupMixin(ABC):
 
         Args:
             other (CLASS): a CLASS object.
-            qargs (list or None): Optional, a list of subsystem positions to
+            qargs (list or None):  a list of subsystem positions to
                                   apply other on. If None apply on all
                                   subsystems (default: None).
             front (bool): If True compose using right operator multiplication,
@@ -135,7 +138,7 @@ class GroupMixin(ABC):
 
         Args:
             other (CLASS): an operator object.
-            qargs (list or None): Optional, a list of subsystem positions to
+            qargs (list or None):  a list of subsystem positions to
                                   apply other on. If None apply on all
                                   subsystems (default: None).
 
@@ -149,7 +152,7 @@ class GroupMixin(ABC):
         return self.compose(other, qargs=qargs, front=True)
 
     def power(self, n) -> Self:
-        """Return the compose of a operator with itself n times.
+        """Return the composition of an operator with itself n times.
 
         Args:
             n (int): the number of times to compose with self (n>0).

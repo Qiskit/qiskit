@@ -1,0 +1,11 @@
+---
+features_transpiler:
+  - |
+    The :class:`.OptimizeCliffordT` transpiler optimization pass has been
+    significantly enhanced and reimplemented in Rust. 
+
+    This pass performs a peephole optimization on circuits expressed
+    using the "Clifford+T" gateset. More precisely, it collapses all chains
+    of 1-qubit gates containing Clifford+T/Tdg into a minimal usage of T/Tdg. 
+    For a chain containing :math:`m` gates, the pass runs in linear time,
+    :math:`O(m)`.

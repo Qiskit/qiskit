@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring,invalid-name
 
 """Test operations on the builder interfaces for control flow in dynamic QuantumCircuits."""
 
@@ -32,8 +31,8 @@ from qiskit.circuit import (
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp, CASE_DEFAULT
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+from test.utils._canonical import canonicalize_control_flow
 
 
 class SentinelException(Exception):
@@ -2093,6 +2092,24 @@ class TestControlFlowBuilders(QiskitTestCase):
             pass
         self.assertIs(test_parameter, parameter)
 
+    def test_for_accepts_var_input(self):
+        var = expr.Var.new("a", types.Uint(32))
+        test = QuantumCircuit(1, 1)
+        cr = ClassicalRegister(5, "cr")
+        test.add_register(cr)
+        with test.for_loop(range(3), var) as test_var:
+            test.measure(0, 0)
+            test.store(expr.index(cr, test_var), test.clbits[0])
+        self.assertEqual(var, test_var)
+
+        expected = QuantumCircuit(1, 1)
+        expected.add_register(cr)
+        body = QuantumCircuit(expected.qubits, expected.clbits, cr, inputs=(var,))
+        body.measure(0, 0)
+        body.store(expr.index(cr, var), body.clbits[0])
+        expected.for_loop(range(3), var, body, expected.qubits, expected.clbits)
+        self.assertEqual(test, expected)
+
     def test_for_binds_parameter_to_op(self):
         """Test that the ``for`` manager binds a parameter to the resulting :obj:`.ForLoopOp` if a
         user-generated one is given, or if a generated parameter is used.  Generated parameters that
@@ -2101,37 +2118,37 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("passed and used"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
+            with circuit.for_loop((0, 1), parameter) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIs(parameter, received_parameter)
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, parameter)
+            self.assertEqual(bound_parameter, parameter)
 
         with self.subTest("passed and unused"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
+            with circuit.for_loop((0, 1), parameter) as received_parameter:
                 circuit.x(0)
             self.assertIs(parameter, received_parameter)
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(parameter, received_parameter)
+            self.assertEqual(parameter, received_parameter)
 
         with self.subTest("generated and used"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIsInstance(received_parameter, Parameter)
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
         with self.subTest("generated and used in deferred-build if"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 with circuit.if_test((0, 0)):
                     circuit.rx(received_parameter, 0)
                     circuit.break_loop()
@@ -2139,11 +2156,11 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
         with self.subTest("generated and used in deferred-build else"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 with circuit.if_test((0, 0)) as else_:
                     pass
                 with else_:
@@ -2153,7 +2170,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
     def test_for_does_not_bind_generated_parameter_if_unused(self):
         """Test that the ``for`` manager does not bind a generated parameter into the resulting
@@ -3399,6 +3416,38 @@ class TestControlFlowBuilders(QiskitTestCase):
         body_2.delay(250.0, 0, unit="ns")
         expected.box(body_2, expected.qubits, [], duration=300e-9, unit="s")
 
+        self.assertEqual(qc, expected)
+
+    def test_box_stretch_duration(self):
+        qc = QuantumCircuit([Qubit()])
+        a = qc.add_stretch("a")
+        b = qc.add_stretch("b")
+        long_range = qc.add_stretch("long_range")
+        with qc.box(duration=a):  # body_0
+            c = qc.add_stretch("c")
+            with qc.box(duration=expr.mul(2, b)):  # body_1
+                qc.delay(c, 0)
+            with qc.if_test(expr.lift(True)):  # body_2
+                # This capture goes backwards through two scopes.
+                qc.delay(long_range, 0)
+
+        expected = QuantumCircuit([Qubit()])
+        expected.add_stretch(a)
+        expected.add_stretch(b)
+        expected.add_stretch(long_range)
+        body_0 = QuantumCircuit(expected.qubits)
+        body_0.add_capture(b)
+        body_0.add_capture(long_range)
+        body_0.add_stretch(c)
+        body_1 = QuantumCircuit(expected.qubits)
+        body_1.add_capture(c)
+        body_1.delay(c, 0)
+        body_0.box(body_1, expected.qubits, [], duration=expr.mul(2, b))
+        body_2 = QuantumCircuit(expected.qubits)
+        body_2.add_capture(long_range)
+        body_2.delay(long_range, 0)
+        body_0.if_test(expr.lift(True), body_2, expected.qubits, [])
+        expected.box(body_0, expected.qubits, [], duration=a)
         self.assertEqual(qc, expected)
 
     def test_box_label(self):

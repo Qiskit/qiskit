@@ -1,0 +1,18 @@
+---
+features_synthesis:
+  - |
+    The synthesis function :func:`.synth_mcx_1_clean_b95` now produces a circuit
+    with fewer CX-gates.
+upgrade_synthesis:
+  - |
+    The synthesis function :func:`.synth_mcx_1_clean_b95` now produces a circuit
+    with fewer layers of wrappings.
+fixes:
+  - |
+    When synthesizing an :class:`.MCXGate` gate with 3 controls, the synthesis
+    functon :func:`.synth_mcx_n_dirty_i15` used to require one auxiliary qubit,
+    producing a circuit with 5 qubits (3 control, 1 target, and 1 auxiliary). 
+    However, the actual synthesis algorithm does not make use of this auxiliary
+    qubit. This behavior is now fixed: the synthesized circuit is over 4 qubits
+    (3 control and 1 target), allowing to apply the synthesis function in a
+    slighty larger number of cases.

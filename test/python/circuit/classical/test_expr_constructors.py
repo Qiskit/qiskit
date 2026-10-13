@@ -4,19 +4,18 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import ddt
 
 from qiskit.circuit import Clbit, ClassicalRegister, Duration
 from qiskit.circuit.classical import expr, types
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -62,6 +61,9 @@ class TestExprConstructors(QiskitTestCase):
     def test_value_lifts_qiskit_scalars(self):
         cr = ClassicalRegister(3, "c")
         self.assertEqual(expr.lift(cr), expr.Var(cr, types.Uint(cr.size)))
+
+        big = ClassicalRegister((1 << 32) - 1, "BIG")  # Limit is 32-bit.
+        self.assertEqual(expr.lift(big), expr.Var(big, types.Uint(big.size)))
 
         clbit = Clbit()
         self.assertEqual(expr.lift(clbit), expr.Var(clbit, types.Bool()))
@@ -123,6 +125,8 @@ class TestExprConstructors(QiskitTestCase):
         (expr.logic_not, ClassicalRegister(3)),
         (expr.logic_not, False),
         (expr.logic_not, Clbit()),
+        (expr.negate, 7.0),
+        (expr.negate, Duration.dt(1000)),
     )
     @ddt.unpack
     def test_unary_functions_lift_scalars(self, function, scalar):
@@ -808,13 +812,6 @@ class TestExprConstructors(QiskitTestCase):
         with self.assertRaisesRegex(TypeError, "cannot multiply two durations"):
             expr.mul(Duration.dt(1000), Duration.dt(1000))
 
-        # Multiply timing expressions by non-const floats:
-        non_const_float = expr.Var.new("a", types.Float())
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.mul(Duration.dt(1000), non_const_float)
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.mul(non_const_float, Duration.dt(1000))
-
     def test_div_explicit(self):
         cr = ClassicalRegister(8, "c")
 
@@ -925,7 +922,33 @@ class TestExprConstructors(QiskitTestCase):
         with self.assertRaisesRegex(TypeError, "invalid types"):
             expr.div(255.0, Duration.dt(1000))
 
-        # Divide timing expressions by non-const floats:
-        non_const_float = expr.Var.new("a", types.Float())
-        with self.assertRaisesRegex(ValueError, "would result in a non-const"):
-            expr.div(Duration.dt(1000), non_const_float)
+    def test_unary_negate_forbidden(self):
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            expr.negate(True)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            expr.negate(Clbit())
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            cr = ClassicalRegister(3)
+            expr.negate(cr)
+        with self.assertRaisesRegex(TypeError, "cannot apply"):
+            expr.negate(expr.Value(5, types.Uint(3)))
+
+    def test_unary_negate_explicit(self):
+
+        self.assertEqual(
+            expr.negate(7.0),
+            expr.Unary(
+                expr.Unary.Op.NEGATE,
+                expr.Value(7.0, types.Float()),
+                types.Float(),
+            ),
+        )
+
+        self.assertEqual(
+            expr.negate(Duration.dt(1000)),
+            expr.Unary(
+                expr.Unary.Op.NEGATE,
+                expr.Value(Duration.dt(1000), types.Duration()),
+                types.Duration(),
+            ),
+        )

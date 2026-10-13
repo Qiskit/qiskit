@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,8 +14,7 @@
 
 import warnings
 
-from qiskit.circuit import Delay, Gate
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit import Delay, Gate, ParameterExpression
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -75,10 +74,14 @@ class BaseScheduler(AnalysisPass):
                 duration = None
 
         if isinstance(duration, ParameterExpression):
-            raise TranspilerError(
-                f"Parameterized duration ({duration}) "
-                f"of {node.op.name} on qubits {indices} is not bounded."
-            )
+            try:
+                duration = duration.numeric()
+            except TypeError as exc:
+                raise TranspilerError(
+                    f"Parameterized duration ({duration}) "
+                    f"of {node.op.name} on qubits {indices} is not bounded."
+                ) from exc
+
         if duration is None:
             raise TranspilerError(f"Duration of {node.op.name} on qubits {indices} is not found.")
 

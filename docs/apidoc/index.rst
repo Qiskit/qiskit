@@ -14,8 +14,10 @@ Circuit construction:
 
    circuit
    qiskit.circuit.QuantumCircuit
+   circuit_annotation
    circuit_classical
    circuit_library
+   circuit_random
    circuit_singleton
 
 Quantum information:
@@ -32,6 +34,7 @@ Transpilation:
 
    converters
    dagcircuit
+   mir
    passmanager
    synthesis
    qiskit.synthesis.unitary.aqc
@@ -73,6 +76,8 @@ Other:
 .. toctree::
    :maxdepth: 1
 
+   capi
    compiler
    exceptions
+   root
    utils

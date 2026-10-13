@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug when transpiling into a Clifford+T basis, where a Clifford+T basis
+    was not interpreted as such, leading to significantly more T-gates in the
+    transpiled circuit.

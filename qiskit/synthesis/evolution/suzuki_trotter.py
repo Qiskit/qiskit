@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,15 +19,15 @@ from collections.abc import Callable
 from itertools import chain
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.quantum_info import SparsePauliOp
+import qiskit.quantum_info
 
 from .product_formula import ProductFormula, reorder_paulis
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.quantumcircuit import ParameterValueType
-    from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
+    from qiskit.circuit.library import PauliEvolutionGate
 
 
 class SuzukiTrotter(ProductFormula):
@@ -65,7 +65,8 @@ class SuzukiTrotter(ProductFormula):
         insert_barriers: bool = False,
         cx_structure: str = "chain",
         atomic_evolution: (
-            Callable[[QuantumCircuit, Pauli | SparsePauliOp, float], None] | None
+            Callable[[QuantumCircuit, qiskit.quantum_info.Pauli | SparsePauliOp, float], None]
+            | None
         ) = None,
         wrap: bool = False,
         preserve_order: bool = True,
@@ -80,11 +81,12 @@ class SuzukiTrotter(ProductFormula):
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be ``"chain"``,
                 where next neighbor connections are used, or ``"fountain"``, where all qubits are
                 connected to one. This only takes effect when ``atomic_evolution is None``.
-            atomic_evolution: A function to apply the evolution of a single :class:`.Pauli`, or
-                :class:`.SparsePauliOp` of only commuting terms, to a circuit. The function takes in
-                three arguments: the circuit to append the evolution to, the Pauli operator to
-                evolve, and the evolution time. By default, a single Pauli evolution is decomposed
-                into a chain of ``CX`` gates and a single ``RZ`` gate.
+            atomic_evolution: A function to apply the evolution of a single
+                :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
+                to a circuit. The function takes in three arguments: the circuit to append the
+                evolution to, the Pauli operator to evolve, and the evolution time. By default, a
+                single Pauli evolution is decomposed into a chain of ``CX`` gates and a single
+                ``RZ`` gate.
             wrap: Whether to wrap the atomic evolutions into custom gate objects. This only takes
                 effect when ``atomic_evolution is None``.
             preserve_order: If ``False``, allows reordering the terms of the operator to
@@ -129,7 +131,7 @@ class SuzukiTrotter(ProductFormula):
 
             ("X", [0], t), ("ZZ", [0, 1], 2t), ("X", [0], t)
 
-        Note that the rotation angle contains a factor of 2, such that that evolution
+        Note that the rotation angle contains a factor of 2, such that the evolution
         of a Pauli :math:`P` over time :math:`t`, which is :math:`e^{itP}`, is represented
         by ``(P, indices, 2 * t)``.
 
@@ -146,11 +148,7 @@ class SuzukiTrotter(ProductFormula):
         time = evolution.time
 
         def to_sparse_list(operator):
-            sparse_list = (
-                operator.to_sparse_list()
-                if isinstance(operator, SparsePauliOp)
-                else operator.to_sparse_list()
-            )
+            sparse_list = operator.to_sparse_list()
             paulis = [
                 (pauli, indices, real_or_fail(coeff) * time * 2 / self.reps)
                 for pauli, indices, coeff in sparse_list
