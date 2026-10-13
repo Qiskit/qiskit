@@ -159,21 +159,11 @@ def dump(
                 from the QPY format at that version will persist. This should only be used if
                 compatibility with loading the payload with an older version of Qiskit is necessary.
 
-            .. note::
-
-                If serializing a :class:`.QuantumCircuit` that contains
-                :class:`.ParameterExpression` objects with ``version`` set low with the intent to
-                load the payload using a historical release of Qiskit, it is safest to set the
-                ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
-                QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
-                unless the version of ``symengine`` used between the loading and generating
-                environments matches.
         annotation_factories: Mapping of namespaces to functions that create new instances of
             :class:`.annotation.QPUSerializer`, for handling the dumping of custom
             :class:`.Annotation` objects.  The subsequent call to :func:`load` will need to use
             similar serializer objects, that understand the custom output format of those
             serializers.
-
 
     Raises:
         TypeError: When invalid data type is input.
@@ -202,7 +192,6 @@ def dump(
             programs,
             file_obj,
             metadata_serializer,
-            bool(use_symengine),
             version,
             annotation_factories,
         )
@@ -353,9 +342,16 @@ def load(
             f"The QPY format version being read, {version}, isn't supported by "
             "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
         )
+    config = user_config.get_config()
+    min_qpy_version = config.get("min_qpy_version")
+    if min_qpy_version is not None and version < min_qpy_version:
+        raise QpyError(
+            f"QPY version {version} is lower than the configured minimum "
+            f"version {min_qpy_version}."
+        )
     use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
     if use_rust:
-        return _qpy.load(file_obj, metadata_deserializer, version, annotation_factories)
+        return _qpy.load(file_obj, metadata_deserializer, annotation_factories)
 
     if version < 10:
         data = formats.FILE_HEADER._make(
@@ -370,14 +366,6 @@ def load(
                 formats.FILE_HEADER_V10_PACK,
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
-        )
-
-    config = user_config.get_config()
-    min_qpy_version = config.get("min_qpy_version")
-    if min_qpy_version is not None and data.qpy_version < min_qpy_version:
-        raise QpyError(
-            f"QPY version {data.qpy_version} is lower than the configured minimum "
-            f"version {min_qpy_version}."
         )
 
     if data.preface.decode(common.ENCODE) != "QISKIT":
