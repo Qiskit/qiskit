@@ -493,7 +493,7 @@ class SparsePauliOp(LinearOp):
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optional. Deprecated and has no effect. See deprection note.
+            rtol (float): Optional. Deprecated and has no effect. See deprecation note.
 
         Returns:
             bool: True if the operator is unitary, False otherwise.
