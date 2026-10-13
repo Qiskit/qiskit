@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -76,17 +76,16 @@ class Optimize1qGates(TransformationPass):
                     right_name = "p"
                 else:
                     right_name = "u1"
+            elif use_p:
+                right_name = "p"
             else:
-                if use_p:
-                    right_name = "p"
-                else:
-                    right_name = "u1"
+                right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
             right_global_phase = 0
             for current_node in run:
                 left_name = current_node.name
                 if (
-                    getattr(current_node.op, "condition", None) is not None
+                    getattr(current_node, "condition", None) is not None
                     or len(current_node.qargs) != 1
                     or left_name not in ["p", "u1", "u2", "u3", "u", "id"]
                 ):
@@ -223,8 +222,7 @@ class Optimize1qGates(TransformationPass):
                 if (
                     not isinstance(right_parameters[0], ParameterExpression)
                     and abs(np.mod(right_parameters[0], (2 * np.pi))) < self.eps
-                    and right_name != "u1"
-                    and right_name != "p"
+                    and right_name not in {"u1", "p"}
                 ):
                     if use_p:
                         right_name = "p"
@@ -308,7 +306,7 @@ class Optimize1qGates(TransformationPass):
                 if "u3" in self.basis:
                     new_op = U3Gate(*right_parameters)
                 else:
-                    raise TranspilerError("It was not possible to use the basis %s" % self.basis)
+                    raise TranspilerError(f"It was not possible to use the basis {self.basis}")
 
             dag.global_phase += right_global_phase
 
@@ -339,7 +337,7 @@ class Optimize1qGates(TransformationPass):
         return (theta, phi, lamb)
 
     @staticmethod
-    def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):  # pylint: disable=invalid-name
+    def yzy_to_zyz(xi, theta1, theta2, eps=1e-9):
         """Express a Y.Z.Y single qubit gate as a Z.Y.Z gate.
 
         Solve the equation

@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    The method :meth:`.QuantumCircuit.measure_active` has changed the name of the classical register it creates,
+    as the previous name conflicted with an OpenQASM reserved word. Instead of ``measure``, it is now called ``meas``,
+    aligning with the register name used by :meth:`~.QuantumCircuit.measure_all`.

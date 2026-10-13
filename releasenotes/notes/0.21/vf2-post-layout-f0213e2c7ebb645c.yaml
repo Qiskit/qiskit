@@ -15,7 +15,7 @@ features:
     This pass is similar to the :class:`~.VF2Layout` pass and both internally
     use the same VF2 implementation from 
     `retworkx <https://github.com/Qiskit/retworkx>`__. However,
-    :class:`~.VF2PostLayout` is deisgned to run after initial layout, routing,
+    :class:`~.VF2PostLayout` is designed to run after initial layout, routing,
     basis translation, and any optimization passes run and will only work if
     a layout has already been applied, the circuit has been routed, and all
     gates are in the target basis. This is required so that when a new layout

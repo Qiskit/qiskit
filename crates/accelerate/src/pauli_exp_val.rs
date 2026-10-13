@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -18,21 +18,22 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
-use crate::getenv_use_multiple_threads;
+use qiskit_util::complex::c64;
+use qiskit_util::getenv_use_multiple_threads;
 
 const PARALLEL_THRESHOLD: usize = 19;
 
 #[pulp::with_simd(fast_sum = pulp::Arch::new())]
 #[inline(always)]
 pub fn fast_sum_with_simd<S: Simd>(simd: S, values: &[f64]) -> f64 {
-    let (head, tail) = S::f64s_as_simd(values);
+    let (head, tail) = S::as_simd_f64s(values);
     let sum: f64 = head
         .iter()
-        .fold(0., |acc, chunk| acc + simd.f64s_reduce_sum(*chunk));
+        .fold(0., |acc, chunk| acc + simd.reduce_sum_f64s(*chunk));
     sum + tail.iter().sum::<f64>()
 }
 
-/// Compute the pauli expectatation value of a statevector without x
+/// Compute the pauli expectation value of a statevector without x
 #[pyfunction]
 #[pyo3(text_signature = "(data, num_qubits, z_mask, /)")]
 pub fn expval_pauli_no_x(
@@ -63,7 +64,7 @@ pub fn expval_pauli_no_x(
     }
 }
 
-/// Compute the pauli expectatation value of a statevector with x
+/// Compute the pauli expectation value of a statevector with x
 #[pyfunction]
 #[pyo3(text_signature = "(data, num_qubits, z_mask, x_mask, phase, x_max, /)")]
 pub fn expval_pauli_with_x(
@@ -88,7 +89,7 @@ pub fn expval_pauli_with_x(
         let index_0 = ((i << 1) & mask_u) | (i & mask_l);
         let index_1 = index_0 ^ x_mask;
         let val_0 = (phase
-            * Complex64::new(
+            * c64(
                 data_arr[index_1].re * data_arr[index_0].re
                     + data_arr[index_1].im * data_arr[index_0].im,
                 data_arr[index_1].im * data_arr[index_0].re
@@ -96,7 +97,7 @@ pub fn expval_pauli_with_x(
             ))
         .re;
         let val_1 = (phase
-            * Complex64::new(
+            * c64(
                 data_arr[index_0].re * data_arr[index_1].re
                     + data_arr[index_0].im * data_arr[index_1].im,
                 data_arr[index_0].im * data_arr[index_1].re
@@ -121,7 +122,7 @@ pub fn expval_pauli_with_x(
     }
 }
 
-/// Compute the pauli expectatation value of a density matrix without x
+/// Compute the pauli expectation value of a density matrix without x
 #[pyfunction]
 #[pyo3(text_signature = "(data, num_qubits, z_mask, /)")]
 pub fn density_expval_pauli_no_x(
@@ -153,7 +154,7 @@ pub fn density_expval_pauli_no_x(
     }
 }
 
-/// Compute the pauli expectatation value of a density matrix with x
+/// Compute the pauli expectation value of a density matrix with x
 #[pyfunction]
 #[pyo3(text_signature = "(data, num_qubits, z_mask, x_mask, phase, x_max, /)")]
 pub fn density_expval_pauli_with_x(
@@ -192,7 +193,6 @@ pub fn density_expval_pauli_with_x(
     }
 }
 
-#[pymodule]
 pub fn pauli_expval(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(expval_pauli_no_x))?;
     m.add_wrapped(wrap_pyfunction!(expval_pauli_with_x))?;

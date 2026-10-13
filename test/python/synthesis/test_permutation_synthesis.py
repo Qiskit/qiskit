@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -24,29 +24,53 @@ from qiskit.synthesis.permutation import (
     synth_permutation_depth_lnn_kms,
     synth_permutation_basic,
     synth_permutation_reverse_lnn_kms,
+    _inverse_pattern,
+    _validate_permutation,
 )
-from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
 class TestPermutationSynthesis(QiskitTestCase):
     """Test the permutation synthesis functions."""
 
-    @data(4, 5, 10, 15, 20)
-    def test_get_ordered_swap(self, width):
-        """Test get_ordered_swap function produces correct swap list."""
+    @data(0, 4, 5, 10, 15, 20)
+    def test_inverse_pattern(self, width):
+        """Test _inverse_pattern function produces correct index map."""
         np.random.seed(1)
         for _ in range(5):
             pattern = np.random.permutation(width)
-            swap_list = _get_ordered_swap(pattern)
-            output = list(range(width))
-            for i, j in swap_list:
-                output[i], output[j] = output[j], output[i]
-            self.assertTrue(np.array_equal(pattern, output))
-            self.assertLess(len(swap_list), width)
+            inverse = _inverse_pattern(pattern)
+            for ii, jj in enumerate(pattern):
+                self.assertTrue(inverse[jj] == ii)
 
-    @data(4, 5, 10, 15, 20)
+    @data(10, 20)
+    def test_invalid_permutations(self, width):
+        """Check that _validate_permutation raises exceptions when the
+        input is not a permutation."""
+        np.random.seed(1)
+        for _ in range(5):
+            pattern = np.random.permutation(width)
+
+            pattern_out_of_range = np.copy(pattern)
+            pattern_out_of_range[0] = -1
+            with self.assertRaises(ValueError) as exc:
+                _validate_permutation(pattern_out_of_range)
+                self.assertIn("input contains a negative number", str(exc.exception))
+
+            pattern_out_of_range = np.copy(pattern)
+            pattern_out_of_range[0] = width
+            with self.assertRaises(ValueError) as exc:
+                _validate_permutation(pattern_out_of_range)
+                self.assertIn(f"input has length {width} and contains {width}", str(exc.exception))
+
+            pattern_duplicate = np.copy(pattern)
+            pattern_duplicate[-1] = pattern[0]
+            with self.assertRaises(ValueError) as exc:
+                _validate_permutation(pattern_duplicate)
+                self.assertIn(f"input contains {pattern[0]} more than once", str(exc.exception))
+
+    @data(0, 4, 5, 10, 15, 20)
     def test_synth_permutation_basic(self, width):
         """Test synth_permutation_basic function produces the correct
         circuit."""
@@ -64,7 +88,7 @@ class TestPermutationSynthesis(QiskitTestCase):
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
             self.assertTrue(np.array_equal(synthesized_pattern, pattern))
 
-    @data(4, 5, 10, 15, 20)
+    @data(0, 4, 5, 10, 15, 20)
     def test_synth_permutation_acg(self, width):
         """Test synth_permutation_acg function produces the correct
         circuit."""
@@ -85,7 +109,7 @@ class TestPermutationSynthesis(QiskitTestCase):
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
             self.assertTrue(np.array_equal(synthesized_pattern, pattern))
 
-    @data(4, 5, 10, 15, 20)
+    @data(0, 4, 5, 10, 15, 20)
     def test_synth_permutation_depth_lnn_kms(self, width):
         """Test synth_permutation_depth_lnn_kms function produces the correct
         circuit."""
@@ -112,7 +136,7 @@ class TestPermutationSynthesis(QiskitTestCase):
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
             self.assertTrue(np.array_equal(synthesized_pattern, pattern))
 
-    @data(1, 2, 3, 4, 5, 10, 15, 20)
+    @data(0, 1, 2, 3, 4, 5, 10, 15, 20)
     def test_synth_permutation_reverse_lnn_kms(self, num_qubits):
         """Test synth_permutation_reverse_lnn_kms function produces the correct
         circuit."""

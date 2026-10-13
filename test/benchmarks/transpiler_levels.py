@@ -4,23 +4,22 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member,invalid-name,missing-docstring,no-name-in-module
-# pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 
 import os
 
 from qiskit.compiler import transpile
 from qiskit import QuantumCircuit
 from qiskit.transpiler import InstructionDurations
-from qiskit.providers.fake_provider import Fake20QV1
+from qiskit.providers.fake_provider import GenericBackendV2
 
 from .utils import build_qv_model_circuit
+from .legacy_cmaps import MELBOURNE_CMAP
 
 
 class TranspilerLevelBenchmarks:
@@ -153,7 +152,8 @@ class TranspilerLevelBenchmarks:
         self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
         large_qasm_path = os.path.join(self.qasm_path, "test_eoh_qasm.qasm")
         self.large_qasm = QuantumCircuit.from_qasm_file(large_qasm_path)
-        self.melbourne = Fake20QV1()
+        self.melbourne = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP, seed=0)
+
         self.durations = InstructionDurations(
             [
                 ("u1", None, 0),
@@ -229,7 +229,6 @@ class TranspilerLevelBenchmarks:
             seed_transpiler=0,
             optimization_level=transpiler_level,
             scheduling_method="alap",
-            instruction_durations=self.durations,
         )
 
     # limit optimization levels to reduce time

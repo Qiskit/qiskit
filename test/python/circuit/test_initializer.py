@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -24,13 +24,13 @@ from qiskit import (
     QuantumRegister,
     ClassicalRegister,
     transpile,
-    assemble,
 )
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import Initialize
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+from qiskit.circuit.exceptions import CircuitError
 
 
 @ddt
@@ -38,6 +38,37 @@ class TestInitialize(QiskitTestCase):
     """Qiskit Initialize tests."""
 
     _desired_fidelity = 0.99
+
+    def test_disentangled(self):
+        """test real-valued disentangled state initialization"""
+        state1 = np.random.rand(8)
+        state1 = state1 / np.linalg.norm(state1)
+        state2 = np.random.rand(8)
+        state2 = state2 / np.linalg.norm(state2)
+        state3 = np.random.rand(8)
+        state3 = state3 / np.linalg.norm(state3)
+
+        qc1 = QuantumCircuit(9)
+        qc1.initialize(state1, [0, 2, 3])
+        qc1.initialize(state2, [1, 8, 5])
+        qc1.initialize(state3, [7, 6, 4])
+
+        statevector = Statevector(qc1)
+
+        qc2 = QuantumCircuit(9)
+        qc2.initialize(statevector)
+
+        qc1 = transpile(qc1, basis_gates=["u", "cx"])
+        qc2 = transpile(qc2, basis_gates=["u", "cx"])
+
+        statevector1 = Statevector(qc1)
+        statevector2 = Statevector(qc2)
+
+        counts1 = qc1.count_ops()["cx"]
+        counts2 = qc2.count_ops()["cx"]
+
+        self.assertTrue(counts2 == counts1)
+        self.assertTrue(np.allclose(statevector1, statevector2))
 
     def test_uniform_superposition(self):
         """Initialize a uniform superposition on 2 qubits."""
@@ -59,6 +90,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
+        qc = transpile(qc, basis_gates=["u", "cx"])
         statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
@@ -406,7 +438,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_global_phase_random(self):
         """Test global phase preservation with random state vectors"""
-        from qiskit.quantum_info.random import random_statevector
+        from qiskit.quantum_info import random_statevector
 
         repeats = 5
         for n_qubits in [1, 2, 4]:
@@ -465,6 +497,45 @@ class TestInitialize(QiskitTestCase):
         self.assertEqual(decom_circ.data[2].operation.name, "state_preparation")
         self.assertEqual(decom_circ.data[2].operation.params, ["0", "0"])
 
+    def test_gates_to_uncompute(self):
+        """Test the gates_to_uncompute() method."""
+        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        initialize = Initialize(desired_vector)
+        qc = initialize.gates_to_uncompute().inverse()
+        vec = Statevector(qc)
+        self.assertTrue(vec == Statevector(desired_vector))
+
+    def test_repeat(self):
+        """Test the repeat() method."""
+        desired_vector = np.array([0.5, 0.5, 0.5, 0.5])
+        initialize = Initialize(desired_vector)
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        qc.append(initialize.repeat(2), qr)
+        statevector = Statevector(qc)
+        self.assertTrue(np.allclose(statevector, desired_vector))
+
+    def test_irreversible_initialize(self):
+        """Test failure of the initialize.inverse() method"""
+        circuit = QuantumCircuit(4, 0)
+        circuit.initialize(0, circuit.qubits)
+        with self.assertRaises(CircuitError):
+            _ = circuit.inverse()
+
+    def test_gates_to_uncompute_integer_input(self):
+        """Test that gates_to_uncompute works correctly for integer-bitmap inputs.
+        Regression test for https://github.com/Qiskit/qiskit/issues/16413
+        """
+        # Integer-bitmap input: Initialize(1, num_qubits=2) prepares |01>
+        int_init = Initialize(1, num_qubits=2)
+        uncompute_int = int_init.gates_to_uncompute()
+        self.assertEqual(uncompute_int.num_qubits, 2)
+
+        # Verify integer-bitmap uncompute actually maps |01> back to |00...0>
+        result = Statevector.from_label("01").evolve(uncompute_int)
+        zero_state = Statevector.from_label("00")
+        self.assertTrue(result.equiv(zero_state))
+
 
 class TestInstructionParam(QiskitTestCase):
     """Test conversion of numpy type parameters."""
@@ -477,12 +548,6 @@ class TestInstructionParam(QiskitTestCase):
         qc.initialize(vec, 0)
 
         params = qc.data[0].operation.params
-        self.assertTrue(
-            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
-        )
-
-        qobj = assemble(qc)
-        params = qobj.experiments[0].instructions[0].params
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )

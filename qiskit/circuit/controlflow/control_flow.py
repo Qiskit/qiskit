@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,6 +22,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit.classical import expr
 
 
 class ControlFlowOp(Instruction, ABC):
@@ -31,12 +32,6 @@ class ControlFlowOp(Instruction, ABC):
     :attr:`~ControlFlowOp.blocks`, which exposes the inner subcircuits used in the different blocks
     of the control flow.
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for block in self.blocks:
-            if block.num_input_vars:
-                raise CircuitError("control-flow blocks cannot contain input variables")
 
     @property
     @abstractmethod
@@ -72,3 +67,27 @@ class ControlFlowOp(Instruction, ABC):
         Returns:
             New :class:`ControlFlowOp` with replaced blocks.
         """
+
+    def iter_captured_vars(self) -> typing.Iterable[expr.Var]:
+        """Get an iterator over the unique captured variables in all blocks of this construct."""
+        seen = set()
+        for block in self.blocks:
+            for var in block.iter_captured_vars():
+                if var not in seen:
+                    seen.add(var)
+                    yield var
+
+    def iter_captured_stretches(self) -> typing.Iterable[expr.Stretch]:
+        """Get an iterator over the unique captured stretch variables in all blocks of this
+        construct."""
+        seen = set()
+        for block in self.blocks:
+            for stretch in block.iter_captured_stretches():
+                if stretch not in seen:
+                    seen.add(stretch)
+                    yield stretch
+
+    @staticmethod
+    def _unexpected_input_var_error() -> Exception:
+        """Create a suitable exception to raise when a block has unexpected input variables."""
+        return CircuitError("Only for-loop blocks can contain input variables")

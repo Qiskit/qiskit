@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -54,7 +54,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     For example,
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context: reset
 
         import numpy as np
 
@@ -80,7 +83,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         pauli_list = PauliList.from_symplectic(z, x, phase)
         print("4. ", pauli_list)
 
-    .. parsed-literal::
+    .. code-block:: text
 
         1.  ['II', 'ZI', '-iYY']
         2.  ['iXI']
@@ -93,14 +96,17 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     operator which accepts integer, lists, or slices for selecting subsets
     of PauliList. If integer is given, it returns Pauli not PauliList.
 
-    .. code-block::
+    .. plot::
+       :include-source:
+       :nofigs:
+       :context:
 
         pauli_list = PauliList(["XX", "ZZ", "IZ"])
         print("Integer: ", repr(pauli_list[1]))
         print("List: ", repr(pauli_list[[0, 2]]))
         print("Slice: ", repr(pauli_list[0:2]))
 
-    .. parsed-literal::
+    .. code-block:: text
 
         Integer:  Pauli('ZZ')
         List:  PauliList(['XX', 'IZ'])
@@ -257,7 +263,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     @phase.setter
     def phase(self, value):
-        # Convert group phase convetion to internal ZX-phase convention
+        # Convert group phase convention to internal ZX-phase convention
         self._phase[:] = np.mod(value + self._count_y(dtype=self._phase.dtype), 4)
 
     @property
@@ -382,8 +388,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not qubit:
             if max(ind) >= len(self):
                 raise QiskitError(
-                    "Indices {} are not all less than the size"
-                    " of the PauliList ({})".format(ind, len(self))
+                    f"Indices {ind} are not all less than the size"
+                    f" of the PauliList ({len(self)})"
                 )
             z = np.delete(self._z, ind, axis=0)
             x = np.delete(self._x, ind, axis=0)
@@ -394,8 +400,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Column (qubit) deletion
         if max(ind) >= self.num_qubits:
             raise QiskitError(
-                "Indices {} are not all less than the number of"
-                " qubits in the PauliList ({})".format(ind, self.num_qubits)
+                f"Indices {ind} are not all less than the number of"
+                f" qubits in the PauliList ({self.num_qubits})"
             )
         z = np.delete(self._z, ind, axis=1)
         x = np.delete(self._x, ind, axis=1)
@@ -432,8 +438,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not qubit:
             if ind > size:
                 raise QiskitError(
-                    "Index {} is larger than the number of rows in the"
-                    " PauliList ({}).".format(ind, size)
+                    f"Index {ind} is larger than the number of rows in the" f" PauliList ({size})."
                 )
             base_z = np.insert(self._z, ind, value._z, axis=0)
             base_x = np.insert(self._x, ind, value._x, axis=0)
@@ -443,30 +448,28 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # Column insertion
         if ind > self.num_qubits:
             raise QiskitError(
-                "Index {} is greater than number of qubits"
-                " in the PauliList ({})".format(ind, self.num_qubits)
+                f"Index {ind} is greater than number of qubits"
+                f" in the PauliList ({self.num_qubits})"
             )
-        if len(value) == 1:
-            # Pad blocks to correct size
-            value_x = np.vstack(size * [value.x])
-            value_z = np.vstack(size * [value.z])
-            value_phase = np.vstack(size * [value.phase])
-        elif len(value) == size:
+        if len(value) == size:
             #  Blocks are already correct size
             value_x = value.x
             value_z = value.z
-            value_phase = value.phase
+        elif len(value) == 1:
+            # Pad blocks to correct size
+            value_x = np.vstack(size * [value.x])
+            value_z = np.vstack(size * [value.z])
         else:
             # Blocks are incorrect size
             raise QiskitError(
                 "Input PauliList must have a single row, or"
                 " the same number of rows as the Pauli Table"
-                " ({}).".format(size)
+                f" ({size})."
             )
         # Build new array by blocks
         z = np.hstack([self.z[:, :ind], value_z, self.z[:, ind:]])
         x = np.hstack([self.x[:, :ind], value_x, self.x[:, ind:]])
-        phase = self.phase + value_phase
+        phase = self.phase + value.phase
 
         return PauliList.from_symplectic(z, x, phase)
 
@@ -545,7 +548,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Consider sorting all a random ordering of all 2-qubit Paulis
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from numpy.random import shuffle
             from qiskit.quantum_info.operators import PauliList
@@ -569,7 +574,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             print('Weight sorted')
             print(srt)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             Initial Ordering
             ['YX', 'ZZ', 'XZ', 'YI', 'YZ', 'II', 'XX', 'XI', 'XY', 'YY', 'IX', 'IZ',
@@ -596,7 +601,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         **Example**
 
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             from qiskit.quantum_info.operators import PauliList
 
@@ -604,7 +611,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             unique = pt.unique()
             print(unique)
 
-        .. parsed-literal::
+        .. code-block:: text
 
             ['X', 'Y', '-X', 'I', 'Z', 'iZ']
 
@@ -647,7 +654,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         index = index[sort_inds]
         unique = PauliList(BasePauli(self._z[index], self._x[index], self._phase[index]))
 
-        # Concatinate return tuples
+        # Concatenate return tuples
         ret = (unique,)
         if return_index:
             ret += (index,)
@@ -847,7 +854,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return super().commutes(other, qargs=qargs)
 
     def anticommutes(self, other: BasePauli, qargs: list | None = None) -> bool:
-        """Return ``True`` if other Pauli that anticommutes with other.
+        """Return ``True`` if the other Pauli anticommutes with this one.
 
         Args:
             other (PauliList): another PauliList operator.
@@ -874,7 +881,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return self._commutes_with_all(other)
 
     def anticommutes_with_all(self, other: PauliList) -> np.ndarray:
-        """Return indexes of rows that commute other.
+        """Return indexes of rows that anticommute with the other Pauli list.
 
         If ``other`` is a multi-row Pauli list the returned vector indexes rows
         of the current PauliList that anti-commute with *all* Paulis in other.
@@ -1032,7 +1039,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                           return a list of Numpy arrays (Default: ``False``).
 
         Returns:
-            list: A list of dense Pauli matrices if ``array=False` and ``sparse=False`.
+            list: A list of dense Pauli matrices if ``array=False`` and ``sparse=False``.
             list: A list of sparse Pauli matrices if ``array=False`` and ``sparse=True``.
             array: A dense rank-3 array of Pauli matrices if ``array=True``.
         """
@@ -1117,11 +1124,13 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Args:
             z (np.ndarray): 2D boolean Numpy array.
             x (np.ndarray): 2D boolean Numpy array.
-            phase (np.ndarray or None): Optional, 1D integer array from Z_4.
+            phase (np.ndarray or None):  1D integer array from Z_4.
 
         Returns:
             PauliList: the constructed PauliList.
         """
+        if isinstance(phase, np.ndarray) and np.ndim(phase) > 1:
+            raise ValueError(f"phase should be at most 1D but has {np.ndim(phase)} dimensions.")
         base_z, base_x, base_phase = cls._from_array(z, x, phase)
         return cls(BasePauli(base_z, base_x, base_phase))
 
@@ -1215,7 +1224,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.  For example:
 
-                .. code-block:: python
+                .. plot::
+                   :include-source:
+                   :nofigs:
 
                     >>> from qiskit.quantum_info import PauliList
                     >>> op = PauliList(["XX", "YY", "IZ", "ZZ"])

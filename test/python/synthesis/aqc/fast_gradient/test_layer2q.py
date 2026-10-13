@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,8 +20,8 @@ import numpy as np
 
 import qiskit.synthesis.unitary.aqc.fast_gradient.layer as lr
 from qiskit.synthesis.unitary.aqc.fast_gradient.pmatrix import PMatrix
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut
 
 
 class TestLayer2q(QiskitTestCase):
@@ -65,7 +65,7 @@ class TestLayer2q(QiskitTestCase):
 
                     # T == P^t @ G @ P.
                     err = tut.relative_error(t_mat, iden[perm].T @ g_mat @ iden[perm])
-                    self.assertLess(err, _eps, "err = {:0.16f}".format(err))
+                    self.assertLess(err, _eps, f"err = {err:0.16f}")
                     max_rel_err = max(max_rel_err, err)
 
                     # Multiplication by permutation matrix of the left can be
@@ -82,8 +82,8 @@ class TestLayer2q(QiskitTestCase):
 
                     self.assertTrue(
                         err1 < _eps and err2 < _eps and err3 < _eps and err4 < _eps,
-                        "err1 = {:f},  err2 = {:f},  "
-                        "err3 = {:f},  err4 = {:f}".format(err1, err2, err3, err4),
+                        f"err1 = {err1:f},  err2 = {err2:f},  "
+                        f"err3 = {err3:f},  err4 = {err4:f}",
                     )
                     max_rel_err = max(max_rel_err, err1, err2, err3, err4)
 
@@ -136,12 +136,12 @@ class TestLayer2q(QiskitTestCase):
                 alt_ttmtt = pmat.finalize(temp_mat=tmp1)
 
                 err1 = tut.relative_error(alt_ttmtt, ttmtt)
-                self.assertLess(err1, _eps, "relative error: {:f}".format(err1))
+                self.assertLess(err1, _eps, f"relative error: {err1:f}")
 
                 prod = np.complex128(np.trace(ttmtt @ t4))
                 alt_prod = pmat.product_q2(layer=c4, tmp1=tmp1, tmp2=tmp2)
                 err2 = abs(alt_prod - prod) / abs(prod)
-                self.assertLess(err2, _eps, "relative error: {:f}".format(err2))
+                self.assertLess(err2, _eps, f"relative error: {err2:f}")
 
                 max_rel_err = max(max_rel_err, err1, err2)
 

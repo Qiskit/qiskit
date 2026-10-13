@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,8 +12,10 @@
 
 """Evolution synthesis."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class EvolutionSynthesis(ABC):
@@ -21,7 +23,7 @@ class EvolutionSynthesis(ABC):
 
     @abstractmethod
     def synthesize(self, evolution):
-        """Synthesize an ``qiskit.circuit.library.PauliEvolutionGate``.
+        """Synthesize a ``qiskit.circuit.library.PauliEvolutionGate``.
 
         Args:
             evolution (PauliEvolutionGate): The evolution gate to synthesize.
@@ -32,7 +34,7 @@ class EvolutionSynthesis(ABC):
         raise NotImplementedError
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         """Return the settings in a dictionary, which can be used to reconstruct the object.
 
         Returns:

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -23,18 +23,114 @@ import numpy as np
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BackendV1, BackendV2
+from qiskit.providers import BackendV2
 from qiskit.quantum_info import Pauli, PauliList
-from qiskit.result import Counts
+from qiskit.result import Counts, Result
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 
-from .backend_estimator import _pauli_expval_with_variance, _prepare_counts, _run_circuits
 from .base import BaseEstimatorV2
-from .containers import EstimatorPubLike, PrimitiveResult, PubResult
+from .containers import DataBin, EstimatorPubLike, PrimitiveResult, PubResult
 from .containers.bindings_array import BindingsArray
 from .containers.estimator_pub import EstimatorPub
 from .primitive_job import PrimitiveJob
+
+
+def _run_circuits(
+    circuits: QuantumCircuit | list[QuantumCircuit],
+    backend: BackendV2,
+    clear_metadata: bool = True,
+    **run_options,
+) -> tuple[list[Result], list[dict]]:
+    """Remove metadata of circuits and run the circuits on a backend.
+    Args:
+        circuits: The circuits
+        backend: The backend
+        clear_metadata: Clear circuit metadata before passing to backend.run if
+            True.
+        **run_options: run_options
+    Returns:
+        The result and the metadata of the circuits
+    """
+    if isinstance(circuits, QuantumCircuit):
+        circuits = [circuits]
+    metadata = []
+    for circ in circuits:
+        metadata.append(circ.metadata)
+        if clear_metadata:
+            circ.metadata = {}
+    if isinstance(backend, BackendV2):
+        max_circuits = backend.max_circuits
+    else:
+        raise RuntimeError("Backend version not supported")
+    if max_circuits:
+        jobs = [
+            backend.run(circuits[pos : pos + max_circuits], **run_options)
+            for pos in range(0, len(circuits), max_circuits)
+        ]
+        result = [x.result() for x in jobs]
+    else:
+        result = [backend.run(circuits, **run_options).result()]
+    return result, metadata
+
+
+def _prepare_counts(results: list[Result]):
+    counts = []
+    for res in results:
+        count = res.get_counts()
+        if not isinstance(count, list):
+            count = [count]
+        counts.extend(count)
+    return counts
+
+
+def _pauli_expval_with_variance(counts: Counts, paulis: PauliList) -> tuple[np.ndarray, np.ndarray]:
+    """Return array of expval and variance pairs for input Paulis.
+    Note: All non-identity Paulis are treated as Z-Paulis, assuming
+    that basis rotations have been applied to convert them to the
+    diagonal basis.
+    """
+    # Diag indices
+    size = len(paulis)
+    diag_inds = _paulis2inds(paulis)
+
+    expvals = np.zeros(size, dtype=float)
+    denom = 0  # Total shots for counts dict
+    for bin_outcome, freq in counts.items():
+        split_outcome = bin_outcome.split(" ", 1)[0] if " " in bin_outcome else bin_outcome
+        outcome = int(split_outcome, 2)
+        denom += freq
+        for k in range(size):
+            coeff = (-1) ** _parity(diag_inds[k] & outcome)
+            expvals[k] += freq * coeff
+
+    # Divide by total shots
+    expvals /= denom
+
+    # Compute variance
+    variances = 1 - expvals**2
+    return expvals, variances
+
+
+def _paulis2inds(paulis: PauliList) -> list[int]:
+    """Convert PauliList to diagonal integers.
+    These are integer representations of the binary string with a
+    1 where there are Paulis, and 0 where there are identities.
+    """
+    # Treat Z, X, Y the same
+    nonid = paulis.z | paulis.x
+
+    # bits are packed into uint8 in little endian
+    # e.g., i-th bit corresponds to coefficient 2^i
+    packed_vals = np.packbits(nonid, axis=1, bitorder="little")
+    power_uint8 = 1 << (8 * np.arange(packed_vals.shape[1], dtype=object))
+    inds = packed_vals @ power_uint8
+    return inds.tolist()
+
+
+def _parity(integer: int) -> int:
+    """Return the parity of an integer"""
+    return bin(integer).count("1") % 2
 
 
 @dataclass
@@ -72,11 +168,11 @@ class _PreprocessedData:
 
 
 class BackendEstimatorV2(BaseEstimatorV2):
-    """Evaluates expectation values for provided quantum circuit and observable combinations
+    r"""Evaluates expectation values for provided quantum circuit and observable combinations.
 
     The :class:`~.BackendEstimatorV2` class is a generic implementation of the
     :class:`~.BaseEstimatorV2` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimatorV2` API. It
+    object in the :class:`~.BaseEstimatorV2` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseEstimatorV2` implementation in places that work with
     :class:`~.BaseEstimatorV2`. However,
@@ -87,7 +183,19 @@ class BackendEstimatorV2(BaseEstimatorV2):
     precludes doing any provider- or backend-specific optimizations.
 
     This class does not perform any measurement or gate mitigation, and, presently, is only
-    compatible with Pauli-based observables.
+    compatible with Pauli-based observables. More formally, given an observable of the type
+    :math:`O=\sum_{i=1}^Na_iP_i`, where :math:`a_i` is a complex number and :math:`P_i` is a
+    Pauli operator, the estimator calculates the expectation :math:`\mathbb{E}(P_i)` of each
+    :math:`P_i` and finally calculates the expectation value of :math:`O` as
+    :math:`\mathbb{E}(O)=\sum_{i=1}^Na_i\mathbb{E}(P_i)`. The reported ``std`` is calculated
+    as
+
+    .. math::
+
+        \frac{\sum_{i=1}^{n}|a_i|\sqrt{\textrm{Var}\big(P_i\big)}}{\sqrt{N}}\:,
+
+    where :math:`\textrm{Var}(P_i)` is the variance of :math:`P_i`, :math:`N=O(\epsilon^{-2})` is
+    the number of shots, and :math:`\epsilon` is the target precision [1].
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
@@ -104,12 +212,18 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
     * ``seed_simulator``: The seed to use in the simulator. If None, a random seed will be used.
       Default: None.
+
+    **Reference:**
+
+    [1] O. Crawford, B. van Straaten, D. Wang, T. Parks, E. Campbell, St. Brierley,
+    Efficient quantum measurement of Pauli operators in the presence of finite sampling error.
+    `Quantum 5, 385 <https://doi.org/10.22331/q-2021-01-20-385>`_
     """
 
     def __init__(
         self,
         *,
-        backend: BackendV1 | BackendV2,
+        backend: BackendV2,
         options: dict | None = None,
     ):
         """
@@ -135,8 +249,8 @@ class BackendEstimatorV2(BaseEstimatorV2):
         return self._options
 
     @property
-    def backend(self) -> BackendV1 | BackendV2:
-        """Returns the backend which this sampler object based on."""
+    def backend(self) -> BackendV2:
+        """Returns the backend which this estimator object is based on."""
         return self._backend
 
     def run(
@@ -162,7 +276,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         pub_dict = defaultdict(list)
         # consolidate pubs with the same number of shots
         for i, pub in enumerate(pubs):
-            shots = int(math.ceil(1.0 / pub.precision**2))
+            shots = math.ceil(1.0 / pub.precision**2)
             pub_dict[shots].append(i)
 
         results = [None] * len(pubs)
@@ -172,7 +286,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             # reconstruct the result of pubs
             for i, pub_result in zip(lst, pub_results):
                 results[i] = pub_result
-        return PrimitiveResult(results)
+        return PrimitiveResult(results, metadata={"version": 2})
 
     def _run_pubs(self, pubs: list[EstimatorPub], shots: int) -> list[PubResult]:
         """Compute results for pubs that all require the same value of ``shots``."""
@@ -220,7 +334,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
         param_indices = np.fromiter(np.ndindex(param_shape), dtype=object).reshape(param_shape)
         bc_param_ind, bc_obs = np.broadcast_arrays(param_indices, observables)
 
-        # calculate expectation values for each pair of parameter value set and pauli
         param_obs_map = defaultdict(set)
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]
@@ -254,11 +367,17 @@ class BackendEstimatorV2(BaseEstimatorV2):
             for pauli, coeff in bc_obs[index].items():
                 expval, variance = expval_map[param_index, pauli]
                 evs[index] += expval * coeff
-                variances[index] += variance * coeff**2
-        stds = np.sqrt(variances / shots)
-        data_bin_cls = self._make_data_bin(pub)
-        data_bin = data_bin_cls(evs=evs, stds=stds)
-        return PubResult(data_bin, metadata={"target_precision": pub.precision})
+                variances[index] += np.abs(coeff) * variance**0.5
+        stds = variances / np.sqrt(shots)
+        data_bin = DataBin(evs=evs, stds=stds, shape=evs.shape)
+        return PubResult(
+            data_bin,
+            metadata={
+                "target_precision": pub.precision,
+                "shots": shots,
+                "circuit_metadata": pub.circuit.metadata,
+            },
+        )
 
     def _bind_and_add_measurements(
         self,
@@ -305,7 +424,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         Returns:
             The map of expectation values takes a pair of an index of the bindings array and
             a pauli string as a key and returns the expectation value of the pauli string
-            with the the pub's circuit bound against the parameter value set in the index of
+            with the pub's circuit bound against the parameter value set in the index of
             the bindings array.
         """
         expval_map: dict[tuple[tuple[int, ...], str], tuple[float, float]] = {}

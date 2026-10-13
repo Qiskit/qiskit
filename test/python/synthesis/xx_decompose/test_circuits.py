@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,10 +20,10 @@ import unittest
 import ddt
 import numpy as np
 
+from qiskit._accelerate.two_qubit_decompose import weyl_coordinates
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RZGate, UnitaryGate
 import qiskit.quantum_info.operators
-from qiskit.synthesis.two_qubit.weyl import weyl_coordinates
 from qiskit.synthesis.two_qubit.xx_decompose.circuits import (
     decompose_xxyy_into_xxyy_xx,
     xx_circuit_step,

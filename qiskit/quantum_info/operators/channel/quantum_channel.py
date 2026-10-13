@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -53,9 +53,9 @@ class QuantumChannel(LinearOp):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
-            data (array or list): quantum channel data array.
-            op_shape (OpShape): the operator shape of the channel.
-            num_qubits (int): the number of qubits if the channel is N-qubit.
+            data: quantum channel data array.
+            op_shape: the operator shape of the channel.
+            num_qubits: the number of qubits if the channel is N-qubit.
 
         Raises:
             QiskitError: if arguments are invalid.
@@ -66,12 +66,9 @@ class QuantumChannel(LinearOp):
     def __repr__(self):
         prefix = f"{self._channel_rep}("
         pad = len(prefix) * " "
-        return "{}{},\n{}input_dims={}, output_dims={})".format(
-            prefix,
-            np.array2string(np.asarray(self.data), separator=", ", prefix=prefix),
-            pad,
-            self.input_dims(),
-            self.output_dims(),
+        return (
+            f"{prefix}{np.array2string(np.asarray(self.data), separator=', ', prefix=prefix)}"
+            f",\n{pad}input_dims={self.input_dims()}, output_dims={self.output_dims()})"
         )
 
     def __eq__(self, other: Self):
@@ -124,7 +121,7 @@ class QuantumChannel(LinearOp):
             :class:`~qiskit.quantum_info.SuperOp` representation,
             ie. for a channel :math:`\mathcal{E}`, the SuperOp of
             the transpose channel :math:`\mathcal{{E}}^T` is
-            :math:`S_{mathcal{E}^T} = S_{\mathcal{E}}^T`.
+            :math:`S_{\mathcal{E}^T} = S_{\mathcal{E}}^T`.
         """
 
     def adjoint(self) -> Self:
@@ -323,7 +320,6 @@ class QuantumChannel(LinearOp):
             QiskitError: if the quantum channel dimension does not match the
                          specified quantum state subsystem dimensions.
         """
-        pass
 
     @classmethod
     def _init_transformer(cls, data):
@@ -342,7 +338,7 @@ class QuantumChannel(LinearOp):
         if hasattr(data, "to_channel"):
             # TODO: this 'to_channel' method is the same case as the above
             # but is used by current version of Aer. It should be removed
-            # once Aer is nupdated to use `to_quantumchannel`
+            # once Aer is updated to use `to_quantumchannel`
             # instead of `to_channel`,
             return data.to_channel()
         # Finally if the input is not a QuantumChannel and doesn't have a

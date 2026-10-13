@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -38,6 +38,11 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     This function needs `pydot <https://github.com/pydot/pydot>`__, which in turn needs
     `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
+    .. warning::
+        This function will call the system Graphviz tool on a file involving user-controllable
+        strings (such as pass names).  It is recommended to only call this function on trusted
+        input.
+
     Args:
         pass_manager (PassManager): the pass manager to be drawn
         filename (str): file path to save image to
@@ -56,25 +61,16 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         VisualizationError: If raw=True and filename=None.
 
     Example:
-        .. code-block::
+        .. plot::
+            :include-source:
+            :nofigs:
 
-             %matplotlib inline
             from qiskit import QuantumCircuit
-            from qiskit.compiler import transpile
-            from qiskit.transpiler import PassManager
+            from qiskit.transpiler import generate_preset_pass_manager
             from qiskit.visualization import pass_manager_drawer
-            from qiskit.transpiler.passes import Unroller
 
-            circ = QuantumCircuit(3)
-            circ.ccx(0, 1, 2)
-            circ.draw()
-
-            pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
-            pm = PassManager(pass_)
-            new_circ = pm.run(circ)
-            new_circ.draw(output='mpl')
-
-            pass_manager_drawer(pm, "passmanager.jpg")
+            pm = generate_preset_pass_manager(optimization_level=0)
+            pass_manager_drawer(pm)
     """
     import pydot
 
@@ -124,6 +120,11 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
     `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
+    .. warning::
+        This function will call the system Graphviz tool on a file involving user-controllable
+        strings (such as pass names).  It is recommended to only call this function on trusted
+        input.
+
     Args:
         pass_manager (StagedPassManager): the staged pass manager to be drawn
         filename (str): file path to save image to
@@ -142,7 +143,9 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         VisualizationError: If raw=True and filename=None.
 
     Example:
-        .. code-block::
+        .. plot::
+           :include-source:
+           :nofigs:
 
             %matplotlib inline
             from qiskit.providers.fake_provider import GenericBackendV2
@@ -176,7 +179,7 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         stage = getattr(pass_manager, st)
 
         if stage is not None:
-            stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
+            stagegraph = pydot.Cluster(str(st), fontname="helvetica", label=str(st), labeljust="l")
             for controller_group in stage.to_flow_controller().tasks:
                 subgraph, component_id, prev_node = draw_subgraph(
                     controller_group, component_id, style, prev_node, idx
@@ -201,7 +204,7 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
         label += f"{controller_group.__class__.__name__}"
 
     # create the subgraph for this controller
-    subgraph = pydot.Cluster(str(component_id), label=label, fontname="helvetica", labeljust="l")
+    subgraph = pydot.Cluster(str(component_id), fontname="helvetica", label=label, labeljust="l")
     component_id += 1
 
     if isinstance(controller_group, BaseController):
@@ -233,19 +236,19 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
             # TODO recursively inject subgraph into subgraph
             node = pydot.Node(
                 str(component_id),
-                label="Nested flow controller",
                 color="k",
-                shape="rectangle",
                 fontname="helvetica",
+                label="Nested flow controller",
+                shape="rectangle",
             )
         else:
             # label is the name of the pass
             node = pydot.Node(
                 str(component_id),
-                label=str(type(task).__name__),
                 color=_get_node_color(task, style),
-                shape="rectangle",
                 fontname="helvetica",
+                label=str(type(task).__name__),
+                shape="rectangle",
             )
 
         subgraph.add_node(node)
@@ -268,12 +271,12 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
 
             input_node = pydot.Node(
                 component_id,
-                label=arg,
                 color="black",
-                shape="ellipse",
-                fontsize=10,
-                style=nd_style,
                 fontname="helvetica",
+                fontsize=10,
+                label=arg,
+                shape="ellipse",
+                style=nd_style,
             )
             subgraph.add_node(input_node)
             component_id += 1

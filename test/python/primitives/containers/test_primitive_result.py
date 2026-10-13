@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,10 +14,9 @@
 """Unit tests for PrimitiveResult."""
 
 import numpy as np
-import numpy.typing as npt
 
-from qiskit.primitives.containers import PrimitiveResult, PubResult, make_data_bin
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.primitives.containers import DataBin, PrimitiveResult, PubResult
+from test import QiskitTestCase
 
 
 class PrimitiveResultCase(QiskitTestCase):
@@ -25,16 +24,12 @@ class PrimitiveResultCase(QiskitTestCase):
 
     def test_primitive_result(self):
         """Test the PrimitiveResult class."""
-        data_bin_cls = make_data_bin(
-            [("alpha", npt.NDArray[np.uint16]), ("beta", np.ndarray)], shape=(10, 20)
-        )
-
         alpha = np.empty((10, 20), dtype=np.uint16)
         beta = np.empty((10, 20), dtype=int)
 
         pub_results = [
-            PubResult(data_bin_cls(alpha, beta)),
-            PubResult(data_bin_cls(alpha, beta)),
+            PubResult(DataBin(alpha=alpha, beta=beta, shape=(10, 20))),
+            PubResult(DataBin(alpha=alpha, beta=beta, shape=(10, 20))),
         ]
         result = PrimitiveResult(pub_results, {"x": 2})
 

@@ -4,40 +4,50 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
+
+from __future__ import annotations
+
 import cmath
 import copy as _copy
 import math
 from cmath import exp
-from typing import Optional, Union
+
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit._accelerate.circuit import StandardGate
 
 
 class UGate(Gate):
-    r"""Generic single-qubit rotation gate with 3 Euler angles.
+    r"""Generic single-qubit rotation in terms of ZYZ Euler angles.
+
+    The action of this gate can be related to the standard ZYZ Euler decomposition by
+
+    .. math::
+
+        U(\theta, \phi, \lambda) = P(\phi) R_Y(\theta) P(\lambda) 
+        = e^{i\frac{\phi + \lambda}{2}} R_Z(\phi) R_Y(\theta) R_Z(\lambda).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌──────────┐
         q_0: ┤ U(ϴ,φ,λ) ├
              └──────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -51,13 +61,13 @@ class UGate(Gate):
 
     .. note::
 
-        The matrix representation shown here is the same as in the `OpenQASM 3.0 specification
-        <https://openqasm.com/language/gates.html#built-in-gates>`_,
-        which differs from the `OpenQASM 2.0 specification
-        <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
-        :math:`e^{i(\phi+\lambda)/2}`.
+        The matrix representation shown here differs from the `OpenQASM 3.0 specification
+        <https://openqasm.com/language/gates.html#built-in-gates>`_ by a global phase of
+        :math:`e^{-i\theta/2}`.  It differs from the
+        `OpenQASM 2.0 specification <https://doi.org/10.48550/arXiv.1707.03429>`_ 
+        by a global phase of :math:`e^{i(\phi+\lambda)/2}`.
 
-    **Examples:**
+    Examples:
 
     .. math::
 
@@ -68,18 +78,23 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
 
+    _standard_gate = StandardGate.U
+
     def __init__(
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
+        label: str | None = None,
     ):
-        """Create new U gate."""
-        super().__init__("u", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
+        r"""
+        Args:
+            theta: The angle :math:`\theta` corresponding to the :math:`R_Y(\theta)` rotation.
+            phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
+            lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
+            label: An optional label for the gate.
+        """
+        super().__init__("u", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
@@ -100,24 +115,35 @@ class UGate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        annotated: bool = False,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-U gate.
+        """Return a controlled version of the U gate.
+
+        For a single control qubit, the controlled gate is implemented as :class:`.CUGate`,
+        regardless of the value of `annotated`.
+
+        For more than one control qubit,
+        the controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
+        When ``annotated`` is ``None``, it is interpreted as ``True`` when the gate has free
+        parameters (in which case the gate cannot be synthesized at the construction time),
+        and as ``False`` otherwise.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate can be implemented
-                as an annotated gate.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Ignored if the controlled gate is implemented as an
+                annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and num_ctrl_qubits == 1:
+        if num_ctrl_qubits == 1:
             gate = CUGate(
                 self.params[0],
                 self.params[1],
@@ -161,7 +187,7 @@ class _CUGateParams(list):
     # This awful class is to let `CUGate.params` have its keys settable (as
     # `QuantumCircuit.assign_parameters` requires), while accounting for the problem that `CUGate`
     # was defined to have a different number of parameters to its `base_gate`, which breaks
-    # `ControlledGate`'s assumptions, and would make most parametric `CUGate`s invalid.
+    # `ControlledGate`'s assumptions, and would make most parametric `CUGate` objects invalid.
     #
     # It's constructed only as part of the `CUGate.params` getter, and given that the general
     # circuit model assumes that that's a directly mutable list that _must_ be kept in sync with the
@@ -180,7 +206,7 @@ class _CUGateParams(list):
         # Magic numbers: CUGate has 4 parameters, UGate has 3, with the last of CUGate's missing.
         if isinstance(key, slice):
             # We don't need to worry about the case of the slice being used to insert extra / remove
-            # elements because that would be "undefined behaviour" in a gate already, so we're
+            # elements because that would be "undefined behavior" in a gate already, so we're
             # within our rights to do anything at all.
             for i, base_key in enumerate(range(*key.indices(4))):
                 if base_key < 0:
@@ -203,16 +229,16 @@ class CUGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cu` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ──────■──────
              ┌─────┴──────┐
         q_1: ┤ U(ϴ,φ,λ,γ) ├
              └────────────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -238,7 +264,8 @@ class CUGate(ControlledGate):
         which in our case would be q_1. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
+
                  ┌────────────┐
             q_0: ┤ U(ϴ,φ,λ,γ) ├
                  └─────┬──────┘
@@ -259,17 +286,17 @@ class CUGate(ControlledGate):
             \end{pmatrix}
     """
 
+    _standard_gate = StandardGate.CU
+
     def __init__(
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
         gamma: ParameterValueType,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
-        duration=None,
-        unit="dt",
         _base_label=None,
     ):
         """Create new CU gate."""
@@ -281,40 +308,22 @@ class CUGate(ControlledGate):
             label=label,
             ctrl_state=ctrl_state,
             base_gate=UGate(theta, phi, lam, label=_base_label),
-            duration=duration,
-            unit=unit,
         )
 
     def _define(self):
-        """
-        gate cu(theta,phi,lambda,gamma) c, t
-        { phase(gamma) c;
-          phase((lambda+phi)/2) c;
-          phase((lambda-phi)/2) t;
-          cx c,t;
-          u(-theta/2,0,-(phi+lambda)/2) t;
-          cx c,t;
-          u(theta/2,phi,0) t;
-        }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        """Default definition"""
+
+        from qiskit.circuit import QuantumCircuit
 
         #          ┌──────┐    ┌──────────────┐
         # q_0: ────┤ P(γ) ├────┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────
         #      ┌───┴──────┴───┐└──────────────┘┌─┴─┐┌──────────────────────┐┌─┴─┐┌────────────┐
         # q_1: ┤ P(λ/2 - φ/2) ├────────────────┤ X ├┤ U(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U(0/2,φ,0) ├
         #      └──────────────┘                └───┘└──────────────────────┘└───┘└────────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.p(self.params[3], 0)
-        qc.p((self.params[2] + self.params[1]) / 2, 0)
-        qc.p((self.params[2] - self.params[1]) / 2, 1)
-        qc.cx(0, 1)
-        qc.u(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2, 1)
-        qc.cx(0, 1)
-        qc.u(self.params[0] / 2, self.params[1], 0, 1)
-        self.definition = qc
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CU._get_definition(self.params), legacy_qubits=True
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.
@@ -378,3 +387,10 @@ class CUGate(ControlledGate):
         out = super().__deepcopy__(memo)
         out._params = _copy.deepcopy(out._params, memo)
         return out
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, CUGate)
+            and self.ctrl_state == other.ctrl_state
+            and self._compare_parameters(other)
+        )

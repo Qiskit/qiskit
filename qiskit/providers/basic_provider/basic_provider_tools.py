@@ -4,15 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Contains functions used by the basic provider simulators.
-
-"""
+"""Contains functions used by the basic provider simulators."""
 from __future__ import annotations
 
 from string import ascii_uppercase, ascii_lowercase
@@ -66,7 +64,7 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
     if gate in SINGLE_QUBIT_GATES:
         gc = SINGLE_QUBIT_GATES[gate]
     else:
-        raise QiskitError("Gate is not a valid basis gate for this simulator: %s" % gate)
+        raise QiskitError(f"Gate is not a valid basis gate for this simulator: {gate}")
 
     return gc(*params).to_matrix()
 

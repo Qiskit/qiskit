@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,15 +25,15 @@ class RVGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rv` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────────────┐
         q_0: ┤ RV(v_x,v_y,v_z) ├
              └─────────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -51,20 +51,27 @@ class RVGate(Gate):
                 \end{pmatrix}
     """
 
-    def __init__(self, v_x, v_y, v_z, basis="U"):
-        """Create new rv single-qubit gate.
-
-        Args:
-            v_x (float): x-component
-            v_y (float): y-component
-            v_z (float): z-component
-            basis (str, optional): basis (see
-                :class:`~qiskit.synthesis.one_qubit.one_qubit_decompose.OneQubitEulerDecomposer`)
+    def __init__(
+        self,
+        v_x: float,
+        v_y: float,
+        v_z: float,
+        basis: str = "U",
+        label: str | None = None,
+    ):
         """
-        # pylint: disable=cyclic-import
+        Args:
+            v_x: x-component
+            v_y: y-component
+            v_z: z-component
+            basis: basis (see
+                :class:`~qiskit.synthesis.one_qubit.one_qubit_decompose.OneQubitEulerDecomposer`)
+            label: An optional label for the gate.
+        """
+
         from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 
-        super().__init__("rv", 1, [v_x, v_y, v_z])
+        super().__init__("rv", 1, [v_x, v_y, v_z], label=label)
         self._decomposer = OneQubitEulerDecomposer(basis=basis)
 
     def _define(self):
@@ -80,7 +87,7 @@ class RVGate(Gate):
         vx, vy, vz = self.params
         return RVGate(-vx, -vy, -vz)
 
-    def to_matrix(self):
+    def to_matrix(self) -> numpy.ndarray:
         """Return a numpy.array for the R(v) gate."""
         v = numpy.asarray(self.params, dtype=float)
         angle = math.sqrt(v.dot(v))

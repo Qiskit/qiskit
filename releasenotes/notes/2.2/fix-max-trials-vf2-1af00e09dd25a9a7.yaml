@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed the behavior of the ``max_trials`` argument for :class:`.VF2Layout`
+    when set to ``None`` or a negative number. The pass was documented as
+    limiting the search to being based on the size of the circuit or target
+    if the option was set to ``None`` and as accepting negative values to
+    specify an unbounded search. However in the 2.1.0 this behavior was
+    incorrectly changed so that ``None`` ran an unbounded search and trying
+    to use a negative number would raise an error. These oversights have
+    been corrected so that the pass behaves as documented and is consistent
+    with previous releases.

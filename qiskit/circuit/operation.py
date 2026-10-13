@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,7 +25,7 @@ class Operation(ABC):
     :class:`~qiskit.circuit.Reset`, :class:`~qiskit.circuit.Barrier`,
     :class:`~qiskit.circuit.Measure`, and operators such as :class:`~qiskit.quantum_info.Clifford`.
 
-    The main purpose is to add allow abstract mathematical objects to be added directly onto
+    The main purpose is to allow abstract mathematical objects to be added directly onto
     abstract circuits, and for the exact syntheses of these to be determined later, during
     compilation.
 
@@ -34,6 +34,7 @@ class Operation(ABC):
         Add a Clifford and a Toffoli gate to a :class:`QuantumCircuit`.
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
            from qiskit import QuantumCircuit
@@ -50,18 +51,18 @@ class Operation(ABC):
 
     @property
     @abstractmethod
-    def name(self):
+    def name(self) -> str:
         """Unique string identifier for operation type."""
         raise NotImplementedError
 
     @property
     @abstractmethod
-    def num_qubits(self):
+    def num_qubits(self) -> int:
         """Number of qubits."""
         raise NotImplementedError
 
     @property
     @abstractmethod
-    def num_clbits(self):
+    def num_clbits(self) -> int:
         """Number of classical bits."""
         raise NotImplementedError

@@ -4,31 +4,29 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""DAGDependency class for representing non-commutativity in a circuit.
-"""
+"""DAGDependency class for representing non-commutativity in a circuit."""
 from __future__ import annotations
 
 import math
 import heapq
 import typing
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from collections.abc import Iterator
 
 import rustworkx as rx
 
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.controlflow import condition_resources
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.pulse import Schedule
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.parameterexpression import ParameterExpression
@@ -71,7 +69,7 @@ class DAGDependency:
 
     Bell circuit with no measurement.
 
-    .. parsed-literal::
+    .. code-block:: text
 
               ┌───┐
         qr_0: ┤ H ├──■──
@@ -114,7 +112,6 @@ class DAGDependency:
         self.clbits = []
 
         self._global_phase: float | ParameterExpression = 0.0
-        self._calibrations: dict[str, dict[tuple, Schedule]] = defaultdict(dict)
 
         self.duration = None
         self.unit = "dt"
@@ -131,7 +128,7 @@ class DAGDependency:
         """Set the global phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression)
+            angle (float, ParameterExpression): The angle to set the global phase to.
         """
         from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
 
@@ -144,25 +141,6 @@ class DAGDependency:
                 self._global_phase = 0
             else:
                 self._global_phase = angle % (2 * math.pi)
-
-    @property
-    def calibrations(self) -> dict[str, dict[tuple, Schedule]]:
-        """Return calibration dictionary.
-
-        The custom pulse definition of a given gate is of the form
-        ``{'gate_name': {(qubits, params): schedule}}``.
-        """
-        return dict(self._calibrations)
-
-    @calibrations.setter
-    def calibrations(self, calibrations: dict[str, dict[tuple, Schedule]]):
-        """Set the circuit calibration data from a dictionary of calibration definition.
-
-        Args:
-            calibrations (dict): A dictionary of input in the format
-                {'gate_name': {(qubits, gate_params): schedule}}
-        """
-        self._calibrations = defaultdict(dict, calibrations)
 
     def to_retworkx(self):
         """Returns the DAGDependency in retworkx format."""
@@ -187,7 +165,7 @@ class DAGDependency:
 
         duplicate_qubits = set(self.qubits).intersection(qubits)
         if duplicate_qubits:
-            raise DAGDependencyError("duplicate qubits %s" % duplicate_qubits)
+            raise DAGDependencyError(f"duplicate qubits {duplicate_qubits}")
 
         self.qubits.extend(qubits)
 
@@ -198,7 +176,7 @@ class DAGDependency:
 
         duplicate_clbits = set(self.clbits).intersection(clbits)
         if duplicate_clbits:
-            raise DAGDependencyError("duplicate clbits %s" % duplicate_clbits)
+            raise DAGDependencyError(f"duplicate clbits {duplicate_clbits}")
 
         self.clbits.extend(clbits)
 
@@ -207,7 +185,7 @@ class DAGDependency:
         if not isinstance(qreg, QuantumRegister):
             raise DAGDependencyError("not a QuantumRegister instance.")
         if qreg.name in self.qregs:
-            raise DAGDependencyError("duplicate register %s" % qreg.name)
+            raise DAGDependencyError(f"duplicate register {qreg.name}")
         self.qregs[qreg.name] = qreg
         existing_qubits = set(self.qubits)
         for j in range(qreg.size):
@@ -219,7 +197,7 @@ class DAGDependency:
         if not isinstance(creg, ClassicalRegister):
             raise DAGDependencyError("not a ClassicalRegister instance.")
         if creg.name in self.cregs:
-            raise DAGDependencyError("duplicate register %s" % creg.name)
+            raise DAGDependencyError(f"duplicate register {creg.name}")
         self.cregs[creg.name] = creg
         existing_clbits = set(self.clbits)
         for j in range(creg.size):
@@ -396,13 +374,13 @@ class DAGDependency:
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
 
-            if getattr(operation, "condition", None):
+            if getattr(operation, "_condition", None):
                 # The change to handling operation.condition follows code patterns in quantum_circuit.py.
                 # However:
                 #   (1) cindices_list are specific to template optimization and should not be computed
                 #       in this place.
                 #   (2) Template optimization pass needs currently does not handle general conditions.
-                cond_bits = condition_resources(operation.condition).clbits
+                cond_bits = condition_resources(operation._condition).clbits
                 cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
             else:
                 cindices_list = []
@@ -500,7 +478,7 @@ class DAGDependency:
         'predecessors' attribute. It has to be used when the DAGDependency() object
         is complete (i.e. converters).
         """
-        for node_id in range(0, len(self._multi_graph)):
+        for node_id in range(len(self._multi_graph)):
             self._multi_graph.get_node_data(node_id).predecessors = list(
                 rx.ancestors(self._multi_graph, node_id)
             )
@@ -527,8 +505,13 @@ class DAGDependency:
         """
         Draws the DAGDependency graph.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-        Graphviz <https://www.graphviz.org/>` to be installed.
+        This function needs `pydot <https://github.com/erocarrera/pydot>`_, which in turn needs
+        `Graphviz <https://www.graphviz.org/>`_ to be installed.
+
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as gate labels or register names).  It is recommended to only call this
+            function on trusted input.
 
         Args:
             scale (float): scaling factor
@@ -537,7 +520,7 @@ class DAGDependency:
                          'color' (default): color input/output/op nodes
 
         Returns:
-            Ipython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
+            IPython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
@@ -596,7 +579,7 @@ class DAGDependency:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
-            cond = getattr(nd.op, "condition", None)
+            cond = getattr(nd.op, "_condition", None)
             if cond is not None:
                 block_cargs.update(condition_resources(cond).clbits)
 
@@ -618,13 +601,13 @@ class DAGDependency:
 
 
 def merge_no_duplicates(*iterables):
-    """Merge K list without duplicate using python heapq ordered merging
+    """Merge K lists without duplicates using Python heapq ordered merging.
 
     Args:
-        *iterables: A list of k sorted lists
+        *iterables: A list of K sorted lists.
 
     Yields:
-        Iterator: List from the merging of the k ones (without duplicates
+        Iterator: List from the merging of the K lists (without duplicates).
     """
     last = object()
     for val in heapq.merge(*iterables):

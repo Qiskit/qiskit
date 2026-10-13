@@ -5,4 +5,4 @@ features:
     and RZXCalibrationBuilderNoEcho to consume `ecr` entangling gates from the
     backend, in addition to the `cx` gates they were build for. These native gates
     contain the calibrated pulse schedules that the pulse scaling passes use to 
-    generate arbitraty rotations of the :class:`~RZXGate` operation.
+    generate arbitrary rotations of the :class:`~RZXGate` operation.

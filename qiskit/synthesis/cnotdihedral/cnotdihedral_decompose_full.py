@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -40,7 +40,7 @@ def synth_cnotdihedral_full(elem: CNOTDihedral) -> QuantumCircuit:
            with optimal number of two qubit gates*, `Quantum 4(369), 2020
            <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
         2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-           *Scalable randomised benchmarking of non-Clifford gates*,
+           *Scalable randomized benchmarking of non-Clifford gates*,
            npj Quantum Inf 2, 16012 (2016).
     """
 

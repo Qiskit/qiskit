@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,9 +18,10 @@ Choi-matrix representation of a Quantum Channel.
 from __future__ import annotations
 import copy as _copy
 import math
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -31,6 +32,9 @@ from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+if TYPE_CHECKING:
+    from qiskit import circuit
 
 
 class Choi(QuantumChannel):
@@ -64,21 +68,16 @@ class Choi(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        data: QuantumCircuit | circuit.instruction.Instruction | BaseOperator | np.ndarray,
         input_dims: int | tuple | None = None,
         output_dims: int | tuple | None = None,
     ):
         """Initialize a quantum channel Choi matrix operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize superoperator.
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
             QiskitError: if input data cannot be initialized as a
@@ -135,7 +134,7 @@ class Choi(QuantumChannel):
             choi_mat = _to_choi(rep, data._data, input_dim, output_dim)
         super().__init__(choi_mat, op_shape=op_shape)
 
-    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+    def __array__(self, dtype=None, copy=None):
         dtype = self.data.dtype if dtype is None else dtype
         return np.array(self.data, dtype=dtype, copy=copy)
 

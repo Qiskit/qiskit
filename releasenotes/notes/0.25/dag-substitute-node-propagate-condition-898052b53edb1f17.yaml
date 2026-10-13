@@ -3,7 +3,7 @@ features:
   - |
     :meth:`.DAGCircuit.substitute_node` gained a ``propagate_condition`` keyword argument that is
     analogous to the same argument in :meth:`~.DAGCircuit.substitute_node_with_dag`.  Setting this
-    to ``False`` opts out of the legacy behaviour of copying a condition on the ``node`` onto the
+    to ``False`` opts out of the legacy behavior of copying a condition on the ``node`` onto the
     new ``op`` that is replacing it.
 
     This option is ignored for general control-flow operations, which will never propagate their

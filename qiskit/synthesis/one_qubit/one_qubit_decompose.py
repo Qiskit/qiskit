@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,12 +14,12 @@
 Decompose a single-qubit unitary via Euler angles.
 """
 from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 
 from qiskit._accelerate import euler_one_qubit_decomposer
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
-from qiskit.circuit.library.standard_gates import (
+from qiskit.circuit import Qubit, QuantumCircuit, Gate
+from qiskit.circuit.library import (
     UGate,
     PhaseGate,
     U3Gate,
@@ -34,8 +34,10 @@ from qiskit.circuit.library.standard_gates import (
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-from qiskit.circuit.gate import Gate
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info import Operator
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
 DEFAULT_ATOL = 1e-12
 
@@ -150,43 +152,33 @@ class OneQubitEulerDecomposer:
         self.basis = basis  # sets: self._basis, self._params, self._circuit
         self.use_dag = use_dag
 
-    def build_circuit(self, gates, global_phase):
+    def build_circuit(self, gates, global_phase) -> QuantumCircuit | DAGCircuit:
         """Return the circuit or dag object from a list of gates."""
         qr = [Qubit()]
         lookup_gate = False
         if len(gates) > 0 and isinstance(gates[0], tuple):
             lookup_gate = True
 
-        if self.use_dag:
-            from qiskit.dagcircuit import dagcircuit
+        from qiskit.dagcircuit import dagcircuit
 
-            dag = dagcircuit.DAGCircuit()
-            dag.global_phase = global_phase
-            dag.add_qubits(qr)
-            for gate_entry in gates:
-                if lookup_gate:
-                    gate = NAME_MAP[gate_entry[0]](*gate_entry[1])
-                else:
-                    gate = gate_entry
+        dag = dagcircuit.DAGCircuit()
+        dag.global_phase = global_phase
+        dag.add_qubits(qr)
+        for gate_entry in gates:
+            if lookup_gate:
+                gate = NAME_MAP[gate_entry[0].name](*gate_entry[1])
+            else:
+                gate = gate_entry.name
 
-                dag.apply_operation_back(gate, (qr[0],), check=False)
-            return dag
-        else:
-            circuit = QuantumCircuit(qr, global_phase=global_phase)
-            for gate_entry in gates:
-                if lookup_gate:
-                    gate = NAME_MAP[gate_entry[0]](*gate_entry[1])
-                else:
-                    gate = gate_entry
-                circuit._append(gate, [qr[0]], [])
-            return circuit
+            dag.apply_operation_back(gate, (qr[0],), check=False)
+        return dag
 
     def __call__(
         self,
         unitary: Operator | Gate | np.ndarray,
         simplify: bool = True,
         atol: float = DEFAULT_ATOL,
-    ) -> QuantumCircuit:
+    ) -> QuantumCircuit | DAGCircuit:
         """Decompose single qubit gate into a circuit.
 
         Args:
@@ -213,7 +205,7 @@ class OneQubitEulerDecomposer:
         # Convert to numpy array in case not already an array
         unitary = np.asarray(unitary, dtype=complex)
 
-        # Check input is a 2-qubit unitary
+        # Check input is a 1-qubit unitary
         if unitary.shape != (2, 2):
             raise QiskitError("OneQubitEulerDecomposer: expected 2x2 input matrix")
         if not is_unitary_matrix(unitary):
@@ -221,11 +213,18 @@ class OneQubitEulerDecomposer:
         return self._decompose(unitary, simplify=simplify, atol=atol)
 
     def _decompose(self, unitary, simplify=True, atol=DEFAULT_ATOL):
-        circuit_sequence = euler_one_qubit_decomposer.unitary_to_gate_sequence(
-            unitary, [self.basis], 0, None, simplify, atol
+        if self.use_dag:
+            circuit_sequence = euler_one_qubit_decomposer.unitary_to_gate_sequence(
+                unitary, [self.basis], 0, None, simplify, atol
+            )
+            circuit = self.build_circuit(circuit_sequence, circuit_sequence.global_phase)
+            return circuit
+        return QuantumCircuit._from_circuit_data(
+            euler_one_qubit_decomposer.unitary_to_circuit(
+                unitary, [self.basis], 0, None, simplify, atol
+            ),
+            legacy_qubits=True,
         )
-        circuit = self.build_circuit(circuit_sequence, circuit_sequence.global_phase)
-        return circuit
 
     @property
     def basis(self):

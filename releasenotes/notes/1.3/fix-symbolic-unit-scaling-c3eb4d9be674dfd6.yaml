@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a floating-point imprecision when scaling certain pulse units
+    between seconds and nanoseconds.  If the pulse was symbolically defined,
+    an unnecessary floating-point error could be introduced by the scaling
+    for certain builds of ``symengine``, which could manifest in unexpected
+    results once the symbols were fully bound.  See `#12392 <https://github.com/Qiskit/qiskit/pull/12392>`__.

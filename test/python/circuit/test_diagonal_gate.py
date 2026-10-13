@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,13 +16,13 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, assemble
+from qiskit import QuantumCircuit
 from qiskit import QiskitError
 from qiskit.compiler import transpile
 from qiskit.circuit.library.generalized_gates import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestDiagonalGate(QiskitTestCase):
@@ -75,11 +75,18 @@ class TestDiagonalGate(QiskitTestCase):
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )
 
-        qobj = assemble(qc)
-        params = qobj.experiments[0].instructions[0].params
-        self.assertTrue(
-            all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
-        )
+    def test_repeat(self):
+        """Test the repeat() method."""
+        for phases in [
+            [0, 0],
+            np.array([0, 0.8, 1, 0]),
+            (2 * np.pi * np.random.rand(2**3)).tolist(),
+        ]:
+            with self.subTest(phases=phases):
+                diag = [np.exp(1j * ph) for ph in phases]
+                gate = DiagonalGate(diag)
+                operator = Operator(gate)
+                self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
 
 
 def _get_diag_gate_matrix(diag):

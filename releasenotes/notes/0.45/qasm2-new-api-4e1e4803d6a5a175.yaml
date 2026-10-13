@@ -18,7 +18,7 @@ features:
     (:mod:`qiskit.qasm3`) and QPY (:mod:`qiskit.qpy`) modules.  This is
     particularly important since the method name :meth:`~.QuantumCircuit.qasm`
     gave no indication of the OpenQASM version, and since it was originally
-    added, Qiskit has gained several serialisation modules that could easily
+    added, Qiskit has gained several serialization modules that could easily
     become confused.
 deprecations:
   - |

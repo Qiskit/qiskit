@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,7 @@
 
 import functools
 import os
-from typing import Union, Callable, Type, Iterable
+from collections.abc import Callable, Iterable
 import unittest
 
 from qiskit.utils import wrap_method
@@ -33,7 +33,7 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        if "run_slow" in os.environ.get("QISKIT_TESTS", ""):
+        if "run_slow" not in os.environ.get("QISKIT_TESTS", ""):
             raise unittest.SkipTest("Skipping slow tests")
         return func(*args, **kwargs)
 
@@ -41,8 +41,8 @@ def slow_test(func):
 
 
 def enforce_subclasses_call(
-    methods: Union[str, Iterable[str]], attr: str = "_enforce_subclasses_call_cache"
-) -> Callable[[Type], Type]:
+    methods: str | Iterable[str], attr: str = "_enforce_subclasses_call_cache"
+) -> Callable[[type], type]:
     """Class decorator which enforces that if any subclasses define on of the ``methods``, they must
     call ``super().<method>()`` or face a ``ValueError`` at runtime.
 

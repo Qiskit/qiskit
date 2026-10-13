@@ -1,0 +1,6 @@
+---
+upgrade_transpiler:
+  - |
+    The maximum call and trial limits for the exact-matching run of :class:`.VF2PostLayout` at
+    ``optimization_level=3`` have been reduced to avoid excessive runtimes for highly symmetric
+    trial circuits being mapped to large coupling maps.

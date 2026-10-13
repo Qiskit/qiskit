@@ -17,6 +17,6 @@ features:
     :class:`~.circuit.Instruction` objects. While this isn't optimal for visualization
     it typically results in much better runtime performance, especially with
     :meth:`.QuantumCircuit.bind_parameters` and
-    :meth:`.QuantumCircuit.assign_parameters` which can see a substatial
+    :meth:`.QuantumCircuit.assign_parameters` which can see a substantial
     runtime improvement with a flattened output compared to the nested
     wrapped default output.

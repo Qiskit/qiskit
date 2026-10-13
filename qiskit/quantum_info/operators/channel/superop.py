@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from qiskit import _numpy_compat
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -33,8 +32,7 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 
 if TYPE_CHECKING:
-    from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-    from qiskit.quantum_info.states.statevector import Statevector
+    from qiskit import circuit
 
 
 class SuperOp(QuantumChannel):
@@ -62,21 +60,16 @@ class SuperOp(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        data: QuantumCircuit | circuit.instruction.Instruction | BaseOperator | np.ndarray,
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize superoperator.
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
             QiskitError: if input data cannot be initialized as a
@@ -128,7 +121,7 @@ class SuperOp(QuantumChannel):
         # Initialize QuantumChannel
         super().__init__(super_mat, op_shape=op_shape)
 
-    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+    def __array__(self, dtype=None, copy=None):
         dtype = self.data.dtype if dtype is None else dtype
         return np.array(self.data, dtype=dtype, copy=copy)
 
@@ -254,7 +247,7 @@ class SuperOp(QuantumChannel):
                          specified quantum state subsystem dimensions.
         """
         # Prevent cyclic imports by importing DensityMatrix here
-        # pylint: disable=cyclic-import
+
         from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
         if not isinstance(state, DensityMatrix):
@@ -355,8 +348,8 @@ class SuperOp(QuantumChannel):
                 raise QiskitError(f"Cannot apply Instruction: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    "{} instruction definition is {}; "
-                    "expected QuantumCircuit".format(obj.name, type(obj.definition))
+                    f"{obj.name} instruction definition is {type(obj.definition)}; "
+                    "expected QuantumCircuit"
                 )
             qubit_indices = {bit: idx for idx, bit in enumerate(obj.definition.qubits)}
             for instruction in obj.definition.data:

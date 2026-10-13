@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_x,
     _append_z,
 )
-from .clifford_decompose_bm import _decompose_clifford_1q
+from .clifford_decompose_bm import synth_clifford_bm
 
 
 def synth_clifford_ag(clifford: Clifford) -> QuantumCircuit:
@@ -50,7 +50,7 @@ def synth_clifford_ag(clifford: Clifford) -> QuantumCircuit:
     """
     # Use 1-qubit decomposition method
     if clifford.num_qubits == 1:
-        return _decompose_clifford_1q(clifford.tableau)
+        return synth_clifford_bm(clifford)
 
     # Compose a circuit which we will convert to an instruction
     circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))

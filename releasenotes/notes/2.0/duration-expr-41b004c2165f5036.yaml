@@ -1,0 +1,17 @@
+---
+features_circuits:
+  - |
+    The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
+    duration using the new types :class:`~.types.Duration`. 
+
+    The module :mod:`qiskit.circuit` also has a new :class:`~.circuit.Duration` class which
+    can be used as a literal value within classical expressions.
+
+    The :func:`~.expr.lift` function can be used to create a value expression from a
+    :class:`~.circuit.Duration` instance::
+
+      from qiskit.circuit import Duration
+      from qiskit.circuit.classical import expr
+
+      expr.lift(Duration.dt(1000))
+      # Value(Duration.dt(1000), Duration())

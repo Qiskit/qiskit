@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,20 +18,17 @@ import io
 import re
 from collections.abc import Iterator, Iterable, Callable
 from functools import wraps
-from typing import Union, List, Any
+from typing import Any, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager.passmanager import BasePassManager
-from qiskit.passmanager.base_tasks import Task
-from qiskit.passmanager.flow_controllers import FlowControllerLinear
-from qiskit.passmanager.exceptions import PassManagerError
+from qiskit.passmanager import BasePassManager, Task, FlowControllerLinear, PassManagerError
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
 
-_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
+_CircuitsT = TypeVar("_CircuitsT", bound=list[QuantumCircuit] | QuantumCircuit)
 
 
 class PassManager(BasePassManager):
@@ -59,6 +56,12 @@ class PassManager(BasePassManager):
         input_program: QuantumCircuit,
         **kwargs,
     ) -> DAGCircuit:
+        if self.property_set["original_qubit_indices"] is None:
+            self.property_set["original_qubit_indices"] = {
+                bit: i for i, bit in enumerate(input_program.qubits)
+            }
+        if self.property_set["num_input_qubits"] is None:
+            self.property_set["num_input_qubits"] = input_program.num_qubits
         return circuit_to_dag(input_program, copy_operations=True)
 
     def _passmanager_backend(
@@ -68,22 +71,18 @@ class PassManager(BasePassManager):
         **kwargs,
     ) -> QuantumCircuit:
         out_program = dag_to_circuit(passmanager_ir, copy_operations=False)
-
-        out_name = kwargs.get("output_name", None)
-        if out_name is not None:
+        if (out_name := kwargs.get("output_name", None)) is not None:
             out_program.name = out_name
 
-        if self.property_set["layout"] is not None:
-            out_program._layout = TranspileLayout(
-                initial_layout=self.property_set["layout"],
-                input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
-                _input_qubit_count=len(in_program.qubits),
-                _output_qubit_list=out_program.qubits,
-            )
+        if (
+            layout := TranspileLayout.from_property_set(passmanager_ir, self.property_set)
+        ) is not None:
+            out_program._layout = layout
+            # Write the canonicalized form back out. This is for backwards compatibility.
+            layout.write_into_property_set(self.property_set)
+
         out_program._clbit_write_latency = self.property_set["clbit_write_latency"]
         out_program._conditional_latency = self.property_set["conditional_latency"]
-
         if self.property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
             # dag is converted into circuit. So this schedule information is
@@ -96,7 +95,7 @@ class PassManager(BasePassManager):
 
         return out_program
 
-    def append(
+    def append(  # pylint:disable=arguments-renamed
         self,
         passes: Task | list[Task],
     ) -> None:
@@ -110,7 +109,7 @@ class PassManager(BasePassManager):
         """
         super().append(tasks=passes)
 
-    def replace(
+    def replace(  # pylint:disable=arguments-renamed
         self,
         index: int,
         passes: Task | list[Task],
@@ -123,13 +122,14 @@ class PassManager(BasePassManager):
         """
         super().replace(index, tasks=passes)
 
-    # pylint: disable=arguments-differ
-    def run(
+    def run(  # pylint:disable=arguments-renamed
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
-        callback: Callable = None,
-        num_processes: int = None,
+        callback: Callable | None = None,
+        num_processes: int | None = None,
+        *,
+        property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
@@ -168,10 +168,23 @@ class PassManager(BasePassManager):
                         property_set = kwargs['property_set']
                         count = kwargs['count']
                         ...
+
+                .. note::
+
+                    When running transpilation with multi-processing,
+                    the callback function is invoked within the context
+                    of each sub-process, independently of the
+                    parent process.
+
             num_processes: The maximum number of parallel processes to launch if parallel
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
                 to ``None`` the system default or local user configuration will be used.
+            property_set: If given, the initial value to use as the :class:`.PropertySet` for the
+                pass manager pipeline.  This can be used to persist analysis from one run to
+                another, in cases where you know the analysis is safe to share.  Beware that some
+                analysis will be specific to the input circuit and the particular :class:`.Target`,
+                so you should take a lot of care when using this argument.
 
         Returns:
             The transformed circuit(s).
@@ -184,6 +197,7 @@ class PassManager(BasePassManager):
             callback=callback,
             output_name=output_name,
             num_processes=num_processes,
+            property_set=property_set,
         )
 
     def draw(self, filename=None, style=None, raw=False):
@@ -191,6 +205,11 @@ class PassManager(BasePassManager):
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
         `Graphviz <https://www.graphviz.org/>`__ to be installed.
+
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as pass names).  It is recommended to only call this function on trusted
+            input.
 
         Args:
             filename (str): file path to save image to.
@@ -255,7 +274,7 @@ class StagedPassManager(PassManager):
         will not change between releases.
 
     These stages will be executed in order and any stage set to ``None`` will be skipped.
-    If a stage is provided multiple times (i.e. at diferent relative positions), the
+    If a stage is provided multiple times (i.e. at different relative positions), the
     associated passes, including pre and post, will run once per declaration.
     If a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
     (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will
@@ -274,7 +293,7 @@ class StagedPassManager(PassManager):
                 instance. If this is not specified the default stages list
                 ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
                 used. After instantiation, the final list will be immutable and stored as tuple.
-                If a stage is provided multiple times (i.e. at diferent relative positions), the
+                If a stage is provided multiple times (i.e. at different relative positions), the
                 associated passes, including pre and post, will run once per declaration.
             kwargs: The initial :class:`~.PassManager` values for any stages
                 defined in ``stages``. If a argument is not defined the
@@ -294,7 +313,7 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
+        # Set through parent class since `__setattr__` requires `expanded_stages` to be defined
         super().__setattr__("_stages", tuple(stages))
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()
@@ -323,12 +342,12 @@ class StagedPassManager(PassManager):
     @property
     def stages(self) -> tuple[str, ...]:
         """Pass manager stages"""
-        return self._stages  # pylint: disable=no-member
+        return self._stages
 
     @property
     def expanded_stages(self) -> tuple[str, ...]:
         """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
-        return self._expanded_stages  # pylint: disable=no-member
+        return self._expanded_stages
 
     def _generate_expanded_stages(self) -> Iterator[str]:
         for stage in self.stages:
@@ -363,7 +382,7 @@ class StagedPassManager(PassManager):
     ) -> None:
         raise NotImplementedError
 
-    # Raise NotImplemntedError on individual pass manipulation
+    # Raise NotImplementedError on individual pass manipulation
     def remove(self, index: int) -> None:
         raise NotImplementedError
 
@@ -391,7 +410,9 @@ class StagedPassManager(PassManager):
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable | None = None,
-        num_processes: int = None,
+        num_processes: int | None = None,
+        *,
+        property_set: dict[str, object] | None = None,
     ) -> _CircuitsT:
         self._update_passmanager()
         return super().run(circuits, output_name, callback, num_processes=num_processes)
@@ -401,7 +422,21 @@ class StagedPassManager(PassManager):
         return super().to_flow_controller()
 
     def draw(self, filename=None, style=None, raw=False):
-        """Draw the staged pass manager."""
+        """Draw the staged pass manager.
+
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as pass names).  It is recommended to only call this function on trusted
+            input.
+
+        Args:
+            filename (str): file path to save image to.
+            style (dict): keys are the pass classes and the values are the colors to make them. An
+                example can be seen in the DEFAULT_STYLE. An ordered dict can be used to ensure
+                a priority coloring when pass falls into multiple categories. Any values not
+                included in the provided dict will be filled in from the default dict.
+            raw (bool): If ``True``, save the raw Dot output instead of the image.
+        """
         from qiskit.visualization import staged_pass_manager_drawer
 
         return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw)
@@ -418,6 +453,9 @@ def _replace_error(meth):
     def wrapper(*meth_args, **meth_kwargs):
         try:
             return meth(*meth_args, **meth_kwargs)
+        except TranspilerError:
+            # If it's already a `TranspilerError` subclass, don't erase the extra information.
+            raise
         except PassManagerError as ex:
             raise TranspilerError(ex.message) from ex
 

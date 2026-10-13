@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -42,7 +42,7 @@ quantum computation <qiskit-primitives>`, which accumulate data from many shots 
 execution, along with advanced error-mitigation techniques and measurement optimizations, into
 well-typed classical data and error statistics.
 
-In Qiskit, circuits can be defined in one of two regimes:
+In Qiskit, circuits can be :ref:`defined in one of two regimes <circuit-abstract-physical>`:
 
 * an *abstract* circuit, which is defined in terms of *virtual qubits* and arbitrary high-level
   operations, like encapsulated algorithms and user-defined gates.
@@ -52,7 +52,11 @@ In Qiskit, circuits can be defined in one of two regimes:
   this concept referred to as an *ISA circuit*.
 
 You convert from an abstract circuit to a physical circuit by using :ref:`Qiskit's transpilation
-package <qiskit-transpiler>`, of which the top-level access point is :func:`.transpile`.
+package <qiskit-transpiler>`, of which the top-level access point is :func:`.transpile`.  If you
+define a circuit, where you intend the qubit indices to refer to physical qubits, you can use
+:meth:`.QuantumCircuit.ensure_physical` to rewrite the circuit's metadata to ensure that Qiskit
+recognizes the circuit as a physical circuit, though unlike transpilation, this does not enforce
+that the basis-gates and hardware-coupling constraints will be respected.
 
 In Qiskit, a quantum circuit is represented by the :class:`QuantumCircuit` class.  Below is an
 example of a quantum circuit that makes a three-qubit Greenberger–Horne–Zeilinger (GHZ) state
@@ -64,6 +68,7 @@ defined as:
 
 
 .. plot::
+   :alt: Circuit diagram output by the previous code.
    :include-source:
 
    from qiskit import QuantumCircuit
@@ -203,8 +208,8 @@ virtual qubit
 
 .. _circuit-module-api:
 
-API overview of :mod:`qiskit.circuit`
-=====================================
+API overview of qiskit.circuit
+==============================
 
 All objects here are described in more detail, and in their greater context in the following
 sections.  This section provides an overview of the API elements documented here.
@@ -268,10 +273,16 @@ circuit.  The top-level ones are:
 * :class:`ControlFlowOp`, which has specific subclasses:
     * :class:`BreakLoopOp`, to break out of the nearest containing loop
     * :class:`ContinueLoopOp`, to move immediately to the next iteration of the containing loop
+    * :class:`BoxOp`, a simple grouping of instructions
     * :class:`ForLoopOp`, to loop over a fixed range of values
     * :class:`IfElseOp`, to conditionally enter one of two subcircuits
-    * :class:`SwitchCaseOp`, to conditionally enter one of many subcicuits
+    * :class:`SwitchCaseOp`, to conditionally enter one of many subcircuits
     * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified.
+
+Certain instructions can be "annotated" with metadata, which is typically intended to be consumed by
+a compiler pass either locally, or in later backend processing.  Currently this is limited to
+:class:`BoxOp`.  These annotations are represented by custom subclasses of :class:`Annotation`, and
+there is further discussion of the support infrastructure in :mod:`qiskit.circuit.annotation`.
 
 :ref:`Circuits can include classical expressions that are evaluated in real time
 <circuit-repr-real-time-classical>`, while the QPU is executing a single shot of the circuit.  These
@@ -293,6 +304,7 @@ main related classes are:
 * :class:`Parameter`, the atom of compile-time expressions
 * :class:`ParameterExpression`, a symbolic calculation on parameters
 * :class:`ParameterVector`, a convenience collection of many :class:`Parameter`\ s
+* :class:`ParameterVectorElement`, a subclass of :class:`Parameter` used by :class:`ParameterVector`
 
 The :mod:`qiskit.circuit` module also exposes some calculation classes that work with circuits to
 assist compilation workflows.  These include:
@@ -301,9 +313,11 @@ assist compilation workflows.  These include:
 * :data:`SessionEquivalenceLibrary`, a mutable instance of :class:`EquivalenceLibrary` which is used
   by default by the compiler's :class:`.BasisTranslator`.
 
-There is also a utility for generating random circuits:
+There are also utilities for generating random circuits:
 
 * :func:`random.random_circuit`
+* :func:`random.random_circuit_from_graph`
+* :func:`random.random_clifford_circuit`
 
 Finally, the circuit module has its own exception class, to indicate when things went wrong in
 circuit-specific manners:
@@ -321,21 +335,22 @@ an abstract circuit or a physical circuit.  There is much more information about
 :class:`QuantumCircuit` class itself and the multitude of available methods on it in its class
 documentation.
 
-..
-    TODO: the intention is to replace this `autosummary` directive with a proper entry in the API
-    toctree once the `QuantumCircuit` class-level documentation has been completely rewritten into
-    more of this style.  For now, this just ensures it gets *any* page generated.
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    QuantumCircuit
-
 Internally, a :class:`QuantumCircuit` contains the qubits, classical bits, compile-time parameters,
 real-time variables, and other tracking information about the data it acts on and how it is
 parametrized.  It then contains a sequence of :class:`CircuitInstruction`\ s, which contain
 the particular operation (gate, measurement, etc) and its operands (the qubits and classical bits).
 
+Interoperation with C
+---------------------
+
+:class:`QuantumCircuit` in Python space is not precisely the same type that native Rust code or
+C-API code uses. The C-API type :c:type:`QkCircuit` is backed by the internal
+:attr:`.QuantumCircuit._data` object, which has type :class:`CircuitData`.  Very little about is
+public from Python space.
+
+.. autoclass:: CircuitData(<no public constructor>)
+    :class-doc-from: class
+    :no-members:
 
 Bits and registers
 ------------------
@@ -390,7 +405,7 @@ hardware.
 Circuits track registers, but registers themselves impart almost no behavioral differences on
 circuits.  The only exception is that :class:`ClassicalRegister`\ s can be implicitly cast to
 unsigned integers for use in conditional comparisons of :ref:`control flow operations
-<circuit-control-flow>`.
+<circuit-control-flow-repr>`.
 
 Classical registers and bits were the original way of representing classical data in Qiskit, and
 remain the most supported currently.  Longer term, the data model is moving towards a more complete
@@ -433,6 +448,8 @@ methods to perform post-append mutations on instructions (which *will* be propag
 circuit), but these are now discouraged and you should use the alternatives noted in those methods.
 
 
+.. _circuit-operations-instructions:
+
 Operations, instructions and gates
 ----------------------------------
 
@@ -462,7 +479,7 @@ attempt to "close over" outer circuit registers, or use hidden parameters inside
 :class:`Instruction`\ s can be related to other circuits to provide a decompositions by using
 their :attr:`Instruction.definition` attribute, which provides a local, one-off decomposition.  This
 can be in whatever basis set of operations is most convenient to you, as long as the definitions of
-all contained gates have some topological order; that is, you cannot use a gate in a definition it
+all contained gates have some topological order; that is, you cannot use a gate in a definition if
 its own definition depends on the parent.  If the :class:`Instruction` should be considered entirely
 opaque to optimizers, its :attr:`~Instruction.definition` can be ``None``.  See
 :ref:`circuit-custom-gates` for more detail.
@@ -560,14 +577,23 @@ happen incoherently and to collapse any entanglement.
 
 Hardware can be instructed to apply a real-time idle period on a given qubit.  A scheduled circuit
 (see :mod:`qiskit.transpiler`) will include all the idle times on qubits explicitly in terms of this
-:class:`Delay`.
+:class:`Delay`.  :class:`.BoxOp` can also have an explicit duration attached, in its
+:attr:`.BoxOp.duration` field.
 
 .. autoclass:: Delay
     :show-inheritance:
 
+Delay durations can be specified either with concrete, constant times, or with delayed-resolution
+"duration expressions" built out of :class:`.expr.Stretch` objects.  See :ref:`circuit-stretches`
+for more on this.
+
 The :class:`Barrier` instruction can span an arbitrary number of qubits and clbits, and is a no-op
 in hardware.  During transpilation and optimization, however, it blocks any optimizations from
-"crossing" the barrier; that is, in::
+"crossing" the barrier; that is, in:
+
+.. plot::
+    :include-source:
+    :nofigs:
 
     from qiskit.circuit import QuantumCircuit
 
@@ -587,6 +613,16 @@ The :class:`Store` instruction is particularly special, in that it allows writin
 :class:`Qubit` nor :class:`Clbit` operands, but has an explicit :attr:`~Store.lvalue` and
 :attr:`~Store.rvalue`.
 
+For example, to determine the parity of a bitstring ``cr`` and store it in another register ``creg``,
+the :class:`Store` instruction can be used in the following way::
+
+    parity = expr.lift(cr[0])
+    for i in range(1,n):
+        parity = expr.bit_xor(cr[i], parity)
+    qc.store(creg[0], parity)
+
+
+
 .. autoclass:: Store
     :show-inheritance:
     :members:
@@ -598,17 +634,14 @@ The :class:`Store` instruction is particularly special, in that it allows writin
 Real-time classical computation
 -------------------------------
 
-.. note::
+.. seealso::
+    :mod:`qiskit.circuit.classical`
+        Module-level documentation for how the variable-, expression- and type-systems work, the
+        objects used to represent them, and the classical operations available.
 
-    The primary documentation for real-time classical computation is in the module-level
-    documentation of :mod:`qiskit.circuit.classical`.
-
-    You might also want to read about the circuit methods for working with real-time variables on
-    the :class:`QuantumCircuit` class page.
-
-    ..
-        TODO: write a section in the QuantumCircuit-level guide about real-time-variable methods and
-        cross-ref to it.
+    :ref:`circuit-real-time-methods`
+        The :class:`QuantumCircuit` methods for working with these variables in the context of a
+        single circuit.
 
 Qiskit has rudimentary low-level support for representing real-time classical computations, which
 happen during the QPU execution and affect the results.  We are still relatively early into hardware
@@ -667,14 +700,16 @@ execution.  You can do this assignment using :meth:`QuantumCircuit.assign_parame
 
 You may want to use many parameters that are related to each other.  To make this easier (and to
 avoid you needing to come up with many names), you can use the convenience constructor
-:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances.
+:class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances, of
+a special subclass :class:`ParameterVectorElement`.
 
 .. autosummary::
     :toctree: ../stubs/
 
     ParameterVector
+    ParameterVectorElement
 
-.. _circuit-control-flow:
+.. _circuit-control-flow-repr:
 
 Control flow in circuits
 ------------------------
@@ -687,10 +722,22 @@ Within :class:`QuantumCircuit`, classical control flow is represented by specifi
 
     ControlFlowOp
 
+For convenience, there is a :class:`frozenset` instance containing the :attr:`.Instruction.name`
+attributes of each of the control-flow operations.
+
+.. data:: CONTROL_FLOW_OP_NAMES
+
+    Set of the instruction names of Qiskit's known control-flow operations.
+
+The :func:`.get_control_flow_name_mapping` function allows to access the control-flow operation
+classes associated to each name.
+
+.. autofunction:: get_control_flow_name_mapping
+
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
-:class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
-conditions and strategies, but contain all the different subcircuit blocks that might be entered in
-their :attr:`~ControlFlowOp.blocks` property.
+:class:`SwitchCaseOp`, :class:`ForLoopOp`, and :class:`BoxOp`) all have specific state that defines
+the branching conditions and strategies, but contain all the different subcircuit blocks that might
+be entered in their :attr:`~ControlFlowOp.blocks` property.
 
 .. autosummary::
     :toctree: ../stubs/
@@ -699,6 +746,7 @@ their :attr:`~ControlFlowOp.blocks` property.
     WhileLoopOp
     SwitchCaseOp
     ForLoopOp
+    BoxOp
 
 The :class:`.SwitchCaseOp` also understands a special value:
 
@@ -718,11 +766,8 @@ that affect the flow of control when within loops.  These correspond to typical 
     The classes representations are documented here, but please note that manually constructing
     these classes is a low-level operation that we do not expect users to need to do frequently.
 
-    ..
-        TODO: make this below statement valid, and reinsert.
-
-        Users should read :ref:`circuit-creating-control-flow` for the recommended workflows for
-        building control-flow-enabled circuits.
+    Users should read :ref:`circuit-control-flow-methods` for the recommended workflows for building
+    control-flow-enabled circuits.
 
 Since :class:`ControlFlowOp` subclasses are also :class:`Instruction` subclasses, this means that
 the way they are stored in :class:`CircuitInstruction` instances has them "applied" to a sequence of
@@ -772,11 +817,118 @@ them to the block using :meth:`~QuantumCircuit.add_capture` (or the ``captures``
 argument), but user code will typically use the control-flow builder interface, which handles this
 automatically.
 
-..
-    TODO: make the below sentence valid, then re-insert.
+Consult :ref:`the control-flow construction documentation <circuit-control-flow-methods>` for more
+information on how to build circuits with control flow.
 
-    Consult :ref:`the control-flow construction documentation <circuit-creating-control-flow>` for
-    more information on how to build circuits with control flow.
+
+Instruction-local annotations
+-----------------------------
+
+.. seealso::
+
+    :mod:`qiskit.circuit.annotation`
+        The module-level discussion of the annotation framework, including how to defined custom
+        annotations, and how the system interacts with the compiler and with serialization to other
+        formats.
+
+
+Certain circuit instructions can be "annotated" with instruction-local annotations.  As of Qiskit
+2.1.0, this is limited to :class:`.BoxOp`.  All annotations are subclasses of one base
+interface-defining object, but typically represent entirely custom analyses and commands.
+
+.. autosummary::
+    :toctree: ../stubs
+
+    Annotation
+
+
+Investigating commutation relations
+-----------------------------------
+
+If two operations in a circuit commute, we can swap the order in which they are applied.
+This can allow for optimizations and simplifications, for example, if it allows to merge
+or cancel gates:
+
+.. code-block:: text
+
+         ┌─────────┐     ┌─────────┐               ┌─────────┐
+    q_0: ┤ Rz(0.5) ├──■──┤ Rz(1.2) ├──■──     q_0: ┤ Rz(1.7) ├
+         └─────────┘┌─┴─┐└──┬───┬──┘┌─┴─┐  =       └──┬───┬──┘
+    q_1: ───────────┤ X ├───┤ X ├───┤ X ├     q_1: ───┤ X ├───
+                    └───┘   └───┘   └───┘             └───┘
+
+Performing these optimizations are part of the transpiler, but the tools to investigate commutations
+are available in the :class:`CommutationChecker`.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CommutationChecker
+
+
+.. _circuit-stretches:
+
+Delayed-resolution scheduling
+-----------------------------
+
+Typically, the output of Qiskit's compiler cannot be directly executed on a QPU.  First, it is
+likely to pass through some vendor-specific pulse-level compiler, which converts the gates and
+measurements into signals to the controlling electronics of the QPU.  While Qiskit's
+:class:`.Target` can represent *some* of the timing constraints that these pulses will have, it is
+generally not entirely complete.  This is especially true when dynamic circuits (feed-forward
+operations) are involved; the delays induced by the classical components are often dependent on
+low-level post-optimization details of backend compilers, and cannot be known by Qiskit.
+
+In these situations, a user can still exert control over the relative scheduling of pulses, such as
+for dynamical decoupling, by using "stretch" durations.  These are constructed by
+:meth:`.QuantumCircuit.add_stretch`, and interact with the classical-expression system described in
+:mod:`qiskit.circuit.classical`, although they are not real-time mutable.
+
+For example, we can add stretches and boxes to set up a system where two separate dynamic-decoupling
+sequences are applied to the same qubit, while a pair of other qubits undergoes a delay of unknown
+duration.  The two sequences are constrained to have the same length, even though internally the
+concrete DD pulses have differing lengths.
+
+.. code-block:: python
+
+    from qiskit import QuantumCircuit
+    from qiskit.circuit.classical import expr
+
+    qc = QuantumCircuit(3, 3)
+    # This sets up three duration "degrees of freedom" that will
+    # be resolved later by a backend compiler.
+    a = qc.add_stretch("a")
+    b = qc.add_stretch("b")
+    c = qc.add_stretch("c")
+
+    # This set of operations involves feed-forward operations that
+    # Qiskit cannot know the length of.
+    with qc.box():
+        qc.h(1)
+        qc.cx(1, 2)
+        qc.measure([1, 2], [1, 2])
+        with qc.if_test(expr.equal(qc.clbits[1], qc.clbits[2])):
+            qc.h(1)
+
+    # While that stuff is happening to qubits (1, 2), we want
+    # qubit 0 to do two different DD sequences.  The two DD
+    # sequences are fixed to be the same length as each other,
+    # even though they're both internally stretchy.
+    with qc.box(duration=a):
+        # Textbook NMRish XX DD.
+        qc.delay(b, 0)
+        qc.x(0)
+        qc.delay(expr.mul(2, b), 0)
+        qc.x(0)
+        qc.delay(b, 0)
+    with qc.box(duration=a):
+        # XY4-like DD.
+        for _ in range(2):
+            qc.delay(c, 0)
+            qc.y(0)
+            qc.delay(expr.mul(2, c), 0)
+            qc.x(0)
+            qc.delay(c, 0)
 
 .. _circuit-custom-gates:
 
@@ -833,10 +985,11 @@ method <https://numpy.org/devdocs/user/basics.interoperability.html#the-array-me
 ``__array__``.  This is used by :meth:`Gate.to_matrix`, and has the signature:
 
 .. currentmodule:: None
-.. py:method:: __array__(dtype=None, copy=None)
+.. py:method:: object.__array__(dtype=None, copy=None)
 
-    Return a Numpy array representing the gate.  This can use the gate's :attr:`~Instruction.params`
-    field, and may assume that these are numeric values (assuming the subclass expects that) and not
+    Return a Numpy array representing the gate. This can use the gate's
+    :attr:`~qiskit.circuit.Instruction.params` field, and may assume that these are numeric
+    values (assuming the subclass expects that) and not
     :ref:`compile-time parameters <circuit-compile-time-parameters>`.
 
     For greatest efficiency, the returned array should default to a dtype of :class:`complex`.
@@ -919,122 +1072,6 @@ After this, for the duration of the Python interpreter session, translators like
 
 Working with circuit-level objects
 ==================================
-
-Circuit properties
-------------------
-
-..
-    TODO: rewrite this section and move it into the `QuantumCircuit` class-level overview of its
-    functions.
-
-When constructing quantum circuits, there are several properties that help quantify
-the "size" of the circuits, and their ability to be run on a noisy quantum device.
-Some of these, like number of qubits, are straightforward to understand, while others
-like depth and number of tensor components require a bit more explanation.  Here we will
-explain all of these properties, and, in preparation for understanding how circuits change
-when run on actual devices, highlight the conditions under which they change.
-
-Consider the following circuit:
-
-.. plot::
-   :include-source:
-
-   from qiskit import QuantumCircuit
-   qc = QuantumCircuit(12)
-   for idx in range(5):
-      qc.h(idx)
-      qc.cx(idx, idx+5)
-
-   qc.cx(1, 7)
-   qc.x(8)
-   qc.cx(1, 9)
-   qc.x(7)
-   qc.cx(1, 11)
-   qc.swap(6, 11)
-   qc.swap(6, 9)
-   qc.swap(6, 10)
-   qc.x(6)
-   qc.draw('mpl')
-
-From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
-Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
-can do single-qubit gates on all the qubits simultaneously, the number of qubits in this
-circuit is equal to the **width** of the circuit:
-
-.. code-block::
-
-   qc.width()
-
-.. parsed-literal::
-
-   12
-
-We can also just get the number of qubits directly:
-
-.. code-block::
-
-   qc.num_qubits
-
-.. parsed-literal::
-
-   12
-
-.. important::
-
-   For a quantum circuit composed from just qubits, the circuit width is equal
-   to the number of qubits. This is the definition used in quantum computing. However,
-   for more complicated circuits with classical registers, and classically controlled gates,
-   this equivalence breaks down. As such, from now on we will not refer to the number of
-   qubits in a quantum circuit as the width.
-
-
-It is also straightforward to get the number and type of the gates in a circuit using
-:meth:`QuantumCircuit.count_ops`:
-
-.. code-block::
-
-   qc.count_ops()
-
-.. parsed-literal::
-
-   OrderedDict([('cx', 8), ('h', 5), ('x', 3), ('swap', 3)])
-
-We can also get just the raw count of operations by computing the circuits
-:meth:`QuantumCircuit.size`:
-
-.. code-block::
-
-   qc.size()
-
-.. parsed-literal::
-
-   19
-
-A particularly important circuit property is known as the circuit **depth**.  The depth
-of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
-parallel, it takes to complete the computation defined by the circuit.  Because quantum
-gates take time to implement, the depth of a circuit roughly corresponds to the amount of
-time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
-is one important quantity used to measure if a quantum circuit can be run on a device.
-
-The depth of a quantum circuit has a mathematical definition as the longest path in a
-directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
-experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
-with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
-graphically:
-
-.. image:: /source_images/depth.gif
-
-
-We can verify our graphical result using :meth:`QuantumCircuit.depth`:
-
-.. code-block::
-
-   qc.depth()
-
-.. parsed-literal::
-
-   9
 
 .. _circuit-abstract-to-physical:
 
@@ -1126,17 +1163,23 @@ default instances of the :class:`.BasisTranslator`.
     :data:`StandardEquivalenceLibrary`.
 
 
+Apply Pauli twirling to a circuit
+---------------------------------
 
-Generating random circuits
---------------------------
+There are two primary types of noise when executing quantum circuits. The first is stochastic,
+or incoherent, noise that is mainly due to the unwanted interaction between the quantum processor
+and the external environment in which it resides. The second is known as coherent error, and these
+errors arise due to imperfect control of a quantum system. This can be unwanted terms in a system
+Hamiltonian, i.e. incorrect unitary evolution, or errors from incorrect temporal control of the
+quantum system, which includes things like incorrect pulse-shapes for gates.
 
-..
-    If we expand these capabilities in the future, it's probably best to move it to its own
-    module-level documentation page than to expand this "inline" module documentation.
+Pauli twirling is a quantum error suppression technique that uses randomization to shape coherent
+error into stochastic errors by combining the results from many random, but logically equivalent
+circuits, together. Qiskit provides a function to apply Pauli twirling to a given circuit for
+standard two qubit gates. For more details you can refer to the documentation of the function
+below:
 
-.. currentmodule:: qiskit.circuit.random
-.. autofunction:: random_circuit
-.. currentmodule:: qiskit.circuit
+.. autofunction:: qiskit.circuit.pauli_twirl_2q_gates
 
 
 Exceptions
@@ -1213,6 +1256,7 @@ If we draw this circuit, we will see that Qiskit places the zeroth qubit on the 
 drawing:
 
 .. plot::
+    :alt: Circuit diagram output by the previous code.
     :include-source:
     :context:
     :show-source-link: False
@@ -1341,16 +1385,25 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
         \end{pmatrix}
 """
 
+from qiskit._accelerate.circuit import (
+    Bit,
+    Qubit,
+    AncillaQubit,
+    Clbit,
+    QuantumRegister,
+    AncillaRegister,
+    ClassicalRegister,
+    Register,
+    Duration,
+)
+
 from .exceptions import CircuitError
-from . import _utils
-from .quantumcircuit import QuantumCircuit
-from .classicalregister import ClassicalRegister, Clbit
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
+from .quantumcircuit import QuantumCircuit, CircuitData
 from .gate import Gate
 
-# pylint: disable=cyclic-import
+
+from .annotation import Annotation
 from .controlledgate import ControlledGate
-from . import singleton
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .operation import Operation
@@ -1360,25 +1413,63 @@ from .measure import Measure
 from .reset import Reset
 from .store import Store
 from .parameter import Parameter
-from .parametervector import ParameterVector
+from .parametervector import ParameterVector, ParameterVectorElement
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
-from .bit import Bit
-from .register import Register
 from . import library
 from .equivalence_library import StandardEquivalenceLibrary, SessionEquivalenceLibrary
 from .commutation_checker import CommutationChecker
 
-from .controlflow import (
-    ControlFlowOp,
-    WhileLoopOp,
-    ForLoopOp,
-    IfElseOp,
-    SwitchCaseOp,
-    CASE_DEFAULT,
-    BreakLoopOp,
-    ContinueLoopOp,
-)
+from .controlflow import *
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
+from .twirling import pauli_twirl_2q_gates
+
+from . import annotation, singleton, classical, random, controlflow
+
+__all__ = [
+    "AncillaQubit",
+    "AncillaRegister",
+    "AnnotatedOperation",
+    "Annotation",
+    "Barrier",
+    "Bit",
+    "CircuitData",
+    "CircuitError",
+    "CircuitInstruction",
+    "ClassicalRegister",
+    "Clbit",
+    "CommutationChecker",
+    "ControlModifier",
+    "ControlledGate",
+    "Delay",
+    "Duration",
+    "EquivalenceLibrary",
+    "Gate",
+    "Instruction",
+    "InstructionSet",
+    "InverseModifier",
+    "Measure",
+    "Operation",
+    "Parameter",
+    "ParameterExpression",
+    "ParameterVector",
+    "ParameterVectorElement",
+    "PowerModifier",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "Qubit",
+    "Register",
+    "Reset",
+    "SessionEquivalenceLibrary",
+    "StandardEquivalenceLibrary",
+    "Store",
+    "annotation",
+    "classical",
+    "library",
+    "pauli_twirl_2q_gates",
+    "random",
+    "singleton",
+]
+__all__ += controlflow.__all__

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,10 +18,9 @@ from collections.abc import Collection
 
 import numpy as np
 
-from qiskit.quantum_info import PauliList
+from qiskit.quantum_info import PauliList, Clifford
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
 
 def synth_circuit_from_stabilizers(
@@ -30,7 +29,6 @@ def synth_circuit_from_stabilizers(
     allow_underconstrained: bool = False,
     invert: bool = False,
 ) -> QuantumCircuit:
-    # pylint: disable=line-too-long
     """Synthesis of a circuit that generates a state stabilized by the stabilizers
     using Gaussian elimination with Clifford gates.
     If the stabilizers are underconstrained, and ``allow_underconstrained`` is ``True``,
@@ -68,8 +66,8 @@ def synth_circuit_from_stabilizers(
     circuit = QuantumCircuit(num_qubits)
 
     used = 0
-    for i in range(len(stabilizer_list)):
-        curr_stab = stabilizer_list[i].evolve(Clifford(circuit), frame="s")
+    for i, stabilizer in enumerate(stabilizer_list):
+        curr_stab = stabilizer.evolve(Clifford(circuit), frame="s")
 
         # Find pivot.
         pivot = used
@@ -81,17 +79,17 @@ def synth_circuit_from_stabilizers(
         if pivot == num_qubits:
             if curr_stab.x.any():
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) anti-commutes with some of "
+                    f"Stabilizer {i} ({stabilizer}) anti-commutes with some of "
                     "the previous stabilizers."
                 )
             if curr_stab.phase == 2:
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) contradicts "
+                    f"Stabilizer {i} ({stabilizer}) contradicts "
                     "some of the previous stabilizers."
                 )
             if curr_stab.z.any() and not allow_redundant:
                 raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer_list[i]}) is a product of the others "
+                    f"Stabilizer {i} ({stabilizer}) is a product of the others "
                     "and allow_redundant is False. Add allow_redundant=True "
                     "to the function call if you want to allow redundant stabilizers."
                 )
@@ -133,7 +131,7 @@ def synth_circuit_from_stabilizers(
             circuit.swap(pivot, used)
 
         # fix sign
-        curr_stab = stabilizer_list[i].evolve(Clifford(circuit), frame="s")
+        curr_stab = stabilizer.evolve(Clifford(circuit), frame="s")
         if curr_stab.phase == 2:
             circuit.x(used)
         used += 1

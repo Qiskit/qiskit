@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -28,25 +28,26 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 import subprocess
 import tempfile
-import shutil
 import typing
 from warnings import warn
 
 from qiskit import user_config
-from qiskit.utils import optionals as _optionals
 from qiskit.circuit import ControlFlowOp, Measure
-from . import latex as _latex
-from . import text as _text
-from . import matplotlib as _matplotlib
-from . import _utils
-from ..utils import _trim as trim_image
+from qiskit.utils import optionals as _optionals
+
 from ..exceptions import VisualizationError
+from ..utils import _trim as trim_image
+from . import _utils
+from . import latex as _latex
+from . import matplotlib as _matplotlib
+from . import text as _text
 
 if typing.TYPE_CHECKING:
     from typing import Any
-    from qiskit.circuit import QuantumCircuit  # pylint: disable=cyclic-import
+    from qiskit.circuit import QuantumCircuit
 
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ def circuit_drawer(
     reverse_bits: bool | None = None,
     justify: str | None = None,
     vertical_compression: str | None = "medium",
-    idle_wires: bool = True,
+    idle_wires: bool | str | None = None,
     with_layout: bool = True,
     fold: int | None = None,
     # The type of ax is matplotlib.axes.Axes, but this is not a fixed dependency, so cannot be
@@ -73,16 +74,28 @@ def circuit_drawer(
     cregbundle: bool | None = None,
     wire_order: list[int] | None = None,
     expr_len: int = 30,
+    measure_arrows: bool | None = None,
+    barrier_label_len: int = 16,
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
-    **text**: ASCII art TextDrawing that can be printed in the console.
+    ``text``
+        ASCII art TextDrawing that can be printed in the console.
 
-    **mpl**: images with color rendered purely in Python using matplotlib.
+    ``mpl``
+        Images with color rendered purely in Python using matplotlib.
 
-    **latex**: high-quality images compiled via latex.
+    ``latex``
+        High-quality images compiled via LaTeX.
 
-    **latex_source**: raw uncompiled latex output.
+        .. warning::
+            This will call an installed system version of ``pdflatex`` on arbitrary user input by
+            design (such as to render custom code in :attr:`.Instruction.label`), so should only be
+            used on trusted data.
+
+    ``latex_source``
+        Raw uncompiled LaTeX output.  This is the source of what would be rendered by the
+        ``latex`` drawer.
 
     .. warning::
 
@@ -108,14 +121,14 @@ def circuit_drawer(
                 the location specified in ``~/.qiskit/settings.conf``.
             * If a dictionary, every entry overrides the default configuration. If the
                 ``"name"`` key is given, the default configuration is given by that style.
-                For example, ``{"name": "textbook", "subfontsize": 5}`` loads the ``"texbook"``
+                For example, ``{"name": "textbook", "subfontsize": 5}`` loads the ``"textbook"``
                 style and sets the subfontsize (e.g. the gate angles) to ``5``.
             * If ``None`` the default style ``"iqp"`` is used or, if given, the default style
                 specified in ``~/.qiskit/settings.conf``.
 
         output: Select the output method to use for drawing the circuit.
             Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
-            By default the `text` drawer is used unless the user config file
+            By default, the ``text`` drawer is used unless the user config file
             (usually ``~/.qiskit/settings.conf``) has an alternative backend set
             as the default. For example, ``circuit_drawer = latex``. If the output
             kwarg is set, that backend will always be used over the default in
@@ -131,17 +144,21 @@ def circuit_drawer(
             alternative value set. For example, ``circuit_reverse_bits = True``.
         plot_barriers: Enable/disable drawing barriers in the output
             circuit. Defaults to ``True``.
-        justify: Options are ``left``, ``right`` or ``none``. If
-            anything else is supplied, it defaults to left justified. It refers
-            to where gates should be placed in the output circuit if there is
-            an option. ``none`` results in each gate being placed in its own
-            column.
+        justify: Options are ``"left"``, ``"right"`` or ``"none"`` (str).
+            If anything else is supplied, left justified will be used instead.
+            It refers to where gates should be placed in the output circuit if
+            there is an option. ``none`` results in each gate being placed in
+            its own column. Defaults to ``left``.
         vertical_compression: ``high``, ``medium`` or ``low``. It
             merges the lines generated by the `text` output so the drawing
             will take less vertical room.  Default is ``medium``. Only used by
             the ``text`` output, will be silently ignored otherwise.
-        idle_wires: Include idle wires (wires with no circuit elements)
-            in output visualization. Default is ``True``.
+        idle_wires: Include (or not) idle wires (wires with no circuit elements)
+            in output visualization. The string ``"auto"`` is also possible, in which
+            case idle wires are show except that the circuit has a layout attached.
+            Default is ``"auto"`` unless the
+            user config file (usually ``~/.qiskit/settings.conf``) has an
+            alternative value set. For example, ``circuit_idle_wires = False``.
         with_layout: Include layout information, with labels on the
             physical layout. Default is ``True``.
         fold: Sets pagination. It can be disabled using -1. In ``text``,
@@ -166,6 +183,14 @@ def circuit_drawer(
         expr_len: The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
+        measure_arrows: If True, draw an arrow from each measure box down to the classical bit
+            or register where the measure value is placed. If False, do not draw arrow, but
+            instead place the name of the bit or register in the measure box.
+            Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
+            has an alternative value set. For example, ``circuit_measure_arrows = False``.
+        barrier_label_len: The number of characters to display for
+            :class:`.Barrier` labels in the output circuit. If this number is exceeded,
+            the string will be truncated at that number and '...' added to the end.
 
     Returns:
         :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -186,20 +211,25 @@ def circuit_drawer(
 
     Example:
         .. plot::
+            :alt: Circuit diagram output by the previous code.
             :include-source:
 
-            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit import QuantumCircuit
+            from qiskit.visualization import circuit_drawer
             qc = QuantumCircuit(1, 1)
             qc.h(0)
             qc.measure(0, 0)
-            qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
+            circuit_drawer(qc, output="mpl", style={"backgroundcolor": "#EEEEEE"})
     """
     image = None
     expr_len = max(expr_len, 0)
+    barrier_label_len = max(barrier_label_len, 0)
     config = user_config.get_config()
     # Get default from config file else use text
     default_output = "text"
     default_reverse_bits = False
+    default_idle_wires = config.get("circuit_idle_wires", "auto")
+    default_measure_arrows = config.get("circuit_measure_arrows", True)
     if config:
         default_output = config.get("circuit_drawer", "text")
         if default_output == "auto":
@@ -214,6 +244,17 @@ def circuit_drawer(
 
     if reverse_bits is None:
         reverse_bits = default_reverse_bits
+
+    if idle_wires is None:
+        idle_wires = default_idle_wires
+    if isinstance(idle_wires, str):
+        if idle_wires == "auto":
+            idle_wires = hasattr(circuit, "_layout") and circuit._layout is None
+        else:
+            raise VisualizationError(f"Parameter idle_wires={idle_wires} unrecognized.")
+
+    if measure_arrows is None:
+        measure_arrows = default_measure_arrows
 
     if wire_order is not None and reverse_bits:
         raise VisualizationError(
@@ -288,6 +329,8 @@ def circuit_drawer(
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
             expr_len=expr_len,
+            barrier_label_len=barrier_label_len,
+            measure_arrows=measure_arrows,
         )
     elif output == "latex":
         image = _latex_circuit_drawer(
@@ -303,6 +346,7 @@ def circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
+            barrier_label_len=barrier_label_len,
         )
     elif output == "latex_source":
         return _generate_latex_source(
@@ -318,6 +362,7 @@ def circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
+            barrier_label_len=barrier_label_len,
         )
     elif output == "mpl":
         image = _matplotlib_circuit_drawer(
@@ -336,11 +381,13 @@ def circuit_drawer(
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
             expr_len=expr_len,
+            measure_arrows=measure_arrows,
+            barrier_label_len=barrier_label_len,
         )
     else:
         raise VisualizationError(
-            "Invalid output type %s selected. The only valid choices "
-            "are text, latex, latex_source, and mpl" % output
+            f"Invalid output type {output} selected. The only valid choices "
+            "are text, latex, latex_source, and mpl"
         )
     if image and interactive:
         image.show()
@@ -367,6 +414,8 @@ def _text_circuit_drawer(
     encoding=None,
     wire_order=None,
     expr_len=30,
+    measure_arrows=True,
+    barrier_label_len=16,
 ):
     """Draws a circuit using ascii art.
 
@@ -399,6 +448,11 @@ def _text_circuit_drawer(
         expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
+        measure_arrows: If True, draw an arrow from each measure box down to the classical bit
+            or register where the measure value is placed. If False, do not draw arrow, but
+            instead place the name of the bit or register in the measure box.
+        barrier_label_len (int): Optional. The number of characters to display for
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
@@ -412,6 +466,7 @@ def _text_circuit_drawer(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
+        measure_arrows=measure_arrows,
     )
     text_drawing = _text.TextDrawing(
         qubits,
@@ -424,6 +479,8 @@ def _text_circuit_drawer(
         encoding=encoding,
         with_layout=with_layout,
         expr_len=expr_len,
+        barrier_label_len=barrier_label_len,
+        measure_arrows=measure_arrows,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -455,6 +512,7 @@ def _latex_circuit_drawer(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    barrier_label_len=16,
 ):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
@@ -481,6 +539,8 @@ def _latex_circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        barrier_label_len (int): Optional. The number of characters to display for
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -508,6 +568,7 @@ def _latex_circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=wire_order,
+            barrier_label_len=barrier_label_len,
         )
 
         try:
@@ -574,6 +635,7 @@ def _generate_latex_source(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    barrier_label_len=16,
 ):
     """Convert QuantumCircuit to LaTeX string.
 
@@ -597,6 +659,8 @@ def _generate_latex_source(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        barrier_label_len (int): Optional. The number of characters to display for
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         str: Latex string appropriate for writing to file.
@@ -620,6 +684,7 @@ def _generate_latex_source(
         cregbundle=cregbundle,
         with_layout=with_layout,
         circuit=circuit,
+        barrier_label_len=barrier_label_len,
     )
     latex = qcimg.latex()
     if filename:
@@ -650,6 +715,8 @@ def _matplotlib_circuit_drawer(
     cregbundle=None,
     wire_order=None,
     expr_len=30,
+    measure_arrows=None,
+    barrier_label_len=16,
 ):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -684,6 +751,11 @@ def _matplotlib_circuit_drawer(
         expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
             is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
+        measure_arrows: If True, draw an arrow from each measure box down to the classical bit
+            or register where the measure value is placed. If False, do not draw arrow, but
+            instead place the name of the bit or register in the measure box.
+        barrier_label_len (int): Optional. The number of characters to display for
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
@@ -696,6 +768,7 @@ def _matplotlib_circuit_drawer(
         justify=justify,
         idle_wires=idle_wires,
         wire_order=wire_order,
+        measure_arrows=measure_arrows,
     )
     if fold is None:
         fold = 25
@@ -715,5 +788,7 @@ def _matplotlib_circuit_drawer(
         cregbundle=cregbundle,
         with_layout=with_layout,
         expr_len=expr_len,
+        barrier_label_len=barrier_label_len,
+        measure_arrows=measure_arrows,
     )
     return qcd.draw(filename)

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,11 +12,13 @@
 
 """Filter ops from a circuit"""
 
-from typing import Callable
+from collections.abc import Callable
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
+
+from qiskit._accelerate.filter_op_nodes import filter_op_nodes
 
 
 class FilterOpNodes(TransformationPass):
@@ -33,9 +35,10 @@ class FilterOpNodes(TransformationPass):
 
     Example:
 
-        Filter out operations that are labelled ``"foo"``
+        Filter out operations that are labeled ``"foo"``
 
         .. plot::
+           :alt: Circuit diagram output by the previous code.
            :include-source:
 
             from qiskit import QuantumCircuit
@@ -59,7 +62,5 @@ class FilterOpNodes(TransformationPass):
     @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
-        for node in dag.op_nodes():
-            if not self.predicate(node):
-                dag.remove_op_node(node)
+        filter_op_nodes(dag, self.predicate)
         return dag

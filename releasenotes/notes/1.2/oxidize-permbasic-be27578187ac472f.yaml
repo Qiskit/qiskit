@@ -1,0 +1,4 @@
+---
+features_synthesis:
+  - |
+    Port :func:`.synth_permutation_basic`, used to synthesize qubit permutations, to Rust.

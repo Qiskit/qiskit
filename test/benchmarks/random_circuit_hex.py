@@ -4,19 +4,17 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring,invalid-name,no-member
-# pylint: disable=attribute-defined-outside-init
 
 import copy
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 
 
@@ -41,7 +39,7 @@ def make_circuit_ring(nq, depth, seed):
         for i in range(nq):  # round of single-qubit unitaries
             u = random_unitary(2, seed).data
             angles = decomposer.angles(u)
-            qc.u3(angles[0], angles[1], angles[2], q[i])
+            qc.u(angles[0], angles[1], angles[2], q[i])
 
     # insert the final measurements
     qcm = copy.deepcopy(qc)

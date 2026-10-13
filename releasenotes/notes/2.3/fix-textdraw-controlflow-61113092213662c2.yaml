@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a failure in the circuit text drawer, which could occur when circuit blocks inside
+    control flow operations were defined on different registers than the outer circuit.
+    This situation could for example happen when appending :class:`.ControlFlowOp` operations 
+    directly, or for circuits after transpilation.
