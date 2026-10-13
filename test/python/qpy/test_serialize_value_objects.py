@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,7 @@
 """Test serializing ParameterExpressions from qpy."""
 
 import io
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit import qpy
 from qiskit.quantum_info import SparseObservable
@@ -44,6 +44,60 @@ class TestQpySerializeParameterExpression(QiskitTestCase):
             qc_from_qpy = qpy.load(container)[0]
 
         self.assertEqual(qc, qc_from_qpy)
+
+    def test_roundtrip_assigned_values(self):
+        """Test that an expression which was assigned a value is correctly loaded."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+
+        # lhs test
+        circuit = QuantumCircuit(1)
+        circuit.rz(a.sin() * b, 0)
+        circuit = circuit.assign_parameters({a: 3})
+
+        with io.BytesIO() as container:
+            qpy.dump(circuit, container)
+            container.seek(0)
+            loaded = qpy.load(container)[0]
+
+        self.assertEqual(circuit.parameters, loaded.parameters)
+        self.assertAlmostEqual(
+            float(circuit.data[0].operation.params[0].bind({b: 2})),
+            float(loaded.data[0].operation.params[0].bind({b: 2})),
+        )
+
+        # rhs test
+        circuit = QuantumCircuit(1)
+        circuit.rz(b * a.sin(), 0)
+        circuit = circuit.assign_parameters({a: 3})
+
+        with io.BytesIO() as container:
+            qpy.dump(circuit, container)
+            container.seek(0)
+            loaded = qpy.load(container)[0]
+
+        self.assertEqual(circuit.parameters, loaded.parameters)
+        self.assertAlmostEqual(
+            float(circuit.data[0].operation.params[0].bind({b: 2})),
+            float(loaded.data[0].operation.params[0].bind({b: 2})),
+        )
+
+        # both sides test
+        circuit = QuantumCircuit(1)
+        circuit.rz(c * b.cos() * a.sin(), 0)
+        circuit = circuit.assign_parameters({a: 3, b: 5})
+
+        with io.BytesIO() as container:
+            qpy.dump(circuit, container)
+            container.seek(0)
+            loaded = qpy.load(container)[0]
+
+        self.assertEqual(circuit.parameters, loaded.parameters)
+        self.assertAlmostEqual(
+            float(circuit.data[0].operation.params[0].bind({c: 7})),
+            float(loaded.data[0].operation.params[0].bind({c: 7})),
+        )
 
 
 class TestPauliEvolution(QiskitTestCase):

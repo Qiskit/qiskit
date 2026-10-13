@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -40,13 +40,20 @@ pub struct Unary {
 pub enum UnaryOp {
     BitNot = 1,
     LogicNot = 2,
+    Negate = 3,
 }
 
 unsafe impl ::bytemuck::CheckedBitPattern for UnaryOp {
     type Bits = u8;
 
     fn is_valid_bit_pattern(bits: &Self::Bits) -> bool {
-        *bits > 0 && *bits < 3
+        *bits > 0 && *bits < 4
+    }
+}
+
+impl UnaryOp {
+    pub fn from_u8(value: u8) -> PyResult<UnaryOp> {
+        Ok(bytemuck::checked::cast::<u8, UnaryOp>(value))
     }
 }
 
@@ -106,7 +113,13 @@ impl PyUnaryOp {
 ///     op: The opcode describing which operation is being done.
 ///     operand: The operand of the operation.
 ///     type: The resolved type of the result.
-#[pyclass(eq, extends = PyExpr, name = "Unary", module = "qiskit._accelerate.circuit.classical.expr")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Unary",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyUnary(Unary);
 

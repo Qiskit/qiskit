@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -34,7 +34,7 @@ use hashbrown::HashMap;
 /// error rates, you should assign both elements of the key to the same
 /// qubit index. If an edge or qubit is ideal and has no error rate, you can
 /// either set it to ``0.0`` explicitly or as ``NaN``.
-#[pyclass(mapping, module = "qiskit._accelerate.error_map")]
+#[pyclass(mapping, module = "qiskit._accelerate.error_map", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub struct ErrorMap {
     pub error_map: HashMap<[PhysicalQubit; 2], f64>,

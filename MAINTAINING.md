@@ -10,8 +10,9 @@ The version of the Qiskit package and crates is mentioned in a few places:
 
 * `qiskit/VERSION.txt` for defining the Python package and docs
 * `Cargo.toml` for defining the Rust crates
-* `crates/cext/include/qiskit/version.h` for defining the C header file
+* `crates/bindgen/include/qiskit/version.h` for defining the C header file
 * `docs/release_notes.rst` for configuring the release-notes documentation build
+* `.mergify.yml` (implicitly via a branch name) for configuring where Mergify targets backports
 
 In principle, the first three version numbers should be the same at all times.
 However, the different languages have different conventions about formatting.
@@ -51,10 +52,185 @@ The procedure for a new minor-version release, with respect to version numbers i
 
 1. on `main`, push a PR that bumps the version from `2.2.0.dev0` to `2.2.0rc1` (and moves the loose release notes into `releasenotes/notes/2.2`, and then do the rest of the release process)
 2. `qiskit-bot` will create a `stable/2.2` branch from that commit, since that's the one you should tag.
-3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series.
+3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series, including updating `.mergify.yml` to backport to the new stable branch.
 
 You will need to run `cargo build` as part of a version-bump commit to propagate the changes in `Cargo.toml` to `Cargo.lock`.
 
+
+<span id="security"></span>
+## Handling Security Vulnerabilities
+
+Some bugs allow attackers to target systems using Qiskit as a library in ways that cannot reasonably be protected against, and can have severe negative consequences for those systems.
+We call these "security vulnerabilities", and there are special processes for handling these.
+
+Security vulnerabilities, including reports that _may_ be security vulnerabilities, are handled privately to avoid disclosing a potential attack surface until a fix or workaround is ready for deployment.
+Vulnerability reports are even hidden from most repository maintainers; only those with the GitHub `admin` role are automatically involved.
+This poses several problems:
+
+* even _potential_ security reports are high-priority interrupts on maintainers' time
+* it is hard to collaborate on and validate fixes
+* it is hard to deploy a fix without alerting bad actors to the presence of a vulnerability
+* it is hard to train new maintainers on the processes
+
+This section covers our maintenance policy for handling these.
+Maintainers may also have further responsibilities to their employers, which are not documented here.
+
+Further reading:
+
+* [Qiskit's security policy](/SECURITY.md) for what constitutes a security vulnerability and how to report one safely.
+* [GitHub's documentation on its security tooling](https://docs.github.com/code-security/how-tos/report-and-fix-vulnerabilities).
+
+
+### General principles
+
+* Vulnerability reports should be triaged quickly.
+
+  We aim to provide an initial response to a report within one working day.
+  The response can be one of "accept", "reject" or "investigate further".
+  If we need to investigate further, we aim to produce a final response within a week.
+
+* If a report is accepted, a fix or workaround should be prepared and released as soon as possible for all affected [Qiskit versions with active security support](https://quantum.cloud.ibm.com/docs/guides/qiskit-sdk-version-strategy).
+
+  We aim to release fixes within a month of accepting a report, and we must release the fix within three months of the report being made.
+
+* There should be as little time as reasonably possible between public disclosure and the fix being available in a released version of Qiskit.
+
+  This is a trade-off between the risk of vulnerability exploitation and the risk that rushed and insufficiently reviewed code is released.
+
+* As few people as reasonably possible should be exposed to vulnerability reports.
+
+  This is a trade-off between the risk of accidental disclosure, the risk of burning out the administrators, and the need to train new maintainers on the security procedures.
+
+
+### Who is involved
+
+Security reports are automatically visible to exactly those users with `admin` rights to the repository.
+This is one reason that `admin` rights must be very limited.
+
+There should be at least three people actively involved in any "accepted" or "investigate further" security report.
+One non-admin maintainer should be added to each such security report, in order to train others on the process.
+If there is only one active admin at a given time, two non-admin maintainers should be added instead.
+
+When choosing the non-admin collaborator(s), consider that the total goals are:
+
+* we need a diversity of opinions for patches that may be controversial;
+* we need at least one person, and ideally two, with expertise in the affected code;
+* we need to train new maintainers on the security procedures.
+
+All security-related fixes must have **two** non-authoring approvers, using the standard repository
+rules for when a contribution amounts to co-authorship and requires a different reviewer.
+
+An "active" member is one who is significantly participating in the triage, remediation or review of a report or fix.
+Examples of "non-active" admins are organization-level admins whose purpose is not repository-specific, and those who are not currently available, such as through illness or vacation.
+
+
+### Remediation process
+
+Once accepted, a fix must be prepared and released, and the vulnerability must be publicly announced, in order to allow downstream users to update.
+
+Employed administrators may have company-internal processes that need to happen in parallel to this
+process.
+For example, IBM employees have responsibilities to the internal [PSIRT processes](https://www.ibm.com/trust/security-vulnerability-management) that begin immediately, and should consult internal documentation on these.
+
+**Remediation process**:
+
+1. [Create a new private fork](https://docs.github.com/code-security/tutorials/fix-reported-vulnerabilities/collaborate-in-a-fork) for preparing the patches.
+   **Do not** push any work to Qiskit/qiskit or your own fork until you are in the "disclosure" section.
+
+
+2. Using the private fork, prepare a PR branched from `main` that fixes or invalidates the vulnerability.
+   **Note**: there is no CI available on private forks.
+
+   Explicitly check each of these basic steps; it is easy to feel pressured to cut corners, but you have less automated safety checks on the private fork.
+
+   1. Write the patch to fix or invalidate the vulnerability.
+   2. Add a `security` release note.
+   3. Run the test suite yourself on Linux, macOS and Windows, if at all possible.
+   4. Run the entire lint job.
+   5. Build the documentation.
+
+   Repeat steps 3 to 5 every time before you push changes in response to a review.
+
+3. Have two collaborators review and approve the PR.
+   The collaborators should remind the author to run the tests, lint and docs jobs, and double-check by running them themselves.
+
+   In order to simplify the next step, you may wish to squash the commit history once the review is complete.
+
+4. Using the private fork, prepare cherry-pick PRs to each `stable/*` branch with security support.
+   This is likely to be the current minor release, and potentially the last minor of the previous major.
+
+   1. Update your local copies of the relevant `stable/*` branches.
+   2. For each stable branch, make a new branch.
+   3. Cherry-pick the fix from the approved PR against `main`.
+   4. In the same PR, follow the regular procedures for preparing a new patch-version release, including the version bump and the release notes.
+   5. Run the tests, lint and docs again for each branch.
+   6. Push each branch to the private fork, as new PRs.
+   7. Have the collaborators review each branch, paying particular attention to any places where code had to be changed in the cherry-pick, and to the version-bump commit.
+
+When designing a fix, consider these points:
+
+* Fixes should be as minimal as possible.
+
+  The process is more stressful and unverified than usual, and it is easy to introduce new bugs and vulnerabilities, or regress on old ones.
+
+* Fixes do not need to be elegant.
+
+  It is better to publish an overcautious fix immediately within the private process, then follow up with a cleaner solution under normal conditions.
+  For example, we fixed [a recursive stack overflow in `qiskit.qasm2.load`](https://github.com/Qiskit/qiskit/security/advisories/GHSA-w7g6-mx9c-q2hr) with [a simple but overly restrictive depth limit](https://github.com/Qiskit/qiskit/pull/16421) first, then replaced the parser with [a fully iterative one](https://github.com/Qiskit/qiskit/pull/16425) later.
+
+* Fixes take priority over backwards-compatible stability and performance.
+
+  Wherever possible, aim to avoid impact to legitimate uses of Qiskit, but do not let this compromise the publication of a fix.
+  Consider adding limitations by optional keyword arguments with reasonable defaults, but can be explicitly lifted by users.
+
+
+### Disclosure and release process
+
+The order of disclosure and release for an accepted report is as follows:
+
+1. Co-ordinate with the responsible CVE[^1] issuer (currently IBM PSIRT) to receive a complete CVSS[^2] score _specifically for Qiskit SDK_.
+   There may be additional CVEs issued against downstream users of Qiskit SDK, which are not covered by this policy.
+   Fill in the advisory with this, and all other necessary details listed below this process.
+
+2. Prepare, review, and approve the fixes for each supported branch, as in the above section.
+
+3. Co-ordinate a disclosure date and time with the responsible owner (currently IBM PSIRT).
+
+4. At the specified time, recreate the approved PRs using the same code but now on the *public* repository.
+   **Do not publish the advisory yet.**
+   Allow the complete CI suite to pass, after fixing any caught mistakes.
+   Have the reviewers from the private fork verify and re-approve the now-public PR.
+   Once CI has passed, the PRs can be immediately admin-merged, skipping the merge queue.
+
+5. Tag and trigger package releases for each supported version.
+
+6. Once the releases are live, co-ordinate a time to publish the GitHub advisory with the responsible package owner.
+   (This co-ordination should be a fast rubber stamp on top of step 3.)
+
+Checklist for publication of an advisory:
+
+* The title of the GitHub advisory is short and clear.
+
+* All affected packages and versions are filled in.
+  Note that this may include packages and major versions that no longer have security support, such as Qiskit v1.x and `qiskit-terra`.
+
+* The patched versions of each supported package are filled in, and unsupported packages are marked "no security support".
+
+* The advisory description is edited so that it **does not include an explicit exploit implementation**, but clearly specifies the vulnerable function, conditions for vulnerability, and any known workarounds.
+
+  *Note*: comments on and edit history of the advisory are _not_ public, but remain visible to report collaborators.
+  Leave any comments and edit history in place for later auditing.
+
+* Add suitable "credits" to those involved.
+
+  This can also be done after publication.
+  Typically you will have at least one "remediation developer" and at least two "remediation
+  reviewer" credits.
+  If the vulnerability finder/reporter was not involved in the fix, give them a "finder" credit.
+  Each person can only have one credited role.
+
+[^1]: "CVE" is the [Common Vulnerabilities and Exposures system](https://en.wikipedia.org/wiki/Common_Vulnerabilities_and_Exposures).
+[^2]: "CVSS" is the [Common Vulnerability Scoring System](https://en.wikipedia.org/wiki/Common_Vulnerability_Scoring_System).
 
 ## Stable Branch Policy
 
@@ -125,385 +301,402 @@ The release cycle for major and minor releases is regular so these can wait, and
 Non-blocking issues with no associated PR within a day of the release
 should be pushed for further release.
 
-## Release process for Qiskit
+## How to release Qiskit
 
-This section contains the human-intervention parts of the release process for pushing a release and hosting it on PyPI.
+The precise steps depend on what kind of release you are making.
+The choices are:
 
-The technical process of building, testing and deploying the package is automated.
-However, the **release manager** should manually follow these steps:
+* First release candidate (e.g. `2.4.0rc1`)
+* First public release (e.g. `2.4.0`)
+* Follow-on patch release (e.g. `2.4.0rc2` or `2.4.1`)
 
- 1. [Check the milestone state](#1-check-the-milestone-state)
- 2. [Audit `Changelog:*` labels](#2-audit-changelog-labels)
- 3. [Prepare the release notes](#3-prepare-the-release-notes)
- 4. [Create, submit, and merge a PR to handle release-specific changes as last commit on the milestone](#4-submit-a-prepare-xyz-release-pr)
- 5. [Tag the commit from step 3 to trigger the release automation process](#5-tag-the-prepare-xyz-release-commit)
- 6. [Make post-release changes in the repository](#6-post-release-actions)
+We also occasionally do one-off "beta" releases (e.g. `1.3.0b1`) as demo versions for specific events.
+These don't have a formal release process, because they tend to be highly ad-hoc.
 
-The release process is largely the same for all versions.
-However, for convenience, let's put names to two main scenarios for a release:
+Common assumptions in all commands in release recipes:
 
- * a **_first_ release**: If [`stable/x.y` does not exist in upstream repository](https://github.com/Qiskit/qiskit/branches), you are probably preparing for the first release candidate of a major or minor release, and you are in this scenario.
-   Examples of *first* releases are: `0.43.0`, `1.0.0rc1`, and `1.3.0rc1`.
- * a **_follow-up_ release**: If [`stable/x.y` exists in the upstream repository](https://github.com/Qiskit/qiskit/branches), this release is some form of follow-up, probably because there is a previous release candidate or you are doing a patch release.
-   Examples of *_follow-up_* releases are: `0.43.3`, `1.2.1`, and `1.3.0rc2`.
+* The Qiskit/qiskit remote is called `upstream`.  If not: replace `upstream` with your name for the
+  remote every place that it appears in every command.
 
-> [!NOTE]
-> This section assumes that the Qiskit-owned GitHub remote is called `upstream` in your git configuration.
+* The `upstream` remote is up to date before running any commands in any recipe.  If not: run
+  `git fetch --tags upstream`.
+
+### Recipe for a first release candidate (`2.4.0rc1`)
+
+These instructions will all use `2.4.0rc1` as the example version number being released, so adjust all version numbers accordingly for your release.
+You will also see references to:
+
+* `stable/2.3` (old stable branch)
+* `stable/2.4` (new stable branch)
+* `2.3.0rc1` (old-version release candidate)
+* `2.4.0.dev0` (current development version)
+* `2.5.0.dev0` (next development version)
+
+that will all need to be adjusted in a suitable manner.
+
+**Steps of the process**:
+
+1. Check all P0 issues and PRs for the release are resolved.
+2. Create the "release" PR on `main` that ([follow-along example for `2.4.0rc1`](https://github.com/Qiskit/qiskit/pull/15837)):
+
+   * moves release notes from backported PRs into `releasenotes/notes/2.3` (the old stable folder)
+     <details>
+     Assumptions:
+
+     * you have checked out the branch to make a PR;
+
+     * the old stable branch is `stable/2.3`.
+
+     ```bash
+     notes=($(git diff --name-only ...upstream/stable/2.3 -- ':(glob)releasenotes/notes/*.yaml'))
+     for note in "${notes[@]}"; do git mv -k "$note" releasenotes/notes/2.3/; done
+     ```
+     </details>
+
+   * moves release notes from the new feature version into `releasenotes/notes/2.4` (the new stable folder)
+     <details>
+     Assumptions: you are on your PR branch.
+
+     ```bash
+     mkdir -p releasenotes/notes/2.4
+     git mv releasenotes/notes/*.yaml releasenotes/notes/2.4/
+     ```
+     </details>
+
+   * bumps the package-defining version numbers from the dev version (`2.4.0.dev0`) to the release version (`2.4.0rc1`)
+     <details>
+     This should bump only the places that actually specify the version of the package and not any
+     repository-automation or documentation systems.
+
+     See [Package Version](#package-version) at the top of this file for the up-to-date list.  It's
+     just the Python package, Rust crates and C API numbers that need bumping in this PR.
+     </details>
+
+   * updates all Rust-space build dependencies in `Cargo.lock`
+     <details>
+     Assumptions: you are on your PR branch.
+
+     In principle, the recipe is
+     ```bash
+     cargo update
+     ```
+     but this is unreliable.  See [Running `cargo update`](#running-cargo-update) for more detail.
+     </details>
+
+   * is labelled [ci: test wheels](https://github.com/Qiskit/qiskit/labels/ci:%20test%20wheels) in the GitHub web interface
+     <details>
+     This causes CI to run the wheel-build workflows in dry-run mode, which will show you any
+     potential failures that might appear when you actually try to release.
+
+     This is optional, it's just likely to save you time later if there are problems.
+     </details>
+
+   * updates the QPY version-support table in the `qiskit.qpy` docstring, including patch releases
+     <details>
+     The supported versions are everything between `qiskit.qpy.QPY_COMPATIBLITY_VERSION` and
+     `QPY_VERSION`, inclusive.
+
+     See https://github.com/Qiskit/qiskit/pull/16034, for example.
+     </details>
+
+   * updates the C API "slots check" file
+     <details>
+     This updates the C-API slots lint job to use this new release as the base
+     for semver compatibility checks for new PR.
+
+     ```bash
+     cargo run -p qiskit-bindgen-cli -- show-slots > capi_slots.txt
+     ```
+     </details>
+
+3. Tag the resulting PR after merge as `2.4.0rc1`, and push it. (Detail: [How to tag and release a complete version](#how-to-tag-and-release-a-complete-version).)
+
+4. Create the new stable branch (`stable/2.4`) from the same commit, and push it.
+   <details>
+   Assumptions:
+
+   * you have `main` checked out locally, and it is updated so the `HEAD` is the PR from step 2 and
+     the tag from step 3.
+
+   * you are in the `terra-core` group on GitHub, so you have permissions to push branches (if not:
+     ask Jake or Matt about it).
+
+    * you have just released `2.4.0rc1` (if not: adjust the `stable/2.4` branch name appropriately).
+
+   ```bash
+   git branch stable/2.4 2.4.0rc1
+   git push --set-upstream upstream stable/2.4
+   ```
+   </details>
+
+5. Create the "open new development" PR on `main` that ([follow-along example for `2.5.0.dev0`](https://github.com/Qiskit/qiskit/pull/15840)):
+
+   * bumps the package-defining version numbers from the rc version (`2.4.0rc1`) to the new dev version (`2.5.0.dev0`)
+     <details>
+     This is the same as the equivalent package-bump version in step 2; it's the same version
+     numbers that need updating.
+
+     After updating the version numbers, pull them into `Cargo.lock` such as with `cargo check`.
+     </details>
+
+   * bumps version-number references to the old stable (`stable/2.3` or `2.3.0rc1`) to the new one (`stable/2.4` or `2.4.0rc1`)
+     <details>
+     This is all the version numbers you didn't update in previous steps.
+
+     See [Package Version](#package-version) at the top of this file for the up-to-date list.  It's
+     things like the Mergify backport configuration and the documentation "earliest version" numbers
+     that need updating.
+     </details>
+
+### Recipe for a first public version (`2.3.0`)
+
+These instructions use `2.3.0` as the example number, and the corresponding stable branch
+`stable/2.3`.  Adjust the numbers as appropriate.
+
+**Steps of the process**:
+
+1. Check all P0 issues and PRs for the release are resolved.
+2. Create the "release" PR on `stable/2.3` that ([follow-along example for
+   `2.3.0`](https://github.com/Qiskit/qiskit/pull/15514)):
+
+   * adds a `prepare-2.3.0` release note that contains a `prelude` section
+     <details>
+     Create the release note with:
+
+     ```bash
+     reno new --edit prepare-2.3.0
+     ```
+
+     Delete the entire template; we only need a section which isn't in the template.  Replace it
+     with
+
+     ```rst
+     ---
+     prelude: |
+        Qiskit v2.3.0 is a new feature release of the Qiskit SDK.
+
+        The rest of the release note will go here.
+     ```
+
+     Use the prelude to advertize the primary new features of the release.  Aim for one paragraph
+     each for approximately three headline features.  Check with the team if you are on unsure what
+     should be in here.
+     </details>
+
+   * checks all the release notes for this version for grammar and correctness
+     <details>
+     You only need to look at release notes that are loose in `releasenotes/notes` or in
+     `releasenotes/notes/2.3`.
+
+     Ask the docs team to help check grammar and spelling, and do whatever they say after you've
+     checked the technical details are correct; they are the arbiters of our public
+     written-documentation style, not us.
+
+     You may want to build the documentation locally to help spot errors.
+
+     Things to check for:
+
+     * All Sphinx cross-references will link correctly, and will have useful link text. For example,
+       referring to `` :func:`~qasm2.load` `` is unlikely to be legible for readers since the
+       display text will be `load` and they won't know which module you mean.  Try
+       `` :func:`.qasm2.load` `` instead.
+
+     * All "sections" are valid entries in `releasenotes/config.yaml`, and use as tight a scope as
+       possible.  For example, nothing should use the base `features` section, but instead use
+       `features_c` or `features_qasm`, or similar.
+
+     * Each bullet point of each release note can be read completely in isolation with no additional
+       context.
+
+     * Each bullet point is as concise as is reasonable.  We want to give people a summary version,
+       not the full detail; there are a lot of release notes on the page.
+
+     * Feature release notes _may_ have code examples, but keep them short.  Prefer to link to API
+       documentation with worked examples instead.
+
+     * Bugfix release notes should be about two sentences and should _not_ have code examples.
+       Prefer to link to suitable GitHub issues explaining the bug that was fixed.
+     </details>
+
+   * bumps the package-version defining numbers from the rc (`2.3.0rc1`) to the final (`2.3.0`)
+
+     <details>
+     This should bump only the places that actually specify the version of the package and not any
+     repository-automation or documentation systems.
+
+     See [Package Version](#package-version) at the top of this file for the up-to-date list.  It's
+     just the Python package, Rust crates and C API numbers that need bumping in this PR.
+
+     Run `cargo check` locally to propagate Rust version-number updates to `Cargo.lock`.
+     </details>
+
+3. Tag the resulting PR after merge as `2.3.0`, and push it. (Detail: [How to tag and release a complete version](#how-to-tag-and-release-a-complete-version).)
 
 
-### 1. Check the milestone state
+### Recipe for a follow-on patch version (`2.4.0rc2` or `2.4.1`)
 
-Verify that the milestone is in a suitable place to release:
+This is basically a simpler version of the "first public release" recipe.  We are using `2.3.1` as
+the example version number; adjust as appropriate.
 
- - Set the due date for an estimated time for the release, if not set already (for example, in patch release cases).
-- If this release is a release candidate for a major or minor release, there is a feature freeze starting two weeks before release day.
-  No new public-API-changing PRs (new features or deprecations) can be added to the milestone during this period; they must wait until the next minor release.
-  If the API-change is not backwards compatible (like a removal), it needs to wait until the next major, following SemVer.
- - Check for missing items in the milestone. For example, [search for open PRs against stable branches](https://github.com/Qiskit/qiskit/pulls?q=is%3Apr+is%3Aopen+-base%3Amain) and ensure they are labeled with the upcoming release milestone.
- - The day before the release: 
-   * all the blocking issues/PR should be merged the day before the release.
-   * if it is an rc release, you can leave non-critical bug fixes open, as they could land later, before the final release.
-   * non-blocking issues/PR can left open and consider bumping to the next release milestone later. 
+**Steps of the process**:
 
-### 2. Audit `Changelog:*` labels
+1. Check that all PRs that are intended to go into this release have been fully backported.
+2. Create the "release" PR on `stable/2.3` that ([follow-along example for
+   `2.3.1`](https://github.com/Qiskit/qiskit/pull/15803)):
 
-> [!NOTE]
-> In this section, `(x.y.z)-1` refers to **the previous version tag**, since the tool needs to consider changes _since_ the version supplied.
-> Examples:
-> 
->  * For the second release candidate `1.3.0rc2`, `(x.y.z)-1` is previous release candidate `1.3.0rc1`.   
->  * For the first patch release `1.3.1`, `(x.y.z)-1` is the previous stable `1.3.0`.
->  * For the minor release `1.3.0`, `(x.y.z)-1` is the last release candidate `1.3.0rc2`.   
+   * adds a `prepare-2.3.1` release note that contains a `prelude` section
+     <details>
+     Create the release note with:
 
-Generate the short-form changelog using [this script](https://github.com/Qiskit/qiskit-bot/blob/master/tools/generate_changelog.py) from [the `qiskit-bot` repository](https://github.com/Qiskit/qiskit-bot):
+     ```bash
+     reno new --edit prepare-2.3.1
+     ```
 
-If this is a **_first_ release** scenario, run `generate_changelog.py` with the following parameters:
+     Replace the entire file with:
 
+     ```rst
+     ---
+     prelude: |
+        Qiskit v2.3.1 is a new bugfix release of the Qiskit SDK.
+     ```
+     </details>
+
+   * checks all the release notes for this version for grammar and correctness
+     <details>
+     You only need to check new backported release notes.  If your tags are locally up-to-date,
+     you can get a list of the release notes that need checking with:
+
+     ```bash
+     git diff --name-only 2.3.0...stable/2.3 -- releasenotes/notes
+     ```
+
+     Adjust the base tag (`2.3.0`) and stable branch (`stable/2.3`) as appropriate.
+     </details>
+
+   * bumps the package-version defining numbers from the previous (`2.3.0`) to the final (`2.3.0`)
+     <details>
+     This should bump only the places that actually specify the version of the package and not any
+     repository-automation or documentation systems.
+
+     See [Package Version](#package-version) at the top of this file for the up-to-date list.  It's
+     just the Python package, Rust crates and C API numbers that need bumping in this PR.
+
+     Run `cargo check` locally to propagate Rust version-number updates to `Cargo.lock`.
+     </details>
+
+   You can skip all the "release notes" steps if you are releasing a follow-on release candidate and
+   are pressed for time.
+
+3. Tag the resulting PR after merge as `2.3.1`, and push it. (Detail: [How to tag and release a complete version](#how-to-tag-and-release-a-complete-version).)
+
+### How to tag and release a complete version
+
+This is the recipe for making a tag and pushing it, for _any_ version of Qiskit.  It's the same for
+first release candidates, first public versions and all subsequent patches.
+
+Assumptions:
+
+* the commit that will become the release is merged to the correct branch (`main` for first release
+  candidates, `stable/*` for all other versions).
+* you have got the correct commit checked out locally.
+* you have a GPG key registered with `git` (if not: consider configuring one in the future, and
+  in the mean time remove the `--sign` option from `git tag` in the recipe)
+* you are in the `terra-release` group on GitHub, so you have permissions to push tags (if not:
+  ask Jake or Matt about it).
+* the version number is `2.4.0rc1` (if not: adjust all instances of the version number
+  appropriately, including in the tag message).
+
+Recipe:
+
+1. Make the tag
+
+   ```bash
+   git tag --sign -m "Qiskit 2.4.0rc1" 2.4.0rc1
+   ```
+
+2. Verify the tag is correct (check the tagged commit is the PR from step 2, and check
+   `upstream/main` points to it too):
+
+   ```bash
+   git show 2.4.0rc1
+   ```
+
+3. Push the tag to `upstream`.  **This performs the release** (though it must still be approved
+   by a second maintainer before it will be deployed).
+   ```bash
+   git push upstream 2.4.0rc1
+   ```
+
+4. Follow the progress of the build and deployment in the relevant workflow run linked in
+   https://github.com/Qiskit/qiskit/actions/workflows/wheels.yml.  When a "deploy" step is
+   reached, all other (not you!) maintainers will receive a notification asking them to "approve"
+   the deployment.  They must:
+
+   * verify the tag has the correct version number
+   * verify the tag points to the correct commit
+   * assuming all is fine, approve the request to deploy the artifacts,
+     confirming the two points above were checked. **This finalizes the
+     release and deploys it.**
+
+5. Announce the release.
+
+   Places to anounce:
+
+   * IBM-internal Slack channels (ask if you are unsure).
+   * [Public Qiskit Slack channels](https://qiskit.enterprise.slack.com): `#announcements` (final
+     releases), `#roadmap-announcements` (all), `#qiskit-dev` (all).
+
+   Look at previous messages in the relevant channels for examples.
+
+
+## Running `cargo update`
+
+We occasionally want to update all transitive Rust dependencies in the project.  Typically this is
+done at the first release candidate of a new feature release, but you can do it at any time.
+
+_In theory_, you should just be able to run (using a `cargo` from the Rust version matching
+`rust-version` in `Cargo.toml`):
 ```bash
-python generate_changelog.py Qiskit/qiskit (x.y.z)-1 -t $MY_GITHUB_API_TOKEN
+cargo update --verbose
 ```
-
-The default behavior of `generate_changelog.py` is to check for changes on the `main` branch of `upstream`. If you are doing a **_follow-up_ release**, run `generate_changelog.py` using the existing `'stable/x.y'` branch:
-
-```bash
-python generate_changelog.py Qiskit/qiskit (x.y.z)-1 -b 'stable/x.y' -t $MY_GITHUB_API_TOKEN
-```
-    
-In both scenarios, if there are entries under `Missing changelog entry`, label the PRs (the main and the backport) with the `Changelog:<something>` label and repeat `generate_changelog.py` until all the entries have a changelog label and `Missing changelog` section is not shown.
-See [this section](https://github.com/Qiskit/qiskit/blob/main/CONTRIBUTING.md#changelog-generation) for more details about the available `Changelog:` labels. 
-
-### 3. Prepare the release notes 
-
-Take a look to the documentation from `main`. Create a PR (like a regular PR, from `main`) with a prelude and the release notes for the coming release.
-
-> [!WARNING]
-> Do not change version numbers in this PR. That will be done in the next step.
-
-#### 3.1 Add a prelude
-
-Add a release note called `prepare-x.y.z` with only a `prelude` section explaining the release.
-
-The list of features to highlight is usually related to the major themes in the release.
-The items in the [Roadmap](https://github.com/Qiskit/qiskit/wiki/Roadmap) can be a good starting point.
-The prelude does not usually include code examples or detailed explanations, as it is TL;DR of the rest of the release notes.
-
-Consider the following guidelines:
-
-* For major releases, the format is usually a bullet list of feature highlights, followed by a paragraph or two with the major API breaking changes. [Example of a prelude for the 2.0.0 major release](https://github.com/Qiskit/qiskit/blob/stable/2.0/releasenotes/notes/2.0/prepare-2.0.0-bab067ae93d40bb1.yaml)
-
-* For minor releases, use a bullet list of the major improvements and new features, including any major API deprecations. [Example of a prelude for the 2.1.0 minor release](https://github.com/Qiskit/qiskit/blob/stable/2.1/releasenotes/notes/2.1/prepare-2.1.0-409d24ecbe277062.yaml)
-
-* For patch releases, the prelude can just be something like:
-
-  > Qiskit x.y.z is a small patch release, fixing several bugs found in the x.y series.
-
-
-#### 3.2 Review the release notes
-
-In case of **_first_ release**, move all the release notes that are loose in `/releasenotes/notes` into a new folder called `/releasenotes/notes/x.y`.
-You do not need to fix typos / code / links in the release notes at this stage.
-In the busy pre-RC period, your time is likely better spent coordinating and doing final PR reviews.
-
-However, if this is a **_follow-up_ release** keep the loose files in `/releasenotes/notes` and spend some time looking for typos, broken links, and any broken example code blocks in these files.
-It's convenient to [build the docs locally](https://github.com/Qiskit/qiskit/blob/main/CONTRIBUTING.md#building-release-notes-locally) and read through the page, trying the links and code blocks.
-
-When releasing a major or minor version, check for duplicated bugfix entries, i.e. there is a chance that bug fixes in `X.Y` were also back-ported to `X.Y-1`.
-You can remove them from the release notes of `X.Y`.
-[Here is an example](https://github.com/Qiskit/qiskit/pull/14565#pullrequestreview-2938767230) of that situation. 
-
-#### 3.3 Submit the PR with the release notes
-
-Submit the PR and let the documentation team know that it is ready for review (either via internal Slack or by [submitting an issue](https://github.com/Qiskit/documentation/issues)).  
-If the PR is not merged before the next step, it should be backported to the `prepare-x.y.z` branch created in step 4.1.
-
-### 4. Submit a "Prepare x.y.z release" PR
-
-Create a PR that will serve as the commit we tag for the release and label it with `Changelog:None`.
-The PR is like a regular PR in your fork and submitted like the regular PR process.
-This step differs depending on the type of release.
-
-Examples for **_first_ release** PRs:
-
- * [release-candidate PR for Qiskit 1.3.0rc1](https://github.com/Qiskit/qiskit/pull/13397).
- * [release-candidate PR for Qiskit 2.0.0rc1](https://github.com/Qiskit/qiskit/pull/13953)
-
-Examples for **_follow-up_ release** PRs:
-
- * [patch-release PR for Qiskit 2.0.1](https://github.com/Qiskit/qiskit/pull/14339).
- * [follow-up release-candidate PR for Qiskit 1.3.0rc2](https://github.com/Qiskit/qiskit/pull/13466/).  
-
-
-#### 4.1 Create the `prepare-x.y.z` branch
-
-If this is a **_first_ release**, `stable/x.y` does not exist and you should create the branch out of `main`:
-
-```bash
-git checkout -b prepare-x.y.0rc1 upstream/main
-```
-
-If you are doing a **_follow-up_ release**, make a PR out of the stable branch:
-
-```bash
-git fetch upstream
-git checkout -b prepare-x.y.z upstream/stable/x.y
-```
-
-In both situations, your active branch now is `prepare-x.y.z`.
-
-> [!WARNING]
-> Only make changes on this branch that apply exclusively to the coming release.
-> You should not change documentation or release notes here, but in `main`.
-
-#### 4.2 Bump version numbers
-
-Once in the `prepare-x.y.z` branch, bump the package version number to `x.y.z` (e.g. `1.4.2` for a patch, or `1.3.0rc2` for a second release candidate).
-Check the section [Updating the version number](#updating-the-version-number) for details on how and where.
-
-
-#### 4.3 Update Rust dependencies
-
-> [!IMPORTANT]
-> Skip this step if you are doing a **_follow-up_ release**.
-
-Update any Rust dependencies in the `Cargo.lock` file, keeping the MSRV fixed.
-Beware that `cargo`'s dependency resolver will not enforce that dependencies satisfy our `rust-version` support, so you should use our MSRV
-of `cargo` to do the update and a trial build.
-This will happen by default due to our `rust-toolchain.toml` file, but if you need to temporarily override any toolchain changes you have made locally, do:
-
-```bash
-rustup install 1.61  # Install MSRV cargo, if required
-cargo +1.61 update   # Update lock file
-cargo +1.61 build    # Check build
-```
-
-#### 4.4 Submit the PR for review
-
-As any other regular PR, commit your changes (don't forget to add the prelude release note), push the branch, and create a PR.
-
-> [!IMPORTANT]
-> Pay attention to the base: if you are working in a **_follow-up_ release**, the base is `stable/x.y`.
-> Only PR against `main` if you are doing a **_first_ release**.
-   
-Add the PR you just made to the milestone for this release.
-This is the last PR that should merge from the milestone.
-This PR undergoes the regular review process - use the reviewers to help with checking all the release notes if you need to.
-
-### 5. Tag the "Prepare x.y.z release" commit
-
-> [!WARNING]
-> To push the tag that triggers the final deployment of a release, you need to have at least `maintain` permissions on the repository.
-> All of the preparation before that can be done by anyone, subject to the standard PR review processes; the `maintain` permission is only required to push a tag to the Qiskit git repository.
-
-Once the PR from the previous section is merged, the release manager tags the commit of that PR.  The tag should have:
-
-- A tag name exactly equal to the version number
-- A tag message that says "Qiskit x.y.z"
-- Ideally, [sign your tagging using GPG](https://docs.github.com/authentication/managing-commit-signature-verification/signing-tags)
-
-#### 5.1 Create the tag locally
-
-The following are the recommended steps for tagging the "Prepare x.y.z release" commit:
-
-1. Sync with the Qiskit-owned remote: `git fetch upstream`
-2. Make sure your commit from previous section is `HEAD` in the stable branch:  `git show upstream/stable/x.y` (in case of **_follow-up_ release**) or `git show upstream/main` (in case of **_first_ release**)
-3. Tag with a signature and message: `git tag -s -m "Qiskit x.y.z" x.y.z upstream/stable/x.y` (in case of **_follow-up_ release**) or `git tag -s -m "Qiskit x.y.z" x.y.z upstream/main` (in case of **_first_ release**)
-
->[!TIP]
-> Signing the tag is optional but highly recommended. Omit `-s` in `git tag` if you are not signing the tag.
-
-For example, here is the workflow for creating the tag for the 2.0.3 patch release, immediately after the "Prepare 2.0.3 release" PR has been merged:
-
-```bash
-git fetch upstream
-git show upstream/stable/2.0  # Verify this is the release PR.
-git tag -s -m "Qiskit 2.0.3" 2.0.3 upstream/stable/2.0
-```
-
-#### 5.2 Verify the tag
-
-Double-check that the tag you have just created has exactly the correct name,
-and points to exactly the correct commit:
-
-```bash
-git show x.y.z
-```
-
-<pre>
-<code>
-tag <b>x.y.z</b>
-Tagger: ...
-Date:   ...
-
-Qiskit <b>x.y.z</b>
------BEGIN PGP SIGNATURE-----
-....
------END PGP SIGNATURE-----
-
-commit ... (tag: <b>x.y.z</b>, upstream/<b>stable/x.y</b>, ...)
-Author: ...
-Date:   ...
-
-Prepare <b>x.y.z</b> release (#....)
-</code>
-</pre>
-
-Check that the bold parts are correct.
-
-For example, for the `2.0.3` release:
-
-```bash
-git show 2.0.3
-```
-
-```text
-tag 2.0.3
-Tagger: Matthew Treinish <mtreinish@k***r.org>
-Date:   Tue Jun 17 08:30:03 2025 -0400
-
-Qiskit 2.0.3
------BEGIN PGP SIGNATURE-----
-....
------END PGP SIGNATURE-----
-
-commit 19eeb418...14482636a (tag: 2.0.3, upstream/stable/2.0, ...)
-Author: Matthew Treinish <mtreinish@k***r.org>
-Date:   Tue Jun 17 07:19:06 2025 -0400
-
-Prepare 2.0.3 release (#14626)
-```
-
-Note that the tagged commit is precisely the "Prepare 2.0.3 release" commit.
-
-
-#### 5.3 Push the tag to Qiskit remote
-
-> [!WARNING]
-> This step triggers the release.
-
-Push the tag to the Qiskit remote with `git push upstream x.y.z`.
-Following the previous example:
-
-```bash
-git push upstream 2.0.3
-```
-
-At this point, the release-automation process takes over.
-[`qiskit-bot`](https://github.com/Qiskit/qiskit-bot) will populate a GitHub release with the new tag and the short-form changelog seen in [step 2](#2.-Verify-`Changelog`-labels).
-
-
-If this is a **_first_ release**, `qiskit-bot` will create a new `stable/x.y` branch for this series.
-The GitHub Actions CD pipelines will build the sdist, and the wheels for all
-Python / OS / architecture combinations, and push them to PyPI using the
-encrypted credentials in this repository.
-
-#### 5.4 Get approval for pushing to PyPI
-
-The first GitHub Actions CD stage builds the [Tier 1](https://quantum.cloud.ibm.com/docs/en/guides/install-qiskit#operating-system-support) and takes between 1.5 and 2 hours.
-Once it finishes, the wheels can be pushed to PyPI by [the deploy workflow](https://github.com/Qiskit/qiskit/blob/main/.github/workflows/wheels.yml).
-For that, an active approval by [somebody from the release team](https://github.com/orgs/Qiskit/teams/terra-release), excluding the release manager, needs to be performed.
-
-The approver needs to verify that:
-
-* The tag triggering the CI run matches the correct version.  
-* That version is indeed the one intended for release.  
-
-In other words, this step ensures that the tag corresponds to the correct SHA-1 (commit ID) intended to be published as the next release.  
-
-> [!WARNING]  
-> Approval is the **point of no return** in the release process.  
-> Once the package is live on PyPI, it cannot be rolled back. The only option is to [yank](https://docs.pypi.org/project-management/yanking/) it.  
-
-When approving, leave a comment like:
-> I've confirmed that the <x.y.z> tag points to https://github.com/Qiskit/qiskit/commit/<sha1_commit_id> which is the `HEAD` of the `stable/<x.y+1>` and correctly updates the version numbers.
-
-Usually, once Tier 1 is live on PyPI, the post-release actions in step 6 can start, including the announcements.
-The rest of the tiers might take longer and they also need to be approved.
-
-
-### 6. Post-release actions
-
-#### 6.1 Announce the release on Slack
-
-Post a message in the relevant Slack channels:
-
- * IBM internal channels: all the releases.
- * [Qiskit organization](https://qiskit.enterprise.slack.com/)
-    - Roadmap announcement `#roadmap-announcements`: Especially release candidates. All other releases can be posted in the thread of the release candidate announcement.
-    - General channel `#general` and Qiskit developer `#qiskit-dev`: All the stable major and minor releases.
-
-Examples for announcements:
-
-For a release candidate:
-> :qiskit-new: Qiskit x.y.zrc1 is now live on Github (link) and PyPI(link)! :rocket:
->
-> As this is a pre-release pip will not install it automatically, you will have to manually specify the version with: `pip install "qiskit==x.y.zrc1"`
-> The x.y.z final release is planned for X weeks from now. If you encounter any issues with the release candidate, please [file an issue](https://github.com/Qiskit/qiskit/issues/new/choose) so we can address them before the final release.
-
-For minor releases:
-> :qiskit-new: **Qiskit x.y is out!**
->
-> * Fully backwards compatible with x.0. As always, following [Semantic Versioning](https://qisk.it/semver)
-> * A technical release summary will be published on [the IBM blog](https://www.ibm.com/quantum/blog) in about a week
->
-> or
->
-> * Here is technical release summary (link to the blog post)
-> * Take a look to the release notes (link)
-> Don't forget that the Qiskit vX series has bug fixing support until XXth, XXXX and security support until YYth, YYYY.
-
-For patch releases:
-> :qiskit-new: **Qiskit x.y.z has been released!**
-> This is a minor bugfix release for Qiskit x.y. You can find it on pypi (link) and in our GitHub releases (link).
-
-#### 6.2 Update the `main` branch with the next release
-
-> [!IMPORTANT]
-> Skip this step if your PR from section Releasing the package - step 3 was to the  `main` branch
-
-Make a PR to the `main` branch that sets the version number to the _next_ minor (e.g. `2.2.0.dev0` if you have just released `2.1.0rc1`). Follow the convention introduced in [#14697](https://github.com/Qiskit/qiskit/pull/14697).
- 
-The places to update are listed in the section [Updating the version number](#updating-the-version-number).
-
-This opens the `main` branch for feature development for the next release.
-
-Example for post-release PR (previous to the introduction of [#14697](https://github.com/Qiskit/qiskit/pull/14697)):
-
- * [following 2.1.0rc1, a PR preparing `main` for 2.2.0](https://github.com/Qiskit/qiskit/pull/14546)
-
-#### 6.3 Create a milestone for the next patch release
-
-> [!IMPORTANT]
-> Skip this step if you released a release candidate.
-
-Once a package is out there, it has support for certain period of time.
-As such, there are potential patch releases coming and it is handy to have [a milestone](https://github.com/Qiskit/qiskit/milestones/) ready for that.
-If you have any estimated or time plan for this future patch release, consider adding it.
-
-#### 6.4 Update the roadmap
-
-Go to the [roadmap wiki](https://github.com/Qiskit/qiskit/wiki/Roadmap) and update it:
-
-- If a version reached end-of-life, move the full version section to the _unmaintained versions_ fold
-- If it was a patch release, update the milestone links.
-- If new release notes are available, link them.
-- If there were items that didn't make it into the release, move them to the next minor/major so they can be considered again.
+commit the result and go about your life.  In practice, Qiskit's Rust-space dependency story is
+messy and you may encounter problems, so watch the output of that command and:
+
+* Check for any dependencies that produced a warning about their MSRV going above Qiskit's limit.
+  This should only happen in transitive dependencies; `nalgebra` is a common culprit via `numpy`,
+  but this can change.
+
+  You can "downgrade" a particular package with
+  ```bash
+  cargo update nalgebra@0.34.1 --precise 0.33.2
+  ```
+  which downgrades all instances of `nalgebra==0.34.1` to version `0.33.2` instead.
+
+* Check the package still builds.  If you get reams of errors such as:
+  ```text
+  hashbrown::HashMap<&str, usize> cannot be converted to a Python object
+  ```
+  or other things about "trait methods not satisfied" or similar, the problem might be
+  dependency-version coherence.
+
+  There are two related problems here:
+
+  * PyO3 has features that implement its Python-conversion methods for dependencies like
+    `hashbrown`.  This only works if Qiskit and PyO3 use the _same_ version of `hashbrown`.  `cargo`
+    is not aware of this constraint, and will frequently attempt to bump the version of `hashbrown`
+    that PyO3 is compiled against, while keeping Qiskit's locked.  You will need to manually
+    downgrade the version that PyO3 uses, to match Qiskit's.  You might have to edit `Cargo.lock`
+    manually to achieve this (just look for the line like `hashbrown 0.16.1` in the
+    `dependencies` array of the `[[package]]` with `name = "pyo3"` and modify the number) because
+    the `cargo update --precise` trick from above is not precise enough.
+
+    Similarly, `numpy` depends on PyO3, and the version of PyO3 it uses needs to match the version
+    that Qiskit uses.
+
+  * Some libraries use external types from dependencies in their public interfaces, so they need to
+    Qiskit and that library need to use the same version of the dependency.  This is most common
+    with `rustworkx` using `hashbrown` types.  Similar to the previous bullet point, you might have
+    to manually edit `Cargo.lock` to fix the situation.
+
+Hopefully, later versions of `cargo` will give us better tools to deal with these, but for now the
+process can be quite manual.

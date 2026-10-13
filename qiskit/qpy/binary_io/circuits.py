@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Binary IO for circuit objects."""
 
@@ -54,6 +53,7 @@ from qiskit.quantum_info import SparseObservable
 from qiskit.circuit.library import PauliProductMeasurement
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
+from qiskit._accelerate import qpy as _qpy
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit.annotation import QPYSerializer, Annotation
@@ -103,6 +103,13 @@ class _AnnotationSerializationState:
             (namespace, serializer)
             for (namespace, (_, serializer)) in self.serializers.items()
         )
+
+    def dump_states(self) -> list[tuple[str, bytes]]:
+        """Return the serialized state for each serializer, in index order."""
+        return [
+            (namespace, serializer.dump_state())
+            for namespace, serializer in self.iter_serializers()
+        ]
 
 
 class _AnnotationDeserializationState:
@@ -293,7 +300,11 @@ def _loads_instruction_parameter(
 ):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(
-            data_bytes, read_circuit, version=version, annotation_factories=annotation_factories
+            data_bytes,
+            read_circuit,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=False,
         )
     elif type_key == type_keys.Value.MODIFIER:
         param = common.data_from_binary(data_bytes, _read_modifier)
@@ -321,7 +332,7 @@ def _loads_instruction_parameter(
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<d", data_bytes)[0]
     elif type_key == type_keys.Value.REGISTER:
-        param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
+        param = _loads_register_param(data_bytes, circuit, registers, version)
     else:
         clbits = circuit.clbits if circuit is not None else ()
         param = value.loads_value(
@@ -338,7 +349,44 @@ def _loads_instruction_parameter(
     return param
 
 
-def _loads_register_param(data_bytes, circuit, registers):
+def _loads_register_param(data_bytes, circuit, registers, version):
+    """Inverse of :func:`_py_serialize_register_param`.  ``data_bytes`` is raw, not decoded.
+
+    Both spellings live here even though ``qpy.load`` currently dispatches every payload from
+    version 13 on to the Rust reader: this is the reference implementation of the format, it is what
+    ``use_rust=False`` selects, and ``test/python/qpy/test_roundtrip.py`` runs it against the Rust
+    one at every version.  A Python implementation that stopped at version 17 would read the newest
+    payloads as if they were older ones instead of failing, which is how the two implementations
+    would drift apart.
+    """
+    if version >= 18:
+        if not data_bytes:
+            raise QpyError("Malformed REGISTER_PARAM payload: no tag byte")
+        (tag,) = struct.unpack_from(formats.REGISTER_PARAM_TAG_PACK, data_bytes)
+        if tag == formats.REGISTER_PARAM_TAG_CLBIT:
+            if len(data_bytes) != formats.REGISTER_PARAM_CLBIT_SIZE:
+                raise QpyError(
+                    f"Malformed REGISTER_PARAM payload: a clbit occupies "
+                    f"{formats.REGISTER_PARAM_CLBIT_SIZE} bytes, got {len(data_bytes)}"
+                )
+            clbit = formats.REGISTER_PARAM_CLBIT._make(
+                struct.unpack(formats.REGISTER_PARAM_CLBIT_PACK, data_bytes)
+            )
+            if clbit.index >= len(circuit.clbits):
+                raise QpyError(
+                    f"Malformed REGISTER_PARAM payload: clbit index {clbit.index} is out of range for a "
+                    f"circuit with {len(circuit.clbits)} clbit(s)"
+                )
+            return circuit.clbits[clbit.index]
+        if tag != formats.REGISTER_PARAM_TAG_REGISTER:
+            raise QpyError(f"Malformed REGISTER_PARAM payload: unknown tag {tag}")
+        name = data_bytes[formats.REGISTER_PARAM_TAG_SIZE :].decode(common.ENCODE)
+        if name not in registers["c"]:
+            raise QpyError(
+                f"Malformed REGISTER_PARAM payload: no classical register named {name!r}"
+            )
+        return registers["c"][name]
+    data_bytes = data_bytes.decode(common.ENCODE)
     # If register name prefixed with null character it's a clbit index for single bit condition.
     if data_bytes[0] == "\x00":
         conditional_bit = int(data_bytes[1:])
@@ -382,14 +430,14 @@ def _read_instruction(
 
     gate_name = file_obj.read(instruction.name_size).decode(common.ENCODE)
     label = file_obj.read(instruction.label_size).decode(common.ENCODE)
-    condition_register = file_obj.read(instruction.condition_register_size).decode(common.ENCODE)
+    condition_register = file_obj.read(instruction.condition_register_size)
     qargs = []
     cargs = []
     params = []
     condition = None
     if conditional_key == type_keys.Condition.TWO_TUPLE:
         condition = (
-            _loads_register_param(condition_register, circuit, registers),
+            _loads_register_param(condition_register, circuit, registers, version),
             instruction.condition_value,
         )
     elif conditional_key == type_keys.Condition.EXPRESSION:
@@ -831,6 +879,7 @@ def _read_custom_operations(file_obj, version, vectors, annotation_state):
                         read_circuit,
                         version=version,
                         annotation_factories=annotation_state.factories,
+                        use_rust=False,
                     )
                 elif name.startswith(r"###PauliEvolutionGate_"):
                     definition_circuit = common.data_from_binary(
@@ -879,7 +928,23 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
         schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
 
-def _dumps_register(register, index_map):
+def _py_serialize_register_param(register, index_map, version):
+    """Serialize a REGISTER_PARAM payload: either a whole classical register or a single clbit.
+
+    From QPY 18 a tag byte says which, followed by the register name (to the end of the payload) or
+    the clbit index.  Up to QPY 17 both shared one untyped string; see :mod:`qiskit.qpy.formats`.
+    """
+    if version >= 18:
+        if isinstance(register, ClassicalRegister):
+            return struct.pack(
+                formats.REGISTER_PARAM_TAG_PACK, formats.REGISTER_PARAM_TAG_REGISTER
+            ) + register.name.encode(common.ENCODE)
+        # Clbit.
+        return struct.pack(
+            formats.REGISTER_PARAM_CLBIT_PACK,
+            formats.REGISTER_PARAM_TAG_CLBIT,
+            index_map["c"][register],
+        )
     if isinstance(register, ClassicalRegister):
         return register.name.encode(common.ENCODE)
     # Clbit.
@@ -892,7 +957,11 @@ def _dumps_instruction_parameter(
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(
-            param, write_circuit, version=version, annotation_factories=annotation_factories
+            param,
+            write_circuit,
+            version=version,
+            annotation_factories=annotation_factories,
+            use_rust=False,
         )
     elif isinstance(param, Modifier):
         type_key = type_keys.Value.MODIFIER
@@ -921,7 +990,7 @@ def _dumps_instruction_parameter(
         data_bytes = struct.pack("<d", param)
     elif isinstance(param, (Clbit, ClassicalRegister)):
         type_key = type_keys.Value.REGISTER
-        data_bytes = _dumps_register(param, index_map)
+        data_bytes = _py_serialize_register_param(param, index_map, version)
     else:
         type_key, data_bytes = value.dumps_value(
             param,
@@ -934,7 +1003,6 @@ def _dumps_instruction_parameter(
     return type_key, data_bytes
 
 
-# pylint: disable=too-many-boolean-expressions
 def _write_instruction(
     file_obj,
     instruction,
@@ -958,8 +1026,7 @@ def _write_instruction(
             and not hasattr(controlflow, gate_class_name)
             and gate_class_name not in ["Clifford", "PauliProductMeasurement"]
         )
-        or gate_class_name == "Gate"
-        or gate_class_name == "Instruction"
+        or gate_class_name in {"Gate", "Instruction"}
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         gate_class_name = instruction.operation.name
@@ -1003,7 +1070,9 @@ def _write_instruction(
             extra_type = type_keys.Condition.EXPRESSION
         else:
             extra_type = type_keys.Condition.TWO_TUPLE
-            condition_register = _dumps_register(instruction.operation._condition[0], index_map)
+            condition_register = _py_serialize_register_param(
+                instruction.operation._condition[0], index_map, version
+            )
             condition_value = int(instruction.operation._condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
@@ -1248,12 +1317,13 @@ def _write_custom_operation(
         has_definition = True
         # Build internal definition to support overloaded subclasses by
         # calling definition getter on object
-        operation.definition  # pylint: disable=pointless-statement
+        operation.definition
         data = common.data_to_binary(
             operation._definition,
             write_circuit,
             version=version,
             annotation_factories=annotation_state.factories,
+            use_rust=False,
         )
         size = len(data)
         num_ctrl_qubits = operation.num_ctrl_qubits
@@ -1269,6 +1339,7 @@ def _write_custom_operation(
             write_circuit,
             version=version,
             annotation_factories=annotation_state.factories,
+            use_rust=False,
         )
         size = len(data)
     if base_gate is None:
@@ -1499,6 +1570,7 @@ def write_circuit(
     use_symengine=False,
     version=common.QPY_VERSION,
     annotation_factories=None,
+    use_rust=True,
 ):
     """Write a single QuantumCircuit object in the file like object.
 
@@ -1516,7 +1588,25 @@ def write_circuit(
         version (int): The QPY format version to use for serializing this circuit
         annotation_factories (dict): a mapping of namespaces to zero-argument factory functions that
             produce instances of :class:`.annotation.QPYSerializer`.
+        use_rust (bool): whether to use the rust based serialization engine. On by default.
     """
+    if use_rust:
+        if annotation_factories is None:
+            annotation_factories = {}
+        _qpy.write_circuit(
+            file_obj,
+            circuit,
+            metadata_serializer,
+            use_symengine,
+            version,
+            annotation_factories=annotation_factories,
+        )
+        return
+    if version >= common.QPY_RUST_WRITE_MIN_VERSION:
+        raise QpyError(
+            f"QPY version {version} is not supported by the Python writer. "
+            f"The Python writer only supports versions below {common.QPY_RUST_WRITE_MIN_VERSION}."
+        )
     annotation_state = _AnnotationSerializationState(annotation_factories or {})
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -1616,16 +1706,20 @@ def write_circuit(
     file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
 
-    # Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
-    # we need to write an empty calibrations header since read_circuit expects it
-    header = struct.pack(formats.CALIBRATION_PACK, 0)
-    file_obj.write(header)
+    # CalibrationsPack was dropped in v18; for v13-17 write an empty block
+    if version < 18:
+        file_obj.write(struct.pack(formats.CALIBRATION_PACK, 0))
 
     _write_layout(file_obj, circuit)
 
 
 def read_circuit(
-    file_obj, version, metadata_deserializer=None, use_symengine=False, annotation_factories=None
+    file_obj,
+    version,
+    metadata_deserializer=None,
+    use_symengine=False,
+    annotation_factories=None,
+    use_rust=True,
 ):
     """Read a single QuantumCircuit object from the file like object.
 
@@ -1646,12 +1740,26 @@ def read_circuit(
             deserialize the payload.
         annotation_factories (dict): mapping of namespaces to factory functions for custom
             annotation deserializer objects.
+        use_rust (bool): whether to use the rust based deserialization engine. On by default.
     Returns:
         QuantumCircuit: The circuit object from the file.
 
     Raises:
         QpyError: Invalid register.
     """
+
+    if use_rust:
+        if annotation_factories is None:
+            annotation_factories = {}
+        return _qpy.read_circuit(
+            file_obj, version, metadata_deserializer, use_symengine, annotation_factories
+        )
+    if version >= common.QPY_RUST_READ_MIN_VERSION:
+        raise QpyError(
+            f"QPY version {version} is not supported by the Python reader. "
+            f"The Python reader only supports versions below {common.QPY_RUST_READ_MIN_VERSION}."
+        )
+
     vectors = {}
     if version < 2:
         header, name, metadata = _read_header(file_obj, metadata_deserializer=metadata_deserializer)
@@ -1762,20 +1870,10 @@ def read_circuit(
             annotation_state=annotation_state,
         )
 
-    # Consume calibrations, but don't use them since pulse gates are not supported as of Qiskit 2.0
-    if version >= 5:
+    # Consume calibrations block; absent in v18+ where it was dropped from the format
+    if 5 <= version < 18:
         _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
-    for vector, initialized_params in vectors.values():
-        if len(initialized_params) != len(vector):
-            warnings.warn(
-                f"The ParameterVector: '{vector.name}' is not fully identical to its "
-                "pre-serialization state. Elements "
-                f"{', '.join([str(x) for x in set(range(len(vector))) - initialized_params])} "
-                "in the ParameterVector will be not equal to the pre-serialized ParameterVector "
-                f"as they weren't used in the circuit: {circ.name}",
-                UserWarning,
-            )
     if version >= 8:
         if version >= 10:
             _read_layout_v2(file_obj, circ)
