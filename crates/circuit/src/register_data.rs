@@ -19,6 +19,18 @@ use pyo3::types::{IntoPyDict, PyDict, PyList};
 
 use crate::{bit::Register, circuit_data::CircuitError};
 
+/// Error thrown when adding a register using strict mode
+/// and it's already present.
+#[derive(Debug, thiserror::Error)]
+#[error("register name \"{0}\" already exists")]
+pub struct RegisterAlreadyExists(String);
+
+impl From<RegisterAlreadyExists> for PyErr {
+    fn from(value: RegisterAlreadyExists) -> Self {
+        CircuitError::new_err(value.to_string())
+    }
+}
+
 /// Represents the location in which the register is stored within [RegisterData].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RegisterIndex<R: Register> {
@@ -102,8 +114,12 @@ where
     /// Inserts a [Register] into the circuit. If it exists, the index of where
     /// it sits will be returned.
     ///
-    /// __**Note** if `strict` is passed, the insertion will fail.
-    pub fn add_register(&mut self, register: R, strict: bool) -> PyResult<bool> {
+    /// _**Note**_ if `strict` is passed, the insertion will fail.
+    pub fn add_register(
+        &mut self,
+        register: R,
+        strict: bool,
+    ) -> Result<bool, RegisterAlreadyExists> {
         if self
             .reg_index
             .try_insert(register.name().to_string(), self.registers.len().into())
@@ -113,10 +129,7 @@ where
             self.cached_registers.take();
             Ok(true)
         } else if strict {
-            Err(CircuitError::new_err(format!(
-                "register name \"{}\" already exists",
-                register.name()
-            )))
+            Err(RegisterAlreadyExists(register.name().to_string()))
         } else {
             Ok(false)
         }

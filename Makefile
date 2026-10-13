@@ -14,9 +14,13 @@ ifneq ($(OS), Windows_NT)
 	OS := $(shell uname -s)
 endif
 
-.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+ifeq ($(QISKIT_BUILD_WITH_MIMALLOC), 1)
+	MIMALLOC := --features=mimalloc
+endif
 
-default: style lint-incr test ;
+.PHONY: default env lint style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+
+default: style lint test ;
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -33,15 +37,8 @@ lint:
 	tools/find_optional_imports.py
 	tools/find_stray_release_notes.py
 	tools/verify_images.py
-
-lint-incr:
-	ruff check qiskit test tools setup.py
-	tools/verify_headers.py qiskit test tools
-	tools/find_optional_imports.py
-	tools/verify_images.py
-
-ruff:
-	ruff qiskit test tools setup.py
+	cargo fmt --check
+	cargo clippy --all-targets -- -D warnings
 
 style:
 	black --check qiskit test tools setup.py docs/conf.py
@@ -117,13 +114,20 @@ C_LIBQISKIT_OUT=$(C_DIR_OUT_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
 # Recipes for the C components.
 # ==============================================================================
 
-.PHONY: cformat fix_cformat
+.PHONY: cformat fix_cformat ctidy
 # Run clang-format (does not apply any changes)
 cformat:
 	bash tools/run_clang_format.sh
 # Apply clang-format changes
 fix_cformat:
 	bash tools/run_clang_format.sh apply
+
+# Run clang tidy, which currently only checks for `printf` occurences
+# This currently only checks for files in test/c/*.c. We could turn this into
+# a bash script, like for clang-format, which globs for .c files, but we only really care to
+# run this print check on the test files at the moment.
+ctidy: cheader
+	clang-tidy $(C_DIR_TEST)/*.c -- -std=c11 -I$(C_DIR_OUT_INCLUDE)
 
 # Abstraction over calling Cargo to build the C extension in "standalone" C
 # mode.  This _also_ builds the C header file as a side-effect into
@@ -135,7 +139,7 @@ fix_cformat:
 # instead.
 .PHONY: build-clib build-clib-release build-clib-dev
 build-clib:
-	cargo rustc -p qiskit-cext --crate-type cdylib ${C_LIB_CARGO_FLAGS} -- ${C_LIB_RUSTC_FLAGS}
+	cargo rustc -p qiskit-cext ${MIMALLOC} --crate-type cdylib ${C_LIB_CARGO_FLAGS} -- ${C_LIB_RUSTC_FLAGS}
 build-clib-release: C_LIB_CARGO_FLAGS=--release
 build-clib-release: build-clib
 build-clib-dev: C_LIB_CARGO_FLAGS=--profile dev
@@ -147,7 +151,7 @@ $(C_DIR_OUT_LIB):
 
 .PHONY: cheader
 cheader:
-	cargo run -p qiskit-bindgen-c -- $(C_DIR_CRATES)/cext $(C_DIR_OUT_INCLUDE)
+	cargo run -p qiskit-bindgen-cli -- install -c $(C_DIR_CRATES)/cext -o $(C_DIR_OUT_INCLUDE)
 # `clib` and `clib-dev` are conflicting rules - they both attempt to "install" the
 # shared library into the output `lib` directory, but they differ between release
 # and dev mode.
@@ -166,7 +170,11 @@ ctest: cheader build-clib-dev
 # `-S` specifies the source (including the `CMakeLists.txt` file, `-B` is where
 # to put the build files, including the generated CMake stuff.  See the
 # `CMakeLists.txt` file for the build variables.
+#
+# The `CMAKE_FLAGS` argument is to allow user insertion of additional flags, such
+# as to override the `CMAKE_C_STANDARD` line.
 	cmake -S$(C_DIR_TEST) -B$(C_DIR_TEST_BUILD) \
+		$(CMAKE_FLAGS) \
 		-DCARGO_LIB_DIR=$(abspath $(C_DIR_CARGO_TARGET))/debug \
 		-DQISKIT_INCLUDE_PATH=$(abspath $(C_DIR_OUT_INCLUDE))
 # Actually build the test.
@@ -179,6 +187,11 @@ ctest: cheader build-clib-dev
 .PHONY: ccoverage
 ccoverage: C_LIB_RUSTC_FLAGS=-Cinstrument-coverage
 ccoverage: ctest
+
+.PHONY: qiskit-pyo3-ffi
+qiskit-pyo3-ffi:
+	rm -rf dist/rust/qiskit-pyo3-ffi
+	cargo run -p qiskit-bindgen-cli -- generate-pyo3 --cext-path crates/cext --output-path dist/rust/qiskit-pyo3-ffi
 
 .PHONY: cclean
 cclean:

@@ -12,6 +12,13 @@
 
 """Count the operations on the longest path in a DAGCircuit."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -21,6 +28,6 @@ class CountOpsLongestPath(AnalysisPass):
     The result is saved in ``property_set['count_ops_longest_path']`` as an integer.
     """
 
-    def run(self, dag):
-        """Run the CountOpsLongestPath pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the CountOpsLongestPath pass on ``dag``."""
         self.property_set["count_ops_longest_path"] = dag.count_ops_longest_path()

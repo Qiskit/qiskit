@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 
+from math import pi
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 
@@ -20,9 +22,10 @@ def clifford_6_4():
 
     .. code-block:: text
 
-             ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
-        q_0: ┤ S ├┤ H ├┤ S ├┤ H ├┤ S ├┤ H ├
-             └───┘└───┘└───┘└───┘└───┘└───┘
+        global phase: 7π/4
+           ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
+        q: ┤ S ├┤ H ├┤ S ├┤ H ├┤ S ├┤ H ├
+           └───┘└───┘└───┘└───┘└───┘└───┘
 
     Returns:
         QuantumCircuit: template as a quantum circuit.
@@ -34,4 +37,6 @@ def clifford_6_4():
     qc.h(0)
     qc.s(0)
     qc.h(0)
+    # Add a global phase of -pi/4 to get Operator(qc) == I
+    qc.global_phase = -pi / 4
     return qc

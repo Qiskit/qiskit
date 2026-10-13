@@ -24,6 +24,12 @@ use qiskit_transpiler::target::Target;
 ///
 /// This pass cancels the redundant (self-adjoint) gates through commutation relations.
 ///
+/// This function is multithreaded and will potentially launch a thread pool
+/// with threads equal to the number of CPUs by default. You can tune the
+/// number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+/// For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+/// to 4 threads.
+///
 /// @param circuit A pointer to the circuit to run CommutativeCancellation on. This circuit
 /// pointer to will be updated with the modified circuit if the pass is able to remove any gates.
 /// @param target This pass will attempt to accumulate all Z rotations into either
@@ -70,7 +76,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
             "Invalid value provided for approximation degree, only NAN or values between 0.0 and 1.0 inclusive are valid"
         );
     }
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(_) => panic!("Internal circuit -> DAG conversion failed"),
     };
@@ -90,6 +96,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     ExitCode::Success
 }
 
+#[cfg(not(miri))]
 #[cfg(test)]
 mod tests {
     use super::*;

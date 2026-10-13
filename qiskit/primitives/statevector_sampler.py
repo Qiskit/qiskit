@@ -266,7 +266,7 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
     # Find final measurements starting in back
     mapping = {}
     for item in circuit[::-1]:
-        if item.operation.name == "measure":
+        if item.name == "measure":
             loc = circuit.find_bit(item.clbits[0])
             cbit = loc.index
             qbit = circuit.find_bit(item.qubits[0]).index
@@ -274,7 +274,7 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
                 for creg in loc.registers:
                     mapping[creg] = qbit
                 active_cbits.remove(cbit)
-        elif item.operation.name not in ["barrier", "delay"]:
+        elif item.name not in ["barrier", "delay"]:
             for qq in item.qubits:
                 _temp_qubit = circuit.find_bit(qq).index
                 if _temp_qubit in active_qubits:

@@ -74,6 +74,7 @@ pub unsafe extern "C" fn qk_pauli_product_rotation_clear(inst: *mut CPauliProduc
 
     // SAFETY: The user guarantees the instruction is coherent, i.e. the Z and X arrays are
     // readable for the correct length and `angle` is a valid, non-null Param pointer.
+    // Note that every single line here is unsafe, hence we wrap it in a single block.
     unsafe {
         let x = ::std::slice::from_raw_parts_mut(inst.x, inst.len);
         let _: Box<[bool]> = Box::from_raw(x);
@@ -152,6 +153,7 @@ pub unsafe extern "C" fn qk_pauli_product_measurement_clear(inst: *mut CPauliPro
 
     // SAFETY: The user guarantees the instruction is coherent, i.e. the Z and X arrays are
     // readable for the correct length and `angle` is a valid, non-null Param pointer.
+    // Note that every single line here is unsafe, hence we wrap it in a single block.
     unsafe {
         let x = ::std::slice::from_raw_parts_mut(inst.x, inst.len);
         let _: Box<[bool]> = Box::from_raw(x);

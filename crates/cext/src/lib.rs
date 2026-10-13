@@ -17,13 +17,26 @@ mod py;
 
 pub mod circuit;
 pub mod circuit_library;
+pub mod classical_expr;
+pub mod control_flow;
 pub mod dag;
+pub mod dyn_types;
 pub mod exit_codes;
+pub mod operations;
 pub mod param;
+pub mod passmanager;
+pub mod qpy;
 pub mod sparse_observable;
 pub mod transpiler;
 
 pub use exit_codes::ExitCode;
+
+#[cfg(feature = "mimalloc")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 /// Get the C API version of the loaded library.
 ///

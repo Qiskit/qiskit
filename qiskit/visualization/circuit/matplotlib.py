@@ -431,6 +431,10 @@ class MatplotlibDrawer:
                 gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
                     op, "mpl", style=self._style
                 )
+                # Truncate directive labels to match the rendered length so the layer
+                # width doesn't account for text that will never be displayed.
+                if getattr(op, "_directive", False) and len(gate_text) > self._barrier_label_len:
+                    gate_text = gate_text[: self._barrier_label_len] + "..."
                 node_data[node].gate_text = gate_text
                 node_data[node].ctrl_text = ctrl_text
                 # Measure doesn't use raw_gate_text since it displays a dial

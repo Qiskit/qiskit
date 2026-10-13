@@ -76,7 +76,7 @@ class CollectLinearFunctions(CollectAndCollapse):
 
 def _is_linear_gate(node):
     """Specifies whether a node holds a linear gate."""
-    return node.op.name in ("cx", "swap") and getattr(node, "condition", None) is None
+    return node.name in ("cx", "swap") and getattr(node, "condition", None) is None
 
 
 def _collapse_to_linear_function(circuit):

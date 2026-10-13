@@ -64,6 +64,25 @@ class TestCZSynth(QiskitTestCase):
             qctest = qctest.compose(perm)
             self.assertEqual(Clifford(qc), Clifford(qctest))
 
+    def test_cz_synth_lnn_accepts_trivial_inputs(self):
+        zero = np.zeros((0, 0), dtype=bool)
+        empty = QuantumCircuit(0)
+        empty.ensure_physical()
+        self.assertEqual(synth_cz_depth_line_mr(zero), empty)
+
+        one = np.zeros((1, 1), dtype=bool)
+        self.assertEqual(synth_cz_depth_line_mr(one), QuantumCircuit(1))
+        one = np.eye(1, dtype=bool)
+        self.assertEqual(synth_cz_depth_line_mr(one), QuantumCircuit(1))
+
+    def test_cz_synth_lnn_rejects_nonsquare(self):
+        wide = np.zeros((2, 3))
+        with self.assertRaisesRegex(ValueError, "matrix must be square"):
+            synth_cz_depth_line_mr(wide)
+        tall = np.zeros((5, 2))
+        with self.assertRaisesRegex(ValueError, "matrix must be square"):
+            synth_cz_depth_line_mr(tall)
+
 
 if __name__ == "__main__":
     unittest.main()

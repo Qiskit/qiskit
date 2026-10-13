@@ -12,6 +12,13 @@
 
 """Return the longest path in a :class:`.DAGCircuit` as a list of DAGNodes."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -19,6 +26,6 @@ class DAGLongestPath(AnalysisPass):
     """Return the longest path in a :class:`.DAGCircuit` as a list of
     :class:`.DAGOpNode`\\ s, :class:`.DAGInNode`\\ s, and :class:`.DAGOutNode`\\ s."""
 
-    def run(self, dag):
-        """Run the DAGLongestPath pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the DAGLongestPath pass on ``dag``."""
         self.property_set["dag_longest_path"] = dag.longest_path()

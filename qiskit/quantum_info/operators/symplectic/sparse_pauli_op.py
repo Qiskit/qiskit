@@ -43,7 +43,6 @@ from qiskit.quantum_info.operators.symplectic.pauli import BasePauli
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
-
 if TYPE_CHECKING:
     from qiskit.transpiler.layout import TranspileLayout
 
@@ -63,6 +62,12 @@ class SparsePauliOp(LinearOp):
     using the :attr:`~SparsePauliOp.paulis` attribute. The coefficients
     are stored as a complex Numpy array vector and can be accessed using
     the :attr:`~SparsePauliOp.coeffs` attribute.
+
+    .. note::
+
+        Pauli strings are read right-to-left: the rightmost character is qubit 0
+        and the leftmost is qubit :math:`N-1`.  For example, ``SparsePauliOp("ZII")``
+        applies ``Z`` to qubit 2, not qubit 0.
 
     .. rubric:: Data type of coefficients
 
@@ -349,7 +354,7 @@ class SparsePauliOp(LinearOp):
         # This method is the outer version of `BasePauli.compose`.
         # `x1` and `z1` have shape `(self.size, num_qubits)`.
         # `x2` and `z2` have shape `(other.size, num_qubits)`.
-        # `x1[:, no.newaxis]` results in shape `(self.size, 1, num_qubits)`.
+        # `x1[:, np.newaxis]` results in shape `(self.size, 1, num_qubits)`.
         # `ar = ufunc(x1[:, np.newaxis], x2)` will be in shape `(self.size, other.size, num_qubits)`.
         # So, `ar.reshape((-1, num_qubits))` will be in shape `(self.size * other.size, num_qubits)`.
         # Ref: https://numpy.org/doc/stable/user/theory.broadcasting.html
@@ -496,10 +501,14 @@ class SparsePauliOp(LinearOp):
         if self.coeffs.dtype == object:
 
             def to_complex(coeff):
-                if not hasattr(coeff, "sympify"):
+                if not hasattr(coeff, "numeric"):
                     return coeff
-                sympified = coeff.sympify()
-                return complex(sympified) if sympified.is_Number else np.nan
+                # simplify() collapses cancellations like a + b - a - b to 0,
+                # so numeric() can evaluate them without needing sympy.
+                try:
+                    return complex(coeff.simplify().numeric(strict=False))
+                except TypeError:
+                    return np.nan
 
             non_zero = np.logical_not(
                 np.isclose([to_complex(x) for x in self.coeffs], 0, atol=atol, rtol=rtol)
@@ -1256,7 +1265,7 @@ class SparsePauliOp(LinearOp):
 
 
 def sparsify_label(pauli_string):
-    """Return a sparse format of a Pauli string, e.g. "XIIIZ" -> ("XZ", [0, 4])."""
+    """Return a sparse format of a Pauli string, e.g. "XIIIZ" -> ("ZX", [0, 4])."""
     qubits = [i for i, label in enumerate(reversed(pauli_string)) if label != "I"]
     sparse_label = "".join(pauli_string[~i] for i in qubits)
 

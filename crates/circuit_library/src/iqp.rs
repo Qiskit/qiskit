@@ -20,7 +20,8 @@ use qiskit_circuit::{
     circuit_data::{CircuitData, PyCircuitData},
     operations::{Param, StandardGate},
 };
-use rand::{Rng, SeedableRng};
+use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use smallvec::{SmallVec, smallvec};
 
@@ -80,7 +81,7 @@ fn generate_random_interactions(num_qubits: u32, seed: Option<u64>) -> Array2<i6
     let num_qubits = num_qubits as usize;
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_os_rng(),
+        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
     };
 
     let mut mat = Array2::zeros((num_qubits, num_qubits));

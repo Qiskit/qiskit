@@ -531,6 +531,28 @@ class TestDagCompose(QiskitTestCase):
         ):
             dest.compose(source, inline_captures=True)
 
+    def test_rejects_rhs_with_too_many_qubits(self):
+        """Test that compose rejects a DAG with too many qubits."""
+        dest = circuit_to_dag(QuantumCircuit(1))
+        other = circuit_to_dag(QuantumCircuit(2))
+
+        with self.assertRaisesRegex(
+            DAGCircuitError,
+            r"Cannot compose onto a DAGCircuit with fewer qubits \(2 > 1\)\.",
+        ):
+            dest.compose(other)
+
+    def test_rejects_rhs_with_too_many_clbits(self):
+        """Test that compose rejects a DAG with too many classical bits."""
+        dest = circuit_to_dag(QuantumCircuit(1, 1))
+        other = circuit_to_dag(QuantumCircuit(1, 2))
+
+        with self.assertRaisesRegex(
+            DAGCircuitError,
+            r"Cannot compose onto a DAGCircuit with fewer classical bits \(2 > 1\)\.",
+        ):
+            dest.compose(other)
+
 
 if __name__ == "__main__":
     unittest.main()

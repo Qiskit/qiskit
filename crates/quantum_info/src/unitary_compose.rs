@@ -14,15 +14,8 @@ use ndarray::{Array, Array2, ArrayView, ArrayView2, IxDyn};
 use ndarray_einsum::*;
 use num_complex::{Complex, Complex64};
 
-static LOWERCASE: [u8; 26] = [
-    b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h', b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p',
-    b'q', b'r', b's', b't', b'u', b'v', b'w', b'x', b'y', b'z',
-];
-
-static _UPPERCASE: [u8; 26] = [
-    b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'O', b'P',
-    b'Q', b'R', b'S', b'T', b'U', b'V', b'W', b'X', b'Y', b'Z',
-];
+static LOWERCASE: [u8; 26] = *b"abcdefghijklmnopqrstuvwxyz";
+static _UPPERCASE: [u8; 26] = *b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 // Compose the operators given by `gate_unitary` and `overall_unitary`, i.e. apply one to the other
 // as specified by the involved qubits given in `qubits` and the `front` parameter
@@ -87,7 +80,7 @@ fn _einsum_matmul(
 ) -> Result<Array<Complex64, IxDyn>, &'static str> {
     let rank = tensor.ndim();
     let rank_mat = mat.ndim();
-    if rank_mat % 2 != 0 {
+    if !rank_mat.is_multiple_of(2) {
         return Err("Contracted matrix must have an even number of indices.");
     }
     // Get einsum indices for tensor
