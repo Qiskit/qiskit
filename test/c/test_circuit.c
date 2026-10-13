@@ -1309,6 +1309,23 @@ static int test_circuit_draw(void) {
     return Ok;
 }
 
+static int test_circuit_draw_empty(void) {
+    QkCircuit *circuit = qk_circuit_new(0, 0);
+    QkCircuitDrawerConfig config = {false, true, 80, 0};
+
+    char *circ_str = qk_circuit_draw(circuit, &config);
+    if (circ_str == NULL || strcmp(circ_str, "") != 0) {
+        qk_str_free(circ_str);
+        qk_circuit_free(circuit);
+        return EqualityError;
+    }
+
+    qk_str_free(circ_str);
+    qk_circuit_free(circuit);
+
+    return Ok;
+}
+
 static int test_parameterized_circuit(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     QkParam *x = qk_param_new_symbol("x");
@@ -1891,6 +1908,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_unitary_gate_1q);
     num_failed += RUN_TEST(test_unitary_gate_3q);
     num_failed += RUN_TEST(test_circuit_draw);
+    num_failed += RUN_TEST(test_circuit_draw_empty);
     num_failed += RUN_TEST(test_get_instruction_params);
     num_failed += RUN_TEST(test_instruction_params_ownership);
     num_failed += RUN_TEST(test_parameterized_circuit);
