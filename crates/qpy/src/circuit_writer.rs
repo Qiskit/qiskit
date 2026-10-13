@@ -283,6 +283,8 @@ fn pack_instruction(
         instruction_pack.label = label.clone();
         if label.len() > u16::MAX as usize {
             if matches!(qpy_data.caller, QpyCaller::Python) {
+                // if we are in python we can emit warnings
+                // otherwise we just silently truncate the label
                 qpy_data.caller.attach(
                     "warn about truncated label",
                     |py| -> Result<_, QpyError> {
