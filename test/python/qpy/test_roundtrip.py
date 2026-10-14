@@ -287,7 +287,7 @@ class TestQPYRoundtrip(QiskitTestCase):
             qc.x(0)
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
 
-    @all_qpy_combinations(QPY_RUST_WRITE_MIN_VERSION)
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_large_generic_instruction_label(self, version, write_with, read_with):
         """Test round-tripping a library instruction with a large label."""
 
