@@ -64,14 +64,30 @@ impl SymbolTableErrorKind {
 /// with variables, but likely grow to include other things over time.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Symbol {
-    /// Symbol ID used in the IR. This field should be set when adding to the Symbol Table.
-    pub sym_id: Option<SymbolId>,
-    pub name: String,
+    /// Symbol ID used in the IR. This field should be set when adding to the
+    /// Symbol Table. This field is intentionally private and does not have a
+    /// set method because it should not be set outside of this module.
+    sym_id: Option<SymbolId>,
+    name: String,
 }
 
 impl Symbol {
     pub const fn new(name: String) -> Self {
         Self { sym_id: None, name }
+    }
+
+    /// Get the name for this symbol.
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the symbol id field for this symbol.
+    ///
+    /// Note that it is expected for the SymbolId field to be None before being
+    /// added to the symbol table, and contain a valid Id after being added to
+    /// the table (i.e., the Symbol Table manages and provides the Symbol Ids).
+    pub fn get_symbol_id(&self) -> Option<SymbolId> {
+        self.sym_id
     }
 }
 
@@ -183,10 +199,6 @@ mod tests {
 
         assert_eq!(sym_id, SymbolId(0));
 
-        let new_sym3 = new_sym2.clone();
-        //println!("KIT: Error: {:?}", sym_table.add_symbol(new_sym3));
-        sym_table.add_symbol(new_sym3).unwrap();
-
         assert_eq!(
             sym_table.add_symbol(new_sym2).unwrap_err().kind(),
             SymbolTableErrorKind::AlreadyInitialized(SymbolId(1))
@@ -194,21 +206,27 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_get_symbol() {
         let new_sym = Symbol::new(String::from("test"));
-        let copy_sym = new_sym.clone();
+        let mut copy_sym = new_sym.clone();
 
         let mut sym_table = SymbolTable::default();
 
         let sym_id = sym_table.add_symbol(new_sym).unwrap();
+        copy_sym.sym_id = Some(sym_id);
 
         assert_eq!(*sym_table.get_symbol(sym_id), copy_sym);
 
         assert!(sym_table.try_get_symbol(SymbolId(1)).is_none());
+    }
 
-        // Last check -- this should panic -- don't put anything after this
-        // otherwise it will not run!
+    #[test]
+    #[should_panic]
+    fn test_get_symbol_panics() {
+        let new_sym = Symbol::new(String::from("test"));
+        let mut sym_table = SymbolTable::default();
+
+        _ = sym_table.add_symbol(new_sym).unwrap();
         sym_table.get_symbol(SymbolId(1));
     }
 }
