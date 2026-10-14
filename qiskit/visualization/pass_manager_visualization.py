@@ -302,9 +302,9 @@ def make_output(graph, raw, filename):
         if filename:
             graph.write(filename, format="raw")
             return None
-        else:
-            raise VisualizationError("if format=raw, then a filename is required.")
+        raise VisualizationError("if format=raw, then a filename is required.")
 
+    _optionals.HAS_PYGRAPHVIZ.require_now("pass manager drawer")
     import pygraphviz
 
     agraph = pygraphviz.AGraph(string=graph.to_string())
@@ -318,10 +318,11 @@ def make_output(graph, raw, filename):
 
     from PIL import Image
 
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as fileobj:
-        agraph.draw(fileobj.name, format="png")
-        image = Image.open(fileobj.name)
-        os.remove(fileobj.name)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        tmppath = os.path.join(tmpdirname, "pass_manager.png")
+        agraph.draw(tmppath, format="png")
+        image = Image.open(tmppath)
         if filename:
-            image.save(filename, "PNG")
+            image.save(filename)
+            return None
         return image

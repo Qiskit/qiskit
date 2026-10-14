@@ -102,6 +102,7 @@ jobs:
         run: |
           set -e
           sudo apt-get update
+          sudo apt-get install -y graphviz
         if: ${{ inputs.install-optionals }}
       - name: Run Python tests
         if: ${{ !inputs.install-from-sdist }}
