@@ -45,12 +45,18 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     # This is used by qiskit/documentation to generate links to github.com.
+    "sphinxext.rediraffe",
     "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
     "breathe",
 ]
+
+# Redirect deleted pages.
+rediraffe_redirects = {
+    "./cdoc/qk-target-entry.rst": "./cdoc/qk-target.rst",
+}
 
 breathe_projects = {"qiskit": "xml/"}
 breathe_default_project = "qiskit"
