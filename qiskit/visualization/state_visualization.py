@@ -28,7 +28,8 @@ from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.circuit.library import HGate, SGate
+from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit.library import HGate
 
 from .array import _num_to_latex, array_to_latex
 from .utils import matplotlib_close_if_inline
@@ -1277,68 +1278,39 @@ def _shade_colors(color, normals, lightsource=None):
     return colors
 
 
-def _basis_change_gates_and_labels(ket_basis: str) -> tuple[list, tuple[str, str]]:
-    """Return the per-qubit basis-change gates and ket labels for a given basis.
+def _ket_basis_gate_and_labels(ket_basis: str) -> tuple[Gate | None, tuple[str, str]]:
+    """Return the single-qubit basis-change gate and the ket labels for a given basis.
 
-    The gates are applied to every qubit of the state so that the resulting amplitudes
-    are the coefficients :math:`\\langle b | \\psi \\rangle` of the state in the requested
-    basis, and the labels give the single-qubit symbols used to render the kets.
+    Applying the gate to every qubit of a state yields its coefficients
+    :math:`\\langle b | \\psi \\rangle` in the requested basis.
 
     Args:
-        ket_basis: The ket basis. Must be one of ``'z'``, ``'x'``, ``'y'``, or ``'h'``.
+        ket_basis: The ket basis. Must be one of ``'z'``, ``'x'`` or ``'y'``.
 
     Returns:
-        A tuple ``(gates, labels)`` where ``gates`` is the list of single-qubit gates to
-        apply to each qubit (in order) and ``labels`` is the ``(zero, one)`` pair of ket
-        symbols for that basis.
+        A tuple ``(gate, labels)``, where ``gate`` is the single-qubit gate to apply to each
+        qubit (``None`` if no change of basis is needed) and ``labels`` is the ``(zero, one)``
+        pair of ket symbols for that basis.
 
     Raises:
         VisualizationError: If the ket basis is not supported.
     """
     match ket_basis:
         case "z":
-            return [], ("0", "1")
-        case "x" | "h":
-            # <+|psi>, <-|psi> are the rows of H, so the coefficients are H @ psi.
-            return [HGate()], ("+", "-")
+            return None, ("0", "1")
+        case "x":
+            # <+|psi>, <-|psi> are the rows of H.
+            return HGate(), ("+", "-")
         case "y":
-            # <+i|psi>, <-i|psi> are the rows of H @ S^dagger, so apply S^dagger then H.
-            return [SGate().inverse(), HGate()], ("+i", "-i")
+            # <+i|psi>, <-i|psi> are the rows of H @ S^dagger, i.e. apply S^dagger, then H.
+            circuit = QuantumCircuit(1)
+            circuit.sdg(0)
+            circuit.h(0)
+            return circuit.to_gate(label="ket_basis_y"), ("+i", "-i")
         case _:
             raise VisualizationError(
-                f"Ket basis {ket_basis!r} is not supported. Only 'x', 'y', 'h', and 'z' are supported."
+                f"Ket basis {ket_basis!r} is not supported. Only 'x', 'y' and 'z' are supported."
             )
-
-
-def _transform_state_to_ket_basis(
-    state: Statevector | DensityMatrix, ket_basis: str
-) -> tuple[Statevector | DensityMatrix, tuple[str, str]]:
-    """Transform a state into the requested ket basis.
-
-    Args:
-        state: The state to transform.
-        ket_basis: The ket basis to transform to. Must be one of ``'z'``, ``'x'``, ``'y'``,
-            or ``'h'``.
-
-    Returns:
-        A tuple ``(state, labels)`` of the transformed state and the ``(zero, one)`` ket
-        symbols used to render it.
-
-    Raises:
-        VisualizationError: If the ket basis is not supported, or is not ``'z'`` for a state
-            that is not composed solely of qubits.
-    """
-    gates, labels = _basis_change_gates_and_labels(ket_basis)
-    if not gates:
-        return state, labels
-    if set(state.dims()) != {2}:
-        raise VisualizationError(
-            f"Ket basis {ket_basis!r} is only supported for states composed of qubits."
-        )
-    for gate in gates:
-        for qubit in range(len(state.dims())):
-            state = state.evolve(gate, qargs=[qubit])
-    return state, labels
 
 
 def state_to_latex(
@@ -1358,11 +1330,11 @@ def state_to_latex(
         dims (bool): Whether to display the state's `dims`
         convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
                 Otherwise plot as a vector
-        ket_basis (str): The single-qubit basis used for the ket notation (only applies when
-                ``convention='ket'``). One of ``'z'`` (default) for the computational basis
-                :math:`|0\\rangle, |1\\rangle`; ``'x'`` or ``'h'`` for the Hadamard basis
-                :math:`|+\\rangle, |-\\rangle`; or ``'y'`` for the :math:`|{+}i\\rangle, |{-}i\\rangle`
-                basis. Non-``'z'`` bases are only supported for states composed of qubits.
+        ket_basis (str): The single-qubit basis the kets are written in. This only applies to the
+                ket convention for qubit statevectors. One of ``'z'`` (default), the computational
+                basis :math:`|0\\rangle, |1\\rangle`; ``'x'``, the Hadamard basis
+                :math:`|+\\rangle, |-\\rangle`; or ``'y'``, the basis
+                :math:`|{+}i\\rangle, |{-}i\\rangle`.
         **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
 
     Returns:
@@ -1370,8 +1342,21 @@ def state_to_latex(
         MissingOptionalLibrary: If SymPy isn't installed and ``'latex'`` or
             ``'latex_source'`` is selected for ``output``.
 
+    Raises:
+        VisualizationError: If ``ket_basis`` is not supported.
+
+    Examples:
+        Write :math:`|0\\rangle` in the Hadamard basis:
+
+        .. code-block:: python
+
+            from qiskit.quantum_info import Statevector
+            from qiskit.visualization.state_visualization import state_to_latex
+
+            state_to_latex(Statevector.from_label("0"), ket_basis="x")
+            # \\frac{\\sqrt{2}}{2} |+\\rangle+\\frac{\\sqrt{2}}{2} |-\\rangle
+
     """
-    state, ket_labels = _transform_state_to_ket_basis(state, ket_basis)
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
             dims = False
@@ -1390,6 +1375,13 @@ def state_to_latex(
     # this means the operator shape should have no input dimensions and all output dimensions equal to 2
     is_qubit_statevector = len(operator_shape.dims_r()) == 0 and set(operator_shape.dims_l()) == {2}
     if convention == "ket" and is_qubit_statevector:
+        gate, ket_labels = _ket_basis_gate_and_labels(ket_basis)
+        if gate is not None:
+            # one circuit with the basis-changing gate on every qubit, so we only call evolve once
+            basis_change = QuantumCircuit(state.num_qubits)
+            for qubit in range(state.num_qubits):
+                basis_change.append(gate, [qubit])
+            state = state.evolve(basis_change)
         latex_str = _state_to_latex_ket(state._data, ket_labels=ket_labels, **args)
     else:
         latex_str = array_to_latex(state._data, source=True, **args)

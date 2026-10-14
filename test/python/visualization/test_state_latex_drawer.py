@@ -15,7 +15,8 @@
 import unittest
 
 from qiskit.quantum_info import Statevector
-from qiskit.visualization.state_visualization import state_drawer
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.state_visualization import state_drawer, state_to_latex
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 
@@ -52,8 +53,6 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_z(self):
         """Test state_to_latex with z basis (default)."""
-        from qiskit.visualization.state_visualization import state_to_latex
-
         sv = Statevector.from_label("0")
         latex_default = state_to_latex(sv)
         latex_z = state_to_latex(sv, ket_basis="z")
@@ -64,8 +63,6 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_x(self):
         """Test state_to_latex with x basis relabels the kets to |+>, |->."""
-        from qiskit.visualization.state_visualization import state_to_latex
-
         # |0> in the X basis is (|+> + |->)/sqrt(2)
         latex_x = state_to_latex(Statevector.from_label("0"), ket_basis="x")
         self.assertEqual(
@@ -79,8 +76,6 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_y(self):
         """Test state_to_latex with y basis relabels the kets to |+i>, |-i>."""
-        from qiskit.visualization.state_visualization import state_to_latex
-
         # |0> in the Y basis is (|+i> + |-i>)/sqrt(2)
         latex_y = state_to_latex(Statevector.from_label("0"), ket_basis="y")
         self.assertEqual(
@@ -93,21 +88,8 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         self.assertEqual(state_to_latex(Statevector.from_label("l"), ket_basis="y"), r" |-i\rangle")
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
-    def test_state_ket_basis_h(self):
-        """Test state_to_latex with h basis (alias for x)."""
-        from qiskit.visualization.state_visualization import state_to_latex
-
-        sv = Statevector.from_label("0")
-        latex_x = state_to_latex(sv, ket_basis="x")
-        latex_h = state_to_latex(sv, ket_basis="h")
-        # h and x bases should produce identical output
-        self.assertEqual(latex_x, latex_h)
-
-    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_multiqubit(self):
         """Test state_to_latex relabels each qubit for multi-qubit states."""
-        from qiskit.visualization.state_visualization import state_to_latex
-
         # |01> in the X basis expands to four equally-weighted X-basis kets.
         latex_x = state_to_latex(Statevector.from_label("01"), ket_basis="x")
         self.assertEqual(
@@ -117,24 +99,18 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         )
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
-    def test_state_ket_basis_invalid(self):
-        """Test state_to_latex with invalid basis raises error."""
-        from qiskit.visualization.state_visualization import state_to_latex
-        from qiskit.visualization.exceptions import VisualizationError
-
-        sv = Statevector.from_label("0")
-        with self.assertRaises(VisualizationError):
-            state_to_latex(sv, ket_basis="invalid")
+    def test_state_ket_basis_draw(self):
+        """Test the ket basis can be set via ``Statevector.draw``."""
+        latex_x = Statevector.from_label("+").draw("latex_source", ket_basis="x")
+        self.assertEqual(latex_x, r" |+\rangle")
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
-    def test_state_ket_basis_non_qubit(self):
-        """Test a non-'z' basis on a non-qubit state raises a clear error."""
-        from qiskit.visualization.state_visualization import state_to_latex
-        from qiskit.visualization.exceptions import VisualizationError
-
-        qutrit = Statevector([1, 0, 0], dims=(3,))
-        with self.assertRaises(VisualizationError):
-            state_to_latex(qutrit, ket_basis="x")
+    def test_state_ket_basis_invalid(self):
+        """Test state_to_latex with invalid basis raises error."""
+        sv = Statevector.from_label("0")
+        for basis in ("invalid", "h"):
+            with self.subTest(basis=basis), self.assertRaises(VisualizationError):
+                state_to_latex(sv, ket_basis=basis)
 
 
 if __name__ == "__main__":
