@@ -267,8 +267,6 @@ pub fn c4x() -> CircuitData {
     c4x_inner().expect("c4x is a fixed circuit with valid qubit indices and float parameters")
 }
 
-/// Fallible construction of the `c4x` circuit. Every step uses fixed, valid arguments, so
-/// the errors are propagated with `?` and handled by a single `expect` in [`c4x`].
 fn c4x_inner() -> Result<CircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
     circuit.h(4)?;
@@ -941,8 +939,6 @@ fn rt4s() -> Result<CircuitData, CircuitDataError> {
 ///    [arXiv:1508.03273](https://arxiv.org/abs/1508.03273).
 pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
     if num_controls <= 2 {
-        // for k=3,4 this function produce circuits with less CX gates comparing to the explicit
-        // versions (although a bit larger) so we do not route them to synth_mcx_explicit
         synth_mcx_explicit(num_controls)
     } else {
         let num_ancillas = (num_controls - 1) / 2;
