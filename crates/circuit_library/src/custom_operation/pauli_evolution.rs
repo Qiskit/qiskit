@@ -196,7 +196,8 @@ mod tests {
     use ndarray::ArrayView2;
     use num_complex::c64;
     use qiskit_circuit::{
-        operations::OperationRef, parameter::parameter_expression::ParameterExpression,
+        operations::{OperationRef, StandardGate},
+        parameter::parameter_expression::ParameterExpression,
     };
     use qiskit_quantum_info::sparse_observable::BitTerm;
 
@@ -238,7 +239,7 @@ mod tests {
     }
 
     #[test]
-    fn test_to_matrix() {
+    fn test_to_matrix_xy() {
         let obs = xy();
 
         let gate = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
@@ -271,6 +272,54 @@ mod tests {
         assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
     }
 
+    #[test]
+    fn test_to_matrix_ry() {
+        let obs = SparseObservable::new(1, vec![1.0.into()], vec![BitTerm::Y], vec![0], vec![0, 1])
+            .expect("is coherent");
+
+        for time in [1.0, 3.0, 5.0] {
+            let gate = StandardGate::RY;
+            let exp = gate.matrix(&[Param::Float(time * 2.0)]).unwrap();
+
+            let gate = PauliEvolution::new(obs.clone(), Param::Float(time)).unwrap();
+            let res = gate.to_matrix().unwrap();
+
+            assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_to_matrix_rx() {
+        let obs = SparseObservable::new(1, vec![1.0.into()], vec![BitTerm::X], vec![0], vec![0, 1])
+            .expect("is coherent");
+
+        for time in [1.0, 3.0, 5.0] {
+            let gate = StandardGate::RX;
+            let exp = gate.matrix(&[Param::Float(time * 2.0)]).unwrap();
+
+            let gate = PauliEvolution::new(obs.clone(), Param::Float(time)).unwrap();
+            let res = gate.to_matrix().unwrap();
+
+            assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
+        }
+    }
+
+    #[test]
+    fn test_to_matrix_rz() {
+        let obs = SparseObservable::new(1, vec![1.0.into()], vec![BitTerm::Z], vec![0], vec![0, 1])
+            .expect("is coherent");
+
+        for time in [1.0, 3.0, 5.0] {
+            let gate = StandardGate::RZ;
+            let exp = gate.matrix(&[Param::Float(time * 2.0)]).unwrap();
+
+            let gate = PauliEvolution::new(obs.clone(), Param::Float(time)).unwrap();
+            let res = gate.to_matrix().unwrap();
+
+            assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
+        }
+    }
+
     fn xy() -> SparseObservable {
         SparseObservable::new(
             2,
@@ -279,6 +328,6 @@ mod tests {
             vec![0, 1],
             vec![0, 2],
         )
-        .expect("is valid")
+        .expect("is coherent")
     }
 }
