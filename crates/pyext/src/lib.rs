@@ -79,6 +79,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::high_level_synthesis_mod, "high_level_synthesis")?;
     add_submodule(m, ::qiskit_transpiler::passes::remove_diagonal_gates_before_measure_mod, "remove_diagonal_gates_before_measure")?;
     add_submodule(m, ::qiskit_transpiler::passes::remove_identity_equiv_mod, "remove_identity_equiv")?;
+    add_submodule(m, ::qiskit_transpiler::passes::remove_pauli_rotations_before_measure_mod, "remove_pauli_rotations_before_measure")?;
     add_submodule(
         m,
         ::qiskit_transpiler::passes::two_qubit_peephole_mod,

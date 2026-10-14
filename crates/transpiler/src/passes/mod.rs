@@ -46,6 +46,7 @@ mod optimize_1q_gates_decomposition;
 mod optimize_clifford_t;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
+mod remove_pauli_rotations_before_measure;
 pub mod sabre;
 mod schedule_analysis;
 mod split_2q_unitaries;
@@ -95,6 +96,9 @@ pub use remove_diagonal_gates_before_measure::{
     remove_diagonal_gates_before_measure_mod, run_remove_diagonal_before_measure,
 };
 pub use remove_identity_equiv::{remove_identity_equiv_mod, run_remove_identity_equiv};
+pub use remove_pauli_rotations_before_measure::{
+    remove_pauli_rotations_before_measure_mod, run_remove_pauli_rotations_before_measure,
+};
 pub use schedule_analysis::alap_schedule_analysis::{
     alap_schedule_analysis_mod, run_alap_schedule_analysis,
 };

@@ -86,6 +86,9 @@ sys.modules["qiskit._accelerate.qasm3"] = _accelerate.qasm3
 sys.modules["qiskit._accelerate.remove_diagonal_gates_before_measure"] = (
     _accelerate.remove_diagonal_gates_before_measure
 )
+sys.modules["qiskit._accelerate.remove_pauli_rotations_before_measure"] = (
+    _accelerate.remove_pauli_rotations_before_measure
+)
 sys.modules["qiskit._accelerate.results"] = _accelerate.results
 sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val

@@ -94,6 +94,7 @@ Optimizations
    RemoveDiagonalGatesBeforeMeasure
    RemoveFinalReset
    RemoveIdentityEquivalent
+   RemovePauliRotationsBeforeMeasure
    RemoveResetInZeroState
    ResetAfterMeasureSimplification
    Split2QUnitaries

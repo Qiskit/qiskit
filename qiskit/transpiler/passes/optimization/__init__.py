@@ -26,6 +26,7 @@ from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
 from .remove_reset_in_zero_state import RemoveResetInZeroState
 from .remove_final_reset import RemoveFinalReset
 from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
+from .remove_pauli_rotations_before_measure import RemovePauliRotationsBeforeMeasure
 from .hoare_opt import HoareOptimizer
 from .template_optimization import TemplateOptimization
 from .inverse_cancellation import InverseCancellation
@@ -76,6 +77,7 @@ __all__ = [
     "RemoveDiagonalGatesBeforeMeasure",
     "RemoveFinalReset",
     "RemoveIdentityEquivalent",
+    "RemovePauliRotationsBeforeMeasure",
     "RemoveResetInZeroState",
     "ResetAfterMeasureSimplification",
     "Split2QUnitaries",

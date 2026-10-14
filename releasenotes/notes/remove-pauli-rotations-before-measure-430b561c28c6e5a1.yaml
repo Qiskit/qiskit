@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added a new optimization pass,
+    :class:`~qiskit.transpiler.passes.RemovePauliRotationsBeforeMeasure`, which
+    removes redundant :class:`~qiskit.circuit.library.PauliProductRotationGate`
+    operations that immediately precede a
+    :class:`~qiskit.circuit.library.PauliProductMeasurement` when their physical
+    Pauli observables match. This pass is integrated into the PBC optimization
+    pipeline in :class:`~qiskit.transpiler.preset_passmanagers.pbc.OptimizePBCPassManager`
+    for optimization levels 1, 2, and 3.
+    See `#15868 <https://github.com/Qiskit/qiskit/issues/15868>`__.

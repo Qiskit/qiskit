@@ -32,6 +32,7 @@ from qiskit.transpiler.passes import ConvertToPauliRotations
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler.passes import HighLevelSynthesis
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
+from qiskit.transpiler.passes import RemovePauliRotationsBeforeMeasure
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.optimization_metric import OptimizationMetric
 
@@ -226,8 +227,10 @@ class OptimizePBCPassManager(PassManagerPBCStagePlugin):
         self, pass_manager_config: PassManagerPBCConfig, optimization_level: int | None = None
     ):
         match optimization_level:
-            case 0 | 1:
+            case 0:
                 pm = PassManager([])
+            case 1:
+                pm = PassManager([RemovePauliRotationsBeforeMeasure()])
             case 2 | 3:
                 pm = PassManager(
                     [
@@ -238,6 +241,7 @@ class OptimizePBCPassManager(PassManagerPBCStagePlugin):
                                 else 1.0
                             )
                         ),
+                        RemovePauliRotationsBeforeMeasure(),
                     ]
                 )
             case bad:
