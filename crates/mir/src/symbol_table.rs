@@ -19,19 +19,22 @@ use std::ops::{Add, AddAssign};
 #[derive(thiserror::Error, Clone, Debug)]
 #[error("{kind}")]
 pub struct SymbolTableError {
-    sym: Symbol,
     kind: SymbolTableErrorKind,
+    /// Symbol is optional because not all errors may be related to specific symbols.
+    /// But when an error *is* related to a specific symbol, it will be good to include it
+    /// in the error message to help with debugging.
+    sym: Option<Symbol>,
 }
 
 impl SymbolTableError {
-    /// View the [`Symbol`] attached to this error.
+    /// View the [`Symbol`] attached to this error (if there is one).
     #[inline]
-    pub fn symbol(&self) -> &Symbol {
+    pub fn symbol(&self) -> &Option<Symbol> {
         &self.sym
     }
     /// Retrieve the ownership of the Symbol.
     #[inline]
-    pub fn into_symbol(self) -> Symbol {
+    pub fn into_symbol(self) -> Option<Symbol> {
         self.sym
     }
     /// Get the underlying error.
@@ -50,7 +53,10 @@ pub enum SymbolTableErrorKind {
 
 impl SymbolTableErrorKind {
     pub fn with_symbol(self, sym: Symbol) -> SymbolTableError {
-        SymbolTableError { sym, kind: self }
+        SymbolTableError {
+            kind: self,
+            sym: Some(sym),
+        }
     }
 }
 
@@ -104,6 +110,11 @@ pub struct SymbolTable {
 }
 
 impl SymbolTable {
+    /// Add a symbol to the symbol table.
+    ///
+    /// It is assumed that the provided symbol does *not* have an Id set. If it
+    /// does, it is assumed to be already in the symbol table and an error is
+    /// returned.
     pub fn add_symbol(&mut self, mut sym: Symbol) -> Result<SymbolId, SymbolTableError> {
         if let Some(sym_id) = sym.sym_id {
             return Err(SymbolTableErrorKind::AlreadyInitialized(sym_id).with_symbol(sym));
@@ -124,14 +135,24 @@ impl SymbolTable {
         Ok(this_sym_id)
     }
 
+    /// Get a reference to a symbol in the symbol table.
+    ///
+    /// This will panic if the specified SymbolId is *not* in the table.
     pub fn get_symbol(&self, sym_id: SymbolId) -> &Symbol {
         &self.sym_table[sym_id.0]
     }
 
+    /// Try to get a symbol from the symbol table.
+    ///
+    /// This will safely attempt to return a reference to specified Symbol. If
+    /// the specified SymbolId is not in the table, return None.
     pub fn try_get_symbol(&self, sym_id: SymbolId) -> Option<&Symbol> {
         self.sym_table.get(sym_id.0)
     }
 
+    /// Get a mutable reference to the specified symbol.
+    ///
+    /// This will panic if the SymbolId is not in the table.
     pub fn get_symbol_mut(&mut self, sym_id: SymbolId) -> &mut Symbol {
         &mut self.sym_table[sym_id.0]
     }
@@ -161,6 +182,10 @@ mod tests {
         let sym_id = sym_table.add_symbol(new_sym).unwrap();
 
         assert_eq!(sym_id, SymbolId(0));
+
+        let new_sym3 = new_sym2.clone();
+        //println!("KIT: Error: {:?}", sym_table.add_symbol(new_sym3));
+        sym_table.add_symbol(new_sym3).unwrap();
 
         assert_eq!(
             sym_table.add_symbol(new_sym2).unwrap_err().kind(),
