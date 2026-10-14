@@ -2,8 +2,8 @@
 
 Historically, Qiskit was first and foremost a Python library. This fact is still true in some
 sense; though, Qiskit has evolved significantly since its early days. As Quantum becomes
-mainstream, researchers and developers alike want to use Qiskit in new and exciting ways. The C
-API provides maximum flexibility for developers, enabling some of these use cases.
+mainstream, researchers and developers alike want to use Qiskit in new and exciting ways. The C API
+makes Qiskit more flexible, enabling additional use cases.
 
 The C API is used for...
 
@@ -154,9 +154,33 @@ extern "C" fn qk_obs_matrix(
 }
 ```
 
-### Panic
+### Panicking
 
-**TODO:** Explain when it's okay to panic, if ever.
+You can almost always do better than panicking inside a function called from C. `panic!` is
+sometimes used to uphold invariants that would otherwise be UB. This is a mistake because
+`panic!` itself is UB inside a function called from C. The following example is incorrect.
+
+```rust
+fn read_foo(foo: *mut Foo) {
+    // Don't do this!
+    if foo.is_null() {
+        panic!("foo is null");
+    } 
+}
+
+fn read_bar(bar: *mut Bar) {
+    // Instead, plainly dereference if you've documented that `bar` isn't null.
+    let foo = &*foo;
+}
+```
+
+*The helper functions `const_ptr_as_ref` and `mut_ptr_as_ref` make exactly this mistake. Neither
+are more safe than dereferencing plainly with `&*p` and `&mut *p`.*
+
+You may be panicking without realizing it. For example, indexing with `a[i]` syntax is a checked
+operation with `panic!` for the out of bounds case. Instead, return a sentinel or error for out of
+bounds. Alternatively, use `a.get_unchecked(i)`. Always look for panic cases while reading
+documentation!
 
 ## Versioning & Backwards Compatibility
 
