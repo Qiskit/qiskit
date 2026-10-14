@@ -11,13 +11,15 @@ prelude: |
     :ref:`capi-pass-manager` for more details.
 
   * **Custom Operations in C:** Users are now able to create custom
-    :class:`.Operation` types using the C API. Please refer to :ref:`capi-operations`
-    for more details.
+    :class:`.Operation` types using the C API. Please refer to 
+    :ref:`capi-operations` for more details.
 
   * **QPY 18 and C API:**
   
     * QPY serialization and de-serialization is now available via the C API.
-      Please refer to :ref:`capi-qpy`.
-    * QPY v18 with updated to the 
-      storage of :class:`.ParameterVector` objects, counter-based naming for
-      custom operations, and others.
+      Users are now able to use QPY for roundtrip serialization from C as well
+      as inter-operate with Python workflows. Please note that loading QPY from
+      C is only supported for payloads using QPY v13 and onwards. Refer to
+      :ref:`capi-qpy`.
+    * QPY v18 which introduces a new format version and produces payloads with
+      smaller footprints. Please refer to :ref:`qpy_version_18`.
