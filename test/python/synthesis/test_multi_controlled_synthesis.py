@@ -65,6 +65,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_gray_code,
     synth_mcx_n_clean_m15,
     synth_mcx_n_dirty_i15,
+    synth_mcx_n_dirty_m15,
     synth_mcx_noaux_hp24,
     synth_mcx_noaux_sp22,
     synth_mcx_noaux_v24,
@@ -216,6 +217,14 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
     def test_mcx_n_dirty_i15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
+
+    @data(0, 1, 2, 3, 4, 5, 6)
+    def test_mcx_n_dirty_m15(self, num_ctrl_qubits: int):
+        """Test synth_mcx_n_dirty_m15, including arbitrary dirty-ancilla states."""
+        synthesized_circuit = synth_mcx_n_dirty_m15(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
@@ -429,14 +438,28 @@ class TestMCSynthesisCounts(QiskitTestCase):
         # The bound from the documentation of synth_mcx_n_dirty_i15
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
 
-    @data(5, 10, 15)
-    def test_mcx_n_clean_m15_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_n_clean_m15 bound on CX count."""
-        synthesized_circuit = synth_mcx_n_clean_m15(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
-        # The bound from the documentation of synth_mcx_n_clean_m15
-        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
+    @data(3, 4, 5, 10, 15)
+    def test_mcx_n_dirty_m15_resources(self, num_ctrl_qubits: int):
+        """Test the exact ancillary-qubit, T, and CX counts of synth_mcx_n_dirty_m15."""
+        circuit = synth_mcx_n_dirty_m15(num_ctrl_qubits)
+        counts = circuit.count_ops()
+        expected_ancillas = 1 if num_ctrl_qubits == 3 else (num_ctrl_qubits - 1) // 2
+        expected_cx = 14 if num_ctrl_qubits == 3 else 8 * num_ctrl_qubits - 12
+        expected_t = 16 if num_ctrl_qubits == 3 else 8 * num_ctrl_qubits - 8
+
+        self.assertEqual(circuit.num_qubits, num_ctrl_qubits + 1 + expected_ancillas)
+        self.assertEqual(counts["cx"], expected_cx)
+        self.assertEqual(counts["t"] + counts["tdg"], expected_t)
+
+    @data(3, 4, 5, 10, 15)
+    def test_mcx_n_clean_m15_resources(self, num_ctrl_qubits: int):
+        """Test the exact ancillary-qubit, T, and CX counts of synth_mcx_n_clean_m15."""
+        circuit = synth_mcx_n_clean_m15(num_ctrl_qubits)
+        counts = circuit.count_ops()
+
+        self.assertEqual(circuit.num_qubits, num_ctrl_qubits + 1 + (num_ctrl_qubits - 1) // 2)
+        self.assertEqual(counts["cx"], 6 * num_ctrl_qubits - 6)
+        self.assertEqual(counts["t"] + counts["tdg"], 8 * num_ctrl_qubits - 9)
 
     @data(5, 10, 15)
     def test_mcx_1_clean_b95_cx_count(self, num_ctrl_qubits: int):
@@ -774,6 +797,49 @@ class TestMCSynthesisDepth(QiskitTestCase):
         depth2q = transpiled_circuit.depth(filter_function=lambda x: x.operation.num_qubits == 2)
         # For the exact calculation see test_synth_mcp_noaux_sp22:
         self.assertLessEqual(depth2q, 16 * num_ctrl_qubits - 24)
+
+    @data(5, 10, 25)
+    def test_synth_mcx_2_clean_kg24_depth(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_clean_kg24 circuit depth bound.
+
+        The algorithm itself uses O(log k) depth with binary-tree AND reduction (Khattar & Gidney,
+        Sec 5.2), but this test checks depth after transpilation (all gate types,
+        optimization_level=0), matching how the reference depths below were obtained from the Rust
+        implementation. Basis-gate decomposition adds overhead and can affect parallelism, so these
+        post-transpilation numbers do not themselves scale as O(log k); this is a regression guard
+        against depth blowup, not a check of the algorithm's asymptotic complexity.
+
+        Reference depths (Rust, after transpilation with optimization_level=0):
+        k=5: 70, k=10: 104, k=25: 178
+        """
+        synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        depth = transpiled_circuit.depth()  # General depth (all gates)
+
+        # Expected bounds from the reference (Rust) implementation.
+        expected = {5: 70, 10: 104, 25: 178}
+        if num_ctrl_qubits in expected:
+            self.assertLessEqual(depth, expected[num_ctrl_qubits])
+
+    @data(5, 10, 25)
+    def test_synth_mcx_2_dirty_kg24_depth(self, num_ctrl_qubits: int):
+        """Test synth_mcx_2_dirty_kg24 circuit depth bound (logarithmic with toggle detection).
+
+        Dirty variant repeats the log-depth tree reduction for toggle detection (Khattar & Gidney, Sec 5.4).
+        Depth is measured after transpilation (all gate types, optimization_level=0), matching how
+        the reference depths below were obtained from the Rust implementation.
+
+        Reference depths (Rust, after transpilation with optimization_level=0):
+        k=5: 118, k=10: 186, k=25: 334
+        """
+        synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        depth = transpiled_circuit.depth()  # General depth (all gates)
+
+        # Expected bounds from the reference (Rust) implementation.
+        expected = {5: 118, 10: 186, 25: 334}
+        if num_ctrl_qubits in expected:
+            self.assertLessEqual(depth, expected[num_ctrl_qubits])
 
 
 if __name__ == "__main__":

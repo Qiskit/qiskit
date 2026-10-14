@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 
 use crate::lex::Token;
@@ -83,6 +84,7 @@ pub fn message_bad_eof(position: Option<&Position>, required: &str) -> String {
 #[derive(Debug)]
 pub struct ParseError {
     pub message: String,
+    #[cfg(feature = "py")]
     pub source: Option<Box<PyErr>>,
 }
 
@@ -90,11 +92,13 @@ impl ParseError {
     pub fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
+            #[cfg(feature = "py")]
             source: None,
         }
     }
 
     /// As [`ParseError::new`], but chaining `source` as the original cause of the failure.
+    #[cfg(feature = "py")]
     pub fn with_source(message: impl Into<String>, source: PyErr) -> Self {
         Self {
             message: message.into(),
@@ -106,6 +110,7 @@ impl ParseError {
     pub fn with_message(self, message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
+            #[cfg(feature = "py")]
             source: self.source,
         }
     }
@@ -118,10 +123,12 @@ impl std::fmt::Display for ParseError {
 }
 impl std::error::Error for ParseError {}
 
+#[cfg(feature = "py")]
 pyo3::import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
 
 /// Convert a `ParseError` from the pyo3-free parsing modules into the `QASM2ParseError`
 /// Python exception, at the boundary where results cross back into Python space.
+#[cfg(feature = "py")]
 impl From<ParseError> for PyErr {
     fn from(e: ParseError) -> PyErr {
         let py_err = QASM2ParseError::new_err(e.message);

@@ -23,14 +23,18 @@ use pyo3::types::{PyAny, PyDict};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
-use crate::annotations::AnnotationHandler;
+use crate::annotations::{AnnotationHandler, NativeDeserializers, NativeSerializers};
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::{pack_circuit, pack_layout};
 use crate::error::QpyError;
-use crate::formats::{QPYCircuit, QPYFileHeader};
+use crate::formats::{LayoutV2Pack, QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
-use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize};
+use crate::value::{
+    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+    serialize_with_args,
+};
+use crate::{QPY_READ_MIN_VERSION, QPY_WRITE_MIN_VERSION};
 
 use std::io::{Cursor, Seek};
 
@@ -83,8 +87,7 @@ const fn parse_version() -> (u8, u8, u8) {
 }
 
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
-const QPY_READ_MIN_VERSION: u8 = 13;
-const QPY_WRITE_MIN_VERSION: u8 = 17;
+const QPY_VERSION: u8 = 18;
 
 /// Serializes native circuits into a complete binary QPY payload.
 /// # Arguments
@@ -98,11 +101,12 @@ const QPY_WRITE_MIN_VERSION: u8 = 17;
 ///
 /// Returns:
 /// A `Bytes` object containing the complete QPY payload.
-pub fn dump_qpy(
-    mut circuits: Vec<CircuitData>,
+pub fn dump_qpy<'a>(
+    circuits: impl ExactSizeIterator<Item = &'a CircuitData>,
     extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
+    caller: Option<QpyCaller>,
 ) -> Result<Bytes, QpyError> {
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -111,7 +115,12 @@ pub fn dump_qpy(
             min_version: QPY_WRITE_MIN_VERSION,
         })?;
     }
-    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    let caller = caller.unwrap_or(QpyCaller::Native);
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
+        Vec::new(),
+        NativeSerializers::default(),
+        NativeDeserializers::default(),
+    ));
     if circuits.len() != extra_data.len() {
         return Err(QpyError::ConversionError(format!(
             "Expected extra data for {} circuits, got {}",
@@ -120,15 +129,18 @@ pub fn dump_qpy(
         )));
     }
     let serialized_circuits: Vec<Bytes> = circuits
-        .iter_mut()
         .zip(extra_data)
         .map(|(circuit, extra)| {
-            serialize(&pack_circuit(
-                circuit,
-                extra,
-                qpy_version,
-                annotation_handler.child()?,
-            )?)
+            serialize_with_args::<QPYCircuit, (u8,)>(
+                &pack_circuit(
+                    circuit,
+                    extra,
+                    qpy_version,
+                    annotation_handler.child()?,
+                    caller,
+                )?,
+                (qpy_version,),
+            )
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
     // Since QPY doesn't use symengine anymore, we default to SymbolicEncoding::Sympy
@@ -195,8 +207,10 @@ pub fn py_dump_qpy(
         .iter()
         .map(|circuit| {
             let metadata = serialize_metadata(&circuit.metadata, metadata_serializer.as_ref())?;
-            let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data)
-                .and_then(|layout| serialize(&layout))?;
+            let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data, version)
+                .and_then(|layout| {
+                    serialize_with_args::<LayoutV2Pack, (u8,)>(&layout, (version,))
+                })?;
             Ok(ExtraCircuitData {
                 name: circuit.name.clone(),
                 metadata,
@@ -204,8 +218,13 @@ pub fn py_dump_qpy(
             })
         })
         .collect::<Result<Vec<_>, QpyError>>()?;
-    let circuit_data = circuits.into_iter().map(|circuit| circuit.data).collect();
-    let serialized_qpy = dump_qpy(circuit_data, extra_data, version, Some(annotation_handler))?;
+    let serialized_qpy = dump_qpy(
+        circuits.iter().map(|circuit| &circuit.data),
+        extra_data,
+        version,
+        Some(annotation_handler),
+        Some(QpyCaller::Python),
+    )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
 }
@@ -229,10 +248,18 @@ pub fn read_raw_circuits(
     )?;
 
     // Read circuits using offset differences to determine sizes
-    let mut circuits = Vec::with_capacity(num_programs);
+    let mut circuits = Vec::new();
+    circuits
+        .try_reserve_exact(num_programs)
+        .map_err(QpyError::AllocationError)?;
 
     for i in 0..num_programs {
         let size = if i + 1 < circuit_table.len() {
+            if circuit_table[i] > circuit_table[i + 1] {
+                return Err(QpyError::InvalidFormat(
+                    "Circuit offset table invalid".to_string(),
+                ));
+            }
             (circuit_table[i + 1] - circuit_table[i]) as usize
         } else {
             // Last circuit: read remaining bytes
@@ -255,6 +282,32 @@ pub fn read_raw_circuits(
     Ok(circuits)
 }
 
+/// Serialize native circuits using empty metadata and no transpiler layout.
+///
+/// This is a non-Python convenience interface used by the C API.
+pub fn native_dump_qpy(
+    circuits: &[&CircuitData],
+    qpy_version: Option<u8>,
+) -> Result<Vec<u8>, QpyError> {
+    let extra_data = (0..circuits.len())
+        .map(|_| ExtraCircuitData {
+            name: None,
+            // The default Python QPY metadata codec is JSON, so an empty mapping must still be
+            // represented by valid JSON for files produced through non-Python interfaces.
+            metadata: Bytes::from("{}"),
+            layout: Bytes::new(),
+        })
+        .collect();
+    dump_qpy(
+        circuits.iter().copied(),
+        extra_data,
+        qpy_version.unwrap_or(QPY_VERSION),
+        None,
+        Some(QpyCaller::Native),
+    )
+    .map(|bytes| bytes.0)
+}
+
 /// Deserializes native circuits from a complete QPY payload.
 ///
 /// # Arguments
@@ -267,6 +320,7 @@ pub fn read_raw_circuits(
 pub fn load_qpy(
     data: &Bytes,
     annotation_handler: Option<AnnotationHandler>,
+    caller: Option<QpyCaller>,
 ) -> Result<Vec<LoadedCircuit>, QpyError> {
     // Every QPY file begins with "QISKIT" followed by a version byte.
     // Since the header might be effected by the version, we begin by explicitly extracting the version.
@@ -280,7 +334,12 @@ pub fn load_qpy(
             min_version: QPY_READ_MIN_VERSION,
         })?;
     }
-    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    let caller = caller.unwrap_or(QpyCaller::Native);
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
+        Vec::new(),
+        NativeSerializers::default(),
+        NativeDeserializers::default(),
+    ));
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
     if qpy_file_header.type_key == ProgramType::Schedule {
@@ -299,7 +358,10 @@ pub fn load_qpy(
         qpy_file_header.symbolic_encoding,
         SymbolicEncoding::Symengine
     );
-    let mut circuits = Vec::with_capacity(num_programs);
+    let mut circuits = Vec::new();
+    circuits
+        .try_reserve_exact(num_programs)
+        .map_err(QpyError::AllocationError)?;
     let mut cursor = Cursor::new(data as &[u8]);
     cursor.seek(std::io::SeekFrom::Start(header_size as u64))?;
     if qpy_file_header.qpy_version >= 16 {
@@ -314,6 +376,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 use_symengine,
                 annotation_handler.child()?,
+                caller,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -336,6 +399,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 use_symengine,
                 annotation_handler.child()?,
+                caller,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -374,14 +438,96 @@ pub fn py_load_qpy(
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
-    load_qpy(&data, Some(annotation_handler))?
+    load_qpy(&data, Some(annotation_handler), Some(QpyCaller::Python))?
         .into_iter()
         .map(|loaded| {
             py_circuit_data_to_quantum_circuit(
+                py,
                 loaded.circuit_data,
                 &loaded.packed_circuit,
                 metadata_deserializer.as_ref().map(Bound::as_ref),
             )
         })
         .collect()
+}
+
+/// Deserialize native circuits from a complete QPY payload.
+pub fn native_load_qpy(data: &[u8]) -> Result<Vec<CircuitData>, QpyError> {
+    load_qpy(&Bytes::from(data), None, Some(QpyCaller::Native)).map(|loaded| {
+        loaded
+            .into_iter()
+            .map(|loaded| loaded.circuit_data)
+            .collect()
+    })
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use qiskit_circuit::Qubit;
+    use qiskit_circuit::operations::{DelayUnit, OperationRef, Param, StandardInstruction};
+    use qiskit_circuit::packed_instruction::PackedOperation;
+    use smallvec::smallvec;
+
+    /// Builds the [`ExtraCircuitData`] required to serialize a native circuit that carries no
+    /// Python-only metadata or transpiler layout.
+    fn native_extra_data(circuit: &CircuitData, name: &str, version: u8) -> ExtraCircuitData {
+        ExtraCircuitData {
+            name: Some(name.to_string()),
+            // Circuit metadata is always decoded with `json.loads`, and older Qiskit
+            // releases require the decoded value to be a dictionary.
+            metadata: "{}".into(),
+            layout: serialize(&pack_layout(None, circuit, version).unwrap()).unwrap(),
+        }
+    }
+
+    /// A circuit containing a single `Delay` measured in `dt` should survive a native
+    /// QPY dump/load round trip: the instruction, its `dt` unit, and its integer-typed
+    /// duration are all preserved.
+    #[test]
+    fn delay_in_dt_roundtrip() {
+        let version = QPY_WRITE_MIN_VERSION;
+
+        // Build a 1-qubit circuit with a `Delay` instruction of 13 dt value.
+        let circuit = CircuitData::from_packed_operations(
+            1,
+            0,
+            [Ok((
+                PackedOperation::from_standard_instruction(StandardInstruction::Delay(
+                    DelayUnit::DT,
+                )),
+                smallvec![Param::Int(13)],
+                vec![Qubit(0)],
+                Vec::with_capacity(0),
+            ))],
+            0.0.into(),
+        )
+        .unwrap();
+
+        // Round trip through the native QPY dump/load entry points.
+        let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
+        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None).unwrap();
+
+        // Exactly one circuit, with exactly one instruction.
+        assert_eq!(loaded.len(), 1);
+        let loaded_circuit = &loaded[0].circuit_data;
+        assert_eq!(loaded_circuit.num_qubits(), 1);
+        assert_eq!(loaded_circuit.len(), 1);
+
+        // That instruction is a `Delay` whose unit round-tripped as `dt`.
+        let inst = &loaded_circuit.data()[0];
+        let OperationRef::StandardInstruction(StandardInstruction::Delay(unit)) = inst.op.view()
+        else {
+            panic!(
+                "expected a standard Delay instruction, got {:?}",
+                inst.op.view()
+            );
+        };
+        assert_eq!(unit, DelayUnit::DT);
+
+        // The duration parameter is preserved.
+        assert!(matches!(inst.params_view(), [Param::Int(d)] if *d == 13));
+    }
 }
