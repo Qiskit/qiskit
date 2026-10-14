@@ -1289,7 +1289,12 @@ def state_to_latex(
         dims (bool): Whether to display the state's `dims`
         convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
                 Otherwise plot as a vector
-        **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
+        **args: Arguments passed to the rendering backend:
+            when ``convention='ket'`` (for qubit statevectors), arguments are passed to
+            internal ket formatting, including ``max_size`` (maximum non-zero terms before
+            truncation, default 12), ``prefix`` (default: ``""``), and ``decimals`` (default: 10).
+            When ``convention='vector'``, arguments are forwarded to
+            :func:`~qiskit.visualization.array_to_latex`.
 
     Returns:
         Latex representation of the state
@@ -1460,7 +1465,9 @@ def state_drawer(state, output=None, **drawer_args):
             ``qsphere``, ``hinton``, ``bloch``, ``city`` or ``paulivec``.
             Default is `'text`'.
         drawer_args: Arguments to be passed to the relevant drawer. For
-            'latex' and 'latex_source' see ``array_to_latex``
+            ``'latex'`` and ``'latex_source'``, see :func:`~qiskit.visualization.state_to_latex`.
+            For ``'text'``, see :class:`~qiskit.visualization.TextMatrix`. For Matplotlib
+            figures, see the corresponding plotting function under :mod:`qiskit.visualization`.
 
     Returns:
         :class:`matplotlib.figure` or :class:`str` or

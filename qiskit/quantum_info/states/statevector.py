@@ -202,7 +202,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return {"data": self._data, "dims": self._op_shape.dims_l()}
 
     def draw(self, output: str | None = None, **drawer_args):
-        """Return a visualization of the Statevector.
+        r"""Return a visualization of the Statevector.
 
         **repr**: ASCII TextMatrix of the state's ``__repr__``.
 
@@ -229,10 +229,34 @@ class Statevector(QuantumState, TolerancesMixin):
                 Default can be changed by adding the line ``state_drawer = <default>`` to
                 ``~/.qiskit/settings.conf`` under ``[default]``.
             drawer_args: Arguments to be passed directly to the relevant drawing
-                function or constructor (`TextMatrix()`, `array_to_latex()`,
-                `plot_state_qsphere()`, `plot_state_hinton()` or `plot_bloch_multivector()`).
-                See the relevant function under `qiskit.visualization` for that function's
-                documentation.
+                function or constructor:
+
+                * For ``'latex'`` and ``'latex_source'``: Arguments are passed to
+                  :func:`~qiskit.visualization.state_to_latex`. For qubit statevectors
+                  in default ket notation, supported arguments include:
+
+                  * ``max_size`` (int): Maximum number of non-zero terms displayed before
+                    truncating with an ellipsis (``\ldots``). Default is 12. Set to a larger
+                    integer (e.g. ``2**n``) or ``math.inf`` to prevent truncation.
+                  * ``convention`` (str): Either ``'ket'`` (default) or ``'vector'``.
+                    If ``'vector'``, draws as a column vector via
+                    :func:`~qiskit.visualization.array_to_latex`.
+                  * ``prefix`` (str): LaTeX string prepended to the expression (default: ``""``).
+                  * ``decimals`` (int): Number of decimal places to round amplitudes (default: 10).
+                  * ``dims`` (bool): Whether to display subsystem dimensions (default: ``None``).
+
+                * For ``'text'``: Arguments are passed to
+                  :class:`~qiskit.visualization.TextMatrix` (such as ``max_size``, ``prefix``,
+                  ``suffix``, ``dims``).
+
+                * For Matplotlib visualization backends (``'qsphere'``, ``'hinton'``, ``'bloch'``,
+                  ``'city'``, or ``'paulivec'``): Arguments are passed to the corresponding
+                  function under :mod:`qiskit.visualization` (e.g.,
+                  :func:`~qiskit.visualization.plot_state_qsphere`,
+                  :func:`~qiskit.visualization.plot_state_hinton`,
+                  :func:`~qiskit.visualization.plot_bloch_multivector`,
+                  :func:`~qiskit.visualization.plot_state_city`, or
+                  :func:`~qiskit.visualization.plot_state_paulivec`).
 
         Returns:
             :class:`matplotlib.Figure` or :class:`str` or
@@ -244,7 +268,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Examples:
 
-            Plot one of the Bell states
+            Plot one of the Bell states:
 
             .. plot::
                :alt: Output from the previous code.
@@ -252,8 +276,20 @@ class Statevector(QuantumState, TolerancesMixin):
 
                 from numpy import sqrt
                 from qiskit.quantum_info import Statevector
-                sv=Statevector([1/sqrt(2), 0, 0, -1/sqrt(2)])
+                sv = Statevector([1/sqrt(2), 0, 0, -1/sqrt(2)])
                 sv.draw(output='hinton')
+
+            Draw a multi-qubit statevector in LaTeX ket notation without truncation by
+            increasing ``max_size``:
+
+            .. code-block:: python
+
+                from qiskit.quantum_info import Statevector
+                sv = Statevector.from_label("++++")
+                # Default output truncates after 12 non-zero terms:
+                sv.draw(output="latex_source")
+                # Set max_size to display all 16 terms:
+                sv.draw(output="latex_source", max_size=16)
 
         """
 
