@@ -22,7 +22,7 @@ import scipy.sparse
 import ddt
 
 from qiskit import QiskitError
-from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector, QuantumCircuit
 from qiskit.circuit.library import efficient_su2
 from qiskit.circuit.library import (
     CXGate,
@@ -1045,6 +1045,17 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op_full = Operator(op)
         target_matrix = op_full.compose(u.adjoint(), qargs=qargs).dot(Operator(u), qargs=qargs).data
         np.testing.assert_allclose(evolved.to_matrix(), target_matrix, atol=1e-8)
+
+    def test_evolve_non_clifford_circuit_raises(self):
+        """Test that evolve raises QiskitError when the QuantumCircuit
+        contains a non-Clifford gate (T gate).
+        """
+        op = SparsePauliOp.from_list([("X", 1.0), ("Z", -0.5)])
+        qc = QuantumCircuit(1)
+        qc.t(0)
+
+        with self.assertRaisesRegex(QiskitError, "non-Clifford"):
+            op.evolve(qc)
 
     def test_simplify(self):
         """Test simplify method"""
