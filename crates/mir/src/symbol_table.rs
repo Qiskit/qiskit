@@ -28,8 +28,8 @@ pub struct SymbolTableError {
 impl SymbolTableError {
     /// View the [`Symbol`] attached to this error (if there is one).
     #[inline]
-    pub fn symbol(&self) -> &Option<Symbol> {
-        &self.sym
+    pub fn symbol(&self) -> Option<&Symbol> {
+        self.sym.as_ref()
     }
     /// Retrieve the ownership of the Symbol.
     #[inline]
