@@ -4698,7 +4698,7 @@ impl PyDAGCircuit {
         }
     }
 
-    /// Retrieve a variable by name, or None if it is not present in the DAG.
+    /// Retrieve a variable by name, or ``None`` if it is not present in the DAG.
     ///
     /// Args:
     ///     name (str): the variable name.
@@ -4730,7 +4730,7 @@ impl PyDAGCircuit {
         }
     }
 
-    /// Retrieve a stretch by name, or None if it is not present in the DAG.
+    /// Retrieve a stretch by name, or ``None`` if it is not present in the DAG.
     ///
     /// Args:
     ///     name (str): the stretch name.
