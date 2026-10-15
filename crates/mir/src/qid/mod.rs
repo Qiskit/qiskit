@@ -14,6 +14,10 @@
 
 use std::{cmp, fmt, num};
 
+pub mod table;
+
+pub use table::ResourceTable;
+
 /// A single quantum identifier, representing some sort of "quantum resource" which follows the
 /// [quantum semantics](#quantum-semantics) defined below.
 ///
@@ -255,13 +259,14 @@ impl Ord for QidBit {
 ///
 /// In general, the validity of this object is dependent on the rest of the context for the [`Qid`]s
 /// it refers to.  You can construct a [`BitLayout`] that does not follow the rules, but
-/// `ResourceTable` methods will reject them.
+/// [`ResourceTable`] methods will reject them.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BitLayout {
     /// A [`Qid`] that has undefined size.
     ///
     /// These qids can have "overlap" with other qids, but the containing relationships must be
-    /// explicitly added to a `ResourceTable`.
+    /// explicitly added to a [`ResourceTable`] using
+    /// [`mark_contains`](ResourceTable::mark_contains).
     Abstract,
     /// A [`Qid`] that can be the base of other [`Qid`]s' bit layouts.
     Base(u32),
@@ -272,7 +277,7 @@ pub enum BitLayout {
     /// qids whose layouts are the [`Base`](Self::Base) variant of this object, and all bits in that
     /// base [`Qid`] should be used by the layout.
     ///
-    /// The contained [`Qid`]s are automatically tracked in a `ResourceTable`.  Additional
+    /// The contained [`Qid`]s are automatically tracked in a [`ResourceTable`].  Additional
     /// "abstract" mutual-exclusion relationships can be added on top of this, similarly to the
     /// [`Abstract`](Self::Abstract) variant.
     ///
