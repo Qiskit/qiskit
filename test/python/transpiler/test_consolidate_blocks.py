@@ -851,6 +851,31 @@ class TestConsolidateBlocks(QiskitTestCase):
             pass_ = ConsolidateBlocks(basis_gates=["ecr", "cx", "cz"])
             self.assertEqual(pass_.basis_gate_name, "cz")
 
+    @data(CXGate, CZGate, ECRGate)
+    def test_consolidate_blocks_kak_basis_gate(self, basis_gate_cls):
+        """Test that ConsolidateBlocks works with different kak_basis_gate inputs."""
+        kak_gate = basis_gate_cls()
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=kak_gate)
+        self.assertEqual(consolidate_pass.basis_gate_name, kak_gate.name)
+
+        # Single gate in basis should be preserved
+        qc = QuantumCircuit(2)
+        qc.append(kak_gate, [0, 1])
+        dag = circuit_to_dag(qc)
+        res = consolidate_pass.run(dag)
+        self.assertEqual(res.count_ops().get(kak_gate.name, 0), 1)
+
+        # Sequence of gates consolidated to a unitary
+        qc_multi = QuantumCircuit(2)
+        qc_multi.append(kak_gate, [0, 1])
+        qc_multi.x(0)
+        qc_multi.h(1)
+        qc_multi.append(kak_gate, [1, 0])
+        qc_multi.append(kak_gate, [0, 1])
+        res_multi = consolidate_pass(qc_multi)
+        self.assertEqual(res_multi.count_ops(), {"unitary": 1})
+        self.assertEqual(Operator.from_circuit(qc_multi), Operator(res_multi.data[0].operation.params[0]))
+
 
 class TestCollect1qRuns(QiskitTestCase):
     """
