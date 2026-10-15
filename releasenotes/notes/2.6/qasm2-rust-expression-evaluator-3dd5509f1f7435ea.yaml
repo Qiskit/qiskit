@@ -6,5 +6,5 @@ upgrade_qasm:
     mathematically invalid ones have changed type: ``sqrt``/``ln`` of a non-positive
     argument, ``^`` with a negative base and non-integer exponent, and division by zero
     now all raise :class:`~qiskit.qasm2.QASM2ParseError`, where they previously raised
-    :exc:`ValueError`, ``CircuitError`` and :exc:`ZeroDivisionError` respectively.  They
-    are still raised lazily, when the gate's ``definition`` is first built.
+    :exc:`ValueError`, :exc:`CircuitError` and :exc:`ZeroDivisionError` respectively.  They
+    are still raised lazily, when the gate's :attr:`~.Gate.definition` is first built.

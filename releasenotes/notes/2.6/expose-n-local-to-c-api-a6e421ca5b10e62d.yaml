@@ -1,19 +1,16 @@
 ---
 features_c:
   - |
-    Exposed the n-local circuit to the C API. 
+    Added C API functions to construct n-local circuits:
 
-    * A couple of new functions were added: 
-
-      * ``qk_circuit_library_n_local``
-
-        Constructs an n-local variational circuit.      
-      * ``qk_circuit_library_n_local_settings_default``
-
-        Generates default options for ``qk_circuit_library_n_local``.
-    * New struct ``QkNLocalSettings`` is added.
-
-      Holds settings needed to build the n-local circuit.
-    * New enum ``QkEntanglementStrategy`` is added. 
-
-      Enum representing all the strategies that can be used for the circuit entanglement blocks.
+      * :c:func:`qk_circuit_library_n_local`: Constructs an n-local variational
+        circuit.      
+      * :c:func:`qk_circuit_library_n_local_settings_default`: Generates default
+        options for :c:func:`qk_circuit_library_n_local`.
+      
+    The following helper structs were also added:
+    
+      * :c:struct:`QkNLocalSettings`: Holds settings needed to build the n-local
+        circuit.
+      * :c:enum:`QkEntanglementStrategy`: Enum representing all the strategies
+        that can be used for the circuit entanglement blocks.

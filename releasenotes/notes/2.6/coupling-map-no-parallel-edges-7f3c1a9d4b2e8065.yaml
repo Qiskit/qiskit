@@ -6,4 +6,4 @@ fixes:
     existing edge instead of being stored twice.
     Fixed `#16987 <https://github.com/Qiskit/qiskit/issues/16987>`__.
   - |
-    Fixed a bug :meth:`.CouplingMap.is_symmetric` could falsely report ``True`` when an edge was duplicated.
+    Fixed a bug where :attr:`.CouplingMap.is_symmetric` could falsely report ``True`` when an edge was duplicated.

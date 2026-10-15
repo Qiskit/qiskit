@@ -16,6 +16,11 @@ Data types
 .. doxygenstruct:: QkPauliProductMeasurement
    :members:
 
+.. doxygenstruct:: QkNLocalSettings
+   :members:
+
+.. doxygenenum:: QkEntanglementStrategy
+
 Functions
 =========
 
