@@ -616,13 +616,25 @@ static int test_expr_value_biguint(void) {
         0x778899AABBCCDDEE,
     };
 
+    const BigUint_TestCase zero = {
+        .label = "zero",
+        .bytes = NULL,
+        .bytes_len = 0,
+        .bit_width_auto = true,
+        .bit_width = 0,
+        .expected = {.limbs = NULL, .num_limbs = 0},
+    };
+    result = check_biguint_value(&zero);
+    if (result != Ok)
+        return result;
+
     const BigUint_TestCase one_limb = {
         .label = "one_limb",
         .bytes = testdata,
         .bytes_len = 1 * sizeof(uint64_t),
         .bit_width_auto = true,
         .bit_width = 0,
-        .expected = {.limbs = expected_limbs, .num_limbs = 1},
+        .expected = {.limbs = (uint64_t *)expected_limbs, .num_limbs = 1},
     };
     result = check_biguint_value(&one_limb);
     if (result != Ok)
@@ -634,7 +646,7 @@ static int test_expr_value_biguint(void) {
         .bytes_len = 2 * sizeof(uint64_t),
         .bit_width_auto = true,
         .bit_width = 0,
-        .expected = {.limbs = expected_limbs, .num_limbs = 2},
+        .expected = {.limbs = (uint64_t *)expected_limbs, .num_limbs = 2},
     };
     result = check_biguint_value(&two_limbs);
     if (result != Ok)
@@ -646,7 +658,7 @@ static int test_expr_value_biguint(void) {
         .bytes_len = 3 * sizeof(uint64_t),
         .bit_width_auto = true,
         .bit_width = 0,
-        .expected = {.limbs = expected_limbs, .num_limbs = 3},
+        .expected = {.limbs = (uint64_t *)expected_limbs, .num_limbs = 3},
     };
     result = check_biguint_value(&three_limbs);
     if (result != Ok)
@@ -660,7 +672,7 @@ static int test_expr_value_biguint(void) {
             .bytes_len = 1 * sizeof(uint64_t),
             .bit_width_auto = false, // <- notice: `bit_width` not auto-calculated.
             .bit_width = 0,
-            .expected = {.limbs = &expected_limbs[2], .num_limbs = 1},
+            .expected = {.limbs = (uint64_t *)&expected_limbs[2], .num_limbs = 1},
         };
         result = check_biguint_value(&zero_bitwidth);
         if (result != Ok)

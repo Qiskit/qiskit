@@ -608,7 +608,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_bit_width(
 ) -> u64 {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
-    let cond = control_flow_condition_extract_reg_cond(cf_inst);
+    let cond = control_flow_condition_extract_reg_cond(cf_inst).unwrap_or(&BigUint::ZERO);
 
     cond.bits()
 }
@@ -661,21 +661,19 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg(
 
 /// Extracts condition from control flow instruction.
 ///
-/// Panics if `cf_inst` is not an IfElse or While control flow instruction where the condition is a
-/// register type.
-fn control_flow_condition_extract_reg_cond(cf_inst: &CControlFlowInstruction) -> &BigUint {
+/// When `cf_inst` is not an `IfElse` or `While` control flow instruction where the condition is a
+/// register type, `None` is returned.
+fn control_flow_condition_extract_reg_cond(cf_inst: &CControlFlowInstruction) -> Option<&BigUint> {
     let condition = match &cf_inst.control_flow_inst().control_flow {
         ControlFlow::IfElse { condition } | ControlFlow::While { condition } => condition,
-        _ => {
-            panic!("Expected either an IfElse or a While control flow instruction")
-        }
+        _ => return None,
     };
 
     let Condition::Register(_, cond) = condition else {
-        panic!("Expected a register condition for the instruction")
+        return None;
     };
 
-    cond
+    Some(cond)
 }
 
 /// @ingroup QkControlFlow
@@ -711,7 +709,8 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_uint(
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
     let cond = control_flow_condition_extract_reg_cond(cf_inst);
 
-    cond.to_u64()
+    cond.unwrap_or(&BigUint::ZERO)
+        .to_u64()
         .unwrap_or_else(|| panic!("Condition value too large to fit in uint64_t"))
 }
 
@@ -746,7 +745,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_biguint(
 ) -> CBigUint {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
-    let cond = control_flow_condition_extract_reg_cond(cf_inst);
+    let cond = control_flow_condition_extract_reg_cond(cf_inst).unwrap_or(&BigUint::ZERO);
 
     CBigUint::from_biguint(cond)
 }

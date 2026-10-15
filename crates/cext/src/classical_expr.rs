@@ -12,7 +12,7 @@
 
 use std::ptr;
 
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::const_ptr_as_ref;
 use num_bigint::BigUint;
 use num_traits::{ToPrimitive, Zero};
 use qiskit_circuit::{
@@ -816,7 +816,7 @@ pub unsafe extern "C" fn qk_value_uint(value: *const Value) -> u64 {
 /// Representation of big-integer data.
 ///
 /// The slice ``self.limbs[0..self.num_limbs]`` holds the limbs (big-digits) of the unsigned bigint in
-/// little-endian order. Each limb itself is encoded native-endian.
+/// little-endian order. Each limb itself is encoded in native-endian.
 ///
 /// Trailing limbs where the value is zero will not be included. Notice that this implies that the
 /// buffer may be smaller than what you expect by inspecting the bit-width from `QkExprTypeInfo`.
@@ -827,7 +827,7 @@ pub unsafe extern "C" fn qk_value_uint(value: *const Value) -> u64 {
 pub struct CBigUint {
     /// A buffer containing the bigint data, where each ``uint64_t`` element represents a limb
     /// (big-digit) of the bigint.
-    limbs: *const u64,
+    limbs: *mut u64,
     /// Number of limbs.
     num_limbs: usize,
 }
@@ -835,12 +835,9 @@ pub struct CBigUint {
 impl CBigUint {
     /// Convert BigUint to an CBigUint that owns its allocation.
     pub fn from_biguint(biguint: &BigUint) -> Self {
-        let biguint_slice = biguint
-            .iter_u64_digits()
-            .collect::<Vec<_>>()
-            .into_boxed_slice();
+        let mut biguint_slice = biguint.to_u64_digits().into_boxed_slice();
         let result = CBigUint {
-            limbs: biguint_slice.as_ptr(),
+            limbs: biguint_slice.as_mut_ptr(),
             num_limbs: biguint_slice.len(),
         };
         std::mem::forget(biguint_slice);
@@ -852,7 +849,7 @@ impl Drop for CBigUint {
     fn drop(&mut self) {
         // SAFETY: We own the slice.
         unsafe {
-            let slice = ptr::slice_from_raw_parts_mut(self.limbs as *mut u64, self.num_limbs);
+            let slice = ptr::slice_from_raw_parts_mut(self.limbs, self.num_limbs);
             drop(Box::from_raw(slice));
         }
     }
@@ -868,7 +865,7 @@ impl Drop for CBigUint {
 /// @return A `QkBigUint` that contains a copy of the big-integer data. Value is owned by the caller
 ///     and should be freed with `qk_biguint_clear` when no longer in use.
 ///
-/// Panics if ``value`` does not point to a ``QkExprType_Uint`` value.
+/// When ``value`` does not point to a ``QkExprType_Uint`` variant, returns zero.
 ///
 /// # Example
 /// ```c
@@ -884,17 +881,17 @@ impl Drop for CBigUint {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_value_biguint(value: *const Value) -> CBigUint {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let value = unsafe { const_ptr_as_ref(value) };
+    let value = unsafe { &*value };
 
-    let Value::Uint {
-        raw,
-        ty: Type::Uint(_),
-    } = value
-    else {
-        panic!("qk_value_biguint called on non-uint value")
+    let biguint = match value {
+        Value::Uint {
+            raw,
+            ty: Type::Uint(_),
+        } => raw,
+        _ => &BigUint::ZERO,
     };
 
-    CBigUint::from_biguint(raw)
+    CBigUint::from_biguint(biguint)
 }
 
 /// @ingroup QkClassicalExpressions
@@ -903,22 +900,26 @@ pub unsafe extern "C" fn qk_value_biguint(value: *const Value) -> CBigUint {
 /// This function frees the buffer. The pointer is then set to null, and the length is
 /// set to zero.
 ///
-/// @param biguint Pointer to `QkBigUint`.
+/// Calling with null or a zero value (``biguint.limbs == NULL``) is a no-op.
 ///
-/// # Safety
-///
-/// Behavior is undefined if ``biguint`` is not a valid, non-null pointer to a `QkBigUint`.
+/// @param biguint Nullable pointer to `QkBigUint`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_biguint_clear(biguint: *mut CBigUint) {
-    // SAFETY: Per documentation, `biguint` is a valid, non-null pointer.
-    let biguint = unsafe { mut_ptr_as_ref(biguint) };
-    drop(std::mem::replace(
-        biguint,
-        CBigUint {
-            limbs: ptr::null(),
-            num_limbs: 0,
-        },
-    ))
+    if biguint.is_null() {
+        return;
+    }
+
+    // SAFETY: Checked for null above.
+    let biguint = unsafe { &mut *biguint };
+    if biguint.limbs.is_null() {
+        return;
+    }
+
+    let zero = CBigUint {
+        limbs: ptr::null_mut(),
+        num_limbs: 0,
+    };
+    drop(std::mem::replace(biguint, zero));
 }
 
 /// @ingroup QkClassicalExpressions
@@ -1275,7 +1276,11 @@ pub unsafe extern "C" fn inner_test_value_biguint(
     bit_width_auto: bool,
     bit_width: u32,
 ) -> *mut Value {
-    let bytes: &[u8] = unsafe { std::slice::from_raw_parts(buf, len) };
+    let bytes: &[u8] = if len == 0 {
+        &[]
+    } else {
+        unsafe { std::slice::from_raw_parts(buf, len) }
+    };
     let raw = BigUint::from_bytes_le(bytes);
 
     let bit_width = if bit_width_auto {
