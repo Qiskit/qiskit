@@ -248,7 +248,7 @@ cleanup:
     return result;
 }
 
-int test_init_stage_empty(void) {
+static int test_init_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -273,7 +273,12 @@ int test_init_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 1024) {
         result = EqualityError;
+<<<<<<< HEAD
         printf("Number of dag qubits %u does not match expected result 1024", num_dag_qubits);
+=======
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 1024\n",
+                num_dag_qubits);
+>>>>>>> a5fe075 (Fix minor style in `test_transpiler.c` (#17224))
     }
 cleanup:
     qk_target_free(target);
@@ -283,7 +288,7 @@ cleanup:
     return result;
 }
 
-int test_layout_stage_empty(void) {
+static int test_layout_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -308,7 +313,12 @@ int test_layout_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 2048) {
         result = EqualityError;
+<<<<<<< HEAD
         printf("Number of dag qubits %u does not match expected result 2048", num_dag_qubits);
+=======
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048\n",
+                num_dag_qubits);
+>>>>>>> a5fe075 (Fix minor style in `test_transpiler.c` (#17224))
     }
     QkTranspileLayout *layout = qk_transpile_state_layout(*state);
     uint32_t num_layout_qubits = qk_transpile_layout_num_output_qubits(layout);
@@ -325,7 +335,7 @@ cleanup:
     return result;
 }
 
-int test_routing_stage_empty(void) {
+static int test_routing_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -358,7 +368,12 @@ int test_routing_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 2048) {
         result = EqualityError;
+<<<<<<< HEAD
         printf("Number of dag qubits %u does not match expected result 2048", num_dag_qubits);
+=======
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048\n",
+                num_dag_qubits);
+>>>>>>> a5fe075 (Fix minor style in `test_transpiler.c` (#17224))
     }
     QkTranspileLayout *layout = qk_transpile_state_layout(*state);
     uint32_t num_layout_qubits = qk_transpile_layout_num_output_qubits(layout);
@@ -375,7 +390,7 @@ cleanup:
     return result;
 }
 
-int test_translation_stage_empty(void) {
+static int test_translation_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -398,7 +413,12 @@ int test_translation_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 2048) {
         result = EqualityError;
+<<<<<<< HEAD
         printf("Number of dag qubits %u does not match expected result 2048", num_dag_qubits);
+=======
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048\n",
+                num_dag_qubits);
+>>>>>>> a5fe075 (Fix minor style in `test_transpiler.c` (#17224))
     }
 cleanup:
     qk_target_free(target);
@@ -406,7 +426,7 @@ cleanup:
     return result;
 }
 
-int test_optimization_stage_empty(void) {
+static int test_optimization_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -439,7 +459,12 @@ int test_optimization_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 2048) {
         result = EqualityError;
+<<<<<<< HEAD
         printf("Number of dag qubits %u does not match expected result 2048", num_dag_qubits);
+=======
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048\n",
+                num_dag_qubits);
+>>>>>>> a5fe075 (Fix minor style in `test_transpiler.c` (#17224))
     }
 cleanup:
     free(layout_mapping);
@@ -450,6 +475,57 @@ cleanup:
     return result;
 }
 
+<<<<<<< HEAD
+=======
+static int test_transpile_state_layout_unset(void) {
+    int result = RuntimeError;
+
+    uint32_t num_qubits = 2048;
+    QkTarget *target = qk_target_new(num_qubits);
+
+    QkDag *dag = qk_dag_new();
+
+    QkQuantumRegister *qr = qk_quantum_register_new(num_qubits, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    qk_quantum_register_free(qr);
+
+    uint32_t *mapping = malloc(sizeof(uint32_t) * num_qubits);
+    for (uint32_t i = 0; i < num_qubits; i++) {
+        mapping[num_qubits - i - 1] = i;
+    };
+
+    QkTranspileLayout *layout = qk_transpile_layout_generate_from_mapping(dag, target, mapping);
+
+    QkTranspilerStageState *state = NULL;
+    qk_transpile_state_new(&state);
+    qk_transpile_state_layout_set(state, layout);
+
+    QkTranspileLayout *current = qk_transpile_state_layout(state);
+    if (current == NULL) {
+        result = EqualityError;
+        fprintf(stderr, "state layout not set\n");
+        goto cleanup;
+    }
+
+    qk_transpile_state_layout_set(state, NULL);
+    current = qk_transpile_state_layout(state);
+
+    if (current != NULL) {
+        result = EqualityError;
+        fprintf(stderr, "state layout exists after unset\n");
+    } else {
+        result = Ok;
+    }
+
+cleanup:
+    free(mapping);
+    qk_transpile_state_free(state);
+    qk_dag_free(dag);
+    qk_target_free(target);
+    return result;
+}
+
+>>>>>>> a5fe075 (Fix minor style in `test_transpiler.c` (#17224))
 int test_transpiler(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_transpile_bv);
