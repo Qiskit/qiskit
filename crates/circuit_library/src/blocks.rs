@@ -61,7 +61,7 @@ impl BlockOperation {
 }
 
 #[derive(Debug, Clone)]
-#[pyclass()]
+#[pyclass]
 pub struct Block {
     pub operation: BlockOperation,
     pub num_qubits: u32,

@@ -910,7 +910,7 @@ fn get_relative_placement(
 }
 
 #[derive(Clone, Debug)]
-#[pyclass()]
+#[pyclass]
 pub struct CommutationLibrary {
     pub library: Option<HashMap<(String, String), CommutationLibraryEntry>>,
 }

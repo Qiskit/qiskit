@@ -426,7 +426,7 @@ macro_rules! create_bit_object {
 
         #[doc = concat!("A ", $bit_desc, ", which can be compared between different circuits.")]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        #[pyclass(subclass, name=$pybit_name, module="qiskit.circuit", extends=PyBit, frozen, eq, hash, )]
+        #[pyclass(subclass, name=$pybit_name, module="qiskit.circuit", extends=PyBit, frozen, eq, hash)]
         pub struct $pybit_struct($bit_struct);
         #[pymethods]
         impl $pybit_struct {
@@ -706,7 +706,7 @@ macro_rules! create_bit_object {
         }
 
         /// Implement a register.
-        #[pyclass(subclass, name=$pyreg_name, module="qiskit.circuit", extends=PyRegister, frozen, eq, hash, sequence, )]
+        #[pyclass(subclass, name=$pyreg_name, module="qiskit.circuit", extends=PyRegister, frozen, eq, hash, sequence)]
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]
         pub struct $pyreg_struct($reg_struct);
 
@@ -930,7 +930,7 @@ impl ShareableQubit {
 
 /// A qubit used as an ancilla.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[pyclass(name="AncillaQubit", module="qiskit.circuit", extends=PyQubit, frozen, )]
+#[pyclass(name="AncillaQubit", module="qiskit.circuit", extends=PyQubit, frozen)]
 pub struct PyAncillaQubit;
 #[pymethods]
 impl PyAncillaQubit {
