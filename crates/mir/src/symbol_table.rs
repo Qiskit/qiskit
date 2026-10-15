@@ -123,7 +123,7 @@ impl SymbolTable {
     /// structure (something that can efficiently remove symbols and keep the
     /// existing SymbolId valid) and update this to track the next ID
     /// differently. That has intentionally been left for later.
-    pub fn add_symbol(&mut self, mut sym: Symbol) -> Result<SymbolId, SymbolTableError> {
+    pub fn add(&mut self, mut sym: Symbol) -> Result<SymbolId, SymbolTableError> {
         if let Some(sym_id) = sym.sym_id {
             return Err(SymbolTableErrorKind::AlreadyInitialized(sym_id).with_symbol(sym));
         }
@@ -171,12 +171,12 @@ mod tests {
 
         let mut sym_table = SymbolTable::default();
 
-        let sym_id = sym_table.add_symbol(new_sym).unwrap();
+        let sym_id = sym_table.add(new_sym).unwrap();
 
         assert_eq!(sym_id, SymbolId(0));
 
         assert_eq!(
-            sym_table.add_symbol(new_sym2).unwrap_err().kind(),
+            sym_table.add(new_sym2).unwrap_err().kind(),
             SymbolTableErrorKind::AlreadyInitialized(SymbolId(1))
         );
     }
@@ -188,7 +188,7 @@ mod tests {
 
         let mut sym_table = SymbolTable::default();
 
-        let sym_id = sym_table.add_symbol(new_sym).unwrap();
+        let sym_id = sym_table.add(new_sym).unwrap();
         copy_sym.sym_id = Some(sym_id);
 
         assert_eq!(*sym_table.get(sym_id).unwrap(), copy_sym);
