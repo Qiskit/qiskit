@@ -1005,6 +1005,26 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
             for basis_gate in basis_gates:
                 self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
 
+    def test_determinism_multiple_2q_gates(self):
+        """Test that 2q synthesis tie-breaks deterministically among equally scored 2q gates.
+
+        Regression test for #17218.
+        """
+        target = Target.from_configuration(["u", "cx", "cz", "ecr"], num_qubits=2)
+        qc = QuantumCircuit(2)
+        for k in range(4):
+            qc.cx(k % 2, (k + 1) % 2)
+            qc.ry(0.3 + k, 0)
+            qc.rz(0.1 + 0.7 * k, 1)
+
+        expected_ops = transpile(
+            qc, target=target, optimization_level=2, seed_transpiler=0
+        ).count_ops()
+        for _ in range(10):
+            tqc = transpile(qc, target=target, optimization_level=2, seed_transpiler=0)
+            self.assertEqual(tqc.count_ops(), expected_ops)
+
+
     def test_determinism_parallelism(self):
         """Test that the decomposition is deterministic in parallel mode with >50 gates to synthesize."""
         gate_counts = {"rx": 800, "rz": 1100, "iswap": 300}

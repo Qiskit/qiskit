@@ -924,9 +924,16 @@ fn get_candidate_2q_operations(
 ) -> Vec<Candidate2q<'_>> {
     let rev_qubits = [qubits[1], qubits[0]];
     let mut candidates = Vec::new();
-    let forwards_names = target
+    // `operation_names_for_qargs` returns a `HashSet`, whose iteration order is randomised
+    // per call. Sorting the operation names ensures candidate 2q operations are evaluated
+    // in a deterministic, canonical order, making tie-breaking between equally scored gates
+    // reproducible.
+    let mut forwards_names: Vec<&str> = target
         .operation_names_for_qargs(&qubits)
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
+    forwards_names.sort_unstable();
     let mut reverse_names = target
         .operation_names_for_qargs(&rev_qubits)
         .unwrap_or_default();
@@ -970,6 +977,8 @@ fn get_candidate_2q_operations(
             error,
         });
     }
+    let mut reverse_names: Vec<&str> = reverse_names.into_iter().collect();
+    reverse_names.sort_unstable();
     for name in reverse_names {
         let Some(TargetOperation::Normal(op)) = target.operation_from_name(name) else {
             continue;
@@ -1044,3 +1053,70 @@ fn circuit_to_2q_sequence(circuit: &CircuitData) -> PyResult<TwoQubitGateSequenc
         .collect::<PyResult<_>>()?;
     Ok(TwoQubitGateSequence::from_sequence(gates, global_phase))
 }
+
+#[cfg(test)]
+mod test {
+    use qiskit_circuit::PhysicalQubit;
+    use qiskit_circuit::operations::StandardGate;
+    use qiskit_util::IndexMap;
+    use smallvec::smallvec;
+
+    use crate::target::{InstructionProperties, Qargs, Target};
+
+    use super::{DecompositionDirection2q, get_candidate_2q_operations};
+
+    /// Regression test for https://github.com/Qiskit/qiskit/issues/17218
+    ///
+    /// The candidate 2q operations for a pair of qubits must be returned in a canonical order
+    /// so that tie-breaking among equally scored candidates is reproducible.
+    #[test]
+    fn candidate_2q_operations_order_is_canonical() {
+        let mut target = Target::default();
+        for gate in [StandardGate::CZ, StandardGate::ECR, StandardGate::CX] {
+            target
+                .add_instruction(
+                    gate.into(),
+                    None,
+                    None,
+                    Some(IndexMap::from_iter([
+                        (
+                            Qargs::Concrete(smallvec![PhysicalQubit(0), PhysicalQubit(1)]),
+                            Some(InstructionProperties::new(None, None)),
+                        ),
+                        (
+                            Qargs::Concrete(smallvec![PhysicalQubit(1), PhysicalQubit(0)]),
+                            Some(InstructionProperties::new(None, None)),
+                        ),
+                    ])),
+                )
+                .expect("gate is valid on these qubits");
+        }
+        for gate in [StandardGate::CY, StandardGate::CSX] {
+            target
+                .add_instruction(
+                    gate.into(),
+                    None,
+                    None,
+                    Some(IndexMap::from_iter([(
+                        Qargs::Concrete(smallvec![PhysicalQubit(1), PhysicalQubit(0)]),
+                        Some(InstructionProperties::new(None, None)),
+                    )])),
+                )
+                .expect("gate is valid on reverse qubits");
+        }
+
+        // Sorted name order for forwards/bidirectional candidates is "cx", "cz", "ecr",
+        // followed by reverse-only candidates sorted as "csx", "cy".
+        let expected_keys = vec!["cx", "cz", "ecr", "csx", "cy"];
+        for _ in 0..100 {
+            let candidates = get_candidate_2q_operations(
+                &target,
+                [PhysicalQubit(0), PhysicalQubit(1)],
+                DecompositionDirection2q::Any,
+            );
+            let keys: Vec<&str> = candidates.iter().map(|c| c.key).collect();
+            assert_eq!(keys, expected_keys);
+        }
+    }
+}
+

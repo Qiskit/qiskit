@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed non-deterministic :func:`.transpile` output when synthesizing 2-qubit unitaries
+    on a :class:`.Target` with multiple equally scored 2-qubit gates available on the same
+    qubits. Candidate 2-qubit operations are now evaluated in a canonical, deterministic
+    order.
+    Fixed `#17218 <https://github.com/Qiskit/qiskit/issues/17218>`__.
