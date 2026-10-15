@@ -214,8 +214,8 @@ impl PyPass {
         visit.call(&inner.ob)?;
         // `PyVisit` derives `Copy` in https://github.com/PyO3/pyo3/pull/6412, which is due for
         // release in PyO3 0.30.  The clone is cheap.
-        inner.ir_in.gc_traverse(visit.clone())?;
-        inner.ir_out.gc_traverse(visit.clone())?;
+        inner.ir_in.gc_traverse(visit)?;
+        inner.ir_out.gc_traverse(visit)?;
         Ok(())
     }
     // We are not required to do anything in `__clear__` because our Python references are all

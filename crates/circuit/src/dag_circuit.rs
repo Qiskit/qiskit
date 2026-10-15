@@ -400,12 +400,7 @@ fn reject_new_register(reg: &ClassicalRegister) -> Result<(), DAGError> {
     Err(DAGError::RejectNewRegister(reg.bits().collect_vec()))
 }
 
-#[pyclass(
-    name = "BitLocations",
-    module = "qiskit._accelerate.circuit",
-    sequence,
-    skip_from_py_object
-)]
+#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit", sequence)]
 #[derive(Clone, Debug)]
 pub struct PyBitLocations {
     #[pyo3(get)]
