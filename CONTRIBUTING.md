@@ -1059,6 +1059,9 @@ To check whether the C code conforms to the style guide, you can run `make cform
 will need to execute without any warnings or errors for CI to pass.
 Automatic formatting can be applied by `make fix_cformat`.
 
+Qiskit also runs `[clang-tidy](https://clang.llvm.org/extra/clang-tidy/) for additional, specific
+linting. Run `make ctidy` to trigger the check, which needs to pass without any errors.
+
 ## Building API docs locally
 
 The API documentation is built with Sphinx.
