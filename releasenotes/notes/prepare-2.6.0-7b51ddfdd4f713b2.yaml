@@ -22,4 +22,4 @@ prelude: |
       C is only supported for payloads using QPY v13 and onwards. Refer to
       :ref:`capi-qpy`.
     * QPY v18 which introduces a new format version and produces payloads with
-      smaller footprints. Please refer to :ref:`qpy_version_18`.
+      smaller footprints. Please refer to :ref:`the QPY Version 18 docs <qpy_version_18>` for more details on the changes in the new format revision.
