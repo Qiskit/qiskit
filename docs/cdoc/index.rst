@@ -32,6 +32,15 @@ Quantum Circuit
    qk-quantum-register
    qk-classical-register
    qk-param
+   qk-operation
+
+Dynamic Circuits
+++++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-dynamic-circuits
    qk-control-flow
    qk-classical-expressions
 
@@ -43,6 +52,13 @@ Circuit Library
 
    qk-circuit-library
 
+Import/Export
++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-qpy
 
 -------------------
 Quantum information
@@ -82,7 +98,7 @@ results transpiling circuits from Python via the C API.
    qk-transpiler-passes
    qk-vf2-layout
    qk-sabre-layout-options
-
+   pass-manager
 
 ---------
 Utilities
@@ -92,4 +108,5 @@ Utilities
    :maxdepth: 1
 
    config
+   dynamic-types
    version

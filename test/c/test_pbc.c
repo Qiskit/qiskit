@@ -34,7 +34,7 @@ static int test_counts_litinski(void) {
     qk_circuit_gate(circuit, QkGate_S, (uint32_t[1]){2}, NULL);
     qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){2}, NULL);
 
-    qk_transpiler_pass_standalone_litinski_transformation(circuit, false, 1.0);
+    qk_transpiler_pass_standalone_litinski_transformation(circuit, false);
     int result = Ok;
     if (qk_circuit_num_instructions(circuit) != 4) {
         result = EqualityError;
@@ -85,23 +85,27 @@ static int test_counts_convert_to_pauli_rotations(void) {
     for (size_t i = 0; i < op_counts.len; i++) {
         if (strcmp(op_counts.data[i].name, "pauli_product_rotation") == 0) {
             if (op_counts.data[i].count != expected_ppr) {
-                printf("Expected %zu PPR but found %zu\n", expected_ppr, op_counts.data[i].count);
+                fprintf(stderr, "Expected %zu PPR but found %zu\n", expected_ppr,
+                        op_counts.data[i].count);
                 result = EqualityError;
                 break;
             }
         } else if (strcmp(op_counts.data[i].name, "pauli_product_measurement") == 0) {
             if (op_counts.data[i].count != 2) {
-                printf("Expected %zu PPM but found %zu\n", expected_ppm, op_counts.data[i].count);
+                fprintf(stderr, "Expected %zu PPM but found %zu\n", expected_ppm,
+                        op_counts.data[i].count);
                 result = EqualityError;
                 break;
             }
         } else {
             // unexpected gate name!
-            printf("Unexpected gate: %s\n", op_counts.data[i].name);
+            fprintf(stderr, "Unexpected gate: %s\n", op_counts.data[i].name);
             result = EqualityError;
             break;
         }
     }
+    qk_opcounts_clear(&op_counts);
+
 cleanup:
     qk_circuit_free(circuit);
     return result;
@@ -139,7 +143,8 @@ int check_paulis(enum Pauli *expected_paulis, bool *x, bool *z, size_t len) {
             expected_z = true;
         }
         if (x[i] != expected_x || z[i] != expected_z) {
-            printf("Expected (%i, %i) but got (%i, %i)\n", expected_x, expected_z, x[i], z[i]);
+            fprintf(stderr, "Expected (%i, %i) but got (%i, %i)\n", expected_x, expected_z, x[i],
+                    z[i]);
             result = EqualityError;
             break;
         }
@@ -163,14 +168,14 @@ int check_pauli_rotation(QkCircuit *circuit, size_t index, enum Pauli *paulis, u
     // (1) check the angle matches
     double angle = qk_param_as_real(ppr.angle);
     if (fabs(angle - expected_angle) > 1e-12) {
-        printf("Expected angle %f but got %f\n", expected_angle, angle);
+        fprintf(stderr, "Expected angle %f but got %f\n", expected_angle, angle);
         result = EqualityError;
         goto cleanup;
     }
 
     // (2) check the Paulis match
     if (ppr.len != len) {
-        printf("Expected %zu Paulis but got %zu\n", len, ppr.len);
+        fprintf(stderr, "Expected %zu Paulis but got %zu\n", len, ppr.len);
         result = EqualityError;
         goto cleanup;
     }
@@ -214,7 +219,7 @@ int check_pauli_measurement(QkCircuit *circuit, size_t index, enum Pauli *paulis
 
     // (2) check the Paulis match
     if (ppm.len != len) {
-        printf("Expected %zu Paulis but got %zu\n", len, ppm.len);
+        fprintf(stderr, "Expected %zu Paulis but got %zu\n", len, ppm.len);
         result = EqualityError;
         goto cleanup;
     }
@@ -269,7 +274,7 @@ static int test_concrete_litinski(void) {
         qk_circuit_measure(circuit, i, i);
     }
 
-    qk_transpiler_pass_standalone_litinski_transformation(circuit, false, 1.0);
+    qk_transpiler_pass_standalone_litinski_transformation(circuit, false);
 
     int result = Ok;
     result = check_pauli_rotation(circuit, 0, (enum Pauli[1]){PZ}, (uint32_t[1]){0}, 1, M_PI_4);
@@ -350,11 +355,12 @@ static int test_litinski_noop(void) {
     QkCircuit *circuit = qk_circuit_new(1, 0);
     qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);
 
-    qk_transpiler_pass_standalone_litinski_transformation(circuit, true, 1.0);
+    qk_transpiler_pass_standalone_litinski_transformation(circuit, true);
 
     int result = Ok;
     if (qk_circuit_num_instructions(circuit) != 1) {
-        printf("Expected 1 instructions, but found %zu", qk_circuit_num_instructions(circuit));
+        fprintf(stderr, "Expected 1 instructions, but found %zu",
+                qk_circuit_num_instructions(circuit));
         result = EqualityError;
         goto cleanup;
     }
@@ -362,7 +368,7 @@ static int test_litinski_noop(void) {
     QkCircuitInstruction inst;
     qk_circuit_get_instruction(circuit, 0, &inst);
     if (strcmp(inst.name, "h") != 0) {
-        printf("Instruction at index 0 should be 'h' but is '%s'", inst.name);
+        fprintf(stderr, "Instruction at index 0 should be 'h' but is '%s'", inst.name);
         result = EqualityError;
     }
     qk_circuit_instruction_clear(&inst);

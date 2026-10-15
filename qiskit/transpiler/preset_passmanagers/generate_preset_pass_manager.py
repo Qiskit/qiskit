@@ -13,6 +13,7 @@
 """
 Preset pass manager generation function
 """
+
 from __future__ import annotations
 
 import copy
@@ -109,9 +110,11 @@ def generate_preset_pass_manager(
     .. note::
 
         When the target basis consists of Clifford+T gates, this function constructs
-        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
-        for documentation. The arguments that apply to transpiling into continuous basis sets
-        are ignored in this flow.
+        a specialized Clifford+T transpiler pipeline, see
+        :func:`.generate_preset_clifford_t_pass_manager` for more detailed documentation. Arguments
+        that apply only to transpiling into continuous basis sets are ignored in this flow.
+        For example, the ``"unitary_synthesis_method"`` is not taken into account when synthesizing
+        single-qubit unitaries into a Clifford+T sequence.
 
     Args:
         optimization_level: The optimization level to generate a
@@ -315,6 +318,32 @@ def generate_preset_clifford_t_pass_manager(
     If basis gates are not specified (neither via ``target`` nor via ``basis_gates``), then basis gates
     default to all of the Clifford+T gates in Qiskit. Note, however, that if basis gates are specified
     but do not represent a Clifford+T basis, then an error will be raised.
+
+    Examples:
+        Generate and use a simple Clifford+T pass manager::
+
+            from qiskit.circuit import QuantumCircuit
+            from qiskit.transpiler import generate_preset_clifford_t_pass_manager
+
+            qc = QuantumCircuit(1)
+            qc.rz(2.3579, 0)
+
+            pm = generate_preset_clifford_t_pass_manager()
+            qct = pm.run(qc)
+
+        Various options are configurable; see the arguments documentation for more detail::
+
+            rz_synthesis_config = {
+                "rz_synthesis_error": 1e-4,
+                "rz_cache_error": 1e-5,
+            }
+
+            basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
+            pm = generate_preset_clifford_t_pass_manager(
+                rz_synthesis_config=rz_synthesis_config,
+                basis_gates=basis_gates,
+                optimization_level=3,
+            )
 
     Args:
         optimization_level: The optimization level to generate a

@@ -54,7 +54,7 @@ from qiskit.circuit.library import (
     RZGate,
     UnitaryGate,
 )
-from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info.operators import Operator, average_gate_fidelity
 from qiskit.quantum_info import random_unitary
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.synthesis.two_qubit.two_qubit_decompose import (
@@ -418,6 +418,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
     def test_special_U3(self):
         """Special cases of U3"""
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), "U3", {})
+        self.check_oneq_special_cases(U3Gate(0.0, np.pi, -np.pi).to_matrix(), "U3", {})
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), "U3", {"u3": 1})
         self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.2, 0.0).to_matrix(), "U3", {"u3": 1})
         self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.0, 0.2).to_matrix(), "U3", {"u3": 1})
@@ -426,6 +427,7 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
     def test_special_U(self):
         """Special cases of U"""
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, -0.1).to_matrix(), "U", {})
+        self.check_oneq_special_cases(U3Gate(0.0, np.pi, -np.pi).to_matrix(), "U", {})
         self.check_oneq_special_cases(U3Gate(0.0, 0.1, 0.2).to_matrix(), "U", {"u": 1})
         self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.2, 0.0).to_matrix(), "U", {"u": 1})
         self.check_oneq_special_cases(U3Gate(np.pi / 2, 0.0, 0.2).to_matrix(), "U", {"u": 1})
@@ -1125,6 +1127,18 @@ class TestTwoQubitDecompose(CheckDecompositions):
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
+    def test_cx_decomposition_no_identity_one_qubit_gates(self):
+        """Decomposing CX in the CX basis should give a bare CX, with no identity 1q gates."""
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+
+        for euler_basis in ("U", "U3"):
+            with self.subTest(euler_basis=euler_basis):
+                decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis=euler_basis)
+                decomposed = decomposer(CXGate().to_matrix())
+
+                self.assertEqual(decomposed, expected)
+
     def test_cx_equivalence_2cx(self, seed=2):
         """Check circuits with  2 cx gates locally equivalent to some circuit with 2 cx."""
         state = np.random.default_rng(seed)
@@ -1336,6 +1350,91 @@ class TestPulseOptimalDecompose(CheckDecompositions):
         self.assertEqual(Operator(res), Operator(qc))
         self.assertNotIn("x", res.count_ops())
         self.assertIn("sx", res.count_ops())
+
+    @combine(eps=[1e-6, 1e-7, 1e-8], a=[-1.2, 0.3, 0.4], b=[-0.6, 0.1, 1.5])
+    def test_zsx_near_2_3_cx_boundary(self, eps, a, b):
+        """Test that pulse-optimal decomposition returns the correct decomposition
+        near the 2-CX / 3-CX boundary. See issue 17057."""
+        qc = QuantumCircuit(2)
+        qc.rxx(a, 0, 1)
+        qc.ryy(b, 0, 1)
+        qc.rzz(-2.0 * eps, 0, 1)
+        u = Operator(qc)
+
+        decomp = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX")(u.data)
+        self.assertEqual(Operator(decomp), u)
+        self.assertAlmostEqual(average_gate_fidelity(Operator(decomp), u), 1)
+        if eps == 1e-8:  # synthesis using 2 CX gates
+            self.assertEqual(decomp.count_ops()["cx"], 2)
+        else:  # synthesis using 3 CX gates, there are two cases:
+            # if eps == 1e-7 then x12 isn't a multiplication of pi
+            # if eps == 1e-6 then x12 is an odd multiplication of pi
+            self.assertEqual(decomp.count_ops()["cx"], 3)
+
+    @combine(eps=[1e-4, 1e-5])
+    def test_zsx_near_2_0_cx_boundary(self, eps):
+        """Test that pulse-optimal decomposition returns the correct decomposition
+        near the no-CX / 2-CX boundary. See the discussion in issue 17057."""
+        qc = QuantumCircuit(2)
+        qc.rzz(eps, 0, 1)
+        u = Operator(qc)
+
+        decomp = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX")(u.data)
+        self.assertEqual(Operator(decomp), Operator(u))
+        self.assertAlmostEqual(average_gate_fidelity(Operator(decomp), Operator(u)), 1)
+        if eps == 1e-5:  # synthesis using no CX gates
+            self.assertTrue("cx" not in list(decomp.count_ops().keys()))
+        else:  # synthesis using 2 CX gates
+            self.assertEqual(decomp.count_ops()["cx"], 2)
+
+    @combine(eps=[1e-4, 1e-5])
+    def test_zsx_near_3_0_cx_boundary(self, eps):
+        """Test that pulse-optimal decomposition returns the correct decomposition
+        near the no-CX / 3-CX boundary. See the discussion in issue 17057."""
+        qc = QuantumCircuit(2)
+        qc.rxx(eps, 0, 1)
+        qc.ryy(eps, 0, 1)
+        qc.rzz(eps, 0, 1)
+        u = Operator(qc)
+
+        decomp = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX")(u.data)
+        self.assertAlmostEqual(average_gate_fidelity(Operator(decomp), Operator(u)), 1)
+        if eps == 1e-5:  # synthesis using no CX gates
+            self.assertTrue("cx" not in list(decomp.count_ops().keys()))
+        else:  # synthesis using 3 CX gates
+            # in this case, x12 is an even multiplication of pi
+            self.assertEqual(decomp.count_ops()["cx"], 3)
+
+    @combine(eps=[1e-7, 1e-8])
+    def test_zsx_near_2_1_cx_boundary(self, eps):
+        """Test that pulse-optimal decomposition returns the correct decomposition
+        near the 1-CX / 2-CX boundary. See the discussion in issue 17057."""
+        qc = QuantumCircuit(2)
+        qc.rzz(np.pi / 2 + eps, 0, 1)
+        u = Operator(qc)
+
+        decomp = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX")(u.data)
+        self.assertEqual(Operator(decomp), Operator(u))
+        self.assertAlmostEqual(average_gate_fidelity(Operator(decomp), Operator(u)), 1)
+        if eps == 1e-8:  # synthesis using 1 CX gates
+            self.assertTrue(decomp.count_ops()["cx"], 1)
+        else:  # synthesis using 2 CX gates
+            self.assertEqual(decomp.count_ops()["cx"], 2)
+
+    def test_zsx_with_sign_problem(self):
+        """Test that pulse-optimal decomposition returns the correct decomposition
+        where there is a sign change. See discsussion in issue 17057."""
+        u = np.array(
+            [
+                [0, 1, 0, 0],
+                [0, 0, 0, 1],
+                [1, 0, 0, 0],
+                [0, 0, 1, 0],
+            ]
+        )
+        decomp = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX")(u)
+        self.assertEqual(Operator(decomp), Operator(u))
+        self.assertAlmostEqual(average_gate_fidelity(Operator(decomp), Operator(u)), 1)
 
 
 @ddt
