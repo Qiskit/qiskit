@@ -34,14 +34,15 @@ bool biguint_eq(const QkBigUint a, const QkBigUint b) { return biguint_cmp(a, b)
 void biguint_debug_print(const QkBigUint *biguint, const char *name) {
     if (name == NULL)
         name = "biguint";
-    printf("%s.num_limbs = %zu\n", name, biguint->num_limbs);
+    fprintf(stderr, "%s.num_limbs = %zu\n", name, biguint->num_limbs);
     for (size_t limb_idx = 0; limb_idx < biguint->num_limbs; limb_idx++) {
-        printf("%s[%zu] = [", name, limb_idx);
+        fprintf(stderr, "%s[%zu] = [", name, limb_idx);
         for (size_t i = 0; i < sizeof(uint64_t); i++) {
-            printf("%02" PRIX8, ((uint8_t *)biguint->limbs)[sizeof(uint64_t) * limb_idx + i]);
+            fprintf(stderr, "%02" PRIX8,
+                    ((uint8_t *)biguint->limbs)[sizeof(uint64_t) * limb_idx + i]);
             if (i < sizeof(uint64_t) - 1)
-                printf(" ");
+                fprintf(stderr, " ");
         }
-        printf("]\n");
+        fprintf(stderr, "]\n");
     }
 }

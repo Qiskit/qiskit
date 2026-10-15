@@ -537,13 +537,14 @@ static int test_expr_value(void) {
             biguint_val = qk_value_biguint(value);
 
             if (biguint_val.num_limbs != 1) {
-                printf("Expected biguint value length 1 (one limb), got %zu\n",
-                       biguint_val.num_limbs);
+                fprintf(stderr, "Expected biguint value length 1 (one limb), got %zu\n",
+                        biguint_val.num_limbs);
                 result = EqualityError;
                 goto cleanup;
             }
             if (biguint_val.limbs[0] != 12345) {
-                printf("Expected biguint value 12345, got %" PRIu64 "\n", biguint_val.limbs[0]);
+                fprintf(stderr, "Expected biguint value 12345, got %" PRIu64 "\n",
+                        biguint_val.limbs[0]);
                 result = EqualityError;
                 goto cleanup;
             }
@@ -585,7 +586,7 @@ static enum TestResult check_biguint_value(const BigUint_TestCase *tc) {
     QkBigUint actual = qk_value_biguint(value);
 
     if (!biguint_eq(actual, tc->expected)) {
-        printf("Unexpected QkBigUint value for '%s'\n", tc->label);
+        fprintf(stderr, "Unexpected QkBigUint value for '%s'\n", tc->label);
         biguint_debug_print(&tc->expected, "expected");
         biguint_debug_print(&actual, "actual");
         result = EqualityError;
@@ -593,7 +594,7 @@ static enum TestResult check_biguint_value(const BigUint_TestCase *tc) {
 
     qk_biguint_clear(&actual);
     if (!(actual.num_limbs == 0 && actual.limbs == NULL)) {
-        printf("Expected zeroed memory after calling 'qk_biguint_clear'\n");
+        fprintf(stderr, "Expected zeroed memory after calling 'qk_biguint_clear'\n");
         result = RuntimeError;
     }
 
