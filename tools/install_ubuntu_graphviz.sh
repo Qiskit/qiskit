@@ -4,5 +4,5 @@
 
 set -e
 
-apt upgrade
-apt install -y graphviz libgvplugin-neato-layout8
+apt-get upgrade
+apt-get install -y graphviz libgvplugin-neato-layout8
