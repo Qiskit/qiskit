@@ -279,9 +279,9 @@ mod tests {
 
         for time in [1.0, 3.0, 5.0] {
             let gate = StandardGate::RY;
-            let exp = gate.matrix(&[Param::Float(time * 2.0)]).unwrap();
+            let exp = gate.matrix(&[Param::Float(time)]).unwrap();
 
-            let gate = PauliEvolution::new(obs.clone(), Param::Float(time)).unwrap();
+            let gate = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
             let res = gate.to_matrix().unwrap();
 
             assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
@@ -295,9 +295,9 @@ mod tests {
 
         for time in [1.0, 3.0, 5.0] {
             let gate = StandardGate::RX;
-            let exp = gate.matrix(&[Param::Float(time * 2.0)]).unwrap();
+            let exp = gate.matrix(&[Param::Float(time)]).unwrap();
 
-            let gate = PauliEvolution::new(obs.clone(), Param::Float(time)).unwrap();
+            let gate = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
             let res = gate.to_matrix().unwrap();
 
             assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
@@ -311,9 +311,9 @@ mod tests {
 
         for time in [1.0, 3.0, 5.0] {
             let gate = StandardGate::RZ;
-            let exp = gate.matrix(&[Param::Float(time * 2.0)]).unwrap();
+            let exp = gate.matrix(&[Param::Float(time)]).unwrap();
 
-            let gate = PauliEvolution::new(obs.clone(), Param::Float(time)).unwrap();
+            let gate = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
             let res = gate.to_matrix().unwrap();
 
             assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
