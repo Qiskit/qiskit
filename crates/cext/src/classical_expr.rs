@@ -903,6 +903,10 @@ pub unsafe extern "C" fn qk_value_biguint(value: *const Value) -> CBigUint {
 /// Calling with null or a zero value (``biguint.limbs == NULL``) is a no-op.
 ///
 /// @param biguint Nullable pointer to `QkBigUint`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``biguint`` is not a valid pointer to a `QkBigUint` or null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_biguint_clear(biguint: *mut CBigUint) {
     if biguint.is_null() {
