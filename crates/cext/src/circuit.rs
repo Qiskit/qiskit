@@ -2716,7 +2716,7 @@ pub struct CircuitDrawerConfig {
 ///     * ``merge_wires = true``
 ///     * ``fold = 0``
 ///     * ``barrier_label_len = 16``
-///     * ``idle_wires = false``
+///     * ``idle_wires = true``
 ///
 /// @return A pointer to a null-terminated string containing the circuit representation.
 ///     You must use ``qk_str_free`` to release the allocated memory when done.
@@ -2767,7 +2767,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
             config.idle_wires,
         )
     } else {
-        (true, true, None, 0, false)
+        (true, true, None, 0, true)
     };
 
     let circuit_str = draw_circuit(
