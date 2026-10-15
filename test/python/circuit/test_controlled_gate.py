@@ -1370,6 +1370,11 @@ class TestControlledGate(QiskitTestCase):
             base_gate.control(num_ctrl_qubits, ctrl_state=2**num_ctrl_qubits, annotated=False)
         with self.assertRaises(CircuitError):
             base_gate.control(num_ctrl_qubits, ctrl_state="201", annotated=False)
+        # Bitstrings with wrong length must raise, not silently convert (issue #17228).
+        with self.assertRaises(CircuitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state="1", annotated=False)
+        with self.assertRaises(CircuitError):
+            base_gate.control(num_ctrl_qubits, ctrl_state="1111", annotated=False)
 
     def test_base_gate_params_reference(self):
         """

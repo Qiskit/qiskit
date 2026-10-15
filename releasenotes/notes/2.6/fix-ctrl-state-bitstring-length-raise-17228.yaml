@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed :func:`.circuit._utils._ctrl_state_to_int` to raise a
+    :class:`.CircuitError` when a ``ctrl_state`` bitstring has a length that
+    does not match ``num_ctrl_qubits``. Previously the ``raise`` keyword was
+    missing, so a too-short string (e.g. ``"1"`` for two control qubits) was
+    silently converted with :func:`int` and accepted as a valid state instead
+    of being rejected.
+    Fixed `#17228 <https://github.com/Qiskit/qiskit/issues/17228>`__.
