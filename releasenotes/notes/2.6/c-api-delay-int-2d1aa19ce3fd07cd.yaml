@@ -8,7 +8,8 @@ features_c:
 upgrade_c:
   - |
     Added variants :c:enum:`QkDelayUnit_DT`, :c:enum:`QkDelayUnit_EXPR`, and :c:enum:`QkDelayUnit_Unknown` to the
-    :c:enum:`QkDelayUnit` enumeration.
+    :c:enum:`QkDelayUnit` enumeration. The C compiler may warn you about any switch statement that uses `QkDelayUnit`
+    and misses the cases for the new variants.
   - |
     When adding a delay to a ``QkCircuit`` using :c:func:`qk_circuit_delay` with units of  :c:enum:`QkDelayUnit_DT`,
     :c:enum:`QkDelayUnit_EXPR`, or :c:enum:`QkDelayUnit_Unknown`, the operation will fail with an exit code.

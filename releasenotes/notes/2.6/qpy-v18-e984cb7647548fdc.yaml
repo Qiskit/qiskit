@@ -1,0 +1,21 @@
+---
+upgrade_qpy:
+  - |
+    Added a new QPY format version, 18, which is now used by default in
+    :func:`.qpy.dump`. If needed, users can specify a previous QPY format
+    version by specifying the ``version`` argument of the on :func:`.qpy.dump`.
+    For more information about the format changes see the 
+    :ref:`QPY Version 18 docs<qpy_version_18>`.
+performance:
+  - |
+    QPY version 18 now stores each :class:`.ParameterVector` once per circuit
+    payload, in a new ``PARAMETER_VECTOR_TABLE``. QPY now avoids repeating the
+    vector's name and size for each element, and instead refers to each by 
+    index. An element now occupies 10 bytes instead of 34 plus the length of the
+    vector's name. For example: a circuit using a 100-element vector is now 
+    around 29% smaller.
+  - |
+    QPY version 18 narrows the bit-term elements of the ``SPARSE_OBSERVABLE``
+    payload from ``uint16_t`` to ``uint8_t``, reducing the representation for
+    :class:`.SparseObservable` instances in QPY by 2 bytes per term in the
+    observable.

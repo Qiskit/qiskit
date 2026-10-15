@@ -1,5 +1,5 @@
 ---
-features_quantum_info:
+features_transpiler:
   - |
     Added a new ``optimization_level`` argument to the :class:`.HighLevelSynthesis`
     transpiler pass. This allows the pass to select synthesis methods that can produce
