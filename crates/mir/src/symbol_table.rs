@@ -77,7 +77,7 @@ impl Symbol {
     }
 
     /// Get the name for this symbol.
-    pub fn get_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
@@ -86,7 +86,7 @@ impl Symbol {
     /// Note that it is expected for the SymbolId field to be None before being
     /// added to the symbol table, and contain a valid Id after being added to
     /// the table (i.e., the Symbol Table manages and provides the Symbol Ids).
-    pub fn get_symbol_id(&self) -> Option<SymbolId> {
+    pub fn id(&self) -> Option<SymbolId> {
         self.sym_id
     }
 }
@@ -154,23 +154,15 @@ impl SymbolTable {
     /// Get a reference to a symbol in the symbol table.
     ///
     /// This will panic if the specified SymbolId is *not* in the table.
-    pub fn get_symbol(&self, sym_id: SymbolId) -> &Symbol {
-        &self.sym_table[sym_id.0]
-    }
-
-    /// Try to get a symbol from the symbol table.
-    ///
-    /// This will safely attempt to return a reference to specified Symbol. If
-    /// the specified SymbolId is not in the table, return None.
-    pub fn try_get_symbol(&self, sym_id: SymbolId) -> Option<&Symbol> {
+    pub fn get(&self, sym_id: SymbolId) -> Option<&Symbol> {
         self.sym_table.get(sym_id.0)
     }
 
     /// Get a mutable reference to the specified symbol.
     ///
     /// This will panic if the SymbolId is not in the table.
-    pub fn get_symbol_mut(&mut self, sym_id: SymbolId) -> &mut Symbol {
-        &mut self.sym_table[sym_id.0]
+    pub fn get_mut(&mut self, sym_id: SymbolId) -> Option<&mut Symbol> {
+        self.sym_table.get_mut(sym_id.0)
     }
 }
 
@@ -215,18 +207,8 @@ mod tests {
         let sym_id = sym_table.add_symbol(new_sym).unwrap();
         copy_sym.sym_id = Some(sym_id);
 
-        assert_eq!(*sym_table.get_symbol(sym_id), copy_sym);
+        assert_eq!(*sym_table.get(sym_id).unwrap(), copy_sym);
 
-        assert!(sym_table.try_get_symbol(SymbolId(1)).is_none());
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_get_symbol_panics() {
-        let new_sym = Symbol::new(String::from("test"));
-        let mut sym_table = SymbolTable::default();
-
-        _ = sym_table.add_symbol(new_sym).unwrap();
-        sym_table.get_symbol(SymbolId(1));
+        assert!(sym_table.get(SymbolId(1)).is_none());
     }
 }
