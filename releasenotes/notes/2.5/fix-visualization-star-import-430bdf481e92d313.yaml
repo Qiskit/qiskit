@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixed an :exc:`AttributeError` triggering on star-imports of :mod:`qiskit.visualization`.

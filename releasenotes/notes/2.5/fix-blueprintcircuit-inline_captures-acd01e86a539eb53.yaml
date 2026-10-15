@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    :meth:`.BlueprintCircuit.compose` now respects the ``inline_captures`` argument
