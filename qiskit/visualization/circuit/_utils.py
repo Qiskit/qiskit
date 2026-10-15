@@ -142,6 +142,7 @@ def get_param_str(op, drawer, ndigits=3):
     """Get the params as a string to add to the gate text display"""
     if (
         not hasattr(op, "params")
+        or op.name in {"initialize", "state_preparation"}
         or any(isinstance(param, np.ndarray) for param in op.params)
         or any(isinstance(param, QuantumCircuit) for param in op.params)
         or op.name == "pauli_product_measurement"
