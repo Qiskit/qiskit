@@ -1,0 +1,13 @@
+---
+upgrade_visualization:
+  - |
+    Fixed :func:`.plot_state_city` rendering matrix elements that are exactly zero
+    as sometimes-dark-sometimes-light squares rather than omitting them as with a
+    zero-height bar.
+    See `#14879 <https://github.com/Qiskit/qiskit/issues/14879>`__.
+fixes:
+  - |
+    Fixed :func:`.plot_state_city` raising ``ValueError: Invalid RGBA argument``
+    when ``color`` was given as a named Matplotlib color whose name happened to
+    contain as many characters as there were bars to draw, such as
+    ``color=["blue", "green"]`` for a state with four negative real amplitudes.
