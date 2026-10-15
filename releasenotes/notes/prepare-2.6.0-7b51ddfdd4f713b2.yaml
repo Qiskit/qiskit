@@ -6,7 +6,7 @@ prelude: |
   including the following:
 
   * **A Multi-IR Pass Manager in C and Python:** Users are now able to
-    create a :class:`.PassManager` from the C API which can use different
+    create a :class:`.LoweringPassManager` from the C API which can use different
     Intermediate Representations (IRs) as input and output. Refer to 
     :ref:`capi-pass-manager` for more details.
 
