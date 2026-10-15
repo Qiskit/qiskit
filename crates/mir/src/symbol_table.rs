@@ -38,12 +38,15 @@ impl SymbolTableError {
     }
     /// Get the underlying error.
     #[inline]
-    pub fn kind(&self) -> SymbolTableErrorKind {
-        self.kind.clone() // Clone is necessary because Symbol contains a String, and cannot derive Copy.
+    pub fn kind(&self) -> &SymbolTableErrorKind {
+        &self.kind
     }
 }
 
-/// The kind of error that triggered a [`AddSymbolError`]
+/// The kind of error that has been triggered.
+///
+/// This will grow over time as we add more functionality to the SymbolTable,
+/// and possibly verification and sanity checks.
 #[derive(thiserror::Error, Clone, Debug, PartialEq)]
 pub enum SymbolTableErrorKind {
     #[error("Symbol ID already set: {0}")]
@@ -71,6 +74,7 @@ pub struct Symbol {
 }
 
 impl Symbol {
+    /// Create a new (empty) symbol.
     pub const fn new(name: String) -> Self {
         Self { sym_id: None, name }
     }
@@ -176,7 +180,7 @@ mod tests {
         assert_eq!(sym_id, SymbolId(0));
 
         assert_eq!(
-            sym_table.add(new_sym2).unwrap_err().kind(),
+            *sym_table.add(new_sym2).unwrap_err().kind(),
             SymbolTableErrorKind::AlreadyInitialized(SymbolId(1))
         );
     }
