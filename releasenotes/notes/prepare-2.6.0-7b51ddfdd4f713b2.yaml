@@ -5,20 +5,23 @@ prelude: |
   This release introduces important new functionality into the Qiskit SDK,
   including the following:
 
-  * **A Multi-IR Pass Manager in C and Python:** Added a new pass manager framework which can use different Intermediate Representations (IRs) as input and outputs. This framework is exposed to Python via the :class:`.LoweringPassManager` class and to the C API too. Refer to the
-  C API :ref:`capi-pass-manager` documentation for more details on using this new pass manager from C.
-    C API :ref:`capi-pass-manager` documentation for more details.
+  * **A Multi-IR Pass Manager in C and Python:** Added a new pass manager framework which can use
+    different Intermediate Representations (IRs) as input and outputs. This framework is exposed
+    to Python via the :class:`.LoweringPassManager` class and to the C API too. Refer to the
+    C API :ref:`capi-pass-manager` documentation for more details on using this new pass manager
+    from C.
 
   * **Custom Operations in C:** Users are now able to create custom
-    :class:`.Operation` types using the C API. See the 
+    :class:`.Operation` types using the C API. See the
     :ref:`capi-operations` documentation for more details.
 
   * **QPY 18 and C API:**
-  
+
     * QPY serialization and de-serialization is now available via the C API.
       Users are now able to use QPY for roundtrip serialization from C as well
       as inter-operate with Python workflows. Please note that loading QPY from
       C is only supported for payloads using QPY v13 and onwards. Refer to
       :ref:`the QPY C API documentation <capi-qpy>` for more details.
     * QPY v18 which introduces a new format version and produces payloads with
-      smaller footprints. Refer to :ref:`the QPY Version 18 documentation <qpy_version_18>` for more details on the changes in the new format revision.
+      smaller footprints. Refer to :ref:`the QPY Version 18 documentation <qpy_version_18>`
+      for more details on the changes in the new format revision.
