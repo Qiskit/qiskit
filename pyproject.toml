@@ -28,19 +28,18 @@ keywords = [
     "sdk",
 ]
 classifiers = [
-    "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Topic :: Scientific/Engineering",
+    "Programming Language :: C",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Quantum Computing",
+    "Topic :: Software Development :: Compilers",
+    "Development Status :: 5 - Production/Stable",
 ]
 # These are configured in the `tool.setuptools.dynamic` table.
 dynamic = ["version", "readme", "dependencies"]
@@ -105,6 +104,7 @@ clifford = "qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin:Cli
 "linear_function.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisLinearFunction"
 "linear_function.pmh" = "qiskit.transpiler.passes.synthesis.hls_plugins:PMHSynthesisLinearFunction"
 "mcx.n_dirty_i15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNDirtyI15"
+"mcx.n_dirty_m15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNDirtyM15"
 "mcx.n_clean_m15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNCleanM15"
 "mcx.2_clean_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis2CleanKG24"
 "mcx.2_dirty_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis2DirtyKG24"
@@ -114,6 +114,7 @@ clifford = "qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin:Cli
 "mcx.gray_code" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisGrayCode"
 "mcx.noaux_v24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxV24"
 "mcx.noaux_hp24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxHP24"
+"mcx.noaux_sp22" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNoAuxSP22"
 "mcx.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisDefault"
 "mcmt.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisDefault"
 "mcmt.noaux" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCMTSynthesisNoAux"
@@ -148,7 +149,9 @@ clifford = "qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin:Cli
 "Multiplier.qft_r17" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisR17"
 "Multiplier.cumulative_h18" = "qiskit.transpiler.passes.synthesis.hls_plugins:MultiplierSynthesisH18"
 "PauliEvolution.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisDefault"
+"PauliEvolution.basic" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisBasic"
 "PauliEvolution.rustiq" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisRustiq"
+"PauliEvolution.mcts" = "qiskit.transpiler.passes.synthesis.hls_plugins:PauliEvolutionSynthesisMcts"
 "annotated.default" = "qiskit.transpiler.passes.synthesis.hls_plugins:AnnotatedSynthesisDefault"
 
 [project.entry-points."qiskit.transpiler.init"]
