@@ -13,7 +13,6 @@
 //! Implementation of the Symbol Table for Qiskit Midle-End Intermediate Representation.
 
 use std::fmt;
-use std::ops::{Add, AddAssign};
 
 /// Errors encountered when dealing with Symbols and the SymbolTable.
 #[derive(thiserror::Error, Clone, Debug)]
@@ -100,19 +99,6 @@ impl fmt::Display for Symbol {
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub struct SymbolId(usize);
 
-impl AddAssign for SymbolId {
-    fn add_assign(&mut self, other: Self) {
-        self.0 += other.0
-    }
-}
-
-impl Add for SymbolId {
-    type Output = Self;
-    fn add(self, other: Self) -> Self {
-        SymbolId(self.0 + other.0)
-    }
-}
-
 impl fmt::Display for SymbolId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -122,7 +108,6 @@ impl fmt::Display for SymbolId {
 #[derive(Default, Debug)]
 pub struct SymbolTable {
     sym_table: Vec<Symbol>,
-    next_id: SymbolId,
 }
 
 impl SymbolTable {
@@ -131,23 +116,22 @@ impl SymbolTable {
     /// It is assumed that the provided symbol does *not* have an Id set. If it
     /// does, it is assumed to be already in the symbol table and an error is
     /// returned.
+    ///
+    /// Note: the symbol id is derived from the number of symbols currently in
+    /// the table. This will not work once we support removing symbols from the
+    /// table. At that point, we will want to look at a new backing data
+    /// structure (something that can efficiently remove symbols and keep the
+    /// existing SymbolId valid) and update this to track the next ID
+    /// differently. That has intentionally been left for later.
     pub fn add_symbol(&mut self, mut sym: Symbol) -> Result<SymbolId, SymbolTableError> {
         if let Some(sym_id) = sym.sym_id {
             return Err(SymbolTableErrorKind::AlreadyInitialized(sym_id).with_symbol(sym));
         }
 
-        let this_sym_id = self.next_id;
+        let this_sym_id = SymbolId(self.sym_table.len());
         sym.sym_id = Some(this_sym_id);
-
-        self.next_id += SymbolId(1);
-
         self.sym_table.push(sym);
 
-        debug_assert_eq!(
-            self.next_id,
-            SymbolId(self.sym_table.len()),
-            "Symbol table inconsistent!"
-        );
         Ok(this_sym_id)
     }
 
