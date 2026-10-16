@@ -17,8 +17,81 @@ Transpiler Passes (:mod:`qiskit.transpiler.passes`)
 
 .. currentmodule:: qiskit.transpiler.passes
 
+Working with transpiler passes
+==============================
+
+Transpiler passes are the individual building blocks used by
+:class:`~qiskit.transpiler.PassManager` objects to analyze or rewrite circuits.
+They operate on Qiskit's internal :class:`~qiskit.dagcircuit.DAGCircuit`
+representation, but users typically run them through a pass manager using
+:class:`~qiskit.circuit.QuantumCircuit` inputs.
+
+There are two broad kinds of pass:
+
+* :class:`~qiskit.transpiler.AnalysisPass` objects inspect a circuit and write
+  information into the pass manager's
+  :class:`~qiskit.transpiler.PropertySet`. They do not change the circuit.
+* :class:`~qiskit.transpiler.TransformationPass` objects rewrite the circuit.
+  They can also read information that earlier analysis passes stored in the
+  property set.
+
+For complete device-aware compilation, start with
+:func:`~qiskit.transpiler.generate_preset_pass_manager`. The passes below are
+useful when you want to inspect a circuit, build a smaller custom workflow, or
+customize one stage of transpilation.
+
+For example, an analysis pass can be used to collect information about a
+circuit::
+
+    from qiskit.circuit import QuantumCircuit  # Build circuits.
+    from qiskit.transpiler import PassManager  # Run passes.
+    from qiskit.transpiler.passes import CountOps  # Count operations.
+
+    circuit = QuantumCircuit(2)  # Make a 2-qubit circuit.
+    circuit.h(0)  # Add an H gate.
+    circuit.cx(0, 1)  # Add a CX gate.
+
+    pass_manager = PassManager([CountOps()])  # Create the workflow.
+    pass_manager.run(circuit)  # Run the analysis.
+    print(pass_manager.property_set["count_ops"])  # Show the result.
+
+Transformation passes can be combined to build a small custom compilation
+workflow. This example removes a barrier and then cancels two adjacent
+self-inverse gates::
+
+    from qiskit.circuit import QuantumCircuit  # Build circuits.
+    from qiskit.circuit.library import HGate  # Name the H gate.
+    from qiskit.transpiler import PassManager  # Run passes.
+    from qiskit.transpiler.passes import InverseCancellation, RemoveBarriers  # Import passes.
+
+    circuit = QuantumCircuit(1)  # Make a 1-qubit circuit.
+    circuit.h(0)  # Add the first H gate.
+    circuit.barrier()  # Add a barrier.
+    circuit.h(0)  # Add the second H gate.
+
+    pass_manager = PassManager(  # Create the workflow.
+        [  # Set the pass order.
+            RemoveBarriers(),  # Remove the barrier.
+            InverseCancellation([HGate()]),  # Cancel adjacent H gates.
+        ]  # End the pass list.
+    )  # End the workflow.
+    simplified = pass_manager.run(circuit)  # Run the transforms.
+
+Pass categories
+===============
+
+The categories below group passes by the role they usually play in a
+transpilation workflow. A preset pass manager may use passes from several
+categories in one stage, run a category more than once, or skip a category when
+it is not needed for the target.
+
 Layout Selection (Placement)
 ============================
+
+Layout-selection passes choose or validate the mapping from the circuit's
+virtual qubits to the target's physical qubits. Some passes simply apply a
+provided layout, while others search for a layout that reduces routing or
+hardware error.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -38,6 +111,10 @@ Layout Selection (Placement)
 Routing
 =======
 
+Routing passes insert operations, typically swaps, so that every multi-qubit
+operation satisfies the target connectivity. These passes usually run after a
+layout has been selected.
+
 .. autosummary::
    :toctree: ../stubs/
 
@@ -51,6 +128,11 @@ Routing
 Basis Change
 ============
 
+Basis-change passes rewrite instructions into a requested gate set or target
+instruction set. These are often used after routing, when the circuit topology
+is compatible with the target but its operations still need to be expressed in
+the target basis.
+
 .. autosummary::
    :toctree: ../stubs/
 
@@ -62,6 +144,10 @@ Basis Change
 
 Optimizations
 =============
+
+Optimization passes reduce or simplify a circuit while preserving its
+semantics. Some are general-purpose, such as cancellation of inverse gates,
+while others use target information or specialized synthesis routines.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -104,6 +190,10 @@ Optimizations
 Scheduling
 =============
 
+Scheduling passes assign timing information to circuit instructions and insert
+delays when required. They are typically used late in the transpilation
+pipeline, once the circuit is expressed in target-supported operations.
+
 .. autosummary::
    :toctree: ../stubs/
 
@@ -120,6 +210,10 @@ Scheduling
 Circuit Analysis
 ================
 
+Circuit-analysis passes compute properties such as circuit size, depth, or
+operation counts. These passes are useful for reporting and for controlling
+later conditional stages in a pass manager.
+
 .. autosummary::
    :toctree: ../stubs/
 
@@ -134,6 +228,10 @@ Circuit Analysis
 
 Synthesis
 =========
+
+Synthesis passes replace high-level objects, unitaries, or arithmetic
+operations with lower-level circuits. They are commonly used before or during
+basis translation.
 
 The synthesis transpiler plugin documentation can be found in the
 :mod:`qiskit.transpiler.passes.synthesis.plugin` page.
@@ -151,7 +249,9 @@ The synthesis transpiler plugin documentation can be found in the
 Post Layout
 ===========
 
-These are post qubit selection.
+Post-layout passes run after an initial layout has been chosen. They can refine
+or validate the selected physical qubits before later routing and optimization
+stages.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -160,6 +260,10 @@ These are post qubit selection.
 
 Additional Passes
 =================
+
+These utility passes support common pass-manager tasks such as checking target
+constraints, removing barriers or measurements, tracking fixed points, and
+wrapping angles.
 
 .. autosummary::
    :toctree: ../stubs/
