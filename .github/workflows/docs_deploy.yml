@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - "tmp/docs-deploy-bump"
     tags:
       # Run on all tags.
       - "*"
