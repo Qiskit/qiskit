@@ -130,10 +130,7 @@ impl VirtualQubit {
 ///         physical qubit index on the coupling graph.
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
-#[cfg_attr(
-    feature = "py",
-    pyclass(module = "qiskit._accelerate.nlayout")
-)]
+#[cfg_attr(feature = "py", pyclass(module = "qiskit._accelerate.nlayout"))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NLayout {
     virt_to_phys: Vec<PhysicalQubit>,
