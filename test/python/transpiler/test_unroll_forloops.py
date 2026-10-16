@@ -231,7 +231,7 @@ class TestUnrollForLoops(QiskitTestCase):
         ]
         self.assertEqual(
             store_indices,
-            [expr.lift(value, types.Uint(8)) for value in indexset.values()],
+            [expr.lift(value, types.Uint(8)) for value in range(0, 11, 2)],
         )
 
     def test_unroll_constant_expr_range_with_explicit_var(self):
@@ -255,7 +255,7 @@ class TestUnrollForLoops(QiskitTestCase):
         ]
         self.assertEqual(
             store_indices,
-            [expr.lift(value, types.Uint(8)) for value in indexset.values()],
+            [expr.lift(value, types.Uint(8)) for value in range(0, 7, 2)],
         )
 
     def test_unroll_var_in_if_else_condition(self):

@@ -84,7 +84,6 @@ Unlike Python's built-in :class:`range`, both endpoints are inclusive, matching
 OpenQASM 3 range semantics.
 
 .. autoclass:: Range
-    :members: values
 
 When constructing expressions, one must ensure that the types are valid for the operation.
 Attempts to construct expressions with invalid types will raise a regular Python ``TypeError``.

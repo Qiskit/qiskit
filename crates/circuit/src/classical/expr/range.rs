@@ -15,7 +15,7 @@ use crate::classical::expr::{Expr, ExprKind, PyExpr, Value};
 use crate::classical::types::Type;
 use num_bigint::BigUint;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyRange, PyTuple};
+use pyo3::types::{PyAny, PyTuple};
 use pyo3::{IntoPyObjectExt, intern};
 use std::boxed::Box;
 
@@ -76,28 +76,6 @@ pub enum MaterializeError {
     ZeroStep,
 }
 
-impl MaterializeError {
-    fn into_pyerr(self) -> PyErr {
-        match self {
-            Self::NonConstant => PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "cannot materialize a non-constant Range",
-            ),
-            Self::NonConstantBound => PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "cannot materialize a non-constant Range bound",
-            ),
-            Self::InvalidType => PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                "Range values must be of unsigned integer type",
-            ),
-            Self::Overflow => PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "Range value is too large to materialize",
-            ),
-            Self::ZeroStep => {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>("Range step must not be zero")
-            }
-        }
-    }
-}
-
 /// Length of an OpenQASM 3 range ``[start:step:stop]`` (inclusive on both ends).
 ///
 /// ``step`` must be positive; materialization rejects zero and unsigned bounds cannot
@@ -110,11 +88,6 @@ fn inclusive_range_len(start: isize, stop: isize, step: isize) -> usize {
         // Inclusive: start, start+step, ..., last ≤ stop.
         1 + (stop - start) as usize / step as usize
     }
-}
-
-/// Convert inclusive OpenQASM 3 bounds to a Python exclusive ``range`` stop.
-fn inclusive_stop_to_python_exclusive(stop: isize) -> Result<isize, MaterializeError> {
-    stop.checked_add(1).ok_or(MaterializeError::Overflow)
 }
 
 /// Extract a constant unsigned integer from an expression, peeling implicit casts.
@@ -162,8 +135,7 @@ impl Range {
     /// Materialize constant range bounds to integers (inclusive ``stop`` semantics).
     ///
     /// Returns the stored ``(start, stop, step)`` values as OpenQASM 3 would interpret them:
-    /// both ends are inclusive.  Callers that need a Python ``range`` object should use
-    /// ``PyRangeExpr::values``, which converts the inclusive stop to Python's exclusive stop.
+    /// both ends are inclusive. This supports internal size and depth estimates.
     pub fn try_materialize_bounds(&self) -> Result<(isize, isize, isize), MaterializeError> {
         if !self.constant {
             return Err(MaterializeError::NonConstant);
@@ -407,21 +379,6 @@ impl PyRangeExpr {
         self.0.is_empty()
     }
 
-    /// Return a Python :class:`range` that yields the same values (constant ranges only).
-    ///
-    /// :class:`Range` uses OpenQASM 3 inclusive-stop semantics, so the returned Python
-    /// :class:`range` uses an exclusive stop of ``stop + 1``.  For example,
-    /// ``Range(0, 5).values()`` returns ``range(0, 6)``.
-    fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let (start, stop, step) = self
-            .0
-            .try_materialize_bounds()
-            .map_err(MaterializeError::into_pyerr)?;
-        let py_stop =
-            inclusive_stop_to_python_exclusive(stop).map_err(MaterializeError::into_pyerr)?;
-        Ok(PyRange::new_with_step(py, start, py_stop, step)?.into_any())
-    }
-
     fn accept<'py>(
         slf: PyRef<'py, Self>,
         visitor: &Bound<'py, PyAny>,
@@ -640,16 +597,6 @@ mod tests {
         // Stop not on the step grid is still included as upper bound for membership,
         // but length counts only values ≤ stop that are reachable from start.
         assert_eq!(make(0, 9, 2).len(), 5); // 0,2,4,6,8
-    }
-
-    #[test]
-    fn test_inclusive_stop_to_python_exclusive() {
-        assert_eq!(inclusive_stop_to_python_exclusive(5).unwrap(), 6);
-        assert_eq!(inclusive_stop_to_python_exclusive(0).unwrap(), 1);
-        assert_eq!(
-            inclusive_stop_to_python_exclusive(isize::MAX),
-            Err(MaterializeError::Overflow)
-        );
     }
 
     #[test]
