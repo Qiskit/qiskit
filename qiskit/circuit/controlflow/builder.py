@@ -387,7 +387,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 pseudo scopes where the state machine of the builder scopes has changed into a
                 position where no instructions should be accepted, such as when inside a ``switch``
                 but outside any cases.
-            loop_var: If given, a classical var used for the loop counter
+            loop_var: If given, the :class:`~.expr.Var` loop counter for a ``for`` loop.  It becomes
+                the body's single ``input`` variable; the scope may still capture outer variables and
+                stretches.
         """
         self._instructions = CircuitData(qubits, clbits)
         self.registers = set(registers)

@@ -38,11 +38,17 @@ class ForLoopOp(ControlFlowOp):
     ----------
 
     There is exactly one "block" in a for-loop op, which is the body of the loop.  The circuit block
-    may take exactly zero or one ``input`` variable (see :meth:`.QuantumCircuit.add_input_var`).  If
+    may take exactly zero or one ``input`` variable (see :meth:`.QuantumCircuit.add_input`).  If
     the body takes one input variable, then ``loop_parameter`` must be equal to that variable, and
     it represents the loop variable.  If the body takes zero input variables, ``loop_parameter`` may
     be either ``None`` (to indicate no binding) or a :class:`.Parameter`.  The :class:`.Parameter`
     form is a legacy form that should be avoided.
+
+    When ``loop_parameter`` is an :class:`~.expr.Var`, the body may also **capture** variables and
+    stretches from the enclosing scope (see :meth:`.QuantumCircuit.add_capture`), in addition to its
+    single ``input`` loop variable.  This is the only control-flow block type that may hold both
+    ``input`` and ``capture`` identifiers at once; all other control-flow operations reject blocks
+    that contain ``input`` variables.
     """
 
     _control_flow_type = ControlFlowType.ForLoop
@@ -60,7 +66,9 @@ class ForLoopOp(ControlFlowOp):
             loop_parameter: The placeholder parameter to which
                 the values from ``indexset`` will be assigned. Can be a
                 ``Parameter``, ``expr.Var`` of type ``Uint``, or ``None``.
-            body: The loop body to be repeatedly executed.
+            body: The loop body to be repeatedly executed.  If ``loop_parameter`` is an
+                :class:`~.expr.Var`, the body may declare that variable as its single ``input`` and
+                may also capture variables or stretches from the enclosing circuit.
             label: An optional label for identifying the instruction.
         """
         num_qubits = body.num_qubits

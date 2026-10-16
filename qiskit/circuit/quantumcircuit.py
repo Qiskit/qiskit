@@ -2910,7 +2910,8 @@ class QuantumCircuit:
                 _validate_expr(circuit_scope, operation.duration)
             # Verify that any variable bindings are valid.  Control-flow ops are already enforced
             # by the class not to contain 'input' variables, except for the loop variable of a
-            # `ForLoopOp`, which is bound by the loop itself rather than by this scope.
+            # `ForLoopOp`, which is bound by the loop itself rather than by this scope.  A for-loop
+            # body may still capture variables from this circuit in addition to that input.
             if bad_captures := {
                 var
                 for var in itertools.chain.from_iterable(
@@ -7332,6 +7333,11 @@ class QuantumCircuit:
                 argument is not supplied, then a loop parameter will be allocated for you and
                 returned as the value of the ``with`` statement.  This will only be bound into the
                 circuit if it is used within the body.
+
+                When this is an :class:`~.expr.Var`, the loop body takes it as its single ``input``
+                variable and may also capture variables or stretches from the enclosing circuit (for
+                example, an accumulator updated across iterations, or the loop variable of an outer
+                ``for`` loop).
 
                 If this argument is ``None`` in the manual form of this method, ``body`` will be
                 repeated once for each of the items in ``indexset`` but their values will be
