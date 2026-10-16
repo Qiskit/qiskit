@@ -3536,7 +3536,10 @@ impl Value {
                     } else {
                         let t = (*e as f64).powf(*r);
                         let d = t.floor() - t;
-                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d) {
+                        // `as i64` saturates, so only narrow to an integer when it fits.
+                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d)
+                            && (i64::MIN as f64..i64::MAX as f64).contains(&t)
+                        {
                             Value::Int(t as i64)
                         } else {
                             Value::Real(t)
@@ -3932,15 +3935,12 @@ impl Div for Value {
                 }
                 match rhs {
                     Value::Real(r) => Value::Real(l as f64 / r),
-                    Value::Int(r) => {
-                        let t = l as f64 / r as f64;
-                        let d = t.floor() - t;
-                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&d) {
-                            Value::Int(t as i64)
-                        } else {
-                            Value::Real(t)
-                        }
-                    }
+                    // Divide in integers so large quotients stay exact; `i64::MIN / -1` overflows
+                    // `checked_rem`/`checked_div` and falls back to a float like the other operators.
+                    Value::Int(r) => match (l.checked_rem(r), l.checked_div(r)) {
+                        (Some(0), Some(v)) => Value::Int(v),
+                        _ => Value::Real(l as f64 / r as f64),
+                    },
                     Value::Complex(r) => Value::Complex(l as f64 / r),
                 }
             }
@@ -4525,8 +4525,23 @@ mod test {
         );
         // Exponent too large for `u32`: must fall back rather than truncating the exponent.
         assert_eq!(Value::Int(1).pow(&Value::Int(1 << 40)), Value::Real(1.0));
+        // The only `Int / Int` quotient outside `i64`.
+        assert_eq!(min / Value::Int(-1), Value::Real(-(i64::MIN as f64)));
+        // Exact above 2^53, where a float quotient would round.
+        assert_eq!(
+            Value::Int(3 * (1 << 60) + 3) / Value::Int(3),
+            Value::Int((1 << 60) + 1)
+        );
+        // Integral float powers outside `i64` must not saturate.
+        assert_eq!(
+            Value::Int(2).pow(&Value::Real(70.0)),
+            Value::Real(2f64.powf(70.0))
+        );
         // Values that stay in range are unchanged.
         assert_eq!(Value::Int(3) + Value::Int(4), Value::Int(7));
+        assert_eq!(Value::Int(12) / Value::Int(4), Value::Int(3));
+        assert_eq!(Value::Int(7) / Value::Int(2), Value::Real(3.5));
+        assert_eq!(Value::Int(2).pow(&Value::Real(10.0)), Value::Int(1024));
         assert_eq!(Value::Int(3) * Value::Int(4), Value::Int(12));
         assert_eq!(Value::Int(2).pow(&Value::Int(10)), Value::Int(1024));
     }

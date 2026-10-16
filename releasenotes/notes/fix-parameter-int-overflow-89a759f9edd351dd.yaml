@@ -7,8 +7,12 @@ fixes:
     negating or exponentiating it (for example via :meth:`.QuantumCircuit.assign_parameters`,
     the ``global_phase`` of a circuit, or :meth:`.ParameterExpression.numeric`)
     would panic in debug builds and silently wrap around to an incorrect value
-    in release builds.  Such operations now fall back to a floating-point result
-    when the exact integer result does not fit in a 64-bit integer, for example::
+    in release builds.  An integer raised to an integral floating-point power
+    (such as ``2 ** 70.0``) saturated to the largest 64-bit integer, and exact
+    integer division of values above ``2**53`` could round to the wrong integer.
+    Integer division is now computed exactly, and the other operations fall
+    back to a floating-point result when the exact integer result does not fit
+    in a 64-bit integer, for example::
 
         from qiskit import QuantumCircuit
         from qiskit.circuit import Parameter
