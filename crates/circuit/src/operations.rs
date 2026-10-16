@@ -2547,6 +2547,8 @@ impl CustomOperation for TestGate {
     }
 }
 
+/// Excludes a Python implementation from a [`CustomOperation`] implementor.
+#[macro_export]
 macro_rules! impl_custom_op_py_skip{
     ($op:ty) => {
         impl $crate::operations::OperationToPython for $op {
@@ -2557,28 +2559,34 @@ macro_rules! impl_custom_op_py_skip{
     }
 }
 
-macro_rules! impl_custom_op_py_generic {
-    ($op:ty, $py_name:ident) => {
-        #[pyclass(extends = $crate::operations::PyCustomOperation, frozen, skip_from_py_object)]
-        struct $py_name;
+/// Creates a Python wrapper struct that will expose the provided operation
+/// via Python. It is not meant to be used on its own but rather be included as
+/// part of shorthand implementation trait.
+#[macro_export]
+macro_rules! create_py_struct {
+    ($op:ty, $py_struct:ident, $py_name:literal) => {
+        #[pyclass(name=$py_name, extends = $crate::operations::PyCustomOperation, frozen, skip_from_py_object)]
+        pub struct $py_struct;
+    }
+}
 
-        impl $crate::operations::OperationToPython for $op {
-            fn create_py_op<'py>(&self, py: pyo3::Python<'py>, params: Option<SmallVec<[Param; 3]>>) -> PyResult<Bound<'py, PyAny>> {
-                let ob = self.clone_dyn();
-
-                let as_generic = $crate::operations::PyCustomOperation::new(ob, params);
-                pyo3::Bound::new(py, pyo3::PyClassInitializer::from(as_generic).add_subclass($py_name)).map(|op| op.into_any())
-            }
-        }
-
+/// Implement a generic extraction of an implementor of [`CustomOperation`]
+/// based on its Python exposer object or parent class [`PyCustomOperation`].
+/// This macro is meant to be an internal part of a shorthand trait implementor
+/// macro and should not be used on its own.
+#[macro_export]
+macro_rules! impl_generic_extraction {
+    ($op:ty, $py_struct:ty) => {
         impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for $op {
             type Error = ::pyo3::PyErr;
             
-            fn extract(obj: pyo3::Borrowed<'a, 'py, pyo3::PyAny>) -> Result<Self, Self::Error> {
+            fn extract(
+                obj: pyo3::Borrowed<'a, 'py, pyo3::PyAny>
+            ) -> Result<Self, Self::Error> {
                 let opaque_clone = |op: &dyn $crate::operations::CustomOperation| -> Option<$op> {
                     op.downcast_ref::<$op>().cloned()
                 };
-                let opaque = if let Ok(op) = obj.cast::<$py_name>() {
+                let opaque = if let Ok(op) = obj.cast::<$py_struct>() {
                     let borrowed = op.as_super().borrow();
                     opaque_clone(borrowed.op())
                 } else if let Ok(op) = obj.cast::<$crate::operations::PyCustomOperation>() {
@@ -2590,21 +2598,96 @@ macro_rules! impl_custom_op_py_generic {
                 opaque.ok_or_else(|| pyo3::exceptions::PyTypeError::new_err(format!("Could not extract type {}", stringify!($op))))
             }
         }
+    };
+}
+
+/// Automatically implements a generic route to expose a [`CustomOperation`]
+/// implementor via the [`OperationToPython`] trait. This should be the default
+/// way of exposing operations implemented in Rust that do not have a Python
+/// counterpart.
+/// 
+/// In practice, the implementation should work as follows:
+/// 
+/// ```rs
+/// #[derive(Debug, Clone, PartialEq)]
+/// pub struct Poof {
+///     magnitude: u32,
+/// }
+/// 
+/// impl Operation {
+/// // Implement the operation trait
+/// //...
+/// }
+/// 
+/// impl CustomOperation {
+/// // Implement the CustomOperation trait which will
+/// // depend on `OperationToPython`
+/// // ...
+/// }
+/// 
+/// // Implement a Python view for Poof called PyPoof, that automatically
+/// // implements the `OperationToPython` trait, allowing to operate from Python
+/// // flawlessly.
+/// impl_custom_op_py_generic!(
+///     Poof,
+///     PyPoof,
+///     Poof
+/// );
+/// 
+/// #[pymethods]
+/// impl PyPoof {
+///     // Implement any extra functionality from the original that the user
+///     // wishes to expose to Python.
+/// }
+/// ```
+#[macro_export(local_inner_macros)]
+macro_rules! impl_custom_op_py_generic {
+    ($op:ty, $py_struct:ident, $py_name:literal) => {
+        create_py_struct!($op, $py_struct, $py_name);
+        impl_generic_extraction!($op, $py_struct);
+
+        impl $crate::operations::OperationToPython for $op {
+            fn create_py_op<'py>(
+                &self,
+                py: pyo3::Python<'py>,
+                params: Option<SmallVec<[Param; 3]>>
+            )-> PyResult<Bound<'py, PyAny>> {
+                let ob = self.clone_dyn();
+
+                let as_generic = $crate::operations::PyCustomOperation::new(
+                    ob,
+                    params
+                );
+                pyo3::Bound::new(
+                    py,
+                    pyo3::PyClassInitializer::from(
+                        as_generic
+                    ).add_subclass(
+                        $py_struct
+                    )
+                ).map(|op| op.into_any())
+            }
+        }
     }
 }
 
-/// For the custom method, we should expect a couple of things from the user:
-/// 
-/// The user is expected to:
-/// - Define a class that implements the correct type of operation: `Gate` for unitary,
-///   `Instruction` for non-unitary.
-/// - The class should have a `core` PyO3 struct which should be defined by the macro. Rust
-///   Should be able to see this struct and extract it to obtain the original type.
-/// - The class should have an alternative constructor called `_from_inner` that the rust
-///   struct should be able use for creating transfer ownership.
+pub use impl_custom_op_py_skip;
+pub use impl_custom_op_py_generic;
 
+impl_custom_op_py_generic!(TestGate, PyTestGate, "TestGate");
 
-impl_custom_op_py_generic!(TestGate, PyTestGate);
+#[pymethods]
+impl PyTestGate {
+    fn check_things(slf: PyRef<Self>) -> String {
+        let Some(test_gate) = slf
+        .as_super()
+        .op()
+        .downcast_ref::<TestGate>() else {
+            return String::default()
+        };
+        test_gate.label.clone()
+    }
+}
 
 #[cfg(test)]
 mod test {
