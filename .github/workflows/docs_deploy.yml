@@ -28,7 +28,7 @@ jobs:
         run: rustup toolchain install --profile minimal --no-self-update
 
       - name: Install dependencies
-        run: tools/install_ubuntu_docs_dependencies.sh
+        run: tools/install_ubuntu_docs_dependencies.bash
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Determine GitHub branch name
