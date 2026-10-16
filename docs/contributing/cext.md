@@ -1,35 +1,32 @@
 # Contributing: C API
 
-Historically, Qiskit was first and foremost a Python library. This fact is still true in some
-sense; though, Qiskit has evolved significantly since its early days. As Quantum becomes
-mainstream, researchers and developers alike want to use Qiskit in new and exciting ways. The C API
-makes Qiskit more flexible, enabling additional use cases.
+Qiskit is fundamentally a Python library, though it has evolved significantly since its early days.
+As quantum computing becomes mainstream, researchers and developers increasingly have more diverse
+workflows. The C API makes Qiskit more accessible in non-Python ecosystems.
 
-The C API is used for...
+The C API is useful for...
 
 - wrapper libraries like [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
   [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
-- projects with high-performance computing (HPC) requirements.
-- python extension modules.
+- projects with high-performance computing requirements.
+- writing python extension modules.
 
 This document defines guidelines for C API development, helping address stability, consistency, and
 familiarity concerns. Examples are written from a Rust and `cbindgen` perspective. If this is your
 first time extending the C API, see the
 [tutorial](https://github.com/Qiskit/qiskit/blob/main/docs/contributing/cext-tutorial.md) .
 
-## Structures
+## Structs
 
-There are 2 ways we can declare a `struct` in a C header file. Firstly, we can declare and define
-the `struct`, meaning callers can access its members and allocate it themselves. These structures
-are called **transparent**. Secondly, we can forward-declare the `struct` without defining it.
-Because definition lives elsewhere, callers *cannot* access its members or allocate it themselves.
-These structures are called **opaque**. `cbindgen` generates a transparent `struct` when the layout
-is `repr(C)`. Otherwise, a `struct` is opaque.
+C structs are either transparent or opaque. A transparent struct is fully defined in the header
+file, allowing callers to access members and allocate instances themselves. An opaque struct is
+only forward-declared; callers cannot access members or allocate instances. `cbindgen` generates
+transparent structs, otherwise opaque, when the layout is `repr(c)`.
 
 *Don't conflate transparency with Rust's `repr(transparent)`, which has a totally different
 meaning.*
 
-Use opaque structures when...
+Use opaque structs when...
 
 - runtime invariant(s) need enforcement.
 - complex behavior needs encapsulation.
@@ -44,7 +41,7 @@ pub struct Qubit {
 
 *Note that `repr(Rust)` is implicit.*
 
-Use transparent structures when...
+Use transparent structs when...
 
 - encoding plain data without complex behavior.
 - fields are unlikely to change.
@@ -57,17 +54,14 @@ pub struct QubitArray {
 }
 ```
 
-*The `pub` keyword has no affect across FFI. Though, it's best practice to include `pub` for
+*The `pub` keyword has no effect across FFI. Though, it's best practice to include `pub` for
 documentation purposes.*
 
 ## Fixed-width Enumerations
 
-In short, C enumerations are named integer constants, and nothing more. `cbindgen` creates mappings
-from flat Rust `enum` types with `repr(C)` and `repr(u*)` layouts. In Qiskit, we use `repr(u*)`
-fixed-width enumerations to maintain consistency across compilers. Because
-`sizeof(enum t) == sizeof(int)` is the common case on modern platforms, `repr(u32)` is a reasonable
-default. Consider `repr(u8)` when the `enum` is a member of a tightly packed structure and
-performance is critical.
+C enums are named integer constants. Qiskit uses fixed-width enums with `repr(u*)` for consistency
+across compilers. Since `sizeof(enum t) == sizeof(int)` on most modern platforms, `repr(u32)` is a
+solid default. Use `repr(u8)` for space-critical enums within tightly packed structures.
 
 ```rust
 #[repr(u32)]
@@ -103,7 +97,7 @@ Plain function names are more flexible.
 
 ### Naming Constructor & Destructors
 
-- `qk_foo_new` - Create (usually opaque) `struct`, allocated on the heap by Qiskit.
+- `qk_foo_new` - Create a (usually opaque) `struct`, allocated on the heap by Qiskit.
 - `qk_foo_free` - Clean up a (usually opaque) `struct`, allocated on the heap by Qiskit.
 - `qk_bar_init` - Initialize a `struct` pre-allocated by the caller on the stack or heap.
 - `qk_bar_clear` - Clean up an initialized `struct` pre-allocated by the caller.
@@ -113,14 +107,12 @@ Plain function names are more flexible.
 
 ### Sentinels
 
-Choose a sentinel value when the function fails trivially. The correct sentinel value, if any, is
-domain dependent. `-1` and `0` are poor sentinels if either value has additional meaning. `-1` is
-common for functions that return an index. While rare, `0` works if the underlying domain value is
-non-zero. `NAN` is problematic because `NAN != NAN`. The constants `u32::MAX`, `u64::MAX`, and the
-like are used in the C API today; however, remember that the caller must cast `-1` or include
-`limits.h` for comparisons without a compiler warning. Unlike comparisons, integer conversions are
-ergonomic in C, so prefer returning signed integer types like `int32_t` and `intptr_t` when the
-domain value is positive and smaller than $2^{64}/2$.
+Choose a sentinel value when functions fail trivially. Sentinels must fall outside of the return
+value's domain. `-1` and `0` are poor sentinels if either value has additional meaning. `-1` is
+suitable for index-returning functioons because indicies are non-negative. `0` only works when the
+domain excludes zero. `NAN` is problematic because `NAN != NAN`. Constants `u32::MAX` require
+callers to cast `-1` or include `limits.h` for comparisons without compiler warnings. Prefer
+returning signed types for positive domains unlikely to exceed $2^{64}/2$.
 
 **Sentinel Examples**
 
