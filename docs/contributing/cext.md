@@ -21,7 +21,7 @@ first time extending the C API, see the
 C structs are either transparent or opaque. A transparent struct is fully defined in the header
 file, allowing callers to access members and allocate instances themselves. An opaque struct is
 only forward-declared; callers cannot access members or allocate instances. `cbindgen` generates
-transparent structs, otherwise opaque, when the layout is `repr(c)`.
+transparent structs when the layout is `repr(c)`, otherwise opaque.
 
 *Don't conflate transparency with Rust's `repr(transparent)`, which has a totally different
 meaning.*
@@ -57,11 +57,12 @@ pub struct QubitArray {
 *The `pub` keyword has no effect across FFI. Though, it's best practice to include `pub` for
 documentation purposes.*
 
-## Fixed-width Enumerations
+## Enums
 
 C enums are named integer constants. Qiskit uses fixed-width enums with `repr(u*)` for consistency
 across compilers. Since `sizeof(enum t) == sizeof(int)` on most modern platforms, `repr(u32)` is a
-solid default. Use `repr(u8)` for space-critical enums within tightly packed structures.
+solid default. Use `repr(u8)` for space-critical enums within tightly packed structures. Explicit
+integer values discourage accidental breaking changes.
 
 ```rust
 #[repr(u32)]
@@ -72,18 +73,15 @@ pub enum QubitType {
 }
 ```
 
-*Explicit integer values discourage accidental breaking changes.*
-
-## Fixed-width Integers
+## Integers
 
 Prefer fixed-width integers like `i32` and `u64`. Avoid imprecise-width integers like `c_int` and
-`c_long`. `cbindgen` generates headers using the fixed-width integers found in `inttypes.h`.
-For example, `i32` is mapped to `int32_t`.
+`c_long`. `cbindgen` generates headers using fixed-width integers found in `inttypes.h`. For
+example, `i32` is mapped to `int32_t`.
 
-## Function Naming
+## Functions
 
-Function names centered around types follow the `qk_<type>_<verb>_<detail>` format. The `<detail>`
-part is optional.
+Function names centered around types follow the `qk_<type>_<verb>_<opt>` format.
 
 - `qk_obs_new`
 - `qk_obs_compose`
@@ -103,7 +101,7 @@ Plain function names are more flexible.
 - `qk_bar_clear` - Clean up an initialized `struct` pre-allocated by the caller.
 - `qk_zap_copy` - Create a deep copy.
 
-## Error Handling
+## Errors
 
 ### Sentinels
 
@@ -134,7 +132,7 @@ extern "C" fn qk_matrix_type(matrix: *const Matrix) -> MatrixType {
 }
 ```
 
-### Exit Codes
+### Error Codes
 
 Return `ExitCode` for non-trivial functions with multiple failure points. These functions often
 write to an `out` parameter for the success case. Given an `ExitCode`, the callers should have
@@ -160,7 +158,7 @@ extern "C" fn qk_obs_matrix(
 }
 ```
 
-### Panicking
+### Panic
 
 You can almost always do better than panicking inside a function called from C. We sometimes see
 `panic!` used to uphold invariants that would otherwise be UB. This is a mistake because `panic!`
@@ -183,7 +181,7 @@ fn read_bar(bar: *mut Bar) {
 *The helper functions `const_ptr_as_ref` and `mut_ptr_as_ref` make exactly this mistake. Neither
 are more safe than dereferencing plainly with `&*p` and `&mut *p`.*
 
-You may be panicking without realizing it. For example, indexing with `a[i]` syntax is a checked
+You could be panicking without realizing it. For example, indexing with `a[i]` syntax is a checked
 operation, panicking in the out of bounds case. Consider using a sentinel, exit code, or
 `a.get_unchecked(i)` instaed. Be sure to uphold the expectations of functions that can panic!
 
