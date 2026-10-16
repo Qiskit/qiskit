@@ -13,8 +13,9 @@ The C API is used for...
 - python extension modules.
 
 This document defines guidelines for C API development, helping address stability, consistency, and
-familiarity concerns. Examples are written from a Rust and `cbindgen` perspective. See the
-[tutorial](https://www.example.com/) if this is your first time extending the C API.
+familiarity concerns. Examples are written from a Rust and `cbindgen` perspective. If this is your
+first time extending the C API, see the
+[tutorial](https://github.com/Qiskit/qiskit/blob/main/docs/contributing/cext-tutorial.md) .
 
 ## Structures
 
@@ -22,8 +23,8 @@ There are 2 ways we can declare a `struct` in a C header file. Firstly, we can d
 the `struct`, meaning callers can access its members and allocate it themselves. These structures
 are called **transparent**. Secondly, we can forward-declare the `struct` without defining it.
 Because definition lives elsewhere, callers *cannot* access its members or allocate it themselves.
-These structures are called **opaque**. `cbindgen` generates transparent structures when the layout
-is `repr(C)` and opaque structures for other layouts. 
+These structures are called **opaque**. `cbindgen` generates a transparent `struct` when the layout
+is `repr(C)`. Otherwise, a `struct` is opaque.
 
 *Don't conflate transparency with Rust's `repr(transparent)`, which has a totally different
 meaning.*
@@ -45,7 +46,7 @@ pub struct Qubit {
 
 Use transparent structures when...
 
-- dealing with plain data without complex behavior.
+- encoding plain data without complex behavior.
 - fields are unlikely to change.
 
 ```rust
@@ -85,9 +86,10 @@ Prefer fixed-width integers like `i32` and `u64`. Avoid imprecise-width integers
 `c_long`. `cbindgen` generates headers using the fixed-width integers found in `inttypes.h`.
 For example, `i32` is mapped to `int32_t`.
 
-## Function Signatures
+## Function Naming
 
-Function names centered around types follow the `qk_<type>_<verb>` format. 
+Function names centered around types follow the `qk_<type>_<verb>_<detail>` format. The `<detail>`
+part is optional.
 
 - `qk_obs_new`
 - `qk_obs_compose`
@@ -99,23 +101,35 @@ Plain function names are more flexible.
 - `qk_foo`
 - `qk_str_free`
 
+### Naming Constructor & Destructors
+
+- `qk_foo_new` - Create (usually opaque) `struct`, allocated on the heap by Qiskit.
+- `qk_foo_free` - Clean up a (usually opaque) `struct`, allocated on the heap by Qiskit.
+- `qk_bar_init` - Initialize a `struct` pre-allocated by the caller on the stack or heap.
+- `qk_bar_destroy` - Clean up an initialized `struct`.
+- `qk_zap_copy` - Create a deep copy.
+
 ## Error Handling
 
 ### Sentinels
 
 Choose a sentinel value when the function fails trivially. The correct sentinel value, if any, is
-domain dependent. `-1` and `0` are poor sentinels if the values have additional meaning. `-1`
-works for functions that return an array index. While rare, `0` works if the underlying domain
-value is `NonZeroU32`. Loose integer conversions are idiomatic in C, so prefer returning signed
-integer types like `int32_t` and `ptrdiff_t` when the domain value is unsigned and small. `NAN` is
-problematic because `NAN != NAN`.
+domain dependent. `-1` and `0` are poor sentinels if either value has additional meaning. `-1` is
+common for functions that return an index. While rare, `0` works if the underlying domain value is
+non-zero. `NAN` is problematic because `NAN != NAN`. The constants `u32::MAX`, `u64::MAX`, and the
+like are used in the C API today; however, remember that the caller must cast `-1` or include
+`limits.h` for comparisons without a compiler warning. Unlike comparisons, integer conversions are
+ergonomic in C, so prefer returning signed integer types like `int32_t` and `intptr_t` when the
+domain value is positive and smaller than $2^{64}/2$.
 
-| Type           | Sentinel    | Domain |
-| -------------- | ----------- | ------ |
-| `T *`          | `NULL`      |        |
-| `enum t`       | `T_UNKNOWN` |        |
-| `ptrdiff_t`    | `-1`        | `>= 0` |
-| `uint32_t`     | `0`         | `>= 1` |
+**Sentinel Examples**
+
+| Type (Rust) | Type (C)       | Sentinel    | Domain |
+| ----------- | -------------- | ----------- | ------ |
+| `*mut T`    | `T *`          | `NULL`      |        |
+| `enum T`    | `enum t`       | `T_UNKNOWN` |        |
+| `isize`     | `intptr_t`     | `-1`        | `>= 0` |
+| `u64`       | `uint64_t`     | `0`         | `>= 1` |
 
 ```rust
 extern "C" fn qk_matrix_type(matrix: *const Matrix) -> MatrixType {
@@ -156,9 +170,9 @@ extern "C" fn qk_obs_matrix(
 
 ### Panicking
 
-You can almost always do better than panicking inside a function called from C. `panic!` is
-sometimes used to uphold invariants that would otherwise be UB. This is a mistake because
-`panic!` itself is UB inside a function called from C. The following example is incorrect.
+You can almost always do better than panicking inside a function called from C. We sometimes see
+`panic!` used to uphold invariants that would otherwise be UB. This is a mistake because `panic!`
+itself is UB inside code called from C.
 
 ```rust
 fn read_foo(foo: *mut Foo) {
@@ -169,7 +183,7 @@ fn read_foo(foo: *mut Foo) {
 }
 
 fn read_bar(bar: *mut Bar) {
-    // Instead, plainly dereference if you've documented that `bar` isn't null.
+    // Simply dereference if you've documented that `bar` isn't null.
     let foo = &*foo;
 }
 ```
@@ -178,9 +192,8 @@ fn read_bar(bar: *mut Bar) {
 are more safe than dereferencing plainly with `&*p` and `&mut *p`.*
 
 You may be panicking without realizing it. For example, indexing with `a[i]` syntax is a checked
-operation with `panic!` for the out of bounds case. Instead, return a sentinel or error for out of
-bounds. Alternatively, use `a.get_unchecked(i)`. Always look for panic cases while reading
-documentation!
+operation, panicking in the out of bounds case. Consider using a sentinel, exit code, or
+`a.get_unchecked(i)` instaed. Be sure to uphold the expectations of functions that can panic!
 
 ## Versioning & Backwards Compatibility
 
@@ -229,9 +242,9 @@ C99.
 
 C syntax cannot express ownership semantics, so, the ownership contract must be documented. Some
 programmers may not understand the impact of ownership on their memory management responsibility.
-Instead of writing "takes ownership" or "consumes", state what the caller _must not_ do after each
-outcome. The following function takes ownership of `entry` if it's added to the target. Note that
-the `entry` pointer is `*mut` because the internals potentially take ownership.
+Instead or alongside writing "takes ownership" or "consumes", state what the caller _must not_ do
+for each outcome. The following function takes ownership of `entry` if it's added to the target.
+Note that the `entry` pointer is `*mut` because the internals potentially take ownership.
 
 ```rust
 /// Append an instruction to the ``QkTarget`` through a ``QkTargetEntry``.
@@ -239,9 +252,9 @@ the `entry` pointer is `*mut` because the internals potentially take ownership.
 /// @param target A non-null pointer to the ``QkTarget``.
 /// @param entry A non-null pointer to the ``QkTargetEntry``.
 ///
-/// @return Returns `QkExitCode_Success` if the instruction was added. The caller must not use
-///         or free `entry` after the instruction is added successfully.
-extern "C" fn qk_target_add_instruction(target: *mut Target, entry: *mut TargetEntry);
+/// @return Returns `QkExitCode_Success` if the instruction is added. The caller must not use
+///         or free `entry` if the instruction is added.
+extern "C" fn qk_target_add_instruction(target: *mut Target, entry: *mut TargetEntry) -> ExitCode;
 ```
 
 ### Safety
