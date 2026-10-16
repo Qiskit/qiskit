@@ -106,7 +106,7 @@ Plain function names are more flexible.
 - `qk_foo_new` - Create (usually opaque) `struct`, allocated on the heap by Qiskit.
 - `qk_foo_free` - Clean up a (usually opaque) `struct`, allocated on the heap by Qiskit.
 - `qk_bar_init` - Initialize a `struct` pre-allocated by the caller on the stack or heap.
-- `qk_bar_destroy` - Clean up an initialized `struct`.
+- `qk_bar_clear` - Clean up an initialized `struct` pre-allocated by the caller.
 - `qk_zap_copy` - Create a deep copy.
 
 ## Error Handling
