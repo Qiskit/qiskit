@@ -1716,7 +1716,6 @@ impl PyParameter {
     module="qiskit._accelerate.circuit",
     extends=PyParameter,
     name="ParameterVectorElement",
-    skip_from_py_object
 )]
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 // This carries no data in Rust space; `PyParameter`/`Symbol` already has it all.  It's just a
@@ -1810,8 +1809,7 @@ impl PyParameterVectorElement {
 #[pyclass(
     sequence,
     module = "qiskit._accelerate.circuit",
-    name = "ParameterVector",
-    skip_from_py_object
+    name = "ParameterVector"
 )]
 pub struct PyParameterVector {
     base: Arc<SymbolVector>,

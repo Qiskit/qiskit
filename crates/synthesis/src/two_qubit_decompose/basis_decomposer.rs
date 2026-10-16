@@ -123,11 +123,7 @@ static K22R: Matrix2<Complex64> = Matrix2::new(Complex64::ZERO, C_ONE, C_M_ONE, 
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
-#[pyclass(
-    module = "qiskit._accelerate.two_qubit_decompose",
-    subclass,
-    skip_from_py_object
-)]
+#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitBasisDecomposer {
     gate: PackedOperation,
     gate_params: SmallVec<[f64; 3]>,
