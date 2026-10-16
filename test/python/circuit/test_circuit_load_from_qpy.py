@@ -1312,6 +1312,34 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_qpy_with_for_loop_var_loop_counter_and_captures(self):
+        """Test qpy serialization of `for` loops with an expr.Var counter whose bodies also capture
+        variables and stretches from the enclosing scope, including the counter of an outer loop."""
+        qc = QuantumCircuit(1, 1)
+        cr = ClassicalRegister(5, "reps")
+        qc.add_register(cr)
+        acc = qc.add_var("acc", expr.lift(0, types.Uint(32)))
+        s = qc.add_stretch("s")
+
+        with qc.for_loop(range(5), expr.Var.new("a", types.Uint(32))) as a:
+            qc.measure(0, 0)
+            qc.store(expr.index(cr, a), qc.clbits[0])
+            qc.delay(s, 0)
+            with qc.for_loop(range(2), expr.Var.new("b", types.Uint(32))) as b:
+                qc.store(acc, expr.add(a, b))
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+        (outer,) = new_circuit.data[-1].operation.blocks
+        self.assertEqual(list(outer.iter_input_vars()), [a])
+        self.assertEqual(set(outer.iter_captures()), {acc, s})
+        (inner,) = outer.data[-1].operation.blocks
+        self.assertEqual(list(inner.iter_input_vars()), [b])
+        self.assertEqual(set(inner.iter_captures()), {a, acc})
+
     def test_qpy_clbit_switch(self):
         """Test QPY serialization for a switch statement with a Clbit target."""
         case_t = QuantumCircuit(2, 1)

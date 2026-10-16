@@ -237,32 +237,32 @@ class TestCircuitVars(QiskitTestCase):
         a_other = qc.add_input(a)
         self.assertEqual(a, a_other)
 
-    def test_cannot_have_both_inputs_and_captures(self):
+    def test_can_have_both_inputs_and_captures(self):
+        """Input and captured variables are independent scopes, so a circuit can hold both.  This
+        is required by the body of a `ForLoopOp` with a `Var` loop parameter."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Stretch.new("c")
 
-        with self.assertRaisesRegex(CircuitError, "circuits with input.*cannot be closures"):
-            QuantumCircuit(inputs=[a], captures=[b])
-
-        with self.assertRaisesRegex(CircuitError, "circuits with input.*cannot be closures"):
-            QuantumCircuit(inputs=[a], captures=[c])
-
-        qc = QuantumCircuit(inputs=[a])
-        with self.assertRaisesRegex(CircuitError, "circuits with input.*cannot be closures"):
-            qc.add_capture(b)
+        qc = QuantumCircuit(inputs=[a], captures=[b, c])
+        self.assertEqual(list(qc.iter_input_vars()), [a])
+        self.assertEqual(list(qc.iter_captured_vars()), [b])
+        self.assertEqual(list(qc.iter_captured_stretches()), [c])
 
         qc = QuantumCircuit(inputs=[a])
-        with self.assertRaisesRegex(CircuitError, "circuits with input.*cannot be closures"):
-            qc.add_capture(c)
+        qc.add_capture(b)
+        qc.add_capture(c)
+        self.assertEqual(list(qc.iter_input_vars()), [a])
+        self.assertEqual(list(qc.iter_captures()), [b, c])
 
-        qc = QuantumCircuit(captures=[a])
-        with self.assertRaisesRegex(CircuitError, "circuits to be enclosed.*cannot have input"):
-            qc.add_input(b)
+        qc = QuantumCircuit(captures=[b, c])
+        qc.add_input(a)
+        self.assertEqual(list(qc.iter_input_vars()), [a])
+        self.assertEqual(list(qc.iter_captures()), [b, c])
 
-        qc = QuantumCircuit(captures=[c])
-        with self.assertRaisesRegex(CircuitError, "circuits to be enclosed.*cannot have input"):
-            qc.add_input(b)
+        # Shadowing is still forbidden across the scopes.
+        with self.assertRaisesRegex(CircuitError, "shadows"):
+            QuantumCircuit(inputs=[a], captures=[expr.Var.new("a", types.Uint(8))])
 
     def test_cannot_add_cyclic_declaration(self):
         a = expr.Var.new("a", types.Bool())
