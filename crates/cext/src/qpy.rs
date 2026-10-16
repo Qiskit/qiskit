@@ -18,6 +18,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{check_ptr, mut_ptr_as_ref};
+use crate::user_config;
 
 /// @ingroup QkQpy
 /// Get the oldest QPY format version readable by the loaded library.
@@ -92,8 +93,9 @@ unsafe fn dump(
     dump_circuits(circuits, version)
 }
 
-fn load(payload: &[u8]) -> Result<Vec<CircuitData>, QpyCError> {
-    qiskit_qpy::native_load_qpy(payload).map_err(|err| QpyCError::Diagnostic(err.to_string()))
+fn load(payload: &[u8], min_qpy_version: Option<u8>) -> Result<Vec<CircuitData>, QpyCError> {
+    qiskit_qpy::native_load_qpy(payload, min_qpy_version)
+        .map_err(|err| QpyCError::Diagnostic(err.to_string()))
 }
 
 unsafe fn dump_file_impl(
@@ -267,6 +269,21 @@ pub unsafe extern "C" fn qk_qpy_load_file(
     if let Err(error) = check_ptr(circuits) {
         return error.into();
     }
+    let user_config_file = match user_config::get_config_file() {
+        Ok(conf) => conf,
+        Err(e) => {
+            if !error.is_null() {
+                // A safeguard in case the error contains nuls from payload
+                // defined strings.
+                let message = e.to_string().replace('\0', "\\0");
+                // SAFETY: the caller guarantees that a non-null `error` is valid for one write.
+                unsafe { error.write(CString::new(message).unwrap().into_raw()) };
+            }
+            return e.into();
+        }
+    };
+    let min_qpy_version: Option<u8> = user_config_file.and_then(|x| x.min_qpy_version);
+
     // SAFETY: upheld by the caller contract and checked non-null above.
     let Ok(filename) = unsafe { CStr::from_ptr(filename) }.to_str() else {
         return return_error(
@@ -276,7 +293,7 @@ pub unsafe extern "C" fn qk_qpy_load_file(
     };
     let result = fs::read(filename)
         .map_err(|err| QpyCError::Diagnostic(err.to_string()))
-        .and_then(|payload| load(&payload));
+        .and_then(|payload| load(&payload, min_qpy_version));
     match result {
         Ok(loaded) => {
             let loaded: Box<[*mut CircuitData]> = loaded
@@ -399,8 +416,25 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
     if let Err(error) = check_ptr(circuits) {
         return error.into();
     }
+    let user_config_file = match user_config::get_config_file() {
+        Ok(conf) => conf,
+        Err(e) => {
+            if !error.is_null() {
+                // A safeguard in case the error contains nuls from payload
+                // defined strings.
+                let message = e.to_string().replace('\0', "\\0");
+                // SAFETY: the caller guarantees that a non-null `error` is valid for one write.
+                unsafe { error.write(CString::new(message).unwrap().into_raw()) };
+            }
+            return e.into();
+        }
+    };
+    let min_qpy_version: Option<u8> = user_config_file.and_then(|x| x.min_qpy_version);
     // SAFETY: upheld by the caller contract and checked non-null above.
-    match load(unsafe { slice::from_raw_parts(buffer.cast::<u8>(), size) }) {
+    match load(
+        unsafe { slice::from_raw_parts(buffer.cast::<u8>(), size) },
+        min_qpy_version,
+    ) {
         Ok(loaded) => {
             let loaded: Box<[*mut CircuitData]> = loaded
                 .into_iter()
