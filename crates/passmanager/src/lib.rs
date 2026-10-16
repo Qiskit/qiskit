@@ -275,15 +275,23 @@ fn execute_task(
     match task {
         Task::Transformation(pass) => pass.run(ir, context),
         Task::Group(tasks) => {
+            let mut any_ir_modified = false;
             for task in tasks.iter() {
+                context.ir_modified = true;
                 ir = execute_task(task, ir, context)?;
+                any_ir_modified |= context.ir_modified;
             }
+            context.ir_modified = any_ir_modified;
             Ok(ir)
         }
         Task::Stages(stages) => {
+            let mut any_ir_modified = false;
             for (_name, task) in stages.iter() {
+                context.ir_modified = true;
                 ir = execute_task(task, ir, context)?;
+                any_ir_modified |= context.ir_modified;
             }
+            context.ir_modified = any_ir_modified;
             Ok(ir)
         }
     }
