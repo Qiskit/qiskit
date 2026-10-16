@@ -13,7 +13,7 @@
 
 """Pass manager test cases."""
 
-from test.python.passmanager import PassManagerTestCase
+from test.python.passmanager import BasePassManagerTestCase
 
 from qiskit.passmanager import GenericPass, BasePassManager
 from qiskit.passmanager.flow_controllers import DoWhileController, ConditionalController
@@ -42,7 +42,7 @@ class ToyPassManager(BasePassManager):
         return int(passmanager_ir)
 
 
-class TestPassManager(PassManagerTestCase):
+class TestBasePassManager(BasePassManagerTestCase):
     def test_single_task(self):
         """Test case: Pass manager with a single task."""
 

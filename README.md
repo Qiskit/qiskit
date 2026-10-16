@@ -134,7 +134,7 @@ qc_transpiled = transpile(qc, target=target)
 
 Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any vendor that provides a compatible interface. 
 The best way to use Qiskit is with a runtime environment that provides optimized implementations of Sampler and Estimator for a given hardware platform. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. A runtime implements the `qiskit.primitives.BaseSamplerV2` and `qiskit.primitives.BaseEstimatorV2` interfaces. For example,
-some packages that provide implementations of a runtime primitive implementation are:
+some packages that provide implementations of a runtime primitive are:
 
 * https://github.com/Qiskit/qiskit-ibm-runtime
 
