@@ -1118,6 +1118,41 @@ c[1] = measure q[1];
         )
         self.assertEqual(dumps(qc), expected_qasm)
 
+    def test_for_loop_with_var_capturing_outer_vars(self):
+        """Test that a for loop with an expr.Var loop parameter can read variables from the outer
+        scope, including the loop variable of an enclosing for loop."""
+        qc = QuantumCircuit(1, 1)
+        cr = ClassicalRegister(5, "reps")
+        qc.add_register(cr)
+        acc = qc.add_var("acc", expr.lift(0, types.Uint(32)))
+
+        with qc.for_loop(range(5), expr.Var.new("a", types.Uint(32))) as a:
+            qc.measure(0, 0)
+            qc.store(expr.index(cr, a), qc.clbits[0])
+            with qc.for_loop(range(2), expr.Var.new("b", types.Uint(32))) as b:
+                qc.store(acc, expr.add(acc, expr.add(a, b)))
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "bit[1] c;",
+                "bit[5] reps;",
+                "qubit[1] q;",
+                "uint[32] acc;",
+                "acc = 0;",
+                "for uint[32] a in [0:4] {",
+                "  c[0] = measure q[0];",
+                "  reps[a] = c[0];",
+                "  for uint[32] b in [0:1] {",
+                "    acc = acc + (a + b);",
+                "  }",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
     def test_simple_while_loop(self):
         """Test that a simple while loop works correctly."""
         loop_body = QuantumCircuit(1)

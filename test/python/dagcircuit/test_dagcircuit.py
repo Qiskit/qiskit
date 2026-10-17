@@ -2487,36 +2487,29 @@ class TestDagEquivalence(DAGTest):
         }
         self.assertEqual(set(dag.edges()), expected_edges)
 
-    def test_forbid_mixing_captures_inputs(self):
-        """Test that a DAG can't have both captures and inputs."""
+    def test_allow_mixing_captures_inputs(self):
+        """Test that a DAG can have both captures and inputs, such as the body of a `ForLoopOp`
+        with a `Var` loop parameter that also reads variables from its enclosing scope."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Stretch.new("c")
 
         dag = DAGCircuit()
         dag.add_input_var(a)
-        with self.assertRaisesRegex(
-            DAGCircuitError, "circuits with input variables cannot be enclosed"
-        ):
-            dag.add_captured_var(b)
-        with self.assertRaisesRegex(
-            DAGCircuitError, "circuits with input variables cannot be enclosed"
-        ):
-            dag.add_captured_stretch(c)
+        dag.add_captured_var(b)
+        dag.add_captured_stretch(c)
+        self.assertEqual(list(dag.iter_input_vars()), [a])
+        self.assertEqual(list(dag.iter_captured_vars()), [b])
+        self.assertEqual(list(dag.iter_captured_stretches()), [c])
+        # Both kinds of var get wires.
+        self.assertEqual(set(dag.wires) & {a, b}, {a, b})
 
         dag = DAGCircuit()
         dag.add_captured_var(a)
-        with self.assertRaisesRegex(
-            DAGCircuitError, "circuits to be enclosed with captures cannot have input variables"
-        ):
-            dag.add_input_var(b)
-
-        dag = DAGCircuit()
         dag.add_captured_stretch(c)
-        with self.assertRaisesRegex(
-            DAGCircuitError, "circuits to be enclosed with captures cannot have input variables"
-        ):
-            dag.add_input_var(a)
+        dag.add_input_var(b)
+        self.assertEqual(list(dag.iter_input_vars()), [b])
+        self.assertEqual(set(dag.iter_captures()), {a, c})
 
     def test_forbid_adding_nonstandalone_var(self):
         """Temporary "wrapping" vars aren't standalone and can't be tracked separately."""

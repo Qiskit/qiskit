@@ -1,0 +1,30 @@
+---
+fixes:
+  - |
+    The body of a :class:`.ForLoopOp` whose loop parameter is an :class:`.expr.Var` can now read
+    and write variables and stretches from its enclosing scope.  Previously, building such a loop
+    with :meth:`.QuantumCircuit.for_loop` raised a :exc:`.CircuitError` ("circuits with input
+    variables cannot be enclosed") as soon as the body used an outer variable, including the loop
+    variable of an enclosing ``for`` loop.  For example, the following now works::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.classical import expr, types
+
+        qc = QuantumCircuit(1)
+        acc = qc.add_var("acc", expr.lift(0, types.Uint(8)))
+        with qc.for_loop(range(3), expr.Var.new("i", types.Uint(8))) as i:
+            with qc.for_loop(range(2), expr.Var.new("j", types.Uint(8))) as j:
+                qc.store(acc, expr.add(acc, expr.add(i, j)))
+                qc.x(0)
+  - |
+    :class:`.ContractIdleWiresInControlFlow` no longer fails on a :class:`.ForLoopOp` whose loop
+    parameter is an :class:`.expr.Var` and whose body has idle qubits.  Previously, the pass
+    dropped the loop variable from the contracted body, which then raised a :exc:`.CircuitError`.
+upgrade_circuits:
+  - |
+    :class:`.QuantumCircuit` and :class:`.DAGCircuit` can now hold ``input`` variables and
+    captured variables or stretches at the same time.  This is needed by the body of a
+    :class:`.ForLoopOp` with an :class:`.expr.Var` loop parameter, which takes the loop variable as
+    its single ``input`` and may capture variables from the enclosing scope.  Control-flow
+    operations still reject blocks with any other ``input`` variables, so the only enclosable
+    circuits with an ``input`` remain ``for``-loop bodies.
