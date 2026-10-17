@@ -1119,3 +1119,30 @@ class TestParameterExpression(QiskitTestCase):
     )
     def test_structurally_equal(self, left, right, expected):
         self.assertStructurallyEqualResult(left, right, expected)
+
+    def test_small_float_arithmetic(self):
+        """Test arithmetic with small float constants and factors near ±1 (issue #17230)."""
+        t = Parameter("t")
+
+        # A: Small parameter value bound in product
+        self.assertAlmostEqual(float((t * 1e15).bind({t: 1.7e-15})), 1.7)
+
+        # B: Chained multiplication with small constants
+        self.assertAlmostEqual(float((t * 1e-20 * 1e20).bind({t: 0.5})), 0.5)
+
+        # C: Chained multiplication with rounding difference (1.0000000000000002e-06)
+        self.assertAlmostEqual(float((t * 1e-8 * 1e-8).bind({t: 1e10})), 1e-06, delta=1e-12)
+
+        # D: Division by small float should construct a valid expression without ZeroDivisionError
+        div_expr = t / 1e-20
+        self.assertEqual(div_expr.parameters, {t})
+        self.assertAlmostEqual(float(div_expr.bind({t: 1.0})), 1e20, delta=1e10)
+
+        # E: Factors close to 1: in IEEE 754 float arithmetic, 1.000000000000001 * 1e15 evaluates
+        # to 1000000000000001.125, represented in Python as 1000000000000001.1.
+        # It must not be simplified away to 1e15 (or 1000000000000001.0).
+        expected_e = 1.000000000000001 * 1e15
+        self.assertEqual(expected_e, 1000000000000001.1)
+        self.assertAlmostEqual(
+            float((t * 1.000000000000001).bind({t: 1e15})), expected_e, delta=1e-6
+        )
