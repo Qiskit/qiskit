@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue where calling :meth:`.ControlledGate.inverse` on a controlled
+    :class:`.CUGate` (such as ``CUGate(...).control(1).inverse()``) dropped the
+    phase parameter :math:`\gamma`, causing the inverted gate to differ from the
+    original operator's adjoint.
+
+    Fixed `#17223 <https://github.com/Qiskit/qiskit/issues/17223>`__.

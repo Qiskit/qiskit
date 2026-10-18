@@ -271,6 +271,25 @@ class ControlledGate(Gate):
     def inverse(self, annotated: bool = False) -> ControlledGate | AnnotatedOperation:
         """Invert this gate by calling inverse on the base gate."""
         if not annotated:
+            from qiskit.circuit.library.standard_gates.u import CUGate, UGate
+
+            if isinstance(self.base_gate, UGate) and len(self.params) == 4:
+                theta, phi, lam, gamma = self.params
+                inv_cu = CUGate(
+                    -theta,
+                    -lam,
+                    -phi,
+                    -gamma,
+                    ctrl_state=self.ctrl_state >> (self.num_ctrl_qubits - 1),
+                    _base_label=self.base_gate.label,
+                )
+                if self.num_ctrl_qubits == 1:
+                    return inv_cu
+                return inv_cu.control(
+                    self.num_ctrl_qubits - 1,
+                    ctrl_state=self.ctrl_state & ((1 << (self.num_ctrl_qubits - 1)) - 1),
+                    annotated=annotated,
+                )
             inverse_gate = self.base_gate.inverse().control(
                 self.num_ctrl_qubits, ctrl_state=self.ctrl_state, annotated=annotated
             )

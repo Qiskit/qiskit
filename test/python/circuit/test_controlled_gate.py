@@ -903,6 +903,86 @@ class TestControlledGate(QiskitTestCase):
         result = Operator(cqc).compose(Operator(cqc_inv))
         np.testing.assert_array_almost_equal(result.data, np.identity(result.dim[0]))
 
+    def test_inverse_controlled_cugate(self):
+        """Test inverting a controlled CUGate preserves gamma and equals adjoint."""
+        # Case 1: Nonzero gamma reproducing issue #17223
+        cu = CUGate(0.3, 0.4, 0.5, 0.6, _base_label="my_base")
+        c = cu.control(1, annotated=False)
+        self.assertEqual(c.params, [0.3, 0.4, 0.5, 0.6])
+        inv_c = c.inverse()
+        self.assertEqual(inv_c.params, [-0.3, -0.5, -0.4, -0.6])
+        self.assertEqual(inv_c.base_gate.label, "my_base")
+        self.assertTrue(Operator(inv_c).equiv(Operator(c).adjoint()))
+        self.assertEqual(inv_c.inverse(), c)
+        self.assertTrue(Operator(inv_c.inverse()).equiv(Operator(c)))
+
+        # Case 2: Zero gamma preserves all 4 parameters and equals adjoint
+        cu_zero = CUGate(0.3, 0.4, 0.5, 0.0)
+        c_zero = cu_zero.control(1, annotated=False)
+        self.assertEqual(c_zero.params, [0.3, 0.4, 0.5, 0.0])
+        inv_c_zero = c_zero.inverse()
+        self.assertEqual(inv_c_zero.params, [-0.3, -0.5, -0.4, 0.0])
+        self.assertTrue(Operator(inv_c_zero).equiv(Operator(c_zero).adjoint()))
+
+        # Case 3: Ordinary three-parameter UGate inversion behavior is unchanged
+        ug = UGate(0.3, 0.4, 0.5)
+        c_ug = ug.control(2, annotated=False)
+        self.assertEqual(c_ug.params, [0.3, 0.4, 0.5])
+        inv_c_ug = c_ug.inverse()
+        self.assertEqual(inv_c_ug.params, [-0.3, -0.5, -0.4])
+        self.assertTrue(Operator(inv_c_ug).equiv(Operator(c_ug).adjoint()))
+
+        # Case 4: Annotated inversion returns AnnotatedOperation and matches adjoint
+        inv_ann = c.inverse(annotated=True)
+        self.assertIsInstance(inv_ann, AnnotatedOperation)
+        self.assertTrue(Operator(inv_ann).equiv(Operator(c).adjoint()))
+
+        # Case 5: Parameterized controlled CUGate inversion
+        p_theta, p_phi, p_lam, p_gamma = (
+            Parameter("t"),
+            Parameter("p"),
+            Parameter("l"),
+            Parameter("g"),
+        )
+        cu_param = CUGate(p_theta, p_phi, p_lam, p_gamma)
+        c_param = cu_param.control(1, annotated=False)
+        inv_param = c_param.inverse()
+
+        qc = QuantumCircuit(3)
+        qc.append(inv_param, [0, 1, 2])
+        bound = qc.assign_parameters({p_theta: 0.3, p_phi: 0.4, p_lam: 0.5, p_gamma: 0.6})
+
+        qc_orig = QuantumCircuit(3)
+        qc_orig.append(c_param, [0, 1, 2])
+        bound_orig = qc_orig.assign_parameters({p_theta: 0.3, p_phi: 0.4, p_lam: 0.5, p_gamma: 0.6})
+
+        self.assertTrue(Operator(bound).equiv(Operator(bound_orig).adjoint()))
+
+    def test_inverse_controlled_cugate_multiple_and_open_controls(self):
+        """Test inverting controlled CUGate with multiple controls and open control states."""
+        theta, phi, lam, gamma = 0.3, 0.4, 0.5, 0.6
+        for cu_cs in [0, 1]:
+            for num_added in [1, 2]:
+                for ctrl_state in range(2**num_added):
+                    with self.subTest(
+                        cu_ctrl_state=cu_cs, num_added=num_added, ctrl_state=ctrl_state
+                    ):
+                        cu = CUGate(theta, phi, lam, gamma, ctrl_state=cu_cs)
+                        c = cu.control(num_added, ctrl_state=ctrl_state, annotated=False)
+                        inv_c = c.inverse()
+                        self.assertEqual(inv_c.params, [-theta, -lam, -phi, -gamma])
+                        self.assertEqual(inv_c.ctrl_state, c.ctrl_state)
+                        self.assertTrue(Operator(inv_c).equiv(Operator(c).adjoint()))
+                        self.assertEqual(inv_c.inverse(), c)
+
+        # Chained controls
+        c_chained = (
+            CUGate(theta, phi, lam, gamma).control(1, annotated=False).control(1, annotated=False)
+        )
+        inv_chained = c_chained.inverse()
+        self.assertEqual(inv_chained.params, [-theta, -lam, -phi, -gamma])
+        self.assertTrue(Operator(inv_chained).equiv(Operator(c_chained).adjoint()))
+
     @data(1, 2, 3, 4, 5)
     def test_controlled_unitary(self, num_ctrl_qubits):
         """Test the matrix data of an Operator, which is based on a controlled gate."""
