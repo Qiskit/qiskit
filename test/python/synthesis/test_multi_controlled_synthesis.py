@@ -406,8 +406,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcp_noaux_v24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcp_noaux_v24 bound on CX count."""
         synthesized_circuit = synth_mcp_noaux_v24(num_ctrl_qubits, phase=0.123)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
+        cx_count = synthesized_circuit.count_ops()["cx"]
         # The bound from the documentation of synth_mcp_noaux_v24
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits - 60)
 
@@ -433,8 +432,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_n_dirty_i15_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
-        cx_count = synthesized_circuit.count_ops()["cx"]
-        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        count_ops = synthesized_circuit.count_ops()
+        cx_count = count_ops["cx"]
+        t_count = count_ops["t"] + count_ops["tdg"]
         # The bound from the documentation of synth_mcx_n_dirty_i15
         self.assertEqual(synthesized_circuit.num_qubits, 2 * num_ctrl_qubits - 1)
         self.assertEqual(cx_count, 8 * num_ctrl_qubits - 6)
@@ -467,8 +467,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_1_clean_b95_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_clean_b95 bound on CX count."""
         synthesized_circuit = synth_mcx_1_clean_b95(num_ctrl_qubits)
-        cx_count = synthesized_circuit.count_ops()["cx"]
-        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        count_ops = synthesized_circuit.count_ops()
+        cx_count = count_ops["cx"]
+        t_count = count_ops["t"] + count_ops["tdg"]
         # The bound from the documentation of synth_mcx_1_clean_b95
         self.assertEqual(cx_count, 16 * num_ctrl_qubits - 24)
         self.assertEqual(t_count, 16 * num_ctrl_qubits - 12)
@@ -477,8 +478,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_1_clean_kg24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_clean_kg24 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_1_clean_kg24(num_ctrl_qubits)
-        cx_count = synthesized_circuit.count_ops()["cx"]
-        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        count_ops = synthesized_circuit.count_ops()
+        cx_count = count_ops["cx"]
+        t_count = count_ops["t"] + count_ops["tdg"]
         # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
         self.assertEqual(cx_count, 6 * num_ctrl_qubits - 6)
@@ -488,8 +490,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_1_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_dirty_kg24 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
-        cx_count = synthesized_circuit.count_ops()["cx"]
-        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        count_ops = synthesized_circuit.count_ops()
+        cx_count = count_ops["cx"]
+        t_count = count_ops["t"] + count_ops["tdg"]
         # Based on the bound from the Sec 5.3 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
         self.assertEqual(cx_count, 12 * num_ctrl_qubits - 18)
@@ -499,8 +502,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_2_clean_kg24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_2_clean_kg24 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
-        cx_count = synthesized_circuit.count_ops()["cx"]
-        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        count_ops = synthesized_circuit.count_ops()
+        cx_count = count_ops["cx"]
+        t_count = count_ops["t"] + count_ops["tdg"]
         # Based on the bound from the Sec 5.2 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
         self.assertEqual(cx_count, 6 * num_ctrl_qubits - 6)
@@ -510,8 +514,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_2_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_2_dirty_kg24 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
-        cx_count = synthesized_circuit.count_ops()["cx"]
-        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        count_ops = synthesized_circuit.count_ops()
+        cx_count = count_ops["cx"]
+        t_count = count_ops["t"] + count_ops["tdg"]
         # Based on the bound from the Sec 5.4 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
         self.assertEqual(cx_count, 12 * num_ctrl_qubits - 18)
@@ -520,16 +525,14 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_c3x_cx_count(self):
         """Test synth_c3x bound on CX count."""
         synthesized_circuit = synth_c3x()
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
+        cx_count = synthesized_circuit.count_ops()["cx"]
         # The bound from the default construction for C3X
         self.assertLessEqual(cx_count, 14)
 
     def test_c4x_cx_count(self):
         """Test synth_c4x bound on CX count."""
         synthesized_circuit = synth_c4x()
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
+        cx_count = synthesized_circuit.count_ops()["cx"]
         # The bound from the default construction for C4X
         self.assertLessEqual(cx_count, 36)
 
@@ -567,8 +570,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 bound on CX count."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
+        cx_count = synthesized_circuit.count_ops()["cx"]
         # The bound from the documentation of synth_mcp_noaux_v24
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits - 60)
 
@@ -576,8 +578,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_noaux_hp24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_hp24 bound on CX count (for large values of ``num_ctrl_qubits``."""
         synthesized_circuit = synth_mcx_noaux_hp24(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
+        cx_count = synthesized_circuit.count_ops()["cx"]
         num_qubits = num_ctrl_qubits + 1
         # bound from the paper
         if num_qubits % 2 == 0:
@@ -757,8 +758,8 @@ class TestMCSynthesisCounts(QiskitTestCase):
         cx_count = transpiled_circuit.count_ops()["cx"]
         self.assertEqual(Operator(cgate), Operator(transpiled_circuit))
 
-        expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 84, 6: 140, 7: 220, 8: 324}
-        self.assertLessEqual(cx_count, expected[cgate.num_ctrl_qubits])
+        expected = {1: 1, 2: 6, 3: 14, 4: 36, 5: 82, 6: 122, 7: 170, 8: 324}
+        self.assertEqual(cx_count, expected[cgate.num_ctrl_qubits])
 
 
 @ddt
