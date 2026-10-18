@@ -26,15 +26,6 @@ They operate on Qiskit's internal :class:`~qiskit.dagcircuit.DAGCircuit`
 representation, but users typically run them through a pass manager using
 :class:`~qiskit.circuit.QuantumCircuit` inputs.
 
-There are two broad kinds of pass:
-
-* :class:`~qiskit.transpiler.AnalysisPass` objects inspect a circuit and write
-  information into the pass manager's
-  :class:`~qiskit.transpiler.PropertySet`. They do not change the circuit.
-* :class:`~qiskit.transpiler.TransformationPass` objects rewrite the circuit.
-  They can also read information that earlier analysis passes stored in the
-  property set.
-
 For complete device-aware compilation, start with
 :func:`~qiskit.transpiler.generate_preset_pass_manager`. The passes below are
 useful when you want to inspect a circuit, build a smaller custom workflow, or
