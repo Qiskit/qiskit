@@ -1066,6 +1066,36 @@ pub enum ExpressionElementPack {
     Index(ExpressionTypePack),
 }
 
+/// Context-free representation of a classical expression in the QPY wire format.
+/// Circuit references remain encoded as indices or names until the circuit reader resolves them.
+#[derive(BinWrite, BinRead, Debug)]
+#[brw(big)]
+pub enum PackedExpression {
+    #[brw(magic = b'x')]
+    Var(ExpressionTypePack, ExpressionVarElementPack),
+    #[brw(magic = b's')]
+    Stretch(ExpressionTypePack, u16),
+    #[brw(magic = b'v')]
+    Value(ExpressionTypePack, ExpressionValueElementPack),
+    #[brw(magic = b'c')]
+    Cast(ExpressionTypePack, u8, Box<PackedExpression>),
+    #[brw(magic = b'u')]
+    Unary(ExpressionTypePack, u8, Box<PackedExpression>),
+    #[brw(magic = b'b')]
+    Binary(
+        ExpressionTypePack,
+        u8,
+        Box<PackedExpression>,
+        Box<PackedExpression>,
+    ),
+    #[brw(magic = b'i')]
+    Index(
+        ExpressionTypePack,
+        Box<PackedExpression>,
+        Box<PackedExpression>,
+    ),
+}
+
 // An expression's var data - either a clbit, a register, or given by a uuid (for a standalone var)
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
