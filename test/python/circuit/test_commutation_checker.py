@@ -24,6 +24,7 @@ from qiskit.quantum_info import Operator
 
 from qiskit.circuit import (
     AnnotatedOperation,
+    CommutationChecker,
     ControlModifier,
     Gate,
     InverseModifier,
@@ -32,7 +33,10 @@ from qiskit.circuit import (
     Qubit,
     QuantumCircuit,
 )
-from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit.circuit.commutation_library import (
+    SessionCommutationChecker as scc,
+    StandardGateCommutations,
+)
 from qiskit.circuit.library import (
     Barrier,
     CCXGate,
@@ -75,6 +79,7 @@ from qiskit.circuit.library import (
     get_standard_gate_name_mapping,
 )
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.exceptions import QiskitError
 
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
 from qiskit._accelerate.standard_generators import _standard_gate_exponent
@@ -272,6 +277,26 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(XGate(), [0], [], rxx_gate_theta, [0, 1], []))
         self.assertTrue(scc.commute(rx_gate_theta, [0], [], rxx_gate_theta, [0, 1], []))
         self.assertTrue(scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], []))
+
+    def test_parameterized_gates_when_gates_specified(self):
+        """Gate filtering should use the public gate names and honor empty or mixed filters."""
+        rx1 = RXGate(0.1)
+        rx2 = RXGate(0.2)
+
+        for gates, expected in [
+            ({"rx"}, True),
+            ({"x"}, False),
+            ({"rx", "x"}, True),
+            (set(), False),
+            ({"rz"}, False),
+        ]:
+            with self.subTest(gates=gates):
+                self.assertEqual(
+                    CommutationChecker(StandardGateCommutations, gates=gates).commute(
+                        rx1, [0], [], rx2, [0], []
+                    ),
+                    expected,
+                )
 
     def test_parameterized_controlled_rotation_gates(self):
         """Check commutativity between parameterized controlled rotation gates,
@@ -621,6 +646,29 @@ class TestCommutationChecker(QiskitTestCase):
         x = PauliEvolutionGate(Pauli("X"))
         with self.subTest(left=x, right=swap):
             self.assertFalse(scc.commute(x, [1], [], swap, [1, 0], []))
+
+    @data(
+        (
+            PauliEvolutionGate(SparsePauliOp(["XXI", "IXI", "IIZ"]), time=42.2),
+            [0, 2, 2],
+            PauliProductRotationGate(Pauli("XX"), 0.1),
+            [1, 2],
+            "qargs1",
+        ),
+        (
+            PauliProductRotationGate(Pauli("XX"), 0.1),
+            [1, 2],
+            PauliEvolutionGate(SparsePauliOp(["XXI", "IXI", "IIZ"]), time=42.2),
+            [0, 2, 2],
+            "qargs2",
+        ),
+    )
+    @unpack
+    def test_reject_duplicate_qubits(self, op1, qargs1, op2, qargs2, duplicate_arg):
+        """Test that duplicate qubit arguments are rejected without panicking."""
+        checker = CommutationChecker()
+        with self.assertRaisesRegex(QiskitError, rf"{duplicate_arg} contains duplicate qubits"):
+            checker.commute(op1, qargs1, [], op2, qargs2, [])
 
     def test_pauli_evolution_parameterized(self):
         """Test PauliEvolutionGate commutations for parameterized times."""

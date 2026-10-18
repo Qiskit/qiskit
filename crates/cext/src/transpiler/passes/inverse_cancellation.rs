@@ -49,13 +49,13 @@ use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 /// # Example
 ///
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(2, 2);
-///     uint32_t qargs[1] = {0};
-///     qk_circuit_gate(qc, QkGate_X, qargs, NULL);
-///     qk_circuit_gate(qc, QkGate_H, qargs, NULL);
-///     qk_circuit_gate(qc, QkGate_H, qargs, NULL);
-///     qk_circuit_gate(qc, QkGate_Y, qargs, NULL);
-///     qk_transpiler_pass_standalone_inverse_cancellation(qc);
+/// QkCircuit *qc = qk_circuit_new(2, 2);
+/// uint32_t qargs[1] = {0};
+/// qk_circuit_gate(qc, QkGate_X, qargs, NULL);
+/// qk_circuit_gate(qc, QkGate_H, qargs, NULL);
+/// qk_circuit_gate(qc, QkGate_H, qargs, NULL);
+/// qk_circuit_gate(qc, QkGate_Y, qargs, NULL);
+/// qk_transpiler_pass_standalone_inverse_cancellation(qc);
 /// ```
 ///
 /// # Safety
@@ -67,7 +67,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_inverse_cancellation(
 ) {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None, None, None) {
+    let mut dag = match DAGCircuit::from_circuit_data(circuit, false, None, None) {
         Ok(dag) => dag,
         Err(_) => panic!("Internal Circuit -> DAG conversion failed"),
     };

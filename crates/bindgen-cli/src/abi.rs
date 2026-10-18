@@ -105,6 +105,8 @@ impl SlotsLists {
                 ("circuit", &qiskit_cext_vtable::FUNCTIONS_CIRCUIT),
                 ("transpile", &qiskit_cext_vtable::FUNCTIONS_TRANSPILE),
                 ("qi", &qiskit_cext_vtable::FUNCTIONS_QI),
+                ("qpy", &qiskit_cext_vtable::FUNCTIONS_QPY),
+                ("mir", &qiskit_cext_vtable::FUNCTIONS_MIR),
             ]
             .iter()
             .map(|(name, funcs)| (String::from(*name), names(funcs.slots())))
@@ -165,7 +167,7 @@ impl SlotsLists {
 }
 impl fmt::Display for SlotsLists {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "__version__ = \"{}\"", &self.api_version)?;
+        writeln!(f, "__version__ = \"{}\"", self.api_version)?;
         for (name, slots) in self.slots.iter() {
             writeln!(f, "{name} = {slots}")?;
         }
@@ -257,12 +259,12 @@ impl Changes {
         if self.is_allowed() {
             return format!(
                 "Current slots list for version {} is compatible with previous version {}.",
-                &self.version_cur, &self.version_prev,
+                self.version_cur, self.version_prev,
             );
         }
         let mut explanation = format!(
             "Current slots list for version {} is incompatible with previous version {}.",
-            &self.version_cur, &self.version_prev,
+            self.version_cur, self.version_prev,
         );
         write!(
             explanation,

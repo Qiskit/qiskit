@@ -1273,8 +1273,9 @@ class TestTranspile(QiskitTestCase):
         self.assertTrue(Operator(out).equiv(qc))
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
-    @data(0, 1, 2, 3)
-    def test_circuit_with_delay(self, optimization_level):
+    @idata(itertools.product([0, 1, 2, 3], [1, 16]))
+    @unpack
+    def test_circuit_with_delay(self, optimization_level, pulse_alignment):
         """Verify a circuit with delay can transpile to a scheduled circuit."""
 
         qc = QuantumCircuit(2)
@@ -1282,7 +1283,7 @@ class TestTranspile(QiskitTestCase):
         qc.delay(500, 1)
         qc.cx(0, 1)
 
-        target = Target(num_qubits=2, dt=1e-9)
+        target = Target(num_qubits=2, dt=1e-9, pulse_alignment=pulse_alignment)
         target.add_instruction(
             HGate(), {(i,): InstructionProperties(duration=200 * 1e-9) for i in range(2)}
         )
@@ -1930,6 +1931,41 @@ class TestTranspile(QiskitTestCase):
         result = transpile(qc, target=target, optimization_level=opt_level, seed_transpiler=42)
 
         self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
+
+    @data(0, 1, 2, 3)
+    def test_target_as_positional_backend_arg(self, opt_level):
+        """Test that a Target can be passed as the second positional argument to transpile(),
+        consistent with the behaviour of generate_preset_pass_manager()."""
+        theta = Parameter("θ")
+        phi = Parameter("ϕ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(Measure(), {(0,): None, (1,): None})
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        result = transpile(qc, target, optimization_level=opt_level, seed_transpiler=42)
+
+        self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
+
+    def test_target_as_positional_backend_arg_conflicts_with_target_kwarg(self):
+        """Test that passing a Target positionally as backend and also as target= raises TypeError."""
+        theta = Parameter("θ")
+        phi = Parameter("ϕ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(Measure(), {(0,): None, (1,): None})
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(TypeError):
+            transpile(qc, target, target=target)
 
     @data(0, 1, 2, 3)
     def test_transpile_control_flow_no_backend(self, opt_level):

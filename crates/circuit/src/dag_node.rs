@@ -197,7 +197,17 @@ impl DAGOpNode {
                         [Param::Obj(param_a), Param::Obj(param_b)] => {
                             param_a.bind(py).eq(param_b)?
                         }
-                        _ => false,
+                        [Param::Int(param_a), Param::Int(param_b)] => param_a == param_b,
+                        [Param::ParameterExpression(_), Param::Int(_)]
+                        | [Param::Int(_), Param::ParameterExpression(_)] => false,
+                        [Param::ParameterExpression(_), Param::Float(_)]
+                        | [Param::Float(_), Param::ParameterExpression(_)] => false,
+                        [Param::Int(_), Param::Float(_)] | [Param::Float(_), Param::Int(_)] => {
+                            false
+                        }
+                        [Param::Obj(obj_a), param_a] | [param_a, Param::Obj(obj_a)] => {
+                            obj_a.bind(py).eq(param_a)?
+                        }
                     };
                     if !res {
                         params_eq = false;
@@ -459,8 +469,8 @@ impl DAGInNode {
 #[pymethods]
 impl DAGInNode {
     #[new]
-    fn py_new(wire: Py<PyAny>) -> PyResult<(Self, DAGNode)> {
-        Ok((DAGInNode { wire }, DAGNode { node: None }))
+    fn py_new(wire: Py<PyAny>) -> PyClassInitializer<Self> {
+        PyClassInitializer::from(DAGNode { node: None }).add_subclass(Self { wire })
     }
 
     fn __reduce__<'py>(slf: PyRef<'py, Self>, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
@@ -517,8 +527,8 @@ impl DAGOutNode {
 #[pymethods]
 impl DAGOutNode {
     #[new]
-    fn py_new(wire: Py<PyAny>) -> PyResult<(Self, DAGNode)> {
-        Ok((DAGOutNode { wire }, DAGNode { node: None }))
+    fn py_new(wire: Py<PyAny>) -> PyClassInitializer<Self> {
+        PyClassInitializer::from(DAGNode { node: None }).add_subclass(Self { wire })
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<Py<PyAny>> {

@@ -66,8 +66,13 @@ impl Enum {
             .variants
             .iter()
             .map(|variant| -> anyhow::Result<_> {
-                let Some(ir::Literal::Expr(discriminant)) = &variant.discriminant else {
-                    bail!("unhandled discriminant: {:?}", &variant.discriminant);
+                let Some(discriminant) = &variant.discriminant else {
+                    // This is a minor lint to help us maintain ABI stability; it's possible to be
+                    // ABI stable with implicit values, but also easier to introduce an error.
+                    bail!("API-exposed enums must have explicit discriminant values set");
+                };
+                let ir::Literal::Expr(discriminant) = &discriminant else {
+                    bail!("unhandled discriminant type: {:?}", &discriminant);
                 };
                 Ok(EnumVariant {
                     name: variant.name.clone(),
@@ -120,11 +125,21 @@ pub struct Function<T> {
     pub ret: Option<Type<T>>,
 }
 
+/// A union to declare. Unions cannot be opaque.
+#[derive(Clone, Debug)]
+pub struct Union<T> {
+    /// The export name of the union.
+    pub name: String,
+    /// The fields.
+    pub fields: Vec<StructField<T>>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Items<T> {
     pub enums: Vec<Enum>,
     pub structs: Vec<Struct<T>>,
     pub functions: Vec<Function<T>>,
+    pub unions: Vec<Union<T>>,
 }
 impl<T> Default for Items<T> {
     fn default() -> Self {
@@ -132,6 +147,7 @@ impl<T> Default for Items<T> {
             enums: Default::default(),
             structs: Default::default(),
             functions: Default::default(),
+            unions: Default::default(),
         }
     }
 }

@@ -92,7 +92,7 @@ pub unsafe extern "C" fn qk_transpile_state_new(state: *mut *mut TranspilerStage
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspilerStageState``.
+/// Behavior is undefined if ``state`` is not either null or a valid pointer to a ``QkTranspilerStageState``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpile_state_free(state: *mut TranspilerStageState) {
     if !state.is_null() {
@@ -154,13 +154,15 @@ pub unsafe extern "C" fn qk_transpile_state_layout_set(
     layout: *mut TranspileLayout,
 ) {
     // SAFETY: As per documentation, the pointer should be non-null and aligned.
-    let borrowed_state = unsafe { mut_ptr_as_ref(state) };
-    if !layout.is_null() {
-        // SAFETY: As per documentation, the pointer should be aligned.
-        unsafe {
-            borrowed_state.layout.replace(*Box::from_raw(layout));
-        }
-    };
+    let state = unsafe { mut_ptr_as_ref(state) };
+
+    if layout.is_null() {
+        state.layout = None;
+    } else {
+        // SAFETY: `layout` is non-null and aligned in `else` arm
+        let layout = unsafe { Box::from_raw(layout) };
+        state.layout = Some(*layout);
+    }
 }
 
 /// The options for running the transpiler
@@ -317,18 +319,18 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
         }
         Err(e) => {
             if !error.is_null() {
-                unsafe {
-                    // Right now we return a backtrace of the error. This at least gives a hint as to
-                    // which pass failed when we have rust errors normalized we can actually have error
-                    // messages which are user facing. But most likely this will be a PyErr and panic
-                    // when trying to extract the string.
-                    *error = CString::new(format!(
-                        "Transpilation failed with this backtrace: {}",
-                        e.backtrace()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+                // Right now we return a backtrace of the error. This at least gives a hint as to
+                // which pass failed when we have rust errors normalized we can actually have error
+                // messages which are user facing. But most likely this will be a PyErr and panic
+                // when trying to extract the string.
+                let out_string = CString::new(format!(
+                    "Transpilation failed with this backtrace: {}",
+                    e.backtrace()
+                ))
+                .unwrap()
+                .into_raw();
+                // SAFETY: Per documentation, error is a char* (and we checked it's not NULL)
+                unsafe { *error = out_string };
             }
             ExitCode::TranspilerError
         }
@@ -410,18 +412,18 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
         Ok(val) => val,
         Err(e) => {
             if !error.is_null() {
-                unsafe {
-                    // Right now we return a backtrace of the error. This at least gives a hint as to
-                    // which pass failed when we have rust errors normalized we can actually have error
-                    // messages which are user facing. But most likely this will be a PyErr and panic
-                    // when trying to extract the string.
-                    *error = CString::new(format!(
-                        "Transpilation failed with this backtrace: {}",
-                        e.backtrace()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+                // Right now we return a backtrace of the error. This at least gives a hint as to
+                // which pass failed when we have rust errors normalized we can actually have error
+                // messages which are user facing. But most likely this will be a PyErr and panic
+                // when trying to extract the string.
+                let out_string = CString::new(format!(
+                    "Transpilation failed with this backtrace: {}",
+                    e.backtrace()
+                ))
+                .unwrap()
+                .into_raw();
+                // SAFETY: Per documentation, error is a char* (and we checked it's not NULL)
+                unsafe { *error = out_string };
             }
             return ExitCode::TranspilerError;
         }
@@ -495,7 +497,7 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
-/// @param state A pointer to a ``QkTranspilerStageState`` object contiaining the layout. Typically you will need
+/// @param state A pointer to a ``QkTranspilerStageState`` object containing the layout. Typically you will need
 ///   to run the `qk_transpile_stage_layout` prior to this function and that will provide a
 ///   `QkTranspileLayout` object with the initial layout set you want to take that output layout from
 ///   that function and use this as the input for this. If you don't have a layout object (e.g. you ran
@@ -958,21 +960,21 @@ pub unsafe extern "C" fn qk_transpile(
         Some(options.approximation_degree)
     };
 
-    if let Some(target_qubits) = target.num_qubits {
-        if target_qubits < qc.num_qubits() as u32 {
-            if !error.is_null() {
-                unsafe {
-                    *error = CString::new(format!(
-                        "Insufficient qubits in target: {}, the circuit uses {}",
-                        target_qubits,
-                        qc.num_qubits()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+    if let Some(target_qubits) = target.num_qubits
+        && target_qubits < qc.num_qubits() as u32
+    {
+        if !error.is_null() {
+            unsafe {
+                *error = CString::new(format!(
+                    "Insufficient qubits in target: {}, the circuit uses {}",
+                    target_qubits,
+                    qc.num_qubits()
+                ))
+                .unwrap()
+                .into_raw();
             }
-            return ExitCode::TranspilerError;
         }
+        return ExitCode::TranspilerError;
     }
 
     match transpile(
