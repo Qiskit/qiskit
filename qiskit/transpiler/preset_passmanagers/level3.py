@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -36,7 +36,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     The pass manager then transforms the circuit to match the coupling constraints.
     It is then unrolled to the basis, and any flipped cx directions are fixed.
     Finally, optimizations in the form of commutative gate cancellation, resynthesis
-    of two-qubit unitary blocks, and redundant reset removal are performed.
+    of two-qubit unitary blocks, redundant reset removal and final layout improvements are
+    performed.
 
     Args:
         pass_manager_config: configuration of the pass manager.
@@ -55,7 +56,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     layout_method = pass_manager_config.layout_method or "default"
     routing_method = pass_manager_config.routing_method or "default"
     translation_method = pass_manager_config.translation_method or "default"
-    scheduling_method = pass_manager_config.scheduling_method
     optimization_method = pass_manager_config.optimization_method or "default"
     scheduling_method = pass_manager_config.scheduling_method or "default"
     target = pass_manager_config.target

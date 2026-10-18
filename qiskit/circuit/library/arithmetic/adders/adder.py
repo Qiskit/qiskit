@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -43,14 +43,14 @@ class Adder(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg=(
             "Use the adder gates provided in qiskit.circuit.library.arithmetic instead. "
             "The gate type depends on the adder kind: fixed, half, full are represented by "
             "ModularAdderGate, HalfAdderGate, FullAdderGate, respectively. For different adder "
-            "implementations, see https://docs.quantum.ibm.com/api/qiskit/synthesis.",
+            "implementations, see https://quantum.cloud.ibm.com/docs/api/qiskit/synthesis.",
         ),
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(self, num_state_qubits: int, name: str = "Adder") -> None:
         """
@@ -79,7 +79,11 @@ class HalfAdderGate(Gate):
 
     .. math::
 
-        |a\rangle_n |b\rangle_n \mapsto |a\rangle_n |a + b\rangle_{n + 1}.
+        |a\rangle_n |b\rangle_n |0\rangle \mapsto |a\rangle_n |a + b\rangle_{n + 1}.
+
+    The final input qubit is a clean qubit initialized to :math:`|0\rangle`.
+    It stores the carry-out bit, which is why the output sum register has
+    :math:`n + 1` qubits.
 
     The quantum register :math:`|a\rangle_n` (and analogously :math:`|b\rangle_n`)
 
@@ -99,7 +103,7 @@ class HalfAdderGate(Gate):
         """
         Args:
             num_state_qubits: The number of qubits in each of the registers.
-            name: The name of the circuit.
+            label: An optional label for identifying the instruction.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
@@ -118,12 +122,12 @@ class HalfAdderGate(Gate):
 
     def _define(self):
         """Populates self.definition with some decomposition of this gate."""
-        from qiskit.synthesis.arithmetic import adder_qft_d00
+        from qiskit.synthesis.arithmetic import adder_ripple_r25
 
         # This particular decomposition does not use any ancilla qubits.
         # Note that the transpiler may choose a different decomposition
         # based on the number of ancilla qubits available.
-        self.definition = adder_qft_d00(self.num_state_qubits, kind="half")
+        self.definition = adder_ripple_r25(self.num_state_qubits)
 
 
 class ModularAdderGate(Gate):
@@ -154,7 +158,7 @@ class ModularAdderGate(Gate):
         """
         Args:
             num_state_qubits: The number of qubits in each of the registers.
-            name: The name of the circuit.
+            label: An optional label for identifying the instruction.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
@@ -173,12 +177,12 @@ class ModularAdderGate(Gate):
 
     def _define(self):
         """Populates self.definition with some decomposition of this gate."""
-        from qiskit.synthesis.arithmetic import adder_qft_d00
+        from qiskit.synthesis.arithmetic import adder_modular_v17
 
         # This particular decomposition does not use any ancilla qubits.
         # Note that the transpiler may choose a different decomposition
         # based on the number of ancilla qubits available.
-        self.definition = adder_qft_d00(self.num_state_qubits, kind="fixed")
+        self.definition = adder_modular_v17(self.num_state_qubits)
 
 
 class FullAdderGate(Gate):
@@ -210,7 +214,7 @@ class FullAdderGate(Gate):
         """
         Args:
             num_state_qubits: The number of qubits in each of the registers.
-            name: The name of the circuit.
+            label: An optional label for identifying the instruction.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")

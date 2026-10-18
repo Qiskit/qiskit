@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestHamiltonianGate(QiskitTestCase):
@@ -134,26 +134,6 @@ class TestHamiltonianCircuit(QiskitTestCase):
         self.assertIsInstance(dnode.op, HamiltonianGate)
         self.assertEqual(dnode.qargs, (qr[0], qr[1], qr[3]))
         np.testing.assert_almost_equal(dnode.op.to_matrix(), 1j * matrix.data)
-
-    def test_qobj_with_hamiltonian(self):
-        """test qobj output with hamiltonian
-        REMOVE once Qobj gets removed"""
-        qr = QuantumRegister(4)
-        qc = QuantumCircuit(qr)
-        qc.rx(np.pi / 4, qr[0])
-        matrix = Operator.from_label("XIZ")
-        theta = Parameter("theta")
-        uni = HamiltonianGate(matrix, theta, label="XIZ")
-        qc.append(uni, [qr[0], qr[1], qr[3]])
-        qc.cx(qr[3], qr[2])
-        qc = qc.assign_parameters({theta: np.pi / 2})
-        instr = qc.data[1]
-        self.assertEqual(instr.name, "hamiltonian")
-        # Also test label
-        self.assertEqual(instr.label, "XIZ")
-        np.testing.assert_array_almost_equal(
-            np.array(instr.params[0]).astype(np.complex64), matrix.data
-        )
 
     def test_decomposes_into_correct_unitary(self):
         """test 2 qubit hamiltonian"""

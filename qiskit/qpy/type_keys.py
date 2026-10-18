@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-return-statements
 
 """
 QPY Type keys for several namespace.
@@ -18,7 +17,7 @@ QPY Type keys for several namespace.
 
 import uuid
 from abc import abstractmethod
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, IntFlag
 
 import numpy as np
 
@@ -30,6 +29,7 @@ from qiskit.circuit import (
     CASE_DEFAULT,
     Clbit,
     ClassicalRegister,
+    Duration,
 )
 from qiskit.circuit.annotated_operation import AnnotatedOperation, Modifier
 from qiskit.circuit.classical import expr, types
@@ -54,7 +54,6 @@ class TypeKeyBase(bytes, Enum):
         Returns:
             TypeKey: Corresponding key object.
         """
-        pass
 
     @classmethod
     @abstractmethod
@@ -67,7 +66,6 @@ class TypeKeyBase(bytes, Enum):
         Returns:
             any: Corresponding class.
         """
-        pass
 
 
 class Value(TypeKeyBase):
@@ -135,6 +133,12 @@ class Condition(IntEnum):
     NONE = 0
     TWO_TUPLE = 1
     EXPRESSION = 2
+
+
+class InstructionExtraFlags(IntFlag):
+    """If an instruction has extra payloads associated with it."""
+
+    HAS_ANNOTATIONS = 0b1000_0000
 
 
 class Container(TypeKeyBase):
@@ -246,6 +250,7 @@ class Expression(TypeKeyBase):
     """Type keys for the ``EXPRESSION`` QPY item."""
 
     VAR = b"x"
+    STRETCH = b"s"
     VALUE = b"v"
     CAST = b"c"
     UNARY = b"u"
@@ -272,6 +277,8 @@ class ExprVarDeclaration(TypeKeyBase):
     INPUT = b"I"
     CAPTURE = b"C"
     LOCAL = b"L"
+    STRETCH_CAPTURE = b"A"
+    STRETCH_LOCAL = b"O"
 
     @classmethod
     def assign(cls, obj):
@@ -287,6 +294,8 @@ class ExprType(TypeKeyBase):
 
     BOOL = b"b"
     UINT = b"u"
+    FLOAT = b"f"
+    DURATION = b"d"
 
     @classmethod
     def assign(cls, obj):
@@ -331,6 +340,8 @@ class ExprValue(TypeKeyBase):
 
     BOOL = b"b"
     INT = b"i"
+    FLOAT = b"f"
+    DURATION = b"t"
 
     @classmethod
     def assign(cls, obj):
@@ -338,6 +349,45 @@ class ExprValue(TypeKeyBase):
             return cls.BOOL
         if isinstance(obj, int):
             return cls.INT
+        if isinstance(obj, float):
+            return cls.FLOAT
+        if isinstance(obj, Duration):
+            return cls.DURATION
+        raise exceptions.QpyError(
+            f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+        )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class CircuitDuration(TypeKeyBase):
+    """Type keys for the ``DURATION`` QPY item."""
+
+    DT = b"t"
+    PS = b"p"
+    NS = b"n"
+    US = b"u"
+    MS = b"m"
+    S = b"s"
+
+    @classmethod
+    def assign(cls, obj):
+        if isinstance(obj, Duration):
+            unit = obj.unit()
+            if unit == "dt":
+                return cls.DT
+            if unit == "ps":
+                return cls.PS
+            if unit == "ns":
+                return cls.NS
+            if unit == "us":
+                return cls.US
+            if unit == "ms":
+                return cls.MS
+            if unit == "s":
+                return cls.S
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
         )

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -42,9 +42,10 @@ Routing
    :toctree: ../stubs/
 
    BasicSwap
+   Commuting2qGateRouter
+   LayoutTransformation
    LookaheadSwap
    SabreSwap
-   Commuting2qGateRouter
    StarPreRouting
 
 Basis Change
@@ -65,41 +66,40 @@ Optimizations
 .. autosummary::
    :toctree: ../stubs/
 
-   Optimize1qGates
-   Optimize1qGatesDecomposition
    Collect1qRuns
    Collect2qBlocks
-   CollectMultiQBlocks
    CollectAndCollapse
-   CollectLinearFunctions
    CollectCliffords
-   ConsolidateBlocks
-   InverseCancellation
+   CollectLinearFunctions
+   CollectMultiQBlocks
    CommutationAnalysis
    CommutativeCancellation
    CommutativeInverseCancellation
-   Optimize1qGatesSimpleCommutation
-   RemoveDiagonalGatesBeforeMeasure
-   RemoveResetInZeroState
-   RemoveFinalReset
-   HoareOptimizer
-   TemplateOptimization
-   ResetAfterMeasureSimplification
-   OptimizeCliffords
-   ElidePermutations
-   NormalizeRXAngle
-   OptimizeAnnotated
-   Split2QUnitaries
-   RemoveIdentityEquivalent
+   CommutativeOptimization
+   ConsolidateBlocks
    ContractIdleWiresInControlFlow
-
-Calibration
-=============
-
-.. autosummary::
-   :toctree: ../stubs/
-
-.. autofunction:: rzx_templates
+   ConvertToPauliRotations
+   ElidePermutations
+   HoareOptimizer
+   InverseCancellation
+   LightCone
+   LitinskiTransformation
+   Optimize1qGates
+   Optimize1qGatesDecomposition
+   Optimize1qGatesSimpleCommutation
+   OptimizeAnnotated
+   OptimizeCliffordT
+   OptimizeCliffords
+   OptimizeSwapBeforeMeasure
+   RemoveDiagonalGatesBeforeMeasure
+   RemoveFinalReset
+   RemoveIdentityEquivalent
+   RemoveResetInZeroState
+   ResetAfterMeasureSimplification
+   Split2QUnitaries
+   SubstitutePi4Rotations
+   TemplateOptimization
+   TwoQubitPeepholeOptimization
 
 Scheduling
 =============
@@ -107,14 +107,15 @@ Scheduling
 .. autosummary::
    :toctree: ../stubs/
 
-   TimeUnitConversion
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
-   PadDynamicalDecoupling
-   PadDelay
    ConstrainedReschedule
+   ContextAwareDynamicalDecoupling
    InstructionDurationCheck
+   PadDelay
+   PadDynamicalDecoupling
    SetIOLatency
+   TimeUnitConversion
 
 Circuit Analysis
 ================
@@ -122,13 +123,14 @@ Circuit Analysis
 .. autosummary::
    :toctree: ../stubs/
 
-   Width
-   Depth
-   Size
    CountOps
    CountOpsLongestPath
-   NumTensorFactors
    DAGLongestPath
+   Depth
+   NumTensorFactors
+   ResourceEstimation
+   Size
+   Width
 
 Synthesis
 =========
@@ -139,11 +141,12 @@ The synthesis transpiler plugin documentation can be found in the
 .. autosummary::
    :toctree: ../stubs/
 
-   UnitarySynthesis
-   LinearFunctionsToPermutations
-   HighLevelSynthesis
    HLSConfig
+   HighLevelSynthesis
+   LinearFunctionsToPermutations
    SolovayKitaev
+   SynthesizeRZRotations
+   UnitarySynthesis
 
 Post Layout
 ===========
@@ -161,127 +164,49 @@ Additional Passes
 .. autosummary::
    :toctree: ../stubs/
 
-   CheckMap
-   CheckGateDirection
-   GateDirection
-   MergeAdjacentBarriers
-   RemoveBarriers
    BarrierBeforeFinalMeasurements
-   RemoveFinalMeasurements
-   DAGFixedPoint
-   FixedPoint
-   MinimumPoint
+   CheckGateDirection
+   CheckMap
    ContainsInstruction
-   GatesInBasis
-   UnrollForLoops
+   DAGFixedPoint
+   Error
    FilterOpNodes
+   FixedPoint
+   GateDirection
+   GatesInBasis
+   MergeAdjacentBarriers
+   MinimumPoint
+   RemoveBarriers
+   RemoveFinalMeasurements
+   UnrollForLoops
+   WrapAngles
+
+Additional data
+===============
+
+.. py:data:: qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY
+
+    A legacy location for :attr:`.WrapAngles.DEFAULT_REGISTRY`.  This path should only be used when
+    full compatibility with Qiskit 2.2 is required.
 """
 
-# layout selection (placement)
-from .layout import SetLayout
-from .layout import TrivialLayout
-from .layout import DenseLayout
-from .layout import SabreLayout
-from .layout import CSPLayout
-from .layout import VF2Layout
-from .layout import VF2PostLayout
-from .layout import ApplyLayout
-from .layout import Layout2qDistance
-from .layout import EnlargeWithAncilla
-from .layout import FullAncillaAllocation
-from .layout import SabrePreLayout
+from . import analysis, basis, layout, optimization, routing, scheduling, synthesis, utils
 
-# routing
-from .routing import BasicSwap
-from .routing import LayoutTransformation
-from .routing import LookaheadSwap
-from .routing import SabreSwap
-from .routing import Commuting2qGateRouter
-from .routing import StarPreRouting
+from .analysis import *
+from .basis import *
+from .layout import *
+from .optimization import *
+from .routing import *
+from .scheduling import *
+from .synthesis import *
+from .utils import *
 
-# basis change
-from .basis import Decompose
-from .basis import UnrollCustomDefinitions
-from .basis import Unroll3qOrMore
-from .basis import BasisTranslator
-from .basis import TranslateParameterizedGates
-
-# optimization
-from .optimization import Optimize1qGates
-from .optimization import Optimize1qGatesDecomposition
-from .optimization import Collect2qBlocks
-from .optimization import Collect1qRuns
-from .optimization import CollectMultiQBlocks
-from .optimization import ConsolidateBlocks
-from .optimization import CommutationAnalysis
-from .optimization import CommutativeCancellation
-from .optimization import CommutativeInverseCancellation
-from .optimization import Optimize1qGatesSimpleCommutation
-from .optimization import OptimizeSwapBeforeMeasure
-from .optimization import RemoveResetInZeroState
-from .optimization import RemoveFinalReset
-from .optimization import RemoveDiagonalGatesBeforeMeasure
-from .optimization import HoareOptimizer
-from .optimization import TemplateOptimization
-from .optimization import InverseCancellation
-from .optimization import CollectAndCollapse
-from .optimization import CollectLinearFunctions
-from .optimization import CollectCliffords
-from .optimization import ResetAfterMeasureSimplification
-from .optimization import OptimizeCliffords
-from .optimization import ElidePermutations
-from .optimization import NormalizeRXAngle
-from .optimization import OptimizeAnnotated
-from .optimization import RemoveIdentityEquivalent
-from .optimization import Split2QUnitaries
-from .optimization import ContractIdleWiresInControlFlow
-
-# circuit analysis
-from .analysis import ResourceEstimation
-from .analysis import Depth
-from .analysis import Size
-from .analysis import Width
-from .analysis import CountOps
-from .analysis import CountOpsLongestPath
-from .analysis import NumTensorFactors
-from .analysis import DAGLongestPath
-
-# synthesis
-from .synthesis import UnitarySynthesis
-from .synthesis import unitary_synthesis_plugin_names
-from .synthesis import LinearFunctionsToPermutations
-from .synthesis import HighLevelSynthesis
-from .synthesis import HLSConfig
-from .synthesis import SolovayKitaev
-from .synthesis import SolovayKitaevSynthesis
-from .synthesis import AQCSynthesisPlugin
-
-# calibration
-from .calibration.rzx_templates import rzx_templates
-
-# circuit scheduling
-from .scheduling import TimeUnitConversion
-from .scheduling import ALAPScheduleAnalysis
-from .scheduling import ASAPScheduleAnalysis
-from .scheduling import PadDynamicalDecoupling
-from .scheduling import PadDelay
-from .scheduling import ConstrainedReschedule
-from .scheduling import InstructionDurationCheck
-from .scheduling import SetIOLatency
-
-# additional utility passes
-from .utils import CheckMap
-from .utils import CheckGateDirection
-from .utils import GateDirection
-from .utils import BarrierBeforeFinalMeasurements
-from .utils import RemoveFinalMeasurements
-from .utils import MergeAdjacentBarriers
-from .utils import DAGFixedPoint
-from .utils import FixedPoint
-from .utils import MinimumPoint
-from .utils import Error
-from .utils import RemoveBarriers
-from .utils import ContainsInstruction
-from .utils import GatesInBasis
-from .utils import UnrollForLoops
-from .utils import FilterOpNodes
+__all__ = []
+__all__ += analysis.__all__
+__all__ += basis.__all__
+__all__ += layout.__all__
+__all__ += optimization.__all__
+__all__ += routing.__all__
+__all__ += scheduling.__all__
+__all__ += synthesis.__all__
+__all__ += utils.__all__

@@ -1,0 +1,97 @@
+---
+upgrade_providers:
+  - |
+    The ``BackendV1`` model has been removed following its deprecation in 
+    Qiskit 1.2.0. This includes the ``BackendV1`` class as well as related
+    modules and utils, as they have been superseded by the :class:`.BackendV2` 
+    model. The list of removed items includes:
+
+    * ``BackendV1`` class: the core of the removed model
+
+    * All elements in `qiskit/providers/models`, as they were used to represent 
+      components of the ``BackendV1`` model:
+
+        * ``BackendConfiguration``
+        * ``BackendProperties``
+        * ``BackendStatus``
+        * ``QasmBackendConfiguration``
+        * ``PulseBackendConfiguration``
+        * ``UchannelLO``
+        * ``GateConfig`` 
+        * ``PulseDefaults`` 
+        * ``PulseQobjDef``
+        * ``Command``
+        * ``GateProperties``  
+        * ``Nduv``    
+        * ``JobStatus``: This class has been superseded by the more widely used :class:`.JobStatus`
+        * ``PulseDefaults``
+
+    * ``BackendV2Converter`` class: used to convert from ``BackendV1`` to :class:`.BackendV2` 
+
+    * ``convert_to_target`` function: used to build a :class:`.Target` instance from 
+      legacy ``BackendV1`` components (such as ``BackendConfiguration`` or ``BackendProperties``)
+
+    * ``BackendPropertyError`` and ``BackendConfigurationError``: exceptions linked to removed classes
+
+upgrade_primitives:
+  - |
+   As a consequence of the removal of the ``BackendV1`` model, the :class:`.BackendSamplerV2` and 
+   :class:`.BackendEstimatorV2` classes no longer accept inputs of type ``BackendV1`` in their 
+   ``backend`` input argument.
+
+upgrade_transpiler:
+ - | 
+   As a consequence of the removal of the ``BackendV1`` model, the accepted input types of the following 
+   transpiler objects have been updated:
+   
+    * The :func:`.generate_preset_pass_manager` and :func:`.transpile` functions no longer accept inputs of
+      type ``BackendV1`` in their ``backend`` input argument.
+    
+    * The :meth:`.Target.from_configuration` method no longer accepts a ``backend_properties`` argument
+
+    * The :meth:`.Target.target_to_backend_properties` method has been removed
+
+upgrade_visualization:
+  - |
+   As a consequence of the removal of the ``BackendV1`` model, the :func:`.plot_gate_map`,  :func:`.plot_error_map`
+   and :func:`.plot_circuit_layout` functions no longer accept inputs of type ``BackendV1`` in their 
+   ``backend`` input argument.
+
+upgrade_misc:
+  - |
+    The ``Qobj`` structure and related classes, deprecated in Qiskit 1.2.0,
+    have been removed. They were introduced as part of the ``BackendV1``
+    workflow and are no longer necessary for interacting with :class:`.BackendV2` backends.
+    This removal includes:
+
+    *    ``QobjExperimentHeader``
+    *    ``QobjHeader``
+    *    ``QasmQobj``
+    *    ``QasmQobjInstruction``
+    *    ``QasmQobjExperimentConfig``
+    *    ``QasmQobjExperiment``
+    *    ``QasmQobjConfig``
+    *    ``QasmExperimentCalibrations``
+    *    ``GateCalibration``
+    *    ``PulseQobj``
+    *    ``PulseQobjInstruction``
+    *    ``PulseQobjExperimentConfig``
+    *    ``PulseQobjExperiment``
+    *    ``PulseQobjConfig``
+    *    ``QobjMeasurementOption``
+    *    ``PulseLibraryItem``
+
+  - |
+    The :class:`.MeasLevel` and :class`.MeasReturnType` classes, previously defined in 
+    ``qobj/utils.py``, have been migrated to ``result/models.py`` following the removal
+    of the ``qobj`` module. These classes were not part of the public API. 
+    The import path has been updated 
+    from: ``from qiskit.qobj.utils import MeasLevel, MeasReturnType`` to: 
+    ``from qiskit.result import MeasLevel, MeasReturnType``.
+
+  - |
+    The use of positional arguments in the constructor of :class:`.Result` has been disabled.
+    Please set all arguments using kwarg syntax, i.e: ``Result(backend_name="name", ....)``.
+    In addition to this, the ``qobj_id`` argument will no longer be used in the construction
+    of the :class:`.Result` internals. It is still possible to set ``qobj_id`` as a
+    generic kwarg, which will land in the metadata field with the other generic kwargs.

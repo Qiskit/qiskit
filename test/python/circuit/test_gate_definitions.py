@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,6 @@ from ddt import ddt, data, idata, unpack
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator
 from qiskit.circuit import ParameterVector, Gate, ControlledGate
-from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate
 from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
@@ -74,7 +73,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 from .gate_utils import _get_free_params
@@ -261,10 +260,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             param_vector = param_vector[:-1]
             gate = gate_class(*param_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 2
             param_vector = param_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *param_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 2
+            param_vector = param_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *param_vector)
         elif class_name == "MSGate":
             num_qubits = 2
             param_vector = param_vector[:-1]
@@ -292,10 +296,15 @@ class TestStandardGates(QiskitTestCase):
         if class_name in ("MCPhaseGate", "MCU1Gate"):
             float_vector = float_vector[:-1]
             gate = gate_class(*float_vector, num_ctrl_qubits=2)
-        elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
+        elif class_name == "MCXGate":
             num_ctrl_qubits = 3
             float_vector = float_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *float_vector)
+        elif class_name in ("MCXGrayCode", "MCXRecursive", "MCXVChain"):
+            num_ctrl_qubits = 3
+            float_vector = float_vector[:-1]
+            with self.assertWarns(DeprecationWarning):
+                gate = gate_class(num_ctrl_qubits, *float_vector)
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
@@ -336,14 +345,13 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "MCXGate",
         "MCMTGate",
         "VariadicZeroParamGate",
-        "ClassicalFunction",
-        "ClassicalElement",
         "StatePreparation",
         "UniformSuperpositionGate",
         "LinearFunction",
         "PermutationGate",
         "Commuting2qBlock",
         "PauliEvolutionGate",
+        "PauliProductRotationGate",
         "SingletonGate",
         "SingletonControlledGate",
         "_U0Gate",
@@ -397,7 +405,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
                 op2 = Operator(equivalency)
                 msg = (
                     f"Equivalence entry from '{gate.name}' to:\n"
-                    f"{str(equivalency.draw('text'))}\nfailed"
+                    f"{equivalency.draw('text')!s}\nfailed"
                 )
                 self.assertEqual(op1, op2, msg)
 
@@ -462,8 +470,8 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         self.assertGreaterEqual(len(param_entry), 1)
         self.assertGreaterEqual(len(float_entry), 1)
 
-        param_qc = QuantumCircuit([Qubit() for _ in range(param_gate.num_qubits)])
-        float_qc = QuantumCircuit([Qubit() for _ in range(float_gate.num_qubits)])
+        param_qc = QuantumCircuit(param_gate.num_qubits)
+        float_qc = QuantumCircuit(float_gate.num_qubits)
 
         param_qc.append(param_gate, param_qc.qubits)
         float_qc.append(float_gate, float_qc.qubits)

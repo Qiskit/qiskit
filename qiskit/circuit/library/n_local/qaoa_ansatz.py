@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,14 +12,14 @@
 
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 
-# pylint: disable=cyclic-import
+
 from __future__ import annotations
 
 import numpy as np
 
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -43,19 +43,19 @@ def qaoa_ansatz(
 
     Examples:
 
-        To define the QAOA ansatz we require a cost Hamiltonian, encoding the classical
-        optimization problem:
+    To define the QAOA ansatz we require a cost Hamiltonian, encoding the classical
+    optimization problem:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            from qiskit.quantum_info import SparsePauliOp
-            from qiskit.circuit.library import qaoa_ansatz
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import qaoa_ansatz
 
-            cost_operator = SparsePauliOp(["ZZII", "IIZZ", "ZIIZ"])
-            ansatz = qaoa_ansatz(cost_operator, reps=3, insert_barriers=True)
-            ansatz.draw("mpl")
+        cost_operator = SparsePauliOp(["ZZII", "IIZZ", "ZIIZ"])
+        ansatz = qaoa_ansatz(cost_operator, reps=3, insert_barriers=True)
+        ansatz.draw("mpl")
 
     Args:
         cost_operator: The operator representing the cost of the optimization problem, denoted as
@@ -76,8 +76,8 @@ def qaoa_ansatz(
 
     References:
 
-        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
-            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    [1] Farhi et al., A Quantum Approximate Optimization Algorithm.
+    `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
     num_qubits = cost_operator.num_qubits
 
@@ -110,8 +110,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
     References:
 
-        [1]: Farhi et al., A Quantum Approximate Optimization Algorithm.
-            `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
+    [1] Farhi et al., A Quantum Approximate Optimization Algorithm.
+    `arXiv:1411.4028 <https://arxiv.org/pdf/1411.4028>`_
     """
 
     def __init__(

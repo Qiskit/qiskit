@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,7 @@
 
 """Compute the product of two qubit registers using classical multiplication approach."""
 
-from typing import Optional
+
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
 
 from .multiplier import Multiplier
@@ -61,12 +61,12 @@ class HRSCumulativeMultiplier(Multiplier):
 
     .. seealso::
 
-        The :class:`.MultiplierGate` objects represents a multiplication, like this circuit class,
+        The :class:`.MultiplierGate` object represents a multiplication, like this circuit class,
         but allows the compiler to select the optimal decomposition based on the context.
         Specific implementations can be set via the :class:`.HLSConfig`, e.g. this circuit
         can be chosen via ``Multiplier=["cumulative_h18"]``.
 
-    **References:**
+    References:
 
     [1] Häner et al., Optimizing Quantum Circuits for Arithmetic, 2018.
     `arXiv:1805.12445 <https://arxiv.org/pdf/1805.12445.pdf>`_
@@ -76,8 +76,8 @@ class HRSCumulativeMultiplier(Multiplier):
     def __init__(
         self,
         num_state_qubits: int,
-        num_result_qubits: Optional[int] = None,
-        adder: Optional[QuantumCircuit] = None,
+        num_result_qubits: int | None = None,
+        adder: QuantumCircuit | None = None,
         name: str = "HRSCumulativeMultiplier",
     ) -> None:
         r"""
@@ -132,7 +132,7 @@ class HRSCumulativeMultiplier(Multiplier):
             else:
                 num_adder_qubits = num_state_qubits - excess_qubits + 1
                 adder_for_current_step = CDKMRippleCarryAdder(num_adder_qubits, kind="fixed")
-            controlled_adder = adder_for_current_step.to_gate().control(1)
+            controlled_adder = adder_for_current_step.to_gate().control(1, annotated=False)
             qr_list = (
                 [qr_a[i]]
                 + qr_b[:num_adder_qubits]

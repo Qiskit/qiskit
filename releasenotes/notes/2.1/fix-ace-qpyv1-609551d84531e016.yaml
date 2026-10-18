@@ -1,0 +1,9 @@
+---
+security:
+  - |
+    Fixed a security vulnerability in :func:`.qpy.load` when loading
+    payloads that use ``sympy`` to serialize
+    :class:`.ParameterExpression` objects and other symbolic expressions.
+    This potentially includes any QPY payload using QPY version < 10, and
+    optionally 10, 11, and 12 depending on the symbolic encoding used in the
+    serialization step (:func:`.qpy.dump`).

@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Test QuantumCircuit.compose()."""
 
@@ -18,8 +17,6 @@ import unittest
 
 import numpy as np
 
-from qiskit import transpile
-from qiskit.pulse import Schedule
 from qiskit.circuit import (
     QuantumRegister,
     ClassicalRegister,
@@ -33,9 +30,9 @@ from qiskit.circuit import (
     SwitchCaseOp,
     CircuitError,
 )
-from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
+from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, n_local
 from qiskit.circuit.classical import expr, types
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitCompose(QiskitTestCase):
@@ -488,38 +485,6 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(circuit_composed, circuit_expected)
 
-    def test_compose_calibrations(self):
-        """Test that composing two circuits updates calibrations."""
-        circ_left = QuantumCircuit(1)
-        circ_right = QuantumCircuit(1)
-        with self.assertWarns(DeprecationWarning):
-            circ_left.add_calibration("h", [0], None)
-            circ_right.add_calibration("rx", [0], None)
-        circ = circ_left.compose(circ_right)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(len(circ.calibrations), 2)
-            self.assertEqual(len(circ_left.calibrations), 1)
-
-        circ_left = QuantumCircuit(1)
-        circ_right = QuantumCircuit(1)
-        with self.assertWarns(DeprecationWarning):
-            circ_left.add_calibration("h", [0], None)
-            circ_right.add_calibration("h", [1], None)
-        circ = circ_left.compose(circ_right)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(len(circ.calibrations), 1)
-            self.assertEqual(len(circ.calibrations["h"]), 2)
-            self.assertEqual(len(circ_left.calibrations), 1)
-
-        # Ensure that transpiled _calibration is defaultdict
-        qc = QuantumCircuit(2, 2)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.measure(0, 0)
-        qc = transpile(qc, None, basis_gates=["h", "cx"], coupling_map=[[0, 1], [1, 0]])
-        with self.assertWarns(DeprecationWarning):
-            qc.add_calibration("cx", [0, 1], Schedule())
-
     def test_compose_one_liner(self):
         """Test building a circuit in one line, for fun."""
         circ = QuantumCircuit(3)
@@ -585,6 +550,23 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(output, expected)
 
+    def test_compose_front_smaller_circuit(self):
+        """Test composing a smaller circuit at the front with explicit qubits mapping."""
+
+        qc_base = QuantumCircuit(2)
+        qc_base.h(0)
+
+        qc_x = QuantumCircuit(1)
+        qc_x.x(0)
+
+        output = qc_base.compose(qc_x, qubits=[0], front=True)
+
+        expected = QuantumCircuit(2)
+        expected.x(0)
+        expected.h(0)
+
+        self.assertEqual(output, expected)
+
     def test_compose_adds_parameters(self):
         """Test the composed circuit contains all parameters."""
         a, b = Parameter("a"), Parameter("b")
@@ -619,7 +601,7 @@ class TestCircuitCompose(QiskitTestCase):
         qc_a.compose(qc_b, wrap=True, inplace=True)
 
         self.assertDictEqual(qc_a.count_ops(), {"B": 1, "x": 1})
-        self.assertDictEqual(qc_a.decompose().count_ops(), {"h": 1, "u3": 1})
+        self.assertDictEqual(qc_a.decompose().count_ops(), {"h": 1, "u": 1})
 
     def test_wrapping_unitary_circuit(self):
         """Test a unitary circuit will be wrapped as Gate, else as Instruction."""
@@ -659,9 +641,9 @@ class TestCircuitCompose(QiskitTestCase):
 
         bit_instruction = test.data[0].operation
         reg_instruction = test.data[1].operation
-        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition[0], test_loose)
         self.assertEqual(bit_instruction.condition, (test_loose, True))
-        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition[0], test_creg)
         self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
     def test_condition_mapping_whileloopop(self):
@@ -683,14 +665,14 @@ class TestCircuitCompose(QiskitTestCase):
 
         bit_instruction = test.data[0].operation
         reg_instruction = test.data[1].operation
-        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition[0], test_loose)
         self.assertEqual(bit_instruction.condition, (test_loose, True))
-        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition[0], test_creg)
         self.assertEqual(reg_instruction.condition, (test_creg, 3))
 
     def test_compose_no_clbits_in_one(self):
         """Test combining a circuit with cregs to one without"""
-        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+        ansatz = n_local(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qc = QuantumCircuit(2)
         qc.measure_all()
@@ -699,7 +681,7 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_compose_no_clbits_in_one_inplace(self):
         """Test combining a circuit with cregs to one without inplace"""
-        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+        ansatz = n_local(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qc = QuantumCircuit(2)
         qc.measure_all()
@@ -708,7 +690,7 @@ class TestCircuitCompose(QiskitTestCase):
 
     def test_compose_no_clbits_in_one_multireg(self):
         """Test combining a circuit with cregs to one without, multi cregs"""
-        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+        ansatz = n_local(2, rotation_blocks="ry", entanglement_blocks="cx")
 
         qa = QuantumRegister(2, "q")
         ca = ClassicalRegister(2, "a")
@@ -879,22 +861,62 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual([a1, c], list(out.iter_input_vars()))
         self.assertEqual([a1, c], list(out.iter_vars()))
 
+    def test_stretch_remap_to_avoid_collisions(self):
+        """We can use `var_remap` to avoid a stretch collision."""
+        a1 = expr.Stretch.new("a")
+        a2 = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        base = QuantumCircuit(captures=[a1])
+        other = QuantumCircuit(captures=[a2])
+
+        out = base.compose(other, var_remap={a2: b})
+        self.assertEqual([a1, b], list(out.iter_captured_stretches()))
+        self.assertEqual([a1, b], list(out.iter_stretches()))
+
+        out = base.compose(other, var_remap={"a": b})
+        self.assertEqual([a1, b], list(out.iter_captured_stretches()))
+        self.assertEqual([a1, b], list(out.iter_stretches()))
+
+        out = base.compose(other, var_remap={"a": "c"})
+        self.assertTrue(out.has_stretch("c"))
+        c = out.get_stretch("c")
+        self.assertEqual(c.name, "c")
+        self.assertEqual([a1, c], list(out.iter_captured_stretches()))
+        self.assertEqual([a1, c], list(out.iter_stretches()))
+
+    def test_remap_stretch_inside_var(self):
+        """Test that the variable remapper checks inside `Delay` nodes."""
+        qc = QuantumCircuit(1)
+        a = qc.add_stretch("a")
+        qc.delay(expr.mul(2, a), 0)
+
+        other = QuantumCircuit(1)
+        b = other.add_stretch("b")
+        other.delay(expr.mul(2, b), 0)
+
+        actual = QuantumCircuit(1).compose(other, var_remap={b: a})
+        self.assertEqual(qc, actual)
+
     def test_simple_inline_captures(self):
         """We should be able to inline captures onto other variables."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
         c = expr.Var.new("c", types.Uint(8))
+        d = expr.Stretch.new("d")
 
         base = QuantumCircuit(inputs=[a, b])
         base.add_var(c, 255)
+        base.add_stretch(d)
         base.store(a, expr.logic_or(a, b))
-        other = QuantumCircuit(captures=[a, b, c])
+        other = QuantumCircuit(captures=[a, b, c, d])
         other.store(c, 254)
         other.store(b, expr.logic_or(a, b))
         new = base.compose(other, inline_captures=True)
 
         expected = QuantumCircuit(inputs=[a, b])
         expected.add_var(c, 255)
+        expected.add_stretch(d)
         expected.store(a, expr.logic_or(a, b))
         expected.store(c, 254)
         expected.store(b, expr.logic_or(a, b))
@@ -950,14 +972,39 @@ class TestCircuitCompose(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "Duplicate clbits"):
             base.compose(attempt, [0, 1], [1, 1])
 
+    def test_rejects_rhs_with_too_many_qubits(self):
+        """Test that compose rejects a circuit with too many qubits."""
+        base = QuantumCircuit(1)
+        attempt = QuantumCircuit(2)
+
+        with self.assertRaisesRegex(
+            CircuitError,
+            r"Cannot compose onto a circuit with fewer qubits \(2 > 1\)\.",
+        ):
+            base.compose(attempt)
+
+    def test_rejects_rhs_with_too_many_clbits(self):
+        """Test that compose rejects a circuit with too many classical bits."""
+        base = QuantumCircuit(1, 1)
+        attempt = QuantumCircuit(1, 2)
+
+        with self.assertRaisesRegex(
+            CircuitError,
+            r"Cannot compose onto a circuit with fewer classical bits \(2 > 1\)\.",
+        ):
+            base.compose(attempt)
+
     def test_cannot_mix_inputs_and_captures(self):
         """The rules about mixing `input` and `capture` vars should still apply."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Uint(8))
+        c = expr.Stretch.new("c")
         with self.assertRaisesRegex(CircuitError, "circuits with input variables cannot be"):
             QuantumCircuit(inputs=[a]).compose(QuantumCircuit(captures=[b]))
         with self.assertRaisesRegex(CircuitError, "circuits to be enclosed with captures cannot"):
             QuantumCircuit(captures=[a]).compose(QuantumCircuit(inputs=[b]))
+        with self.assertRaisesRegex(CircuitError, "circuits with input variables cannot be"):
+            QuantumCircuit(inputs=[a]).compose(QuantumCircuit(captures=[c]))
 
     def test_reject_var_naming_collision(self):
         """We can't have multiple vars with the same name."""
@@ -966,14 +1013,23 @@ class TestCircuitCompose(QiskitTestCase):
         b = expr.Var.new("b", types.Bool())
         self.assertNotEqual(a1, a2)
 
+        s1 = expr.Stretch.new("s")
+        s2 = expr.Stretch.new("s")
+        t = expr.Stretch.new("t")
+        self.assertNotEqual(s1, s2)
+
         with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
             QuantumCircuit(inputs=[a1]).compose(QuantumCircuit(inputs=[a2]))
+        with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
+            QuantumCircuit(captures=[s1]).compose(QuantumCircuit(captures=[s2]))
         with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
             QuantumCircuit(captures=[a1]).compose(QuantumCircuit(declarations=[(a2, False)]))
         with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
             QuantumCircuit(declarations=[(a1, True)]).compose(
                 QuantumCircuit(inputs=[b]), var_remap={b: a2}
             )
+        with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
+            QuantumCircuit(captures=[s1]).compose(QuantumCircuit(captures=[t]), var_remap={t: s2})
 
     def test_reject_remap_var_to_bad_type(self):
         """Can't map a var to a different type."""
@@ -984,6 +1040,17 @@ class TestCircuitCompose(QiskitTestCase):
             QuantumCircuit().compose(qc, var_remap={a: b})
         qc = QuantumCircuit(captures=[b])
         with self.assertRaisesRegex(CircuitError, "mismatched types"):
+            QuantumCircuit().compose(qc, var_remap={b: a})
+
+    def test_reject_remap_identifier_to_wrong_kind(self):
+        """Can't map a var to stretch or stretch to var."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Stretch.new("b")
+        qc = QuantumCircuit(inputs=[a])
+        with self.assertRaisesRegex(CircuitError, "mismatched identifier"):
+            QuantumCircuit().compose(qc, var_remap={a: b})
+        qc = QuantumCircuit(captures=[b])
+        with self.assertRaisesRegex(CircuitError, "mismatched identifier"):
             QuantumCircuit().compose(qc, var_remap={b: a})
 
     def test_reject_inlining_missing_var(self):
@@ -998,6 +1065,19 @@ class TestCircuitCompose(QiskitTestCase):
         qc = QuantumCircuit(captures=[a])
         with self.assertRaisesRegex(CircuitError, "Replacement '.*' for variable '.*' is not in"):
             QuantumCircuit(inputs=[a]).compose(qc, var_remap={a: b}, inline_captures=True)
+
+    def test_reject_inlining_missing_stretch(self):
+        """Can't inline a var that doesn't exist."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "Variable '.*' to be inlined is not in the base"):
+            QuantumCircuit().compose(qc, inline_captures=True)
+
+        # 'a' _would_ be present, except we also say to remap it before attempting the inline.
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "Replacement '.*' for variable '.*' is not in"):
+            QuantumCircuit().compose(qc, var_remap={a: b}, inline_captures=True)
 
 
 if __name__ == "__main__":

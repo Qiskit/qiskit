@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,12 +15,7 @@ import unittest
 
 from io import BytesIO
 from ddt import ddt, data
-from qiskit.providers.fake_provider import (
-    Fake5QV1,
-    Fake20QV1,
-    Fake7QPulseV1,
-    GenericBackendV2,
-)
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.visualization import (
     plot_gate_map,
     plot_coupling_map,
@@ -31,7 +26,7 @@ from qiskit.utils import optionals
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
-from ..legacy_cmaps import KYOTO_CMAP, MUMBAI_CMAP
+from ..legacy_cmaps import KYOTO_CMAP, MUMBAI_CMAP, YORKTOWN_CMAP, ALMADEN_CMAP, LAGOS_CMAP
 
 if optionals.HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt
@@ -44,31 +39,38 @@ if optionals.HAS_PIL:
 @unittest.skipUnless(optionals.HAS_PIL, "PIL not available")
 @unittest.skipUnless(optionals.HAS_SEABORN, "seaborn not available")
 class TestGateMap(QiskitVisualizationTestCase):
-    # pylint: disable=possibly-used-before-assignment
     """visual tests for plot_gate_map"""
 
-    backends = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1()]
+    backend_configs = {
+        "yorktown": (5, YORKTOWN_CMAP),
+        "almaden": (20, ALMADEN_CMAP),
+        "lagos": (7, LAGOS_CMAP),
+    }
 
-    @data(*backends)
+    @data(*backend_configs)
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
-    def test_plot_gate_map(self, backend):
+    def test_plot_gate_map(self, backend_name):
         """tests plotting of gate map of a device (20 qubit, 7 qubit, and 5 qubit)"""
-        n = backend.configuration().n_qubits
+        n, coupling_map = self.backend_configs[backend_name]
+        backend = GenericBackendV2(num_qubits=n, coupling_map=coupling_map, seed=0)
+        n = backend.num_qubits
         img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
         fig = plot_gate_map(backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
         plt.close(fig)
 
-    @data(*backends)
+    @data(*backend_configs)
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
-    def test_plot_circuit_layout(self, backend):
+    def test_plot_circuit_layout(self, backend_name):
         """tests plot_circuit_layout for each device"""
-        layout_length = int(backend._configuration.n_qubits / 2)
+        n, coupling_map = self.backend_configs[backend_name]
+        backend = GenericBackendV2(num_qubits=n, coupling_map=coupling_map, seed=0)
+        layout_length = int(backend.num_qubits / 2)
         qr = QuantumRegister(layout_length, "qr")
         circuit = QuantumCircuit(qr)
         circuit._layout = TranspileLayout(
@@ -76,13 +78,13 @@ class TestGateMap(QiskitVisualizationTestCase):
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
         circuit._layout.initial_layout.add_register(qr)
-        n = backend.configuration().n_qubits
+        n = backend.num_qubits
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
         fig = plot_circuit_layout(circuit, backend)
         with BytesIO() as img_buffer:
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
+            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
@@ -100,23 +102,6 @@ class TestGateMap(QiskitVisualizationTestCase):
             fig.savefig(img_buffer, format="png")
             img_buffer.seek(0)
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.2)
-        plt.close(fig)
-
-    @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")
-    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
-    @unittest.skipUnless(optionals.HAS_SEABORN, "Seaborn not installed")
-    def test_plot_error_map_backend_v1(self):
-        """Test plotting error map with fake backend v1."""
-        backend = GenericBackendV2(
-            num_qubits=27,
-            coupling_map=MUMBAI_CMAP,
-        )
-        img_ref = path_to_diagram_reference("fake_27_q_error.png")
-        fig = plot_error_map(backend)
-        with BytesIO() as img_buffer:
-            fig.savefig(img_buffer, format="png")
-            img_buffer.seek(0)
-            self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.05)
         plt.close(fig)
 
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")

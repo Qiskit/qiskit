@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -120,7 +120,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         # time
         run_clone = deque(run)
 
-        commuted = deque([])
+        commuted = deque()
         preindex, commutation_rule = None, None
         if isinstance(blocker, DAGOpNode):
             preindex = None
@@ -224,7 +224,6 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
 
             # perform the replacement if it was indeed a good idea
             if self._optimize1q._substitution_checks(
-                dag,
                 (preceding_run or []) + run + (succeeding_run or []),
                 new_preceding_run.op_nodes() + new_run.op_nodes() + new_succeeding_run.op_nodes(),
                 self._optimize1q._basis_gates,

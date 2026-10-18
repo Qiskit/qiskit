@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,6 @@ import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
 from qiskit._accelerate.circuit import StandardGate
 
@@ -41,10 +40,7 @@ class U1Gate(Gate):
           circuit = QuantumCircuit(1)
           circuit.p(lambda, 0) # or circuit.u(0, 0, lambda, 0)
 
-
-
-
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -52,7 +48,7 @@ class U1Gate(Gate):
         q_0: ┤ U1(θ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -62,19 +58,19 @@ class U1Gate(Gate):
                 0 & e^{i\theta}
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi) = Z
+        U1(\theta = \pi) = Z
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi/2) = S
+        U1(\theta = \pi/2) = S
 
-        .. math::
+    .. math::
 
-            U1(\theta = \pi/4) = T
+        U1(\theta = \pi/4) = T
 
     .. seealso::
 
@@ -93,58 +89,60 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.U1Gate
+    _standard_gate = StandardGate.U1
 
     def __init__(self, theta: ParameterValueType, label: str | None = None):
-        """Create new U1 gate."""
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u3 import U3Gate  # pylint: disable=cyclic-import
+        """Default definition"""
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(U3Gate(0, 0, self.params[0]), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = qc
+        #    ┌──────┐
+        # q: ┤ P(θ) ├
+        #    └──────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.U1._get_definition(self.params), legacy_qubits=True
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-U1 gate.
+        """Return a controlled version of the U1 gate.
+
+        For a single control qubit, the controlled gate is implemented as :class:`.CU1Gate`.
+        For more than one control qubits, the controlled gate is implemented as :class:`.MCU1Gate`.
+        In each case, the value of ``annotated`` is ignored.
+
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
+
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and num_ctrl_qubits == 1:
+
+        if num_ctrl_qubits == 1:
             gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
-        elif not annotated and ctrl_state is None and num_ctrl_qubits > 1:
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
-            gate.base_gate.label = self.label
         else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+            gate = MCU1Gate(self.params[0], num_ctrl_qubits, ctrl_state=ctrl_state, label=label)
+        gate.base_gate.label = self.label
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -194,7 +192,7 @@ class CU1Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -204,7 +202,7 @@ class CU1Gate(ControlledGate):
         q_1: ─■──
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -225,7 +223,7 @@ class CU1Gate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CU1Gate
+    _standard_gate = StandardGate.CU1
 
     def __init__(
         self,
@@ -247,66 +245,53 @@ class CU1Gate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate cu1(lambda) a,b
-        { u1(lambda/2) a; cx a,b;
-          u1(-lambda/2) b; cx a,b;
-          u1(lambda/2) b;
-        }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate  # pylint: disable=cyclic-import
+        """Default definition"""
 
-        #      ┌─────────┐
-        # q_0: ┤ U1(λ/2) ├──■────────────────■─────────────
-        #      └─────────┘┌─┴─┐┌──────────┐┌─┴─┐┌─────────┐
-        # q_1: ───────────┤ X ├┤ U1(-λ/2) ├┤ X ├┤ U1(λ/2) ├
-        #                 └───┘└──────────┘└───┘└─────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate(self.params[0] / 2), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0] / 2), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = qc
+        #      ┌────────┐
+        # q_0: ┤ P(θ/2) ├──■───────────────■────────────
+        #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
+        # q_1: ──────────┤ X ├┤ P(-θ/2) ├┤ X ├┤ P(θ/2) ├
+        #                └───┘└─────────┘└───┘└────────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CU1._get_definition(self.params), legacy_qubits=True
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
-        """Controlled version of this gate.
+        """Return a controlled version of the CU1 gate.
+
+        The controlled gate is implemented as :class:`.MCU1Gate`, regardless of
+        the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and ctrl_state is None:
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
-            gate.base_gate.label = self.label
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+
+        gate = MCU1Gate(
+            self.params[0],
+            num_ctrl_qubits=num_ctrl_qubits + 1,
+            ctrl_state=new_ctrl_state,
+            label=label,
+        )
+        gate.base_gate.label = self.label
+
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -368,7 +353,7 @@ class MCU1Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -408,63 +393,49 @@ class MCU1Gate(ControlledGate):
         )
 
     def _define(self):
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
 
         if self.num_ctrl_qubits == 0:
             definition = U1Gate(self.params[0]).definition
-        if self.num_ctrl_qubits == 1:
+        elif self.num_ctrl_qubits == 1:
             definition = CU1Gate(self.params[0]).definition
         else:
-            from .u3 import _gray_code_chain
+            from .p import MCPhaseGate
 
-            scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-            bottom_gate = CU1Gate(scaled_lam)
-            definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
-        for instr, qargs, cargs in definition:
-            qc._append(instr, qargs, cargs)
-        self.definition = qc
+            definition = MCPhaseGate(self.params[0], self.num_ctrl_qubits).definition
+
+        self.definition = definition
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
-        annotated: bool = False,
+        annotated: bool | None = None,
     ):
-        """Controlled version of this gate.
+        """Return a controlled version of the MCU1 gate.
+
+        The controlled gate is implemented as :class:`.MCU1Gate`, regardless of
+        the value of ``annotated``.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-            gate = MCU1Gate(
-                self.params[0],
-                num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-                label=label,
-                ctrl_state=new_ctrl_state,
-            )
-            gate.base_gate.label = self.label
-        else:
-            gate = super().control(
-                num_ctrl_qubits=num_ctrl_qubits,
-                label=label,
-                ctrl_state=ctrl_state,
-                annotated=annotated,
-            )
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCU1Gate(
+            self.params[0],
+            num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+            label=label,
+            ctrl_state=new_ctrl_state,
+        )
+        gate.base_gate.label = self.label
         return gate
 
     def inverse(self, annotated: bool = False):
@@ -480,7 +451,9 @@ class MCU1Gate(ControlledGate):
         Returns:
             MCU1Gate: inverse gate.
         """
-        return MCU1Gate(-self.params[0], self.num_ctrl_qubits)
+        return MCU1Gate(
+            -self.params[0], num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
 
     def __eq__(self, other):
         return (

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,6 @@
 
 """Compute the sum of two qubit registers using ripple-carry approach."""
 
-from qiskit.synthesis.arithmetic import adder_ripple_c04
 from .adder import Adder
 
 
@@ -90,7 +89,7 @@ class CDKMRippleCarryAdder(Adder):
         :class:`.FullAdderGate`: A generic inplace adder, with a carry-in bit. This
             is functionally equivalent to ``kind="full"``.
 
-    **References:**
+    References:
 
     [1] Cuccaro et al., A new quantum ripple-carry addition circuit, 2004.
     `arXiv:quant-ph/0410184 <https://arxiv.org/pdf/quant-ph/0410184.pdf>`_
@@ -116,6 +115,8 @@ class CDKMRippleCarryAdder(Adder):
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
+        from qiskit.synthesis.arithmetic import adder_ripple_c04
+
         super().__init__(num_state_qubits, name=name)
         circuit = adder_ripple_c04(num_state_qubits, kind)
 

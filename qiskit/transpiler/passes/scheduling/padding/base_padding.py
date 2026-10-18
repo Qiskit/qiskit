@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 import logging
-import warnings
 
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit.delay import Delay
@@ -67,12 +66,15 @@ class BasePadding(TransformationPass):
             target: The :class:`~.Target` representing the target backend.
                 If it supplied and it does not support delay instruction on a qubit,
                 padding passes do not pad any idle time of the qubit.
+            durations: The instruction durations. This is mostly for legacy applications without
+                a :class:`.Target`. The ``target`` argument should typically be used instead of
+                this and if both are specified ``target`` will supersede this argument.
         """
         super().__init__()
         self.target = target
         self.durations = durations
 
-    def get_duration(self, node, dag):  # pylint: disable=too-many-return-statements
+    def get_duration(self, node, dag):
         """Get duration of a given node in the circuit."""
         if node.name == "delay":
             return node.op.duration
@@ -81,14 +83,6 @@ class BasePadding(TransformationPass):
         if not self.target and not self.durations:
             return None
         indices = [dag.find_bit(qarg).index for qarg in node.qargs]
-        if dag._has_calibration_for(node):
-            # If node has calibration, this value should be the highest priority
-            cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=DeprecationWarning)
-                # `schedule.duration` emits pulse deprecation warnings which we don't want
-                # to see here
-                return dag._calibrations_prop[node.op.name][cal_key].duration
 
         if self.target:
             props_dict = self.target.get(node.name)
@@ -100,7 +94,9 @@ class BasePadding(TransformationPass):
             if self.target.dt is None:
                 return props.duration
             else:
-                return self.target.seconds_to_dt(props.duration)
+                res = self.target.seconds_to_dt(props.duration)
+                return res
+
         return self.durations.get(node.name, indices)
 
     def run(self, dag: DAGCircuit):
@@ -133,11 +129,10 @@ class BasePadding(TransformationPass):
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
-        new_dag.unit = self.property_set["time_unit"]
-        new_dag._calibrations_prop = dag._calibrations_prop
+        new_dag._unit = self.property_set["time_unit"]
         new_dag.global_phase = dag.global_phase
 
-        idle_after = {bit: 0 for bit in dag.qubits}
+        idle_after = dict.fromkeys(dag.qubits, 0)
 
         # Compute fresh circuit duration from the node start time dictionary and op duration.
         # Note that pre-scheduled duration may change within the alignment passes, i.e.
@@ -147,7 +142,8 @@ class BasePadding(TransformationPass):
         for node in dag.topological_op_nodes():
             if node in node_start_time:
                 t0 = node_start_time[node]
-                t1 = t0 + self.get_duration(node, dag)
+                dur = self.get_duration(node, dag)
+                t1 = t0 + dur
                 circuit_duration = max(circuit_duration, t1)
 
                 if isinstance(node.op, Delay):
@@ -176,7 +172,7 @@ class BasePadding(TransformationPass):
                 self._apply_scheduled_op(new_dag, t0, node.op, node.qargs, node.cargs)
             else:
                 raise TranspilerError(
-                    f"Operation {repr(node)} is likely added after the circuit is scheduled. "
+                    f"Operation {node!r} is likely added after the circuit is scheduled. "
                     "Schedule the circuit again if you transformed it."
                 )
 
@@ -196,7 +192,7 @@ class BasePadding(TransformationPass):
                     prev_node=prev_node,
                 )
 
-        new_dag.duration = circuit_duration
+        new_dag._duration = circuit_duration
 
         return new_dag
 
@@ -220,6 +216,9 @@ class BasePadding(TransformationPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
+        if self.property_set["time_unit"] == "stretch":
+            # This should have already been raised during scheduling, but just in case.
+            raise TranspilerError("Scheduling cannot run on circuits with stretch durations.")
         for qarg, _ in enumerate(dag.qubits):
             if not self.__delay_supported(qarg):
                 logger.debug(

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,7 @@
 
 import collections
 import io
-from typing import Sequence
+from collections.abc import Sequence
 
 from . import ast
 from .experimental import ExperimentalFeatures
@@ -38,21 +38,21 @@ _BINDING_POWER = {
     #
     ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
     ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
+    ast.Unary.Op.NEGATE: _BindingPower(right=22),
     #
-    # Multiplication/division/modulo: (19, 20)
-    # Addition/subtraction: (17, 18)
-    #
+    # Modulo: (19, 20)
+    ast.Binary.Op.MUL: _BindingPower(19, 20),
+    ast.Binary.Op.DIV: _BindingPower(19, 20),
+    ast.Binary.Op.ADD: _BindingPower(17, 18),
+    ast.Binary.Op.SUB: _BindingPower(17, 18),
     ast.Binary.Op.SHIFT_LEFT: _BindingPower(15, 16),
     ast.Binary.Op.SHIFT_RIGHT: _BindingPower(15, 16),
-    #
     ast.Binary.Op.LESS: _BindingPower(13, 14),
     ast.Binary.Op.LESS_EQUAL: _BindingPower(13, 14),
     ast.Binary.Op.GREATER: _BindingPower(13, 14),
     ast.Binary.Op.GREATER_EQUAL: _BindingPower(13, 14),
-    #
     ast.Binary.Op.EQUAL: _BindingPower(11, 12),
     ast.Binary.Op.NOT_EQUAL: _BindingPower(11, 12),
-    #
     ast.Binary.Op.BIT_AND: _BindingPower(9, 10),
     ast.Binary.Op.BIT_XOR: _BindingPower(7, 8),
     ast.Binary.Op.BIT_OR: _BindingPower(5, 6),
@@ -78,10 +78,9 @@ class BasicPrinter:
         ast.QuantumGateModifierName.POW: "pow",
     }
 
-    _FLOAT_WIDTH_LOOKUP = {type: str(type.value) for type in ast.FloatType}
+    _FLOAT_TYPE_LOOKUP = {type: f"float[{type.value}]" for type in ast.FloatType}
 
     # The visitor names include the class names, so they mix snake_case with PascalCase.
-    # pylint: disable=invalid-name
 
     def __init__(
         self,
@@ -121,6 +120,8 @@ class BasicPrinter:
                 default.  While the output of this printer is always unambiguous, using ``else``
                 without immediately opening an explicit scope with ``{ }`` in nested contexts can
                 cause issues, in the general case, which is why it is sometimes less supported.
+            experimental: any experimental features to enable during the export.  See
+                :class:`ExperimentalFeatures` for more details.
         """
         self.stream = stream
         self.indent = indent
@@ -201,14 +202,24 @@ class BasicPrinter:
     def _visit_Pragma(self, node: ast.Pragma) -> None:
         self._write_statement(f"#pragma {node.content}")
 
+    def _visit_Annotation(self, node: ast.Annotation) -> None:
+        self._start_line()
+        self.stream.write(f"@{node.namespace}")
+        if node.payload:
+            self.stream.write(f" {node.payload}")
+        self._end_line()
+
     def _visit_CalibrationGrammarDeclaration(self, node: ast.CalibrationGrammarDeclaration) -> None:
         self._write_statement(f'defcalgrammar "{node.name}"')
 
     def _visit_FloatType(self, node: ast.FloatType) -> None:
-        self.stream.write(f"float[{self._FLOAT_WIDTH_LOOKUP[node]}]")
+        self.stream.write(self._FLOAT_TYPE_LOOKUP[node])
 
     def _visit_BoolType(self, _node: ast.BoolType) -> None:
         self.stream.write("bool")
+
+    def _visit_DurationType(self, _node: ast.DurationType) -> None:
+        self.stream.write("duration")
 
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
@@ -280,6 +291,9 @@ class BasicPrinter:
         self._end_statement()
 
     def _visit_IntegerLiteral(self, node: ast.IntegerLiteral) -> None:
+        self.stream.write(str(node.value))
+
+    def _visit_FloatLiteral(self, node: ast.FloatLiteral) -> None:
         self.stream.write(str(node.value))
 
     def _visit_BooleanLiteral(self, node: ast.BooleanLiteral):
@@ -356,6 +370,16 @@ class BasicPrinter:
             self.visit(node.initializer)
         self._end_statement()
 
+    def _visit_StretchDeclaration(self, node: ast.StretchDeclaration) -> None:
+        self._start_line()
+        self.stream.write("stretch")
+        self.stream.write(" ")
+        self.visit(node.identifier)
+        if node.bound is not None:
+            self.stream.write(" = ")
+            self.visit(node.bound)
+        self._end_statement()
+
     def _visit_AssignmentStatement(self, node: ast.AssignmentStatement) -> None:
         self._start_line()
         self.visit(node.lvalue)
@@ -405,6 +429,18 @@ class BasicPrinter:
             self._visit_sequence(node.parameters, start="(", end=")", separator=", ")
         self.stream.write(" ")
         self._visit_sequence(node.indexIdentifierList, separator=", ")
+        self._end_statement()
+
+    def _visit_DefcalCallStatement(self, node: ast.DefcalCallStatement) -> None:
+        self._start_line()
+        if node.lvalue is not None:
+            self.visit(node.lvalue)
+            self.stream.write(" = ")
+        self.visit(node.ident)
+        if node.parameters:
+            self._visit_sequence(node.parameters, start="(", end=")", separator=", ")
+        if node.qubits:
+            self._visit_sequence(node.qubits, start=" ", separator=", ")
         self._end_statement()
 
     def _visit_QuantumBarrier(self, node: ast.QuantumBarrier) -> None:
@@ -495,6 +531,8 @@ class BasicPrinter:
     def _visit_ForLoopStatement(self, node: ast.ForLoopStatement) -> None:
         self._start_line()
         self.stream.write("for ")
+        self.visit(node.type)
+        self.stream.write(" ")
         self.visit(node.parameter)
         self.stream.write(" in ")
         if isinstance(node.indexset, ast.Range):
@@ -575,3 +613,19 @@ class BasicPrinter:
 
     def _visit_DefaultCase(self, _node: ast.DefaultCase) -> None:
         self.stream.write("default")
+
+    def _visit_BoxStatement(self, node: ast.BoxStatement) -> None:
+        # The OpenQASM 3 spec doesn't specify any ordering between annotations.  We choose to
+        # write and interpret them like Python decorators, where the "first" annotation is written
+        # closest to the box itself.
+        for annotation in reversed(node.annotations):
+            self.visit(annotation)
+        self._start_line()
+        self.stream.write("box")
+        if node.duration is not None:
+            self.stream.write("[")
+            self.visit(node.duration)
+            self.stream.write("]")
+        self.stream.write(" ")
+        self.visit(node.body)
+        self._end_line()

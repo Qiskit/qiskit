@@ -4,14 +4,14 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """Node visitor as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor
-This module is used internally by ``qiskit.transpiler.classicalfunction.BooleanExpression``.
+This module is used internally by ``qiskit.synthesis.boolean.BooleanExpression``.
 """
 
 import ast
@@ -22,7 +22,6 @@ class BooleanExpressionEvalVisitor(ast.NodeVisitor):
     """Node visitor to compute the value of the expression, given the boolean values of the args
     as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor"""
 
-    # pylint: disable=invalid-name
     bitops = {
         _ast.BitAnd: lambda values: values[0] and values[1],
         _ast.And: lambda values: values[0] and values[1],
@@ -77,7 +76,6 @@ class BooleanExpressionArgsCollectorVisitor(ast.NodeVisitor):
     """Node visitor to collect the name of the args of the expression
     as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor"""
 
-    # pylint: disable=invalid-name
     def __init__(self):
         self.args = set()
         self.args_pos = {}

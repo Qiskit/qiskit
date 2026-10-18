@@ -7,7 +7,6 @@ labeljust=l;
 2 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=solid];
 2 -> 1;
 }
-
 subgraph cluster_3 {
 fontname=helvetica;
 label="[1] ConditionalController";
@@ -17,7 +16,6 @@ labeljust=l;
 5 -> 4;
 1 -> 4;
 }
-
 subgraph cluster_6 {
 fontname=helvetica;
 label="[2] ";
@@ -27,7 +25,6 @@ labeljust=l;
 8 -> 7;
 4 -> 7;
 }
-
 subgraph cluster_9 {
 fontname=helvetica;
 label="[3] ";
@@ -35,7 +32,6 @@ labeljust=l;
 10 [color=pink, fontname=helvetica, label=EnlargeWithAncilla, shape=rectangle];
 7 -> 10;
 }
-
 subgraph cluster_11 {
 fontname=helvetica;
 label="[4] ";
@@ -51,7 +47,6 @@ labeljust=l;
 16 -> 12;
 10 -> 12;
 }
-
 subgraph cluster_17 {
 fontname=helvetica;
 label="[5] ";
@@ -63,7 +58,6 @@ labeljust=l;
 20 -> 18;
 12 -> 18;
 }
-
 subgraph cluster_21 {
 fontname=helvetica;
 label="[6] DoWhileController";
@@ -73,7 +67,6 @@ labeljust=l;
 23 -> 22;
 18 -> 22;
 }
-
 subgraph cluster_24 {
 fontname=helvetica;
 label="[7] ";
@@ -85,7 +78,6 @@ labeljust=l;
 27 -> 25;
 22 -> 25;
 }
-
 subgraph cluster_28 {
 fontname=helvetica;
 label="[8] ";
@@ -93,5 +85,4 @@ labeljust=l;
 29 [color=grey, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
 25 -> 29;
 }
-
 }

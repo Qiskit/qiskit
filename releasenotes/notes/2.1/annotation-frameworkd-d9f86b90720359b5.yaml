@@ -1,0 +1,61 @@
+---
+features_circuits:
+  - |
+    A new module :mod:`qiskit.circuit.annotation` and principle object :class:`.Annotation` have
+    been added.
+
+    Annotations are a way of tagging instructions (currently only :class:`.BoxOp`, in the initial
+    implementation) with local, user-custom data.  This data is intended to be consumed by custom
+    transpiler passes.  Annotations provide a way to attach data to specific instructions, rather
+    than using the global-context object :class:`.PropertySet` during compilation.
+
+    All :class:`.Annotation` objects have a :attr:`~.Annotation.namespace`. This string key is used
+    for lookups, so consumers can tell if they handle a particular annotation or not.  There are
+    currently no methods for querying any abstract semantics of an :class:`.Annotation` subclass,
+    but these are expected to expand in the future.
+
+    See :mod:`qiskit.circuit.annotation` for a full discussion of the capabilities and use cases.
+  - |
+    :class:`.BoxOp` instances (created by :meth:`.QuantumCircuit.box`) can now be annotated with
+    custom :class:`.Annotation` instances.  The equality of two boxes depends on the annotations
+    being equal.
+
+    Typically, this is achieved by passing a list of annotations as the sole positional argument
+    when using :meth:`.QuantumCircuit.box` in context-manager form::
+
+      from qiskit.circuit import annotation, QuantumCircuit
+
+      class MyAnnotation(annotation.Annotation):
+          namespace = "my.annotation"
+
+          def __eq__(self, other):
+              return isinstance(other, MyAnnotation)
+
+      qc = QuantumCircuit()
+      with qc.box([MyAnnotation()]):
+          pass
+
+features_qpy:
+  - |
+    QPY version 15 is released, including support for the new :class:`.Annotation` objects, with
+    support from external serializers and deserializers.  The format allows such serializers to be
+    stateful, and safe places in the binary format are allocated for the custom state objects and
+    custom annotation representations.
+  - |
+    :func:`.qpy.dump` and :func:`.qpy.load` now have an optional ``annotation_factories`` argument,
+    which is used to provide constructor functions of :class:`.annotation.QPYSerializer` objects to
+    handle :class:`.Annotation` subclasses.  These must be supplied by the user, similar to
+    ``metadata_serializer``, as in general, Qiskit cannot know about all possible externally-defined
+    :class:`.Annotation` objects.
+
+features_qasm:
+  - |
+    :func:`.qasm3.dump` and :func:`.qasm3.dumps` have a new ``annotation_handlers`` argument, which
+    is used to provide instances of :class:`.annotation.OpenQASM3Serializer` to the OpenQASM 3
+    export process, which can serialize custom :class:`.Annotation` objects to OpenQASM 3.
+  - |
+    When ``qiskit_qasm3_import>=0.6.0`` is installed, :func:`.qasm3.load` and :func:`.qasm3.loads`
+    have a new ``annotation_handlers`` argument, which is used to provide instances of
+    :class:`.annotation.OpenQASM3Serializer` to the OpenQASM 3 import process, which can deserialize
+    custom :class:`.Annotation` objects from OpenQASM 3.  This support is currently limited to
+    ``box`` statements, as this is the only place Qiskit can represent annotations in its data model.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,7 +16,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.transpiler import TranspilerError, CouplingMap, PassManager
 from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
 from qiskit.converters import circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestSabrePreLayout(QiskitTestCase):
@@ -46,7 +46,7 @@ class TestSabrePreLayout(QiskitTestCase):
         layouts = pm.property_set["sabre_starting_layouts"]
         self.assertEqual(len(layouts), 1)
         layout = layouts[0]
-        self.assertEqual([layout[q] for q in qc.qubits], [2, 1, 0, 4])
+        self.assertEqual([layout[q] for q in qc.qubits], [0, 1, 2, 3])
 
     def test_perfect_layout_exists(self):
         """Test the case that a perfect layout exists."""

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,14 +17,15 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Iterable, Union
+from typing import Any
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import NDArray
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.primitives.backend_estimator import _run_circuits
+from qiskit.primitives.backend_estimator_v2 import _run_circuits
 from qiskit.primitives.base import BaseSamplerV2
 from qiskit.primitives.containers import (
     BitArray,
@@ -36,7 +37,7 @@ from qiskit.primitives.containers import (
 from qiskit.primitives.containers.bit_array import _min_num_bytes
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.primitives.primitive_job import PrimitiveJob
-from qiskit.providers.backend import BackendV1, BackendV2
+from qiskit.providers.backend import BackendV2
 from qiskit.result import Result
 
 
@@ -68,11 +69,11 @@ class _MeasureInfo:
     start: int
 
 
-ResultMemory = Union[list[str], list[list[float]], list[list[list[float]]]]
+ResultMemory = list[str] | list[list[float]] | list[list[list[float]]]
 """Type alias for possible level 2 and level 1 result memory formats. For level
 2, the format is a list of bit strings. For level 1, format can be either a
 list of I/Q pairs (list with two floats) for each memory slot if using
-``meas_return=avg`` or a list of of lists of I/Q pairs if using
+``meas_return=avg`` or a list of lists of I/Q pairs if using
 ``meas_return=single`` with the outer list indexing shot number and the inner
 list indexing memory slot.
 """
@@ -83,7 +84,7 @@ class BackendSamplerV2(BaseSamplerV2):
 
     The :class:`~.BackendSamplerV2` class is a generic implementation of the
     :class:`~.BaseSamplerV2` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the class :class:`~.BaseSamplerV2` API. It
+    object in the class :class:`~.BaseSamplerV2` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseSamplerV2` implementation in places that work with
     :class:`~.BaseSamplerV2`. However,
@@ -119,7 +120,7 @@ class BackendSamplerV2(BaseSamplerV2):
     def __init__(
         self,
         *,
-        backend: BackendV1 | BackendV2,
+        backend: BackendV2,
         options: dict | None = None,
     ):
         """
@@ -132,8 +133,8 @@ class BackendSamplerV2(BaseSamplerV2):
         self._options = Options(**options) if options else Options()
 
     @property
-    def backend(self) -> BackendV1 | BackendV2:
-        """Returns the backend which this sampler object based on."""
+    def backend(self) -> BackendV2:
+        """Returns the backend which this sampler object is based on."""
         return self._backend
 
     @property
@@ -292,7 +293,7 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
 
 
 def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
-    """Joins splitted results if exceeding max_experiments"""
+    """Joins split results if exceeding max_experiments"""
     lst = []
     for res in results:
         for exp in res.results:

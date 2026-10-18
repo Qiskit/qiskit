@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -27,7 +27,7 @@ Qiskit Components
 
 .. py:data:: HAS_AER
 
-    `Qiskit Aer <https://qiskit.github.io/qiskit-aer/>` provides high-performance simulators for
+    `Qiskit Aer <https://qiskit.github.io/qiskit-aer/>`__ provides high-performance simulators for
     the quantum circuits constructed within Qiskit.
 
 .. py:data:: HAS_IBMQ
@@ -58,7 +58,7 @@ External Python Libraries
 
     The `IBM CPLEX Optimizer <https://www.ibm.com/analytics/cplex-optimizer>`__ is a
     high-performance mathematical programming solver for linear, mixed-integer and quadratic
-    programming. This is no longer by Qiskit, but it weas historically and the optional
+    programming. This is no longer used by Qiskit, but it was historically and the optional
     remains for backwards compatibility.
 
 .. py:data:: HAS_CVXPY
@@ -70,8 +70,8 @@ External Python Libraries
 .. py:data:: HAS_DOCPLEX
 
     `IBM Decision Optimization CPLEX Modelling
-    <http://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
-    analysis.  Like CPLEX, this is no longer by Qiskit, but it weas historically and the
+    <https://ibmdecisionoptimization.github.io/docplex-doc/>`__ is a library for prescriptive
+    analysis.  Like CPLEX, this is no longer used by Qiskit, but it was historically and the
     optional remains for backwards compatibility.
 
 .. py:data:: HAS_FIXTURES
@@ -173,9 +173,17 @@ External Python Libraries
 .. py:data:: HAS_SYMENGINE
 
     `Symengine <https://github.com/symengine/symengine>`__ is a fast C++ backend for the
-    symbolic-manipulation library `Sympy <https://www.sympy.org/en/index.html>`__.  Qiskit uses
-    special methods from Symengine to accelerate its handling of
-    :class:`~.circuit.Parameter`\\ s if available.
+    symbolic-manipulation library `Sympy <https://www.sympy.org/en/index.html>`__.  This
+    dependency is used to load legacy QPY formats, where this package was used to handle
+    :class:`~.circuit.Parameter`\\ s.
+
+.. py:data:: HAS_SYMPY
+
+    `SymPy <https://www.sympy.org/en/index.html>`__ is a Python library for symbolic mathematics.
+    ``SymPy`` was historically used for the implementation of the :class:`.ParameterExpression`
+    class but isn't any longer. However it is needed for some legacy functionality that uses
+    :meth:`.ParameterExpression.sympify`. It is also used in some visualization functions
+    and template matching.
 
 .. py:data:: HAS_TESTTOOLS
 
@@ -186,9 +194,8 @@ External Python Libraries
 .. py:data:: HAS_TWEEDLEDUM
 
     `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
-    synthesis and optimization of circuits that may involve classical oracles.  Qiskit's
-    :class:`.PhaseOracle` uses this, which is used in turn by amplification algorithms via
-    the :class:`.AmplificationProblem`.
+    synthesis and optimization of circuits that may involve classical oracles. In the past
+    Qiskit's :class:`.PhaseOracle` used this but it is no longer used by Qiskit.
 
 .. py:data:: HAS_Z3
 
@@ -234,7 +241,7 @@ from :mod:`.utils` directly if required, such as::
 .. autoclass:: qiskit.utils.LazySubprocessTester
 """
 
-# NOTE: If you're changing this file, sync it with `requirements-optional.txt` and potentially
+# NOTE: If you're changing this file, sync it with the `optionals-all` dependency group in
 # `pyproject.toml` as well.
 
 import logging as _logging
@@ -323,7 +330,8 @@ HAS_SKQUANT = _LazyImportTester(
     install="pip install scikit-quant",
 )
 HAS_SQSNOBFIT = _LazyImportTester("SQSnobFit", install="pip install SQSnobFit")
-HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine")
+HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine<0.14")
+HAS_SYMPY = _LazyImportTester("sympy", install="pip install sympy")
 HAS_TESTTOOLS = _LazyImportTester("testtools", install="pip install testtools")
 HAS_TWEEDLEDUM = _LazyImportTester("tweedledum", install="pip install tweedledum")
 HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
