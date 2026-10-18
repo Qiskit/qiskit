@@ -24,7 +24,7 @@
 static void **_Qk_API_Circuit;
 static void **_Qk_API_Transpile;
 static void **_Qk_API_QI;
-static void **_Qk_API_MIR;
+static void **_Qk_API_Mir;
 
 /**
  * Import the Qiskit C API.

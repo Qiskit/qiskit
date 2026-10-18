@@ -16,3 +16,4 @@
 //! algorithms.
 
 pub mod line_graph;
+pub mod qid;
