@@ -2691,17 +2691,16 @@ pub unsafe extern "C" fn qk_circuit_delay_unit(
 }
 
 /// @ingroup QkCircuit
-/// Append a ``box`` control-flow instruction with no duration to a circuit.
+/// Append a box control-flow instruction with no duration to a circuit.
 ///
 /// A box is a control-flow construct that is entered unconditionally; its body is executed
 /// exactly once, as a single atomic unit from the perspective of the containing circuit. To give
 /// the box a duration, use ``qk_circuit_box_duration_info`` or ``qk_circuit_box_duration_expr``.
 ///
-/// This function takes ownership of ``body``. It is not safe to use the ``body`` pointer after
-/// calling this function; in particular, you should not attempt to clear or free it.
+/// This function takes ownership of ``body``. The caller must not use or free ``body`` afterwards.
 ///
-/// @param circuit A pointer to the circuit to append the box to.
-/// @param body A pointer to the circuit to use as the body of the box.
+/// @param circuit A non-null pointer to the circuit to append the box to.
+/// @param body A non-null pointer to the circuit to use as the body of the box.
 /// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
 ///     ``qk_circuit_num_qubits(body)``, mapping the body's qubits onto ``circuit``'s qubits.
 /// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
@@ -2749,21 +2748,20 @@ pub unsafe extern "C" fn qk_circuit_box(
 }
 
 /// @ingroup QkCircuit
-/// Append a ``box`` control-flow instruction with a concrete duration to a circuit.
+/// Append a box control-flow instruction with a concrete duration to a circuit.
 ///
 /// This is ``qk_circuit_box`` with the duration of the box given as a ``QkDurationInfo``.
 ///
-/// This function takes ownership of ``body``. It is not safe to use the ``body`` pointer after
-/// calling this function; in particular, you should not attempt to clear or free it.
+/// This function takes ownership of ``body``. The caller must not use or free ``body`` afterwards.
 ///
-/// @param circuit A pointer to the circuit to append the box to.
-/// @param body A pointer to the circuit to use as the body of the box.
+/// @param circuit A non-null pointer to the circuit to append the box to.
+/// @param body A non-null pointer to the circuit to use as the body of the box.
 /// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
 ///     ``qk_circuit_num_qubits(body)``, mapping the body's qubits onto ``circuit``'s qubits.
 /// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
 ///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
 ///     can be a null pointer if ``body`` has no clbits.
-/// @param duration A pointer to the ``QkDurationInfo`` describing the duration of the box.
+/// @param duration A non-null pointer to the ``QkDurationInfo`` describing the duration of the box.
 /// @param out_inst_idx A pointer to a ``size_t`` to write the index of the box in ``circuit`` to,
 ///     or ``NULL`` if it is not needed.
 ///
@@ -2805,7 +2803,7 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
     out_inst_idx: *mut usize,
 ) -> ExitCode {
     // SAFETY: Per documentation, duration is a valid, non null, aligned pointer to a QkDurationInfo.
-    let info = unsafe { *const_ptr_as_ref(duration) };
+    let info = unsafe { *duration };
     let duration = Some(BoxDuration::Duration(info.into()));
 
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -2813,22 +2811,21 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
 }
 
 /// @ingroup QkCircuit
-/// Append a ``box`` control-flow instruction with an expression duration to a circuit.
+/// Append a box control-flow instruction with an expression duration to a circuit.
 ///
 /// This is ``qk_circuit_box`` with the duration of the box given as a ``QkExprNode``.
 ///
-/// This function takes ownership of ``body``. It is not safe to use the ``body`` pointer after
-/// calling this function; in particular, you should not attempt to clear or free it. The
-/// ``duration`` expression is copied, so the caller keeps ownership of it.
+/// This function takes ownership of ``body``. The caller must not use or free ``body`` afterwards.
+/// The ``duration`` expression is copied, so the caller keeps ownership of it.
 ///
-/// @param circuit A pointer to the circuit to append the box to.
-/// @param body A pointer to the circuit to use as the body of the box.
+/// @param circuit A non-null pointer to the circuit to append the box to.
+/// @param body A non-null pointer to the circuit to use as the body of the box.
 /// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
 ///     ``qk_circuit_num_qubits(body)``, mapping the body's qubits onto ``circuit``'s qubits.
 /// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
 ///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
 ///     can be a null pointer if ``body`` has no clbits.
-/// @param duration A pointer to the ``QkExprNode`` defining the duration of the box.
+/// @param duration A non-null pointer to the ``QkExprNode`` defining the duration of the box.
 /// @param out_inst_idx A pointer to a ``size_t`` to write the index of the box in ``circuit`` to,
 ///     or ``NULL`` if it is not needed.
 ///
@@ -2872,7 +2869,7 @@ pub unsafe extern "C" fn qk_circuit_box_duration_expr(
     out_inst_idx: *mut usize,
 ) -> ExitCode {
     // SAFETY: Per documentation, duration is a valid, non null, aligned pointer to a QkExprNode.
-    let info = unsafe { const_ptr_as_ref(duration) };
+    let info = unsafe { &*duration };
     let duration = Some(BoxDuration::Expr(info.clone()));
 
     // SAFETY: Per documentation, the pointers are non-null and aligned.
@@ -2888,9 +2885,9 @@ unsafe fn append_box(
     out_inst_idx: *mut usize,
 ) -> ExitCode {
     // SAFETY: Per documentation, circuit is non-null and aligned.
-    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let circuit = unsafe { &mut *circuit };
     // SAFETY: Per documentation, body is non-null, aligned, and owned by the caller.
-    let body = unsafe { Box::from_raw(mut_ptr_as_ref(body)) };
+    let body = unsafe { Box::from_raw(body) };
 
     let num_qubits = body.num_qubits();
     let num_clbits = body.num_clbits();
