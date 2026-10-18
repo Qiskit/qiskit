@@ -490,7 +490,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
         cx_count = synthesized_circuit.count_ops()["cx"]
         t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
-        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
+        # Based on the bound from the Sec 5.3 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
         self.assertEqual(cx_count, 12 * num_ctrl_qubits - 18)
         self.assertEqual(t_count, 16 * num_ctrl_qubits - 26)
@@ -501,7 +501,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
         cx_count = synthesized_circuit.count_ops()["cx"]
         t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
-        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
+        # Based on the bound from the Sec 5.2 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
         self.assertEqual(cx_count, 6 * num_ctrl_qubits - 6)
         self.assertEqual(t_count, 8 * num_ctrl_qubits - 9)
@@ -512,7 +512,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
         cx_count = synthesized_circuit.count_ops()["cx"]
         t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
-        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
+        # Based on the bound from the Sec 5.4 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
         self.assertEqual(cx_count, 12 * num_ctrl_qubits - 18)
         self.assertEqual(t_count, 16 * num_ctrl_qubits - 26)
