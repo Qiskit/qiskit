@@ -1068,6 +1068,7 @@ pub enum ExpressionElementPack {
 
 /// Context-free representation of a classical expression in the QPY wire format.
 /// Circuit references remain encoded as indices or names until the circuit reader resolves them.
+#[allow(dead_code)] // Used by the QPY 19 reader and writer.
 #[derive(BinWrite, BinRead, Debug)]
 #[brw(big)]
 pub enum PackedExpression {
