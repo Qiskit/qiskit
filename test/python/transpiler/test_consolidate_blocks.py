@@ -850,17 +850,36 @@ class TestConsolidateBlocks(QiskitTestCase):
             # cx appears first in KAK_GATE_NAMES
             pass_ = ConsolidateBlocks(basis_gates=["ecr", "cx", "cz"])
             self.assertEqual(pass_.basis_gate_name, "cz")
-            
-    def test_consolidate_with_kak_basis_gate(self):
-        """Test that ConsolidateBlocks works with a kak_basis_gate."""
 
-        kak_basis_gate = CXGate()
-        consolidate_pass = ConsolidateBlocks(kak_basis_gate=kak_basis_gate)
+    @data(CXGate, CZGate, ECRGate)
+    def test_consolidate_with_kak_basis_gate(self, basis_gate):
+        """Test that ConsolidateBlocks works with a kak_basis_gate."""
         qc = QuantumCircuit(2)
-        qc.cx(0, 1)
-        dag = circuit_to_dag(qc)
-        res = consolidate_pass.run(dag)
-        self.assertEqual(res.count_ops().get('cx', 0), 1)
+        qc.cz(0, 1)
+        qc.x(0)
+        qc.h(1)
+        qc.z(1)
+        qc.t(1)
+        qc.h(0)
+        qc.t(0)
+        qc.cz(1, 0)
+        qc.sx(0)
+        qc.sx(1)
+        qc.cz(0, 1)
+        qc.sx(0)
+        qc.sx(1)
+        qc.cz(1, 0)
+        qc.x(0)
+        qc.h(1)
+        qc.z(1)
+        qc.t(1)
+        qc.h(0)
+        qc.t(0)
+        qc.cz(0, 1)
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=basis_gate())
+        res = consolidate_pass(qc)
+        self.assertEqual({"unitary": 1}, res.count_ops())
+        self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
 
 class TestCollect1qRuns(QiskitTestCase):
     """
