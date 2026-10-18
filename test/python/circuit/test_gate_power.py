@@ -19,11 +19,12 @@ import numpy as np
 import scipy.linalg
 from ddt import data, ddt, unpack
 
-from qiskit.circuit import Gate, QuantumCircuit, AnnotatedOperation
+from qiskit.circuit import Gate, QuantumCircuit, AnnotatedOperation, ControlledGate
 from qiskit.circuit.library import (
     CPhaseGate,
     CSdgGate,
     CSGate,
+    MCPhaseGate,
     CXGate,
     IGate,
     PhaseGate,
@@ -228,8 +229,11 @@ class TestEfficientGatePowering(QiskitTestCase):
 
     @data(
         (CPhaseGate(0.1), CPhaseGate),
+        (CPhaseGate(0.1, ctrl_state=0), CPhaseGate),
         (CSdgGate(), CPhaseGate),
+        (CSdgGate(ctrl_state=0), CPhaseGate),
         (CSGate(), CPhaseGate),
+        (CSGate(ctrl_state=0), CPhaseGate),
         (IGate(), IGate),
         (PhaseGate(-0.1), PhaseGate),
         (RGate(0.1, 0.1), RGate),
@@ -256,8 +260,44 @@ class TestEfficientGatePowering(QiskitTestCase):
         for exponent in exponents:
             result = gate.power(exponent)
             self.assertIsInstance(result, output_gate_type)
+            if isinstance(gate, ControlledGate):
+                self.assertEqual(result.ctrl_state, gate.ctrl_state)
             expected = scipy.linalg.fractional_matrix_power(np.array(gate), exponent)
             np.testing.assert_allclose(np.array(result), expected, atol=1e-8)
+
+
+@ddt
+class TestControlledGatePower(QiskitTestCase):
+    """Test power method on controlled gates preserving control state."""
+
+    @data(
+        (CPhaseGate(0.7, ctrl_state=0), 0.5),
+        (CPhaseGate(0.7, ctrl_state=1), 0.5),
+        (CPhaseGate(0.7, ctrl_state=0), 2.0),
+        (CSGate(ctrl_state=0), 0.5),
+        (CSGate(ctrl_state=1), 0.5),
+        (CSGate(ctrl_state=0), -1.5),
+        (CSdgGate(ctrl_state=0), 0.5),
+        (CSdgGate(ctrl_state=1), 0.5),
+        (CSdgGate(ctrl_state=0), 3.0),
+    )
+    @unpack
+    def test_controlled_gate_power_preserves_ctrl_state(
+        self, gate: ControlledGate, exponent: float
+    ):
+        """Test that power() preserves ctrl_state and matches the powered base gate."""
+        powered = gate.power(exponent)
+        self.assertEqual(powered.ctrl_state, gate.ctrl_state)
+
+        expected = gate.base_gate.power(exponent).control(1, ctrl_state=gate.ctrl_state)
+        self.assertTrue(Operator(powered).equiv(Operator(expected)))
+
+    def test_unaffected_mcphase_power(self):
+        """Test that multi-controlled phase gate (num_ctrl_qubits >= 2) remains unaffected."""
+        gate = MCPhaseGate(0.7, num_ctrl_qubits=2, ctrl_state=0)
+        powered = gate.power(0.5)
+        expected = MCPhaseGate(0.35, num_ctrl_qubits=2, ctrl_state=0)
+        self.assertTrue(Operator(powered).equiv(Operator(expected)))
 
 
 @ddt

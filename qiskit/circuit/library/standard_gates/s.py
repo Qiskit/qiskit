@@ -346,7 +346,7 @@ class CSGate(SingletonControlledGate):
     def power(self, exponent: float, annotated: bool = False):
         from .p import CPhaseGate
 
-        return CPhaseGate(0.5 * numpy.pi * exponent)
+        return CPhaseGate(0.5 * numpy.pi * exponent, ctrl_state=self.ctrl_state)
 
     def __eq__(self, other):
         return isinstance(other, CSGate) and self.ctrl_state == other.ctrl_state
@@ -436,7 +436,7 @@ class CSdgGate(SingletonControlledGate):
     def power(self, exponent: float, annotated: bool = False):
         from .p import CPhaseGate
 
-        return CPhaseGate(-0.5 * numpy.pi * exponent)
+        return CPhaseGate(-0.5 * numpy.pi * exponent, ctrl_state=self.ctrl_state)
 
     def __eq__(self, other):
         return isinstance(other, CSdgGate) and self.ctrl_state == other.ctrl_state
