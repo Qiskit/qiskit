@@ -39,7 +39,6 @@ from .visualization import QiskitVisualizationTestCase, path_to_diagram_referenc
 @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
 @unittest.skipUnless(optionals.HAS_PYDOT, "pydot not installed")
 @unittest.skipUnless(optionals.HAS_PIL, "Pillow not installed")
-
 class TestPassManagerDrawer(QiskitVisualizationTestCase):
     """Qiskit pass manager drawer tests."""
 
