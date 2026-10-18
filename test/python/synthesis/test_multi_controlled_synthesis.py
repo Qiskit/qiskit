@@ -431,12 +431,14 @@ class TestMCSynthesisCounts(QiskitTestCase):
 
     @data(5, 10, 15)
     def test_mcx_n_dirty_i15_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_n_dirty_i15 bound on CX count."""
+        """Test synth_mcx_n_dirty_i15 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
+        cx_count = synthesized_circuit.count_ops()["cx"]
+        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
         # The bound from the documentation of synth_mcx_n_dirty_i15
-        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
+        self.assertEqual(synthesized_circuit.num_qubits, 2 * num_ctrl_qubits - 1)
+        self.assertEqual(cx_count, 8 * num_ctrl_qubits - 6)
+        self.assertEqual(t_count, 8 * num_ctrl_qubits - 2)
 
     @data(3, 4, 5, 10, 15)
     def test_mcx_n_dirty_m15_resources(self, num_ctrl_qubits: int):
@@ -461,54 +463,59 @@ class TestMCSynthesisCounts(QiskitTestCase):
         self.assertEqual(counts["cx"], 6 * num_ctrl_qubits - 6)
         self.assertEqual(counts["t"] + counts["tdg"], 8 * num_ctrl_qubits - 9)
 
-    @data(5, 10, 15)
+    @data(7, 10, 15)
     def test_mcx_1_clean_b95_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_clean_b95 bound on CX count."""
         synthesized_circuit = synth_mcx_1_clean_b95(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
+        cx_count = synthesized_circuit.count_ops()["cx"]
+        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
         # The bound from the documentation of synth_mcx_1_clean_b95
-        self.assertLessEqual(cx_count, 16 * num_ctrl_qubits - 24)
+        self.assertEqual(cx_count, 16 * num_ctrl_qubits - 24)
+        self.assertEqual(t_count, 16 * num_ctrl_qubits - 12)
 
     @data(3, 5, 10, 15)
     def test_mcx_1_clean_kg24_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_1_clean_kg24 bound on CX count."""
+        """Test synth_mcx_1_clean_kg24 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_1_clean_kg24(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
+        cx_count = synthesized_circuit.count_ops()["cx"]
+        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
         # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
-        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
+        self.assertEqual(cx_count, 6 * num_ctrl_qubits - 6)
+        self.assertEqual(t_count, 8 * num_ctrl_qubits - 9)
 
     @data(3, 5, 10, 15)
     def test_mcx_1_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_1_dirty_kg24 bound on CX count."""
+        """Test synth_mcx_1_dirty_kg24 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_1_dirty_kg24(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
-        ## Based on the bound from the Sec 5.3 of arXiv:2407.17966, assuming relative-phase Toffoli
+        cx_count = synthesized_circuit.count_ops()["cx"]
+        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
-        self.assertLessEqual(cx_count, 12 * num_ctrl_qubits - 18)
+        self.assertEqual(cx_count, 12 * num_ctrl_qubits - 18)
+        self.assertEqual(t_count, 16 * num_ctrl_qubits - 26)
 
     @data(3, 5, 10, 15)
     def test_mcx_2_clean_kg24_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_2_clean_kg24 bound on CX count."""
+        """Test synth_mcx_2_clean_kg24 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_2_clean_kg24(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
-        # Based on the bound from the Sec 5.2 of arXiv:2407.17966, assuming relative-phase Toffoli
+        cx_count = synthesized_circuit.count_ops()["cx"]
+        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
-        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
+        self.assertEqual(cx_count, 6 * num_ctrl_qubits - 6)
+        self.assertEqual(t_count, 8 * num_ctrl_qubits - 9)
 
     @data(3, 5, 10, 15)
     def test_mcx_2_dirty_kg24_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_2_dirty_kg24 bound on CX count."""
+        """Test synth_mcx_2_dirty_kg24 bound on CX count and T count."""
         synthesized_circuit = synth_mcx_2_dirty_kg24(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
-        # Based on the bound from the Sec 5.4 of arXiv:2407.17966, assuming relative-phase Toffoli
+        cx_count = synthesized_circuit.count_ops()["cx"]
+        t_count = synthesized_circuit.count_ops()["t"] + synthesized_circuit.count_ops()["tdg"]
+        # Based on the bound from the Sec 5.1 of arXiv:2407.17966, assuming relative-phase Toffoli
         # decomposition
-        self.assertLessEqual(cx_count, 12 * num_ctrl_qubits - 18)
+        self.assertEqual(cx_count, 12 * num_ctrl_qubits - 18)
+        self.assertEqual(t_count, 16 * num_ctrl_qubits - 26)
 
     def test_c3x_cx_count(self):
         """Test synth_c3x bound on CX count."""
@@ -679,13 +686,13 @@ class TestMCSynthesisCounts(QiskitTestCase):
         elif isinstance(base_gate, (RXGate, RYGate)):
             expected = {1: 2, 2: 8, 3: 20, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, (UGate, U2Gate, U3Gate)):
-            expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 252, 7: 380, 8: 532}
+            expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 250, 7: 362, 8: 482}
         elif isinstance(base_gate, CZGate):
-            expected = {1: 6, 2: 14, 3: 36, 4: 84, 5: 140, 6: 220, 7: 324, 8: 444}
+            expected = {1: 6, 2: 14, 3: 36, 4: 82, 5: 122, 6: 170, 7: 226, 8: 290}
         else:
             raise NotImplementedError
 
-        self.assertLessEqual(cx_count, expected[num_ctrl_qubits])
+        self.assertEqual(cx_count, expected[num_ctrl_qubits])
 
     @combine(
         gate_class=[XGate, CXGate, CCXGate, C3XGate, C4XGate],
