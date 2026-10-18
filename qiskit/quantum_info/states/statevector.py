@@ -231,27 +231,13 @@ class Statevector(QuantumState, TolerancesMixin):
             drawer_args: Arguments to be passed directly to the relevant drawing
                 function or constructor:
 
-                * For ``'latex'`` and ``'latex_source'``: Arguments are passed to
-                  :func:`~qiskit.visualization.state_to_latex`. For qubit statevectors
-                  in default ket notation, supported arguments include:
-
-                  * ``max_size`` (int): Maximum number of non-zero terms displayed before
-                    truncating with an ellipsis (``\ldots``). Default is 12. Set to a larger
-                    integer (e.g. ``2**n``) or ``math.inf`` to prevent truncation.
-                  * ``convention`` (str): Either ``'ket'`` (default) or ``'vector'``.
-                    If ``'vector'``, draws as a column vector via
-                    :func:`~qiskit.visualization.array_to_latex`.
-                  * ``prefix`` (str): LaTeX string prepended to the expression (default: ``""``).
-                  * ``decimals`` (int): Number of decimal places to round amplitudes (default: 10).
-                  * ``dims`` (bool): Whether to display subsystem dimensions (default: ``None``).
-
-                * For ``'text'``: Arguments are passed to
-                  :class:`~qiskit.visualization.TextMatrix` (such as ``max_size``, ``prefix``,
-                  ``suffix``, ``dims``).
-
-                * For Matplotlib visualization backends (``'qsphere'``, ``'hinton'``, ``'bloch'``,
-                  ``'city'``, or ``'paulivec'``): Arguments are passed to the corresponding
-                  function under :mod:`qiskit.visualization` (e.g.,
+                * For ``'latex'`` and ``'latex_source'``: see
+                  :func:`~qiskit.visualization.state_to_latex` (e.g. ``max_size``,
+                  ``convention``, ``prefix``, and ``decimals``).
+                * For ``'text'``: see :class:`~qiskit.visualization.TextMatrix`.
+                * For Matplotlib figures (``'qsphere'``, ``'hinton'``, ``'bloch'``,
+                  ``'city'``, or ``'paulivec'``): see the corresponding plotting
+                  functions in :mod:`qiskit.visualization` (such as
                   :func:`~qiskit.visualization.plot_state_qsphere`,
                   :func:`~qiskit.visualization.plot_state_hinton`,
                   :func:`~qiskit.visualization.plot_bloch_multivector`,
