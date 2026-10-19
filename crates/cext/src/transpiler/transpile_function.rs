@@ -92,7 +92,7 @@ pub unsafe extern "C" fn qk_transpile_state_new(state: *mut *mut TranspilerStage
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``state`` is not a valid, non-null pointer to a ``QkTranspilerStageState``.
+/// Behavior is undefined if ``state`` is not either null or a valid pointer to a ``QkTranspilerStageState``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpile_state_free(state: *mut TranspilerStageState) {
     if !state.is_null() {
@@ -154,13 +154,15 @@ pub unsafe extern "C" fn qk_transpile_state_layout_set(
     layout: *mut TranspileLayout,
 ) {
     // SAFETY: As per documentation, the pointer should be non-null and aligned.
-    let borrowed_state = unsafe { mut_ptr_as_ref(state) };
-    if !layout.is_null() {
-        // SAFETY: As per documentation, the pointer should be aligned.
-        unsafe {
-            borrowed_state.layout.replace(*Box::from_raw(layout));
-        }
-    };
+    let state = unsafe { mut_ptr_as_ref(state) };
+
+    if layout.is_null() {
+        state.layout = None;
+    } else {
+        // SAFETY: `layout` is non-null and aligned in `else` arm
+        let layout = unsafe { Box::from_raw(layout) };
+        state.layout = Some(*layout);
+    }
 }
 
 /// The options for running the transpiler

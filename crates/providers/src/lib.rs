@@ -13,19 +13,16 @@
 //! The quantum program: the dataflow IR that Qiskit's `BackendV3` interface consumes.
 //!
 //! A program describes a hybrid quantum-classical computation as typed tensor values produced and
-//! consumed by instructions. It is inert data: it describes a computation without performing one.
+//! consumed by instructions.
 //!
 //! - [`tensor`] is the value domain. A [`Tensor`](tensor::Tensor) is a dense array over one of a
-//!   fixed set of dtypes, and a [`TensorType`](tensor::TensorType) is its data-less counterpart.
-//! - [`ops`] holds the [`ProgramOp`] contract and the ops Qiskit defines. The set is open: an
-//!   op may be defined outside this crate, in its own namespace.
-//! - [`program`] holds [`QuantumProgram`], a whole computation, and the [`ProgramFunction`]s it is
-//!   made of, each of which is one dataflow graph. Instructions are the only entity a function
-//!   holds: a [`Value`] is an output slot of the instruction producing it, and a function's
-//!   parameters and results are instructions too, so every value has a producer.
-//! - [`data_tree`] holds [`DataTree`], the container for structured values. A program's inputs and
-//!   outputs arrive in one, arranged by the structures it declares, which is where all naming lives.
-
+//!   fixed set of dtypes, and a [`TensorType`](tensor::TensorType) is its data-less counterpart used during
+//!   static analysis.
+//! - [`ops`] defines the [`ProgramOp`] trait and its Qiskit implementations. An op
+//!   may be defined outside this crate, in its own namespace.
+//! - [`program`] defines [`QuantumProgram`], which is a list of [`ProgramFunction`]s.
+//! - [`data_tree`] defines [`DataTree`], the container for nested structured values used to describe the
+//!   IO contract of a quantum program.
 pub mod data_tree;
 pub mod ops;
 pub mod program;

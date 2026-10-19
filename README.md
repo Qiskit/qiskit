@@ -40,14 +40,15 @@ To install from source, follow the instructions in the [documentation](https://q
 ### Standalone C library
 
 To install Qiskit as a standalone C library the only option is currently to build Qiskit from source. This requires having the
-[Rust](https://rust-lang.org/) compiler installed. To simplify building having [GNU Make](https://www.gnu.org/software/make/) installed
-is recommended. With these requirements installed you can run:
+[Rust](https://rust-lang.org/) compiler installed.
+We recommend installing [GNU Make](https://www.gnu.org/software/make/) to simplify the build process.
+With these requirements installed you can run:
 
 ```bash
 make c
 ```
 
-Which will compile the C library and put the `dist/c` directory in the root of the repository which will contain the shared library and C headers for
+This will compile the C library and put the `dist/c` directory in the root of the repository which will contain the shared library and C headers for
 the library.
 
 You can refer to the [documentation](https://quantum.cloud.ibm.com/docs/guides/install-c-api) on installing the C API for more details and how to
@@ -133,7 +134,7 @@ qc_transpiled = transpile(qc, target=target)
 
 Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any vendor that provides a compatible interface. 
 The best way to use Qiskit is with a runtime environment that provides optimized implementations of Sampler and Estimator for a given hardware platform. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. A runtime implements the `qiskit.primitives.BaseSamplerV2` and `qiskit.primitives.BaseEstimatorV2` interfaces. For example,
-some packages that provide implementations of a runtime primitive implementation are:
+some packages that provide implementations of a runtime primitive are:
 
 * https://github.com/Qiskit/qiskit-ibm-runtime
 
@@ -147,7 +148,7 @@ hardware or simulators to Qiskit. The backend class includes a common interface 
 * https://github.com/qiskit-community/qiskit-quantinuum-provider
 * https://github.com/rigetti/qiskit-rigetti
 
-<!-- This is not an exhaustive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
+<!-- This is not an exhaustive list, and if you maintain a provider package, please feel free to open a PR to add new providers -->
 
 You can refer to the documentation of these packages for further instructions
 on how to get access and use these systems.
@@ -182,8 +183,9 @@ The changelog provides a quick overview of notable changes for a given
 release.
 
 Additionally, as part of each release, detailed release notes are written to
-document in detail what has changed as part of a release. This includes any
-documentation on potential breaking changes on upgrade and new features. See [all release notes here](https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes).
+document in detail what has changed. This includes any documentation on
+potential breaking changes on upgrade, and new features. See [all release notes
+here](https://quantum.cloud.ibm.com/docs/api/qiskit/release-notes).
 
 ## Acknowledgements
 

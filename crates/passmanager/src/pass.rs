@@ -17,7 +17,8 @@ use std::{
 
 use thiserror::Error;
 
-use crate::{DynTypeId, IR, PassContext};
+use crate::{IR, PassContext};
+use qiskit_util::dyn_types::DynTypeId;
 
 /// The base behavior for compiler passes written in first-party Rust code.
 ///
@@ -95,7 +96,7 @@ pub enum PassError {
 }
 
 /// The trait for objects that can be called as transformation [`Task`](super::Task)s.
-pub trait Pass: Send + Sync {
+pub trait Pass: Any + Send + Sync {
     /// Return the type ID of the IR expected on input.
     fn ir_id_in(&self) -> DynTypeId<'_>;
     /// Return the type ID of the IR that is emitted by the pass.

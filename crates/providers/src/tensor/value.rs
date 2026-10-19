@@ -20,11 +20,7 @@ use super::{DType, Dim, TensorError, TensorType};
 
 /// A tensor of one of the supported dtypes.
 ///
-/// Each variant wraps a reference-counted dynamic ndarray ([`ArcArray`]).
-///
-/// This allows [`Tensor::clone`] to cause a refcount bump rather than a copy of
-/// underlying data. Note that mutating the underlying buffer in place (via ndarray
-/// methods that require `DataMut`) clones-on-write when the buffer is shared.
+/// Each variant wraps a reference-counted  copy-on-write dynamic ndarray (`ArcArrayD`).
 #[derive(Debug, Clone, PartialEq)]
 pub enum Tensor {
     C64(ArcArrayD<Complex32>), // complex
@@ -42,7 +38,7 @@ pub enum Tensor {
     Bit(ArcArrayD<u8>), // bool
 }
 
-/// The error raised when an `op` has no implementation for some type(s).
+/// Return the error raised when an `op` has no implementation for some type(s).
 ///
 /// Operands of different dtypes are a [`TensorError::DTypeMismatch`], and a pair that shares a
 /// dtype the op does not implement is a [`TensorError::UnsupportedDType`].
@@ -57,7 +53,7 @@ fn dtype_error(op: &'static str, lhs: DType, rhs: DType) -> TensorError {
 /// Cast an array of a real numeric type to any supported dtype.
 ///
 /// A cast to `Bit` compares against zero, like NumPy's cast to `bool`. A `Bit` tensor holds only 0
-/// or 1, so truncating `2.5` to `2` would produce values the bitwise operations cannot read.
+/// or 1, and truncating `2.5` to `2` would leave a value the bitwise operations cannot read.
 macro_rules! cast_real {
     ($arr:expr, $src:ty, $target:expr) => {
         match $target {
@@ -152,13 +148,10 @@ impl Tensor {
         }
     }
 
-    /// Whether this tensor satisfies `ty`.
+    /// Return whether this tensor satisfies `ty`.
     ///
-    /// A type is a constraint on a value rather than an equality against [`Self::tensor_type`],
-    /// which only ever reports fixed axes: a [`Dim::Fixed`] axis admits exactly its size, while a
-    /// [`Dim::Bounded`] axis admits any size up to and including its bound. A tensor's shape is
-    /// how much of it means something, so a consumer that sizes its storage from the bound instead
-    /// is free to hold more.
+    /// A [`Dim::Fixed`] axis admits exactly its size and a [`Dim::Bounded`] axis admits any
+    /// size up to and including its bound.
     pub fn matches(&self, ty: &TensorType) -> bool {
         self.dtype() == ty.dtype
             && self.shape().len() == ty.shape.len()
@@ -169,7 +162,7 @@ impl Tensor {
                 .all(|(&size, &dim)| dim.admits(Dim::Fixed(size)))
     }
 
-    /// Element-wise power with NumPy-style broadcasting.
+    /// Compute the element-wise power with NumPy-style broadcasting.
     ///
     /// An integer result wraps on overflow. Returns [`TensorError::NegativeExponent`] if an
     /// exponent of a signed integer dtype is negative, [`TensorError::DTypeMismatch`] if the
@@ -224,7 +217,7 @@ impl Tensor {
     ///
     /// The shapes are right-aligned, so leading axes may be added and an axis of size `1` grows to
     /// any size. Returns [`TensorError::ShapeMismatch`] if `shape` cannot be reached that way. This
-    /// is the value-level counterpart of [`broadcast_dims_to`](super::rules::broadcast_dims_to).
+    /// is the value-level counterpart of [`broadcast_dims_to`](super::broadcast_dims_to).
     pub fn broadcast_to(&self, shape: &[usize]) -> Result<Tensor, TensorError> {
         if self.shape() == shape {
             return Ok(self.clone());
@@ -319,13 +312,11 @@ impl_tensor_from!(U32, u32);
 impl_tensor_from!(U16, u16);
 impl_tensor_from!(U8, u8); // u8 → U8; Bit requires explicit construction
 
-/// Integer division and remainder where zero RHS results in zero, as in NumPy.
-///
-/// We use this because we want to avoid a panic.
+/// Integer division and remainder where a zero divisor gives zero, as in NumPy.
 trait DivideByZero: Sized {
-    /// `self / rhs`, or zero if `rhs` is zero.
+    /// Return `self / rhs`, or zero if `rhs` is zero.
     fn div_or_zero(self, rhs: Self) -> Self;
-    /// `self % rhs`, or zero if `rhs` is zero.
+    /// Return `self % rhs`, or zero if `rhs` is zero.
     fn rem_or_zero(self, rhs: Self) -> Self;
 }
 
@@ -357,7 +348,7 @@ macro_rules! impl_tensor_binop {
     ($trait:ident, $method:ident, $tensor_method:ident, $op:tt, $integer:ident, $op_name:literal) => {
         impl Tensor {
             #[doc = concat!(
-                "Element-wise `",
+                "Compute the element-wise `",
                 $op_name,
                 "` with NumPy-style broadcasting.\n\n",
                 "Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ, ",
@@ -421,7 +412,7 @@ impl_tensor_binop!(Div, div, div_tensor, /, div_or_zero, "div");
 // `Rem` is hand-written rather than going through `impl_tensor_binop!` because
 // `num_complex` does not implement `%`, so the complex variants must be omitted.
 impl Tensor {
-    /// Element-wise `%` with NumPy-style broadcasting (real dtypes only).
+    /// Compute the element-wise `%` with NumPy-style broadcasting (real dtypes only).
     ///
     /// Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ,
     /// [`TensorError::UnsupportedDType`] if they share a dtype this op does not support (a complex
