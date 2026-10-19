@@ -19,7 +19,7 @@
 use binrw::{BinRead, Endian, VecArgs};
 use pyo3::PyResult;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict};
+use pyo3::types::{PyAny, PyBytes, PyDict};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
@@ -36,7 +36,7 @@ use crate::value::{
 };
 use crate::{QPY_READ_MIN_VERSION, QPY_WRITE_MIN_VERSION};
 
-use std::io::{Cursor, Seek};
+use std::io::{Cursor, Seek, Write};
 
 /// A circuit loaded from QPY, before the Python-only parts of circuit construction.
 ///
@@ -94,6 +94,7 @@ const QPY_VERSION: u8 = 18;
 ///
 /// * circuits: The rust `CircuitData` of the circuits to serialize. Mutability is required because some implicit
 ///   gates have to be instantiated in order to be serialized.
+/// * output: The Writer to write the resultings QPY payload into.
 /// * extra_data: The extra data associated with each circuit, including name, metadata, and layout. Since this
 ///   is currently Python-only, metadata and layout should be already serialized into `Bytes` objects.
 /// * qpy_version: The QPY version to use for serialization. Must be >= QPY_WRITE_MIN_VERSION.
@@ -101,13 +102,17 @@ const QPY_VERSION: u8 = 18;
 ///
 /// Returns:
 /// A `Bytes` object containing the complete QPY payload.
-pub fn dump_qpy<'a>(
+pub fn dump_qpy<'a, W>(
     circuits: impl ExactSizeIterator<Item = &'a CircuitData>,
+    mut output: W,
     extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
     caller: Option<QpyCaller>,
-) -> Result<Bytes, QpyError> {
+) -> Result<(), QpyError>
+where
+    W: Write,
+{
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
             feature: "Rust QPY".to_string(),
@@ -152,32 +157,22 @@ pub fn dump_qpy<'a>(
         type_key: ProgramType::Circuit, //for now, no other value type is used
     };
     let serialized_qpy_header = serialize(&qpy_header)?;
-
+    output.write_all(&serialized_qpy_header)?;
     // At this point we have collected all the relevant data
     // But still need to create the offset table and put everything together
     let header_size = serialized_qpy_header.len();
     let offset_table_size = serialized_circuits.len() * 8; // 8 bytes per u64
     let circuits_start_offset = header_size + offset_table_size;
     // Build the offset table
-    let mut offset_table: Vec<u64> = Vec::with_capacity(serialized_circuits.len());
     let mut current_offset = circuits_start_offset as u64;
-
     for circuit_bytes in &serialized_circuits {
-        offset_table.push(current_offset);
+        output.write_all(&current_offset.to_be_bytes())?;
         current_offset += circuit_bytes.len() as u64;
     }
-
-    let mut output = Vec::<u8>::with_capacity(current_offset as usize);
-
-    output.extend_from_slice(&serialized_qpy_header);
-    for offset in offset_table {
-        output.extend_from_slice(&offset.to_be_bytes());
-    }
     for circuit_bytes in serialized_circuits {
-        output.extend_from_slice(&circuit_bytes);
+        output.write_all(&circuit_bytes)?;
     }
-
-    Ok(Bytes::from(output))
+    Ok(())
 }
 
 #[pyfunction]
@@ -218,14 +213,18 @@ pub fn py_dump_qpy(
             })
         })
         .collect::<Result<Vec<_>, QpyError>>()?;
-    let serialized_qpy = dump_qpy(
-        circuits.iter().map(|circuit| &circuit.data),
-        extra_data,
-        version,
-        Some(annotation_handler),
-        Some(QpyCaller::Python),
-    )?;
-    file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
+    let output = PyBytes::new_with_writer(py, 0, |writer| {
+        dump_qpy(
+            circuits.iter().map(|circuit| &circuit.data),
+            writer,
+            extra_data,
+            version,
+            Some(annotation_handler),
+            Some(QpyCaller::Python),
+        )?;
+        Ok(())
+    })?;
+    file_obj.call_method1("write", (output,))?;
     Ok(())
 }
 
@@ -285,10 +284,11 @@ pub fn read_raw_circuits(
 /// Serialize native circuits using empty metadata and no transpiler layout.
 ///
 /// This is a non-Python convenience interface used by the C API.
-pub fn native_dump_qpy(
-    circuits: &[&CircuitData],
+pub fn native_dump_qpy<'a, W: Write>(
+    circuits: impl ExactSizeIterator<Item = &'a CircuitData>,
+    output: W,
     qpy_version: Option<u8>,
-) -> Result<Vec<u8>, QpyError> {
+) -> Result<(), QpyError> {
     let extra_data = (0..circuits.len())
         .map(|_| ExtraCircuitData {
             name: None,
@@ -299,13 +299,14 @@ pub fn native_dump_qpy(
         })
         .collect();
     dump_qpy(
-        circuits.iter().copied(),
+        circuits,
+        output,
         extra_data,
         qpy_version.unwrap_or(QPY_VERSION),
         None,
         Some(QpyCaller::Native),
-    )
-    .map(|bytes| bytes.0)
+    )?;
+    Ok(())
 }
 
 /// Deserializes native circuits from a complete QPY payload.
@@ -507,8 +508,17 @@ mod tests {
 
         // Round trip through the native QPY dump/load entry points.
         let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
-        let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
-        let loaded = load_qpy(&payload, None, None).unwrap();
+        let mut payload = Vec::new();
+        dump_qpy(
+            [circuit].iter(),
+            &mut payload,
+            vec![extra],
+            version,
+            None,
+            None,
+        )
+        .unwrap();
+        let loaded = load_qpy(&Bytes(payload), None, None).unwrap();
 
         // Exactly one circuit, with exactly one instruction.
         assert_eq!(loaded.len(), 1);

@@ -69,29 +69,6 @@ fn return_error(error: *mut *mut c_char, value: QpyCError) -> ExitCode {
     }
 }
 
-fn dump_circuits(circuits: &[&CircuitData], version: Option<u8>) -> Result<Vec<u8>, QpyCError> {
-    qiskit_qpy::native_dump_qpy(circuits, version)
-        .map_err(|err| QpyCError::Diagnostic(err.to_string()))
-}
-
-/// Generate a QPY payload from an array of QkCircuit pointers
-///
-/// # Safety
-///
-/// Every element of ``circuits`` must point to a valid ``QkCircuit``. If any entry is not a valid
-/// aligned, non-null pointer the behavior is undefined. ``filename`` must point to a valid
-/// nul-terminated string for the duration of this call. ``error`` must be null or valid
-/// writeable pointer to a char pointer.
-unsafe fn dump(
-    circuits: *const *const CircuitData,
-    num_circuits: usize,
-    version: Option<u8>,
-) -> Result<Vec<u8>, QpyCError> {
-    // SAFETY: this function's caller upholds the circuit-array contract.
-    let circuits = unsafe { slice::from_raw_parts(circuits as *const &CircuitData, num_circuits) };
-    dump_circuits(circuits, version)
-}
-
 fn load(payload: &[u8]) -> Result<Vec<CircuitData>, QpyCError> {
     qiskit_qpy::native_load_qpy(payload).map_err(|err| QpyCError::Diagnostic(err.to_string()))
 }
@@ -113,11 +90,16 @@ unsafe fn dump_file_impl(
             QpyCError::Diagnostic("filename is not valid UTF-8".into()),
         );
     };
+    // SAFETY: this function's caller upholds the circuit-array contract.
+    let circuits = unsafe { slice::from_raw_parts(circuits as *const &CircuitData, num_circuits) };
+    let output = match fs::File::create(filename) {
+        Ok(output) => output,
+        Err(e) => return return_error(error, QpyCError::Diagnostic(e.to_string())),
+    };
     // SAFETY: upheld by the caller contract and checked for alignment/null above.
-    let result = unsafe { dump(circuits, num_circuits, version) };
-    match result.and_then(|payload| {
-        fs::write(filename, payload).map_err(|err| QpyCError::Diagnostic(err.to_string()))
-    }) {
+    match qiskit_qpy::native_dump_qpy(circuits.iter().copied(), output, version)
+        .map_err(|err| QpyCError::Diagnostic(err.to_string()))
+    {
         Ok(()) => ExitCode::Success,
         Err(value) => return_error(error, value),
     }
@@ -137,10 +119,15 @@ unsafe fn dump_buffer_impl(
     if let Err(error) = check_ptr(size) {
         return error.into();
     }
-    // SAFETY: upheld by the caller contract and checked for alignment/null above.
-    match unsafe { dump(circuits, num_circuits, version) } {
-        Ok(payload) => {
-            let payload = payload.into_boxed_slice();
+    // File header takes 20 bytes so this is the min size of a qpy buffer
+    let mut output: Vec<u8> = Vec::with_capacity(20);
+    // SAFETY: this function's caller upholds the circuit-array contract.
+    let circuits = unsafe { slice::from_raw_parts(circuits as *const &CircuitData, num_circuits) };
+    match qiskit_qpy::native_dump_qpy(circuits.iter().copied(), &mut output, version)
+        .map_err(|err| QpyCError::Diagnostic(err.to_string()))
+    {
+        Ok(_) => {
+            let payload = output.into_boxed_slice();
             let payload_size = payload.len();
             // SAFETY: the caller guarantees both output locations are writable.
             unsafe {
