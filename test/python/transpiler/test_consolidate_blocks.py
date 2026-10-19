@@ -15,7 +15,7 @@ Tests for the ConsolidateBlocks transpiler pass.
 """
 
 import numpy as np
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, IfElseOp, Gate, Parameter
 from qiskit.circuit.library import (
@@ -745,6 +745,74 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected = QuantumCircuit(2)
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
+
+    @data(CXGate, CZGate, ECRGate)
+    def test_kak_basis_gate_consolidates_redundant_block(self, kak_gate):
+        """Test that a block using more ``kak_basis_gate`` gates than needed is consolidated."""
+        qc = QuantumCircuit(2)
+        # Each of these gates is self-inverse up to local operations, so three of them can be
+        # synthesized with a single application of the KAK gate.
+        qc.append(kak_gate(), [0, 1])
+        qc.append(kak_gate(), [0, 1])
+        qc.append(kak_gate(), [0, 1])
+
+        pass_manager = PassManager(
+            [Collect2qBlocks(), ConsolidateBlocks(kak_basis_gate=kak_gate())]
+        )
+        res = pass_manager.run(qc)
+
+        self.assertEqual(res.count_ops(), {"unitary": 1})
+        self.assertEqual(Operator(res), Operator(qc))
+
+    @data(CXGate, CZGate, ECRGate)
+    def test_kak_basis_gate_keeps_optimal_block(self, kak_gate):
+        """Test that a block already using the minimal number of KAK gates is left unchanged."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.append(kak_gate(), [0, 1])
+        qc.h(1)
+
+        pass_manager = PassManager(
+            [Collect2qBlocks(), ConsolidateBlocks(kak_basis_gate=kak_gate())]
+        )
+        res = pass_manager.run(qc)
+
+        self.assertEqual(res, qc)
+
+    @data(
+        (CZGate, CXGate),
+        (ECRGate, CXGate),
+        (CXGate, CZGate),
+        (ECRGate, CZGate),
+        (CXGate, ECRGate),
+        (CZGate, ECRGate),
+    )
+    @unpack
+    def test_kak_basis_gate_is_used_for_gate_counting(self, kak_gate, block_gate):
+        """Test that the ``kak_basis_gate`` (and not a default) defines which gates are counted.
+
+        A block of three ``block_gate`` gates is redundant, but since none of them is the KAK
+        gate the pass sees no KAK gates to save and must not consolidate the block. If the
+        ``kak_basis_gate`` argument were ignored (e.g. falling back to the default ``CXGate``),
+        the block would be consolidated in at least one of these cases.
+        """
+        qc = QuantumCircuit(2)
+        qc.append(block_gate(), [0, 1])
+        qc.append(block_gate(), [0, 1])
+        qc.append(block_gate(), [0, 1])
+
+        pass_manager = PassManager(
+            [Collect2qBlocks(), ConsolidateBlocks(kak_basis_gate=kak_gate())]
+        )
+        res = pass_manager.run(qc)
+
+        self.assertEqual(res, qc)
+
+        # Sanity check: using the block gate itself as KAK gate does consolidate the block.
+        pass_manager = PassManager(
+            [Collect2qBlocks(), ConsolidateBlocks(kak_basis_gate=block_gate())]
+        )
+        self.assertEqual(pass_manager.run(qc).count_ops(), {"unitary": 1})
 
     def test_collection_inside_control_flow(self):
         """Test that we handle consolidation based on the physical qubits, not the local indices."""
