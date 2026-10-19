@@ -163,7 +163,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 * For ``'latex'`` and ``'latex_source'``: see
                   :func:`~qiskit.visualization.state_to_latex` (which forwards to
                   :func:`~qiskit.visualization.array_to_latex`).
-                * For ``'text'``: see :class:`~qiskit.visualization.TextMatrix`.
+                * For ``'text'``: arguments such as ``max_size`` to control the
+                  summarization threshold.
                 * For Matplotlib figures (``'qsphere'``, ``'hinton'``, or ``'bloch'``):
                   see the corresponding plotting functions in :mod:`qiskit.visualization`
                   (such as :func:`~qiskit.visualization.plot_state_qsphere`,

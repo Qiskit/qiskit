@@ -234,7 +234,8 @@ class Statevector(QuantumState, TolerancesMixin):
                 * For ``'latex'`` and ``'latex_source'``: see
                   :func:`~qiskit.visualization.state_to_latex` (e.g. ``max_size``,
                   ``convention``, ``prefix``, and ``decimals``).
-                * For ``'text'``: see :class:`~qiskit.visualization.TextMatrix`.
+                * For ``'text'``: arguments such as ``max_size`` (default: 8) to
+                  control the display threshold.
                 * For Matplotlib figures (``'qsphere'``, ``'hinton'``, ``'bloch'``,
                   ``'city'``, or ``'paulivec'``): see the corresponding plotting
                   functions in :mod:`qiskit.visualization` (such as
@@ -273,9 +274,9 @@ class Statevector(QuantumState, TolerancesMixin):
                 from qiskit.quantum_info import Statevector
                 sv = Statevector.from_label("++++")
                 # Default output truncates after 12 non-zero terms:
-                sv.draw(output="latex_source")
+                sv.draw(output="latex")
                 # Set max_size to display all 16 terms:
-                sv.draw(output="latex_source", max_size=16)
+                sv.draw(output="latex", max_size=16)
 
         """
 

@@ -1477,8 +1477,9 @@ def state_drawer(state, output=None, **drawer_args):
             Default is `'text`'.
         drawer_args: Arguments to be passed to the relevant drawer. For
             ``'latex'`` and ``'latex_source'``, see :func:`~qiskit.visualization.state_to_latex`.
-            For ``'text'``, see :class:`~qiskit.visualization.TextMatrix`. For Matplotlib
-            figures, see the corresponding plotting function under :mod:`qiskit.visualization`.
+            For ``'text'``, arguments such as ``max_size`` (default: 8) can be passed to
+            control the display threshold. For Matplotlib figures, see the corresponding
+            plotting function under :mod:`qiskit.visualization`.
 
     Returns:
         :class:`matplotlib.figure` or :class:`str` or
