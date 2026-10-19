@@ -321,6 +321,7 @@ pub fn load_qpy(
     data: &Bytes,
     annotation_handler: Option<AnnotationHandler>,
     caller: Option<QpyCaller>,
+    min_qpy_version: Option<u8>,
 ) -> Result<Vec<LoadedCircuit>, QpyError> {
     // Every QPY file begins with "QISKIT" followed by a version byte.
     // Since the header might be effected by the version, we begin by explicitly extracting the version.
@@ -333,6 +334,11 @@ pub fn load_qpy(
             version: qpy_version,
             min_version: QPY_READ_MIN_VERSION,
         })?;
+    }
+    if let Some(min_version) = min_qpy_version
+        && qpy_version < min_version
+    {
+        Err(QpyError::MinQpyVersionViolated(qpy_version, min_version))?;
     }
     let caller = caller.unwrap_or(QpyCaller::Native);
     let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
@@ -438,22 +444,36 @@ pub fn py_load_qpy(
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
-    load_qpy(&data, Some(annotation_handler), Some(QpyCaller::Python))?
-        .into_iter()
-        .map(|loaded| {
-            py_circuit_data_to_quantum_circuit(
-                py,
-                loaded.circuit_data,
-                &loaded.packed_circuit,
-                metadata_deserializer.as_ref().map(Bound::as_ref),
-            )
-        })
-        .collect()
+    load_qpy(
+        &data,
+        Some(annotation_handler),
+        Some(QpyCaller::Python),
+        None,
+    )?
+    .into_iter()
+    .map(|loaded| {
+        py_circuit_data_to_quantum_circuit(
+            py,
+            loaded.circuit_data,
+            &loaded.packed_circuit,
+            metadata_deserializer.as_ref().map(Bound::as_ref),
+        )
+    })
+    .collect()
 }
 
 /// Deserialize native circuits from a complete QPY payload.
-pub fn native_load_qpy(data: &[u8]) -> Result<Vec<CircuitData>, QpyError> {
-    load_qpy(&Bytes::from(data), None, Some(QpyCaller::Native)).map(|loaded| {
+pub fn native_load_qpy(
+    data: &[u8],
+    min_qpy_version: Option<u8>,
+) -> Result<Vec<CircuitData>, QpyError> {
+    load_qpy(
+        &Bytes::from(data),
+        None,
+        Some(QpyCaller::Native),
+        min_qpy_version,
+    )
+    .map(|loaded| {
         loaded
             .into_iter()
             .map(|loaded| loaded.circuit_data)
@@ -508,7 +528,7 @@ mod tests {
         // Round trip through the native QPY dump/load entry points.
         let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
         let payload = dump_qpy([circuit].iter(), vec![extra], version, None, None).unwrap();
-        let loaded = load_qpy(&payload, None, None).unwrap();
+        let loaded = load_qpy(&payload, None, None, None).unwrap();
 
         // Exactly one circuit, with exactly one instruction.
         assert_eq!(loaded.len(), 1);

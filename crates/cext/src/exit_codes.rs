@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::user_config::UserConfigLoadError;
 use qiskit_circuit::parameter::parameter_expression::ParameterError;
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use qiskit_transpiler::target::TargetError;
@@ -86,6 +87,24 @@ pub enum ExitCode {
     CustomOperation = 900,
     /// Repeated vtable slot error
     CustomOperationRepeatedSlot = 901,
+    /// UserConfiguration Parsing error
+    UserConfigFileLoadError = 1000,
+    /// I/O or ini parsing error
+    UserConfigIniError = 1001,
+    /// Invalid circuit drawer type in user config file
+    UserConfigInvalidCircuitDrawerType = 1002,
+    /// Invalid state drawer type in user config file
+    UserConfigInvalidStateDrawerType = 1003,
+    /// Invalid boolean option value in user config file
+    UserConfigNotBoolean = 1004,
+    /// Invalid optimization_level in user config file
+    UserConfigInvalidTranspilerOptimizationLevel = 1005,
+    /// Invalid transpiler_seed in user config file
+    UserConfigInvalidTranspilerSeed = 1006,
+    /// Invalid num_processes in user config file
+    UserConfigInvalidNumProcs = 1007,
+    /// Invalid minimum_qpy_version in user config file
+    UserConfigInvalidMinQpyVersion = 1008,
 }
 
 impl From<ArithmeticError> for ExitCode {
@@ -130,5 +149,26 @@ impl From<TargetError> for ExitCode {
 impl From<ParameterError> for ExitCode {
     fn from(_value: ParameterError) -> Self {
         ExitCode::ArithmeticError
+    }
+}
+
+impl From<UserConfigLoadError> for ExitCode {
+    fn from(value: UserConfigLoadError) -> Self {
+        match value {
+            UserConfigLoadError::IniError(_) => Self::UserConfigFileLoadError,
+            UserConfigLoadError::InvalidCircuitDrawerType(_) => {
+                Self::UserConfigInvalidCircuitDrawerType
+            }
+            UserConfigLoadError::InvalidStateDrawerType(_) => {
+                Self::UserConfigInvalidStateDrawerType
+            }
+            UserConfigLoadError::NotBoolean(_) => Self::UserConfigNotBoolean,
+            UserConfigLoadError::InvalidTranspilerOptimizationLevel(_) => {
+                Self::UserConfigInvalidTranspilerOptimizationLevel
+            }
+            UserConfigLoadError::InvalidTranspilerSeed(_) => Self::UserConfigInvalidTranspilerSeed,
+            UserConfigLoadError::InvalidNumProcs(_) => Self::UserConfigInvalidNumProcs,
+            UserConfigLoadError::InvalidMinQpyVersion(_) => Self::UserConfigInvalidMinQpyVersion,
+        }
     }
 }

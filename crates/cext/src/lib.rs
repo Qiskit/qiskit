@@ -14,6 +14,7 @@ mod extras;
 mod pointers;
 #[cfg(feature = "python_binding")]
 mod py;
+mod user_config;
 
 pub mod circuit;
 pub mod circuit_library;

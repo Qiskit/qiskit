@@ -28,6 +28,7 @@ class UserConfig:
 
     [default]
     circuit_drawer = mpl
+    state_drawer = hinton
     circuit_mpl_style = default
     circuit_mpl_style_path = ~/.qiskit:<default location>
     circuit_reverse_bits = True
