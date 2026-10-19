@@ -17,3 +17,4 @@
 
 pub mod line_graph;
 pub mod qid;
+pub mod symbol_table;
