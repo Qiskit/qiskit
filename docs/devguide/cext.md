@@ -21,7 +21,7 @@ first time extending the C API, see the
 C structs are either transparent or opaque. A transparent struct is fully defined in the header
 file, allowing callers to access members and allocate instances themselves. An opaque struct is
 only forward-declared; callers cannot access members or allocate instances. `cbindgen` generates
-transparent structs when the layout is `repr(c)`, otherwise opaque.
+transparent structs when the layout is `repr(C)`, otherwise opaque.
 
 *Don't conflate transparency with Rust's `repr(transparent)`, which has a totally different
 meaning.*
@@ -202,6 +202,7 @@ Backwards compatible changes include...
 Breaking changes include...
 
 - removing or renaming public functions, types, macros, constants, and headers.
+- if declared exhausitive, adding an enum variant.
 - changing transparent struct fields.
 - tightening preconditions.
 - changing function signatures (including `const`-ness changes).
@@ -218,32 +219,54 @@ C99.
 
 ## Documentation
 
-**TODO:** Introduce Sphinx & Syntax
+The documentation pipeline uses Doxygen, Breathe, and Sphinx. The pipeline is
+orchestrated by the `tox -e docs` command.
 
-### Functions
+### Doxygen
 
-**TODO:** Discuss documentation requirements for functions.
+C API documentation is generated from outer doc comments written with
+[Doxygen](https://www.doxygen.nl/manual/commands.html) syntax.
 
-### Structures
+```rust
+/// @ingroup QkFoo
+///
+/// Describe what the funciton does. Then, describe memory management responsibilities.
+///
+/// @param arg1 Describe `arg1`, including the contract (e.g. non-null).
+/// @param arg2 Describe `arg2`, including the contract (e.g. non-null).
+/// 
+/// @return Describe the meaning of each return value, if any. Omit this section if the function
+///         returns `void`.
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_foo(arg1: *mut c_void, arg2: *mut c_void) -> i32;
+```
 
-**TODO:** Discuss documentation requirements for transparent and opaque structures.
+*The optional `@ingroup` command groups related functions.*
+
+### Groups
+
+C API documentation is organized by groups. Create a `.rst` group in `docs/cdoc` if your addition
+doesn't belong to an existing one. Structs exposed directly from the data model don't have Doxygen
+comments. Such structs should be documented manually in the `.rst` group.
 
 ### Ownership
 
 C syntax cannot express ownership semantics, so, the ownership contract must be documented. Some
-programmers may not understand the impact of ownership on their memory management responsibility.
+programmers may not understand the impact of ownership on their memory management responsibilities.
 Instead or alongside writing "takes ownership" or "consumes", state what the caller _must not_ do
 for each outcome. The following function takes ownership of `entry` if it's added to the target.
 Note that the `entry` pointer is `*mut` because the internals potentially take ownership.
 
 ```rust
-/// Append an instruction to the ``QkTarget`` through a ``QkTargetEntry``.
+/// @ingroup QkTarget
+/// 
+/// Append an instruction to the ``QkTarget`` through a ``QkTargetEntry``. The caller must not use
+/// or free `entry` if `QkExitCode_Success` is returned.
 /// 
 /// @param target A non-null pointer to the ``QkTarget``.
 /// @param entry A non-null pointer to the ``QkTargetEntry``.
 ///
-/// @return Returns `QkExitCode_Success` if the instruction is added. The caller must not use
-///         or free `entry` if the instruction is added.
+/// @return Returns `QkExitCode_Success` if the instruction is added.
 extern "C" fn qk_target_add_instruction(target: *mut Target, entry: *mut TargetEntry) -> ExitCode;
 ```
 
@@ -264,6 +287,17 @@ unsafe extern "C" fn qk_circuit_free(circuit: *mut Circuit) {
         drop(circuit)
     }
 }
+```
+
+### Release Notes
+
+Link C objects in the release notes using the `c` namespace.
+
+```
+:c:struct:`QkFoo`
+:c:type:`QkFoo`
+:c:enum:`QkFoo`
+:c:func:`qk_foo`
 ```
 
 ## Python Extensions
