@@ -3545,4 +3545,36 @@ mod test {
         check(&qc, &roundtrip);
         Ok(())
     }
+
+    #[test]
+    fn test_count_ops() -> Result<(), CircuitDataError> {
+        let mut qc = CircuitData::with_capacity(2, 0, 2, Param::Float(0.0))?;
+
+        qc.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])?;
+        qc.push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])?;
+
+        let counts = qc.count_ops();
+
+        assert_eq!(counts.get("h"), Some(&1));
+        assert_eq!(counts.get("cx"), Some(&1));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_count_ops_per_qubit() -> Result<(), CircuitDataError> {
+        let mut qc = CircuitData::with_capacity(2, 0, 2, Param::Float(0.0))?;
+
+        qc.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])?;
+        qc.push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])?;
+
+        let per_qubit = qc.count_ops_per_qubit();
+
+        assert_eq!(per_qubit.len(), 2);
+        assert_eq!(per_qubit[0].get("h"), Some(&1));
+        assert_eq!(per_qubit[0].get("cx"), Some(&1));
+        assert_eq!(per_qubit[1].get("cx"), Some(&1));
+
+        Ok(())
+    }
 }
