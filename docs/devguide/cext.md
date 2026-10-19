@@ -108,8 +108,8 @@ Plain function names are more flexible.
 Choose a sentinel value when functions fail trivially. Sentinels must fall outside of the return
 value's domain. `-1` and `0` are poor sentinels if either value has additional meaning. `-1` is
 suitable for index-returning functioons because indicies are non-negative. `0` only works when the
-domain excludes zero. `NAN` is problematic because `NAN != NAN`. Constants `u32::MAX` require
-callers to cast `-1` or include `limits.h` for comparisons without compiler warnings. Prefer
+domain excludes zero. `NAN` is problematic because `NAN != NAN`. Constants like `u64::MAX` require
+callers to cast `-1` or include `limits.h` to handle errors without compiler warnings. Prefer
 returning signed types for positive domains unlikely to exceed $2^{64}/2$.
 
 **Sentinel Examples**
