@@ -219,8 +219,8 @@ C99.
 
 ## Documentation
 
-The documentation pipeline uses Doxygen, Breathe, and Sphinx. The pipeline is
-orchestrated by the `tox -e docs` command.
+The documentation pipeline uses Doxygen, Breathe, and Sphinx, orchestrated by the `tox -e docs`
+command.
 
 ### Doxygen
 
@@ -230,7 +230,7 @@ C API documentation is generated from outer doc comments written with
 ```rust
 /// @ingroup QkFoo
 ///
-/// Describe what the funciton does. Then, describe memory management responsibilities.
+/// Describe what the function does. Then, describe memory management responsibilities.
 ///
 /// @param arg1 Describe `arg1`, including the contract (e.g. non-null).
 /// @param arg2 Describe `arg2`, including the contract (e.g. non-null).
@@ -245,17 +245,21 @@ pub extern "C" fn qk_foo(arg1: *mut c_void, arg2: *mut c_void) -> i32;
 
 ### Groups
 
-C API documentation is organized by groups. Create a `.rst` group in `docs/cdoc` if your addition
-doesn't belong to an existing one. Structs exposed directly from the data model don't have Doxygen
-comments. Such structs should be documented manually in the `.rst` group.
+C API documentation is organized into groups. If your addition doesn't belong to an existing group,
+create a new `.rst` file for it in `docs/cdoc`.
+
+Structs exposed directly from the data model don't have Doxygen comments, so document them manually
+in the appropriate `.rst` group.
 
 ### Ownership
 
-C syntax cannot express ownership semantics, so, the ownership contract must be documented. Some
-programmers may not understand the impact of ownership on their memory management responsibilities.
-Instead or alongside writing "takes ownership" or "consumes", state what the caller _must not_ do
-for each outcome. The following function takes ownership of `entry` if it's added to the target.
-Note that the `entry` pointer is `*mut` because the internals potentially take ownership.
+C syntax cannot express ownership semantics, so the ownership contract must be documented
+explicitly. Phrases like "takes ownership" or "consumes" aren't meaningful to every reader. Instead
+of, or alongside, those phrases, state what the caller _must not_ do for each outcome.
+
+In the example below, `qk_target_add_instruction` takes ownership of `entry` only when the
+instruction is successfully added to the target. The `entry` parameter is typed `*mut` because the
+function may take ownership of it.
 
 ```rust
 /// @ingroup QkTarget
@@ -272,12 +276,11 @@ extern "C" fn qk_target_add_instruction(target: *mut Target, entry: *mut TargetE
 
 ### Safety
 
-`unsafe` enables actions that are otherwise prohibited in safe Rust. In writing FFI code, we often
-dereference raw pointers and call unsafe functions within an `unsafe` block. Such code is unsafe
-because the compiler cannot check the validitiy of the operation statically. As the programmer, you
-make some assumption(s) about why the potentially unsafe operation is, in fact, safe. Those
-assumptions should be documented in a **safety comment** so that future programmers understand the
-assumptions you've made.
+`unsafe` enables operations that are otherwise prohibited in safe Rust. When writing FFI code, we
+often dereference raw pointers or call unsafe functions within an `unsafe` block. These operations
+are unsafe because the compiler cannot verify their validity statically; as the programmer, you are
+asserting that you've checked the necessary conditions yourself. Document those conditions in a
+**safety comment** so that future readers understand the assumptions you made.
 
 ```rust
 unsafe extern "C" fn qk_circuit_free(circuit: *mut Circuit) {
@@ -291,7 +294,7 @@ unsafe extern "C" fn qk_circuit_free(circuit: *mut Circuit) {
 
 ### Release Notes
 
-Link C objects in the release notes using the `c` namespace.
+Link C objects in release notes using Sphinx's `c` domain.
 
 ```
 :c:struct:`QkFoo`
