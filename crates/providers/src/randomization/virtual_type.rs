@@ -12,7 +12,7 @@
 
 //! The algebraic type of a virtual gate.
 
-/// The group a virtual gate belongs to, which determines how it composes.
+/// The group a virtual gate belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum VirtualType {
     Pauli,

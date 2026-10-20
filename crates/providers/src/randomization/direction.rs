@@ -12,7 +12,7 @@
 
 //! Which way virtual state flows along a wire.
 
-/// Which way virtual state flows through the circuit.
+/// Which way virtual state flows along a wire.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     Left,
