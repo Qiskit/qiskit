@@ -105,6 +105,18 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         self.assertEqual(latex_x, r" |+\rangle")
 
     @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
+    def test_state_ket_basis_y_multiqubit(self):
+        """Test Y-basis phases and qubit order for a product of eigenstates."""
+        self.assertEqual(
+            state_to_latex(Statevector.from_label("rl"), ket_basis="y"),
+            r" |+i-i\rangle",
+        )
+        self.assertEqual(
+            state_to_latex(Statevector.from_label("1"), ket_basis="y"),
+            r"- \frac{\sqrt{2} i}{2} |+i\rangle+\frac{\sqrt{2} i}{2} |-i\rangle",
+        )
+
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_ket_basis_invalid(self):
         """Test state_to_latex with invalid basis raises error."""
         sv = Statevector.from_label("0")
