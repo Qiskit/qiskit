@@ -26,8 +26,8 @@ pub enum Task {
     /// A single pass.
     Transformation(Box<dyn Pass>),
 
-    /// A group of tasks.
-    Group(Vec<Task>),
+    /// A list of tasks.
+    List(Vec<Task>),
 
     /// A sequence of named tasks.
     Stages(Vec<(String, Task)>),
@@ -37,7 +37,7 @@ impl std::fmt::Debug for Task {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Task::Transformation(p) => f.debug_tuple("Transformation").field(&p.name()).finish(),
-            Task::Group(tasks) => f.debug_tuple("Group").field(tasks).finish(),
+            Task::List(tasks) => f.debug_tuple("List").field(tasks).finish(),
             Task::Stages(stages) => f.debug_tuple("Stages").field(stages).finish(),
         }
     }
@@ -46,23 +46,23 @@ impl std::fmt::Debug for Task {
 impl Task {
     pub(crate) fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
         // TODO: the implementation of `Task` as a `pub enum` means that nothing enforces the
-        // pipeline (dynamic) type safety of `Group`, `Switch` or `Stages`; these need to be
+        // pipeline (dynamic) type safety of `List`, `Switch` or `Stages`; these need to be
         // enforced during construction of the `Task`.  This might motivate a swap to a structure
         // like
         //
         //      enum TaskInner {
         //          Pass(Box<dyn Pass>),
-        //          Group(Vec<Task>),
+        //          List(Vec<Task>),
         //          // ...
         //      }
         //      pub struct Task(TaskInner);
         //      impl Task {
-        //          pub fn group(vals: Vec<Task>) -> Result<Self, Vec<Task>) {}
+        //          pub fn list(vals: Vec<Task>) -> Result<Self, Vec<Task>) {}
         //          // ...
         //      }
         match self {
             Task::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),
-            Task::Group(group) => sequence_io_types(group.iter()),
+            Task::List(list) => sequence_io_types(list.iter()),
             Task::Stages(stages) => sequence_io_types(stages.iter().map(|(_name, task)| task)),
         }
     }
@@ -141,12 +141,12 @@ mod test {
 
     #[test]
     fn test_io_types_empty() {
-        assert!(Task::Group(vec![]).io_types().is_none());
+        assert!(Task::List(vec![]).io_types().is_none());
         assert!(Task::Stages(vec![]).io_types().is_none());
 
-        let nested_empty = Task::Group(vec![Task::Stages(vec![(
+        let nested_empty = Task::List(vec![Task::Stages(vec![(
             "empty".to_string(),
-            Task::Group(vec![]),
+            Task::List(vec![]),
         )])]);
         assert!(nested_empty.io_types().is_none());
     }
@@ -156,13 +156,13 @@ mod test {
         let uint_ty = DynTypeId::of::<MyUint>();
         let int_ty = DynTypeId::of::<MyInt>();
 
-        let empty = || Task::Group(vec![]);
+        let empty = || Task::List(vec![]);
         let lower = || Task::Transformation(LowerToInt.into_pass());
 
-        let leading = Task::Group(vec![empty(), lower()]);
+        let leading = Task::List(vec![empty(), lower()]);
         assert_eq!(leading.io_types().unwrap(), [uint_ty, int_ty]);
 
-        let trailing = Task::Group(vec![lower(), empty()]);
+        let trailing = Task::List(vec![lower(), empty()]);
         assert_eq!(trailing.io_types().unwrap(), [uint_ty, int_ty]);
 
         let surrounded = Task::Stages(vec![
