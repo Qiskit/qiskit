@@ -45,11 +45,6 @@ pub enum Task {
 
 impl Task {
     /// Return the input and output IR types, or `None` if not defined.
-    ///
-    /// The types are read from the outermost edges of the task, so a container reports the input
-    /// of its first typed subtask and the output of its last. The subtasks in between play no
-    /// part, and in particular this returns a pair whether or not they agree with each other.
-    /// Use [Task::validate] to check that they do.
     pub fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
         match self {
             Task::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),

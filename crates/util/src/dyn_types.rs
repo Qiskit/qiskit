@@ -66,12 +66,9 @@ impl DynTypeId<'_> {
         }
     }
 
-    /// Describe this type without the module path that qualifies it.
+    /// A short description of this type.
     ///
-    /// This is the name a user of the language the type came from would recognise, so it suits
-    /// error messages that cross a language boundary. Any generic parameters are kept with their
-    /// own paths intact, so `Option<alloc::string::String>` shortens to `Option<...>` rather than
-    /// to `String>`. Use [`Self::describe`] where the full qualification is wanted.
+    /// Use [`Self::describe`] where the full qualification is wanted.
     pub fn short_describe(&self) -> &str {
         match self.dynamic {
             Some((_addr, dyn_name)) => dyn_name,
