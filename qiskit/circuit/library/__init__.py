@@ -208,6 +208,7 @@ and operations.
    XGate
    YGate
    ZGate
+   PhasedUGate
 
 2-qubit standard gates
 ----------------------
