@@ -99,19 +99,16 @@ const QPY_VERSION: u8 = 18;
 ///   is currently Python-only, metadata and layout should be already serialized into `Bytes` objects.
 /// * qpy_version: The QPY version to use for serialization. Must be >= QPY_WRITE_MIN_VERSION.
 /// * annotation_handler: The annotation handler to use for serializing annotations. If None, the native handler is used.
-///
-/// Returns:
-/// A `Bytes` object containing the complete QPY payload.
-pub fn dump_qpy<'a, W>(
-    circuits: impl ExactSizeIterator<Item = &'a CircuitData>,
+pub fn dump_qpy<'a, C, W>(
+    circuits: C,
     mut output: W,
-    extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
     caller: Option<QpyCaller>,
 ) -> Result<(), QpyError>
 where
     W: Write,
+    C: ExactSizeIterator<Item = Result<(&'a CircuitData, ExtraCircuitData), QpyError>>,
 {
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -126,16 +123,9 @@ where
         NativeSerializers::default(),
         NativeDeserializers::default(),
     ));
-    if circuits.len() != extra_data.len() {
-        return Err(QpyError::ConversionError(format!(
-            "Expected extra data for {} circuits, got {}",
-            circuits.len(),
-            extra_data.len()
-        )));
-    }
     let serialized_circuits: Vec<Bytes> = circuits
-        .zip(extra_data)
-        .map(|(circuit, extra)| {
+        .map(|data| {
+            let (circuit, extra) = data?;
             serialize_with_args::<QPYCircuit, (u8,)>(
                 &pack_circuit(
                     circuit,
@@ -198,26 +188,23 @@ pub fn py_dump_qpy(
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     let circuits: Vec<QuantumCircuitData> = programs.extract()?;
-    let extra_data = circuits
-        .iter()
-        .map(|circuit| {
-            let metadata = serialize_metadata(&circuit.metadata, metadata_serializer.as_ref())?;
-            let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data, version)
-                .and_then(|layout| {
-                    serialize_with_args::<LayoutV2Pack, (u8,)>(&layout, (version,))
-                })?;
-            Ok(ExtraCircuitData {
+    let data = circuits.iter().map(|circuit| {
+        let metadata = serialize_metadata(&circuit.metadata, metadata_serializer.as_ref())?;
+        let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data, version)
+            .and_then(|layout| serialize_with_args::<LayoutV2Pack, (u8,)>(&layout, (version,)))?;
+        Ok::<_, QpyError>((
+            &circuit.data,
+            ExtraCircuitData {
                 name: circuit.name.clone(),
                 metadata,
                 layout,
-            })
-        })
-        .collect::<Result<Vec<_>, QpyError>>()?;
+            },
+        ))
+    });
     let output = PyBytes::new_with_writer(py, 0, |writer| {
         dump_qpy(
-            circuits.iter().map(|circuit| &circuit.data),
+            data,
             writer,
-            extra_data,
             version,
             Some(annotation_handler),
             Some(QpyCaller::Python),
@@ -289,19 +276,21 @@ pub fn native_dump_qpy<'a, W: Write>(
     output: W,
     qpy_version: Option<u8>,
 ) -> Result<(), QpyError> {
-    let extra_data = (0..circuits.len())
-        .map(|_| ExtraCircuitData {
-            name: None,
-            // The default Python QPY metadata codec is JSON, so an empty mapping must still be
-            // represented by valid JSON for files produced through non-Python interfaces.
-            metadata: Bytes::from("{}"),
-            layout: Bytes::new(),
-        })
-        .collect();
+    let data = circuits.map(|circuit| {
+        Ok((
+            circuit,
+            ExtraCircuitData {
+                name: None,
+                // The default Python QPY metadata codec is JSON, so an empty mapping must still be
+                // represented by valid JSON for files produced through non-Python interfaces.
+                metadata: Bytes::from("{}"),
+                layout: Bytes::new(),
+            },
+        ))
+    });
     dump_qpy(
-        circuits,
+        data,
         output,
-        extra_data,
         qpy_version.unwrap_or(QPY_VERSION),
         None,
         Some(QpyCaller::Native),
@@ -507,17 +496,15 @@ mod tests {
         .unwrap();
 
         // Round trip through the native QPY dump/load entry points.
-        let extra = native_extra_data(&circuit, "delay_dt_circuit", version);
         let mut payload = Vec::new();
-        dump_qpy(
-            [circuit].iter(),
-            &mut payload,
-            vec![extra],
-            version,
-            None,
-            None,
-        )
-        .unwrap();
+        let circuit_array = [circuit];
+        let data = circuit_array.iter().map(|circuit| {
+            Ok((
+                circuit,
+                native_extra_data(circuit, "delay_dt_circuit", version),
+            ))
+        });
+        dump_qpy(data, &mut payload, version, None, None).unwrap();
         let loaded = load_qpy(&Bytes(payload), None, None).unwrap();
 
         // Exactly one circuit, with exactly one instruction.
