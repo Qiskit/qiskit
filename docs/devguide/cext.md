@@ -13,8 +13,7 @@ The C API is useful for...
 
 This document defines guidelines for C API development, helping address stability, consistency, and
 familiarity concerns. Examples are written from a Rust and `cbindgen` perspective. If this is your
-first time extending the C API, see the
-[tutorial](https://github.com/Qiskit/qiskit/blob/main/docs/contributing/cext-tutorial.md) .
+first time extending the C API, see the [tutorial](docs/devguide/cext-tutorial.md).
 
 ## Structs
 
@@ -178,8 +177,8 @@ fn read_bar(bar: *mut Bar) {
 }
 ```
 
-*The helper functions `const_ptr_as_ref` and `mut_ptr_as_ref` make exactly this mistake. Neither
-are more safe than dereferencing plainly with `&*p` and `&mut *p`.*
+*The helper functions `const_ptr_as_ref` and `mut_ptr_as_ref` are unnecessary. Neither are more
+safe than dereferencing with `&*p` and `&mut *p`.*
 
 You could be panicking without realizing it. For example, indexing with `a[i]` syntax is a checked
 operation, panicking in the out of bounds case. Consider using a sentinel, exit code, or

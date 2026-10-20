@@ -148,15 +148,13 @@ pub unsafe extern "C" fn qk_qubit_free(qubit: *mut Qubit) {
 There's some light ceremony around exposing `cext` functions when Python is in the picture. Don't
 worry about the exact reasoning for now. Find or create the corresponding export list for your API
 in `crates/cext-vtable/src/lib.rs`. Add your newly written functions to the list using the
-`export_fn!` macro. Don't change the index of existing functions! Order matters! 
+`export_fn!` macro. Don't change the index of existing functions and leave space for additions!
 
 ```rust
 mod qubit {
     use crate::impl_::prelude::*;
     use qiskit_cext::qubit::*;
 
-    // tip: the `leaves` function accepts a `reserve` parameter. it's difficult to change after
-    // it's set. make some space for new functions!
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(30, || {
         vec![
             export_fn!(qk_qubit_new),
@@ -195,4 +193,40 @@ static int test_not_normalized() {
     return result;
 }
 ```
+
+We need to make sure our documentation is generated properly. Let's create a `QkQubit` group that
+Doxygen will pick up on.
+
+```c
+// docs/cdoc/index.h
+
+/**
+ * -- snip --
+ * @defgroup QkQubit QkQubit
+ * -- snip --
+ */
+```
+
+Finally, let's create an associated `qk-qubit.rst` in `docs/cdoc`. We need to manually document 
+`QkQubit` because it's not part of the `cext` crate.
+
+```
+.. capi-qubit:
+
+=======
+QkQubit
+=======
+    
+A simulated ``QkQubit`` with 2 amplitudes, `a` and `b`.
+
+---------
+Functions
+---------
+
+.. doxygengroup:: QkObs
+    :content-only:
+```
+
+That's all! Additional details can be found in the C API [guidelines](docs/devguide/cext.md) and the
+Qiskit contributing [document](CONTRIBUTING.md).
 
