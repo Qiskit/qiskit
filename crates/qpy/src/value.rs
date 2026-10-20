@@ -86,7 +86,7 @@ impl QpyCaller {
 #[derive(Debug)]
 pub struct StringU16Pack {
     #[br(temp)]
-    #[bw(calc = value.len() as u16)]
+    #[bw(try_calc = u16::try_from(value.len()))]
     size: u16,
 
     #[br(count = size, try_map = String::from_utf8)]

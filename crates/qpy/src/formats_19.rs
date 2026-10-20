@@ -226,7 +226,7 @@ pub enum DelayUnitPack {
     #[brw(magic = b't')]
     DT,
     #[brw(magic = b'e')]
-    EXPR,
+    Expr,
 }
 
 impl From<DelayUnit> for DelayUnitPack {
@@ -238,7 +238,7 @@ impl From<DelayUnit> for DelayUnitPack {
             DelayUnit::MS => Self::MS,
             DelayUnit::S => Self::S,
             DelayUnit::DT => Self::DT,
-            DelayUnit::EXPR => Self::EXPR,
+            DelayUnit::EXPR => Self::Expr,
         }
     }
 }
@@ -252,7 +252,7 @@ impl From<DelayUnitPack> for DelayUnit {
             DelayUnitPack::MS => Self::MS,
             DelayUnitPack::S => Self::S,
             DelayUnitPack::DT => Self::DT,
-            DelayUnitPack::EXPR => Self::EXPR,
+            DelayUnitPack::Expr => Self::EXPR,
         }
     }
 }
@@ -529,7 +529,7 @@ pub enum InternerEntry {
     Triple(u32, u32, u32),
     #[brw(magic = b'v')]
     VariableSize {
-        #[bw(calc = bits.len() as u16)]
+        #[bw(try_calc = u16::try_from(bits.len()))]
         num_bits: u16,
         #[br(count = num_bits)]
         bits: Vec<u32>,
@@ -554,7 +554,7 @@ pub enum GlobalPhasePack {
     ParameterVectorElement(#[brw(args(version))] ParameterVectorElementPack),
 
     #[brw(magic = b'e')]
-    ParameterExpression(ParameterExpressionPack),
+    ParameterExpression(#[brw(args(version))] ParameterExpressionPack),
 }
 
 /// QPY 19 operation payload for a Pauli-evolution gate.  Unlike the legacy custom-operation
