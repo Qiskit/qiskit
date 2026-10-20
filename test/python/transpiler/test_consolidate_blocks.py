@@ -876,7 +876,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.h(0)
         qc.t(0)
         qc.cz(0, 1)
-        consolidate_pass = ConsolidateBlocks()
+        consolidate_pass = ConsolidateBlocks(kak_basis_gate=basis_gate())
         res = consolidate_pass(qc)
         self.assertEqual({"unitary": 1}, res.count_ops())
         self.assertEqual(Operator.from_circuit(qc), Operator(res.data[0].operation.params[0]))
