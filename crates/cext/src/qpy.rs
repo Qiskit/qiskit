@@ -73,6 +73,24 @@ fn load(payload: &[u8]) -> Result<Vec<CircuitData>, QpyCError> {
     qiskit_qpy::native_load_qpy(payload).map_err(|err| QpyCError::Diagnostic(err.to_string()))
 }
 
+/// Dump a QPY payload into a newly created file
+///
+/// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
+/// @param num_circuits The number of circuit pointers in ``circuits``.
+/// @param filename A valid, non-null, nul-terminated UTF-8 path.
+/// @param version The QPY format version. It must be at least the value returned by
+/// ``qk_qpy_write_min_version``.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
+/// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
+/// pointer, or ``QkExitCode_QpyError`` for an invalid path, unsupported QPY data, or I/O failure.
+///
+/// # Safety
+///
+/// Every element of ``circuits`` must point to a valid ``QkCircuit``. If any entry is not a valid
+/// aligned, non-null pointer the behavior is undefined. ``filename`` must point to a valid
+/// nul-terminated string for the duration of this call. ``error`` must be null or valid
+/// writeable pointer to a char pointer.
 unsafe fn dump_file_impl(
     circuits: *const *const CircuitData,
     num_circuits: usize,
@@ -105,6 +123,25 @@ unsafe fn dump_file_impl(
     }
 }
 
+/// Serialize circuits into a newly allocated QPY buffer.
+///
+/// @param circuits A valid, non-null pointer to an array of ``num_circuits`` circuit pointers.
+/// @param num_circuits The number of circuit pointers in ``circuits``.
+/// @param buffer Output location for the newly allocated buffer. It is unchanged on failure.
+/// @param size Output location for the buffer size in bytes. It is unchanged on failure.
+/// @param version The QPY format version. It must be at least the value returned by
+/// ``qk_qpy_write_min_version``.
+/// @param error Optional output location for an error description. Free a returned string with
+/// ``qk_str_free``.
+/// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` for a null
+/// pointer, or ``QkExitCode_QpyError`` if serialization fails. The returned buffer must be
+/// released with ``qk_qpy_free_buffer``.
+///
+/// # Safety
+///
+/// Every element of ``circuits`` must point to a valid ``QkCircuit``. ``buffer`` and ``size`` must
+/// each be valid for one pointer-sized write for the duration of this call. ``error`` must be null
+/// or valid for one pointer write.
 unsafe fn dump_buffer_impl(
     circuits: *const *const CircuitData,
     num_circuits: usize,
