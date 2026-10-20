@@ -65,6 +65,29 @@ impl DynTypeId<'_> {
             None => borrow::Cow::Borrowed(self.static_name),
         }
     }
+
+    /// Describe this type without the module path that qualifies it.
+    ///
+    /// This is the name a user of the language the type came from would recognise, so it suits
+    /// error messages that cross a language boundary. Any generic parameters are kept with their
+    /// own paths intact, so `Option<alloc::string::String>` shortens to `Option<...>` rather than
+    /// to `String>`. Use [`Self::describe`] where the full qualification is wanted.
+    pub fn short_describe(&self) -> &str {
+        match self.dynamic {
+            Some((_addr, dyn_name)) => dyn_name,
+            None => {
+                // Only the leading path, up to the first generic parameter, is a module path.
+                let head = self
+                    .static_name
+                    .split_once('<')
+                    .map_or(self.static_name, |(head, _)| head);
+                match head.rfind("::") {
+                    Some(split) => &self.static_name[split + 2..],
+                    None => self.static_name,
+                }
+            }
+        }
+    }
 }
 impl<'a> DynTypeId<'a> {
     /// Set the dynamic components of the type identifier.
@@ -134,5 +157,34 @@ pub trait DynTyped: any::Any {
 impl<T: StaticDynTyped + 'static> DynTyped for T {
     fn dyn_type_id(&self) -> DynTypeId<'_> {
         T::static_dyn_type_id()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_short_describe_strips_module_path() {
+        assert_eq!(DynTypeId::of::<String>().short_describe(), "String");
+        assert_eq!(DynTypeId::of::<u8>().short_describe(), "u8");
+    }
+
+    #[test]
+    fn test_short_describe_keeps_generics() {
+        assert_eq!(
+            DynTypeId::of::<Option<String>>().short_describe(),
+            "Option<alloc::string::String>"
+        );
+        assert_eq!(
+            DynTypeId::of::<Vec<Option<u8>>>().short_describe(),
+            "Vec<core::option::Option<u8>>"
+        );
+    }
+
+    #[test]
+    fn test_short_describe_uses_dynamic_name() {
+        let id = DynTypeId::of::<String>().with_dynamic(std::ptr::null_mut(), "QuantumCircuit");
+        assert_eq!(id.short_describe(), "QuantumCircuit");
     }
 }

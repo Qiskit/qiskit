@@ -10,65 +10,80 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::fmt;
+
+use thiserror::Error;
+
 use crate::pass::Pass;
 use qiskit_util::dyn_types::DynTypeId;
 
 /// A task in Qiskit's compiler framework.
 ///
-/// This is a single unit of execution flow. It describes how work is being executed, ranging
-/// from the simple execution of a single pass, over groups of passes to structured flow control,
-/// such as loops. The [`PassManager`](crate::PassManager) stores a vector of [Task]s and executes
-/// them.
+/// This is a single unit of execution flow. Each task variant describes a different mode of
+/// flow, ranging from the simple execution of a single pass, to lists of other tasks,
+/// to structured flow control such as loops and conditionals.
+///
+/// It is allowable and expected for a given task instance to have incorrect IR typing. For
+/// example, a list task may own two consecutive tasks where the output of the first task
+/// does not match the input of the second task. This allows a (possibly nested) task to
+/// represent the partial construction of an execution flow. When a
+/// [`PassManager`](crate::PassManager) takes ownership of a task, it accepts the responsibility
+/// of ensuring that it is well-defined for the duration of its lifetime. It can do this by
+/// calling [Task::io_types] and [Task::validate].
+#[derive(Debug)]
 #[non_exhaustive]
 pub enum Task {
     // TODO Add Loop and Switch with conditions that can be set from Python/C and
     // proper error handlings that occur during the condition evaluation.
     /// A single pass.
     Transformation(Box<dyn Pass>),
-
     /// A sequence of tasks.
     Sequence(Vec<Task>),
-
-    /// A sequence of named tasks.
+    /// A list of named tasks.
     Stages(Vec<(String, Task)>),
 }
 
-impl std::fmt::Debug for Task {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Task::Transformation(p) => f.debug_tuple("Transformation").field(&p.name()).finish(),
-            Task::Sequence(tasks) => f.debug_tuple("Sequence").field(tasks).finish(),
-            Task::Stages(stages) => f.debug_tuple("Stages").field(stages).finish(),
-        }
-    }
-}
-
 impl Task {
-    pub(crate) fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
-        // TODO: the implementation of `Task` as a `pub enum` means that nothing enforces the
-        // pipeline (dynamic) type safety of `Sequence`, `Switch` or `Stages`; these need to be
-        // enforced during construction of the `Task`.  This might motivate a swap to a structure
-        // like
-        //
-        //      enum TaskInner {
-        //          Pass(Box<dyn Pass>),
-        //          Sequence(Vec<Task>),
-        //          // ...
-        //      }
-        //      pub struct Task(TaskInner);
-        //      impl Task {
-        //          pub fn sequence(vals: Vec<Task>) -> Result<Self, Vec<Task>) {}
-        //          // ...
-        //      }
+    /// Return the input and output IR types, or `None` if not defined.
+    ///
+    /// The types are read from the outermost edges of the task, so a container reports the input
+    /// of its first typed subtask and the output of its last. The subtasks in between play no
+    /// part, and in particular this returns a pair whether or not they agree with each other.
+    /// Use [Task::validate] to check that they do.
+    pub fn io_types(&self) -> Option<[DynTypeId<'_>; 2]> {
         match self {
             Task::Transformation(pass) => Some([pass.ir_id_in(), pass.ir_id_out()]),
             Task::Sequence(tasks) => sequence_io_types(tasks.iter()),
             Task::Stages(stages) => sequence_io_types(stages.iter().map(|(_name, task)| task)),
         }
     }
+
+    /// Validate that this task is well-defined and executable.
+    ///
+    /// This method recurses into all subtasks to ensure validity of the entire tree. If this
+    /// method returns `Ok`, then executing this task against an input IR of the correct type will
+    /// not lead to any task receiving an IR of an incorrect type during compilation, assuming
+    /// no pass has lied about its IR types.
+    pub fn validate(&self) -> Result<(), TaskTypeError> {
+        match self {
+            Task::Transformation(_) => Ok(()),
+            Task::Sequence(tasks) => validate_sequence(
+                tasks
+                    .iter()
+                    .enumerate()
+                    .map(|(index, task)| (TaskPathSegmentRef::Index(index), task)),
+            ),
+            Task::Stages(stages) => validate_sequence(
+                stages
+                    .iter()
+                    .map(|(name, task)| (TaskPathSegmentRef::Stage(name), task)),
+            ),
+        }
+    }
 }
 
-/// Return the input and output types of a sequence of tasks if non-empty.
+/// Return the input and output IR types of a sequence of tasks, or `None` if no task in the
+/// sequence has defined types.
 pub(crate) fn sequence_io_types<'a>(
     tasks: impl DoubleEndedIterator<Item = &'a Task>,
 ) -> Option<[DynTypeId<'a>; 2]> {
@@ -78,11 +93,118 @@ pub(crate) fn sequence_io_types<'a>(
     Some([first[0], last[1]])
 }
 
+/// Validate a sequence of tasks that execute in order.
+fn validate_sequence<'a>(
+    tasks: impl IntoIterator<Item = (TaskPathSegmentRef<'a>, &'a Task)>,
+) -> Result<(), TaskTypeError> {
+    let mut last_out: Option<DynTypeId<'a>> = None;
+    for (segment, task) in tasks {
+        if let Err(err) = task.validate() {
+            return Err(err.within(segment));
+        }
+        let Some([in_, out]) = task.io_types() else {
+            continue;
+        };
+        if let Some(previous) = last_out
+            && previous != in_
+        {
+            return Err(TaskTypeError::mismatch(segment, previous, in_));
+        }
+        last_out = Some(out);
+    }
+    Ok(())
+}
+
+/// One step of the path that locates a [Task] within the tree of tasks that contains it.
+///
+/// This may be extended if some future [Task] decides it needs a new way to index itself.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum TaskPathSegment {
+    /// The position within a [`Task::Sequence`].
+    Index(usize),
+    /// The name of a stage of a [`Task::Stages`].
+    Stage(String),
+}
+impl fmt::Display for TaskPathSegment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Index(index) => write!(f, "[{index}]"),
+            // Single quotes, to match how Python displays a string key.
+            Self::Stage(name) => write!(f, "['{}']", name.escape_debug()),
+        }
+    }
+}
+
+/// A [TaskPathSegment] that borrows its stage name from the task being validated.
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum TaskPathSegmentRef<'a> {
+    Index(usize),
+    Stage(&'a str),
+}
+impl TaskPathSegmentRef<'_> {
+    fn to_segment(self) -> TaskPathSegment {
+        match self {
+            Self::Index(index) => TaskPathSegment::Index(index),
+            Self::Stage(name) => TaskPathSegment::Stage(name.to_owned()),
+        }
+    }
+}
+
+/// The IR types of two consecutive tasks disagree.
+///
+/// The path locates the task whose input type was not satisfied, relative to the task that was
+/// validated.
+#[derive(Clone, Debug, Error)]
+#[error(
+    "IR types mismatched: the task at {} takes {input}, but the preceding task outputs {output}",
+    DisplayPath(&self.path)
+)]
+pub struct TaskTypeError {
+    path: Vec<TaskPathSegment>,
+    output: String,
+    input: String,
+}
+impl TaskTypeError {
+    pub(crate) fn mismatch(
+        segment: TaskPathSegmentRef<'_>,
+        output: DynTypeId<'_>,
+        input: DynTypeId<'_>,
+    ) -> Self {
+        Self {
+            path: vec![segment.to_segment()],
+            output: output.short_describe().to_owned(),
+            input: input.short_describe().to_owned(),
+        }
+    }
+
+    /// Relocate this error to describe a task nested one level further in, under `segment`.
+    pub(crate) fn within(mut self, segment: TaskPathSegmentRef<'_>) -> Self {
+        self.path.insert(0, segment.to_segment());
+        self
+    }
+
+    /// The path to the task whose input type was not satisfied.
+    pub fn path(&self) -> &[TaskPathSegment] {
+        &self.path
+    }
+}
+
+/// Display helper for the subscripted form of a task path, such as `[0]['layout'][2]`.
+struct DisplayPath<'a>(&'a [TaskPathSegment]);
+impl fmt::Display for DisplayPath<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for segment in self.0 {
+            segment.fmt(f)?;
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use crate::Task;
-    use crate::pass::{PassError, StaticPass};
-    use crate::{IR, PassContext};
+    use crate::pass::StaticPass;
+    use crate::{IR, PassContext, Task, TaskPathSegment};
     use anyhow::anyhow;
     use qiskit_util::{dyn_types::DynTypeId, static_dyn_typed};
 
@@ -117,26 +239,32 @@ mod test {
     }
 
     #[test]
-    fn test_io_types() -> Result<(), PassError> {
+    fn test_io_types() {
         let uint_ty = DynTypeId::of::<MyUint>();
         let int_ty = DynTypeId::of::<MyInt>();
 
-        let make_uint_pass = || Task::Transformation(AddOne.into_pass());
-        assert_eq!(make_uint_pass().io_types().unwrap(), [uint_ty, uint_ty]);
+        assert_eq!(
+            Task::Transformation(AddOne.into_pass()).io_types().unwrap(),
+            [uint_ty, uint_ty]
+        );
+        assert_eq!(
+            Task::Transformation(LowerToInt.into_pass())
+                .io_types()
+                .unwrap(),
+            [uint_ty, int_ty]
+        );
 
-        let lower_pass = Task::Transformation(LowerToInt.into_pass());
-        assert_eq!(lower_pass.io_types().unwrap(), [uint_ty, int_ty]);
-
-        let stages = Task::Stages(vec![("one_and_only".to_string(), make_uint_pass())]);
-        assert_eq!(stages.io_types().unwrap(), [uint_ty, uint_ty]);
+        let list = Task::Sequence(vec![
+            Task::Transformation(AddOne.into_pass()),
+            Task::Transformation(LowerToInt.into_pass()),
+        ]);
+        assert_eq!(list.io_types().unwrap(), [uint_ty, int_ty]);
 
         let nested = Task::Stages(vec![
-            ("pass".to_string(), make_uint_pass()),
-            ("stages".to_string(), stages),
+            ("add".to_string(), Task::Transformation(AddOne.into_pass())),
+            ("lower".to_string(), Task::Sequence(vec![list])),
         ]);
-        assert_eq!(nested.io_types().unwrap(), [uint_ty, uint_ty]);
-
-        Ok(())
+        assert_eq!(nested.io_types().unwrap(), [uint_ty, int_ty]);
     }
 
     #[test]
@@ -155,21 +283,120 @@ mod test {
     fn test_io_types_skips_empty_children() {
         let uint_ty = DynTypeId::of::<MyUint>();
         let int_ty = DynTypeId::of::<MyInt>();
-
         let empty = || Task::Sequence(vec![]);
-        let lower = || Task::Transformation(LowerToInt.into_pass());
 
-        let leading = Task::Sequence(vec![empty(), lower()]);
+        let leading = Task::Sequence(vec![empty(), Task::Transformation(LowerToInt.into_pass())]);
         assert_eq!(leading.io_types().unwrap(), [uint_ty, int_ty]);
 
-        let trailing = Task::Sequence(vec![lower(), empty()]);
+        let trailing = Task::Sequence(vec![Task::Transformation(LowerToInt.into_pass()), empty()]);
         assert_eq!(trailing.io_types().unwrap(), [uint_ty, int_ty]);
 
         let surrounded = Task::Stages(vec![
             ("before".to_string(), empty()),
-            ("lower".to_string(), lower()),
+            (
+                "lower".to_string(),
+                Task::Transformation(LowerToInt.into_pass()),
+            ),
             ("after".to_string(), empty()),
         ]);
         assert_eq!(surrounded.io_types().unwrap(), [uint_ty, int_ty]);
+    }
+
+    #[test]
+    fn test_io_types_ignores_internal_mismatch() {
+        let uint_ty = DynTypeId::of::<MyUint>();
+        let list = Task::Sequence(vec![
+            Task::Transformation(LowerToInt.into_pass()),
+            Task::Transformation(AddOne.into_pass()),
+        ]);
+        assert_eq!(list.io_types().unwrap(), [uint_ty, uint_ty]);
+        assert!(list.validate().is_err());
+    }
+
+    #[test]
+    fn test_validate_accepts_valid_chain() {
+        assert!(Task::Sequence(vec![]).validate().is_ok());
+        assert!(Task::Transformation(AddOne.into_pass()).validate().is_ok());
+        assert!(
+            Task::Sequence(vec![
+                Task::Transformation(AddOne.into_pass()),
+                Task::Transformation(LowerToInt.into_pass())
+            ])
+            .validate()
+            .is_ok()
+        );
+        assert!(
+            Task::Stages(vec![
+                ("add".to_string(), Task::Transformation(AddOne.into_pass())),
+                (
+                    "lower".to_string(),
+                    Task::Transformation(LowerToInt.into_pass())
+                )
+            ])
+            .validate()
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn test_validate_reports_index_of_mismatch() {
+        let list = Task::Sequence(vec![
+            Task::Transformation(AddOne.into_pass()),
+            Task::Transformation(LowerToInt.into_pass()),
+            Task::Transformation(AddOne.into_pass()),
+        ]);
+        let err = list.validate().unwrap_err();
+        assert_eq!(err.path(), [TaskPathSegment::Index(2)]);
+        assert!(err.to_string().contains("the task at [2]"), "{err}");
+        assert!(err.to_string().contains("MyUint"), "{err}");
+        assert!(err.to_string().contains("MyInt"), "{err}");
+    }
+
+    #[test]
+    fn test_validate_reports_stage_of_mismatch() {
+        let stages = Task::Stages(vec![
+            (
+                "lower".to_string(),
+                Task::Transformation(LowerToInt.into_pass()),
+            ),
+            ("add".to_string(), Task::Transformation(AddOne.into_pass())),
+        ]);
+        let err = stages.validate().unwrap_err();
+        assert_eq!(err.path(), [TaskPathSegment::Stage("add".to_string())]);
+        assert!(err.to_string().contains("the task at ['add']"), "{err}");
+    }
+
+    #[test]
+    fn test_validate_reports_nested_path() {
+        let inner = Task::Sequence(vec![
+            Task::Transformation(AddOne.into_pass()),
+            Task::Transformation(LowerToInt.into_pass()),
+            Task::Transformation(AddOne.into_pass()),
+        ]);
+        let outer = Task::Sequence(vec![Task::Stages(vec![("layout".to_string(), inner)])]);
+        let err = outer.validate().unwrap_err();
+        assert_eq!(
+            err.path(),
+            [
+                TaskPathSegment::Index(0),
+                TaskPathSegment::Stage("layout".to_string()),
+                TaskPathSegment::Index(2),
+            ]
+        );
+        assert!(
+            err.to_string().contains("the task at [0]['layout'][2]"),
+            "{err}"
+        );
+    }
+
+    #[test]
+    fn test_validate_rejects_across_empty() {
+        let list = Task::Sequence(vec![
+            Task::Transformation(LowerToInt.into_pass()),
+            Task::Sequence(vec![]),
+            Task::Transformation(AddOne.into_pass()),
+        ]);
+        let err = list.validate().unwrap_err();
+        assert_eq!(err.path(), [TaskPathSegment::Index(2)]);
     }
 }
