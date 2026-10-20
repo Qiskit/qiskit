@@ -241,15 +241,13 @@ C API documentation is generated from outer doc comments written with
 pub extern "C" fn qk_foo(arg1: *mut c_void, arg2: *mut c_void) -> i32;
 ```
 
-*The optional `@ingroup` command groups related functions.*
+*The optional `@ingroup` command groups related items.*
 
 ### Groups
 
-C API documentation is organized into groups. If your addition doesn't belong to an existing group,
-create a new `.rst` file for it in `docs/cdoc`.
-
-Structs exposed directly from the data model don't have Doxygen comments, so document them manually
-in the appropriate `.rst` group.
+C API documentation is organized into groups, defined in `docs/cdoc/index.h` with the `@defgroup`
+command. The `@ingroup` command assigns items to a group. Also, create new `.rst` file in
+`docs/cdoc`. Structs exposed directly from the data model are documented manually here.
 
 ### Ownership
 
