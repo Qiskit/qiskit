@@ -204,18 +204,57 @@ pub struct PauliProductRotationPack {
 pub struct StandardInstructionData {
     /// The value of `qiskit_circuit::operations::StandardInstructionType`.
     pub discriminant: u8,
-    #[br(if(discriminant == 1), try_map = decode_optional_delay_unit)]
-    #[bw(if(*discriminant == 1), map = encode_optional_delay_unit)]
-    pub delay_unit: Option<DelayUnit>,
+    #[br(if(discriminant == 1))]
+    #[bw(if(*discriminant == 1))]
+    pub delay_unit: Option<DelayUnitPack>,
 }
 
-fn decode_optional_delay_unit(value: u8) -> Result<Option<DelayUnit>, String> {
-    let unit = DelayUnit::from_u8(value).ok_or_else(|| format!("invalid delay unit ({value})"))?;
-    Ok(Some(unit))
+#[binrw]
+#[brw(big)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DelayUnitPack {
+    #[brw(magic = b'n')]
+    NS,
+    #[brw(magic = b'p')]
+    PS,
+    #[brw(magic = b'u')]
+    US,
+    #[brw(magic = b'm')]
+    MS,
+    #[brw(magic = b's')]
+    S,
+    #[brw(magic = b't')]
+    DT,
+    #[brw(magic = b'e')]
+    EXPR,
 }
 
-fn encode_optional_delay_unit(unit: &Option<DelayUnit>) -> Option<u8> {
-    unit.map(|unit| unit as u8)
+impl From<DelayUnit> for DelayUnitPack {
+    fn from(value: DelayUnit) -> Self {
+        match value {
+            DelayUnit::NS => Self::NS,
+            DelayUnit::PS => Self::PS,
+            DelayUnit::US => Self::US,
+            DelayUnit::MS => Self::MS,
+            DelayUnit::S => Self::S,
+            DelayUnit::DT => Self::DT,
+            DelayUnit::EXPR => Self::EXPR,
+        }
+    }
+}
+
+impl From<DelayUnitPack> for DelayUnit {
+    fn from(value: DelayUnitPack) -> Self {
+        match value {
+            DelayUnitPack::NS => Self::NS,
+            DelayUnitPack::PS => Self::PS,
+            DelayUnitPack::US => Self::US,
+            DelayUnitPack::MS => Self::MS,
+            DelayUnitPack::S => Self::S,
+            DelayUnitPack::DT => Self::DT,
+            DelayUnitPack::EXPR => Self::EXPR,
+        }
+    }
 }
 
 // this is a non generic version of the `GenericDataPack`
