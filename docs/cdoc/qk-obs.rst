@@ -10,6 +10,7 @@ QkObs
 
 An observable over Pauli bases that stores its data in a qubit-sparse format.
 
+
 Mathematics
 ===========
 
