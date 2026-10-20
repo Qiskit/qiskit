@@ -13,7 +13,7 @@ The C API is useful for...
 
 This document defines guidelines for C API development, helping address stability, consistency, and
 familiarity concerns. Examples are written from a Rust and `cbindgen` perspective. If this is your
-first time extending the C API, see the [tutorial](docs/devguide/cext-tutorial.md).
+first time extending the C API, see the [tutorial](cext-tutorial.md).
 
 ## Structs
 

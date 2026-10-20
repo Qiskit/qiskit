@@ -227,6 +227,6 @@ Functions
     :content-only:
 ```
 
-That's all! Additional details can be found in the C API [guidelines](docs/devguide/cext.md) and the
-Qiskit contributing [document](CONTRIBUTING.md).
+That's all! Additional details can be found in the C API [guidelines](cext.md) and Qiskit
+contributing [document](contributing.md).
 
