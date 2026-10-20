@@ -243,12 +243,7 @@ mod passmanager {
 ///
 /// This object is usable as a :class:`.passmanager.IR` corresponding to the Rust/C-native
 /// components of :class:`.QuantumCircuit`.
-#[pyclass(
-    name = "CircuitData",
-    sequence,
-    module = "qiskit.circuit",
-    skip_from_py_object
-)]
+#[pyclass(name = "CircuitData", sequence, module = "qiskit.circuit")]
 #[derive(Clone, Debug)]
 pub struct PyCircuitData {
     pub inner: CircuitData,
