@@ -21,6 +21,12 @@
 #include <stdio.h>
 #include <string.h>
 
+// TODO: remove these forward declarations
+// These are used for generating classical expressions for testing. They are non-public C API
+// functions which should be removed once we have C API for generating classical expressions.
+QkExprNode *inner_test_value(QkExprType, bool, QkDurationInfo, double, uint64_t);
+void inner_expr_free(QkExprNode *);
+
 // TODO: remove this forward declaration
 // This is used to generate a circuit with control flow instructions. This a non-public C API
 // function which should be removed once we have C API for adding control flow operations.
@@ -181,7 +187,24 @@ static QkCircuit *build_box_circuit_duration_info(const QkDurationInfo *duration
     return circuit;
 }
 
-// As ``build_box_circuit_duration_info``, with no duration.
+// Build a circuit with a single box. Returns NULL if appending the box fails.
+static QkCircuit *build_box_circuit_expr(const QkExprNode *duration_expr) {
+    QkCircuit *circuit = qk_circuit_new(3, 3);
+    uint32_t box_qubits[2] = {2, 0};
+    uint32_t box_clbits[1] = {1};
+
+    // The box takes ownership of the body.
+    QkExitCode result = qk_circuit_box_duration_expr(circuit, build_box_body(), box_qubits,
+                                                     box_clbits, duration_expr, NULL);
+    if (result != QkExitCode_Success) {
+        fprintf(stderr, "qk_circuit_box_duration_expr failed with exit code %d\n", result);
+        qk_circuit_free(circuit);
+        return NULL;
+    }
+    return circuit;
+}
+
+// Build a circuit with a single box with no duration. Returns NULL if appending the box fails.
 static QkCircuit *build_box_circuit_no_duration(void) {
     QkCircuit *circuit = qk_circuit_new(3, 3);
     uint32_t box_qubits[2] = {2, 0};
@@ -354,6 +377,50 @@ static int test_box_without_duration(void) {
 cleanup:
     qk_control_flow_instruction_free(cf_inst);
     qk_circuit_free(circuit);
+    return result;
+}
+
+// Test that a Box with a duration as expression reads back correctly.
+static int test_box_with_duration_expr(void) {
+    int result = Ok;
+
+    QkDurationInfo duration = {QkDurationType_Ns, {.time = 100}};
+    QkExprNode *duration_expr = inner_test_value(QkExprType_Duration, true, duration, 0, 0);
+
+    QkCircuit *circuit = build_box_circuit_expr(duration_expr);
+    QkControlFlowInstruction *cf_inst = NULL;
+
+    if (circuit == NULL) {
+        inner_expr_free(duration_expr);
+        return RuntimeError;
+    }
+
+    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
+    if (cf_inst == NULL) {
+        fprintf(stderr, "Failed to get control flow instruction\n");
+        result = NullptrError;
+        goto cleanup;
+    }
+
+    QkBoxDurationKind duration_kind = qk_control_flow_box_duration_kind(cf_inst);
+    if (duration_kind != QkBoxDurationKind_Expr) {
+        fprintf(stderr, "Expected QkBoxDurationKind_Expr, got %d\n", duration_kind);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    const QkValue *value = qk_expr_as_value(qk_control_flow_box_duration_expr(cf_inst));
+
+    QkDurationInfo duration_info = qk_value_duration_info(value);
+    if (duration_info.ty != QkDurationType_Ns || duration_info.value.time != 100.0) {
+        fprintf(stderr, "Expected a duration of 100 ns\n");
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_control_flow_instruction_free(cf_inst);
+    qk_circuit_free(circuit);
+    inner_expr_free(duration_expr);
     return result;
 }
 
@@ -1059,6 +1126,7 @@ int test_control_flow(void) {
     num_failed += RUN_TEST(test_box_and_bit_mapping);
     num_failed += RUN_TEST(test_box_construction);
     num_failed += RUN_TEST(test_box_without_duration);
+    num_failed += RUN_TEST(test_box_with_duration_expr);
     num_failed += RUN_TEST(test_box_duration_dt);
     num_failed += RUN_TEST(test_box_index);
     num_failed += RUN_TEST(test_box_errors);

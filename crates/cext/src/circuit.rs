@@ -3389,8 +3389,6 @@ mod test {
     use qiskit_circuit::{
         bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit},
         circuit_data::CircuitData,
-        classical::expr::Value,
-        duration::Duration,
         operations::Param,
     };
     use std::mem::MaybeUninit;
@@ -3443,38 +3441,16 @@ mod test {
     }
 
     #[test]
-    fn test_circuit_box_duration_expr() {
+    fn test_circuit_box() {
         let circuit = qk_circuit_new(1, 0);
         let body = qk_circuit_new(1, 0);
         let qubits = [0_u32];
-        let duration = Expr::Value(Value::Duration(Duration::ns(10.0)));
 
         let mut box_index = usize::MAX;
-        let exit_code = unsafe {
-            qk_circuit_box_duration_expr(
-                circuit,
-                body,
-                qubits.as_ptr(),
-                ptr::null(),
-                &duration,
-                &mut box_index,
-            )
-        };
+        let exit_code =
+            unsafe { qk_circuit_box(circuit, body, qubits.as_ptr(), ptr::null(), &mut box_index) };
         assert_eq!(exit_code, ExitCode::Success);
         assert_eq!(box_index, 0);
-
-        let circuit_ref = unsafe { const_ptr_as_ref(circuit) };
-        let OperationRef::ControlFlow(cf_inst) = circuit_ref.data()[0].op.view() else {
-            panic!("expected a control flow instruction")
-        };
-        let ControlFlow::Box {
-            duration: Some(BoxDuration::Expr(expr)),
-            ..
-        } = &cf_inst.control_flow
-        else {
-            panic!("expected a box with an expression duration")
-        };
-        assert_eq!(*expr, duration);
 
         unsafe {
             qk_circuit_free(circuit);
