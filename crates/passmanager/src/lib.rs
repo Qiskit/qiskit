@@ -161,10 +161,13 @@ impl<'a> PassContext<'a> {
 pub trait IR: DynTyped + Send + Sync + 'static {}
 
 /// Qiskit's pass manager.
+///
+/// A pass manager is responsible for ensuring that its tasks (including all nested
+/// structure) are well-typed at construction time and throughout its lifetime: any
+/// two passes that might be executed sequentially must have equal IR types at the
+/// boundary.
 #[derive(Default, Debug)]
 pub struct PassManager {
-    // It is UNSAFE to directly mutate the task vector since we are checking that the types
-    // match upon construction, hence the tasks are private.
     tasks: Vec<Task>,
 }
 
@@ -227,17 +230,23 @@ impl PassManager {
 
     /// Try to push a [`Task`] onto the end of the task list.
     ///
-    /// Fails, returning the same task back to the caller, if the types are incompatible.
-    pub fn try_push_task(&mut self, task: Task) -> Result<(), Task> {
-        let ours = self.ir_id_out();
-        let theirs = task.io_types().map(|[in_, _]| in_);
-        if let Some((ours, theirs)) = ours.zip(theirs)
-            && ours != theirs
+    /// The task is validated with [`Task::validate`], and its input type is checked against the
+    /// output type of the pipeline so far.
+    ///
+    /// Fails, returning the same task back to the caller along with the reason, if the task is
+    /// ill-typed internally or incompatible with the existing pipeline.
+    pub fn try_push_task(&mut self, task: Task) -> Result<(), (Task, TaskTypeError)> {
+        let index = TaskPathSegmentRef::Index(self.tasks.len());
+        if let Err(err) = task.validate() {
+            return Err((task, err.within(index)));
+        }
+        // The existing pipeline is well-typed, and so is the incoming task, so the boundary
+        // between the two is the only place a mismatch can arise.
+        if let Some((output, input)) = self.ir_id_out().zip(task.io_types().map(|[in_, _]| in_))
+            && output != input
         {
-            // We may want to change the error type of this in the future to provide structured
-            // information about _what_ went wrong, but in the first implementation we're just doing
-            // the easy thing.
-            return Err(task);
+            let err = TaskTypeError::mismatch(index, output, input);
+            return Err((task, err));
         }
         self.tasks.push(task);
         Ok(())
@@ -246,7 +255,7 @@ impl PassManager {
     pub fn try_push_static_pass<In: IR, Out: IR>(
         &mut self,
         ob: impl StaticPass<In, Out>,
-    ) -> Result<(), Task> {
+    ) -> Result<(), (Task, TaskTypeError)> {
         self.try_push_task(Task::Transformation(ob.into_pass()))
     }
 
@@ -369,6 +378,54 @@ mod test {
             ]))
             .is_err()
         );
+    }
+
+    #[test]
+    fn test_push_rejects_ill_typed_task() {
+        let mut pm = PassManager::new();
+        let task = Task::Sequence(vec![
+            Task::Transformation(LowerToInt.into_pass()),
+            Task::Transformation(AddOne.into_pass()),
+        ]);
+        let (task, err) = pm.try_push_task(task).unwrap_err();
+        assert_eq!(
+            err.path(),
+            [TaskPathSegment::Index(0), TaskPathSegment::Index(1)]
+        );
+        // The task is handed back intact, and the pass manager is unchanged.
+        assert!(matches!(task, Task::Sequence(tasks) if tasks.len() == 2));
+        assert_eq!(pm.num_tasks(), 0);
+    }
+
+    #[test]
+    fn test_push_rejects_boundary_mismatch() {
+        let mut pm = PassManager::new();
+        pm.try_push_static_pass(LowerToInt).unwrap();
+        let (_task, err) = pm
+            .try_push_task(Task::Transformation(AddOne.into_pass()))
+            .unwrap_err();
+        assert_eq!(err.path(), [TaskPathSegment::Index(1)]);
+        assert_eq!(pm.num_tasks(), 1);
+    }
+
+    #[test]
+    fn test_nested_task_executes() {
+        let mut pm = PassManager::new();
+        pm.try_push_task(Task::Stages(vec![
+            (
+                "init".to_string(),
+                Task::Sequence(vec![Task::Transformation(AddOne.into_pass())]),
+            ),
+            ("empty".to_string(), Task::Sequence(vec![])),
+            (
+                "lower".to_string(),
+                Task::Transformation(LowerToInt.into_pass()),
+            ),
+        ]))
+        .unwrap();
+
+        let (MyInt(out), _) = pm.run(MyUint(4)).unwrap();
+        assert_eq!(out, 5);
     }
 
     #[test]
