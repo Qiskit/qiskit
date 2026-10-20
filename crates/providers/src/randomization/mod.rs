@@ -14,7 +14,7 @@
 
 pub mod virtual_type;
 
-/// Which way virtual state flows temporally along a wire.
+/// Which way virtual state flows temporally.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     Forward,
