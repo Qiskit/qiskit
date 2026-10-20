@@ -12,5 +12,11 @@
 
 //! Generate randomizations of quantum circuits and programs.
 
-pub mod direction;
 pub mod virtual_type;
+
+/// Which way virtual state flows temporally along a wire.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Direction {
+    Forward,
+    Backward,
+}
