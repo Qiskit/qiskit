@@ -1090,7 +1090,7 @@ pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
 #[cfg(test)]
 mod tests {
     use ndarray::aview2;
-use qiskit_util::complex::c64;
+    use qiskit_util::complex::c64;
 
     use super::*;
     use crate::test::*;
