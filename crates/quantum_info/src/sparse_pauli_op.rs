@@ -28,8 +28,8 @@ use thiserror::Error;
 
 use qiskit_util::complex::C_ZERO;
 
+use crate::matrix_compressed_pauli::MatrixCompressedPaulis;
 use crate::rayon_ext::*;
-use crate::tools::MatrixCompressedPaulis;
 
 /// Find the unique elements of an array.
 ///
@@ -910,7 +910,9 @@ macro_rules! impl_to_matrix_sparse {
     ($serial_fn:ident, $parallel_fn:ident, $int_ty:ty, $uint_ty:ty $(,)?) => {
         /// Build CSR data arrays for the matrix-compressed set of the Pauli operators, using a
         /// completely serial strategy.
-        fn $serial_fn(paulis: &$crate::tools::MatrixCompressedPaulis) -> CSRData<$int_ty> {
+        fn $serial_fn(
+            paulis: &$crate::matrix_compressed_pauli::MatrixCompressedPaulis,
+        ) -> CSRData<$int_ty> {
             let side = 1 << paulis.num_qubits();
             let num_ops = paulis.num_ops();
             if num_ops == 0 {
