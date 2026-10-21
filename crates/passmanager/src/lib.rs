@@ -244,7 +244,7 @@ impl PassManager {
         if let Some((output, input)) = self.ir_id_out().zip(task.io_types().map(|[in_, _]| in_))
             && output != input
         {
-            let err = TaskTypeError::mismatch(output, input);
+            let err = TaskTypeError::append(&self.tasks, output, &task, input);
             return Err((task, err));
         }
         self.tasks.push(task);
@@ -387,8 +387,13 @@ mod test {
             Task::Transformation(AddOne.into_pass()),
         ]);
         let (task, err) = pm.try_push_task(task).unwrap_err();
-        // The path is relative to the rejected task, so it indexes into what the caller holds.
-        assert_eq!(err.path(), [TaskPathSegment::Index(1)]);
+        // The task being appended is itself ill-typed
+        let TaskTypeError::Sequence { ends } = &err else {
+            panic!("expected a sequence mismatch, got {err}");
+        };
+        let [output, input] = &**ends;
+        assert_eq!(output.task().path(), [TaskPathSegment::Index(0)]);
+        assert_eq!(input.task().path(), [TaskPathSegment::Index(1)]);
         // The task is handed back intact, and the pass manager is unchanged.
         assert!(matches!(task, Task::Sequence(tasks) if tasks.len() == 2));
         assert_eq!(pm.num_tasks(), 0);
@@ -397,18 +402,29 @@ mod test {
     #[test]
     fn test_push_rejects_boundary_mismatch() {
         let mut pm = PassManager::new();
+        pm.try_push_static_pass(AddOne).unwrap();
         pm.try_push_static_pass(LowerToInt).unwrap();
         let (_task, err) = pm
             .try_push_task(Task::Transformation(AddOne.into_pass()))
             .unwrap_err();
-        // The mismatch is at the boundary, which is the pushed task itself.
-        assert_eq!(err.path(), []);
+        // The existing end is located in the pass manager, the new end in the rejected task.
+        let TaskTypeError::Append { existing, new } = &err else {
+            panic!("expected an append mismatch, got {err}");
+        };
+        assert_eq!(existing.task().path(), [TaskPathSegment::Index(1)]);
+        assert_eq!(existing.side(), Side::Output);
+        assert_eq!(existing.ty(), "MyInt");
+        assert_eq!(new.task().path(), []);
+        assert_eq!(new.side(), Side::Input);
+        assert_eq!(new.ty(), "MyUint");
         assert!(
-            err.to_string()
-                .contains("the task takes MyUint, but the preceding task outputs MyInt"),
+            err.to_string().contains("at [1] outputs MyInt")
+                && err
+                    .to_string()
+                    .contains("of the appended task takes MyUint"),
             "{err}"
         );
-        assert_eq!(pm.num_tasks(), 1);
+        assert_eq!(pm.num_tasks(), 2);
     }
 
     #[test]
