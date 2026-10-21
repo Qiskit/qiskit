@@ -180,7 +180,7 @@ class UGate(Gate):
         return False
 
 
-class PhasedUGate(Gate):
+class U4Gate(Gate):
     r"""Generic single-qubit rotation together with global phase.
 
     This gate represents a generic :math:`U(2)` operation, and
@@ -188,7 +188,7 @@ class PhasedUGate(Gate):
 
     .. math::
 
-        PhasedUGate(\theta, \phi, \lambda, \gamma) = e^{i\gamma} U(\theta, \phi, \lambda)
+        U4Gate(\theta, \phi, \lambda, \gamma) = e^{i\gamma} U(\theta, \phi, \lambda)
 
 
     Circuit symbol:
@@ -240,12 +240,12 @@ class PhasedUGate(Gate):
             annotated: when set to ``True``, this is typically used to return an
                 :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
                 :class:`.Gate`. However, for this class this argument is ignored as the
-                inverse of this gate is always a :class:`.PhasedUGate` with inverse parameter values.
+                inverse of this gate is always a :class:`.U4Gate` with inverse parameter values.
 
         Returns:
-            PhasedUGate: inverse gate.
+            U4Gate: inverse gate.
         """
-        return PhasedUGate(-self.params[0], -self.params[2], -self.params[1], -self.params[3])
+        return U4Gate(-self.params[0], -self.params[2], -self.params[1], -self.params[3])
 
     def control(
         self,
@@ -325,7 +325,7 @@ class PhasedUGate(Gate):
         self.definition = definition
 
     def __eq__(self, other):
-        if isinstance(other, PhasedUGate):
+        if isinstance(other, U4Gate):
             return self._compare_parameters(other)
         return False
 
@@ -417,7 +417,7 @@ class CUGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=PhasedUGate(theta, phi, lam, gamma, label=_base_label),
+            base_gate=U4Gate(theta, phi, lam, gamma, label=_base_label),
         )
 
     def _define(self):

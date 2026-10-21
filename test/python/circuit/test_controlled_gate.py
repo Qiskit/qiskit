@@ -58,11 +58,11 @@ from qiskit.circuit.library import (
     CSwapGate,
     UGate,
     U3Gate,
+    U4Gate,
     CHGate,
     CRZGate,
     CU3Gate,
     CUGate,
-    PhasedUGate,
     SXGate,
     SXdgGate,
     CSXGate,
@@ -1421,10 +1421,10 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(assigned, expected)
 
     def test_cugate_base_gate_is_phased_u(self):
-        """Test that the base gate of CUGate is a PhasedUGate that carries the phase, and that
+        """Test that the base gate of CUGate is a U4Gate that carries the phase, and that
         the parameters of CUGate are shared with the base gate."""
         cu = CUGate(0.3, 0.4, 0.5, 0.6)
-        self.assertIsInstance(cu.base_gate, PhasedUGate)
+        self.assertIsInstance(cu.base_gate, U4Gate)
         self.assertEqual(cu.base_gate.params, [0.3, 0.4, 0.5, 0.6])
         self.assertIs(cu.params, cu.base_gate.params)
 

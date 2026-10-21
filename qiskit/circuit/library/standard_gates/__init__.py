@@ -34,7 +34,7 @@ from .iswap import iSwapGate
 from .sx import SXGate, SXdgGate, CSXGate
 from .dcx import DCXGate
 from .t import TGate, TdgGate
-from .u import UGate, CUGate, PhasedUGate
+from .u import UGate, CUGate, U4Gate
 from .u1 import U1Gate, CU1Gate, MCU1Gate
 from .u2 import U2Gate
 from .u3 import U3Gate, CU3Gate
@@ -78,7 +78,6 @@ __all__ = [
     "MCXRecursive",
     "MCXVChain",
     "PhaseGate",
-    "PhasedUGate",
     "RC3XGate",
     "RCCXGate",
     "RGate",
@@ -99,6 +98,7 @@ __all__ = [
     "U1Gate",
     "U2Gate",
     "U3Gate",
+    "U4Gate",
     "UGate",
     "XGate",
     "XXMinusYYGate",
