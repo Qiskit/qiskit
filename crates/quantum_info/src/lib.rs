@@ -15,6 +15,7 @@ pub mod pauli_lindblad_map;
 pub mod sparse_observable;
 #[cfg(feature = "python")]
 pub mod sparse_pauli_op;
+pub mod tools;
 pub mod unitary_compose;
 pub mod versor_u2;
 
