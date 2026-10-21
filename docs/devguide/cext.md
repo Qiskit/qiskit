@@ -245,8 +245,8 @@ pub extern "C" fn qk_foo(arg1: *mut c_void, arg2: *mut c_void) -> i32;
 ### Groups
 
 C API documentation is organized into groups, defined in `docs/cdoc/index.h` with the `@defgroup`
-command. The `@ingroup` command assigns items to a group. Also, create new `.rst` file in
-`docs/cdoc`. Structs exposed directly from the data model are documented manually here.
+command. The `@ingroup` command assigns items to a group. Structs exposed directly from the data
+model must be manually added to an `.rst` file.
 
 ### Ownership
 
@@ -291,7 +291,7 @@ unsafe extern "C" fn qk_circuit_free(circuit: *mut Circuit) {
 
 ### Release Notes
 
-Link C objects in release notes using Sphinx's `c` domain.
+Link C objects in release notes using Sphinx syntax in the `c` domain.
 
 ```
 :c:struct:`QkFoo`
