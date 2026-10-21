@@ -23,13 +23,10 @@ use qiskit_util::dyn_types::DynTypeId;
 /// flow, ranging from the simple execution of a single pass, to lists of other tasks,
 /// to structured flow control such as loops and conditionals.
 ///
-/// It is allowable and expected for a given task instance to have incorrect IR typing. For
-/// example, a list task may own two consecutive tasks where the output of the first task
-/// does not match the input of the second task. This allows a (possibly nested) task to
-/// represent the partial construction of an execution flow. When a
-/// [`PassManager`](crate::PassManager) takes ownership of a task, it accepts the responsibility
-/// of ensuring that it is well-defined for the duration of its lifetime. It can do this by
-/// calling [Task::io_types] and [Task::validate].
+/// It is allowable and expected for a given task instance to have incorrect IR typing up until
+/// the point that it is owned by a [`PassManager`](crate::PassManager), which then assumes the
+/// responsibility of validating and maintaining correct IR type flow for its lifetime. This
+/// allows a [Task] to represent a partially assembled pipeline.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Task {
@@ -53,12 +50,7 @@ impl Task {
         }
     }
 
-    /// Validate that this task is well-defined and executable.
-    ///
-    /// This method recurses into all subtasks to ensure validity of the entire tree. If this
-    /// method returns `Ok`, then executing this task against an input IR of the correct type will
-    /// not lead to any task receiving an IR of an incorrect type during compilation, assuming
-    /// no pass has lied about its IR types.
+    /// Validate (recursively) that the IR typing of this task is self-consistent.
     pub fn validate(&self) -> Result<(), TaskTypeError> {
         match self {
             Task::Transformation(_) => Ok(()),
@@ -103,7 +95,7 @@ fn validate_sequence<'a>(
         if let Some(previous) = last_out
             && previous != in_
         {
-            return Err(TaskTypeError::mismatch(segment, previous, in_));
+            return Err(TaskTypeError::mismatch(previous, in_).within(segment));
         }
         last_out = Some(out);
     }
@@ -131,9 +123,9 @@ impl fmt::Display for TaskPathSegment {
     }
 }
 
-/// A [TaskPathSegment] that borrows its stage name from the task being validated.
+/// A [TaskPathSegment] that may borrow attributes of the task being validated.
 #[derive(Clone, Copy, Debug)]
-pub(crate) enum TaskPathSegmentRef<'a> {
+enum TaskPathSegmentRef<'a> {
     Index(usize),
     Stage(&'a str),
 }
@@ -152,44 +144,46 @@ impl TaskPathSegmentRef<'_> {
 /// validated.
 #[derive(Clone, Debug, Error)]
 #[error(
-    "IR types mismatched: the task at {} takes {input}, but the preceding task outputs {output}",
-    DisplayPath(&self.path)
+    "IR types mismatched: {} takes {input}, but the preceding task outputs {output}",
+    DisplaySubject(&self.path)
 )]
 pub struct TaskTypeError {
+    /// The innermost segment is stored first, the reverse of display order.
     path: Vec<TaskPathSegment>,
     output: String,
     input: String,
 }
 impl TaskTypeError {
-    pub(crate) fn mismatch(
-        segment: TaskPathSegmentRef<'_>,
-        output: DynTypeId<'_>,
-        input: DynTypeId<'_>,
-    ) -> Self {
+    /// A mismatch at the task the error is reported against, with an empty path.
+    pub(crate) fn mismatch(output: DynTypeId<'_>, input: DynTypeId<'_>) -> Self {
         Self {
-            path: vec![segment.to_segment()],
+            path: Vec::new(),
             output: output.short_describe().to_owned(),
             input: input.short_describe().to_owned(),
         }
     }
 
     /// Relocate this error to describe a task nested one level further in, under `segment`.
-    pub(crate) fn within(mut self, segment: TaskPathSegmentRef<'_>) -> Self {
-        self.path.insert(0, segment.to_segment());
+    fn within(mut self, segment: TaskPathSegmentRef<'_>) -> Self {
+        self.path.push(segment.to_segment());
         self
     }
 
-    /// The path to the task whose input type was not satisfied.
+    /// The path to the task whose input type was not satisfied, innermost segment first.
     pub fn path(&self) -> &[TaskPathSegment] {
         &self.path
     }
 }
 
-/// Display helper for the subscripted form of a task path, such as `[0]['layout'][2]`.
-struct DisplayPath<'a>(&'a [TaskPathSegment]);
-impl fmt::Display for DisplayPath<'_> {
+/// Display helper for the subscripted form of a task path.
+struct DisplaySubject<'a>(&'a [TaskPathSegment]);
+impl fmt::Display for DisplaySubject<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for segment in self.0 {
+        if self.0.is_empty() {
+            return f.write_str("the task");
+        }
+        f.write_str("the task at ")?;
+        for segment in self.0.iter().rev() {
             segment.fmt(f)?;
         }
         Ok(())
@@ -278,20 +272,19 @@ mod test {
     fn test_io_types_skips_empty_children() {
         let uint_ty = DynTypeId::of::<MyUint>();
         let int_ty = DynTypeId::of::<MyInt>();
-        let empty = || Task::Sequence(vec![]);
 
-        let leading = Task::Sequence(vec![empty(), Task::Transformation(LowerToInt.into_pass())]);
+        let empty = || Task::Sequence(vec![]);
+        let lower = || Task::Transformation(LowerToInt.into_pass());
+
+        let leading = Task::Sequence(vec![empty(), lower()]);
         assert_eq!(leading.io_types().unwrap(), [uint_ty, int_ty]);
 
-        let trailing = Task::Sequence(vec![Task::Transformation(LowerToInt.into_pass()), empty()]);
+        let trailing = Task::Sequence(vec![lower(), empty()]);
         assert_eq!(trailing.io_types().unwrap(), [uint_ty, int_ty]);
 
         let surrounded = Task::Stages(vec![
             ("before".to_string(), empty()),
-            (
-                "lower".to_string(),
-                Task::Transformation(LowerToInt.into_pass()),
-            ),
+            ("lower".to_string(), lower()),
             ("after".to_string(), empty()),
         ]);
         assert_eq!(surrounded.io_types().unwrap(), [uint_ty, int_ty]);
@@ -373,9 +366,9 @@ mod test {
         assert_eq!(
             err.path(),
             [
-                TaskPathSegment::Index(0),
-                TaskPathSegment::Stage("layout".to_string()),
                 TaskPathSegment::Index(2),
+                TaskPathSegment::Stage("layout".to_string()),
+                TaskPathSegment::Index(0),
             ]
         );
         assert!(
@@ -393,5 +386,15 @@ mod test {
         ]);
         let err = list.validate().unwrap_err();
         assert_eq!(err.path(), [TaskPathSegment::Index(2)]);
+    }
+
+    #[test]
+    fn test_validate_accepts_across_empty() {
+        let list = Task::Sequence(vec![
+            Task::Transformation(AddOne.into_pass()),
+            Task::Sequence(vec![]),
+            Task::Transformation(LowerToInt.into_pass()),
+        ]);
+        assert!(list.validate().is_ok());
     }
 }

@@ -236,16 +236,15 @@ impl PassManager {
     /// Fails, returning the same task back to the caller along with the reason, if the task is
     /// ill-typed internally or incompatible with the existing pipeline.
     pub fn try_push_task(&mut self, task: Task) -> Result<(), (Task, TaskTypeError)> {
-        let index = TaskPathSegmentRef::Index(self.tasks.len());
         if let Err(err) = task.validate() {
-            return Err((task, err.within(index)));
+            return Err((task, err));
         }
         // The existing pipeline is well-typed, and so is the incoming task, so the boundary
         // between the two is the only place a mismatch can arise.
         if let Some((output, input)) = self.ir_id_out().zip(task.io_types().map(|[in_, _]| in_))
             && output != input
         {
-            let err = TaskTypeError::mismatch(index, output, input);
+            let err = TaskTypeError::mismatch(output, input);
             return Err((task, err));
         }
         self.tasks.push(task);
@@ -388,10 +387,8 @@ mod test {
             Task::Transformation(AddOne.into_pass()),
         ]);
         let (task, err) = pm.try_push_task(task).unwrap_err();
-        assert_eq!(
-            err.path(),
-            [TaskPathSegment::Index(0), TaskPathSegment::Index(1)]
-        );
+        // The path is relative to the rejected task, so it indexes into what the caller holds.
+        assert_eq!(err.path(), [TaskPathSegment::Index(1)]);
         // The task is handed back intact, and the pass manager is unchanged.
         assert!(matches!(task, Task::Sequence(tasks) if tasks.len() == 2));
         assert_eq!(pm.num_tasks(), 0);
@@ -404,7 +401,13 @@ mod test {
         let (_task, err) = pm
             .try_push_task(Task::Transformation(AddOne.into_pass()))
             .unwrap_err();
-        assert_eq!(err.path(), [TaskPathSegment::Index(1)]);
+        // The mismatch is at the boundary, which is the pushed task itself.
+        assert_eq!(err.path(), []);
+        assert!(
+            err.to_string()
+                .contains("the task takes MyUint, but the preceding task outputs MyInt"),
+            "{err}"
+        );
         assert_eq!(pm.num_tasks(), 1);
     }
 
