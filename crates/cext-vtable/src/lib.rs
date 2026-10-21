@@ -27,10 +27,26 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(105, &dag::FUNCTIONS)
         .add_child(205, &param::FUNCTIONS)
         .add_child(255, &circuit_library::FUNCTIONS)
-        .add_child(305, &classical_expr::FUNCTIONS);
+        .add_child(305, &classical_expr::FUNCTIONS)
+        .add_child(380, &operations::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
+pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
+    vec![
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_load_file),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_buffer),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_load_buffer),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_free_buffer),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file_with_version),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_buffer_with_version),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_loaded_circuits_clear),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_read_min_version),
+        impl_::export_fn!(qiskit_cext::qpy::qk_qpy_write_min_version),
+    ]
+});
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
+pub static FUNCTIONS_MIR: ExportedFunctions = ExportedFunctions::empty();
 
 // Below this line is close to a mirror of the actual `cext` structure.  Ideally, all of the
 // above exports would be locally within `cext` itself, but that has problems with needing to
@@ -46,7 +62,7 @@ pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
 mod circuit {
     use crate::impl_::prelude::*;
     #[cfg(feature = "addr")]
-    use qiskit_cext::circuit::*;
+    use qiskit_cext::{circuit::*, control_flow::*};
 
     #[rustfmt::skip]  // Don't wrap long lines so everything stays on one line for counting.
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(100, || {
@@ -99,6 +115,51 @@ mod circuit {
             export_fn!(qk_circuit_global_phase),
             export_fn!(qk_circuit_set_global_phase),
             export_fn!(qk_circuit_estimate_fidelity),
+            export_fn!(qk_quantum_register_name),
+            export_fn!(qk_quantum_register_num_bits),
+            export_fn!(qk_quantum_register_circuit_bits),
+            export_fn!(qk_classical_register_name),
+            export_fn!(qk_classical_register_num_bits),
+            export_fn!(qk_classical_register_circuit_bits),
+            export_fn!(qk_circuit_num_quantum_registers),
+            export_fn!(qk_circuit_get_quantum_register),
+            export_fn!(qk_circuit_num_classical_registers),
+            export_fn!(qk_circuit_get_classical_register),
+            export_fn!(qk_circuit_get_control_flow_instruction),
+            export_fn!(qk_control_flow_instruction_free),
+            export_fn!(qk_control_flow_kind),
+            export_fn!(qk_control_flow_num_blocks),
+            export_fn!(qk_control_flow_block_circuit),
+            export_fn!(qk_control_flow_qubit_map),
+            export_fn!(qk_control_flow_clbit_map),
+            export_fn!(qk_control_flow_condition_type),
+            export_fn!(qk_control_flow_condition_bit_info),
+            export_fn!(qk_control_flow_condition_reg_cond_bit_width),
+            export_fn!(qk_control_flow_condition_reg),
+            export_fn!(qk_control_flow_condition_reg_cond_uint),
+            export_fn!(qk_control_flow_condition_expr),
+            export_fn!(qk_control_flow_box_duration_kind),
+            export_fn!(qk_control_flow_box_duration_val_info),
+            export_fn!(qk_control_flow_box_duration_expr),
+            export_fn!(qk_control_flow_loop_collection_type),
+            export_fn!(qk_control_flow_loop_elements),
+            export_fn!(qk_control_flow_loop_range),
+            export_fn!(qk_control_flow_loop_param_kind),
+            export_fn!(qk_control_flow_loop_symbol_info),
+            export_fn!(qk_control_flow_loop_variable),
+            export_fn!(qk_control_flow_switch_target_type),
+            export_fn!(qk_control_flow_switch_target_bit),
+            export_fn!(qk_control_flow_switch_target_register),
+            export_fn!(qk_control_flow_switch_target_expr),
+            export_fn!(qk_control_flow_switch_num_cases),
+            export_fn!(qk_control_flow_switch_is_case_default),
+            export_fn!(qk_control_flow_switch_case_labels_bit_width),
+            export_fn!(qk_control_flow_switch_case_labels_uint),
+            export_fn!(qk_control_flow_switch_case_labels_clear),
+            export_fn!(qk_circuit_view_instruction),
+            export_fn!(qk_circuit_delay_dt),
+            export_fn!(qk_circuit_delay_unit),
+            export_fn!(qk_circuit_custom_operation),
         ]
     });
 }
@@ -116,6 +177,8 @@ mod circuit_library {
             export_fn!(suzuki_trotter::qk_circuit_library_suzuki_trotter),
             export_fn!(pbc::qk_pauli_product_rotation_clear),
             export_fn!(pbc::qk_pauli_product_measurement_clear),
+            export_fn!(n_local::qk_circuit_library_n_local),
+            export_fn!(n_local::qk_circuit_library_n_local_settings_default),
         ]
     });
 }
@@ -169,6 +232,8 @@ mod dag {
             export_fn!(qk_dag_substitute_node_with_unitary),
             export_fn!(qk_dag_global_phase),
             export_fn!(qk_dag_set_global_phase),
+            export_fn!(qk_dag_view_instruction),
+            export_fn!(qk_dag_apply_custom_operation),
         ]
     });
 }
@@ -206,6 +271,24 @@ mod param {
             export_fn!(qk_param_conjugate),
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
+            export_fn!(qk_param_stride),
+            export_fn!(qk_param_as_int),
+            export_fn!(qk_param_kind),
+        ]
+    });
+}
+
+mod operations {
+    use crate::impl_::prelude::*;
+    #[cfg(feature = "addr")]
+    use qiskit_cext::operations::*;
+
+    pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
+        vec![
+            export_fn!(qk_custom_operation_vtable_new),
+            export_fn!(qk_custom_operation_vtable_free),
+            export_fn!(qk_custom_operation_new),
+            export_fn!(qk_custom_operation_free),
         ]
     });
 }
@@ -249,6 +332,7 @@ mod sparse_observable {
             export_fn!(qk_obs_to_python, feature = "python_binding"),
             export_fn!(qk_obs_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_obs_convert_from_python, feature = "python_binding"),
+            export_fn!(qk_obs_with_capacity),
         ]
     });
 }
@@ -417,13 +501,57 @@ mod transpiler {
             .add_child(205, &FUNCTIONS_VF2);
     }
 
+    mod passmanager {
+        use crate::impl_::prelude::*;
+        #[cfg(feature = "addr")]
+        use qiskit_cext::passmanager;
+
+        static FUNCTIONS_IR: ExportedFunctions = ExportedFunctions::leaves(20, || {
+            vec![
+                export_fn!(passmanager::qk_ir_handle_new),
+                export_fn!(passmanager::qk_ir_handle_builtin),
+                export_fn!(passmanager::qk_ir_handle_free),
+            ]
+        });
+        static FUNCTIONS_PASS: ExportedFunctions = ExportedFunctions::leaves(20, || {
+            vec![
+                export_fn!(passmanager::qk_pass_vtable_new),
+                export_fn!(passmanager::qk_pass_vtable_free),
+                export_fn!(passmanager::qk_pass_new),
+                export_fn!(passmanager::qk_pass_free),
+            ]
+        });
+        static FUNCTIONS_ERROR: ExportedFunctions = ExportedFunctions::leaves(20, || {
+            vec![
+                export_fn!(passmanager::qk_compilation_error_new),
+                export_fn!(passmanager::qk_compilation_error_free),
+                export_fn!(passmanager::qk_compilation_error_str),
+            ]
+        });
+        static FUNCTIONS_PASSMANAGER: ExportedFunctions = ExportedFunctions::leaves(20, || {
+            vec![
+                export_fn!(passmanager::qk_passmanager_new),
+                export_fn!(passmanager::qk_passmanager_free),
+                export_fn!(passmanager::qk_passmanager_push_pass),
+                export_fn!(passmanager::qk_passmanager_run_simple),
+            ]
+        });
+
+        pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::empty()
+            .add_child(0, &FUNCTIONS_IR)
+            .add_child(20, &FUNCTIONS_PASS)
+            .add_child(40, &FUNCTIONS_ERROR)
+            .add_child(60, &FUNCTIONS_PASSMANAGER);
+    }
+
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::empty()
         .add_child(0, &TRANSPILE_FUNCTION)
         .add_child(20, &NEIGHBORS)
         .add_child(35, &TRANSPILE_LAYOUT)
         .add_child(50, &TRANSPILE_STATE)
         .add_child(150, &target::FUNCTIONS)
-        .add_child(250, &passes::FUNCTIONS);
+        .add_child(250, &passes::FUNCTIONS)
+        .add_child(550, &passmanager::FUNCTIONS);
 }
 
 mod classical_expr {

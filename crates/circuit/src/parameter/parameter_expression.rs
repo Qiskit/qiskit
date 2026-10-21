@@ -138,6 +138,13 @@ impl fmt::Display for ParameterExpression {
 }
 
 impl ParameterExpression {
+    /// Exact structural equality of two expressions.
+    ///
+    /// See [`SymbolExpr::eq_exact`] for more detail.
+    pub fn eq_exact(&self, other: &Self) -> bool {
+        (self.name_map == other.name_map) && self.expr.eq_exact(&other.expr)
+    }
+
     pub fn qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::new();
         let mut unused: IndexSet<_> = self.name_map.values().cloned().collect();
@@ -259,6 +266,12 @@ impl ParameterExpression {
         self.try_to_symbol_ref().cloned()
     }
 
+    /// Simplify the expression. This, for example, attempts to cancel
+    /// variables in the expression.
+    pub fn simplify(&self) -> Self {
+        ParameterExpression::from_symbol_expr(self.expr.optimize())
+    }
+
     /// Try casting to a [Symbol], returning a reference.
     ///
     /// This only succeeds if the underlying expression is, in fact, only a symbol.
@@ -288,11 +301,10 @@ impl ParameterExpression {
         match self.expr.eval(true) {
             Some(value) => {
                 // we try to restrict complex to real, if possible
-                if let Value::Complex(c) = value {
-                    if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
-                    {
-                        return Ok(Value::Real(c.re));
-                    }
+                if let Value::Complex(c) = value
+                    && (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
+                {
+                    return Ok(Value::Real(c.re));
                 }
                 Ok(value)
             }
@@ -313,10 +325,7 @@ impl ParameterExpression {
 
     /// Initialize from an f64.
     pub fn from_f64(value: f64) -> Self {
-        Self {
-            expr: SymbolExpr::Value(Value::Real(value)),
-            name_map: HashMap::new(),
-        }
+        Value::from(value).into()
     }
 
     /// Load from a sequence of [OPReplay]s. Used in serialization.
@@ -744,6 +753,15 @@ impl ParameterExpression {
     }
 }
 
+impl From<Value> for ParameterExpression {
+    fn from(value: Value) -> Self {
+        Self {
+            expr: SymbolExpr::Value(value),
+            name_map: HashMap::new(),
+        }
+    }
+}
+
 /// A parameter expression.
 ///
 /// This is backed by Qiskit's symbolic expression engine and a cache
@@ -837,6 +855,12 @@ impl PyParameterExpression {
 
 #[pymethods]
 impl PyParameterExpression {
+    /// Simplify the expression. This, for example, attempts to cancel
+    /// variables in the expression.
+    pub fn simplify(&self) -> Self {
+        self.inner.simplify().into()
+    }
+
     /// This is a **strictly internal** constructor and **should not be used**.
     /// It is subject to arbitrary change in between Qiskit versions and cannot be relied on.
     /// Parameter expressions should always be constructed from applying operations on
@@ -844,20 +868,13 @@ impl PyParameterExpression {
     #[new]
     #[pyo3(signature = (name_map, expr))]
     pub fn py_new(name_map: HashMap<String, PyParameter>, expr: String) -> PyResult<Self> {
-        // We first parse the expression and then update the symbols with the ones
-        // the user provided. The replacement relies on the names to match.
-        // This is hacky and we likely want a more reliably conversion from a SymPy object,
-        // if we decide we want to continue supporting this.
-        let expr = parse_expression(&expr)
-            .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
         let symbol_map: HashMap<String, Symbol> = name_map
             .iter()
             .map(|(string, param)| (string.clone(), Symbol::clone(&param.0)))
             .collect();
-
-        let replaced_expr = symbol_expr::replace_symbol(&expr, &symbol_map);
-
-        let inner = ParameterExpression::new(replaced_expr, symbol_map);
+        let expr = parse_expression(&expr, &|name| symbol_map.get(name).cloned())
+            .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
+        let inner = ParameterExpression::new(expr, symbol_map);
         Ok(Self { inner })
     }
 
@@ -1208,6 +1225,48 @@ impl PyParameterExpression {
         } else {
             Ok(false)
         }
+    }
+
+    /// Are these two expressions exactly structurally equal?
+    ///
+    /// This is a faster and stricter form of the standard ``==`` relationship, but does not take
+    /// simplifications into account.  Almost all expressions that are :meth:`structurally_equal`
+    /// are all ``==`` to each other, but the reverse is not true.  (In the presence of ``nan``
+    /// values, :meth:`structurally_equal` can sometimes return ``True`` when ``==`` compares
+    /// ``False``.)
+    ///
+    /// This function is most useful in internal tests of the :class:`ParameterExpression` logic.
+    ///
+    /// .. note::
+    ///
+    ///     Many operations on :class:`ParameterExpression` do on-the-fly simplification as they are
+    ///     constructed, so two expressions that appear to have been constructed in different orders
+    ///     can still be internally structurally equal.
+    ///
+    /// Args:
+    ///     rhs: the other object to compare.
+    ///
+    /// Returns:
+    ///     Whether the two objects are structurally equal expressions.
+    ///
+    /// Examples:
+    ///
+    ///     Two expressions can simplify to each other when checking for equality, but not use the
+    ///     same internal structure::
+    ///
+    ///         from qiskit.circuit import Parameter
+    ///
+    ///         x, y = Parameter("x"), Parameter("y")
+    ///         left = x + y + 1
+    ///         right = 1 + y + x
+    ///         assert left == right
+    ///         assert not left.structurally_equal(right)
+    pub fn structurally_equal(&self, rhs: &Bound<PyAny>) -> bool {
+        let Ok(rhs) = rhs.cast::<Self>() else {
+            return false;
+        };
+        let rhs = rhs.borrow();
+        self.inner.eq_exact(&rhs.inner)
     }
 
     #[inline]
@@ -1657,7 +1716,6 @@ impl PyParameter {
     module="qiskit._accelerate.circuit",
     extends=PyParameter,
     name="ParameterVectorElement",
-    skip_from_py_object
 )]
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 // This carries no data in Rust space; `PyParameter`/`Symbol` already has it all.  It's just a
@@ -1751,8 +1809,7 @@ impl PyParameterVectorElement {
 #[pyclass(
     sequence,
     module = "qiskit._accelerate.circuit",
-    name = "ParameterVector",
-    skip_from_py_object
+    name = "ParameterVector"
 )]
 pub struct PyParameterVector {
     base: Arc<SymbolVector>,
@@ -1856,7 +1913,7 @@ impl PyParameterVector {
         // `ParameterVector` was first introduced.
         format!(
             "{}, [{}]",
-            &self.base.name,
+            self.base.name,
             self.base
                 .iter()
                 .map(|s| format!("'{}'", s.fullname()))
@@ -1867,7 +1924,7 @@ impl PyParameterVector {
     fn __repr__(&self) -> String {
         format!(
             "ParameterVector(name='{}', length={})",
-            &self.base.name,
+            self.base.name,
             self.base.len.load(atomic::Ordering::Relaxed)
         )
     }
@@ -2172,8 +2229,15 @@ fn qpy_replay_inner(
             // recurse on the parameter expressions
             let lhs = filter_name_map(lhs, name_map);
             let rhs = filter_name_map(rhs, name_map);
-            qpy_replay_inner(&lhs, name_map, replay, unused);
-            qpy_replay_inner(&rhs, name_map, replay, unused);
+            // If the extracted value resolved into a concrete value, we don't need to recurse
+            // into it, since its computed value will be stored along
+            // with the operation in the replay.
+            if matches!(lhs_value, Some(ParameterValueType::Parameter(_)) | None) {
+                qpy_replay_inner(&lhs, name_map, replay, unused);
+            }
+            if matches!(rhs_value, Some(ParameterValueType::Parameter(_)) | None) {
+                qpy_replay_inner(&rhs, name_map, replay, unused);
+            }
 
             // add the expression to the replay
             match lhs_value {
