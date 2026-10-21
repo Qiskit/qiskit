@@ -274,7 +274,7 @@ fn execute_task(
 
     match task {
         Task::Transformation(pass) => pass.run(ir, context),
-        Task::List(tasks) => {
+        Task::Sequence(tasks) => {
             for task in tasks.iter() {
                 ir = execute_task(task, ir, context)?;
             }
@@ -363,8 +363,8 @@ mod test {
         let mut pm = PassManager::new();
         pm.try_push_static_pass(LowerToInt).unwrap();
         assert!(
-            pm.try_push_task(Task::List(vec![
-                Task::List(vec![]),
+            pm.try_push_task(Task::Sequence(vec![
+                Task::Sequence(vec![]),
                 Task::Transformation(AddOne.into_pass()),
             ]))
             .is_err()
@@ -394,20 +394,20 @@ mod test {
     fn test_task_retrieval() {
         let make_task = || Task::Transformation(AddOne.into_pass());
 
-        let list = Task::List(vec![make_task(), make_task()]);
+        let sequence = Task::Sequence(vec![make_task(), make_task()]);
         let stages = Task::Stages(vec![("one_and_only".to_string(), make_task())]);
 
         let mut pm = PassManager::new();
         pm.try_push_static_pass(AddOne).unwrap();
-        pm.try_push_task(list).unwrap();
+        pm.try_push_task(sequence).unwrap();
         pm.try_push_task(stages).unwrap();
 
         assert!(matches!(pm.get_task(0), Some(Task::Transformation(_))));
 
-        if let Some(Task::List(list)) = pm.get_task(1) {
-            assert_eq!(list.len(), 2);
+        if let Some(Task::Sequence(tasks)) = pm.get_task(1) {
+            assert_eq!(tasks.len(), 2);
         } else {
-            panic!("Expected a Task::List");
+            panic!("Expected a Task::Sequence");
         }
 
         if let Some(Task::Stages(stages)) = pm.get_task(2) {
