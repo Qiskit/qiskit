@@ -1083,6 +1083,7 @@ impl TextDrawer {
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         let mid_idx = (minima + maxima) / 2;
+                        let total_wire = maxima - minima + 1;
                         let input_idx = qargs.iter().position(|&x| x.index() == wire_idx);
                         let qarg_inputs_len = (qargs.len() as f64).log10().ceil() as usize;
 
@@ -1090,10 +1091,11 @@ impl TextDrawer {
                             "{:<in_len$}{}{:^label_len$}",
                             input_idx.map_or("".to_string(), |q| q.to_string()),
                             Self::try_pauli_term(input_idx, inst), // in case it's a PPR/PPM gate
-                            if mid_idx == wire_idx {
-                                label
+                            if mid_idx == wire_idx && (total_wire & 1 == 1) {
+                                // if total wires are even, add label to bottom instead
+                                label.clone()
                             } else {
-                                Default::default()
+                                String::from("")
                             },
                             in_len = qarg_inputs_len,
                             label_len = label_len,
@@ -1119,7 +1121,18 @@ impl TextDrawer {
                             )
                         };
                         mid = format!("{}{}{}", Q_LEFT_CON, mid_section, Q_RIGHT_CON);
-                        bot = if wire_idx == maxima {
+                        // Fix vertical alignment for even wire multi box
+                        bot = if mid_idx == wire_idx && (total_wire & 1 == 0) {
+                            format!(
+                                "{}{:<in_len$}{}{:^label_len$}{}",
+                                CONNECTING_WIRE,
+                                "",
+                                " ".repeat(Self::try_pauli_term(input_idx, inst).width()), // in case it's a PPR/PPM gate
+                                label,
+                                CONNECTING_WIRE,
+                                in_len = qarg_inputs_len
+                            )
+                        } else if wire_idx == maxima {
                             format!(
                                 "{}{}{}{}{}",
                                 BOT_LEFT_BOX,
@@ -1364,6 +1377,10 @@ impl TextDrawer {
     }
 
     fn draw(&self, mergewires: bool, fold: usize) -> String {
+        if self.wires.is_empty() {
+            return String::new();
+        }
+
         // Calculate the layer ranges for each fold of the circuit
         let num_layers = self.wires[0].len();
         // We skip the first (inputs) layer since it's printed for each fold, regardless
@@ -1598,6 +1615,22 @@ mod tests {
 
     #[cfg(feature = "cache_pygates")]
     use std::sync::OnceLock;
+
+    #[test]
+    fn test_empty_circuit() {
+        let circuit = CircuitData::new(None, None, Param::Float(0.5)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), 0).unwrap();
+
+        assert_eq!("global phase: 0.5", result.trim_end());
+    }
+
+    #[test]
+    fn test_empty_circuit_zero_phase() {
+        let circuit = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), 0).unwrap();
+
+        assert_eq!("", result.trim_end());
+    }
 
     fn basic_circuit() -> CircuitData {
         let qreg = QuantumRegister::new_owning("q", 2);
@@ -1856,8 +1889,8 @@ c2_1: ══════════»
         let result = draw_circuit(&circuit, false, false, Some(80), 0).unwrap();
         let expected = "
           ┌────────────┐┌───────────────┐
-q_0: ──■──┤0 Rxx(1.23) ├┤0 my_rxx(1.23) ├────■────
-       │  │            ││               │    │
+q_0: ──■──┤0           ├┤0              ├────■────
+       │  │  Rxx(1.23) ││  my_rxx(1.23) │    │
      ┌─┴─┐│            ││               │┌───┴───┐
 q_1: ┤ H ├┤1           ├┤1              ├┤ my_ch ├
      └───┘└────────────┘└───────────────┘└───────┘
@@ -1988,8 +2021,8 @@ q_1: ┤ H ├┤1           ├┤1              ├┤ my_ch ├
 q_0: ─────┤ Unitary ├──────────────────┤0                   ├┤2         ├»
           └─────────┘                  │                    ││          │»
                            ┌──────────┐│                    ││          │»
-q_1: ──────────────────────┤0         ├┤  my small identity ├┤0 Unitary ├»
-                           │          ││                    ││          │»
+q_1: ──────────────────────┤0         ├┤  my small identity ├┤0         ├»
+                           │          ││                    ││  Unitary │»
      ┌────────────────────┐│          ││                    ││          │»
 q_2: ┤ my little identity ├┤  Unitary ├┤1                   ├┤          ├»
      └────────────────────┘│          │└────────────────────┘│          │»
@@ -2000,8 +2033,8 @@ q_3: ──────────────────────┤1     
 «q_0: ┤0                    ├┤2         ├┤0                    ├
 «     │                     ││          ││                     │
 «     │                     ││          ││                     │
-«q_1: ┤  my medium identity ├┤0 Unitary ├┤3 my bigger identity ├
-«     │                     ││          ││                     │
+«q_1: ┤                     ├┤0         ├┤3                    ├
+«     │  my medium identity ││  Unitary ││  my bigger identity │
 «     │                     ││          ││                     │
 «q_2: ┤1                    ├┤3         ├┤1                    ├
 «     │                     ││          ││                     │
@@ -2057,11 +2090,11 @@ q_4: ─────────────────────────
 «q_0: ──■─────────────X────────────────────■─────────────────────────■─────────────»
 «       │             │                    │                         │             »
 «     ┌─┴─┐┌──────┐   │    ┌────────┐┌─────┴─────┐                 ┌─┴─┐           »
-«q_1: ┤ Z ├┤0 Dcx ├───X────┤0 Iswap ├┤ Rx(3.141) ├──────■──────────┤ S ├───────■───»
-«     └───┘│      │        │        │└───────────┘      │          └───┘       │   »
+«q_1: ┤ Z ├┤0     ├───X────┤0       ├┤ Rx(3.141) ├──────■──────────┤ S ├───────■───»
+«     └───┘│  Dcx │        │  Iswap │└───────────┘      │          └───┘       │   »
 «          │      │┌──────┐│        │             ┌─────┴─────┐             ┌──┴──┐»
-«q_2: ──■──┤1     ├┤0 Ecr ├┤1       ├──■──────────┤ Ry(3.141) ├──────■──────┤ Sdg ├»
-«       │  └──────┘│      │└────────┘  │P(3.141)  └───────────┘      │      └─────┘»
+«q_2: ──■──┤1     ├┤0     ├┤1       ├──■──────────┤ Ry(3.141) ├──────■──────┤ Sdg ├»
+«       │  └──────┘│  Ecr │└────────┘  │P(3.141)  └───────────┘      │      └─────┘»
 «     ┌─┴─┐        │      │            │                       ┌─────┴─────┐       »
 «q_3: ┤ Y ├────────┤1     ├────────────■───────────────────────┤ Rz(3.141) ├───────»
 «     └───┘        └──────┘                                    └───────────┘       »
@@ -2069,8 +2102,8 @@ q_4: ─────────────────────────
 «q_4: ─────────────────────────────────────────────────────────────────────────────»
 «                                                                                  »
 «                                                      ┌─────────────┐     »
-«q_0: ───────────────■─────────────────────────────────┤0 Rxx(3.141) ├─────»
-«                    │                                 │             │     »
+«q_0: ───────────────■─────────────────────────────────┤0            ├─────»
+«                    │                                 │  Rxx(3.141) │     »
 «     ┌──────────────┴──────────────┐                  │             │     »
 «q_1: ┤ U(3.141,3.141,3.141,3.141)  ├──────■───────────┤1            ├─────»
 «     └─────────────────────────────┘      │           └─────────────┘     »
@@ -2084,14 +2117,14 @@ q_4: ─────────────────────────
 «q_4: ─────────────────────────────────────────────────────────────────────»
 «                                                                          »
 «                    ┌─────────────┐                                              »
-«q_0: ───────────────┤0 Rzx(3.141) ├──────────────────────────────────────────────»
-«                    │             │                                              »
+«q_0: ───────────────┤0            ├──────────────────────────────────────────────»
+«                    │  Rzx(3.141) │                                              »
 «     ┌─────────────┐│             │┌─────────────────────┐                       »
-«q_1: ┤0 Ryy(3.141) ├┤1            ├┤0 XX-YY(3.141,3.141) ├───────────────────────»
-«     │             │└─────────────┘│                     │                       »
+«q_1: ┤0            ├┤1            ├┤0                    ├───────────────────────»
+«     │  Ryy(3.141) │└─────────────┘│  XX-YY(3.141,3.141) │                       »
 «     │             │┌─────────────┐│                     │┌─────────────────────┐»
-«q_2: ┤1            ├┤0 Rzz(3.141) ├┤1                    ├┤0 XX+YY(3.141,3.141) ├»
-«     └─────────────┘│             │└─────────────────────┘│                     │»
+«q_2: ┤1            ├┤0            ├┤1                    ├┤0                    ├»
+«     └─────────────┘│  Rzz(3.141) │└─────────────────────┘│  XX+YY(3.141,3.141) │»
 «                    │             │                       │                     │»
 «q_3: ───────────────┤1            ├───────────────────────┤1                    ├»
 «                    └─────────────┘                       └─────────────────────┘»
@@ -2102,8 +2135,8 @@ q_4: ─────────────────────────
 «q_0: ───────■─────┤0      ├──■─────■───┤0       ├
 «            │     │       │  │     │   │        │
 «            │     │       │  │     │   │        │
-«q_1: ──■────■───■─┤1 Rccx ├──■─────■───┤1 Rcccx ├
-«       │    │   │ │       │  │     │   │        │
+«q_1: ──■────■───■─┤1 Rccx ├──■─────■───┤1       ├
+«       │    │   │ │       │  │     │   │  Rcccx │
 «       │  ┌─┴─┐ │ │       │  │     │   │        │
 «q_2: ──■──┤ Z ├─X─┤2      ├──■─────■───┤2       ├
 «       │  └───┘ │ └───────┘  │     │   │        │
@@ -2195,8 +2228,8 @@ c2: 2/══════════
         let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
      ┌─────────┐┌────────────┐┌─────────┐
-q_0: ┤0 Rxx(a) ├┤0 my_rxx(a) ├┤0 Rzx(2) ├
-     │         ││            ││         │
+q_0: ┤0        ├┤0           ├┤0        ├
+     │  Rxx(a) ││  my_rxx(a) ││  Rzx(2) │
      │         ││            ││         │
 q_1: ┤1        ├┤1           ├┤1        ├
      └─────────┘└────────────┘└─────────┘
@@ -2359,8 +2392,8 @@ c_3: ═════════════════════════
         let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
      ┌─────────┐┌─────────────┐┌─────────┐
-q_0: ┤0 Rxx(ϕ) ├┤0 μου_rxx(ϕ) ├┤0 Rzx(2) ├
-     │         ││             ││         │
+q_0: ┤0        ├┤0            ├┤0        ├
+     │  Rxx(ϕ) ││  μου_rxx(ϕ) ││  Rzx(2) │
      │         ││             ││         │
 q_1: ┤1        ├┤1            ├┤1        ├
      └─────────┘└─────────────┘└─────────┘
@@ -2399,9 +2432,9 @@ q_1: ┤1        ├┤1            ├┤1        ├
             .unwrap();
         let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
-               ┌───────────┐            ┌──────────────┐┌─────────┐
-q_0: ──────────┤0 Rxx(🎩)  ├────────────┤0  💶🔉(🎩)   ├┤0 Rzx(2) ├
-               │           │            │              ││         │
+               ┌──────────┐            ┌───────────┐┌─────────┐
+q_0: ──────────┤0         ├────────────┤0          ├┤0        ├
+               │  Rxx(🎩)  │            │   💶🔉(🎩)   ││  Rzx(2) │
      ┌────────┐│          │ ┌──────────┐ │           │  │         │
 q_1: ┤ Ry(🎩) ├┤1         ├─┤ 💶🔉(🎩) ├─┤1          ├──┤1        ├
      └────────┘└──────────┘ └──────────┘ └───────────┘  └─────────┘
@@ -2619,8 +2652,8 @@ q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) �
                       ┌────────────┐┌──────────────┐
  q_0: ────────────────┤0 Z         ├┤0  Z          ├
       ┌──────────────┐│            ││              │
- q_1: ┤0 Z           ├┤3 Y PPR(-θ) ├┤1  Y          ├
-      │              ││            ││              │
+ q_1: ┤0 Z           ├┤3 Y         ├┤1  Y          ├
+      │              ││    PPR(-θ) ││              │
  q_2: ┤2 X           ├┤1 Z         ├┤2  X          ├
       │              ││            ││              │
  q_3: ┤    PPR(-0.2) ├┤2 Y         ├┤3  I          ├
