@@ -1317,32 +1317,48 @@ def state_to_latex(
     ket_basis: str = "z",
     **args,
 ) -> str:
-    """Return a Latex representation of a state. Wrapper function
-    for `qiskit.visualization.array_to_latex` for convention 'vector'.
-    Adds dims if necessary.
-    Intended for use within `state_drawer`.
+    r"""Return a LaTeX representation of a quantum state.
+
+    For qubit statevectors using the default ``convention='ket'``, this generates
+    a LaTeX string in ket notation (e.g. :math:`\frac{1}{\sqrt{2}}|0\rangle + \frac{1}{\sqrt{2}}|1\rangle`).
+    Otherwise, or when ``convention='vector'``, it formats the state as an array using
+    :func:`~qiskit.visualization.array_to_latex`. Subsystem dimensions can optionally
+    be displayed alongside the representation.
 
     Args:
-        state: State to be drawn
-        dims (bool): Whether to display the state's `dims`
-        convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
-                Otherwise plot as a vector
-        ket_basis (str): The single-qubit basis the kets are written in. This only applies to the
-                ket convention for qubit statevectors. One of ``'z'`` (default), the computational
-                basis :math:`|0\\rangle, |1\\rangle`; ``'x'``, the Hadamard basis
-                :math:`|+\\rangle, |-\\rangle`; or ``'y'``, the basis
-                :math:`|{+}i\\rangle, |{-}i\\rangle`.
-        **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
+        state: State to be drawn.
+        dims: Whether to display the state's subsystem dimensions.
+            Defaults to ``True`` for non-qubit systems and ``False`` for qubits.
+        convention: Either ``'ket'`` or ``'vector'``. For ``'ket'`` (default for
+            qubit statevectors), represents the state in ket notation. For ``'vector'``,
+            draws as a column vector.
+        ket_basis: The single-qubit basis the kets are written in. This only applies to the
+            ket convention for qubit statevectors. One of ``'z'`` (default), the computational
+            basis :math:`|0\rangle, |1\rangle`; ``'x'``, the Hadamard basis
+            :math:`|+\rangle, |-\rangle`; or ``'y'``, the basis
+            :math:`|{+}i\rangle, |{-}i\rangle`.
+        **args: Additional keyword arguments passed to the underlying formatting function:
+
+            * When ``convention='ket'`` (qubit statevectors):
+              ``max_size`` (int, default: 12) defines the maximum number of non-zero terms
+              displayed before truncating with an ellipsis (``\ldots``). Set to a larger
+              integer or ``math.inf`` to show all terms. ``prefix`` (str, default: ``""``)
+              is prepended to the expression. ``decimals`` (int, default: 10) controls
+              rounding precision.
+            * When ``convention='vector'``: arguments are forwarded to
+              :func:`~qiskit.visualization.array_to_latex` (such as ``max_size``,
+              ``precision``, and ``prefix``).
 
     Returns:
-        Latex representation of the state
+        str: LaTeX representation of the state.
 
     Raises:
-        MissingOptionalLibraryError: If SymPy is not installed.
+        MissingOptionalLibraryError: If SymPy is not installed when formatting via
+            :func:`~qiskit.visualization.array_to_latex`.
         VisualizationError: If ``ket_basis`` is not supported.
 
     Examples:
-        Write :math:`|0\\rangle` in the Hadamard basis:
+        Write :math:`|0\rangle` in the Hadamard basis:
 
         .. code-block:: python
 
@@ -1350,8 +1366,7 @@ def state_to_latex(
             from qiskit.visualization.state_visualization import state_to_latex
 
             state_to_latex(Statevector.from_label("0"), ket_basis="x")
-            # \\frac{\\sqrt{2}}{2} |+\\rangle+\\frac{\\sqrt{2}}{2} |-\\rangle
-
+            # \frac{\sqrt{2}}{2} |+\rangle+\frac{\sqrt{2}}{2} |-\rangle
     """
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
@@ -1530,7 +1545,10 @@ def state_drawer(state, output=None, **drawer_args):
             ``qsphere``, ``hinton``, ``bloch``, ``city`` or ``paulivec``.
             Default is `'text`'.
         drawer_args: Arguments to be passed to the relevant drawer. For
-            'latex' and 'latex_source' see ``array_to_latex``
+            ``'latex'`` and ``'latex_source'``, see :func:`~qiskit.visualization.state_to_latex`.
+            For ``'text'``, arguments such as ``max_size`` (default: 8) can be passed to
+            control the display threshold. For Matplotlib figures, see the corresponding
+            plotting function under :mod:`qiskit.visualization`.
 
     Returns:
         :class:`matplotlib.figure` or :class:`str` or
