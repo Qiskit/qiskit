@@ -125,8 +125,10 @@ class UGate(Gate):
 
         For more than one control qubit,
         the controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
-        is ``False`` or ``None``, and as :class:`.AnnotatedOperation` when ``annotated``
-        is ``True``.
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
+        When ``annotated`` is ``None``, it is interpreted as ``True`` when the gate has free
+        parameters (in which case the gate cannot be synthesized at the construction time),
+        and as ``False`` otherwise.
 
         Args:
             num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
@@ -181,15 +183,20 @@ class UGate(Gate):
 
 
 class U4Gate(Gate):
-    r"""Generic single-qubit rotation together with global phase.
+    r"""Generic single-qubit unitary with global phase.
 
-    This gate represents a generic :math:`U(2)` operation, and
-    the action of this gate can be related to the standard ZYZ Euler decomposition by
+    This gate represents a generic :math:`U(2)` operation, obtained by adding a global-phase
+    parameter to :class:`.UGate`.
 
     .. math::
 
-        U4Gate(\theta, \phi, \lambda, \gamma) = e^{i\gamma} U(\theta, \phi, \lambda)
+        U_4(\theta, \phi, \lambda, \gamma) = e^{i\gamma} U(\theta, \phi, \lambda)
 
+    .. note::
+
+        Currently, :class:`.U4Gate` is only available in Python. It was introduced as to allow
+        :class:`.CUGate` to be defined as the controlled version of this gate and have the same
+        parameters as the base gate.
 
     Circuit symbol:
 
@@ -205,7 +212,7 @@ class U4Gate(Gate):
 
         \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        U(\theta, \phi, \lambda, \gamma) =
+        U_4(\theta, \phi, \lambda, \gamma) =
         \begin{pmatrix}
             e^{i\gamma} \cos\left(\rotationangle\right) & -e^{i(\gamma + \lambda)}\sin\left(\rotationangle\right) \\
             e^{i(\gamma + \phi)}\sin\left(\rotationangle\right) & e^{i(\gamma + \phi+\lambda)}\cos\left(\rotationangle\right)
@@ -333,7 +340,7 @@ class U4Gate(Gate):
 class CUGate(ControlledGate):
     r"""Controlled-U gate (4-parameter two-qubit gate).
 
-    This is a controlled version of the U4 gate (generic single qubit rotation
+    This is a controlled version of :class:`.U4Gate` (generic single qubit rotation
     including a possible global phase).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
