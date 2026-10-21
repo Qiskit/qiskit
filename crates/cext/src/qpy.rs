@@ -12,6 +12,7 @@
 
 use std::ffi::{CStr, CString, c_char};
 use std::fs;
+use std::io::Cursor;
 use std::slice;
 
 use qiskit_circuit::circuit_data::CircuitData;
@@ -160,7 +161,7 @@ unsafe fn dump_buffer_impl(
     let mut output: Vec<u8> = Vec::with_capacity(20);
     // SAFETY: this function's caller upholds the circuit-array contract.
     let circuits = unsafe { slice::from_raw_parts(circuits as *const &CircuitData, num_circuits) };
-    match qiskit_qpy::native_dump_qpy(circuits.iter().copied(), &mut output, version)
+    match qiskit_qpy::native_dump_qpy(circuits.iter().copied(), Cursor::new(&mut output), version)
         .map_err(|err| QpyCError::Diagnostic(err.to_string()))
     {
         Ok(_) => {

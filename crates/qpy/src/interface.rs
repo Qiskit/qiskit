@@ -16,7 +16,7 @@
 // quantum circuits to/from QPY format. It handles the complete file structure
 // including headers, circuit tables, and multiple circuits.
 
-use binrw::{BinRead, Endian, VecArgs};
+use binrw::{BinRead, BinWrite, Endian, VecArgs};
 use pyo3::PyResult;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyBytes, PyDict};
@@ -31,12 +31,12 @@ use crate::error::QpyError;
 use crate::formats::{LayoutV2Pack, QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
 use crate::value::{
-    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args,
     serialize_with_args,
 };
 use crate::{QPY_READ_MIN_VERSION, QPY_WRITE_MIN_VERSION};
 
-use std::io::{Cursor, Seek, Write};
+use std::io::{Cursor, Seek, SeekFrom, Write};
 
 /// A circuit loaded from QPY, before the Python-only parts of circuit construction.
 ///
@@ -107,7 +107,7 @@ pub fn dump_qpy<'a, C, W>(
     caller: Option<QpyCaller>,
 ) -> Result<(), QpyError>
 where
-    W: Write,
+    W: Write + Seek,
     C: ExactSizeIterator<Item = Result<(&'a CircuitData, ExtraCircuitData), QpyError>>,
 {
     if qpy_version < QPY_WRITE_MIN_VERSION {
@@ -123,44 +123,40 @@ where
         NativeSerializers::default(),
         NativeDeserializers::default(),
     ));
-    let serialized_circuits: Vec<Bytes> = circuits
-        .map(|data| {
-            let (circuit, extra) = data?;
-            serialize_with_args::<QPYCircuit, (u8,)>(
-                &pack_circuit(
-                    circuit,
-                    extra,
-                    qpy_version,
-                    annotation_handler.child()?,
-                    caller,
-                )?,
-                (qpy_version,),
-            )
-        })
-        .collect::<Result<Vec<Bytes>, QpyError>>()?;
     // Since QPY doesn't use symengine anymore, we default to SymbolicEncoding::Sympy
     let qpy_header = QPYFileHeader {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
-        num_programs: serialized_circuits.len() as u64,
+        num_programs: circuits.len() as u64,
         symbolic_encoding: SymbolicEncoding::Sympy,
         type_key: ProgramType::Circuit, //for now, no other value type is used
     };
-    let serialized_qpy_header = serialize(&qpy_header)?;
-    output.write_all(&serialized_qpy_header)?;
-    // At this point we have collected all the relevant data
-    // But still need to create the offset table and put everything together
-    let header_size = serialized_qpy_header.len();
-    let offset_table_size = serialized_circuits.len() * 8; // 8 bytes per u64
+    qpy_header.write(&mut output)?;
+    let header_size = output.stream_position()?;
+    let offset_table_size = circuits.len() as u64 * 8;
     let circuits_start_offset = header_size + offset_table_size;
-    // Build the offset table
-    let mut current_offset = circuits_start_offset as u64;
-    for circuit_bytes in &serialized_circuits {
-        output.write_all(&current_offset.to_be_bytes())?;
-        current_offset += circuit_bytes.len() as u64;
+    let mut offsets = vec![u64::MAX; circuits.len()];
+    offsets[0] = circuits_start_offset;
+    for offset in &offsets {
+        output.write_all(&offset.to_be_bytes())?;
     }
-    for circuit_bytes in serialized_circuits {
-        output.write_all(&circuit_bytes)?;
+    for (idx, data) in circuits.enumerate() {
+        let (circuit, extra) = data?;
+        let packed_circuit = pack_circuit(
+            circuit,
+            extra,
+            qpy_version,
+            annotation_handler.child()?,
+            caller,
+        )?;
+        packed_circuit.write_args(&mut output, (qpy_version,))?;
+        if idx + 1 < offsets.len() {
+            offsets[idx + 1] = output.stream_position()?;
+        }
+    }
+    output.seek(SeekFrom::Start(header_size + 8))?;
+    for current_offset in offsets[1..].iter() {
+        output.write_all(&current_offset.to_be_bytes())?;
     }
     Ok(())
 }
@@ -201,17 +197,15 @@ pub fn py_dump_qpy(
             },
         ))
     });
-    let output = PyBytes::new_with_writer(py, 0, |writer| {
-        dump_qpy(
-            data,
-            writer,
-            version,
-            Some(annotation_handler),
-            Some(QpyCaller::Python),
-        )?;
-        Ok(())
-    })?;
-    file_obj.call_method1("write", (output,))?;
+    let mut output = Vec::with_capacity(20 + circuits.len() * 8);
+    dump_qpy(
+        data,
+        Cursor::new(&mut output),
+        version,
+        Some(annotation_handler),
+        Some(QpyCaller::Python),
+    )?;
+    file_obj.call_method1("write", (PyBytes::new(py, &output),))?;
     Ok(())
 }
 
@@ -254,7 +248,6 @@ pub fn read_raw_circuits(
             cursor.seek(std::io::SeekFrom::Start(current_pos))?;
             (end_pos - current_pos) as usize
         };
-
         let circuit = Bytes::read_options(
             cursor,
             Endian::Big,
@@ -271,7 +264,7 @@ pub fn read_raw_circuits(
 /// Serialize native circuits using empty metadata and no transpiler layout.
 ///
 /// This is a non-Python convenience interface used by the C API.
-pub fn native_dump_qpy<'a, W: Write>(
+pub fn native_dump_qpy<'a, W: Write + Seek>(
     circuits: impl ExactSizeIterator<Item = &'a CircuitData>,
     output: W,
     qpy_version: Option<u8>,
@@ -455,6 +448,7 @@ pub fn native_load_qpy(data: &[u8]) -> Result<Vec<CircuitData>, QpyError> {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::value::serialize;
     use qiskit_circuit::Qubit;
     use qiskit_circuit::operations::{DelayUnit, OperationRef, Param, StandardInstruction};
     use qiskit_circuit::packed_instruction::PackedOperation;
@@ -504,7 +498,7 @@ mod tests {
                 native_extra_data(circuit, "delay_dt_circuit", version),
             ))
         });
-        dump_qpy(data, &mut payload, version, None, None).unwrap();
+        dump_qpy(data, Cursor::new(&mut payload), version, None, None).unwrap();
         let loaded = load_qpy(&Bytes(payload), None, None).unwrap();
 
         // Exactly one circuit, with exactly one instruction.
