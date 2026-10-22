@@ -65,6 +65,28 @@ impl DynTypeId<'_> {
             None => borrow::Cow::Borrowed(self.static_name),
         }
     }
+
+    /// A short description of this type.
+    ///
+    /// Use [`Self::describe`] where the full qualification is wanted.
+    pub fn short_describe(&self) -> &str {
+        match self.dynamic {
+            Some((_addr, dyn_name)) => dyn_name,
+            None => {
+                // Only the leading path, up to the first generic parameter, is certain to be a
+                // module path. Stopping there keeps the split from landing somewhere meaningless,
+                // at the cost of leaving any path within the generic parameters qualified.
+                let head = self
+                    .static_name
+                    .split_once('<')
+                    .map_or(self.static_name, |(head, _)| head);
+                match head.rfind("::") {
+                    Some(split) => &self.static_name[split + 2..],
+                    None => self.static_name,
+                }
+            }
+        }
+    }
 }
 impl<'a> DynTypeId<'a> {
     /// Set the dynamic components of the type identifier.
