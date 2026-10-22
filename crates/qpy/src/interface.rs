@@ -287,8 +287,7 @@ pub fn native_dump_qpy<'a, W: Write + Seek>(
         qpy_version.unwrap_or(QPY_VERSION),
         None,
         Some(QpyCaller::Native),
-    )?;
-    Ok(())
+    )
 }
 
 /// Deserializes native circuits from a complete QPY payload.
