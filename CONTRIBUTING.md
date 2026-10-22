@@ -27,7 +27,7 @@ The easiest way to build the Qiskit Python packages is to run the standard comma
 pip install -e .
 ```
 
-This will build Qiskit in a debug mode, which is much slower than the released wheels.
+This will build Qiskit in a debug mode, which is much slower than release-mode builds.
 
 Unlike pure-Python projects, you will need to manually rebuild the Rust components if you make
 changes to the Rust files, including if you update your local `git` checkout of Qiskit.  You can run
