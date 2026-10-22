@@ -15,7 +15,7 @@ When interacting with the repository, please ensure you abide by the following r
 ### Building Qiskit from source
 
 > [!NOTE]
-> Main section: [Installing Qiskit from source](docs/devguide/contributing.md#installing-qiskit-from-source).
+> More detail: [Installing Qiskit from source](docs/devguide/contributing.md#installing-qiskit-from-source).
 
 Qiskit is a mixed Rust/Python project.  You must have Python available, and a Rust compiler
 installed.  For Rust, we suggest using [Rustup](https://rustup.rs/) to manage your compiler
@@ -33,16 +33,17 @@ Unlike pure-Python projects, you will need to manually rebuild the Rust componen
 changes to the Rust files, including if you update your local `git` checkout of Qiskit.  You can run
 the same `pip install -e .` command to do this.
 
-To build the C library in stand-alone mode, use the GNU Makefile rule `make c`.  This will place the
-C distribution artifacts in `dist/c`.
+To build the C library in stand-alone release mode for distribution, use the GNU Makefile rule `make
+c`.  This will place the C artifacts in `dist/c`.  Use `make cheader clib-dev` if you need a debug
+build.
 
 ### Running local tests
 
 > [!NOTE]
-> Main section: [Testing](docs/devguide/contributing.md#testing).
+> More detail: [Testing](docs/devguide/contributing.md#testing).
 
 Qiskit's test suite has several components.  We have unit and integration tests in Python, Rust and
-C, and various static-analysis tools.
+C, and we use various static-analysis tools.
 
 - **Python**: The simplest way to run the tests is to use `tox`, which is a runner you install
   separately, such as with `pipx` or `uv tool run`/`uvx`.  Use your preferred tool to install `tox`,
@@ -63,7 +64,7 @@ C, and various static-analysis tools.
 ### Making pull requests
 
 > [!NOTE]
-> Main section: [Issues and pull requests](docs/devguide/contributing.md#issues-and-pull-requests).
+> More detail: [Issues and pull requests](docs/devguide/contributing.md#issues-and-pull-requests).
 
 When making a pull request, you should follow the [Pull request author
 checklist](docs/devguide/contributing.md#pull-request-author-checklist).  You must fill in the PR
