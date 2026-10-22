@@ -329,7 +329,7 @@ pub enum TaskTypeError {
     /// them, for example. They may point to culprits at different levels of nesting.
     #[error("{}, but {}", ends[0], ends[1])]
     Sequence { ends: Box<[TaskEndpoint; 2]> },
-    /// A task can not be appended to another sequence-like.
+    /// A task can not be appended to a pass manager.
     #[error(
         "cannot append the task: {}, but {} of the appended task {} {}",
         existing, new.task, new.side.verb(), new.ty
