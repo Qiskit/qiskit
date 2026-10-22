@@ -5,6 +5,7 @@
 /.venv/
 /venv/
 .DS_Store
+*.local.md
 
 # Compiler/bytecode artifacts
 __pycache__/
@@ -53,6 +54,3 @@ __pycache__/
 /test/visual/mpl/graph/graph_results/*.png
 /test/visual/mpl/graph/graph_results/*.json
 /test/visual/mpl/visual_test_failures/*.png
-
-# Local LLM configuration
-*.local.md
