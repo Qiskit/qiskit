@@ -20,7 +20,7 @@ use qiskit_util::dyn_types::DynTypeId;
 /// A task in Qiskit's compiler framework.
 ///
 /// This is a single unit of execution flow. Each task variant describes a different mode of
-/// flow, ranging from the simple execution of a single pass, to lists of other tasks,
+/// flow, ranging from the simple execution of a single pass, to sequences of other tasks,
 /// to structured flow control such as loops and conditionals.
 ///
 /// It is allowable and expected for a given task instance to have incorrect IR typing up until
@@ -34,9 +34,9 @@ pub enum Task {
     // proper error handlings that occur during the condition evaluation.
     /// A single pass.
     Transformation(Box<dyn Pass>),
-    /// A list of tasks.
+    /// A sequence of tasks.
     Sequence(Vec<Task>),
-    /// A list of named tasks.
+    /// A sequence of named tasks.
     Stages(Vec<(String, Task)>),
 }
 
@@ -436,15 +436,15 @@ mod test {
             [uint_ty, int_ty]
         );
 
-        let list = Task::Sequence(vec![
+        let seq = Task::Sequence(vec![
             Task::Transformation(AddOne.into_pass()),
             Task::Transformation(LowerToInt.into_pass()),
         ]);
-        assert_eq!(list.io_types().unwrap(), [uint_ty, int_ty]);
+        assert_eq!(seq.io_types().unwrap(), [uint_ty, int_ty]);
 
         let nested = Task::Stages(vec![
             ("add".to_string(), Task::Transformation(AddOne.into_pass())),
-            ("lower".to_string(), Task::Sequence(vec![list])),
+            ("lower".to_string(), Task::Sequence(vec![seq])),
         ]);
         assert_eq!(nested.io_types().unwrap(), [uint_ty, int_ty]);
     }
@@ -486,12 +486,12 @@ mod test {
     #[test]
     fn test_io_types_ignores_internal_mismatch() {
         let uint_ty = DynTypeId::of::<MyUint>();
-        let list = Task::Sequence(vec![
+        let seq = Task::Sequence(vec![
             Task::Transformation(LowerToInt.into_pass()),
             Task::Transformation(AddOne.into_pass()),
         ]);
-        assert_eq!(list.io_types().unwrap(), [uint_ty, uint_ty]);
-        assert!(list.validate().is_err());
+        assert_eq!(seq.io_types().unwrap(), [uint_ty, uint_ty]);
+        assert!(seq.validate().is_err());
     }
 
     #[test]
@@ -521,12 +521,12 @@ mod test {
 
     #[test]
     fn test_validate_reports_both_ends() {
-        let list = Task::Sequence(vec![
+        let seq = Task::Sequence(vec![
             Task::Transformation(AddOne.into_pass()),
             Task::Transformation(LowerToInt.into_pass()),
             Task::Transformation(AddOne.into_pass()),
         ]);
-        let err = list.validate().unwrap_err();
+        let err = seq.validate().unwrap_err();
         assert_eq!(
             sequence_ends(&err),
             [
@@ -587,7 +587,7 @@ mod test {
     fn test_validate_descends_to_originating_pass() {
         // Each end of the mismatch is a nested list, so the error must descend through it to the
         // pass that actually produced the type.
-        let list = Task::Sequence(vec![
+        let seq = Task::Sequence(vec![
             Task::Sequence(vec![
                 Task::Transformation(AddOne.into_pass()),
                 Task::Transformation(LowerToInt.into_pass()),
@@ -597,7 +597,7 @@ mod test {
                 Task::Transformation(AddOne.into_pass()),
             )]),
         ]);
-        let err = list.validate().unwrap_err();
+        let err = seq.validate().unwrap_err();
         assert_eq!(
             sequence_ends(&err),
             [
@@ -609,11 +609,11 @@ mod test {
 
     #[test]
     fn test_validate_names_the_originating_pass() {
-        let list = Task::Sequence(vec![
+        let seq = Task::Sequence(vec![
             Task::Transformation(LowerToInt.into_pass()),
             Task::Transformation(AddOne.into_pass()),
         ]);
-        let err = list.validate().unwrap_err();
+        let err = seq.validate().unwrap_err();
         let TaskTypeError::Sequence { ends } = &err else {
             panic!("expected a sequence mismatch, got {err}");
         };
@@ -630,12 +630,12 @@ mod test {
 
     #[test]
     fn test_validate_rejects_across_empty() {
-        let list = Task::Sequence(vec![
+        let seq = Task::Sequence(vec![
             Task::Transformation(LowerToInt.into_pass()),
             Task::Sequence(vec![]),
             Task::Transformation(AddOne.into_pass()),
         ]);
-        let err = list.validate().unwrap_err();
+        let err = seq.validate().unwrap_err();
         assert_eq!(
             sequence_ends(&err),
             [
@@ -647,11 +647,11 @@ mod test {
 
     #[test]
     fn test_validate_accepts_across_empty() {
-        let list = Task::Sequence(vec![
+        let seq = Task::Sequence(vec![
             Task::Transformation(AddOne.into_pass()),
             Task::Sequence(vec![]),
             Task::Transformation(LowerToInt.into_pass()),
         ]);
-        assert!(list.validate().is_ok());
+        assert!(seq.validate().is_ok());
     }
 }
