@@ -68,7 +68,12 @@ impl DynTypeId<'_> {
 
     /// A short description of this type.
     ///
-    /// Use [`Self::describe`] where the full qualification is wanted.
+    /// This differs from [`Self::describe`] in that it includes fewer qualifiers. When the
+    /// type is dynamic, it omits the description of the static type as a wrapper, for example,
+    /// leads to `CustomIR` rather than `qiskit_pyext::passmanager::PyIr[CustomIR]` for a
+    /// Python-defined IR. When the type is static, it omits the crate path. This method is
+    /// used in debugging printouts and error messages and its conventions are therefore
+    /// subject to change without notice.
     pub fn short_describe(&self) -> &str {
         match self.dynamic {
             Some((_addr, dyn_name)) => dyn_name,
