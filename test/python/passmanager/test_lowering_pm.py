@@ -29,9 +29,9 @@ from qiskit.passmanager import (
     Pass,
     PassManagerState,
     LoweringTask,
-    TaskList,
+    TaskSequence,
     PropertySet,
-    StagedTaskList,
+    TaskStages,
     WorkflowStatus,
     Task,
 )
@@ -703,12 +703,12 @@ class TestTasks(QiskitTestCase):
 
     def test_stages_keep_insertion_order(self):
         """Test that stages execute in insertion order."""
-        stages = StagedTaskList([("lower", CircuitToDag()), ("raise", DagToCircuit())])
+        stages = TaskStages([("lower", CircuitToDag()), ("raise", DagToCircuit())])
         self.assertEqual(list(stages.stages), ["lower", "raise"])
 
     def test_empty_task_is_accepted(self):
         """Test that a task with no typed subtask imposes no type constraint."""
-        for task in [TaskList(), StagedTaskList(), TaskList([StagedTaskList()])]:
+        for task in [TaskSequence(), TaskStages(), TaskSequence([TaskStages()])]:
             with self.subTest(task=task):
                 pm = LoweringPassManager([task])
                 circuit = QuantumCircuit(1)
@@ -716,7 +716,7 @@ class TestTasks(QiskitTestCase):
 
     def test_empty_children_do_not_break_type_chain(self):
         """Test that empty children neither interrupt nor mask the type chain."""
-        pm = LoweringPassManager([TaskList(), CircuitToDag(), StagedTaskList()])
+        pm = LoweringPassManager([TaskSequence(), CircuitToDag(), TaskStages()])
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
         self.assertEqual(circuit.to_dag(), pm.run(circuit))
@@ -737,11 +737,11 @@ class TestTasks(QiskitTestCase):
 
     def test_nested_task_runs(self):
         """Test running a pass manager built from nested tasks."""
-        stages = StagedTaskList(
+        stages = TaskStages(
             [
-                ("init", TaskList([RemoveIdentities()])),
-                ("placeholder", TaskList()),
-                ("count", TaskList([CountGates()])),
+                ("init", TaskSequence([RemoveIdentities()])),
+                ("placeholder", TaskSequence()),
+                ("count", TaskSequence([CountGates()])),
             ]
         )
         pm = LoweringPassManager([CircuitToDag(), stages, DagToCircuit()])
@@ -756,7 +756,7 @@ class TestTasks(QiskitTestCase):
 
     def test_ill_typed_task_is_constructible(self):
         """Test that a task may be built ill-typed, and is only rejected when it is appended."""
-        task = TaskList([CircuitToDag(), CircuitToDag()])
+        task = TaskSequence([CircuitToDag(), CircuitToDag()])
         self.assertEqual(len(task), 2)
         with self.assertRaisesRegex(TypeError, r"the task at \[0\]\[1\] takes QuantumCircuit"):
             _ = LoweringPassManager([task])
@@ -764,7 +764,7 @@ class TestTasks(QiskitTestCase):
     def test_append_rejects_ill_typed_task(self):
         """Test that appending an internally ill-typed task raises and changes nothing."""
         pm = LoweringPassManager([CircuitToDag()])
-        task = TaskList([RemoveIdentities(), CircuitToDag()])
+        task = TaskSequence([RemoveIdentities(), CircuitToDag()])
         with self.assertRaisesRegex(TypeError, r"the task at \[1\]\[1\] takes QuantumCircuit"):
             pm.append(task)
 
@@ -778,12 +778,12 @@ class TestTasks(QiskitTestCase):
         """Test that appending a task whose input does not follow on raises."""
         pm = LoweringPassManager([CircuitToDag()])
         with self.assertRaisesRegex(TypeError, r"the task at \[1\] takes QuantumCircuit"):
-            pm.append(TaskList([CircuitToDag()]))
+            pm.append(TaskSequence([CircuitToDag()]))
 
     def test_append_reports_nested_path(self):
         """Test that the error locates a mismatch nested inside a tree."""
-        inner = TaskList([RemoveIdentities(), DagToCircuit(), RemoveIdentities()])
-        task = TaskList([StagedTaskList([("layout", inner)])])
+        inner = TaskSequence([RemoveIdentities(), DagToCircuit(), RemoveIdentities()])
+        task = TaskSequence([TaskStages([("layout", inner)])])
         with self.assertRaisesRegex(
             TypeError, r"the task at \[1\]\[0\]\['layout'\]\[2\] takes DAGCircuit"
         ):
@@ -791,9 +791,9 @@ class TestTasks(QiskitTestCase):
 
     def test_append_rejects_non_task(self):
         """Test that appending something that is not a task raises."""
-        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskList or StagedTaskList"):
+        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
             LoweringPassManager().append("nope")
-        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskList or StagedTaskList"):
+        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
             _ = LoweringPassManager(["nope"])
 
     def test_append_rejects_foreign_task_subclass(self):
@@ -802,20 +802,20 @@ class TestTasks(QiskitTestCase):
         class Custom(LoweringTask):
             """A task that is not one of the three native variants."""
 
-        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskList or StagedTaskList"):
+        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
             LoweringPassManager().append(Custom())
 
     def test_append_rejects_nested_non_task(self):
         """Test that a non-task nested in a container raises when the container is appended."""
-        task_list = TaskList([CircuitToDag()])
-        task_list.append("nope")
-        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskList or StagedTaskList"):
-            _ = LoweringPassManager([task_list])
+        task_sequence = TaskSequence([CircuitToDag()])
+        task_sequence.append("nope")
+        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
+            _ = LoweringPassManager([task_sequence])
 
-    def test_init_rejects_staged_task_list(self):
-        """Test that passing a staged task list directly raises, since it iterates names."""
-        stages = StagedTaskList([("lower", CircuitToDag())])
-        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskList or StagedTaskList"):
+    def test_init_rejects_task_stages(self):
+        """Test that passing task stages directly raises, since they iterate names."""
+        stages = TaskStages([("lower", CircuitToDag())])
+        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
             _ = LoweringPassManager(stages)
 
         # nesting it as a single task is what was meant
@@ -824,7 +824,7 @@ class TestTasks(QiskitTestCase):
 
     def test_task_is_reusable(self):
         """Test that the same task may be given to more than one pass manager."""
-        task = TaskList([CircuitToDag(), RemoveIdentities(), DagToCircuit()])
+        task = TaskSequence([CircuitToDag(), RemoveIdentities(), DagToCircuit()])
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
 
@@ -833,7 +833,7 @@ class TestTasks(QiskitTestCase):
 
     def test_edit_after_append_does_not_affect_pm(self):
         """Test that editing a task after it was appended does not change the pass manager."""
-        placeholder = TaskList()
+        placeholder = TaskSequence()
         pm = LoweringPassManager([CircuitToDag(), placeholder, DagToCircuit()])
         placeholder.append(RemoveIdentities())
 
@@ -844,164 +844,164 @@ class TestTasks(QiskitTestCase):
         # the pass manager lowered the empty placeholder, so the identity gate survives
         self.assertEqual(circuit, pm.run(circuit))
 
-        # the edit is not visible in the pass manager, nor in a task list read back from it
-        self.assertEqual([], pm.to_task_list()[1].tasks)
-        self.assertEqual(circuit, LoweringPassManager(pm.to_task_list()).run(circuit))
+        # the edit is not visible in the pass manager, nor in a task sequence read back from it
+        self.assertEqual([], pm.to_task_sequence()[1].tasks)
+        self.assertEqual(circuit, LoweringPassManager(pm.to_task_sequence()).run(circuit))
 
 
-class TestTaskListSequence(QiskitTestCase):
-    """Tests for the sequence protocol of `TaskList`."""
+class TestTaskSequenceProtocol(QiskitTestCase):
+    """Tests for the sequence protocol of `TaskSequence`."""
 
     def setUp(self):
         super().setUp()
         self.a, self.b, self.c = RemoveIdentities(), CountGates(), RemoveIdentities()
-        self.task_list = TaskList([self.a, self.b, self.c])
+        self.task_sequence = TaskSequence([self.a, self.b, self.c])
 
     def test_index(self):
         """Test indexing by position, including from the end."""
-        self.assertIs(self.a, self.task_list[0])
-        self.assertIs(self.c, self.task_list[-1])
+        self.assertIs(self.a, self.task_sequence[0])
+        self.assertIs(self.c, self.task_sequence[-1])
 
     def test_index_out_of_range(self):
         """Test that an out-of-range position raises."""
         with self.assertRaises(IndexError):
-            _ = self.task_list[3]
+            _ = self.task_sequence[3]
 
-    def test_slice_returns_task_list(self):
-        """Test that a slice returns a new task list of those tasks."""
-        sliced = self.task_list[0:2]
-        self.assertIsInstance(sliced, TaskList)
+    def test_slice_returns_task_sequence(self):
+        """Test that a slice returns a new task sequence of those tasks."""
+        sliced = self.task_sequence[0:2]
+        self.assertIsInstance(sliced, TaskSequence)
         self.assertEqual([self.a, self.b], sliced.tasks)
 
         # the slice is a new object, so editing it leaves the original alone
         sliced.append(RemoveIdentities())
-        self.assertEqual(3, len(self.task_list))
+        self.assertEqual(3, len(self.task_sequence))
 
     def test_slice_with_step(self):
         """Test that a strided slice is honoured."""
-        self.assertEqual([self.c, self.b, self.a], self.task_list[::-1].tasks)
+        self.assertEqual([self.c, self.b, self.a], self.task_sequence[::-1].tasks)
 
     def test_index_with_list(self):
         """Test that a list of positions returns those tasks in that order."""
-        picked = self.task_list[[2, 0]]
-        self.assertIsInstance(picked, TaskList)
+        picked = self.task_sequence[[2, 0]]
+        self.assertIsInstance(picked, TaskSequence)
         self.assertEqual([self.c, self.a], picked.tasks)
 
     def test_index_with_list_of_negatives(self):
         """Test that a list of positions accepts negative indices."""
-        self.assertEqual([self.c, self.b], self.task_list[[-1, -2]].tasks)
+        self.assertEqual([self.c, self.b], self.task_sequence[[-1, -2]].tasks)
 
     def test_index_with_empty_list(self):
-        """Test that an empty list of positions gives an empty task list."""
-        self.assertEqual([], self.task_list[[]].tasks)
+        """Test that an empty list of positions gives an empty task sequence."""
+        self.assertEqual([], self.task_sequence[[]].tasks)
 
     def test_index_with_repeated_position(self):
         """Test that a repeated position repeats the task."""
-        self.assertEqual([self.a, self.a], self.task_list[[0, 0]].tasks)
+        self.assertEqual([self.a, self.a], self.task_sequence[[0, 0]].tasks)
 
     def test_index_with_list_out_of_range(self):
         """Test that an out-of-range position in a list raises."""
         with self.assertRaises(IndexError):
-            _ = self.task_list[[0, 9]]
+            _ = self.task_sequence[[0, 9]]
 
     def test_add(self):
-        """Test that two task lists concatenate into a new one."""
-        out = TaskList([self.a]) + TaskList([self.b])
+        """Test that two task sequences concatenate into a new one."""
+        out = TaskSequence([self.a]) + TaskSequence([self.b])
         self.assertEqual([self.a, self.b], out.tasks)
 
     def test_add_accepts_any_iterable(self):
         """Test that concatenation accepts any iterable of tasks."""
-        self.assertEqual([self.a, self.b], (TaskList([self.a]) + [self.b]).tasks)
-        self.assertEqual([self.a, self.b], (TaskList([self.a]) + iter([self.b])).tasks)
+        self.assertEqual([self.a, self.b], (TaskSequence([self.a]) + [self.b]).tasks)
+        self.assertEqual([self.a, self.b], (TaskSequence([self.a]) + iter([self.b])).tasks)
 
     def test_radd(self):
-        """Test that an iterable of tasks concatenates with a task list on the right."""
-        out = [self.a] + TaskList([self.b])
-        self.assertIsInstance(out, TaskList)
+        """Test that an iterable of tasks concatenates with a task sequence on the right."""
+        out = [self.a] + TaskSequence([self.b])
+        self.assertIsInstance(out, TaskSequence)
         self.assertEqual([self.a, self.b], out.tasks)
 
     def test_add_defers_non_task_rejection(self):
         """Test that a non-task concatenates in and is rejected when it is appended."""
-        task_list = TaskList([self.a]) + ["nope"]
-        self.assertEqual([self.a, "nope"], task_list.tasks)
-        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskList or StagedTaskList"):
-            _ = LoweringPassManager([task_list])
+        task_sequence = TaskSequence([self.a]) + ["nope"]
+        self.assertEqual([self.a, "nope"], task_sequence.tasks)
+        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
+            _ = LoweringPassManager([task_sequence])
 
     def test_add_rejects_non_iterable(self):
         """Test that concatenating a non-iterable raises."""
         with self.assertRaises(TypeError):
-            _ = TaskList([self.a]) + 5
+            _ = TaskSequence([self.a]) + 5
 
-    def test_add_staged_task_list_takes_its_names(self):
-        """Test that concatenating a staged task list takes its names, since it iterates them."""
-        stages = StagedTaskList([("init", self.b)])
-        self.assertEqual([self.a, "init"], (TaskList([self.a]) + stages).tasks)
+    def test_add_task_stages_takes_names(self):
+        """Test that concatenating task stages takes their names, since they iterate names."""
+        stages = TaskStages([("init", self.b)])
+        self.assertEqual([self.a, "init"], (TaskSequence([self.a]) + stages).tasks)
 
-        # its tasks concatenate, and it nests as a single task
-        self.assertEqual([self.a, self.b], (TaskList([self.a]) + stages.values()).tasks)
-        self.assertEqual([self.a, stages], TaskList([self.a, stages]).tasks)
+        # their tasks concatenate, and they nest as a single task
+        self.assertEqual([self.a, self.b], (TaskSequence([self.a]) + stages.values()).tasks)
+        self.assertEqual([self.a, stages], TaskSequence([self.a, stages]).tasks)
 
     def test_iadd_accepts_any_iterable(self):
         """Test that in-place concatenation extends from any iterable of tasks."""
-        task_list = TaskList([self.a])
-        task_list += [self.b]
-        task_list += TaskList([self.c])
-        self.assertEqual([self.a, self.b, self.c], task_list.tasks)
+        task_sequence = TaskSequence([self.a])
+        task_sequence += [self.b]
+        task_sequence += TaskSequence([self.c])
+        self.assertEqual([self.a, self.b, self.c], task_sequence.tasks)
 
     def test_extend(self):
-        """Test extending a task list from an iterable."""
-        task_list = TaskList([self.a])
-        task_list.extend([self.b, self.c])
-        self.assertEqual([self.a, self.b, self.c], task_list.tasks)
+        """Test extending a task sequence from an iterable."""
+        task_sequence = TaskSequence([self.a])
+        task_sequence.extend([self.b, self.c])
+        self.assertEqual([self.a, self.b, self.c], task_sequence.tasks)
 
     def test_copy_construct(self):
-        """Test that a task list can be built from another task list."""
-        self.assertEqual(self.task_list.tasks, TaskList(self.task_list).tasks)
+        """Test that a task sequence can be built from another task sequence."""
+        self.assertEqual(self.task_sequence.tasks, TaskSequence(self.task_sequence).tasks)
 
     def test_is_mutable_sequence(self):
-        """Test that a task list registers as a mutable sequence."""
-        self.assertIsInstance(self.task_list, MutableSequence)
+        """Test that a task sequence registers as a mutable sequence."""
+        self.assertIsInstance(self.task_sequence, MutableSequence)
 
     def test_insert(self):
         """Test inserting a task before a position."""
-        self.task_list.insert(1, CountGates())
-        self.assertEqual([self.a, self.task_list[1], self.b, self.c], self.task_list.tasks)
+        self.task_sequence.insert(1, CountGates())
+        self.assertEqual([self.a, self.task_sequence[1], self.b, self.c], self.task_sequence.tasks)
 
     def test_delitem_and_remove(self):
         """Test deleting a task by position and by value."""
-        del self.task_list[0]
-        self.assertEqual([self.b, self.c], self.task_list.tasks)
-        self.task_list.remove(self.c)
-        self.assertEqual([self.b], self.task_list.tasks)
+        del self.task_sequence[0]
+        self.assertEqual([self.b, self.c], self.task_sequence.tasks)
+        self.task_sequence.remove(self.c)
+        self.assertEqual([self.b], self.task_sequence.tasks)
 
     def test_setitem(self):
         """Test replacing a task by position."""
-        self.task_list[0] = self.b
-        self.assertEqual([self.b, self.b, self.c], self.task_list.tasks)
+        self.task_sequence[0] = self.b
+        self.assertEqual([self.b, self.b, self.c], self.task_sequence.tasks)
 
     def test_eq(self):
-        """Test that task lists compare by their tasks."""
-        self.assertEqual(TaskList([self.a]), TaskList([self.a]))
-        self.assertNotEqual(TaskList([self.a]), TaskList([self.b]))
-        self.assertNotEqual(TaskList([self.a]), TaskList())
+        """Test that task sequences compare by their tasks."""
+        self.assertEqual(TaskSequence([self.a]), TaskSequence([self.a]))
+        self.assertNotEqual(TaskSequence([self.a]), TaskSequence([self.b]))
+        self.assertNotEqual(TaskSequence([self.a]), TaskSequence())
 
     def test_eq_ignores_other_types(self):
-        """Test that a task list does not compare equal to a plain list of the same tasks."""
-        self.assertNotEqual(TaskList([self.a]), [self.a])
+        """Test that a task sequence does not compare equal to a plain list of the same tasks."""
+        self.assertNotEqual(TaskSequence([self.a]), [self.a])
 
     def test_unhashable(self):
-        """Test that a task list is unhashable, since it is mutable."""
+        """Test that a task sequence is unhashable, since it is mutable."""
         with self.assertRaises(TypeError):
-            _ = hash(TaskList())
+            _ = hash(TaskSequence())
 
 
-class TestStagedTaskListMapping(QiskitTestCase):
-    """Tests for the mapping protocol of `StagedTaskList`."""
+class TestTaskStagesMapping(QiskitTestCase):
+    """Tests for the mapping protocol of `TaskStages`."""
 
     def setUp(self):
         super().setUp()
         self.a, self.b, self.c = RemoveIdentities(), CountGates(), RemoveIdentities()
-        self.stages = StagedTaskList([("init", self.a), ("layout", self.b), ("opt", self.c)])
+        self.stages = TaskStages([("init", self.a), ("layout", self.b), ("opt", self.c)])
 
     def test_index_by_name(self):
         """Test indexing a stage by name."""
@@ -1017,16 +1017,16 @@ class TestStagedTaskListMapping(QiskitTestCase):
         with self.assertRaises(KeyError):
             _ = self.stages["nope"]
 
-    def test_slice_returns_staged_task_list(self):
-        """Test that a slice returns a new staged task list, keeping the names."""
+    def test_slice_returns_task_stages(self):
+        """Test that a slice returns new task stages, keeping the names."""
         sliced = self.stages[1:3]
-        self.assertIsInstance(sliced, StagedTaskList)
+        self.assertIsInstance(sliced, TaskStages)
         self.assertEqual([("layout", self.b), ("opt", self.c)], list(sliced.items()))
 
     def test_index_with_list_of_positions(self):
         """Test that a list of positions returns those stages in that order."""
         picked = self.stages[[2, 0]]
-        self.assertIsInstance(picked, StagedTaskList)
+        self.assertIsInstance(picked, TaskStages)
         self.assertEqual([("opt", self.c), ("init", self.a)], list(picked.items()))
 
     def test_index_with_list_of_names(self):
@@ -1043,11 +1043,11 @@ class TestStagedTaskListMapping(QiskitTestCase):
         )
 
     def test_index_with_empty_list(self):
-        """Test that an empty list gives an empty staged task list."""
+        """Test that an empty list gives empty task stages."""
         self.assertEqual([], list(self.stages[[]].items()))
 
     def test_index_with_list_leaves_original_alone(self):
-        """Test that a list index returns a new staged task list."""
+        """Test that a list index returns new task stages."""
         picked = self.stages[[0]]
         picked["extra"] = self.b
         self.assertEqual(["init", "layout", "opt"], list(self.stages))
@@ -1067,12 +1067,12 @@ class TestStagedTaskListMapping(QiskitTestCase):
             _ = self.stages[[9]]
 
     def test_copy_construct(self):
-        """Test that a staged task list can be built from another, and from a dict."""
-        self.assertEqual(list(self.stages.items()), list(StagedTaskList(self.stages).items()))
+        """Test that task stages can be built from other stages, and from a dict."""
+        self.assertEqual(list(self.stages.items()), list(TaskStages(self.stages).items()))
         self.assertEqual(dict(self.stages), dict(self.stages.items()))
 
     def test_is_mutable_mapping(self):
-        """Test that a staged task list registers as a mutable mapping."""
+        """Test that task stages register as a mutable mapping."""
         self.assertIsInstance(self.stages, MutableMapping)
 
     def test_delitem(self):
@@ -1083,56 +1083,56 @@ class TestStagedTaskListMapping(QiskitTestCase):
     def test_duplicate_name_raises(self):
         """Test that a repeated stage name raises."""
         with self.assertRaisesRegex(ValueError, "stage names must be unique"):
-            StagedTaskList([("x", self.a), ("x", self.b)])
+            TaskStages([("x", self.a), ("x", self.b)])
 
     def test_eq(self):
-        """Test that staged task lists compare by their names and tasks."""
-        self.assertEqual(StagedTaskList([("x", self.a)]), StagedTaskList([("x", self.a)]))
-        self.assertNotEqual(StagedTaskList([("x", self.a)]), StagedTaskList([("y", self.a)]))
-        self.assertNotEqual(StagedTaskList([("x", self.a)]), StagedTaskList([("x", self.b)]))
+        """Test that task stages compare by their names and tasks."""
+        self.assertEqual(TaskStages([("x", self.a)]), TaskStages([("x", self.a)]))
+        self.assertNotEqual(TaskStages([("x", self.a)]), TaskStages([("y", self.a)]))
+        self.assertNotEqual(TaskStages([("x", self.a)]), TaskStages([("x", self.b)]))
 
     def test_eq_ignores_other_mappings(self):
-        """Test that a staged task list does not compare equal to a plain dict of its stages."""
-        self.assertNotEqual(StagedTaskList([("x", self.a)]), {"x": self.a})
+        """Test that task stages do not compare equal to a plain dict of their stages."""
+        self.assertNotEqual(TaskStages([("x", self.a)]), {"x": self.a})
 
     def test_eq_respects_order(self):
         """Test that stage order is part of equality, unlike for a plain dict."""
-        one = StagedTaskList([("x", self.a), ("y", self.b)])
-        other = StagedTaskList([("y", self.b), ("x", self.a)])
+        one = TaskStages([("x", self.a), ("y", self.b)])
+        other = TaskStages([("y", self.b), ("x", self.a)])
         self.assertNotEqual(one, other)
         self.assertEqual(dict(one), dict(other))
 
     def test_unhashable(self):
-        """Test that a staged task list is unhashable, since it is mutable."""
+        """Test that task stages are unhashable, since they are mutable."""
         with self.assertRaises(TypeError):
-            _ = hash(StagedTaskList())
+            _ = hash(TaskStages())
 
     def test_add(self):
-        """Test that two staged task lists concatenate into a new one."""
-        out = StagedTaskList([("x", self.a)]) + StagedTaskList([("y", self.b)])
+        """Test that two sets of task stages concatenate into a new one."""
+        out = TaskStages([("x", self.a)]) + TaskStages([("y", self.b)])
         self.assertEqual([("x", self.a), ("y", self.b)], list(out.items()))
 
     def test_add_with_repeated_name_keeps_position(self):
         """Test that a name in both operands keeps its position and takes the incoming task."""
-        out = StagedTaskList([("x", self.a), ("z", self.c)]) + StagedTaskList([("x", self.b)])
+        out = TaskStages([("x", self.a), ("z", self.c)]) + TaskStages([("x", self.b)])
         self.assertEqual([("x", self.b), ("z", self.c)], list(out.items()))
 
     def test_add_accepts_mapping_or_pairs(self):
         """Test that concatenation accepts a mapping or an iterable of pairs."""
-        base = StagedTaskList([("x", self.a)])
+        base = TaskStages([("x", self.a)])
         expected = [("x", self.a), ("y", self.b)]
         self.assertEqual(expected, list((base + [("y", self.b)]).items()))
         self.assertEqual(expected, list((base + {"y": self.b}).items()))
 
     def test_radd(self):
-        """Test that pairs concatenate with a staged task list on the right."""
-        out = [("x", self.a)] + StagedTaskList([("y", self.b)])
-        self.assertIsInstance(out, StagedTaskList)
+        """Test that pairs concatenate with task stages on the right."""
+        out = [("x", self.a)] + TaskStages([("y", self.b)])
+        self.assertIsInstance(out, TaskStages)
         self.assertEqual([("x", self.a), ("y", self.b)], list(out.items()))
 
     def test_add_rejects_bad_shapes(self):
         """Test that concatenating a badly-typed name or a non-pair raises."""
-        base = StagedTaskList([("x", self.a)])
+        base = TaskStages([("x", self.a)])
         with self.assertRaisesRegex(TypeError, "mapping or an iterable of"):
             _ = base + [(5, self.b)]
         with self.assertRaisesRegex(TypeError, "mapping or an iterable of"):
@@ -1142,20 +1142,20 @@ class TestStagedTaskListMapping(QiskitTestCase):
 
     def test_add_defers_non_task_rejection(self):
         """Test that a non-task concatenates in and is rejected when it is appended."""
-        stages = StagedTaskList([("x", CircuitToDag())]) + [("y", "nope")]
+        stages = TaskStages([("x", CircuitToDag())]) + [("y", "nope")]
         self.assertEqual("nope", stages["y"])
-        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskList or StagedTaskList"):
+        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
             _ = LoweringPassManager([stages])
 
     def test_iadd_accepts_any_iterable(self):
         """Test that in-place concatenation extends from any iterable of pairs."""
-        stages = StagedTaskList([("x", self.a)])
+        stages = TaskStages([("x", self.a)])
         stages += [("y", self.b)]
         self.assertEqual([("x", self.a), ("y", self.b)], list(stages.items()))
 
     def test_update(self):
-        """Test updating a staged task list from an iterable of pairs."""
-        stages = StagedTaskList([("x", self.a)])
+        """Test updating task stages from an iterable of pairs."""
+        stages = TaskStages([("x", self.a)])
         stages.update([("y", self.b), ("z", self.c)])
         self.assertEqual(["x", "y", "z"], list(stages))
 
@@ -1209,7 +1209,7 @@ class TestStagedTaskListMapping(QiskitTestCase):
         self.assertIs(self.b, out["opt"])
 
     def test_insert_leaves_the_original_alone(self):
-        """Test that inserting returns a new staged task list."""
+        """Test that inserting returns new task stages."""
         out = self.stages.insert_after("init", ("new", self.b))
         self.assertIsNot(self.stages, out)
         self.assertEqual(["init", "layout", "opt"], list(self.stages))
@@ -1232,7 +1232,7 @@ class TestStagedTaskListMapping(QiskitTestCase):
 
     def test_inserted_stage_runs(self):
         """Test running a pass manager whose stage was inserted."""
-        stages = StagedTaskList([("lower", CircuitToDag()), ("raise", DagToCircuit())])
+        stages = TaskStages([("lower", CircuitToDag()), ("raise", DagToCircuit())])
         stages = stages.insert_after("lower", ("clean", RemoveIdentities()))
         pm = LoweringPassManager([stages])
 
@@ -1245,7 +1245,7 @@ class TestStagedTaskListMapping(QiskitTestCase):
         self.assertEqual(expected, pm.run(circuit))
 
     def test_sliced_stage_runs(self):
-        """Test running a pass manager built from a slice of a staged task list."""
+        """Test running a pass manager built from a slice of task stages."""
         pm = LoweringPassManager([CircuitToDag(), self.stages[0:1], DagToCircuit()])
 
         circuit = QuantumCircuit(2)
@@ -1274,59 +1274,61 @@ class TestRepr(QiskitTestCase):
 
     def test_empty_container_repr(self):
         """Test the repr of containers holding no tasks."""
-        self.assertEqual("TaskList([])", repr(TaskList()))
-        self.assertEqual("StagedTaskList([])", repr(StagedTaskList()))
+        self.assertEqual("TaskSequence([])", repr(TaskSequence()))
+        self.assertEqual("TaskStages([])", repr(TaskStages()))
 
     def test_nested_repr(self):
         """Test that a nested tree reprs as the calls that would rebuild it."""
-        stages = StagedTaskList(
-            [("layout", TaskList([RemoveIdentities()])), ("translate", TaskList())]
+        stages = TaskStages(
+            [("layout", TaskSequence([RemoveIdentities()])), ("translate", TaskSequence())]
         )
         tasks = [CircuitToDag(), stages, DagToCircuit()]
         expected = (
-            "[CircuitToDag(), StagedTaskList([('layout', TaskList([RemoveIdentities()])),"
-            " ('translate', TaskList([]))]), DagToCircuit()]"
+            "[CircuitToDag(), TaskStages([('layout', TaskSequence([RemoveIdentities()])),"
+            " ('translate', TaskSequence([]))]), DagToCircuit()]"
         )
-        self.assertEqual(f"TaskList({expected})", repr(TaskList(tasks)))
+        self.assertEqual(f"TaskSequence({expected})", repr(TaskSequence(tasks)))
 
     def test_pass_manager_repr_counts_tasks(self):
         """Test that a pass manager reprs as a count of its top-level tasks."""
         self.assertEqual("<LoweringPassManager: 0 tasks>", repr(LoweringPassManager()))
-        self.assertEqual("<LoweringPassManager: 1 task>", repr(LoweringPassManager([TaskList()])))
+        self.assertEqual(
+            "<LoweringPassManager: 1 task>", repr(LoweringPassManager([TaskSequence()]))
+        )
 
         # nested tasks are not counted
-        nested = TaskList([CircuitToDag(), DagToCircuit()])
-        pm = LoweringPassManager([nested, TaskList()])
+        nested = TaskSequence([CircuitToDag(), DagToCircuit()])
+        pm = LoweringPassManager([nested, TaskSequence()])
         self.assertEqual("<LoweringPassManager: 2 tasks>", repr(pm))
 
     def test_stage_name_round_trip_escapes(self):
         """Test that a stage name needing escapes survives the native round trip."""
         name = "'od\\d'"
-        pm = LoweringPassManager([StagedTaskList([(name, CircuitToDag())])])
-        self.assertEqual([name], list(pm.to_task_list()[0]))
+        pm = LoweringPassManager([TaskStages([(name, CircuitToDag())])])
+        self.assertEqual([name], list(pm.to_task_sequence()[0]))
         self.assertEqual(
-            "StagedTaskList([(\"'od\\\\d'\", CircuitToDag())])", repr(pm.to_task_list()[0])
+            "TaskStages([(\"'od\\\\d'\", CircuitToDag())])", repr(pm.to_task_sequence()[0])
         )
 
     def test_repr_of_cycle_terminates(self):
         """Test that a container holding itself does not recurse forever."""
-        task_list = TaskList()
-        task_list.append(task_list)
-        self.assertEqual("TaskList([...])", repr(task_list))
+        task_sequence = TaskSequence()
+        task_sequence.append(task_sequence)
+        self.assertEqual("TaskSequence([...])", repr(task_sequence))
 
-        stages = StagedTaskList()
+        stages = TaskStages()
         stages["me"] = stages
-        self.assertEqual("StagedTaskList([('me', ...)])", repr(stages))
+        self.assertEqual("TaskStages([('me', ...)])", repr(stages))
 
 
-class TestTaskListAssembly(QiskitTestCase):
-    """Tests for assembling a pass manager from a task list."""
+class TestTaskSequenceAssembly(QiskitTestCase):
+    """Tests for assembling a pass manager from a task sequence."""
 
     def test_build(self):
-        """Test building a pass manager from a task list."""
-        task_list = TaskList([CircuitToDag()])
-        task_list.append(RemoveIdentities())
-        task_list.append(DagToCircuit())
+        """Test building a pass manager from a task sequence."""
+        task_sequence = TaskSequence([CircuitToDag()])
+        task_sequence.append(RemoveIdentities())
+        task_sequence.append(DagToCircuit())
 
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
@@ -1334,25 +1336,25 @@ class TestTaskListAssembly(QiskitTestCase):
 
         expected = QuantumCircuit(2)
         expected.cx(0, 1)
-        self.assertEqual(expected, LoweringPassManager(task_list).run(circuit))
+        self.assertEqual(expected, LoweringPassManager(task_sequence).run(circuit))
 
     def test_append_defers_validation(self):
-        """Test that a task list accepts ill-typed tasks and is rejected when it is built."""
-        task_list = TaskList()
-        task_list.append(CircuitToDag())
-        task_list.append(CircuitToDag())
+        """Test that a task sequence accepts ill-typed tasks and is rejected when it is built."""
+        task_sequence = TaskSequence()
+        task_sequence.append(CircuitToDag())
+        task_sequence.append(CircuitToDag())
         with self.assertRaisesRegex(TypeError, r"the task at \[1\] takes QuantumCircuit"):
-            LoweringPassManager(task_list)
+            LoweringPassManager(task_sequence)
 
-        # fixing the task list makes it buildable
-        task_list.tasks[1] = DagToCircuit()
-        self.assertIsInstance(LoweringPassManager(task_list), LoweringPassManager)
+        # fixing the task sequence makes it buildable
+        task_sequence.tasks[1] = DagToCircuit()
+        self.assertIsInstance(LoweringPassManager(task_sequence), LoweringPassManager)
 
     def test_extend_and_iadd(self):
-        """Test extending a task list, both by method and in place."""
-        task_list = TaskList([CircuitToDag()])
-        task_list.extend([RemoveIdentities()])
-        task_list += [DagToCircuit()]
+        """Test extending a task sequence, both by method and in place."""
+        task_sequence = TaskSequence([CircuitToDag()])
+        task_sequence.extend([RemoveIdentities()])
+        task_sequence += [DagToCircuit()]
 
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
@@ -1360,16 +1362,16 @@ class TestTaskListAssembly(QiskitTestCase):
 
         expected = QuantumCircuit(2)
         expected.cx(0, 1)
-        self.assertEqual(expected, LoweringPassManager(task_list).run(circuit))
+        self.assertEqual(expected, LoweringPassManager(task_sequence).run(circuit))
 
     def test_build_out_of_order(self):
-        """Test assembling a task list whose stages are filled in after they are placed."""
-        init = TaskList()
-        stages = StagedTaskList([("init", init)])
-        task_list = TaskList([CircuitToDag(), stages, DagToCircuit()])
+        """Test assembling a task sequence whose stages are filled in after they are placed."""
+        init = TaskSequence()
+        stages = TaskStages([("init", init)])
+        task_sequence = TaskSequence([CircuitToDag(), stages, DagToCircuit()])
 
         init.append(RemoveIdentities())
-        stages["count"] = TaskList([CountGates()])
+        stages["count"] = TaskSequence([CountGates()])
 
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
@@ -1377,60 +1379,60 @@ class TestTaskListAssembly(QiskitTestCase):
 
         expected = QuantumCircuit(2)
         expected.cx(0, 1)
-        self.assertEqual(expected, LoweringPassManager(task_list).run(circuit))
+        self.assertEqual(expected, LoweringPassManager(task_sequence).run(circuit))
 
-    def test_to_task_list_round_trips(self):
-        """Test that `to_task_list` round-trips a pass manager's tasks."""
+    def test_to_task_sequence_round_trips(self):
+        """Test that `to_task_sequence` round-trips a pass manager's tasks."""
         tasks = [CircuitToDag(), RemoveIdentities(), DagToCircuit()]
         pm = LoweringPassManager(tasks)
-        task_list = pm.to_task_list()
-        self.assertEqual(task_list.tasks, tasks)
+        task_sequence = pm.to_task_sequence()
+        self.assertEqual(task_sequence.tasks, tasks)
 
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
-        self.assertEqual(pm.run(circuit), LoweringPassManager(task_list).run(circuit))
+        self.assertEqual(pm.run(circuit), LoweringPassManager(task_sequence).run(circuit))
 
-    def test_to_task_list_reflects_what_runs(self):
-        """Test that the read-back shows the task list rather than the appended objects."""
-        placeholder = TaskList()
+    def test_to_task_sequence_reflects_what_runs(self):
+        """Test that the read-back shows the task sequence rather than the appended objects."""
+        placeholder = TaskSequence()
         pm = LoweringPassManager([CircuitToDag(), placeholder, DagToCircuit()])
         placeholder.append(RemoveIdentities())
 
         # the pass manager holds the empty placeholder it lowered, not the edited one
-        read_back = pm.to_task_list()
+        read_back = pm.to_task_sequence()
         self.assertEqual([], read_back[1].tasks)
         self.assertIsNot(placeholder, read_back[1])
         self.assertEqual(
-            "TaskList([CircuitToDag(), TaskList([]), DagToCircuit()])", repr(read_back)
+            "TaskSequence([CircuitToDag(), TaskSequence([]), DagToCircuit()])", repr(read_back)
         )
 
-    def test_to_task_list_preserves_pass_identity(self):
+    def test_to_task_sequence_preserves_pass_identity(self):
         """Test that the read-back returns the original pass objects."""
         a, b = CircuitToDag(), DagToCircuit()
-        pm = LoweringPassManager([a, TaskList([b])])
-        read_back = pm.to_task_list()
+        pm = LoweringPassManager([a, TaskSequence([b])])
+        read_back = pm.to_task_sequence()
         self.assertIs(a, read_back[0])
         self.assertIs(b, read_back[1][0])
 
-    def test_to_task_list_rebuilds_nested_containers(self):
-        """Test that the read-back rebuilds task lists and stages at any depth."""
+    def test_to_task_sequence_rebuilds_nested_containers(self):
+        """Test that the read-back rebuilds task sequences and stages at any depth."""
         raise_ = DagToCircuit()
         pm = LoweringPassManager(
-            [StagedTaskList([("lower", TaskList([CircuitToDag()])), ("raise", raise_)])]
+            [TaskStages([("lower", TaskSequence([CircuitToDag()])), ("raise", raise_)])]
         )
-        outer = pm.to_task_list()[0]
-        self.assertIsInstance(outer, StagedTaskList)
+        outer = pm.to_task_sequence()[0]
+        self.assertIsInstance(outer, TaskStages)
         self.assertEqual(["lower", "raise"], list(outer))
-        self.assertIsInstance(outer["lower"], TaskList)
+        self.assertIsInstance(outer["lower"], TaskSequence)
         self.assertIs(raise_, outer["raise"])
 
-    def test_to_task_list_does_not_alias(self):
-        """Test that appending to the returned task list leaves the pass manager alone."""
+    def test_to_task_sequence_does_not_alias(self):
+        """Test that appending to the returned task sequence leaves the pass manager alone."""
         pm = LoweringPassManager([CircuitToDag()])
-        task_list = pm.to_task_list()
-        task_list.append(RemoveIdentities())
+        task_sequence = pm.to_task_sequence()
+        task_sequence.append(RemoveIdentities())
 
-        self.assertEqual(1, len(pm.to_task_list()))
+        self.assertEqual(1, len(pm.to_task_sequence()))
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
         circuit.rz(1e-10, 0)

@@ -42,9 +42,9 @@ __all__ = [
     "Pass",
     "PassContextHandle",
     "PassError",
-    "StagedTaskList",
     "StagesLike",
-    "TaskList",
+    "TaskSequence",
+    "TaskStages",
 ]
 
 
@@ -139,20 +139,20 @@ class LoweringTask(abc.ABC):
 
     A task is either a single :class:`~.Pass`, or a container of other tasks.
     Containers are freely mutable, and are permitted to be ill-typed while they are being
-    assembled: a :class:`TaskList` may hold two consecutive tasks whose IR types disagree, for
+    assembled: a :class:`TaskSequence` may hold two consecutive tasks whose IR types disagree, for
     example. IR type checking happens when a task is given to a :class:`LoweringPassManager`.
     """
 
 
 StagesLike: TypeAlias = Mapping[str, LoweringTask] | Iterable[tuple[str, LoweringTask]]
-"""Types that :class:`StagedTaskList` accepts as a collection of stages."""
+"""Types that :class:`TaskStages` accepts as a collection of stages."""
 
 
-class TaskList(LoweringTask, MutableSequence):
+class TaskSequence(LoweringTask, MutableSequence):
     """A mutable sequence of tasks to run in order.
 
-    Task lists are permitted to be ill-typed while they are being assembled: they may hold two
-    consecutive tasks whose IR types disagree.  IR type checking happens when this task list is
+    Task sequences are permitted to be ill-typed while they are being assembled: they may hold two
+    consecutive tasks whose IR types disagree.  IR type checking happens when this task sequence is
     given to a :class:`LoweringPassManager`.
     """
 
@@ -180,7 +180,7 @@ class TaskList(LoweringTask, MutableSequence):
     def __getitem__(self, index: list[int]) -> Self: ...
 
     def __getitem__(self, index):
-        """Get the task at a position, or a new :class:`~.TaskList` of the tasks in a slice."""
+        """Get the task at a position, or a new :class:`~.TaskSequence` of the tasks in a slice."""
         if isinstance(index, slice):
             return type(self)(self.tasks[index])
         if isinstance(index, list):
@@ -198,7 +198,7 @@ class TaskList(LoweringTask, MutableSequence):
         self.tasks.insert(index, value)
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, TaskList):
+        if not isinstance(other, TaskSequence):
             return NotImplemented
         return self.tasks == other.tasks
 
@@ -213,14 +213,14 @@ class TaskList(LoweringTask, MutableSequence):
         return f"{type(self).__name__}({self.tasks!r})"
 
 
-class StagedTaskList(LoweringTask, MutableMapping):
+class TaskStages(LoweringTask, MutableMapping):
     """A mutable sequence of named tasks to run in order.
 
-    A staged task list and a :class:`~.TaskList` have identical execution behavior. A staged task
-    list simply additionally assigns a name to each task it runs.
+    Task stages have the same execution behavior as a :class:`~.TaskSequence`. They simply
+    additionally assign a name to each task they run.
 
-    Staged task lists are permitted to be ill-typed while they are being assembled: they may hold
-    two consecutive tasks whose IR types disagree.  IR type checking happens when this task list is
+    Task stages are permitted to be ill-typed while they are being assembled: they may hold two
+    consecutive tasks whose IR types disagree.  IR type checking happens when these task stages are
     given to a :class:`LoweringPassManager`.
     """
 
@@ -257,12 +257,12 @@ class StagedTaskList(LoweringTask, MutableMapping):
         return pos % len(self.stages)
 
     def _splice(self, at: int, name: str, task: LoweringTask) -> Self:
-        """Return a new staged task list with ``name`` inserted at index ``at``."""
+        """Return new task stages with ``name`` inserted at index ``at``."""
         items = [pair for pair in self.stages.items() if pair[0] != name]
         return type(self)(chain(items[:at], [(name, task)], items[at:]))
 
     def insert_before(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> Self:
-        """Return a new staged task list with ``stage`` inserted directly before ``pos``.
+        """Return new task stages with ``stage`` inserted directly before ``pos``.
 
         Args:
             pos: the stage to insert before, by name or by position.
@@ -277,7 +277,7 @@ class StagedTaskList(LoweringTask, MutableMapping):
         return self._splice(self._index_of(pos), *_as_stage(stage))
 
     def insert_after(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> Self:
-        """Return a new staged task list with ``stage`` inserted directly after ``pos``.
+        """Return new task stages with ``stage`` inserted directly after ``pos``.
 
         Args:
             pos: the stage to insert after, by name or by position.
@@ -304,7 +304,7 @@ class StagedTaskList(LoweringTask, MutableMapping):
     def __getitem__(self, index: list[str | int]) -> Self: ...
 
     def __getitem__(self, index):
-        """Get the task of a stage by name or position, or a new staged task list from a slice."""
+        """Get the task of a stage by name or position, or new task stages from a slice."""
         if isinstance(index, str):
             return self.stages[index]
         items = list(self.stages.items())
@@ -325,27 +325,27 @@ class StagedTaskList(LoweringTask, MutableMapping):
         return iter(self.stages)
 
     def __eq__(self, other: object) -> bool:
-        """Compare equal to another staged task list with the same stages in the same order."""
+        """Compare equal to other task stages with the same stages in the same order."""
         # `Mapping` provides an `__eq__` that ignores order and accepts any mapping.  Stage order
         # is execution order, so it is part of the value, and a plain dict is not a task.
-        if not isinstance(other, StagedTaskList):
+        if not isinstance(other, TaskStages):
             return NotImplemented
         return list(self.stages.items()) == list(other.stages.items())
 
     def __add__(self, other: StagesLike) -> Self:
-        """Return a new staged task list of this one's stages updated with ``other``'s."""
+        """Return new task stages of this object's stages updated with ``other``'s."""
         out = type(self)(self.stages)
         out.update(_as_stages(other))
         return out
 
     def __radd__(self, other: StagesLike) -> Self:
-        """Return a new staged task list of ``other``'s stages updated with this one's."""
+        """Return new task stages of ``other``'s stages updated with this object's."""
         out = type(self)(other)
         out.update(self.stages)
         return out
 
     def __iadd__(self, other: StagesLike) -> Self:
-        """Update this staged task list in place with ``other``'s stages."""
+        """Update these task stages in place with ``other``'s stages."""
         self.update(_as_stages(other))
         return self
 
@@ -363,7 +363,7 @@ def _as_stage(stage: tuple[str, LoweringTask]) -> tuple[str, LoweringTask]:
 
 
 def _as_stages(stages: StagesLike) -> dict[str, LoweringTask]:
-    """Normalize anything :class:`StagedTaskList` accepts into a dictionary of stages.
+    """Normalize anything :class:`TaskStages` accepts into a dictionary of stages.
 
     Raises:
         TypeError: if ``stages`` is not a mapping or an iterable of ``(name, task)`` pairs.
@@ -558,11 +558,11 @@ class LoweringPassManager:
 
         Args:
             task: the task to push.  This may be a single :class:`Pass`, or a container such as a
-                :class:`TaskList` or :class:`StagedTaskList`.
+                :class:`TaskSequence` or :class:`TaskStages`.
 
         Raises:
-            TypeError: if ``task`` is not a :class:`Pass`, :class:`TaskList` or
-                :class:`StagedTaskList`, if it is ill-typed internally, or if its input IR type
+            TypeError: if ``task`` is not a :class:`Pass`, :class:`TaskSequence` or
+                :class:`TaskStages`, if it is ill-typed internally, or if its input IR type
                 does not match the output type of the pipeline so far.  The pass manager is left
                 unmodified.
         """
@@ -592,11 +592,11 @@ class LoweringPassManager:
             ir = _copy.copy(ir)
         return self._native.run_simple(ir)
 
-    def to_task_list(self) -> TaskList:
-        """Return a new task list of the tasks that this pass manager runs.
+    def to_task_sequence(self) -> TaskSequence:
+        """Return a new task sequence of the tasks that this pass manager runs.
 
-        Mutating the returned task list does not affect this pass manager. If your goal is to
-        modify the structure of this pass manager, modify the task list as needed and then
+        Mutating the returned task sequence does not affect this pass manager. If your goal is to
+        modify the structure of this pass manager, modify the task sequence as needed and then
         instantiate a new pass manager. Note, on the other hand, that :meth:`~.append` mutates this
         pass manager in-place. The :class:`~.Pass` objects within are shared references
         rather than copies.
@@ -606,11 +606,11 @@ class LoweringPassManager:
             pass_manager = LoweringPassManager([MyLoweringPass(), MyOptimizationPass()])
 
             # Insert a pass in the middle
-            tasks = pass_manager.to_task_list()
+            tasks = pass_manager.to_task_sequence()
             tasks.insert(1, MyAnalysisPass())
             edited = LoweringPassManager(tasks)
 
         Returns:
-             A new :class:`TaskList`.
+             A new :class:`TaskSequence`.
         """
-        return TaskList(self._native.to_py_tasks())
+        return TaskSequence(self._native.to_py_tasks())

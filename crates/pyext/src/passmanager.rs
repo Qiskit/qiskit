@@ -244,14 +244,13 @@ static NATIVE_PASS: ImportOnceCell = ImportOnceCell::new(
     "_native_pass_from_lowering_pass",
 );
 static PASS: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "Pass");
-static TASK_LIST: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "TaskList");
-static STAGED_TASK_LIST: ImportOnceCell =
-    ImportOnceCell::new("qiskit.passmanager", "StagedTaskList");
+static TASK_SEQUENCE: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "TaskSequence");
+static TASK_STAGES: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "TaskStages");
 
 /// Build the native task that corresponds to a `qiskit.passmanager` object.
 ///
 /// The set of [`Task`] variants is closed, so the accepted Python types are exactly `Pass`,
-/// `TaskList` and `StagedTaskList`.  This is the inverse of [`task_to_py`].
+/// `TaskSequence` and `TaskStages`.  This is the inverse of [`task_to_py`].
 fn task_from_py(ob: &Bound<PyAny>) -> PyResult<Task> {
     let py = ob.py();
     if ob.is_instance(PASS.get_bound(py))? {
@@ -261,15 +260,15 @@ fn task_from_py(ob: &Bound<PyAny>) -> PyResult<Task> {
         let pass = PyPass::steal(handle.cast::<PyPass>()?)?;
         return Ok(Task::Transformation(Box::new(pass)));
     }
-    if ob.is_instance(TASK_LIST.get_bound(py))? {
+    if ob.is_instance(TASK_SEQUENCE.get_bound(py))? {
         let tasks = ob
             .getattr(intern!(py, "tasks"))?
             .try_iter()?
             .map(|task| task_from_py(&task?))
             .collect::<PyResult<Vec<_>>>()?;
-        return Ok(Task::List(tasks));
+        return Ok(Task::Sequence(tasks));
     }
-    if ob.is_instance(STAGED_TASK_LIST.get_bound(py))? {
+    if ob.is_instance(TASK_STAGES.get_bound(py))? {
         let stages = ob
             .getattr(intern!(py, "stages"))?
             .cast_into::<PyDict>()?
@@ -279,7 +278,7 @@ fn task_from_py(ob: &Bound<PyAny>) -> PyResult<Task> {
         return Ok(Task::Stages(stages));
     }
     Err(PyTypeError::new_err(format!(
-        "expected a Pass, TaskList or StagedTaskList, got {}: {}",
+        "expected a Pass, TaskSequence or TaskStages, got {}: {}",
         ob.get_type().name()?,
         ob.repr()?
     )))
@@ -297,19 +296,21 @@ fn task_to_py<'py>(py: Python<'py>, task: &Task) -> PyResult<Bound<'py, PyAny>> 
             };
             Ok(inner.ob.bind(py).clone())
         }
-        Task::List(tasks) => {
+        Task::Sequence(tasks) => {
             let children = tasks
                 .iter()
                 .map(|task| task_to_py(py, task))
                 .collect::<PyResult<Vec<_>>>()?;
-            TASK_LIST.get_bound(py).call1((PyList::new(py, children)?,))
+            TASK_SEQUENCE
+                .get_bound(py)
+                .call1((PyList::new(py, children)?,))
         }
         Task::Stages(stages) => {
             let children = stages
                 .iter()
                 .map(|(name, task)| Ok((name, task_to_py(py, task)?)))
                 .collect::<PyResult<Vec<_>>>()?;
-            STAGED_TASK_LIST
+            TASK_STAGES
                 .get_bound(py)
                 .call1((PyList::new(py, children)?,))
         }
@@ -524,7 +525,7 @@ impl PyPassManager {
     /// the pipeline so far.  The pass manager is left unmodified if either check fails.
     ///
     /// Raises:
-    ///     TypeError: if `task` is not a `Pass`, `TaskList` or `StagedTaskList`, if it is
+    ///     TypeError: if `task` is not a `Pass`, `TaskSequence` or `TaskStages`, if it is
     ///         ill-typed internally, or if it does not follow on from the pipeline so far.
     pub fn push_task(&mut self, task: &Bound<PyAny>) -> PyResult<()> {
         match self.0.try_push_task(task_from_py(task)?) {

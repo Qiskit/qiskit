@@ -2,21 +2,21 @@
 features:
   - |
     :class:`.LoweringPassManager` now accepts composite tasks, not only individual
-    :class:`~.passmanager.Pass` instances. A :class:`.TaskList` runs a sequence of tasks in order,
-    and a :class:`.StagedTaskList` does the same with a name attached to each task, both of 
-    which are mutable containers that can be nested arbitrarily. 
+    :class:`~.passmanager.Pass` instances. A :class:`.TaskSequence` runs a sequence of tasks in
+    order, and :class:`.TaskStages` does the same with a name attached to each task, both of
+    which are mutable containers that can be nested arbitrarily.
 
     .. code-block:: python
 
-        from qiskit.passmanager import LoweringPassManager, TaskList, StagedTaskList
+        from qiskit.passmanager import LoweringPassManager, TaskSequence, TaskStages
 
-        stages = StagedTaskList([("lower", TaskList()), ("optimize", TaskList())])
+        stages = TaskStages([("lower", TaskSequence()), ("optimize", TaskSequence())])
         stages["lower"].append(MyLoweringPass())
         stages["optimize"].append(MyOptimizationPass())
 
         pass_manager = LoweringPassManager([stages])
 
 
-    :class:`~.passmanager.Pass` now inherits from :class:`.LoweringTask` along with the new task 
-    container types. :meth:`.LoweringPassManager.to_task_list` returns a :class:`.TaskList` of the 
-    tasks that a pass manager runs.
+    :class:`~.passmanager.Pass` now inherits from :class:`.LoweringTask` along with the new task
+    container types. :meth:`.LoweringPassManager.to_task_sequence` returns a
+    :class:`.TaskSequence` of the tasks that a pass manager runs.
