@@ -292,8 +292,8 @@ single :class:`~.Pass`, which is an atomic execution that declares the :class:`~
 accepts and returns, or a (possibly nested) structure that holds tasks and specifies their
 flow of execution.
 
-While task structures like :class:`~.TaskList` are being constructed and mutated there are no checks
-to ensure that they specify valid :class:`~.IR`\\s transitions between passes; task container
+While task structures like :class:`~.TaskSequence` are being constructed and mutated there are no
+checks to ensure that they specify valid :class:`~.IR`\\s transitions between passes; task container
 types generally allow being ill-typed. However, whenever a task is added to a pass manager, or
 whenever the task structure of a pass manager is mutated in any way, the pass manager checks at
 every boundary that one task's output IR is the next one's input, raising an error if the
@@ -301,10 +301,12 @@ possibility of a bad :class:`~.IR` handover is detected.
 
 .. code-block:: python
 
-    from qiskit.passmanager import LoweringPassManager, TaskList, StagedTaskList
+    from qiskit.passmanager import LoweringPassManager, TaskSequence, TaskStages
 
-    stages = StagedTaskList([("lower", TaskList([MyLoweringPass()])), ("optimize", TaskList())])
-    pipeline = TaskList([stages])
+    stages = TaskStages(
+        [("lower", TaskSequence([MyLoweringPass()])), ("optimize", TaskSequence())]
+    )
+    pipeline = TaskSequence([stages])
 
     stages["optimize"].append(MyOptimizationPass())
     stages["lower"].append(AnotherLoweringPass())
@@ -316,17 +318,17 @@ possibility of a bad :class:`~.IR` handover is detected.
 
 .. autoclass:: LoweringPassManager
 
-:class:`~.TaskList` is a :class:`~collections.abc.MutableSequence` of a sequence of tasks to be
-unconditionally executed in order. A :class:`StagedTaskList` is
+:class:`~.TaskSequence` is a :class:`~collections.abc.MutableSequence` of a sequence of tasks to be
+unconditionally executed in order. :class:`TaskStages` is a
 :class:`~collections.abc.MutableMapping` and also specifies a sequence of tasks to be
 unconditionally executed in order, but where each task must be assigned a name.
 
 .. autoclass:: LoweringTask
-.. autoclass:: TaskList
+.. autoclass:: TaskSequence
     :members:
     :special-members: __add__, __delitem__, __eq__, __getitem__, __len__, __radd__, __setitem__
     :undoc-members:
-.. autoclass:: StagedTaskList
+.. autoclass:: TaskStages
     :members:
     :special-members: __add__, __delitem__, __eq__, __getitem__, __iadd__, __iter__, __len__,
         __radd__, __setitem__
