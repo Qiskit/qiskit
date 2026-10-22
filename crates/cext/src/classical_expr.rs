@@ -13,6 +13,7 @@
 use std::ptr;
 
 use crate::pointers::const_ptr_as_ref;
+use crate::util;
 use num_bigint::BigUint;
 use num_traits::{ToPrimitive, Zero};
 use qiskit_circuit::{
@@ -23,7 +24,7 @@ use qiskit_circuit::{
     },
     duration::Duration,
 };
-use std::ffi::{CString, c_char};
+use std::ffi::c_char;
 use uuid::Uuid;
 
 /// The different types of expression nodes that can appear in a classical expression tree.
@@ -871,15 +872,10 @@ pub unsafe extern "C" fn qk_value_bool(value: *const Value) -> bool {
 pub unsafe extern "C" fn qk_var_name(var: *const Var) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let var = unsafe { const_ptr_as_ref(var) };
-
-    let name = match var {
-        Var::Standalone { name, .. } => name.as_str(),
-        Var::Register { .. } | Var::Bit { .. } => return ptr::null_mut(),
-    };
-
-    CString::new(name)
-        .expect("Var should have a valid name")
-        .into_raw()
+    match var {
+        Var::Standalone { name, .. } => util::cstring_from_utf8_lossy(name).into_raw(),
+        Var::Register { .. } | Var::Bit { .. } => ptr::null_mut(),
+    }
 }
 
 /// @ingroup QkClassicalExpressions
@@ -941,10 +937,7 @@ pub unsafe extern "C" fn qk_var_type_info(var: *const Var) -> CExprTypeInfo {
 pub unsafe extern "C" fn qk_stretch_name(stretch: *const Stretch) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let stretch = unsafe { const_ptr_as_ref(stretch) };
-
-    CString::new(stretch.name.as_str())
-        .expect("Stretch should have a valid name")
-        .into_raw()
+    util::cstring_from_utf8_lossy(&stretch.name).into_raw()
 }
 
 //////////////////////////////////////////////////////////////////

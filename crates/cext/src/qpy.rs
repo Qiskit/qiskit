@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ffi::{CStr, CString, c_char};
+use std::ffi::{CStr, c_char};
 use std::fs;
 use std::io::Cursor;
 use std::slice;
@@ -19,6 +19,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{check_ptr, mut_ptr_as_ref};
+use crate::util;
 
 /// @ingroup QkQpy
 /// Get the oldest QPY format version readable by the loaded library.
@@ -59,11 +60,9 @@ fn return_error(error: *mut *mut c_char, value: QpyCError) -> ExitCode {
         QpyCError::ExitCode(code) => code,
         QpyCError::Diagnostic(message) => {
             if !error.is_null() {
-                // A safeguard in case the error contains nuls from payload
-                // defined strings.
-                let message = message.replace('\0', "\\0");
+                let message = util::cstring_from_utf8_lossy(message);
                 // SAFETY: the caller guarantees that a non-null `error` is valid for one write.
-                unsafe { error.write(CString::new(message).unwrap().into_raw()) };
+                unsafe { error.write(message.into_raw()) };
             }
             ExitCode::QpyError
         }
