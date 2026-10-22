@@ -552,7 +552,7 @@ static int test_while_on_register(void) {
 
     QkBigUint cond_val_biguint = qk_control_flow_condition_reg_cond_biguint(cf_inst);
     if (!(cond_val_biguint.num_limbs == 1 && cond_val_biguint.limbs[0] == 7)) {
-        printf("Expected condition value 7, got %" PRIu64 "\n", cond_val);
+        fprintf(stderr, "Expected condition value 7, got %" PRIu64 "\n", cond_val);
         result = EqualityError;
         goto cleanup;
     }
