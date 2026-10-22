@@ -544,10 +544,10 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_c3x_cx_count(self):
         """Test synth_c3x bound on CX count."""
         synthesized_circuit = synth_c3x()
-        cx_count = synthesized_circuit.count_ops()["cx"]
-        two_qubit_count = synthesized_circuit.num_nonlocal_gates()
+        count_ops = synthesized_circuit.count_ops()
+        self.assertEqual(set(count_ops.keys()), {"cx", "h", "p"})
+        cx_count = count_ops["cx"]
         # The bound from the default construction for C3X
-        self.assertEqual(cx_count, two_qubit_count)
         self.assertEqual(cx_count, 14)
 
     def test_c4x_cx_count(self):
