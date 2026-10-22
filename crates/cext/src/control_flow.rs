@@ -94,7 +94,7 @@ impl CControlFlowInstruction {
         let inst = self.instruction();
         inst.op
             .try_control_flow()
-            .unwrap_or_else(|| panic!("this is a control flow instruction"))
+            .expect("created for control flow insruction")
     }
 }
 
@@ -524,7 +524,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_type(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    if let Some(condition) = maybe_extract_condition(cf_inst.control_flow_inst()) {
+    if let Some(condition) = get_condition(cf_inst.control_flow_inst()) {
         CConditionType::from(condition)
     } else {
         CConditionType::Unknown
@@ -540,8 +540,8 @@ pub unsafe extern "C" fn qk_control_flow_condition_type(
 /// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent
 ///     an IfElse or While instruction with a classical bit condition.
 ///
-/// @return Returns the classical bit index and condition if `cf_inst` has a classical bit
-///         condition, otherwise `0` and `false` respectively.
+/// @return The classical bit index and condition if `cf_inst` has a classical bit condition,
+///         otherwise invalid.
 ///
 /// # Example
 /// ```c
@@ -560,21 +560,21 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    const DEFAULT: CConditionBitInfo = CConditionBitInfo {
+    const INVALID: CConditionBitInfo = CConditionBitInfo {
         clbit: 0,
         condition: false,
     };
 
-    let Some(condition) = maybe_extract_condition(cf_inst.control_flow_inst()) else {
-        return DEFAULT;
+    let Some(condition) = get_condition(cf_inst.control_flow_inst()) else {
+        return INVALID;
     };
 
     let Condition::Bit(clbit, condition) = condition else {
-        return DEFAULT;
+        return INVALID;
     };
 
     let Some(clbit) = cf_inst.circuit().clbit_index(clbit) else {
-        return DEFAULT;
+        return INVALID;
     };
 
     CConditionBitInfo {
@@ -592,7 +592,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
 /// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent
 ///     an IfElse or While instruction with a classical register condition.
 ///
-/// @return Returns the bit width if `cf_inst` has a register condition, otherwise `0`.
+/// @return The bit width if `cf_inst` has a register condition, otherwise `0`.
 ///
 /// # Example
 /// ```c
@@ -611,7 +611,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_bit_width(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let Some(condition) = maybe_extract_condition(cf_inst.control_flow_inst()) else {
+    let Some(condition) = get_condition(cf_inst.control_flow_inst()) else {
         return 0;
     };
 
@@ -652,7 +652,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let Some(condition) = maybe_extract_condition(cf_inst.control_flow_inst()) else {
+    let Some(condition) = get_condition(cf_inst.control_flow_inst()) else {
         return ptr::null();
     };
 
@@ -692,7 +692,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_uint(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let Some(condition) = maybe_extract_condition(cf_inst.control_flow_inst()) else {
+    let Some(condition) = get_condition(cf_inst.control_flow_inst()) else {
         return 0;
     };
 
@@ -736,7 +736,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_expr(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let Some(condition) = maybe_extract_condition(cf_inst.control_flow_inst()) else {
+    let Some(condition) = get_condition(cf_inst.control_flow_inst()) else {
         return ptr::null();
     };
 
@@ -2267,7 +2267,7 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
     Box::into_raw(Box::new(circuit))
 }
 
-fn maybe_extract_condition(instruction: &ControlFlowInstruction) -> Option<&'_ Condition> {
+fn get_condition(instruction: &ControlFlowInstruction) -> Option<&'_ Condition> {
     match &instruction.control_flow {
         ControlFlow::IfElse { condition } | ControlFlow::While { condition } => Some(condition),
         _ => None,
