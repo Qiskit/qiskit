@@ -4,6 +4,6 @@ fixes:
     Fixed an issue where :meth:`.CPhaseGate.power`, :meth:`.CSGate.power`, and
     :meth:`.CSdgGate.power` dropped the ``ctrl_state`` attribute of the gate,
     causing open-controlled gates (``ctrl_state=0``) to lose their control state
-    and fallback to the default control state: ``1``.
+    and fall back to the default control state: ``1``.
 
     Fixed `#17222 <https://github.com/Qiskit/qiskit/issues/17222>`__.
