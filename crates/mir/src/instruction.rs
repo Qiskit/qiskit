@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Definition of Instruction and InstructionList used in Qiskit Medium IR.
+//! Definition of Instruction and InstructionList used in Qiskit Middle IR.
 
 use crate::ops::{MirOp, MirOp::PauliRotation};
 use crate::qid::QidList;
@@ -23,7 +23,7 @@ use crate::{
 use std::fmt;
 use thiserror::Error;
 
-/// Instruction in Qiskit Medium IR
+/// Instruction in Qiskit Middle IR
 ///
 /// This represents an instruction in MIR. Each instruction consists of an
 /// operation, a list of Quantum IDs, a list of SymbolIds of arguments and a
