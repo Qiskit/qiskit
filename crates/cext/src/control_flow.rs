@@ -94,7 +94,7 @@ impl CControlFlowInstruction {
         let inst = self.instruction();
         inst.op
             .try_control_flow()
-            .unwrap_or_else(|| panic!("inst should be a control flow instruction"))
+            .unwrap_or_else(|| panic!("this is a control flow instruction"))
     }
 }
 
@@ -238,6 +238,8 @@ pub enum CLoopParamKind {
 /// inside a parameter vector accessed by an index.
 #[repr(u8)]
 pub enum CSymbolType {
+    /// Unknown symbol type
+    Unknown = 2,
     /// A standalone symbol with a simple name
     Standalone = 0,
     /// An element symbol with a base name and index
@@ -1075,10 +1077,8 @@ pub unsafe extern "C" fn qk_control_flow_loop_param_kind(
 /// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent a ForLoop
 ///     with a Parameter loop parameter.
 ///
-/// @return A `QkSymbolInfo` struct containing the symbol information. The caller must free
-///     the returned string in the ``name`` field using `qk_str_free`.
-///
-/// Panics if ``cf_inst`` is not a ForLoop control flow instruction with a Parameter loop parameter.
+/// @return The symbol information if `cf_inst` is a for loop with a parameter, otherwise invalid.
+///         The caller must free the returned string in the ``name`` field using `qk_str_free`.
 ///
 /// # Example
 /// ```c
@@ -1107,7 +1107,11 @@ pub unsafe extern "C" fn qk_control_flow_loop_symbol_info(
         ..
     } = &cf_inst.control_flow_inst().control_flow
     else {
-        panic!("Expected a ForLoop control flow instruction with a loop parameter")
+        return CSymbolInfo {
+            ty: CSymbolType::Unknown,
+            name: ptr::null_mut(),
+            index: 0,
+        };
     };
 
     match symbol {
@@ -1140,10 +1144,8 @@ pub unsafe extern "C" fn qk_control_flow_loop_symbol_info(
 /// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent a ForLoop
 ///     with a Variable loop parameter.
 ///
-/// @return A pointer to the ``QkVar`` representing the loop variable. The pointer is valid
-///     for the lifetime of the control flow instruction.
-///
-/// Panics if ``cf_inst`` is not a ForLoop control flow instruction with a Variable loop parameter.
+/// @return The loop variable if `cf_inst` is a foor loop with a variable, otherwise `NULL`. The
+///         returned pointer is valid for the lifetime of the control flow instruction.
 ///
 /// # Example
 /// ```c
@@ -1162,15 +1164,15 @@ pub unsafe extern "C" fn qk_control_flow_loop_variable(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let ControlFlow::ForLoop {
+    if let ControlFlow::ForLoop {
         loop_param: Some(LoopParam::Variable(var)),
         ..
     } = &cf_inst.control_flow_inst().control_flow
-    else {
-        panic!("Expected a ForLoop control flow instruction with a loop variable")
-    };
-
-    ptr::from_ref(var)
+    {
+        ptr::from_ref(var)
+    } else {
+        ptr::null()
+    }
 }
 
 /// @ingroup QkControlFlow
@@ -1228,9 +1230,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_type(
 /// @param cf_inst A pointer to the control flow instruction.
 ///     The control flow instruction must be of a Switch kind with a classical bit target.
 ///
-/// @return The index of the classical bit in the circuit.
-///
-/// Panics if ``cf_inst`` is not a Switch control flow instruction with a classical bit target.
+/// @return The index of the classical bit in the circuit if `cf_inst` is a switch with a
+///         classical bit target, otherwise `0`.
 ///
 /// # Example
 /// ```c
@@ -1249,18 +1250,19 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_bit(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let ControlFlow::Switch {
-        target: SwitchTarget::Bit(clbit),
-        ..
-    } = &cf_inst.control_flow_inst().control_flow
-    else {
-        panic!("Expected a Switch control flow instruction with a classical bit target")
+    let ControlFlow::Switch { target, .. } = &cf_inst.control_flow_inst().control_flow else {
+        return 0;
     };
 
-    cf_inst
-        .circuit()
-        .clbit_index(clbit)
-        .expect("Classical bit should be found in circuit")
+    let SwitchTarget::Bit(clbit) = target else {
+        return 0;
+    };
+
+    let Some(clbit) = cf_inst.circuit().clbit_index(clbit) else {
+        return 0;
+    };
+
+    clbit
 }
 
 /// @ingroup QkControlFlow
@@ -1272,11 +1274,9 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_bit(
 /// @param cf_inst A pointer to the control flow instruction.
 ///     The control flow instruction must be of a Switch kind with a register target.
 ///
-/// @return A pointer to the ``QkClassicalRegister`` that the Switch operates on.
-///     The register is valid as long as the control flow instruction exists.
-///     The register is owned by the control flow instruction and must not be freed by the caller.
-///
-/// Panics if ``cf_inst`` is not a Switch control flow instruction with a register target.
+/// @return The classical register if `cf_inst` is a switch with a register, otherwise `NULL`.
+///         The register is valid as long as the control flow instruction exists. The register is
+///         owned by the control flow instruction and must not be freed by the caller.
 ///
 /// # Example
 /// ```c
@@ -1295,15 +1295,15 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_register(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let ControlFlow::Switch {
-        target: SwitchTarget::Register(reg),
-        ..
-    } = &cf_inst.control_flow_inst().control_flow
-    else {
-        panic!("Expected a Switch control flow instruction with a register target")
+    let ControlFlow::Switch { target, .. } = &cf_inst.control_flow_inst().control_flow else {
+        return ptr::null();
     };
 
-    ptr::from_ref(reg)
+    let SwitchTarget::Register(register) = target else {
+        return ptr::null();
+    };
+
+    ptr::from_ref(register)
 }
 
 /// @ingroup QkControlFlow
@@ -1315,11 +1315,9 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_register(
 /// @param cf_inst A pointer to the control flow instruction.
 ///     The control flow instruction must be of a Switch kind with an expression target.
 ///
-/// @return A pointer to the ``QkExpr`` representing the Switch target expression.
-///     The expression is valid as long as the control flow instruction exists.
-///     The expression is owned by the control flow instruction and must not be freed by the caller.
-///
-/// Panics if ``cf_inst`` is not a Switch control flow instruction with an expression target.
+/// @return The switch target expression if `cf_inst` is a switch with an expression, otherwise
+///         `NULL`. The expression is valid as long as the control flow instruction exists. The
+///         expression is owned by the control flow instruction and must not be freed by the caller.
 ///
 /// # Example
 /// ```c
@@ -1338,12 +1336,12 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_expr(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let ControlFlow::Switch {
-        target: SwitchTarget::Expr(expr),
-        ..
-    } = &cf_inst.control_flow_inst().control_flow
-    else {
-        panic!("Expected a Switch control flow instruction with an expression target")
+    let ControlFlow::Switch { target, .. } = &cf_inst.control_flow_inst().control_flow else {
+        return ptr::null();
+    };
+
+    let SwitchTarget::Expr(expr) = target else {
+        return ptr::null();
     };
 
     ptr::from_ref(expr)
@@ -1358,9 +1356,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_expr(
 /// @param cf_inst A pointer to the control flow instruction.
 ///     The control flow instruction must be of a Switch kind.
 ///
-/// @return The number of cases in the Switch statement.
-///
-/// Panics if ``cf_inst`` is not a Switch control flow instruction.
+/// @return The number of cases if `cf_inst` is a switch statement, otherwise `0`.
 ///
 /// # Example
 /// ```c
@@ -1381,11 +1377,11 @@ pub unsafe extern "C" fn qk_control_flow_switch_num_cases(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
-        panic!("Expected a Switch control flow instruction")
-    };
-
-    label_spec.len()
+    if let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow {
+        label_spec.len()
+    } else {
+        0
+    }
 }
 
 /// @ingroup QkControlFlow
@@ -1401,9 +1397,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_num_cases(
 /// @param case_idx The index of the case to check. Must be less than the value
 ///     returned by `qk_control_flow_switch_num_cases`.
 ///
-/// @return ``true`` if the case at ``case_idx`` is the default case, ``false`` otherwise.
-///
-/// Panics if ``cf_inst`` is not a Switch control flow instruction.
+/// @return ``true`` if the case at ``case_idx`` is the default case and `cf_inst` is a switch,
+///         otherwise ``false``.
 ///
 /// # Example
 /// ```c
@@ -1426,11 +1421,11 @@ pub unsafe extern "C" fn qk_control_flow_switch_is_case_default(
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { &*cf_inst };
 
-    let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
-        panic!("Expected a Switch control flow instruction")
-    };
-
-    matches!(label_spec[case_idx].last(), Some(CaseSpecifier::Default))
+    if let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow {
+        matches!(label_spec[case_idx].last(), Some(CaseSpecifier::Default))
+    } else {
+        false
+    }
 }
 
 /// @ingroup QkControlFlow
@@ -1445,10 +1440,11 @@ pub unsafe extern "C" fn qk_control_flow_switch_is_case_default(
 /// @param case_idx The index of the case whose label bit width to retrieve. Must be less than
 ///     the value returned by `qk_control_flow_switch_num_cases`.
 ///
-/// @return The maximum bit width of the labels in the case, or 0 if the case has no
-///     unsigned integer labels (e.g., only a DEFAULT specifier).
+/// @return The maximum bit width if unsigned integer labels are present and `cf_inst` is a switch,
+///         otherwise `0`.
 ///
-/// Panics if ``cf_inst`` is not a Switch control flow instruction.
+/// The maximum bit width of the labels in the case, or 0 if the case has no
+///     unsigned integer labels (e.g., only a DEFAULT specifier).
 ///
 /// # Example
 /// ```c
@@ -1469,7 +1465,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
     let cf_inst = unsafe { &*cf_inst };
 
     let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
-        panic!("Expected a Switch control flow instruction")
+        return 0;
     };
 
     label_spec[case_idx]
@@ -1501,13 +1497,11 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
 /// @param case_idx The index of the case whose labels to retrieve. Must be less than
 ///     the value returned by `qk_control_flow_switch_num_cases`.
 ///
-/// @return A `QkSwitchCaseLabels` struct with the label information for the given case.
-///     The struct will contain a pointer to an array of labels and the number of labels.
-///     If ``num_labels > 0``, you should call `qk_control_flow_switch_case_labels_clear`
-///     to free the memory allocated by this function.
-///
-/// Panics if ``cf_inst`` is not a Switch control flow instruction or if a case label
-/// does not fit in ``uint64_t``.
+/// @return The label information if `cf_inst` is a switch, otherwise invalid. `num_labels` is
+///         `UINT64_MAX` if the underlying value exceeds it. The struct will contain a pointer to
+///         an array of labels and the number of labels. If ``num_labels > 0``, you should call
+///         `qk_control_flow_switch_case_labels_clear` to free the memory allocated by this
+///         function.
 ///
 /// # Example
 /// ```c
@@ -1532,18 +1526,17 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
     let cf_inst = unsafe { &*cf_inst };
 
     let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
-        panic!("Expected a Switch control flow instruction")
+        return CSwitchCaseLabels {
+            labels: ptr::null(),
+            num_labels: 0,
+        };
     };
 
     let labels = label_spec[case_idx]
         .iter()
         .filter_map(|l| {
             if let CaseSpecifier::Uint(label) = l {
-                Some(
-                    label
-                        .to_u64()
-                        .unwrap_or_else(|| panic!("Case label too large to fit in uint64_t")),
-                )
+                Some(label.to_u64().unwrap_or(u64::MAX))
             } else {
                 None
             }
