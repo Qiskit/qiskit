@@ -22,10 +22,14 @@ from __future__ import annotations
 
 import abc
 import copy as _copy
+from itertools import chain
+import reprlib
 import typing
-from collections.abc import Iterable
+from collections import Counter
+from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence
 from typing import Generic, ClassVar, TypeAlias
-from typing_extensions import TypeVar
+from typing_extensions import Self, TypeVar
+
 
 from qiskit._accelerate import passmanager
 from .exceptions import PassManagerError
@@ -34,9 +38,13 @@ __all__ = [
     "IR",
     "LoweringPassManager",
     "LoweringPassManagerError",
+    "LoweringTask",
     "Pass",
     "PassContextHandle",
     "PassError",
+    "StagedTaskList",
+    "StagesLike",
+    "TaskList",
 ]
 
 
@@ -126,6 +134,257 @@ class LoweringPassManagerError(PassManagerError):
     # state we'll just use the regular display.
 
 
+class LoweringTask(abc.ABC):
+    """A single unit of execution flow in a :class:`LoweringPassManager`.
+
+    A task is either a single :class:`~.Pass`, or a container of other tasks.
+    Containers are freely mutable, and are permitted to be ill-typed while they are being
+    assembled: a :class:`TaskList` may hold two consecutive tasks whose IR types disagree, for
+    example. IR type checking happens when a task is given to a :class:`LoweringPassManager`.
+    """
+
+
+StagesLike: TypeAlias = Mapping[str, LoweringTask] | Iterable[tuple[str, LoweringTask]]
+"""Types that :class:`StagedTaskList` accepts as a collection of stages."""
+
+
+class TaskList(LoweringTask, MutableSequence):
+    """A mutable sequence of tasks to run in order.
+
+    Task lists are permitted to be ill-typed while they are being assembled: they may hold two
+    consecutive tasks whose IR types disagree.  IR type checking happens when this task list is
+    given to a :class:`LoweringPassManager`.
+    """
+
+    def __init__(self, tasks: Iterable[LoweringTask] = ()):
+        """
+        Args:
+            tasks: the initial tasks.
+        """
+        self.tasks: list[LoweringTask] = list(tasks)
+        """The tasks, in execution order.
+        
+        This list can be safely mutated in-place.
+        """
+
+    def __len__(self) -> int:
+        return len(self.tasks)
+
+    @typing.overload
+    def __getitem__(self, index: int) -> LoweringTask: ...
+
+    @typing.overload
+    def __getitem__(self, index: slice) -> Self: ...
+
+    @typing.overload
+    def __getitem__(self, index: list[int]) -> Self: ...
+
+    def __getitem__(self, index):
+        """Get the task at a position, or a new :class:`~.TaskList` of the tasks in a slice."""
+        if isinstance(index, slice):
+            return type(self)(self.tasks[index])
+        if isinstance(index, list):
+            return type(self)(self.tasks[idx] for idx in index)
+        return self.tasks[index]
+
+    def __setitem__(self, index, task):
+        self.tasks[index] = task
+
+    def __delitem__(self, index):
+        del self.tasks[index]
+
+    def insert(self, index: int, value: LoweringTask):
+        """Insert ``task`` before position ``index``."""
+        self.tasks.insert(index, value)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TaskList):
+            return NotImplemented
+        return self.tasks == other.tasks
+
+    def __add__(self, other: Iterable[LoweringTask]) -> Self:
+        return type(self)(chain(self.tasks, other))
+
+    def __radd__(self, other: Iterable[LoweringTask]) -> Self:
+        return type(self)(chain(other, self.tasks))
+
+    @reprlib.recursive_repr()
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.tasks!r})"
+
+
+class StagedTaskList(LoweringTask, MutableMapping):
+    """A mutable sequence of named tasks to run in order.
+
+    A staged task list and a :class:`~.TaskList` have identical execution behavior. A staged task
+    list simply additionally assigns a name to each task it runs.
+
+    Staged task lists are permitted to be ill-typed while they are being assembled: they may hold
+    two consecutive tasks whose IR types disagree.  IR type checking happens when this task list is
+    given to a :class:`LoweringPassManager`.
+    """
+
+    def __init__(self, stages: StagesLike = ()):
+        """
+        Args:
+            stages: the initial stages, as a mapping from name to task or an iterable of
+                ``(name, task)`` pairs.
+
+        Raises:
+            TypeError: if ``stages`` is not a mapping or an iterable of ``(name, task)`` pairs.
+            ValueError: if a stage name is repeated.
+        """
+        self.stages: dict[str, LoweringTask] = _as_stages(stages)
+        """The stages, in execution order.
+        
+        This dictionary can be safely mutated in-place.
+        """
+
+    def _index_of(self, pos: str | int) -> int:
+        """Resolve a stage name, or a position that may be negative, to an index.
+
+        Raises:
+            KeyError: if ``pos`` is a name that is not present.
+            IndexError: if ``pos`` is a position that is out of range.
+        """
+        if isinstance(pos, str):
+            try:
+                return list(self.stages).index(pos)
+            except ValueError:
+                raise KeyError(f"no stage named {pos!r}") from None
+        if not -len(self.stages) <= pos < len(self.stages):
+            raise IndexError(f"stage position out of range: {pos}")
+        return pos % len(self.stages)
+
+    def _splice(self, at: int, name: str, task: LoweringTask) -> Self:
+        """Return a new staged task list with ``name`` inserted at index ``at``."""
+        items = [pair for pair in self.stages.items() if pair[0] != name]
+        return type(self)(chain(items[:at], [(name, task)], items[at:]))
+
+    def insert_before(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> Self:
+        """Return a new staged task list with ``stage`` inserted directly before ``pos``.
+
+        Args:
+            pos: the stage to insert before, by name or by position.
+            stage: the ``(name, task)`` pair to insert.  A name that is already present moves to
+                the new position.
+
+        Raises:
+            KeyError: if ``pos`` is a name that is not present.
+            IndexError: if ``pos`` is a position that is out of range.
+            TypeError: if ``stage`` is not a ``(name, task)`` pair.
+        """
+        return self._splice(self._index_of(pos), *_as_stage(stage))
+
+    def insert_after(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> Self:
+        """Return a new staged task list with ``stage`` inserted directly after ``pos``.
+
+        Args:
+            pos: the stage to insert after, by name or by position.
+            stage: the ``(name, task)`` pair to insert.  A name that is already present moves to
+                the new position.
+
+        Raises:
+            KeyError: if ``pos`` is a name that is not present.
+            IndexError: if ``pos`` is a position that is out of range.
+            TypeError: if ``stage`` is not a ``(name, task)`` pair.
+        """
+        return self._splice(self._index_of(pos) + 1, *_as_stage(stage))
+
+    def __len__(self) -> int:
+        return len(self.stages)
+
+    @typing.overload
+    def __getitem__(self, index: str | int) -> LoweringTask: ...
+
+    @typing.overload
+    def __getitem__(self, index: slice) -> Self: ...
+
+    @typing.overload
+    def __getitem__(self, index: list[str | int]) -> Self: ...
+
+    def __getitem__(self, index):
+        """Get the task of a stage by name or position, or a new staged task list from a slice."""
+        if isinstance(index, str):
+            return self.stages[index]
+        items = list(self.stages.items())
+        if isinstance(index, slice):
+            return type(self)(items[index])
+        if isinstance(index, list):
+            return type(self)(items[self._index_of(pos)] for pos in index)
+        return items[index][1]
+
+    def __setitem__(self, name: str, task: LoweringTask):
+        self.stages[name] = task
+
+    def __delitem__(self, name: str):
+        del self.stages[name]
+
+    def __iter__(self) -> typing.Iterator[str]:
+        """Iterate over the stage names, in execution order."""
+        return iter(self.stages)
+
+    def __eq__(self, other: object) -> bool:
+        """Compare equal to another staged task list with the same stages in the same order."""
+        # `Mapping` provides an `__eq__` that ignores order and accepts any mapping.  Stage order
+        # is execution order, so it is part of the value, and a plain dict is not a task.
+        if not isinstance(other, StagedTaskList):
+            return NotImplemented
+        return list(self.stages.items()) == list(other.stages.items())
+
+    def __add__(self, other: StagesLike) -> Self:
+        """Return a new staged task list of this one's stages updated with ``other``'s."""
+        out = type(self)(self.stages)
+        out.update(_as_stages(other))
+        return out
+
+    def __radd__(self, other: StagesLike) -> Self:
+        """Return a new staged task list of ``other``'s stages updated with this one's."""
+        out = type(self)(other)
+        out.update(self.stages)
+        return out
+
+    def __iadd__(self, other: StagesLike) -> Self:
+        """Update this staged task list in place with ``other``'s stages."""
+        self.update(_as_stages(other))
+        return self
+
+    @reprlib.recursive_repr()
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({list(self.stages.items())!r})"
+
+
+def _as_stage(stage: tuple[str, LoweringTask]) -> tuple[str, LoweringTask]:
+    """Validate a single ``(name, task)`` pair."""
+    match stage:
+        case (str(), _):
+            return stage
+    raise TypeError(f"expected a (name, task) pair, got {stage!r}")
+
+
+def _as_stages(stages: StagesLike) -> dict[str, LoweringTask]:
+    """Normalize anything :class:`StagedTaskList` accepts into a dictionary of stages.
+
+    Raises:
+        TypeError: if ``stages`` is not a mapping or an iterable of ``(name, task)`` pairs.
+        ValueError: if a stage name is repeated.
+    """
+    if isinstance(stages, Mapping):
+        return dict(stages)
+    try:
+        pairs = [_as_stage(stage) for stage in stages]
+    except TypeError as exc:
+        raise TypeError(
+            f"expected a mapping or an iterable of (name, task) pairs, got {stages!r}"
+        ) from exc
+    out = dict(pairs)
+    if len(out) != len(pairs):
+        counts = Counter(name for name, _ in pairs)
+        repeated = sorted(name for name, count in counts.items() if count > 1)
+        raise ValueError(f"stage names must be unique, but these repeat: {repeated}")
+    return out
+
+
 @typing.final
 class PassContextHandle:
     """The execution context for a given pass in a lowering pipeline.
@@ -192,7 +451,7 @@ class PassContextHandle:
         self._native.set_ir_modified(val)
 
 
-class Pass(Generic[IRIn, IROut], abc.ABC):
+class Pass(Generic[IRIn, IROut], LoweringTask):
     """An interface for defining passes over IRs.
 
     This is primarily an *implementation* interface.  The typical way to safely consume a
@@ -225,6 +484,9 @@ class Pass(Generic[IRIn, IROut], abc.ABC):
     """The type of the IR that the pass expects."""
     _qiskit_pass_ir_out_: type[AnyIR]
     """The type of the IR that the pass outputs."""
+
+    def __repr__(self) -> str:
+        return f"{self._qiskit_pass_name_ or type(self).__name__}()"
 
     @abc.abstractmethod
     def _qiskit_pass_run_(self, ir: IRIn, context: PassContextHandle) -> IROut:
@@ -277,24 +539,37 @@ class LoweringPassManager:
         intend to lift this restriction in the future.
     """
 
-    def __init__(self, tasks: Iterable[Pass] = ()) -> None:
+    def __init__(self, tasks: Iterable[LoweringTask] = ()) -> None:
         """
         Args:
             tasks: any tasks with which to initialize the pass manager.  Passing this is equivalent
                 to calling :meth:`append` in a loop with the arguments.
+
+        Raises:
+            TypeError: if any element is not an executable :class:`LoweringTask`, or if the
+                resulting pipeline is ill-typed.
         """
         self._native = passmanager.PassManager()
         for task in tasks:
             self.append(task)
 
-    def append(self, pass_: Pass, /):
-        """Push a Python-native pass to the end of the current pipeline.
+    def append(self, task: LoweringTask, /):
+        """Push a task to the end of the current pipeline.
 
         Args:
-            pass_: the pass to push.
+            task: the task to push.  This may be a single :class:`Pass`, or a container such as a
+                :class:`TaskList` or :class:`StagedTaskList`.
+
+        Raises:
+            TypeError: if ``task`` is not a :class:`Pass`, :class:`TaskList` or
+                :class:`StagedTaskList`, if it is ill-typed internally, or if its input IR type
+                does not match the output type of the pipeline so far.  The pass manager is left
+                unmodified.
         """
-        # We can extend this method with dispatched type-checking once we expose other tasks, etc.
-        self._native.push_pass(_native_pass_from_lowering_pass(pass_))
+        self._native.push_task(task)
+
+    def __repr__(self) -> str:
+        return repr(self._native)
 
     def run(self, ir: IRIn, *, copy: bool = True) -> object:
         """Run the pipeline on the given IR.
@@ -316,3 +591,26 @@ class LoweringPassManager:
         if copy:
             ir = _copy.copy(ir)
         return self._native.run_simple(ir)
+
+    def to_task_list(self) -> TaskList:
+        """Return a new task list of the tasks that this pass manager runs.
+
+        Mutating the returned task list does not affect this pass manager. If your goal is to
+        modify the structure of this pass manager, modify the task list as needed and then
+        instantiate a new pass manager. Note, on the other hand, that :meth:`~.append` mutates this
+        pass manager in-place. The :class:`~.Pass` objects within are shared references
+        rather than copies.
+
+        .. code-block:: python
+
+            pass_manager = LoweringPassManager([MyLoweringPass(), MyOptimizationPass()])
+
+            # Insert a pass in the middle
+            tasks = pass_manager.to_task_list()
+            tasks.insert(1, MyAnalysisPass())
+            edited = LoweringPassManager(tasks)
+
+        Returns:
+             A new :class:`TaskList`.
+        """
+        return TaskList(self._native.to_py_tasks())
