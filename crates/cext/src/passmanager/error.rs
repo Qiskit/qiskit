@@ -11,7 +11,8 @@
 // that they have been altered from the originals.
 
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box};
-use std::ffi::{CStr, CString, c_char};
+use crate::util;
+use std::ffi::{CStr, c_char};
 
 /// @ingroup pass-manager
 /// A detailed error raised during compilation.
@@ -58,15 +59,7 @@ pub unsafe extern "C" fn qk_compilation_error_new(msg: *const c_char) -> *mut Co
 pub unsafe extern "C" fn qk_compilation_error_str(error: *const CompilationError) -> *mut c_char {
     // SAFETY: per documentation, `error` points to an aligned valid error.
     let error = unsafe { const_ptr_as_ref(error) };
-    let msg = error.0.to_string();
-    CString::new(msg)
-        .unwrap_or_else(|e| {
-            // SAFETY: these bytes just came from `msg: String`, so they're valid.
-            let msg = unsafe { String::from_utf8(e.into_vec()).unwrap_unchecked() };
-            // SAFETY: the same call replaces all `nul` bytes with an escape sequence.
-            unsafe { CString::new(msg.replace("\0", "\\0")).unwrap_unchecked() }
-        })
-        .into_raw()
+    util::cstring_from_utf8_lossy(error.0.to_string()).into_raw()
 }
 
 /// @ingroup pass-manager
