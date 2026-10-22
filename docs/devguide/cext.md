@@ -48,7 +48,7 @@ Use transparent structs when...
 ```rust
 #[repr(C)]
 pub struct QubitArray {
-    pub data: **mut Qubit,
+    pub data: *mut *mut Qubit,
     pub len: usize,
 }
 ```

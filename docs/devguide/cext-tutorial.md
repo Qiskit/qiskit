@@ -186,7 +186,7 @@ static int test_not_normalized() {
     QkQubit *qubit = qk_qubit_new(&a, &b);
 
     int result = EqualityError;
-    if qubit == NULL
+    if (qubit == NULL)
         result = Ok;
 
     qk_qubit_free(qubit);
