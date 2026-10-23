@@ -251,7 +251,10 @@ class TestCircuitOperations(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
 
-        with self.assertWarns(UserWarning, msg="Should warn that qargs are ignored when passing CircuitInstruction"):
+        with self.assertWarnsRegex(
+            UserWarning,
+            r"Any qargs/cargs passed into append\(\) alongside a valid CircuitInstruction will be ignored",
+        ):
             qc.append(CircuitInstruction(HGate(), [qr[0]], []), qargs=[qr[1]])
 
         expected_qc = QuantumCircuit(qr)
