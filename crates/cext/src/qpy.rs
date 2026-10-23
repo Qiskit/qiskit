@@ -17,7 +17,7 @@ use std::slice;
 use qiskit_circuit::circuit_data::CircuitData;
 
 use crate::exit_codes::ExitCode;
-use crate::pointers::{check_ptr};
+use crate::pointers::check_ptr;
 use crate::util;
 
 /// @ingroup QkQpy

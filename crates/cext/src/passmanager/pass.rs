@@ -16,9 +16,7 @@ use std::{mem, ptr};
 
 use super::{CompilationError, IrHandle};
 use crate::dyn_types::*;
-use crate::pointers::{
-    ExposesOwnedPointers, arc_clone_from_raw, expose_by_arc, expose_by_box,
-};
+use crate::pointers::{ExposesOwnedPointers, arc_clone_from_raw, expose_by_arc, expose_by_box};
 use qiskit_passmanager::{IR, Pass, PassContext, PassError};
 use qiskit_util::dyn_types::*;
 

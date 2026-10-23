@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::{ExposesOwnedPointers};
+use crate::pointers::ExposesOwnedPointers;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit_library::blocks::{Block, Entanglement};

@@ -36,9 +36,7 @@ use crate::circuit::{
 };
 
 use crate::circuit::unitary_from_pointer;
-use crate::pointers::{
-    ExposesOwnedPointers, check_ptr, expose_by_box,
-};
+use crate::pointers::{ExposesOwnedPointers, check_ptr, expose_by_box};
 
 // SAFETY: all owned `DAGCircuit` objects are exposed and freed using `Box`.
 const _: () = unsafe { expose_by_box!(DAGCircuit) };
