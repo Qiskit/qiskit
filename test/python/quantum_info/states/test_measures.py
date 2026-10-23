@@ -66,9 +66,35 @@ class TestStateMeasures(QiskitTestCase):
         qc_one.x(0)
         state_one = StabilizerState(qc_one)
 
-        self.assertAlmostEqual(state_fidelity(state0, state0), 1.0, places=7)
-        self.assertAlmostEqual(state_fidelity(state0, state_plus), 0.5, places=7)
-        self.assertAlmostEqual(state_fidelity(state0, state_one), 0.0, places=7)
+        self.assertAlmostEqual(state_fidelity(state0, state0), 1.0)
+        self.assertAlmostEqual(state_fidelity(state0, state_plus), 0.5)
+        self.assertAlmostEqual(state_fidelity(state0, state_one), 0.0)
+
+    def test_state_fidelity_stabilizer_complex_state(self):
+        """Test state_fidelity for nontrivial stabilizer states."""
+
+        qc1 = QuantumCircuit(3)
+        qc1.h(0)
+        qc1.cx(0, 1)
+        qc1.cx(1, 2)
+        qc1.s(2)
+
+        qc2 = QuantumCircuit(3)
+        qc2.h(1)
+        qc2.cx(1, 0)
+        qc2.cx(0, 2)
+        qc2.z(2)
+
+        stabilizer1 = StabilizerState(qc1)
+        stabilizer2 = StabilizerState(qc2)
+
+        reference1 = Statevector.from_instruction(qc1)
+        reference2 = Statevector.from_instruction(qc2)
+        expected = state_fidelity(reference1, reference2)
+
+        self.assertAlmostEqual(
+            state_fidelity(stabilizer1, stabilizer2), expected
+        )
 
     def test_state_fidelity_stabilizer_statevector(self):
         """Test state_fidelity for mixed StabilizerState and Statevector inputs."""

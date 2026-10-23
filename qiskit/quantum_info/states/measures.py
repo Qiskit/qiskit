@@ -44,8 +44,8 @@ def state_fidelity(
     :math:`\rho_1 = |\psi_1\rangle\!\langle\psi_1|`.
 
     Args:
-        state1 (Statevector, DensityMatrix, or StabilizerState): the first quantum state.
-        state2 (Statevector, DensityMatrix, or StabilizerState): the second quantum state.
+        state1: the first quantum state.
+        state2: the second quantum state.
         validate (bool): check if the inputs are valid quantum states
                          [Default: True]
 
@@ -59,8 +59,7 @@ def state_fidelity(
 
     # Handle fidelity between two StabilizerStates using Clifford operations
     if isinstance(state1, StabilizerState) and isinstance(state2, StabilizerState):
-        combined = state2.clifford.adjoint().compose(state1.clifford, front=True)
-        combined_state = StabilizerState(combined)
+        combined_state = state2.evolve(state1.clifford.adjoint())
         return float(
             combined_state.probabilities_dict_from_bitstring(
                 "0" * combined_state.num_qubits
@@ -74,7 +73,7 @@ def state_fidelity(
     if isinstance(state2, StabilizerState):
         state2 = Statevector.from_instruction(state2.clifford.to_circuit())
 
-    # convert input to numpy arrays
+    # Format input states
     state1 = _format_state(state1, validate=validate)
     state2 = _format_state(state2, validate=validate)
 
