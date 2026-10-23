@@ -76,7 +76,7 @@ fn construct_bell_mir() {
     // TODO: Write a lowering pass that iterates over the QiskitCircuit (in PBC)
     // and for each operation create the corresponding MIR instruction, adding
     // the Qid to the ResourceTable if they have not already been added.
-    let _ = instr_list.push_back(MirInstruction::new(
+    instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliList::new(vec![Pauli::Y]),
             AngleType::new(PI / 2.0),
@@ -86,7 +86,7 @@ fn construct_bell_mir() {
         SymbolIdList::default(),
     ));
 
-    let _ = instr_list.push_back(MirInstruction::new(
+    instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliList::new(vec![Pauli::Y]),
             AngleType::new(PI / 2.0),
@@ -96,7 +96,7 @@ fn construct_bell_mir() {
         SymbolIdList::default(),
     ));
 
-    let _ = instr_list.push_back(MirInstruction::new(
+    instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliList::new(vec![Pauli::X, Pauli::Z]),
             AngleType::new(PI / 2.0),
@@ -106,7 +106,7 @@ fn construct_bell_mir() {
         SymbolIdList::default(),
     ));
 
-    let _ = instr_list.push_back(MirInstruction::new(
+    instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliList::new(vec![Pauli::Z]),
             AngleType::new(-PI / 2.0),
@@ -116,7 +116,7 @@ fn construct_bell_mir() {
         SymbolIdList::default(),
     ));
 
-    let _ = instr_list.push_back(MirInstruction::new(
+    instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliList::new(vec![Pauli::X]),
             AngleType::new(-PI / 2.0),
