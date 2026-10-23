@@ -51,7 +51,7 @@ impl PauliList {
         PauliList(paulis)
     }
 
-    pub fn inner(&self) -> &Vec<Pauli> {
+    pub fn inner(&self) -> &[Pauli] {
         &self.0
     }
 
