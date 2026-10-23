@@ -235,16 +235,16 @@ impl PassManager {
     ///
     /// Fails, returning the same task back to the caller along with the reason, if the task is
     /// ill-typed internally or incompatible with the existing pipeline.
-    pub fn try_push_task(&mut self, task: Task) -> Result<(), (Task, TaskTypeError)> {
+    pub fn try_push_task(&mut self, task: Task) -> Result<(), (Task, TaskAppendError)> {
         if let Err(err) = task.validate() {
-            return Err((task, err));
+            return Err((task, TaskAppendError::Task(err)));
         }
         // The existing pipeline is well-typed, and so is the incoming task, so the boundary
         // between the two is the only place a mismatch can arise.
         if let Some((output, input)) = self.ir_id_out().zip(task.io_types().map(|[in_, _]| in_))
             && output != input
         {
-            let err = TaskTypeError::append(&self.tasks, output, &task, input);
+            let err = TaskAppendError::boundary(&self.tasks, output, &task, input);
             return Err((task, err));
         }
         self.tasks.push(task);
@@ -254,7 +254,7 @@ impl PassManager {
     pub fn try_push_static_pass<In: IR, Out: IR>(
         &mut self,
         ob: impl StaticPass<In, Out>,
-    ) -> Result<(), (Task, TaskTypeError)> {
+    ) -> Result<(), (Task, TaskAppendError)> {
         self.try_push_task(Task::Transformation(ob.into_pass()))
     }
 
@@ -388,7 +388,7 @@ mod test {
         ]);
         let (task, err) = pm.try_push_task(task).unwrap_err();
         // The task being appended is itself ill-typed
-        let TaskTypeError::Sequence { ends } = &err else {
+        let TaskAppendError::Task(TaskTypeError::Sequence { ends }) = &err else {
             panic!("expected a sequence mismatch, got {err}");
         };
         let [output, input] = &**ends;
@@ -408,8 +408,8 @@ mod test {
             .try_push_task(Task::Transformation(AddOne.into_pass()))
             .unwrap_err();
         // The existing end is located in the pass manager, the new end in the rejected task.
-        let TaskTypeError::Append { existing, new } = &err else {
-            panic!("expected an append mismatch, got {err}");
+        let TaskAppendError::Boundary { existing, new } = &err else {
+            panic!("expected a boundary mismatch, got {err}");
         };
         assert_eq!(existing.task().path(), [TaskPathSegment::Index(1)]);
         assert_eq!(existing.side(), Side::Output);

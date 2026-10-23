@@ -329,19 +329,28 @@ pub enum TaskTypeError {
     /// them, for example. They may point to culprits at different levels of nesting.
     #[error("{}, but {}", ends[0], ends[1])]
     Sequence { ends: Box<[TaskEndpoint; 2]> },
-    /// A task can not be appended to a pass manager.
+}
+
+/// A [Task] can not be appended to a [`PassManager`](crate::PassManager).
+#[derive(Clone, Debug, Error)]
+#[non_exhaustive]
+pub enum TaskAppendError {
+    /// The task is ill-typed in itself, regardless of what it is appended to.
+    #[error("the task being appended is ill-typed: {0}")]
+    Task(TaskTypeError),
+    /// The task disagrees with the output type of the existing pipeline.
     #[error(
         "cannot append the task: {}, but {} of the appended task {} {}",
         existing, new.task, new.side.verb(), new.ty
     )]
-    Append {
+    Boundary {
         existing: Box<TaskEndpoint>,
         new: Box<TaskEndpoint>,
     },
 }
-impl TaskTypeError {
+impl TaskAppendError {
     /// A mismatch at the boundary between a sequence of `tasks` and an appended `task`.
-    pub(crate) fn append(
+    pub(crate) fn boundary(
         tasks: &[Task],
         output: DynTypeId<'_>,
         task: &Task,
@@ -353,7 +362,7 @@ impl TaskTypeError {
             .rev()
             .find(|(_, task)| task.io_types().is_some())
             .expect("the sequence has an output type, so one of its tasks is typed");
-        Self::Append {
+        Self::Boundary {
             existing: Box::new(TaskEndpoint::new(
                 last,
                 &[SegmentRef::Index(index)],
@@ -374,9 +383,7 @@ mod test {
 
     /// The paths and types of the two ends of a [`TaskTypeError::Sequence`].
     fn sequence_ends(err: &TaskTypeError) -> [(&[TaskPathSegment], &str); 2] {
-        let TaskTypeError::Sequence { ends } = err else {
-            panic!("expected a sequence mismatch, got {err}");
-        };
+        let TaskTypeError::Sequence { ends } = err;
         ends.each_ref().map(|end| (end.task().path(), end.ty()))
     }
 
@@ -614,9 +621,7 @@ mod test {
             Task::Transformation(AddOne.into_pass()),
         ]);
         let err = seq.validate().unwrap_err();
-        let TaskTypeError::Sequence { ends } = &err else {
-            panic!("expected a sequence mismatch, got {err}");
-        };
+        let TaskTypeError::Sequence { ends } = &err;
         let [output, input] = &**ends;
         let TaskKind::Transformation(output_name) = output.task().kind() else {
             panic!("expected a pass");
