@@ -20,6 +20,7 @@ use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
 use crate::transpiler::target::parse_params;
+use crate::util;
 
 use bytemuck::AnyBitPattern;
 use nalgebra::{Matrix2, Matrix4};
@@ -170,10 +171,7 @@ pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
 pub unsafe extern "C" fn qk_quantum_register_name(qreg: *const QuantumRegister) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let qreg = unsafe { const_ptr_as_ref(qreg) };
-
-    CString::new(qreg.name())
-        .expect("Register name should not contain null bytes")
-        .into_raw()
+    util::cstring_from_utf8_lossy(qreg.name()).into_raw()
 }
 
 /// @ingroup QkQuantumRegister
@@ -342,10 +340,7 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 pub unsafe extern "C" fn qk_classical_register_name(creg: *const ClassicalRegister) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let creg = unsafe { const_ptr_as_ref(creg) };
-
-    CString::new(creg.name())
-        .expect("Register name should not contain null bytes")
-        .into_raw()
+    util::cstring_from_utf8_lossy(creg.name()).into_raw()
 }
 
 /// @ingroup QkClassicalRegister
@@ -1440,7 +1435,7 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
         let vec: Vec<OpCount> = count_ops
             .into_iter()
             .map(|(name, count)| OpCount {
-                name: CString::new(name).unwrap().into_raw(),
+                name: util::cstring_from_utf8_lossy(name).into_raw(),
                 count,
             })
             .collect();
@@ -1512,9 +1507,7 @@ impl CInstruction {
         qargs_interner: &Interner<[Qubit]>,
         cargs_interner: &Interner<[Clbit]>,
     ) -> Self {
-        let name = CString::new(packed.op.name())
-            .expect("names do not contain nul")
-            .into_raw();
+        let name = util::cstring_from_utf8_lossy(packed.op.name()).into_raw();
         let qargs = qargs_interner.get(packed.qubits);
         let cargs = cargs_interner.get(packed.clbits);
         let params = packed
@@ -2769,7 +2762,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
     let circuit_str =
         draw_circuit(circuit, bundle_cregs, merge_wires, fold, barrier_label_len).unwrap();
 
-    CString::new(circuit_str).unwrap().into_raw()
+    util::cstring_from_utf8_lossy(circuit_str).into_raw()
 }
 
 /// @ingroup QkCircuit
