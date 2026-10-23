@@ -76,6 +76,7 @@ def circuit_drawer(
     expr_len: int = 30,
     measure_arrows: bool | None = None,
     barrier_label_len: int = 16,
+    vertical_labels: bool | None = None,
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -191,6 +192,8 @@ def circuit_drawer(
         barrier_label_len: The number of characters to display for
             :class:`.Barrier` labels in the output circuit. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
+        vertical_labels: If True, the labels of multiple qubit gates are drawn vertically.
+            If False, the labels are drawn horizontally. If None, the default is horizontally.
 
     Returns:
         :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -383,6 +386,7 @@ def circuit_drawer(
             expr_len=expr_len,
             measure_arrows=measure_arrows,
             barrier_label_len=barrier_label_len,
+            vertical_labels=vertical_labels,
         )
     else:
         raise VisualizationError(
@@ -717,6 +721,7 @@ def _matplotlib_circuit_drawer(
     expr_len=30,
     measure_arrows=None,
     barrier_label_len=16,
+    vertical_labels=None,
 ):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -756,6 +761,8 @@ def _matplotlib_circuit_drawer(
             instead place the name of the bit or register in the measure box.
         barrier_label_len (int): Optional. The number of characters to display for
             :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
+        vertical_labels: Optional. If True, the labels of multiple qubit gates are drawn vertically.
+            If False, the labels are drawn horizontally. Default and None is horizontally.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
@@ -790,5 +797,6 @@ def _matplotlib_circuit_drawer(
         expr_len=expr_len,
         barrier_label_len=barrier_label_len,
         measure_arrows=measure_arrows,
+        vertical_labels=vertical_labels,
     )
     return qcd.draw(filename)

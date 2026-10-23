@@ -111,6 +111,7 @@ class MatplotlibDrawer:
         expr_len=30,
         measure_arrows=None,
         barrier_label_len=16,
+        vertical_labels=None,
     ):
         self._circuit = circuit
         self._qubits = qubits
@@ -142,6 +143,7 @@ class MatplotlibDrawer:
         self._barrier_label_len = barrier_label_len
         self._cregbundle = cregbundle
         self._measure_arrows = measure_arrows
+        self._vertical_labels = vertical_labels
 
         self._lwidth1 = 1.0
         self._lwidth15 = 1.5
@@ -1533,6 +1535,40 @@ class MatplotlibDrawer:
         qubit_span = abs(ypos) - abs(ypos_max)
         height = HIG + qubit_span
 
+        gate_text_str = node_data[node].gate_text
+        full_text_width = self._get_text_width(gate_text_str, glob_data, self._style["fs"])
+
+        if full_text_width > height and self._vertical_labels and gate_text_str:
+            avg_char_width = full_text_width / len(gate_text_str)
+            max_chars = max(1, int(height / avg_char_width))
+
+            lines = []
+            current_line = ""
+
+            for c in gate_text_str:
+                current_line += c
+                if len(current_line) > max_chars:
+                    break_idx = -1
+                    for idx in range(len(current_line) - 2, -1, -1):
+                        if current_line[idx] in " _/.-":
+                            break_idx = idx
+                            break
+
+                    if break_idx != -1:
+                        lines.append(current_line[: break_idx + 1])
+                        current_line = current_line[break_idx + 1 :]
+                    else:
+                        lines.append(current_line[:max_chars])
+                        current_line = current_line[max_chars:]
+
+            if current_line:
+                lines.append(current_line)
+                wid += WID + 0.21
+
+            gate_text = "\n".join(lines)
+        else:
+            gate_text = gate_text_str
+
         box = glob_data["patches_mod"].Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG),
             width=wid,
@@ -1589,13 +1625,14 @@ class MatplotlibDrawer:
             self._ax.text(
                 xpos + 0.11,
                 gate_ypos,
-                node_data[node].gate_text,
+                gate_text,
                 ha="center",
                 va="center",
                 fontsize=self._style["fs"],
                 color=node_data[node].gt,
                 clip_on=True,
                 zorder=PORDER_TEXT,
+                rotation=90 if self._vertical_labels else 0,
             )
 
     def _flow_op_gate(self, node, node_data, glob_data):
