@@ -79,6 +79,7 @@ impl AngleType {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+// TODO: Document rotation convention used and how it's similar/different from conventions used throughout Qiskit.
 pub struct PauliRotation {
     paulis: PauliList,
     angle: AngleType,
