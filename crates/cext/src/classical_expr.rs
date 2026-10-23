@@ -25,6 +25,7 @@ use qiskit_circuit::{
     duration::Duration,
 };
 use std::ffi::c_char;
+use thiserror::Error;
 use uuid::Uuid;
 
 /// The different types of expression nodes that can appear in a classical expression tree.
@@ -326,6 +327,8 @@ pub struct CIndexExprInfo {
 #[repr(u8)]
 #[derive(Copy, Clone)]
 pub enum CDurationType {
+    /// Duration type is unknown.
+    Unknown = 6,
     /// System time units
     Dt = 0,
     /// Picoseconds
@@ -360,9 +363,9 @@ impl From<&Duration> for CDurationType {
 #[derive(Copy, Clone)]
 pub union CDurationValue {
     /// System time units (active when `ty` in `QkDurationInfo` is `QkDurationType_Dt`)
-    dt: i64,
+    pub dt: i64,
     /// Real time value (active for all other duration types)
-    time: f64,
+    pub time: f64,
 }
 
 /// The complete representation of a duration value.
@@ -377,9 +380,9 @@ pub union CDurationValue {
 #[derive(Copy, Clone)]
 pub struct CDurationInfo {
     /// The duration unit type (discriminant for the union)
-    ty: CDurationType,
+    pub ty: CDurationType,
     /// The duration value
-    value: CDurationValue,
+    pub value: CDurationValue,
 }
 
 impl From<&Duration> for CDurationInfo {
@@ -413,9 +416,15 @@ impl From<&Duration> for CDurationInfo {
     }
 }
 
-impl From<CDurationInfo> for Duration {
-    fn from(value: CDurationInfo) -> Self {
-        match value.ty {
+#[derive(Debug, Error)]
+#[error("duration is unknown")]
+pub struct TryFromCDurationInfoError;
+
+impl TryFrom<CDurationInfo> for Duration {
+    type Error = TryFromCDurationInfoError;
+
+    fn try_from(value: CDurationInfo) -> Result<Self, Self::Error> {
+        let duration = match value.ty {
             // SAFETY: Per documentation, ty must correctly discriminate the union.
             CDurationType::Dt => Duration::dt(unsafe { value.value.dt }),
             CDurationType::Ps => Duration::ps(unsafe { value.value.time }),
@@ -423,7 +432,10 @@ impl From<CDurationInfo> for Duration {
             CDurationType::Us => Duration::us(unsafe { value.value.time }),
             CDurationType::Ms => Duration::ms(unsafe { value.value.time }),
             CDurationType::S => Duration::s(unsafe { value.value.time }),
-        }
+            CDurationType::Unknown => return Err(TryFromCDurationInfoError),
+        };
+
+        Ok(duration)
     }
 }
 
@@ -1126,7 +1138,10 @@ pub unsafe extern "C" fn inner_test_value(
             raw: BigUint::from(if b { 1u32 } else { 0u32 }),
             ty: Type::Bool,
         },
-        CExprType::Duration => Value::Duration(duration.into()),
+        CExprType::Duration => {
+            let duration = duration.try_into().expect("duration not unknown");
+            Value::Duration(duration)
+        }
         CExprType::Float => Value::Float {
             raw: f_val,
             ty: Type::Float,
