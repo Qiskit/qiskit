@@ -80,7 +80,7 @@ impl MirInstructionIndex {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Mir {
     instructions: LineGraph<MirInstruction>,
 }
