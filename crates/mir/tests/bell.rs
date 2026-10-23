@@ -49,7 +49,6 @@ use qiskit_mir::{
     },
     qid::{BitLayout, QidInfo, QidList, QidSpace, table::ResourceTable},
     symbol_table::SymbolIdList,
-    verifier::Verifier,
 };
 use std::f64::consts::PI;
 
@@ -129,5 +128,6 @@ fn construct_bell_mir() {
     //
     // Measures go here -- Not Defined Yet
 
-    instr_list.verify().unwrap();
+    // TODO: Add back when verify implemented.
+    //instr_list.verify().unwrap();
 }
