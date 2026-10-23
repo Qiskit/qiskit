@@ -12,16 +12,14 @@
 
 //! Definition of Instruction and InstructionList used in Qiskit Middle IR.
 
-use crate::ops::{MirOp, MirOp::PauliRotation};
+use crate::ops::MirOp;
 use crate::qid::QidList;
 use crate::symbol_table::SymbolIdList;
-use crate::verifier::Verifier;
 use crate::{
     line_graph,
     line_graph::{LineGraph, iter::IterMain},
 };
 use std::fmt;
-use thiserror::Error;
 
 /// Instruction in Qiskit Middle IR
 ///
@@ -74,32 +72,6 @@ impl fmt::Display for MirInstruction {
             "op: {:?}, qids: {:?}, args: {:?}, returns: {:?}",
             self.op, self.qids, self.args, self.returns
         )
-    }
-}
-
-#[derive(Error, Debug)]
-pub enum MirVerifierError {
-    #[error("Mismatch operand lengths: {} != {}", len1, len2)]
-    MismatchedOperands { len1: usize, len2: usize },
-}
-
-impl Verifier for MirInstruction {
-    type Error = MirVerifierError;
-
-    fn verify(&self) -> Result<(), Self::Error> {
-        match &self.op {
-            PauliRotation(pauli_rotation) => {
-                // Number of Qids on the instruction must match the number of
-                // paulis on the PauliRotation operation.
-                if self.qids().len() != pauli_rotation.paulis().len() {
-                    return Err(MirVerifierError::MismatchedOperands {
-                        len1: self.qids().len(),
-                        len2: pauli_rotation.paulis().len(),
-                    });
-                }
-            }
-        }
-        Ok(())
     }
 }
 
@@ -165,14 +137,6 @@ impl<'a> Iterator for MirInstructionListIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|s| s.weight())
-    }
-}
-
-impl Verifier for MirInstructionList {
-    type Error = MirVerifierError;
-
-    fn verify(&self) -> Result<(), Self::Error> {
-        self.iter().map(|instr| instr.verify()).collect()
     }
 }
 
@@ -242,23 +206,25 @@ mod tests {
             assert_eq!(*instr, check_list[index])
         }
 
-        instr_list.verify().unwrap();
+        // TODO: Add back when verify implemented.
+        //instr_list.verify().unwrap();
     }
 
-    #[test]
-    fn test_invalid_pauli_instruction() {
-        let instr = MirInstruction {
-            op: create_pauli_rotation_op(Pauli::X, 4, 0.5),
-            qids: QidList::new(vec![Qid::virt(0); 8]),
-            args: SymbolIdList::default(),
-            returns: SymbolIdList::default(),
-        };
+    // TODO: Add back when verify implemented.
+    // #[test]
+    // fn test_invalid_pauli_instruction() {
+    //     let instr = MirInstruction {
+    //         op: create_pauli_rotation_op(Pauli::X, 4, 0.5),
+    //         qids: QidList::new(vec![Qid::virt(0); 8]),
+    //         args: SymbolIdList::default(),
+    //         returns: SymbolIdList::default(),
+    //     };
 
-        let result = instr.verify();
+    //     let result = instr.verify();
 
-        assert!(matches!(
-            result,
-            Err(MirVerifierError::MismatchedOperands { len1: 8, len2: 4 })
-        ));
-    }
+    //     assert!(matches!(
+    //         result,
+    //         Err(MirVerifierError::MismatchedOperands { len1: 8, len2: 4 })
+    //     ));
+    // }
 }

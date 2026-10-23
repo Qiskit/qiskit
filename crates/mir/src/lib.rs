@@ -20,4 +20,3 @@ pub mod line_graph;
 pub mod ops;
 pub mod qid;
 pub mod symbol_table;
-pub mod verifier;
