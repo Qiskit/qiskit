@@ -93,8 +93,8 @@ impl PauliRotation {
         &self.paulis
     }
 
-    pub fn angle(&self) -> &AngleType {
-        &self.angle
+    pub fn angle(&self) -> AngleType {
+        self.angle
     }
 }
 
@@ -116,6 +116,6 @@ mod tests {
         };
 
         assert_eq!(*pauli_rotation.paulis(), PauliList(vec![Pauli::I; 8]));
-        assert_eq!(*pauli_rotation.angle(), AngleType(0.5));
+        assert_eq!(pauli_rotation.angle(), AngleType(0.5));
     }
 }
