@@ -160,6 +160,7 @@ mod circuit {
             export_fn!(qk_circuit_delay_dt),
             export_fn!(qk_circuit_delay_unit),
             export_fn!(qk_circuit_custom_operation),
+            export_fn!(qk_circuit_custom_operation_get),
         ]
     });
 }
@@ -234,6 +235,7 @@ mod dag {
             export_fn!(qk_dag_set_global_phase),
             export_fn!(qk_dag_view_instruction),
             export_fn!(qk_dag_apply_custom_operation),
+            export_fn!(qk_dag_get_custom_operation),
         ]
     });
 }
@@ -289,6 +291,18 @@ mod operations {
             export_fn!(qk_custom_operation_vtable_free),
             export_fn!(qk_custom_operation_new),
             export_fn!(qk_custom_operation_free),
+            export_fn!(qk_custom_operation_name),
+            export_fn!(qk_custom_operation_num_qubits),
+            export_fn!(qk_custom_operation_num_clbits),
+            export_fn!(qk_custom_operation_num_params),
+            export_fn!(qk_custom_operation_directive),
+            export_fn!(qk_custom_operation_is_unitary),
+            export_fn!(qk_custom_operation_num_ctrl_qubits),
+            export_fn!(qk_custom_operation_label),
+            export_fn!(qk_custom_operation_definition),
+            export_fn!(qk_custom_operation_eq),
+            export_fn!(qk_custom_operation_type_id),
+            export_fn!(qk_custom_operation_raw),
         ]
     });
 }
