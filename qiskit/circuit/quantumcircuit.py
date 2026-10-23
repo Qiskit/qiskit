@@ -2865,7 +2865,7 @@ class QuantumCircuit:
 
         If a :class:`.CircuitInstruction` is given, it will be unwrapped, verified in the context of
         this circuit, and a new object will be appended to the circuit.  In this case, passing
-        ``qargs`` or ``cargs`` separately will throw a warning, and their values will be ignored.
+        ``qargs`` or ``cargs`` separately will issue a warning, and their values will be ignored.
 
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
