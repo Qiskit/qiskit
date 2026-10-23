@@ -1486,13 +1486,17 @@ impl SymbolExpr {
                                 if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                     let t = SymbolExpr::Value(lv + rv);
                                     match (op, rop) {
-                                        (BinaryOp::Add, BinaryOp::Add) if t.is_zero() => {
+                                        (BinaryOp::Add, BinaryOp::Add)
+                                            if lv == &-rv || t.is_zero() =>
+                                        {
                                             return Some(_mul(
                                                 SymbolExpr::Value(Value::Int(2)),
                                                 l_rhs.as_ref().clone(),
                                             ));
                                         }
-                                        (BinaryOp::Sub, BinaryOp::Sub) if t.is_zero() => {
+                                        (BinaryOp::Sub, BinaryOp::Sub)
+                                            if lv == &-rv || t.is_zero() =>
+                                        {
                                             return Some(_mul(
                                                 SymbolExpr::Value(Value::Int(-2)),
                                                 l_rhs.as_ref().clone(),
@@ -1500,12 +1504,12 @@ impl SymbolExpr {
                                         }
                                         (BinaryOp::Sub, BinaryOp::Add)
                                         | (BinaryOp::Add, BinaryOp::Sub)
-                                            if t.is_zero() =>
+                                            if lv == &-rv || t.is_zero() =>
                                         {
                                             return Some(SymbolExpr::Value(Value::Int(0)));
                                         }
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
-                                            if t.is_zero() {
+                                            if lv == &-rv || t.is_zero() {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             }
                                             return match t.mul_opt(l_rhs, recursive) {
@@ -1514,7 +1518,7 @@ impl SymbolExpr {
                                             };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
-                                            if t.is_zero() {
+                                            if lv == &-rv || t.is_zero() {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             }
                                             return match t.div_opt(l_rhs, recursive) {
@@ -1887,24 +1891,28 @@ impl SymbolExpr {
                                     match (op, rop) {
                                         (BinaryOp::Add, BinaryOp::Add)
                                         | (BinaryOp::Sub, BinaryOp::Sub)
-                                            if t.is_zero() =>
+                                            if lv == rv || t.is_zero() =>
                                         {
                                             return Some(SymbolExpr::Value(Value::Int(0)));
                                         }
-                                        (BinaryOp::Sub, BinaryOp::Add) if t.is_zero() => {
+                                        (BinaryOp::Sub, BinaryOp::Add)
+                                            if lv == rv || t.is_zero() =>
+                                        {
                                             return Some(_mul(
                                                 SymbolExpr::Value(Value::Int(-2)),
                                                 l_rhs.as_ref().clone(),
                                             ));
                                         }
-                                        (BinaryOp::Add, BinaryOp::Sub) if t.is_zero() => {
+                                        (BinaryOp::Add, BinaryOp::Sub)
+                                            if lv == rv || t.is_zero() =>
+                                        {
                                             return Some(_mul(
                                                 SymbolExpr::Value(Value::Int(2)),
                                                 l_rhs.as_ref().clone(),
                                             ));
                                         }
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
-                                            if t.is_zero() {
+                                            if lv == rv || t.is_zero() {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             }
                                             return match t.mul_opt(l_rhs, recursive) {
@@ -1913,7 +1921,7 @@ impl SymbolExpr {
                                             };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
-                                            if t.is_zero() {
+                                            if lv == rv || t.is_zero() {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
                                             }
                                             return match t.div_opt(l_rhs, recursive) {
@@ -3606,32 +3614,23 @@ impl Value {
 
     pub fn is_zero(&self) -> bool {
         match self {
-            Value::Real(r) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(r),
+            Value::Real(r) => *r == 0.0,
             Value::Int(i) => *i == 0,
-            Value::Complex(c) => {
-                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.re)
-                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
-            }
+            Value::Complex(c) => c.re == 0.0 && c.im == 0.0,
         }
     }
     pub fn is_one(&self) -> bool {
         match self {
-            Value::Real(r) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(*r - 1.0)),
+            Value::Real(r) => *r == 1.0,
             Value::Int(i) => *i == 1,
-            Value::Complex(c) => {
-                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re - 1.0))
-                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
-            }
+            Value::Complex(c) => c.re == 1.0 && c.im == 0.0,
         }
     }
     pub fn is_minus_one(&self) -> bool {
         match self {
-            Value::Real(r) => (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(*r + 1.0)),
+            Value::Real(r) => *r == -1.0,
             Value::Int(i) => *i == -1,
-            Value::Complex(c) => {
-                (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&(c.re + 1.0))
-                    && (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im)
-            }
+            Value::Complex(c) => c.re == -1.0 && c.im == 0.0,
         }
     }
 
@@ -4499,5 +4498,108 @@ mod test {
             5,
         );
         assert!(!extend_rhs(left_mid, 5).eq_exact(&extend_rhs(right_mid, 5)));
+    }
+
+    #[test]
+    fn test_is_zero_one_minus_one_exact() {
+        assert!(Value::Real(0.0).is_zero());
+        assert!(Value::Real(-0.0).is_zero());
+        assert!(!Value::Real(1.7e-15).is_zero());
+        assert!(!Value::Real(-1.7e-15).is_zero());
+        assert!(!Value::Real(1e-20).is_zero());
+        assert!(!Value::Real(-1e-20).is_zero());
+        assert!(Value::Int(0).is_zero());
+        assert!(!Value::Int(1).is_zero());
+        assert!(Value::Complex(Complex64::new(0.0, 0.0)).is_zero());
+        assert!(!Value::Complex(Complex64::new(1e-20, 0.0)).is_zero());
+        assert!(!Value::Complex(Complex64::new(0.0, 1e-20)).is_zero());
+
+        assert!(Value::Real(1.0).is_one());
+        assert!(!Value::Real(1.0 + 1e-15).is_one());
+        assert!(!Value::Real(1.0 - 1e-15).is_one());
+        assert!(Value::Int(1).is_one());
+        assert!(!Value::Int(0).is_one());
+        assert!(Value::Complex(Complex64::new(1.0, 0.0)).is_one());
+        assert!(!Value::Complex(Complex64::new(1.0 + 1e-15, 0.0)).is_one());
+
+        assert!(Value::Real(-1.0).is_minus_one());
+        assert!(!Value::Real(-1.0 + 1e-15).is_minus_one());
+        assert!(!Value::Real(-1.0 - 1e-15).is_minus_one());
+        assert!(Value::Int(-1).is_minus_one());
+        assert!(!Value::Int(1).is_minus_one());
+        assert!(Value::Complex(Complex64::new(-1.0, 0.0)).is_minus_one());
+        assert!(!Value::Complex(Complex64::new(-1.0 + 1e-15, 0.0)).is_minus_one());
+    }
+
+    #[test]
+    fn test_small_float_multiplication_and_division() {
+        let t_sym = Arc::new(Symbol::standalone("t".to_string(), None));
+        let t_expr = SymbolExpr::Symbol(Arc::clone(&t_sym));
+
+        // (t * 1e15).subs({t: 1.7e-15}) == 1.7
+        let mul_expr = t_expr.clone() * SymbolExpr::Value(Value::Real(1e15));
+        let mut map = HashMap::new();
+        map.insert((*t_sym).clone(), SymbolExpr::Value(Value::Real(1.7e-15)));
+        let bound = mul_expr.subs(&map);
+        match bound.eval(true) {
+            Some(Value::Real(r)) => {
+                assert!((r - 1.7).abs() < 1e-10, "Expected ~1.7, got {r}");
+            }
+            other => panic!("Expected Value::Real(~1.7), got {other:?}"),
+        }
+
+        // (t * 1e-20 * 1e20).subs({t: 0.5}) == 0.5
+        let mul_chain = t_expr.clone()
+            * SymbolExpr::Value(Value::Real(1e-20))
+            * SymbolExpr::Value(Value::Real(1e20));
+        let mut map2 = HashMap::new();
+        map2.insert((*t_sym).clone(), SymbolExpr::Value(Value::Real(0.5)));
+        let bound_chain = mul_chain.subs(&map2);
+        match bound_chain.eval(true) {
+            Some(Value::Real(r)) => {
+                assert!((r - 0.5).abs() < 1e-10, "Expected ~0.5, got {r}");
+            }
+            other => panic!("Expected Value::Real(~0.5), got {other:?}"),
+        }
+
+        // (t * 1e-8 * 1e-8).subs({t: 1e10}) == 1e-6
+        let mul_chain2 = t_expr.clone()
+            * SymbolExpr::Value(Value::Real(1e-8))
+            * SymbolExpr::Value(Value::Real(1e-8));
+        let mut map3 = HashMap::new();
+        map3.insert((*t_sym).clone(), SymbolExpr::Value(Value::Real(1e10)));
+        let bound_chain2 = mul_chain2.subs(&map3);
+        match bound_chain2.eval(true) {
+            Some(Value::Real(r)) => {
+                assert!((r - 1e-6).abs() < 1e-12, "Expected ~1e-6, got {r}");
+            }
+            other => panic!("Expected Value::Real(~1e-6), got {other:?}"),
+        }
+
+        // t / 1e-20 must not be treated as divide by zero / infinity
+        let div_expr = t_expr.clone() / SymbolExpr::Value(Value::Real(1e-20));
+        assert!(!div_expr.is_zero());
+        let mut map4 = HashMap::new();
+        map4.insert((*t_sym).clone(), SymbolExpr::Value(Value::Real(1.0)));
+        let bound_div = div_expr.subs(&map4);
+        match bound_div.eval(true) {
+            Some(Value::Real(r)) => {
+                assert!(!r.is_infinite(), "Expected finite result, got {r}");
+                assert!((r - 1e20).abs() / 1e20 < 1e-10, "Expected ~1e20, got {r}");
+            }
+            other => panic!("Expected Value::Real(~1e20), got {other:?}"),
+        }
+
+        // (t * (1.0 + 1e-15)).subs({t: 1e15}) should not drop (1.0 + 1e-15) as 1.0
+        let near_one = t_expr.clone() * SymbolExpr::Value(Value::Real(1.0 + 1e-15));
+        let mut map5 = HashMap::new();
+        map5.insert((*t_sym).clone(), SymbolExpr::Value(Value::Real(1e15)));
+        let bound_near_one = near_one.subs(&map5);
+        match bound_near_one.eval(true) {
+            Some(Value::Real(r)) => {
+                assert_eq!(r, 1.000000000000001 * 1e15);
+            }
+            other => panic!("Expected Value::Real, got {other:?}"),
+        }
     }
 }

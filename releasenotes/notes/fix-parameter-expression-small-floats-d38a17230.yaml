@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue where :class:`.ParameterExpression` treated non-zero values
+    smaller in magnitude than ``SYMEXPR_EPSILON`` (~1.78e-15) as exact zero (or values
+    within that tolerance of :math:`\pm 1` as :math:`\pm 1`) during algebraic
+    simplifications such as multiplication and division. This previously caused
+    incorrect multiplication products (dropping factors) and spurious
+    ``ZeroDivisionError`` when dividing by small constants.
+    Fixed `#17230 <https://github.com/Qiskit/qiskit/issues/17230>`__.
