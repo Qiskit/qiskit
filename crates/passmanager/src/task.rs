@@ -319,7 +319,7 @@ impl fmt::Display for TaskEndpoint {
     }
 }
 
-/// An IR typing constraint within a [Task] or between [Task]s was violated.
+/// An IR typing constraint within a [Task] was violated.
 #[derive(Clone, Debug, Error)]
 #[non_exhaustive]
 pub enum TaskTypeError {
