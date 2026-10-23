@@ -11,12 +11,13 @@
 // that they have been altered from the originals.
 
 use num_complex::Complex64;
-use std::ffi::{CStr, CString, c_char};
+use std::ffi::{CStr, c_char};
 use std::mem;
 use std::sync::Arc;
 
 use crate::exit_codes::ExitCode;
 use crate::pointers::{ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref};
+use crate::util;
 
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -199,8 +200,7 @@ pub unsafe extern "C" fn qk_param_str(param: *const Param) -> *mut c_char {
         Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
         Param::Int(u) => u.to_string(),
     };
-    let out = CString::new(str).unwrap();
-    out.into_raw()
+    util::cstring_from_utf8_lossy(str).into_raw()
 }
 
 /// @ingroup QkParam
