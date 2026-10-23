@@ -2834,16 +2834,18 @@ class QuantumCircuit:
     # cause qargs and cargs to be overritten in the implementation.
     @overload
     def append(
-        self, instruction: Operation, 
+        self,
+        instruction: Operation,
         qargs: Sequence[QubitSpecifier] | None = None,
         cargs: Sequence[ClbitSpecifier] | None = None,
         *,
         copy: bool = True,
     ) -> InstructionSet: ...
-    
+
     @overload
     def append(
-        self, instruction: CircuitInstruction,
+        self,
+        instruction: CircuitInstruction,
         *,
         copy: bool = True,
     ) -> InstructionSet: ...
@@ -2895,7 +2897,7 @@ class QuantumCircuit:
                 warnings.warn(
                     "QuantumCircuit.append() uses qargs/cargs from CircuitInstruction. "
                     "Any qargs/cargs passed into append() alongside a valid CircuitInstruction will be ignored.",
-                    stacklevel=2
+                    stacklevel=2,
                 )
             qargs = instruction.qubits
             cargs = instruction.clbits
