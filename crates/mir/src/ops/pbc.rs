@@ -60,13 +60,11 @@ impl PauliList {
     }
 }
 
-/// Initial type for Angles
+/// AngleType for Mir
 ///
-/// TODO: Decide whether we want to use existing from Qiskit or define one here
-/// This is likely overkill for what we need (in terms of precision), but it is
-/// just a placeholder for now. Currently I'm inclined to reuse the one in
-/// Qiskit as it likely provides all the precision, and any other helpers, that
-/// are needed.
+/// These will store angles in units of rad / π (or some variation thereof).
+/// This causes angles corresponding to Clifford rotations are stored without
+/// round-off from inexact representations of π .
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct AngleType(f64);
 
