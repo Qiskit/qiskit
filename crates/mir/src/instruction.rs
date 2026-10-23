@@ -15,10 +15,7 @@
 use crate::ops::MirOp;
 use crate::qid::QidList;
 use crate::symbol_table::SymbolIdList;
-use crate::{
-    line_graph,
-    line_graph::{LineGraph, iter::IterMain},
-};
+use crate::{line_graph, line_graph::LineGraph};
 use std::fmt;
 
 /// Instruction in Qiskit Middle IR
@@ -84,59 +81,23 @@ impl MirInstructionIndex {
 }
 
 #[derive(Debug)]
-pub struct MirInstructionList {
-    instr_list: LineGraph<MirInstruction>,
+pub struct Mir {
+    instructions: LineGraph<MirInstruction>,
 }
 
-impl MirInstructionList {
+impl Mir {
     pub fn new() -> Self {
         Self {
-            instr_list: LineGraph::<MirInstruction>::new(),
+            instructions: LineGraph::<MirInstruction>::new(),
         }
     }
 
-    /// Add instruction to the end of the list
-    pub fn push_back(&mut self, instr: MirInstruction) -> MirInstructionIndex {
-        MirInstructionIndex(self.instr_list.push_back(instr))
+    pub fn instructions(&self) -> &LineGraph<MirInstruction> {
+        &self.instructions
     }
 
-    /// Add instruction to the beginning of the list
-    pub fn push_front(&mut self, instr: MirInstruction) -> MirInstructionIndex {
-        MirInstructionIndex(self.instr_list.push_front(instr))
-    }
-
-    /// Iterator to walk over the list
-    pub fn iter(&self) -> MirInstructionListIter<'_> {
-        MirInstructionListIter {
-            inner: self.instr_list.iter_main(),
-        }
-    }
-}
-
-impl<'a> IntoIterator for &'a MirInstructionList {
-    type Item = &'a MirInstruction;
-    type IntoIter = MirInstructionListIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-
-impl fmt::Display for MirInstructionList {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.instr_list)
-    }
-}
-
-pub struct MirInstructionListIter<'a> {
-    inner: IterMain<'a, MirInstruction>,
-}
-
-impl<'a> Iterator for MirInstructionListIter<'a> {
-    type Item = &'a MirInstruction;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|s| s.weight())
+    pub fn instructions_mut(&mut self) -> &mut LineGraph<MirInstruction> {
+        &mut self.instructions
     }
 }
 
@@ -171,7 +132,8 @@ mod tests {
 
     #[test]
     fn test_instruction_list() {
-        let mut instr_list = MirInstructionList::new();
+        let mut mir = Mir::new();
+        let instr_list = mir.instructions_mut();
 
         let instr1 = MirInstruction {
             op: create_pauli_rotation_op(Pauli::X, 8, 0.5),
@@ -202,8 +164,8 @@ mod tests {
 
         // Iterate through the instruction list.
         // Expect to find instr3, instr1, instr2
-        for (index, instr) in instr_list.iter().enumerate() {
-            assert_eq!(*instr, check_list[index])
+        for (index, instr) in instr_list.iter_main().enumerate() {
+            assert_eq!(*instr.weight(), check_list[index])
         }
 
         // TODO: Add back when verify implemented.

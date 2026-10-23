@@ -42,7 +42,7 @@
 //!                                                                        └─────────┘
 
 use qiskit_mir::{
-    instruction::{MirInstruction, MirInstructionList},
+    instruction::{Mir, MirInstruction},
     ops::{
         MirOp,
         pbc::{AngleType, Pauli, PauliList, PauliRotation},
@@ -55,7 +55,8 @@ use std::f64::consts::PI;
 #[test]
 fn construct_bell_mir() {
     let mut resource_table = ResourceTable::new(QidSpace::Virtual);
-    let mut instr_list = MirInstructionList::new();
+    let mut mir = Mir::new();
+    let instr_list = mir.instructions_mut();
 
     // Create Qids for q_0 and q_1.
 
