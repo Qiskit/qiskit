@@ -95,7 +95,7 @@ impl CControlFlowInstruction {
         let inst = self.instruction();
         inst.op
             .try_control_flow()
-            .expect("wraps control flow insruction")
+            .expect("wraps control flow instruction")
     }
 }
 
