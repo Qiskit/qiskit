@@ -55,7 +55,7 @@ pub struct ExtraCircuitData {
     pub name: Option<String>,
     /// The serialized Python metadata mapping.
     pub metadata: Bytes,
-    /// The serialized transpiler-layout data.
+    /// The transpiler layout data.
     pub layout: Option<LayoutV2Pack>,
 }
 
