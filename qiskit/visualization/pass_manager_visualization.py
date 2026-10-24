@@ -14,7 +14,6 @@
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
 """
-
 from __future__ import annotations
 
 import os
@@ -41,7 +40,6 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     Graphviz binaries, so no separate Graphviz installation is required.
 
     .. warning::
-
         This function will call the Graphviz tooling (bundled with pygraphviz) on a file
         involving user-controllable strings (such as pass names).  It is recommended to only
         call this function on trusted input.
@@ -125,7 +123,6 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
     Graphviz binaries, so no separate Graphviz installation is required.
 
     .. warning::
-
         This function will call the Graphviz tooling (bundled with pygraphviz) on a file
         involving user-controllable strings (such as pass names).  It is recommended to only
         call this function on trusted input.
@@ -302,27 +299,28 @@ def make_output(graph, raw, filename):
         if filename:
             graph.write(filename, format="raw")
             return None
-        raise VisualizationError("if format=raw, then a filename is required.")
+        else:
+            raise VisualizationError("if format=raw, then a filename is required.")
 
-    _optionals.HAS_PYGRAPHVIZ.require_now("pass manager drawer")
     import pygraphviz
 
     agraph = pygraphviz.AGraph(string=graph.to_string())
-    agraph.layout(prog="dot")
 
     if not _optionals.HAS_PIL and filename:
-        agraph.draw(filename, format="png")
+        agraph.draw(filename, format="png", prog="dot")
         return None
 
     _optionals.HAS_PIL.require_now("pass manager drawer")
 
-    from PIL import Image
-
     with tempfile.TemporaryDirectory() as tmpdirname:
+        from PIL import Image
+
         tmppath = os.path.join(tmpdirname, "pass_manager.png")
-        agraph.draw(tmppath, format="png")
+
+        agraph.draw(tmppath, format="png", prog="dot")
+
         image = Image.open(tmppath)
+        os.remove(tmppath)
         if filename:
-            image.save(filename)
-            return None
+            image.save(filename, "PNG")
         return image
