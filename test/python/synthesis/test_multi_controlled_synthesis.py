@@ -474,7 +474,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         self.assertEqual(counts["cx"], 6 * num_ctrl_qubits - 6)
         self.assertEqual(counts["t"] + counts["tdg"], 8 * num_ctrl_qubits - 9)
 
-    @data(7, 10, 15)
+    @data(5, 6, 7, 10, 15)
     def test_mcx_1_clean_b95_counts(self, num_ctrl_qubits: int):
         """Test synth_mcx_1_clean_b95 bound on CX count."""
         synthesized_circuit = synth_mcx_1_clean_b95(num_ctrl_qubits)
@@ -483,11 +483,16 @@ class TestMCSynthesisCounts(QiskitTestCase):
 
         cx_count = count_ops["cx"]
         t_count = count_ops["t"] + count_ops["tdg"]
-        expected_cx_counts = 16 * num_ctrl_qubits - 24
-        expected_t_counts = 16 * num_ctrl_qubits - 12
-        # The bound from the documentation of synth_mcx_1_clean_b95 (for num_ctrl_qubits >= 7)
+        if num_ctrl_qubits == 5:
+            expected_cx_counts = 48
+        elif num_ctrl_qubits == 6:
+            expected_cx_counts = 64
+        else:
+            expected_cx_counts = 16 * num_ctrl_qubits - 24
+            expected_t_counts = 16 * num_ctrl_qubits - 12
+            self.assertEqual(t_count, expected_t_counts)
+        # The bound from the documentation of synth_mcx_1_clean_b95
         self.assertEqual(cx_count, expected_cx_counts)
-        self.assertEqual(t_count, expected_t_counts)
 
     @data(3, 5, 10, 15)
     def test_mcx_1_clean_kg24_counts(self, num_ctrl_qubits: int):
