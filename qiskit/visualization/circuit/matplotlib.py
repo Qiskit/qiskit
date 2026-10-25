@@ -1563,7 +1563,6 @@ class MatplotlibDrawer:
 
             if current_line:
                 lines.append(current_line)
-                wid += WID + 0.21
 
             gate_text = "\n".join(lines)
         else:

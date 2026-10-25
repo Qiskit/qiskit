@@ -2015,6 +2015,31 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
+    def test_vertical_multi_qubit_gate_labels(self):
+        """Test vertical labels for multi-qubit gates."""
+        qc = QuantumCircuit(3)
+        first_custom_multi_qubit_gate = QuantumCircuit(
+            2, name="first_custom_multi_qubit_gate"
+        ).to_gate
+        second_custom_multi_qubit_gate = QuantumCircuit(
+            3, name="second_custom_multi_qubit_gate"
+        ).to_gate
+        qc.x(0)
+        qc.append(first_custom_multi_qubit_gate(), [0, 1])
+        qc.append(second_custom_multi_qubit_gate(), [0, 1, 2])
+
+        fname = "vertical_multi_qubit_gate_labels.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname, vertical_labels=True)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
