@@ -42,7 +42,8 @@
 //!                                                                        └─────────┘
 
 use qiskit_mir::{
-    instruction::{Mir, MirInstruction},
+    instruction::MirInstruction,
+    mir::Mir,
     ops::{
         MirOp,
         pbc::{AngleType, Pauli, PauliRotation, PauliString},
