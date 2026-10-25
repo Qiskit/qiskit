@@ -12,10 +12,10 @@
 
 //! Definition of Instruction and InstructionList used in Qiskit Middle IR.
 
+use crate::line_graph;
 use crate::ops::MirOp;
 use crate::qid::QidList;
 use crate::symbol_table::SymbolIdList;
-use crate::{line_graph, line_graph::LineGraph};
 use std::fmt;
 
 /// Instruction in Qiskit Middle IR
@@ -80,30 +80,10 @@ impl MirInstructionIndex {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct Mir {
-    instructions: LineGraph<MirInstruction>,
-}
-
-impl Mir {
-    pub fn new() -> Self {
-        Self {
-            instructions: LineGraph::<MirInstruction>::new(),
-        }
-    }
-
-    pub fn instructions(&self) -> &LineGraph<MirInstruction> {
-        &self.instructions
-    }
-
-    pub fn instructions_mut(&mut self) -> &mut LineGraph<MirInstruction> {
-        &mut self.instructions
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::mir::Mir;
     use crate::ops::pbc::{AngleType, Pauli, PauliRotation, PauliString};
     use crate::qid::Qid;
     use crate::symbol_table::SymbolIdList;
