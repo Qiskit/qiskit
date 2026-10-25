@@ -29,11 +29,16 @@ pub struct Mir {
 }
 
 impl Mir {
-    /// Create an empty Mir.
+    /// Create an empty Mir with virutal qubits; use [Mir::with_space] for physical qubits.    
     pub fn new() -> Self {
+        Self::with_space(QidSpace::Virtual)
+    }
+
+    /// Create an empty Mir that uses qubits from the given space.
+    pub fn with_space(space: QidSpace) -> Self {
         Self {
             instructions: LineGraph::new(),
-            resource_table: ResourceTable::new(QidSpace::Virtual),
+            resource_table: ResourceTable::new(space),
             symbol_table: SymbolTable::default(),
         }
     }
@@ -72,5 +77,72 @@ impl Mir {
 impl Default for Mir {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ops::MirOp;
+    use crate::ops::pbc::{AngleType, Pauli, PauliRotation, PauliString};
+    use crate::qid::{BitLayout, QidInfo, QidList};
+    use crate::symbol_table::{Symbol, SymbolIdList};
+
+    #[test]
+    fn test_populate_mir() {
+        let mut mir = Mir::new();
+
+        // Add a qubit, and an instruction using it to Mir
+        let qid_info = QidInfo::new(BitLayout::Base(1));
+        let qid = mir.resource_table_mut().add_qid(qid_info.clone()).unwrap();
+
+        let op = MirOp::PauliRotation(PauliRotation::new(
+            PauliString::new(vec![Pauli::X]),
+            AngleType::new(0.5),
+        ));
+
+        let instruction = MirInstruction::new(
+            op,
+            QidList::new(vec![qid]),
+            SymbolIdList::default(),
+            SymbolIdList::default(),
+        );
+        mir.instructions_mut().push_back(instruction.clone());
+
+        assert_eq!(mir.resource_table().iter_qids().len(), 1);
+        assert_eq!(mir.resource_table().info(qid), Some(&qid_info));
+
+        assert_eq!(mir.instructions().node_count(), 1);
+        assert_eq!(
+            *mir.instructions().iter_main().next().unwrap().weight(),
+            instruction
+        );
+
+        // Add a symbol to Mir
+        let sym_id = mir
+            .symbol_table_mut()
+            .add(Symbol::new("a".to_string()))
+            .unwrap();
+
+        let symbol = mir.symbol_table().get(sym_id).unwrap();
+        assert_eq!(symbol.name(), "a");
+        assert_eq!(symbol.id(), Some(sym_id));
+    }
+
+    #[test]
+    fn test_create_mir_with_qid_space() {
+        let mut virtual_mir = Mir::new();
+        let qid = virtual_mir
+            .resource_table_mut()
+            .add_qid(QidInfo::new(BitLayout::Base(1)))
+            .unwrap();
+        assert_eq!(qid.space(), QidSpace::Virtual);
+
+        let mut physical_mir = Mir::with_space(QidSpace::Physical);
+        let qid = physical_mir
+            .resource_table_mut()
+            .add_qid(QidInfo::new(BitLayout::Base(1)))
+            .unwrap();
+        assert_eq!(qid.space(), QidSpace::Physical);
     }
 }
