@@ -595,13 +595,10 @@ class TestMCSynthesisCounts(QiskitTestCase):
     def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 bound on CX count."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
-        cx_count = synthesized_circuit.count_ops()["cx"]
-        two_qubit_count = synthesized_circuit.num_nonlocal_gates()
-        # The synthesized circuit contains CX gates and one CRZ gate
-        self.assertEqual(cx_count + 1, two_qubit_count)
+        transpiled_circuit = self.pm.run(synthesized_circuit)
+        cx_count = transpiled_circuit.count_ops()["cx"]
         # The bound from the documentation of synth_mcp_noaux_v24
-        # The bound from the documentation of synth_mcp_noaux_v24
-        self.assertEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits - 62)
+        self.assertEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits - 60)
 
     @data(25, 30, 35, 40, 45, 50, 55, 60)
     def test_mcx_noaux_hp24_cx_count(self, num_ctrl_qubits: int):
