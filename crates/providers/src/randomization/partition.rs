@@ -20,8 +20,6 @@ use thiserror::Error;
 /// Why a partition could not be built.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum PartitionError {
-    #[error("a partition must contain at least one part")]
-    NoParts,
     #[error("a part must contain at least one element")]
     EmptyPart,
     #[error("an element appears in more than one part, or twice in one")]
@@ -30,16 +28,15 @@ pub enum PartitionError {
 
 /// A grouping of elements into non-overlapping subsets.
 ///
-/// Order within a given part is meaningful. For instance, when sampling from a distribution over
+/// Order in a given part is meaningful. For instance, when sampling from a distribution over
 /// multiple elements, it may not be symmetric under permutations of those elements.
 ///
-/// Order between parts is not meaningful, so parts are sorted by their first element. That is what
-/// makes [`PartialEq`] and [`Hash`] mean the same grouping rather than built in the same order.
+/// Order of parts is the caller's responsibility and maintained by [`Partition::iter`].
 ///
-/// A partition has at least one part, and every part at least one element.
+/// While a partition can have no parts, each part must have an element.
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Partition<T> {
-    /// Every element covered, in part order then slot order.
+    /// The elements, in part order then slot order.
     elements: Box<[T]>,
     /// Where each part after the first begins.
     splits: Box<[u32]>,
@@ -55,30 +52,22 @@ impl<T: Copy + Ord + Hash> Partition<T> {
     pub fn whole(elements: impl IntoIterator<Item = T>) -> Result<Self, PartitionError> {
         let elements: Vec<T> = elements.into_iter().collect();
         if elements.is_empty() {
-            return Err(PartitionError::NoParts);
+            return Err(PartitionError::EmptyPart);
         }
         Self::new([elements])
     }
 
-    /// Group elements explicitly.
-    ///
-    /// Each part's own order is kept.
+    /// An arbitrary grouping.
     pub fn new(
         parts: impl IntoIterator<Item = impl IntoIterator<Item = T>>,
     ) -> Result<Self, PartitionError> {
-        let mut parts: Vec<Vec<T>> = parts
+        let parts: Vec<Vec<T>> = parts
             .into_iter()
             .map(|part| part.into_iter().collect())
             .collect();
-        if parts.is_empty() {
-            return Err(PartitionError::NoParts);
-        }
         if parts.iter().any(|part| part.is_empty()) {
             return Err(PartitionError::EmptyPart);
         }
-        // By first element, which is unique once the duplicate check below has passed, so this is a
-        // total order and the result does not depend on the order the parts arrived in.
-        parts.sort_unstable_by(|left, right| left[0].cmp(&right[0]));
 
         let mut splits = Vec::with_capacity(parts.len().saturating_sub(1));
         let mut elements = Vec::with_capacity(parts.iter().map(Vec::len).sum());
@@ -88,9 +77,7 @@ impl<T: Copy + Ord + Hash> Partition<T> {
             }
             elements.extend_from_slice(part);
         }
-        // An element may occupy only one slot of one part, so every element is distinct across the whole
-        // partition. The stored order is the caller's, so this needs a sorted copy rather than a
-        // window over `elements` itself.
+        // Elements must be unique across the whole partition.
         let mut seen = elements.clone();
         seen.sort_unstable();
         if seen.windows(2).any(|pair| pair[0] == pair[1]) {
@@ -113,12 +100,12 @@ impl<T: Copy + Ord + Hash> Partition<T> {
         self.elements.len()
     }
 
-    /// Every element covered in part order then slot order.
+    /// The elements.
     pub fn elements(&self) -> &[T] {
         &self.elements
     }
 
-    /// The parts in ascending order of their first element.
+    /// The parts.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &[T]> {
         let starts: Vec<usize> = std::iter::once(0)
             .chain(self.splits.iter().map(|&at| at as usize))
@@ -170,7 +157,7 @@ mod tests {
         assert!(partition.is_singletons());
         assert_eq!(
             partition.iter().collect::<Vec<_>>(),
-            vec![[3].as_slice(), [4].as_slice(), [5].as_slice()]
+            vec![[3].as_slice(), [5].as_slice(), [4].as_slice()]
         );
     }
 
@@ -211,17 +198,12 @@ mod tests {
     }
 
     #[test]
-    fn test_the_representation_is_canonical() {
-        let canonical = parts(&[&[0], &[1, 2]]);
+    fn test_order_of_parts_matters() {
+        let increasing = parts(&[&[0], &[1, 2]]);
         let hasher = RandomState::new();
-        let equivalent = parts(&[&[1, 2], &[0]]);
-        assert_eq!(canonical, equivalent);
-        assert_eq!(hasher.hash_one(&canonical), hasher.hash_one(&equivalent));
-
-        for different in [parts(&[&[0, 1], &[2]]), parts(&[&[0], &[2, 1]])] {
-            assert_ne!(canonical, different);
-            assert_ne!(hasher.hash_one(&canonical), hasher.hash_one(&different));
-        }
+        let decreasing = parts(&[&[1, 2], &[0]]);
+        assert_ne!(increasing, decreasing);
+        assert_ne!(hasher.hash_one(&increasing), hasher.hash_one(&decreasing));
     }
 
     #[test]
@@ -229,7 +211,7 @@ mod tests {
         let partition = parts(&[&[0], &[7, 5, 6], &[2, 1]]);
         assert_eq!(
             partition.iter().collect::<Vec<_>>(),
-            vec![[0].as_slice(), [2, 1].as_slice(), [7, 5, 6].as_slice()]
+            vec![[0].as_slice(), [7, 5, 6].as_slice(), [2, 1].as_slice()]
         );
         assert_eq!(partition.num_parts(), 3);
         assert_eq!(partition.iter().len(), 3);
@@ -237,21 +219,11 @@ mod tests {
     }
 
     #[test]
-    fn test_a_partition_must_have_at_least_one_part() {
-        // A grouping of nothing is not a grouping, and refusing it is what lets `len` be one more
-        // than the split count with no special case. Every way in reports the same thing.
+    fn test_whole_does_not_accept_no_elemets() {
         assert_eq!(
-            Partition::<usize>::new(Vec::<Vec<usize>>::new()).unwrap_err(),
-            PartitionError::NoParts
-        );
-        assert_eq!(
-            Partition::<usize>::whole([]).unwrap_err(),
-            PartitionError::NoParts
-        );
-        assert_eq!(
-            Partition::<usize>::singletons([]).unwrap_err(),
-            PartitionError::NoParts
-        );
+            Partition::<i32>::whole([]).unwrap_err(),
+            PartitionError::EmptyPart
+        )
     }
 
     #[test]
