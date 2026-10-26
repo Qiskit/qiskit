@@ -69,6 +69,7 @@ impl<T: Copy + Ord> Partition<T> {
         }
 
         let mut splits = Vec::with_capacity(parts.len().saturating_sub(1));
+        splits.push(0);
         let mut elements = Vec::with_capacity(parts.iter().map(Vec::len).sum());
         for part in &parts {
             if !elements.is_empty() {
@@ -76,6 +77,8 @@ impl<T: Copy + Ord> Partition<T> {
             }
             elements.extend_from_slice(part);
         }
+        splits.push(elements.len() as u32);
+
         // Elements must be unique across the whole partition.
         let mut seen = elements.clone();
         seen.sort_unstable();
@@ -91,7 +94,7 @@ impl<T: Copy + Ord> Partition<T> {
 
     /// How many parts there are, which is at least one.
     pub fn num_parts(&self) -> usize {
-        self.splits.len() + 1
+        self.splits.len() - 1
     }
 
     /// How many elements the partition covers, which may be fewer than its carrier has.
@@ -104,13 +107,13 @@ impl<T: Copy + Ord> Partition<T> {
         &self.elements
     }
 
-    /// The parts.
+    /// Get an iterator over the individual parts.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &[T]> {
-        let starts: Vec<usize> = std::iter::once(0)
-            .chain(self.splits.iter().map(|&at| at as usize))
-            .chain(std::iter::once(self.elements.len()))
-            .collect();
-        (0..self.num_parts()).map(move |part| &self.elements[starts[part]..starts[part + 1]])
+        std::ops::Range {
+            start: 0,
+            end: self.splits.len() - 1,
+        }
+        .map(|i| &self.elements[self.splits[i] as usize..self.splits[i + 1] as usize])
     }
 
     /// Whether every part is a single element.
@@ -127,12 +130,9 @@ impl<T: Copy + Ord> Partition<T> {
 impl<T: fmt::Debug> fmt::Debug for Partition<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut list = f.debug_list();
-        let mut start = 0;
-        for &at in self.splits.iter() {
-            list.entry(&&self.elements[start..at as usize]);
-            start = at as usize;
+        for i in 0..self.splits.len() - 1 {
+            list.entry(&&self.elements[self.splits[i] as usize..self.splits[i + 1] as usize]);
         }
-        list.entry(&&self.elements[start..]);
         list.finish()
     }
 }
