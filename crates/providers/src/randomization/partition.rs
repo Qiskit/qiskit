@@ -13,7 +13,6 @@
 //! A partition of elements.
 
 use std::fmt;
-use std::hash::Hash;
 
 use thiserror::Error;
 
@@ -34,7 +33,7 @@ pub enum PartitionError {
 /// Order of parts is the caller's responsibility and maintained by [`Partition::iter`].
 ///
 /// While a partition can have no parts, each part must have an element.
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Partition<T> {
     /// The elements, in part order then slot order.
     elements: Box<[T]>,
@@ -42,7 +41,7 @@ pub struct Partition<T> {
     splits: Box<[u32]>,
 }
 
-impl<T: Copy + Ord + Hash> Partition<T> {
+impl<T: Copy + Ord> Partition<T> {
     /// One part per element.
     pub fn singletons(elements: impl IntoIterator<Item = T>) -> Result<Self, PartitionError> {
         Self::new(elements.into_iter().map(|element| vec![element]))
@@ -142,8 +141,6 @@ impl<T: fmt::Debug> fmt::Debug for Partition<T> {
 mod tests {
     use super::*;
 
-    use std::hash::{BuildHasher, RandomState};
-
     /// A partition of `usize` elements from explicit parts, which must be valid.
     fn parts(parts: &[&[usize]]) -> Partition<usize> {
         Partition::new(parts.iter().map(|part| part.to_vec())).expect("a valid partition")
@@ -200,10 +197,8 @@ mod tests {
     #[test]
     fn test_order_of_parts_matters() {
         let increasing = parts(&[&[0], &[1, 2]]);
-        let hasher = RandomState::new();
         let decreasing = parts(&[&[1, 2], &[0]]);
         assert_ne!(increasing, decreasing);
-        assert_ne!(hasher.hash_one(&increasing), hasher.hash_one(&decreasing));
     }
 
     #[test]
