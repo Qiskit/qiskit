@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.CommutativeCancellation` where rotation gates with
+    small but non-negligible angles were incorrectly dropped during the
+    accumulation step, instead of being preserved as a single combined rotation.
+
+    Fixed `#17315 <https://github.com/Qiskit/qiskit/issues/17315>`__.
