@@ -88,8 +88,8 @@ fn construct_bell_mir() {
 
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![Pauli::Y]),
-            AngleType::new(PI / 2.0),
+            PauliList::new(vec![Pauli::X]),
+            AngleType::new(PI),
         )),
         QidList::new(vec![qid_0]),
         SymbolIdList::default(),
@@ -98,7 +98,7 @@ fn construct_bell_mir() {
 
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![Pauli::X, Pauli::Z]),
+            PauliList::new(vec![Pauli::Z, Pauli::X]),
             AngleType::new(PI / 2.0),
         )),
         QidList::new(vec![qid_0, qid_1]),
