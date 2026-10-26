@@ -1017,6 +1017,19 @@ measure q0[1] -> c0[1];
         self.assertEqual(approx.count_ops().get("cx", 0), 0)
         self.assertEqual(default, strict)
 
+    def test_approximation_of_small_angles(self):
+        """Check that CommutativeCancellation does not drop small angles,
+        that are within the tolerance levels. See issue #17315."""
+        qc = QuantumCircuit(1)
+        qc.rz(6e-5, 0)
+        qc.rz(6e-5, 0)
+        out = CommutativeCancellation(approximation_degree=1.0)(qc)
+
+        single = QuantumCircuit(1)
+        single.rz(1.2e-4, 0)
+        single_out = CommutativeCancellation(approximation_degree=1.0)(single)
+        self.assertEqual(out, single_out)
+
     def test_custom_gates_sharing_wire(self):
         """Custom gates sharing a wire are not cancelled"""
         circ = QuantumCircuit(2)
