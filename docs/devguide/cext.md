@@ -80,7 +80,9 @@ example, `i32` is mapped to `int32_t`.
 
 ## Functions
 
-Function names centered around types follow the `qk_<type>_<verb>_<opt>` format.
+### Naming
+
+Functions are often grouped around types. Grouped functions follow the `qk_<group>_<verb>` format.
 
 - `qk_obs_new`
 - `qk_obs_compose`
@@ -92,7 +94,7 @@ Plain function names are more flexible.
 - `qk_foo`
 - `qk_str_free`
 
-### Naming Constructor & Destructors
+Qiskit uses standard names for memory management functions.
 
 - `qk_foo_new` - Create a (usually opaque) `struct`, allocated on the heap by Qiskit.
 - `qk_foo_free` - Clean up a (usually opaque) `struct`, allocated on the heap by Qiskit.
