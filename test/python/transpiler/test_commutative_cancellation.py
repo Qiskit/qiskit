@@ -1023,7 +1023,8 @@ measure q0[1] -> c0[1];
         self.assertEqual(approx.count_ops().get("cx", 0), 0)
         self.assertEqual(default, strict)
 
-    def test_approximation_of_small_angles(self):
+    @ddt.data(1e-10, 1e-11, 1e-12, 0)
+    def test_approximation_of_small_angles(self, eps):
         """Check that CommutativeCancellation does not drop small angles,
         that are within the tolerance levels. Check consistency with
         RemoveIdentityEquivalent pass. See issue #17315."""
@@ -1036,9 +1037,9 @@ measure q0[1] -> c0[1];
             qc1.rz(angle / 2, 0)
             qc1.rz(angle / 2, 0)
 
-            cc = CommutativeCancellation()(qc)
-            cc1 = CommutativeCancellation()(qc1)
-            rie = RemoveIdentityEquivalent()(qc)
+            cc = CommutativeCancellation(approximation_degree=1 - eps)(qc)
+            cc1 = CommutativeCancellation(approximation_degree=1 - eps)(qc1)
+            rie = RemoveIdentityEquivalent(approximation_degree=1 - eps)(qc)
 
             self.assertEqual(cc, rie)
             self.assertEqual(cc, cc1)
