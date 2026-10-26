@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::ffi::{CString, c_char};
+use std::ffi::c_char;
 use std::num::NonZero;
 use std::ptr;
 
@@ -29,6 +29,7 @@ use uuid::Uuid;
 
 use crate::classical_expr::{CBigUint, CDurationInfo};
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::util;
 use num_traits::ToPrimitive;
 
 use num_bigint::BigUint;
@@ -1168,18 +1169,14 @@ pub unsafe extern "C" fn qk_control_flow_loop_symbol_info(
         Symbol::Standalone { name, .. } => {
             CSymbolInfo {
                 ty: CSymbolType::Standalone,
-                name: CString::new(name.as_str())
-                    .expect("Symbol should have a valid name")
-                    .into_raw(),
+                name: util::cstring_from_utf8_lossy(name).into_raw(),
                 index: 0, // dummy value in the StandAlone case
             }
         }
         Symbol::Element { index, base } => CSymbolInfo {
             ty: CSymbolType::Element,
             index: *index,
-            name: CString::new(base.name.as_str())
-                .expect("Parameter vector should have a valid name")
-                .into_raw(),
+            name: util::cstring_from_utf8_lossy(&base.name).into_raw(),
         },
     }
 }

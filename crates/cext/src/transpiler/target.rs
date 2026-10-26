@@ -19,6 +19,7 @@ use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{
     ExposesOwnedPointers, check_ptr, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref,
 };
+use crate::util;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::StandardInstruction;
@@ -1120,9 +1121,7 @@ pub unsafe extern "C" fn qk_target_op_name(target: *const Target, index: usize) 
     let (name, _) = target_borrowed
         .get_by_index(index)
         .expect("Operation index should exist in the Target");
-    CString::new(name)
-        .expect("A valid rust string should not have any trailing 0 byte.")
-        .into_raw()
+    util::cstring_from_utf8_lossy(name).into_raw()
 }
 
 /// @ingroup QkTarget
@@ -1428,13 +1427,12 @@ pub unsafe extern "C" fn qk_target_op_get(
                     stringify!(normal_operation.view())
                 ),
             };
-            let name = CString::new(
+            let name = util::cstring_from_utf8_lossy(
                 target_borrowed
                     .get_by_index(index)
                     .expect("An operation name should already exist.")
                     .0,
             )
-            .expect("The string should be UTF-8 encoded.")
             .into_raw();
             let num_params = operation.operation.num_params();
             let mut params: Option<Box<[*const Param]>> = (num_params > 0).then_some(
@@ -1466,13 +1464,12 @@ pub unsafe extern "C" fn qk_target_op_get(
             let _ = params.map(Box::into_raw);
         }
         TargetOperation::Variadic(_) => {
-            let name = CString::new(
+            let name = util::cstring_from_utf8_lossy(
                 target_borrowed
                     .get_by_index(index)
                     .expect("An operation name should already exist.")
                     .0,
             )
-            .expect("Names should be ")
             .into_raw();
             // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
             unsafe {
