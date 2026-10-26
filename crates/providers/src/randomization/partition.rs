@@ -57,7 +57,7 @@ impl<T: Copy + Ord + Hash> Partition<T> {
         Self::new([elements])
     }
 
-    /// An arbitrary grouping.
+    /// Specify a new partition from constituent parts.
     pub fn new(
         parts: impl IntoIterator<Item = impl IntoIterator<Item = T>>,
     ) -> Result<Self, PartitionError> {
