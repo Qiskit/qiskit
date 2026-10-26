@@ -25,7 +25,13 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler.target import Target
 from qiskit.transpiler import PassManager, PropertySet
-from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
+from qiskit.transpiler.passes import (
+    CommutationAnalysis,
+    CommutativeCancellation,
+    RemoveIdentityEquivalent,
+    FixedPoint,
+    Size,
+)
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase, combine
 
@@ -1019,16 +1025,23 @@ measure q0[1] -> c0[1];
 
     def test_approximation_of_small_angles(self):
         """Check that CommutativeCancellation does not drop small angles,
-        that are within the tolerance levels. See issue #17315."""
-        qc = QuantumCircuit(1)
-        qc.rz(6e-5, 0)
-        qc.rz(6e-5, 0)
-        out = CommutativeCancellation(approximation_degree=1.0)(qc)
+        that are within the tolerance levels. Check consistency with
+        RemoveIdentityEquivalent pass. See issue #17315."""
+        for angle in np.linspace(1e-5, 1e-6, num=25):
+            qc = QuantumCircuit(1)
+            qc.rz(angle, 0)
+            qc.rz(0, 0)
 
-        single = QuantumCircuit(1)
-        single.rz(1.2e-4, 0)
-        single_out = CommutativeCancellation(approximation_degree=1.0)(single)
-        self.assertEqual(out, single_out)
+            qc1 = QuantumCircuit(1)
+            qc1.rz(angle / 2, 0)
+            qc1.rz(angle / 2, 0)
+
+            cc = CommutativeCancellation()(qc)
+            cc1 = CommutativeCancellation()(qc1)
+            rie = RemoveIdentityEquivalent()(qc)
+
+            self.assertEqual(cc, rie)
+            self.assertEqual(cc, cc1)
 
     def test_custom_gates_sharing_wire(self):
         """Custom gates sharing a wire are not cancelled"""
