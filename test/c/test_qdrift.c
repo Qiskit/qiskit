@@ -46,7 +46,7 @@ static int test_qdrift_single_zz(void) {
 
     size_t instr_count = qk_circuit_num_instructions(circ);
     if (instr_count != 1) {
-        fprintf("Expected 1 instruction for single ZZ term, got %zu\n", instr_count);
+        fprintf(stderr, "Expected 1 instruction for single ZZ term, got %zu\n", instr_count);
         result = EqualityError;
         goto cleanup;
     }
@@ -55,13 +55,13 @@ static int test_qdrift_single_zz(void) {
     qk_circuit_get_instruction(circ, 0, &instr);
 
     if (strcmp(instr.name, "rzz") != 0 && strcmp(instr.name, "zz") != 0) {
-        fprintf("Expected ZZ-type gate ('rzz' or 'zz'), got '%s'\n", instr.name);
+        fprintf(stderr, "Expected ZZ-type gate ('rzz' or 'zz'), got '%s'\n", instr.name);
         result = EqualityError;
         goto cleanup;
     }
 
     if (instr.num_qubits != 2) {
-        fprintf("Expected ZZ instruction on 2 qubits, got %u\n", (unsigned)instr.num_qubits);
+        fprintf(stderr, "Expected ZZ instruction on 2 qubits, got %u\n", (unsigned)instr.num_qubits);
         result = EqualityError;
         goto cleanup;
     }
@@ -69,7 +69,7 @@ static int test_qdrift_single_zz(void) {
     uint32_t q0 = instr.qubits[0];
     uint32_t q1 = instr.qubits[1];
     if (!((q0 == 0 && q1 == 1) || (q0 == 1 && q1 == 0))) {
-        fprintf("Expected ZZ gate on qubits {0,1}, got {%u,%u}\n", q0, q1);
+        fprintf(stderr, "Expected ZZ gate on qubits {0,1}, got {%u,%u}\n", q0, q1);
         result = EqualityError;
         goto cleanup;
     }
@@ -114,7 +114,7 @@ static int test_qdrift_xi_plus_zz(void) {
     // However, identity terms are implicit. So we may get 1 or 2 gates depending
     // on whether an identity was sampled.
     if (instr_count == 0 || instr_count > 2) {
-        fprintf("Expected 1 or 2 instructions for XI + ZZ, got %zu\n", instr_count);
+        fprintf(stderr, "Expected 1 or 2 instructions for XI + ZZ, got %zu\n", instr_count);
         result = EqualityError;
         goto cleanup;
     }
@@ -129,34 +129,34 @@ static int test_qdrift_xi_plus_zz(void) {
         if (strcmp(instr.name, "rx") == 0 || strcmp(instr.name, "x") == 0) {
             // X-type
             if (instr.num_qubits != 1) {
-                fprintf("X-type instruction expected on 1 qubit, got %u\n",
-                       (unsigned)instr.num_qubits);
+                fprintf(stderr, "X-type instruction expected on 1 qubit, got %u\n",
+                        (unsigned)instr.num_qubits);
                 result = EqualityError;
                 goto cleanup;
             }
             // Expect qubit 1 for XI → ("X", [1])
             if (instr.qubits[0] != 1) {
-                fprintf("X term expected on qubit 1, got %u\n", instr.qubits[0]);
+                fprintf(stderr, "X term expected on qubit 1, got %u\n", instr.qubits[0]);
                 result = EqualityError;
                 goto cleanup;
             }
         } else if (strcmp(instr.name, "rzz") == 0 || strcmp(instr.name, "zz") == 0) {
             // ZZ-type
             if (instr.num_qubits != 2) {
-                fprintf("ZZ-type instruction expected on 2 qubits, got %u\n",
-                       (unsigned)instr.num_qubits);
+                fprintf(stderr, "ZZ-type instruction expected on 2 qubits, got %u\n",
+                        (unsigned)instr.num_qubits);
                 result = EqualityError;
                 goto cleanup;
             }
             uint32_t q0 = instr.qubits[0];
             uint32_t q1 = instr.qubits[1];
             if (!((q0 == 0 && q1 == 1) || (q0 == 1 && q1 == 0))) {
-                fprintf("ZZ term expected on qubits {0,1}, got {%u,%u}\n", q0, q1);
+                fprintf(stderr, "ZZ term expected on qubits {0,1}, got {%u,%u}\n", q0, q1);
                 result = EqualityError;
                 goto cleanup;
             }
         } else {
-            fprintf("Unexpected instruction name: %s\n", instr.name);
+            fprintf(stderr, "Unexpected instruction name: %s\n", instr.name);
             result = EqualityError;
             goto cleanup;
         }
@@ -193,7 +193,7 @@ static int test_qdrift_gate_count_scaling(void) {
 
         size_t n = qk_circuit_num_instructions(circ);
         if (n != 1) {
-            fprintf("[scaling] Expected 1 gate, got %zu\n", n);
+            fprintf(stderr, "[scaling] Expected 1 gate, got %zu\n", n);
             result = EqualityError;
         }
         qk_circuit_free(circ);
@@ -207,7 +207,7 @@ static int test_qdrift_gate_count_scaling(void) {
 
         size_t n = qk_circuit_num_instructions(circ);
         if (n != 2) {
-            fprintf("[scaling] Expected 2 gates, got %zu\n", n);
+            fprintf(stderr, "[scaling] Expected 2 gates, got %zu\n", n);
             result = EqualityError;
         }
         qk_circuit_free(circ);
@@ -221,7 +221,7 @@ static int test_qdrift_gate_count_scaling(void) {
 
         size_t n = qk_circuit_num_instructions(circ);
         if (n != 4) {
-            fprintf("[scaling] Expected 4 gates, got %zu\n", n);
+            fprintf(stderr, "[scaling] Expected 4 gates, got %zu\n", n);
             result = EqualityError;
         }
         qk_circuit_free(circ);
@@ -260,7 +260,7 @@ static int test_qdrift_qubit_bounds(void) {
 
         for (size_t i = 0; i < instr.num_qubits; ++i) {
             if (instr.qubits[i] >= 4) {
-                fprintf("[bounds] Out-of-range qubit %u\n", instr.qubits[i]);
+                fprintf(stderr, "[bounds] Out-of-range qubit %u\n", instr.qubits[i]);
                 result = EqualityError;
                 goto cleanup;
             }
@@ -326,7 +326,7 @@ static int test_qdrift_seed_auto_generation(void) {
     bool vz = is_approx_equal(counter_z / inum_gates, 0.33, 0.02);
 
     if (!vx || !vy || !vz) {
-        fprintf("\n[seed-generation] gates didn't follow uniform split\n");
+        fprintf(stderr, "\n[seed-generation] gates didn't follow uniform split\n");
         result = EqualityError;
     }
 
@@ -513,7 +513,7 @@ int test_qdrift(void) {
     num_failed += RUN_TEST(test_qdrift_global_phase);
 
     fflush(stderr);
-    ffprintf(stderr, "=== QDRIFT: Number of failed subtests: %i\n", num_failed);
+    fprintf(stderr, "=== QDRIFT: Number of failed subtests: %i\n", num_failed);
 
     return num_failed;
 }
