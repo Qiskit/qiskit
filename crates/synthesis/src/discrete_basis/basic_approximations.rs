@@ -554,6 +554,9 @@ fn matrix3_from_pyreadonly(array: &PyReadonlyArray2<f64>) -> Matrix3<f64> {
 mod tests {
     use super::*;
 
+    // Miri is isolated from non-deterministic filesystem interactions by default.  This test
+    // doesn't need unsafe, so better to skip Miri than relax the rules everywhere.
+    #[cfg(not(miri))]
     #[test]
     fn invalid_approximations_do_not_panic() {
         // This unfortunately has to couple to the internal details of `save`, but there's little
