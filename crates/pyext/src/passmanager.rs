@@ -14,7 +14,7 @@ use std::any::Any;
 use std::mem;
 use std::sync::{Arc, RwLock};
 
-use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyTypeError};
+use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::gc::PyVisit;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyType};
@@ -247,12 +247,26 @@ static PASS: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "Pass");
 static TASK_SEQUENCE: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "TaskSequence");
 static TASK_STAGES: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "TaskStages");
 
+/// The deepest task tree that can be converted to or from Python.
+///
+/// Python task containers are arbitrarily nestable, including recursively so.
+const MAX_TASK_DEPTH: usize = 1000;
+
 /// Build the native task that corresponds to a `qiskit.passmanager` object.
 ///
 /// The set of [`Task`] variants is closed, so the accepted Python types are exactly `Pass`,
 /// `TaskSequence` and `TaskStages`.  This is the inverse of [`task_to_py`].
 fn task_from_py(ob: &Bound<PyAny>) -> PyResult<Task> {
+    task_from_py_inner(ob, 0)
+}
+
+fn task_from_py_inner(ob: &Bound<PyAny>, depth: usize) -> PyResult<Task> {
     let py = ob.py();
+    if depth >= MAX_TASK_DEPTH {
+        return Err(PyValueError::new_err(format!(
+            "tasks are nested deeper than the maximum of {MAX_TASK_DEPTH}"
+        )));
+    }
     if ob.is_instance(PASS.get_bound(py))? {
         // Python owns the interpretation of the `Pass` protocol, including any
         // calling-convention resolution, and hands back a `PyPass` handle.
@@ -264,7 +278,7 @@ fn task_from_py(ob: &Bound<PyAny>) -> PyResult<Task> {
         let tasks = ob
             .getattr(intern!(py, "tasks"))?
             .try_iter()?
-            .map(|task| task_from_py(&task?))
+            .map(|task| task_from_py_inner(&task?, depth + 1))
             .collect::<PyResult<Vec<_>>>()?;
         return Ok(Task::Sequence(tasks));
     }
@@ -273,7 +287,12 @@ fn task_from_py(ob: &Bound<PyAny>) -> PyResult<Task> {
             .getattr(intern!(py, "stages"))?
             .cast_into::<PyDict>()?
             .iter()
-            .map(|(name, task)| Ok((name.extract::<String>()?, task_from_py(&task)?)))
+            .map(|(name, task)| {
+                Ok((
+                    name.extract::<String>()?,
+                    task_from_py_inner(&task, depth + 1)?,
+                ))
+            })
             .collect::<PyResult<Vec<_>>>()?;
         return Ok(Task::Stages(stages));
     }
