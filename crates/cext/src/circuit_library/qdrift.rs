@@ -23,9 +23,9 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 ///
 /// @param op Pointer to a valid ``QkObs`` containing the sum of the Pauli terms.
 /// @param reps The number of times to repeat the Trotter steps.
-/// @param time Evolution time t in \f$exp(-itH)\f$. May be positive, negative, or zero.
+/// @param time Evolution time t in \f$exp(-itH)\f$.
 /// @param seed An optional seed for reproducibility of the random sampling process.
-///   For default value it should be passed -1.
+///   To set no seed, pass -1.
 /// @param preserve_order If ``false``, allows reordering the terms of the operator to
 ///   potentially yield a shallower evolution circuit. Not relevant
 ///   when synthesizing an observable with a single term.
