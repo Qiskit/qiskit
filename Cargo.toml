@@ -15,11 +15,7 @@ license = "Apache-2.0"
 #
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
-<<<<<<< HEAD
-bytemuck = { version = "1.25", features = ["extern_crate_alloc"] }
-=======
-bytemuck = { version = "1.25", features = ["extern_crate_alloc", "derive", "impl_core_error"] }
->>>>>>> 7bc29a9 (Fix potential panics in bytemuck casts (#17348))
+bytemuck = { version = "1.25", features = ["extern_crate_alloc", "impl_core_error"] }
 bitfield-struct = "0.13.0"
 indexmap.version = "2.10.0"
 hashbrown.version = "0.15.5"
