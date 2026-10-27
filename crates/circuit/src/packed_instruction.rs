@@ -276,7 +276,8 @@ mod standard_gate {
             match value.discriminant() {
                 PackedOperationType::StandardGate => {
                     let bits = StandardGateBits::from(value.0.as_u64());
-                    Ok(bytemuck::checked::cast(bits.standard_gate()))
+                    Ok(bytemuck::checked::try_cast(bits.standard_gate())
+                        .expect("PackedOperation methods should never store an invalid payload"))
                 }
                 _ => Err("not a standard gate!"),
             }
@@ -339,14 +340,18 @@ mod standard_instruction {
             match value.discriminant() {
                 PackedOperationType::StandardInstruction => {
                     let bits = StandardInstructionBits::from_bits(value.0.as_u64());
-                    let ty: StandardInstructionType =
-                        bytemuck::checked::cast(bits.standard_instruction());
+                    let ty: StandardInstructionType = bytemuck::checked::try_cast(
+                        bits.standard_instruction(),
+                    )
+                    .expect("PackedOperation methods should never store an invalid payload");
                     Ok(match ty {
                         StandardInstructionType::Barrier => {
                             StandardInstruction::Barrier(bits.payload())
                         }
                         StandardInstructionType::Delay => StandardInstruction::Delay(
-                            bytemuck::checked::cast(bits.payload() as u8),
+                            bytemuck::checked::try_cast(bits.payload() as u8).expect(
+                                "PackedOperation methods should never store an invalid payload",
+                            ),
                         ),
                         StandardInstructionType::Measure => StandardInstruction::Measure,
                         StandardInstructionType::Reset => StandardInstruction::Reset,
@@ -455,7 +460,8 @@ impl PackedOperation {
 
     #[inline]
     fn discriminant(&self) -> PackedOperationType {
-        bytemuck::checked::cast((self.0.as_ptr().addr() & Self::DISCRIMINANT_MASK) as u8)
+        bytemuck::checked::try_cast((self.0.as_ptr().addr() & Self::DISCRIMINANT_MASK) as u8)
+            .expect("PackedOperation methods should never store an invalid discriminant")
     }
 
     /// Get the contained `ControlFlowInstruction`, if any.

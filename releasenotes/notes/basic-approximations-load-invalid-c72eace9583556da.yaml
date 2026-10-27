@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :meth:`.SolovayKitaevSynthesis.load` will no longer panic if the file contains a reference to an
+    unknown standard gate.
+    
