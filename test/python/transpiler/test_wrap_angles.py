@@ -14,14 +14,16 @@
 
 from test import QiskitTestCase
 
-from qiskit import QuantumCircuit
-from qiskit.circuit import Gate, Parameter, Qubit
+from math import pi
+from qiskit import QuantumCircuit, transpile
+from qiskit.circuit import Gate, Parameter, Qubit, IfElseOp
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import WrapAngles
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.target import Target
 from qiskit.transpiler import WrapAngleRegistry
-from qiskit.circuit.library import RZXGate
+from qiskit.circuit.library import RZXGate, RZZGate, XGate
+from qiskit.converters import circuit_to_dag
 
 
 class TestWrapAngles(QiskitTestCase):
@@ -82,3 +84,34 @@ class TestWrapAngles(QiskitTestCase):
         from qiskit.transpiler.passes.utils.wrap_angles import WRAP_ANGLE_REGISTRY
 
         self.assertIs(WRAP_ANGLE_REGISTRY, WrapAngles.DEFAULT_REGISTRY)
+
+    def test_control_flow(self):
+        """Test that the WrapAngles class doesn't ignore RZZ angle bounds"""
+        target = Target(num_qubits=2)
+        target.add_instruction(RZZGate(Parameter("theta")), angle_bounds=[(0, pi / 2)])
+        target.add_instruction(XGate())
+        target.add_instruction(IfElseOp, name="if_else")
+
+        def wrap_rzz(angles, _qubits):
+            replacement = QuantumCircuit(2)
+            replacement.x(0)
+            replacement.rzz(-angles[0], 0, 1)
+            replacement.x(0)
+            return circuit_to_dag(replacement)
+
+        WrapAngles.DEFAULT_REGISTRY.add_wrapper("rzz", wrap_rzz)
+
+        qc = QuantumCircuit(2, 1)
+        qc.rzz(-0.4, 0, 1)
+        with qc.if_test((qc.clbits[0], 0)):
+            qc.rzz(-0.4, 0, 1)
+
+        out = transpile(qc, target=target, optimization_level=0)
+        body = out.data[-1].operation.blocks[0]  # true branch of the if_else
+        angle_top_level = [
+            float(i.operation.params[0]) for i in out.data if i.operation.name == "rzz"
+        ]
+        angle_inside_if_else = [
+            float(i.operation.params[0]) for i in body.data if i.operation.name == "rzz"
+        ]
+        self.assertEqual(angle_top_level, angle_inside_if_else)
