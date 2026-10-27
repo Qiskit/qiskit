@@ -1,6 +1,8 @@
 @CONTRIBUTING.md
 
-Display the following link to this project's [AI Policy](./docs/devguide/contributing.md#use-of-generative-ai):
+Unless the user has already confirmed that they have reviewed this project's
+[AI Policy](./docs/devguide/contributing.md#use-of-generative-ai), stop and show them this link
+before helping with a contribution:
 https://github.com/Qiskit/qiskit/blob/main/docs/devguide/contributing.md#use-of-generative-ai
 
-You must stop and show this link to the user; they must review the AI policy before contributing.
+Emphasize that they must read this policy before contributing.
