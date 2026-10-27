@@ -172,7 +172,7 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - name: Install Rust
-        run: rustup toolchain install stable --override --profile minimal --no-self-update
+        run: rustup toolchain install 1.98 --override --profile minimal --no-self-update
 
       - name: Install deployment requirements
         run: python3 -m pip install --user -r ./.github/workflows/wheels/requirements.txt
@@ -195,7 +195,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install Rust
-        run: rustup toolchain install stable --override --profile minimal --no-self-update
+        run: rustup toolchain install 1.98 --override --profile minimal --no-self-update
 
       - name: Install deployment requirements
         run: python3 -m pip install --user -r ./.github/workflows/wheels/requirements.txt
@@ -217,7 +217,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install Rust
-        run: rustup toolchain install stable --override --profile minimal --no-self-update
+        run: rustup toolchain install 1.98 --override --profile minimal --no-self-update
 
       - name: Install deployment requirements
         run: python3 -m pip install --user -r ./.github/workflows/wheels/requirements.txt
