@@ -99,7 +99,7 @@ pub extern "C" fn qk_obs_num_qubits(obs: &SparseObservable) -> u32 {
 ```
 
 Use `Option<&T>` and `Option<&mut T>` when passing `NULL` has defined behavior. The optional
-explicitly states the nullable contract. The compiler guarentees that `&T` cannot be used without
+explicitly states the nullable contract. The compiler guarentees that `T` cannot be used without
 checking the `NULL` case.
 
 Use `NonNull<T>` instead of `&mut T` when taking ownership of `T`. The former accurately describes
@@ -108,8 +108,8 @@ taking ownership of a raw pointer. `NonNull<T>` avoids manually casting `&mut T`
 The types `Option<&T>`, `Option<&mut T>`, and `NonNull<T>` have the same ABI as raw pointers.
 
 Both idioms are useful in combination for free-like function parameters. The call `free(NULL)` is a
-no-op in C. Callers expect this behavior because it makes memory management less cumbersome. Free-
-like functions take ownership of `T` and handle the `NULL` case gracefully. 
+no-op in C. Callers expect this behavior because it makes memory management less cumbersome.
+Friendly cleanup functions take ownership of `T` and handle the `NULL` case gracefully.
 
 ```rust
 #[unsafe(no_mangle)]
