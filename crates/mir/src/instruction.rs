@@ -156,7 +156,7 @@ mod tests {
             returns: SymbolIdList::default(),
         };
 
-        let check_list = vec![instr3.clone(), instr1.clone(), instr2.clone()];
+        let check_list = [instr3.clone(), instr1.clone(), instr2.clone()];
 
         instr_list.push_back(instr1);
         instr_list.push_back(instr2);
