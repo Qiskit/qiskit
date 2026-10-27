@@ -2335,7 +2335,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_binary_op_from_u8_invalid_input() {
+    fn test_op_code_from_u8_invalid_input() {
         assert!(OpCode::try_from_u8(123).is_err())
     }
 }
