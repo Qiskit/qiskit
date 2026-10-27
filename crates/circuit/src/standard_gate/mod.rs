@@ -1922,7 +1922,10 @@ impl StandardGate {
     pub fn all_gates(py: Python) -> PyResult<Bound<PyList>> {
         PyList::new(
             py,
-            (0..STANDARD_GATE_SIZE as u8).map(::bytemuck::checked::cast::<_, Self>),
+            (0..STANDARD_GATE_SIZE as u8).map(|i| {
+                ::bytemuck::checked::try_cast::<_, Self>(i)
+                    .expect("`StandardGate` should be contiguous from 0 to its size")
+            }),
         )
     }
 
