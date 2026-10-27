@@ -90,11 +90,11 @@ pub fn suzuki_trotter_evolution(
     });
 
     CircuitData::from_packed_operations(observable.num_qubits(), 0, repeated_evo, Param::Float(0.0))
-        .and_then(|mut circuit| {
+        .map(|mut circuit| {
             if modified_phase {
                 let _ = circuit.set_global_phase_param(multiply_param(&global_phase, -0.5));
             }
-            Ok(circuit)
+            circuit
         })
         .map_err(EvolutionError::CircuitBuild)
 }

@@ -17,9 +17,6 @@ pub enum EvolutionError {
     #[error["Failed building circuit"]]
     CircuitBuild(#[from] CircuitDataError),
 
-    #[error["qDrift evolution failed"]]
-    FailedEvolutionError,
-
     /// Complex value obtained from real approximation
     #[error["Encountered complex value {0}, but expected real."]]
     UnexpectedImaginaryPart(f64),
