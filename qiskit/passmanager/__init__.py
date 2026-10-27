@@ -303,16 +303,14 @@ possibility of a bad :class:`~.IR` handover is detected.
 
     from qiskit.passmanager import LoweringPassManager, TaskSequence, TaskStages
 
-    stages = TaskStages(
-        [("lower", TaskSequence([MyLoweringPass()])), ("optimize", TaskSequence())]
-    )
-    pipeline = TaskSequence([stages])
+    # These named stages will be run in order
+    stages = TaskStages(lower=TaskSequence([MyLoweringPass()]), optimize=TaskSequence())
 
     stages["optimize"].append(MyOptimizationPass())
     stages["lower"].append(AnotherLoweringPass())
 
-    # The next line checks the validity of the pipeline
-    pass_manager = LoweringPassManager(pipeline)
+    # The next line checks the validity of the given sequence of tasks
+    pass_manager = LoweringPassManager([stages])
     out = pass_manager.run(circuit)
 
 

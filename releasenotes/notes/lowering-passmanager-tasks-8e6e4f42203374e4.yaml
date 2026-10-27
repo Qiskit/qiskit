@@ -10,7 +10,7 @@ features:
 
         from qiskit.passmanager import LoweringPassManager, TaskSequence, TaskStages
 
-        stages = TaskStages([("lower", TaskSequence()), ("optimize", TaskSequence())])
+        stages = TaskStages(lower=TaskSequence(), optimize=TaskSequence())
         stages["lower"].append(MyLoweringPass())
         stages["optimize"].append(MyOptimizationPass())
 
