@@ -16,6 +16,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 from qiskit._accelerate import wrap_angles
 from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
+from qiskit.transpiler.passes.utils.control_flow import trivial_recurse
 
 
 class WrapAngles(TransformationPass):
@@ -103,10 +104,10 @@ class WrapAngles(TransformationPass):
         self.target = target
         self.registry = self.DEFAULT_REGISTRY if registry is None else registry
 
+    @trivial_recurse
     def run(self, dag):
         wrap_angles.wrap_angles(dag, self.target, self.registry)
         return dag
-
 
 # TODO This path is the only valid way to access this global object in Qiskit 2.2, and is documented and
 # preserved by the deprecation policy of that version.  The preferred way to access the object is as
