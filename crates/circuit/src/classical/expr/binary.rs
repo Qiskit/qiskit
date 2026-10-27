@@ -68,7 +68,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for BinaryOp {
 }
 
 impl BinaryOp {
-    pub fn from_u8(value: u8) -> Result<BinaryOp, bytemuck::checked::CheckedCastError> {
+    pub fn try_from_u8(value: u8) -> Result<BinaryOp, bytemuck::checked::CheckedCastError> {
         bytemuck::checked::try_cast::<u8, BinaryOp>(value)
     }
 }
@@ -231,6 +231,6 @@ mod test {
 
     #[test]
     fn test_binary_op_from_u8_invalid_input() {
-        assert!(BinaryOp::from_u8(123).is_err())
+        assert!(BinaryOp::try_from_u8(123).is_err())
     }
 }

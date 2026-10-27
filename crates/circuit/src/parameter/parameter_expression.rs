@@ -2069,7 +2069,7 @@ unsafe impl ::bytemuck::CheckedBitPattern for OpCode {
 unsafe impl ::bytemuck::NoUninit for OpCode {}
 
 impl OpCode {
-    pub fn from_u8(value: u8) -> Result<OpCode, bytemuck::checked::CheckedCastError> {
+    pub fn try_from_u8(value: u8) -> Result<OpCode, bytemuck::checked::CheckedCastError> {
         bytemuck::checked::try_cast::<u8, OpCode>(value)
     }
 }
@@ -2336,6 +2336,6 @@ mod test {
 
     #[test]
     fn test_binary_op_from_u8_invalid_input() {
-        assert!(OpCode::from_u8(123).is_err())
+        assert!(OpCode::try_from_u8(123).is_err())
     }
 }
