@@ -13,32 +13,51 @@
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use num_complex::Complex64;
-use std::sync::{Arc, atomic};
+use std::convert::Infallible;
+use std::sync::Arc;
+
+#[cfg(feature = "py")]
+use std::sync::atomic;
 use thiserror::Error;
+#[cfg(feature = "py")]
 use uuid::Uuid;
 
+#[cfg(feature = "py")]
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+#[cfg(feature = "py")]
 use pyo3::exceptions::{
     PyDeprecationWarning, PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError,
 };
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::sync::PyOnceLock;
+#[cfg(feature = "py")]
 use pyo3::types::{
     IntoPyDict, PyComplex, PyFloat, PyInt, PyIterator, PyList, PyNotImplemented, PySet, PyString,
     PyTuple,
 };
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
 
+#[cfg(feature = "py")]
 use crate::circuit_data::CircuitError;
+#[cfg(feature = "py")]
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID, WARNINGS_WARN};
-use crate::parameter::symbol_expr::{self, SymbolExpr, SymbolVector};
+#[cfg(feature = "py")]
+use crate::parameter::symbol_expr::SymbolVector;
+use crate::parameter::symbol_expr::{self, SymbolExpr};
+#[cfg(feature = "py")]
 use crate::parameter::symbol_parser::parse_expression;
+#[cfg(feature = "py")]
 use qiskit_util::IndexSet;
 
-use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
+#[cfg(feature = "py")]
+use super::symbol_expr::SYMEXPR_EPSILON;
+use super::symbol_expr::{Symbol, Value};
 
 /// Errors for dealing with parameters and parameter expressions.
 #[derive(Error, Debug)]
@@ -65,6 +84,7 @@ pub enum ParameterError {
     DerivativeNotSupported(String),
 }
 
+#[cfg(feature = "py")]
 impl From<ParameterError> for PyErr {
     fn from(value: ParameterError) -> Self {
         match value {
@@ -145,6 +165,7 @@ impl ParameterExpression {
         (self.name_map == other.name_map) && self.expr.eq_exact(&other.expr)
     }
 
+    #[cfg(feature = "py")]
     pub fn qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::new();
         let mut unused: IndexSet<_> = self.name_map.values().cloned().collect();
@@ -211,6 +232,7 @@ impl ParameterExpression {
 // the Python classes Parameter and ParameterVector are subclasses of
 // ParameterExpression and the default trait impl would not handle the specialization
 // there.
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for ParameterExpression {
     type Target = PyParameterExpression;
     type Output = Bound<'py, Self::Target>;
@@ -766,6 +788,7 @@ impl From<Value> for ParameterExpression {
 ///
 /// This is backed by Qiskit's symbolic expression engine and a cache
 /// for the parameters inside the expression.
+#[cfg(feature = "py")]
 #[pyclass(
     subclass,
     module = "qiskit._accelerate.circuit",
@@ -777,6 +800,7 @@ pub struct PyParameterExpression {
     pub inner: ParameterExpression,
 }
 
+#[cfg(feature = "py")]
 impl Default for PyParameterExpression {
     /// The default constructor returns zero.
     fn default() -> Self {
@@ -786,18 +810,21 @@ impl Default for PyParameterExpression {
     }
 }
 
+#[cfg(feature = "py")]
 impl fmt::Display for PyParameterExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.inner.fmt(f)
     }
 }
 
+#[cfg(feature = "py")]
 impl From<ParameterExpression> for PyParameterExpression {
     fn from(value: ParameterExpression) -> Self {
         Self { inner: value }
     }
 }
 
+#[cfg(feature = "py")]
 impl PyParameterExpression {
     /// Attempt to extract a `PyParameterExpression` from a bound `PyAny`.
     ///
@@ -853,6 +880,7 @@ impl PyParameterExpression {
     }
 }
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyParameterExpression {
     /// Simplify the expression. This, for example, attempts to cancel
@@ -1498,6 +1526,7 @@ impl PyParameterExpression {
 ///         bc = qc.assign_parameters({phi: 3.14})
 ///         bc.measure_all()
 ///         bc.draw("mpl")
+#[cfg(feature = "py")]
 #[pyclass(
     sequence,
     subclass,
@@ -1509,6 +1538,7 @@ impl PyParameterExpression {
 )]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Hash)]
 pub struct PyParameter(pub Arc<Symbol>);
+#[cfg(feature = "py")]
 impl From<Symbol> for PyParameter {
     fn from(val: Symbol) -> Self {
         Self(Arc::new(val))
@@ -1517,6 +1547,7 @@ impl From<Symbol> for PyParameter {
 
 // This needs to be implemented manually, since PyO3 does not provide this conversion
 // for subclasses.
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for PyParameter {
     type Target = PyAny;
     type Output = Bound<'py, Self::Target>;
@@ -1536,6 +1567,7 @@ impl<'py> IntoPyObject<'py> for PyParameter {
     }
 }
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyParameter {
     /// Args:
@@ -1710,6 +1742,7 @@ impl PyParameter {
 /// .. note::
 ///     There is very little reason to ever construct this class directly.  Objects of this type are
 ///     automatically constructed efficiently as part of creating a :class:`.ParameterVector`.
+#[cfg(feature = "py")]
 #[pyclass(
     sequence,
     subclass,
@@ -1722,6 +1755,7 @@ impl PyParameter {
 // Python type-level marker.  Nothing in Rust space should actually use this.
 pub(crate) struct PyParameterVectorElement;
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyParameterVectorElement {
     #[new]
@@ -1806,6 +1840,7 @@ impl PyParameterVectorElement {
 /// index.
 ///
 /// This class fulfills the :class:`collections.abc.Sequence` interface.
+#[cfg(feature = "py")]
 #[pyclass(
     sequence,
     module = "qiskit._accelerate.circuit",
@@ -1818,6 +1853,7 @@ pub struct PyParameterVector {
     /// Cache of the parameter list.
     params: PyOnceLock<Py<PyList>>,
 }
+#[cfg(feature = "py")]
 impl PyParameterVector {
     pub fn new(base: Arc<SymbolVector>) -> Self {
         Self {
@@ -1827,6 +1863,7 @@ impl PyParameterVector {
         }
     }
 }
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyParameterVector {
     #[new]
@@ -1958,6 +1995,7 @@ impl PyParameterVector {
 }
 
 /// Try to extract a Uuid from a Python object, which could be a Python UUID or int.
+#[cfg(feature = "py")]
 fn uuid_from_py(uuid: Bound<PyAny>) -> PyResult<Uuid> {
     let int = if uuid.is_exact_instance(UUID.get_bound(uuid.py())) {
         uuid.getattr("int")?
@@ -1968,6 +2006,7 @@ fn uuid_from_py(uuid: Bound<PyAny>) -> PyResult<Uuid> {
 }
 
 /// Convert a Rust Uuid object to a Python UUID object.
+#[cfg(feature = "py")]
 fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<Bound<'_, PyAny>> {
     let uuid = uuid.as_u128();
     let kwargs = [("int", uuid)].into_py_dict(py)?;
@@ -1976,14 +2015,17 @@ fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<Bound<'_, PyAny>> {
 
 /// A singular parameter value used for QPY serialization. This covers anything
 /// but a [PyParameterExpression], which is represented by [None] in the serialization.
-#[derive(IntoPyObject, FromPyObject, Clone, Debug)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "py", derive(IntoPyObject, FromPyObject))]
 pub enum ParameterValueType {
     Int(i64),
     Float(f64),
     Complex(Complex64),
+    #[cfg(feature = "py")]
     Parameter(PyParameter),
 }
 
+#[cfg(feature = "py")]
 impl ParameterValueType {
     fn extract_from_expr(expr: &SymbolExpr) -> Option<ParameterValueType> {
         if let Some(value) = expr.eval(true) {
@@ -1992,8 +2034,11 @@ impl ParameterValueType {
                 Value::Real(r) => Some(ParameterValueType::Float(r)),
                 Value::Complex(c) => Some(ParameterValueType::Complex(c)),
             }
-        } else if let SymbolExpr::Symbol(symbol) = expr {
-            Some(Self::Parameter(PyParameter(symbol.clone())))
+        } else if let SymbolExpr::Symbol(_symbol) = expr {
+            #[cfg(feature = "py")]
+            return Some(ParameterValueType::Parameter(PyParameter(_symbol.clone())));
+            #[cfg(not(feature = "py"))]
+            return None;
         } else {
             // ParameterExpressions have the value None, as they must be constructed
             None
@@ -2004,6 +2049,7 @@ impl ParameterValueType {
 impl From<ParameterValueType> for ParameterExpression {
     fn from(value: ParameterValueType) -> Self {
         match value {
+            #[cfg(feature = "py")]
             ParameterValueType::Parameter(PyParameter(symbol)) => {
                 let expr = SymbolExpr::Symbol(symbol);
                 Self::from_symbol_expr(expr)
@@ -2024,7 +2070,10 @@ impl From<ParameterValueType> for ParameterExpression {
     }
 }
 
-#[pyclass(module = "qiskit._accelerate.circuit", from_py_object)]
+#[cfg_attr(
+    feature = "py",
+    pyclass(module = "qiskit._accelerate.circuit", from_py_object)
+)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum OpCode {
@@ -2069,11 +2118,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for OpCode {
 unsafe impl ::bytemuck::NoUninit for OpCode {}
 
 impl OpCode {
-    pub fn from_u8(value: u8) -> PyResult<OpCode> {
+    pub fn from_u8(value: u8) -> Result<OpCode, Infallible> {
         Ok(bytemuck::checked::cast::<u8, OpCode>(value))
     }
 }
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl OpCode {
     #[new]
@@ -2101,7 +2151,10 @@ impl OpCode {
 }
 
 // enum for QPY replay
-#[pyclass(sequence, module = "qiskit._accelerate.circuit", from_py_object)]
+#[cfg_attr(
+    feature = "py",
+    pyclass(sequence, module = "qiskit._accelerate.circuit", from_py_object)
+)]
 #[derive(Clone, Debug)]
 pub struct OPReplay {
     pub op: OpCode,
@@ -2109,6 +2162,7 @@ pub struct OPReplay {
     pub rhs: Option<ParameterValueType>,
 }
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl OPReplay {
     #[new]
@@ -2154,6 +2208,7 @@ impl OPReplay {
 /// Args:
 ///     - joint_parameter_expr: The full expression, e.g. expr1 + expr2.
 ///     - sub_expr: The sub expression, on whose symbols we restrict the name map.
+#[cfg(feature = "py")]
 fn filter_name_map(
     sub_expr: &SymbolExpr,
     name_map: &HashMap<String, Symbol>,
@@ -2171,6 +2226,7 @@ fn filter_name_map(
     }
 }
 
+#[cfg(feature = "py")]
 fn qpy_replay_inner(
     expr: &ParameterExpression,
     name_map: &HashMap<String, Symbol>,
@@ -2232,15 +2288,26 @@ fn qpy_replay_inner(
             // If the extracted value resolved into a concrete value, we don't need to recurse
             // into it, since its computed value will be stored along
             // with the operation in the replay.
-            if matches!(lhs_value, Some(ParameterValueType::Parameter(_)) | None) {
+            if match lhs_value {
+                #[cfg(feature = "py")]
+                Some(ParameterValueType::Parameter(_)) => true,
+                None => true,
+                _ => false,
+            } {
                 qpy_replay_inner(&lhs, name_map, replay, unused);
             }
-            if matches!(rhs_value, Some(ParameterValueType::Parameter(_)) | None) {
+            if match rhs_value {
+                #[cfg(feature = "py")]
+                Some(ParameterValueType::Parameter(_)) => true,
+                None => true,
+                _ => false,
+            } {
                 qpy_replay_inner(&rhs, name_map, replay, unused);
             }
 
             // add the expression to the replay
             match lhs_value {
+                #[cfg(feature = "py")]
                 Some(ParameterValueType::Parameter(_)) => {
                     // For non-commutative operations (SUB, DIV, POW): if LHS is a Parameter and RHS is
                     // an expression (None), we need to use reverse operations (RSUB, RDIV, RPOW)

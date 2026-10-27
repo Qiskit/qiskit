@@ -2759,8 +2759,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
         (true, true, None, 0)
     };
 
-    let circuit_str =
-        draw_circuit(circuit, bundle_cregs, merge_wires, fold, barrier_label_len).unwrap();
+    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold, barrier_label_len);
 
     util::cstring_from_utf8_lossy(circuit_str).into_raw()
 }
