@@ -2589,6 +2589,7 @@ dependencies = [
  "rustiq-core",
  "rustworkx-core",
  "smallvec",
+ "tempfile",
  "thiserror 2.0.21",
 ]
 
