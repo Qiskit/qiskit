@@ -10,20 +10,20 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use super::evolution_error::EvolutionError;
 use num_complex::Complex64;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardInstruction, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_quantum_info::sparse_observable::{SparseObservable, SparseTermView};
 use qiskit_synthesis::evolution::suzuki_trotter::reorder_terms;
 use qiskit_synthesis::pauli_evolution::{Instruction, sparse_term_evolution};
-use rand::distr::weighted::{Error as DistroError, WeightedIndex};
+use rand::distr::weighted::WeightedIndex;
 use rand::prelude::*;
 use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use smallvec::smallvec;
-use thiserror::Error;
 
 pub fn qdrift_evolution(
     observable: &SparseObservable,
@@ -35,7 +35,7 @@ pub fn qdrift_evolution(
 ) -> Result<CircuitData, EvolutionError> {
     let num_qubits = observable.num_qubits();
 
-    let evo: Vec<(usize, f64)> = qdrift(time, reps, seed, observable.coeffs().iter())?;
+    let evo = qdrift(time, reps, seed, observable.coeffs().iter())?;
 
     let mut global_phase = Param::Float(0.0);
     let mut modified_phase = false;
@@ -43,12 +43,12 @@ pub fn qdrift_evolution(
     // Since we need the term to use the coefficient obtained by the evolution,
     // we chose to build `SparseTermView` directly instead of using the
     // `observable.term` function
-    let sampled_paulis = evo.iter().map(|(index, coeff)| {
-        let start = observable.boundaries()[*index];
+    let sampled_paulis = evo.map(|(index, coeff)| {
+        let start = observable.boundaries()[index];
         let end = observable.boundaries()[index + 1];
         let bit_terms = &observable.bit_terms()[start..end];
         if bit_terms.is_empty() {
-            global_phase = radd_param(global_phase.clone(), (*coeff).into());
+            global_phase = radd_param(global_phase.clone(), (coeff).into());
             modified_phase = true;
         }
         SparseTermView {
@@ -83,7 +83,7 @@ pub fn qdrift_evolution(
         )
         .map(Ok::<Instruction, _>);
 
-        let maybe_barrier = (insert_barriers && i != evo.len() - 1)
+        let maybe_barrier = (insert_barriers && i != sampled_paulis.len() - 1)
             .then_some(Ok((
                 PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
                     num_qubits,
@@ -114,72 +114,34 @@ pub fn qdrift<'a>(
     reps: u32,
     seed: Option<u64>,
     coeffs_iter: impl Iterator<Item = &'a Complex64>,
-) -> Result<Vec<(usize, f64)>, EvolutionError> {
+) -> Result<impl Iterator<Item = (usize, f64)>, EvolutionError> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
         None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
     };
     let mut lambd = 0.0;
 
-    match coeffs_iter
+    let coeffs = coeffs_iter
         .enumerate()
-        .map(|(i, coeff)| match real_or_fail(coeff) {
-            Ok(real_coeff) => Ok({
-                lambd += real_coeff;
-                (i, real_coeff)
-            }),
-            Err(err) => Err(err),
+        .map(|(i, coeff)| {
+            let (coeff_re, coeff_im) = (coeff.re.abs(), coeff.im.abs());
+            lambd += if coeff_im > 1e-12 {
+                return Err(EvolutionError::UnexpectedImaginaryPart(coeff_im));
+            } else {
+                coeff_re
+            };
+            Ok((i, coeff_re))
         })
-        .collect::<Result<Vec<_>, _>>()
-    {
-        Ok(coeffs) => {
-            let num_gates = (2.0 * lambd.powi(2) * time.powi(2) * reps as f64).ceil() as usize;
-            match WeightedIndex::new(coeffs.iter().map(|(_, coeff)| coeff.abs() / lambd)) {
-                Ok(distr) => Ok({
-                    (0..num_gates)
-                        .map(|_| {
-                            let (index, coeff) = coeffs[distr.sample(&mut rng)];
-                            (
-                                index,
-                                coeff.signum() * (2.0 * lambd / (num_gates as f64) * time),
-                            )
-                        })
-                        .collect()
-                }),
-                Err(err) => Err(EvolutionError::DistributionError(err)),
-            }
-        }
-        Err(err) => Err(err),
-    }
-}
+        .collect::<Result<Vec<_>, _>>()?;
 
-/// Internal helper to extract real part of a complex number,
-/// returning an error if imaginary part is non-zero.
-fn real_or_fail(z: &Complex64) -> Result<f64, EvolutionError> {
-    if z.im.abs() > 1e-12 {
-        return Err(EvolutionError::UnexpectedImaginaryPart(z.im.abs()));
-    }
-    Ok(z.re)
-}
+    let num_gates = (2.0 * lambd.powi(2) * time.powi(2) * reps as f64).ceil() as usize;
+    let distr = WeightedIndex::new(coeffs.iter().map(|(_, coeff)| coeff.abs() / lambd))?;
 
-#[derive(Debug, Error)]
-pub enum EvolutionError {
-    /// A general error for terms reordering error
-    #[error["Error ocurred when trying to reorder terms: {0}"]]
-    TermsReorder(String),
-
-    /// A general error when trying to build circuit from generated instructions
-    #[error["Failed building circuit"]]
-    CircuitBuild(#[from] CircuitDataError),
-
-    #[error["qDrift evolution failed"]]
-    FailedEvolutionError,
-
-    /// Complex value obtained from real approximation
-    #[error["Encountered complex value {0}, but expected real."]]
-    UnexpectedImaginaryPart(f64),
-
-    /// Couldn't generate weighted distribution
-    #[error["Failed creating weight distribution"]]
-    DistributionError(#[from] DistroError),
+    Ok((0..num_gates).map(move |_| {
+        let (index, coeff) = coeffs[distr.sample(&mut rng)];
+        (
+            index,
+            coeff.signum() * (2.0 * lambd / (num_gates as f64) * time),
+        )
+    }))
 }

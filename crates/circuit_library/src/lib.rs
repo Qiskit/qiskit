@@ -23,6 +23,7 @@ mod pauli_feature_map;
 pub mod qdrift;
 pub mod quantum_volume;
 pub mod suzuki_trotter;
+mod evolution_error;
 
 import_exception!(qiskit.exceptions, QiskitError);
 import_exception!(qiskit.circuit.exceptions, CircuitError);
