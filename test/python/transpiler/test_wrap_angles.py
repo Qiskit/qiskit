@@ -86,7 +86,7 @@ class TestWrapAngles(QiskitTestCase):
         self.assertIs(WRAP_ANGLE_REGISTRY, WrapAngles.DEFAULT_REGISTRY)
 
     def test_control_flow(self):
-        """Test that the WrapAngles class doesn't ignore RZZ angle bounds"""
+        """Test that the WrapAngles class doesn't ignore angle bounds inside the control flow"""
         target = Target(num_qubits=2)
         target.add_instruction(RZZGate(Parameter("theta")), angle_bounds=[(0, pi / 2)])
         target.add_instruction(XGate())
