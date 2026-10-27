@@ -12,10 +12,9 @@ The C API is useful for...
 - writing python extension modules.
 
 This document defines guidelines for C API development, helping address stability, consistency, and
-familiarity concerns. Examples are written from a Rust and `cbindgen` perspective. If this is your
-first time extending the C API, see the [tutorial](cext-tutorial.md).
+familiarity concerns. The examples are written with Rust and `cbindgen` in mind.
 
-## Structs
+## Structures
 
 C structs are either transparent or opaque. A transparent struct is fully defined in the header
 file, allowing callers to access members and allocate instances themselves. An opaque struct is
@@ -56,7 +55,7 @@ pub struct QubitArray {
 *The `pub` keyword has no effect across FFI. Though, it's best practice to include `pub` for
 documentation purposes.*
 
-## Enums
+## Enumerations
 
 C enums are named integer constants. Qiskit uses fixed-width enums with `repr(u*)` for consistency
 across compilers. Since `sizeof(enum t) == sizeof(int)` on most modern platforms, `repr(u32)` is a
@@ -72,15 +71,64 @@ pub enum QubitType {
 }
 ```
 
-## Integers
+*The `Unknown` variant, often having the value `0`, is useful for error handling.*
+
+## Functions
+
+C FFI functions must use the unsafe `no_mangle` attribute and `extern "C"` keyword. The `pub`
+keyword serves as documentation.
+
+```rust
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_obs_zero(num_qubits: u32) -> *mut SparseObservable {
+    let obs = SparseObservable::zero(num_qubits);
+    Box::into_raw(Box::new(obs))
+}
+```
+
+Accept `&T` and `&mut T` instead of `*const T` and `*mut T` respectively when the documented
+contract is non-null. Thin references have ABI as raw pointers. References better express the
+non-null contract in function signature. Also, references avoid manually dereferencing with `&*`
+and `&mut *` in the function body.
+
+```rust
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_obs_num_qubits(obs: &SparseObservable) -> u32 {
+    obs.num_qubits()
+}
+```
+
+Use `Option<&T>` and `Option<&mut T>` when passing `NULL` has defined behavior. Both types have the
+same ABI as `&T` and `&mut T` respectively. This pattern is idiomatic because the compiler
+guarentees that `&T` cannot be read without checking the `NULL` case.
+
+Use `NonNull<T>` instead of `&mut T` when taking ownership of `T`. Again, both have the same ABI.
+The former accurately describes taking ownership of a raw pointer. Also, `NonNull<T>` avoids
+manually casting `&mut T` as `*mut T` in the function body.
+
+Both idioms are useful in combination when writing free-like functions. The call `free(NULL)` is a
+no-op in C. This behavior makes manual memory management less cumbersome. Free-like functions
+take ownership of `T` and handle the `NULL` case gracefully. This, `Option<NonNull<T>>` accurately
+describes both aspects of this contract.
+
+```rust
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_obs_free(obs: Option<NonNull<SparseObservable>) {
+    if let Some(obs) = obs {
+        drop(Box::from_raw(obs.as_ptr()))
+    }
+}
+```
+
+*`Option<T>` forces programmers to handle the `NULL` case before interacting with `T`.*
+
+## Integer Types
 
 Prefer fixed-width integers like `i32` and `u64`. Avoid imprecise-width integers like `c_int` and
 `c_long`. `cbindgen` generates headers using fixed-width integers found in `inttypes.h`. For
 example, `i32` is mapped to `int32_t`.
 
-## Functions
-
-### Naming
+## Naming
 
 Functions are often grouped around types. Grouped functions follow the `qk_<group>_<verb>` format.
 
