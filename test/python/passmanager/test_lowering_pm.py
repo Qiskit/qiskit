@@ -1071,6 +1071,23 @@ class TestTaskStagesMapping(QiskitTestCase):
         self.assertEqual(list(self.stages.items()), list(TaskStages(self.stages).items()))
         self.assertEqual(dict(self.stages), dict(self.stages.items()))
 
+    def test_construct_from_keywords(self):
+        """Test that keyword arguments name the stages they construct."""
+        self.assertEqual(
+            [("init", self.a), ("layout", self.b), ("opt", self.c)],
+            list(TaskStages(init=self.a, layout=self.b, opt=self.c).items()),
+        )
+
+    def test_keywords_follow_positional_stages(self):
+        """Test that keyword stages are appended after the positional ones."""
+        stages = TaskStages([("init", self.a)], opt=self.c)
+        self.assertEqual([("init", self.a), ("opt", self.c)], list(stages.items()))
+
+    def test_keyword_repeating_positional_name_raises(self):
+        """Test that a name given both positionally and by keyword raises."""
+        with self.assertRaisesRegex(ValueError, "stage names must be unique"):
+            TaskStages({"x": self.a}, x=self.b)
+
     def test_is_mutable_mapping(self):
         """Test that task stages register as a mutable mapping."""
         self.assertIsInstance(self.stages, MutableMapping)

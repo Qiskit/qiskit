@@ -27,6 +27,7 @@ import reprlib
 import typing
 from collections import Counter
 from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence
+from types import MappingProxyType
 from typing import Generic, ClassVar, TypeAlias
 from typing_extensions import TypeVar
 
@@ -224,17 +225,20 @@ class TaskStages(LoweringTask, MutableMapping):
     given to a :class:`LoweringPassManager`.
     """
 
-    def __init__(self, stages: StagesLike = ()):
+    def __init__(self, stages: StagesLike = (), /, **kw_stages: LoweringTask):
         """
         Args:
             stages: the initial stages, as a mapping from name to task or an iterable of
                 ``(name, task)`` pairs.
+            kw_stages: initial stages whose names are given by keyword arguments, appended to any
+                entries of ``stages``.
 
         Raises:
             TypeError: if ``stages`` is not a mapping or an iterable of ``(name, task)`` pairs.
-            ValueError: if a stage name is repeated.
+            ValueError: if a stage name is repeated, including between ``stages`` and
+                ``kw_stages``.
         """
-        self.stages: dict[str, LoweringTask] = _as_stages(stages)
+        self.stages: dict[str, LoweringTask] = _as_stages(stages, kw_stages)
         """The stages, in execution order.
         
         This dictionary can be safely mutated in-place.
@@ -362,21 +366,25 @@ def _as_stage(stage: tuple[str, LoweringTask]) -> tuple[str, LoweringTask]:
     raise TypeError(f"expected a (name, task) pair, got {stage!r}")
 
 
-def _as_stages(stages: StagesLike) -> dict[str, LoweringTask]:
-    """Normalize anything :class:`TaskStages` accepts into a dictionary of stages.
+def _as_stages(
+    stages: StagesLike, extra: Mapping[str, LoweringTask] = MappingProxyType({})
+) -> dict[str, LoweringTask]:
+    """Normalize stages-like input to a single dictionary.
 
     Raises:
         TypeError: if ``stages`` is not a mapping or an iterable of ``(name, task)`` pairs.
-        ValueError: if a stage name is repeated.
+        ValueError: if a stage name is repeated, including between ``stages`` and ``extra``.
     """
     if isinstance(stages, Mapping):
-        return dict(stages)
-    try:
-        pairs = [_as_stage(stage) for stage in stages]
-    except TypeError as exc:
-        raise TypeError(
-            f"expected a mapping or an iterable of (name, task) pairs, got {stages!r}"
-        ) from exc
+        pairs = list(stages.items())
+    else:
+        try:
+            pairs = [_as_stage(stage) for stage in stages]
+        except TypeError as exc:
+            raise TypeError(
+                f"expected a mapping or an iterable of (name, task) pairs, got {stages!r}"
+            ) from exc
+    pairs += extra.items()
     out = dict(pairs)
     if len(out) != len(pairs):
         counts = Counter(name for name, _ in pairs)
