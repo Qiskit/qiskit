@@ -43,16 +43,6 @@ pub enum TensorError {
     /// An exponent of an integer dtype is negative.
     #[error("an exponent of dtype {dtype} cannot be negative")]
     NegativeExponent { dtype: DType },
-    /// A buffer of packed bits is not the length its shape requires.
-    #[error("a Bit tensor of shape {shape:?} packs into {expected} byte(s), not {actual}")]
-    BitByteCount {
-        shape: Vec<usize>,
-        expected: usize,
-        actual: usize,
-    },
-    /// A padding bit of a buffer of packed bits is set.
-    #[error("the padding bits of a packed Bit row must be zero")]
-    BitPadding,
     /// A sequence of bits does not hold one bit per element of its shape.
     #[error("a Bit tensor of shape {shape:?} holds {expected} bit(s), not {actual}")]
     BitCount {

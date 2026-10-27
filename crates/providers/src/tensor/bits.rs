@@ -61,13 +61,11 @@ fn final_byte_mask(num_bits: usize) -> Option<u8> {
 /// byte along the last axis.
 ///
 /// The storage format is the following. A "row" is the last axis of the logical shape, of
-/// [`num_bits`](Self::num_bits) bits, and occupies [`bytes_per_row`](Self::bytes_per_row) bytes.
-/// Bit `i` of a row is bit `i % 8` of byte `i / 8`, so the order within a byte is least
-/// significant first. The bits of a row's final byte at or above `num_bits` are padding, and are
-/// zero. Rows follow one another in row-major order of the leading axes, each starting on a byte
-/// boundary. A zero-dimensional tensor is one row of one bit.
-///
-/// [`as_bytes`](Self::as_bytes) returns a buffer in the format described above.
+/// [`num_bits`](Self::num_bits) bits, and occupies `ceil(num_bits / 8)` bytes. Bit `i` of a row is
+/// bit `i % 8` of byte `i / 8`, so the order within a byte is least significant first. The bits of
+/// a row's final byte at or above `num_bits` are padding, and are zero. Rows follow one another in
+/// row-major order of the leading axes, each starting on a byte boundary. A zero-dimensional
+/// tensor is one row of one bit.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BitTensor {
     data: ArcArrayD<u8>,
@@ -76,32 +74,6 @@ pub struct BitTensor {
 }
 
 impl BitTensor {
-    /// Return a tensor of logical shape `shape` over `bytes`.
-    ///
-    /// Returns [`TensorError::BitByteCount`] if `bytes` is not the length `shape` requires, and
-    /// [`TensorError::BitPadding`] if a padding bit is set.
-    pub fn from_bytes(bytes: Vec<u8>, shape: &[usize]) -> Result<Self, TensorError> {
-        let packed = packed_shape(shape);
-        let expected = packed.iter().product::<usize>();
-        if bytes.len() != expected {
-            return Err(TensorError::BitByteCount {
-                shape: shape.to_vec(),
-                expected,
-                actual: bytes.len(),
-            });
-        }
-        let this = Self {
-            data: ArrayD::from_shape_vec(IxDyn(&packed), bytes)
-                .expect("the length is checked above")
-                .into_shared(),
-            shape: shape.to_vec(),
-        };
-        if !this.padding_is_zero() {
-            return Err(TensorError::BitPadding);
-        }
-        Ok(this)
-    }
-
     /// Return a tensor of logical shape `shape` over `bits`, taken in row-major order.
     ///
     /// Returns [`TensorError::BitCount`] if `bits` does not yield one bit per element of `shape`.
@@ -131,7 +103,7 @@ impl BitTensor {
     }
 
     /// Return the packed bits, in the format this type documents.
-    pub fn as_bytes(&self) -> &[u8] {
+    fn as_bytes(&self) -> &[u8] {
         self.data
             .as_slice()
             .expect("the packed buffer is contiguous")
@@ -238,7 +210,7 @@ impl BitTensor {
     }
 
     /// Return the number of set bits in each row, in row-major order of the leading axes.
-    pub fn popcount(&self) -> Vec<usize> {
+    fn popcount(&self) -> Vec<usize> {
         self.rows()
             .map(|row| row.iter().map(|byte| byte.count_ones() as usize).sum())
             .collect()
@@ -471,68 +443,6 @@ mod test {
         assert_eq!(tensor.shape(), [0, 5]);
         assert_eq!(tensor.bytes_per_row(), 1);
         assert!(tensor.as_bytes().is_empty());
-    }
-
-    // Construction from bytes.
-
-    #[test]
-    fn test_from_bytes_reads_the_documented_format() {
-        let tensor = BitTensor::from_bytes(vec![0b101, 0b010], &[2, 3]).unwrap();
-        assert_eq!(
-            tensor.to_bool_vec(),
-            [true, false, true, false, true, false]
-        );
-    }
-
-    #[test]
-    fn test_from_bytes_round_trips_as_bytes() {
-        for shape in [vec![], vec![3], vec![2, 100], vec![4, 0], vec![2, 2, 9]] {
-            let count = shape.iter().product::<usize>().max(1);
-            let values: Vec<bool> = (0..count).map(|index| index % 3 == 0).collect();
-            let tensor = bits(&values[..shape.iter().product::<usize>()], &shape);
-            let round_tripped =
-                BitTensor::from_bytes(tensor.as_bytes().to_vec(), tensor.shape()).unwrap();
-            assert_eq!(round_tripped, tensor, "for shape {shape:?}");
-        }
-    }
-
-    #[test]
-    fn test_from_bytes_rejects_a_wrong_length() {
-        for bytes in [vec![], vec![0; 3], vec![0; 5]] {
-            let actual = bytes.len();
-            assert!(
-                matches!(
-                    BitTensor::from_bytes(bytes, &[2, 9]).unwrap_err(),
-                    TensorError::BitByteCount { shape, expected: 4, actual: got }
-                        if shape == [2, 9] && got == actual
-                ),
-                "for {actual} byte(s)"
-            );
-        }
-    }
-
-    #[test]
-    fn test_from_bytes_rejects_dirty_padding() {
-        assert!(matches!(
-            BitTensor::from_bytes(vec![0b1000], &[3]).unwrap_err(),
-            TensorError::BitPadding
-        ));
-        // The padding of a later row counts too.
-        assert!(matches!(
-            BitTensor::from_bytes(vec![0b001, 0b1000], &[2, 3]).unwrap_err(),
-            TensorError::BitPadding
-        ));
-    }
-
-    #[test]
-    fn test_from_bytes_accepts_a_full_final_byte() {
-        // A row that is a whole number of bytes has no padding to be dirty.
-        assert_eq!(
-            BitTensor::from_bytes(vec![0xff], &[8])
-                .unwrap()
-                .to_bool_vec(),
-            [true; 8]
-        );
     }
 
     #[test]
