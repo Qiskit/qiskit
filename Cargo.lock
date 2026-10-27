@@ -2473,6 +2473,7 @@ dependencies = [
  "qiskit-circuit",
  "rustworkx-core",
  "thiserror 2.0.21",
+ "uuid",
 ]
 
 [[package]]

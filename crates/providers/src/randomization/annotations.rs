@@ -23,6 +23,8 @@ use thiserror::Error;
 
 use qiskit_circuit::annotation::Annotation;
 
+use super::{DistributionType, SynthesizerType};
+
 /// The namespace every annotation here declares.
 pub(crate) const NAMESPACE: &str = "randomization";
 
@@ -35,47 +37,6 @@ pub enum RandomizationError {
     DuplicateAnnotation(AnnotationKind),
     #[error("InjectNoise requires a Twirl on the same box")]
     InjectNoiseWithoutTwirl,
-}
-
-/// How to synthesize virtual randomizations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SynthesizerType {
-    RzSx,
-    RzRx,
-}
-
-impl SynthesizerType {
-    /// How many qubits one synthesis covers.
-    pub fn num_qubits(&self) -> u32 {
-        match self {
-            Self::RzSx | Self::RzRx => 1,
-        }
-    }
-}
-
-/// A named distribution to sample virtual gates from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DistributionType {
-    UniformPauli,
-    BalancedUniformPauli,
-    UniformPauliSubset,
-    UniformC1,
-    UniformLocalC1,
-    HaarU2,
-}
-
-impl DistributionType {
-    /// How many qubits one sample covers.
-    pub fn num_qubits(&self) -> u32 {
-        match self {
-            Self::UniformPauli
-            | Self::BalancedUniformPauli
-            | Self::UniformPauliSubset
-            | Self::UniformC1
-            | Self::HaarU2 => 1,
-            Self::UniformLocalC1 => 2,
-        }
-    }
 }
 
 /// Which edge of a box its easy gates compose into.

@@ -13,8 +13,74 @@
 //! Generate randomizations of quantum circuits and programs.
 
 pub mod annotations;
+pub mod emissions;
 pub mod partition;
 pub mod virtual_type;
+
+use virtual_type::VirtualType;
+
+/// How to synthesize virtual randomizations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SynthesizerType {
+    RzSx,
+    RzRx,
+}
+
+impl SynthesizerType {
+    /// How many qubits one synthesis covers.
+    pub fn num_qubits(&self) -> u32 {
+        match self {
+            Self::RzSx | Self::RzRx => 1,
+        }
+    }
+
+    /// Whether a virtual gate of this type is one this can express.
+    ///
+    /// Both of these decompose an arbitrary single-qubit unitary, so both accept everything a
+    /// single-qubit distribution can draw.
+    pub fn accepts(&self, _virtual_type: VirtualType) -> bool {
+        match self {
+            Self::RzSx | Self::RzRx => true,
+        }
+    }
+}
+
+/// A named distribution to sample virtual gates from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DistributionType {
+    UniformPauli,
+    BalancedUniformPauli,
+    UniformPauliSubset,
+    UniformC1,
+    UniformLocalC1,
+    HaarU2,
+}
+
+impl DistributionType {
+    /// The algebraic type of the virtual gates drawn from this, which decides what a draw may be
+    /// propagated through and which synthesizers can express it.
+    pub fn virtual_type(&self) -> VirtualType {
+        match self {
+            Self::UniformPauli | Self::BalancedUniformPauli | Self::UniformPauliSubset => {
+                VirtualType::Pauli
+            }
+            Self::UniformC1 | Self::UniformLocalC1 => VirtualType::C1,
+            Self::HaarU2 => VirtualType::U2,
+        }
+    }
+
+    /// How many qubits one sample covers.
+    pub fn num_qubits(&self) -> u32 {
+        match self {
+            Self::UniformPauli
+            | Self::BalancedUniformPauli
+            | Self::UniformPauliSubset
+            | Self::UniformC1
+            | Self::HaarU2 => 1,
+            Self::UniformLocalC1 => 2,
+        }
+    }
+}
 
 /// Which way virtual state flows temporally.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
