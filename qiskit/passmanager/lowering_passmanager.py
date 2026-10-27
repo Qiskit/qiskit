@@ -28,7 +28,7 @@ import typing
 from collections import Counter
 from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence
 from typing import Generic, ClassVar, TypeAlias
-from typing_extensions import Self, TypeVar
+from typing_extensions import TypeVar
 
 
 from qiskit._accelerate import passmanager
@@ -174,10 +174,10 @@ class TaskSequence(LoweringTask, MutableSequence):
     def __getitem__(self, index: int) -> LoweringTask: ...
 
     @typing.overload
-    def __getitem__(self, index: slice) -> Self: ...
+    def __getitem__(self, index: slice) -> typing.Self: ...
 
     @typing.overload
-    def __getitem__(self, index: list[int]) -> Self: ...
+    def __getitem__(self, index: list[int]) -> typing.Self: ...
 
     def __getitem__(self, index):
         """Get the task at a position, or a new :class:`~.TaskSequence` of the tasks in a slice."""
@@ -202,10 +202,10 @@ class TaskSequence(LoweringTask, MutableSequence):
             return NotImplemented
         return self.tasks == other.tasks
 
-    def __add__(self, other: Iterable[LoweringTask]) -> Self:
+    def __add__(self, other: Iterable[LoweringTask]) -> typing.Self:
         return type(self)(chain(self.tasks, other))
 
-    def __radd__(self, other: Iterable[LoweringTask]) -> Self:
+    def __radd__(self, other: Iterable[LoweringTask]) -> typing.Self:
         return type(self)(chain(other, self.tasks))
 
     @reprlib.recursive_repr()
@@ -256,12 +256,12 @@ class TaskStages(LoweringTask, MutableMapping):
             raise IndexError(f"stage position out of range: {pos}")
         return pos % len(self.stages)
 
-    def _splice(self, at: int, name: str, task: LoweringTask) -> Self:
+    def _splice(self, at: int, name: str, task: LoweringTask) -> typing.Self:
         """Return new task stages with ``name`` inserted at index ``at``."""
         items = [pair for pair in self.stages.items() if pair[0] != name]
         return type(self)(chain(items[:at], [(name, task)], items[at:]))
 
-    def insert_before(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> Self:
+    def insert_before(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> typing.Self:
         """Return new task stages with ``stage`` inserted directly before ``pos``.
 
         Args:
@@ -276,7 +276,7 @@ class TaskStages(LoweringTask, MutableMapping):
         """
         return self._splice(self._index_of(pos), *_as_stage(stage))
 
-    def insert_after(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> Self:
+    def insert_after(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> typing.Self:
         """Return new task stages with ``stage`` inserted directly after ``pos``.
 
         Args:
@@ -298,10 +298,10 @@ class TaskStages(LoweringTask, MutableMapping):
     def __getitem__(self, index: str | int) -> LoweringTask: ...
 
     @typing.overload
-    def __getitem__(self, index: slice) -> Self: ...
+    def __getitem__(self, index: slice) -> typing.Self: ...
 
     @typing.overload
-    def __getitem__(self, index: list[str | int]) -> Self: ...
+    def __getitem__(self, index: list[str | int]) -> typing.Self: ...
 
     def __getitem__(self, index):
         """Get the task of a stage by name or position, or new task stages from a slice."""
@@ -332,19 +332,19 @@ class TaskStages(LoweringTask, MutableMapping):
             return NotImplemented
         return list(self.stages.items()) == list(other.stages.items())
 
-    def __add__(self, other: StagesLike) -> Self:
+    def __add__(self, other: StagesLike) -> typing.Self:
         """Return new task stages of this object's stages updated with ``other``'s."""
         out = type(self)(self.stages)
         out.update(_as_stages(other))
         return out
 
-    def __radd__(self, other: StagesLike) -> Self:
+    def __radd__(self, other: StagesLike) -> typing.Self:
         """Return new task stages of ``other``'s stages updated with this object's."""
         out = type(self)(other)
         out.update(self.stages)
         return out
 
-    def __iadd__(self, other: StagesLike) -> Self:
+    def __iadd__(self, other: StagesLike) -> typing.Self:
         """Update these task stages in place with ``other``'s stages."""
         self.update(_as_stages(other))
         return self
