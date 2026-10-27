@@ -61,7 +61,7 @@ static int test_qdrift_single_zz(void) {
     }
 
     if (instr.num_qubits != 2) {
-        fprintf(stderr, "Expected ZZ instruction on 2 qubits, got %u\n", (unsigned)instr.num_qubits);
+        fprintf(stderr, "Expected ZZ instruction on 2 qubits, got %zu\n", (unsigned)instr.num_qubits);
         result = EqualityError;
         goto cleanup;
     }
