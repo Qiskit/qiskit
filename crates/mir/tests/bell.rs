@@ -45,7 +45,7 @@ use qiskit_mir::{
     instruction::{Mir, MirInstruction},
     ops::{
         MirOp,
-        pbc::{AngleType, Pauli, PauliList, PauliRotation},
+        pbc::{AngleType, Pauli, PauliRotation, PauliString},
     },
     qid::{BitLayout, QidInfo, QidList, QidSpace, table::ResourceTable},
     symbol_table::SymbolIdList,
@@ -78,7 +78,7 @@ fn construct_bell_mir() {
     // the Qid to the ResourceTable if they have not already been added.
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![Pauli::Y]),
+            PauliString::new(vec![Pauli::Y]),
             AngleType::new(PI / 2.0),
         )),
         QidList::new(vec![qid_0]),
@@ -88,7 +88,7 @@ fn construct_bell_mir() {
 
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![Pauli::X]),
+            PauliString::new(vec![Pauli::X]),
             AngleType::new(PI),
         )),
         QidList::new(vec![qid_0]),
@@ -98,7 +98,7 @@ fn construct_bell_mir() {
 
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![Pauli::Z, Pauli::X]),
+            PauliString::new(vec![Pauli::Z, Pauli::X]),
             AngleType::new(PI / 2.0),
         )),
         QidList::new(vec![qid_0, qid_1]),
@@ -108,7 +108,7 @@ fn construct_bell_mir() {
 
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![Pauli::Z]),
+            PauliString::new(vec![Pauli::Z]),
             AngleType::new(-PI / 2.0),
         )),
         QidList::new(vec![qid_0]),
@@ -118,7 +118,7 @@ fn construct_bell_mir() {
 
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![Pauli::X]),
+            PauliString::new(vec![Pauli::X]),
             AngleType::new(-PI / 2.0),
         )),
         QidList::new(vec![qid_1]),

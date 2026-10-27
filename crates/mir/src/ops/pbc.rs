@@ -38,21 +38,18 @@ impl fmt::Display for Pauli {
     }
 }
 
-/// New type for a list of Paulis.
+/// New type for PauliStrings.
 ///
-/// This will allow us to change the underlying backing store over time (if
-/// necessary) and allow the compiler to catch any type errors. This list will
-/// be used in several of the PBC ops we need to implement.
+/// This is to be used primarily for operations in MIR. The current
+/// implementation is meant to be quick and dirty to add the necessary
+/// functionality. This will be optimized in future work (see [Issue
+/// 17326](https://github.com/Qiskit/qiskit/issues/17326)).
 #[derive(Debug, Clone, PartialEq)]
-pub struct PauliList(Vec<Pauli>);
+pub struct PauliString(Vec<Pauli>);
 
-impl PauliList {
+impl PauliString {
     pub fn new(paulis: Vec<Pauli>) -> Self {
-        PauliList(paulis)
-    }
-
-    pub fn inner(&self) -> &[Pauli] {
-        &self.0
+        PauliString(paulis)
     }
 
     pub fn len(&self) -> usize {
@@ -85,16 +82,16 @@ impl AngleType {
 #[derive(Clone, Debug, PartialEq)]
 // TODO: Document rotation convention used and how it's similar/different from conventions used throughout Qiskit.
 pub struct PauliRotation {
-    paulis: PauliList,
+    paulis: PauliString,
     angle: AngleType,
 }
 
 impl PauliRotation {
-    pub fn new(paulis: PauliList, angle: AngleType) -> Self {
+    pub fn new(paulis: PauliString, angle: AngleType) -> Self {
         Self { paulis, angle }
     }
 
-    pub fn paulis(&self) -> &PauliList {
+    pub fn paulis(&self) -> &PauliString {
         &self.paulis
     }
 
@@ -116,11 +113,11 @@ mod tests {
     #[test]
     fn create_pauli_rotation() {
         let pauli_rotation = PauliRotation {
-            paulis: PauliList(vec![Pauli::I; 8]),
+            paulis: PauliString(vec![Pauli::I; 8]),
             angle: AngleType(0.5),
         };
 
-        assert_eq!(*pauli_rotation.paulis(), PauliList(vec![Pauli::I; 8]));
+        assert_eq!(*pauli_rotation.paulis(), PauliString(vec![Pauli::I; 8]));
         assert_eq!(pauli_rotation.angle(), AngleType(0.5));
     }
 }

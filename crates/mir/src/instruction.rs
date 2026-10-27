@@ -104,13 +104,13 @@ impl Mir {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ops::pbc::{AngleType, Pauli, PauliList, PauliRotation};
+    use crate::ops::pbc::{AngleType, Pauli, PauliRotation, PauliString};
     use crate::qid::Qid;
     use crate::symbol_table::SymbolIdList;
 
     fn create_pauli_rotation_op(pauli: Pauli, size: usize, angle: f64) -> MirOp {
         MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![pauli; size]),
+            PauliString::new(vec![pauli; size]),
             AngleType::new(angle),
         ))
     }

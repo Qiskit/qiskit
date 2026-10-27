@@ -32,16 +32,16 @@ pub enum MirOp {
 mod tests {
     use crate::ops::MirOp;
     use crate::ops::PauliRotation;
-    use crate::ops::pbc::{AngleType, Pauli, PauliList};
+    use crate::ops::pbc::{AngleType, Pauli, PauliString};
 
     #[test]
     fn test_mir_op() {
         let pauli_rotation_op =
-            PauliRotation::new(PauliList::new(vec![Pauli::I; 8]), AngleType::new(0.5));
+            PauliRotation::new(PauliString::new(vec![Pauli::I; 8]), AngleType::new(0.5));
         let mir_op = MirOp::PauliRotation(pauli_rotation_op);
 
         let mir_op2 = MirOp::PauliRotation(PauliRotation::new(
-            PauliList::new(vec![Pauli::I; 8]),
+            PauliString::new(vec![Pauli::I; 8]),
             AngleType::new(0.5),
         ));
 
