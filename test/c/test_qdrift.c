@@ -77,6 +77,7 @@ static int test_qdrift_single_zz(void) {
 cleanup:
     qk_circuit_free(circ);
     qk_obs_free(obs);
+    qk_circuit_instruction_clear(&instr);
     return result;
 }
 
@@ -121,8 +122,8 @@ static int test_qdrift_xi_plus_zz(void) {
     // Because QDRIFT is stochastic, we don't assert *which* terms appear where.
     // We just check all instructions are either X-like or ZZ-like and on the
     // expected qubits.
+    QkCircuitInstruction instr;
     for (size_t k = 0; k < instr_count; ++k) {
-        QkCircuitInstruction instr;
         qk_circuit_get_instruction(circ, k, &instr);
 
         if (strcmp(instr.name, "rx") == 0 || strcmp(instr.name, "x") == 0) {
@@ -164,6 +165,7 @@ static int test_qdrift_xi_plus_zz(void) {
 cleanup:
     qk_circuit_free(circ);
     qk_obs_free(obs);
+    qk_circuit_instruction_clear(&instr);
     return result;
 }
 
@@ -252,8 +254,8 @@ static int test_qdrift_qubit_bounds(void) {
     QkCircuit *circ = qk_circuit_library_qdrift(obs, 1, 1.0, 0, true, false);
 
     size_t n = qk_circuit_num_instructions(circ);
+    QkCircuitInstruction instr;
     for (size_t k = 0; k < n; ++k) {
-        QkCircuitInstruction instr;
         qk_circuit_get_instruction(circ, k, &instr);
 
         for (size_t i = 0; i < instr.num_qubits; ++i) {
@@ -268,6 +270,7 @@ static int test_qdrift_qubit_bounds(void) {
 cleanup:
     qk_obs_free(obs);
     qk_circuit_free(circ);
+    qk_circuit_instruction_clear(&instr);
     return result;
 }
 
@@ -303,8 +306,8 @@ static int test_qdrift_seed_auto_generation(void) {
     int inum_gates = num_gates - ((int)num_gates) > 0 ? (int)num_gates + 1 : (int)num_gates;
     double counter_x = 0, counter_y = 0, counter_z = 0;
     size_t n = qk_circuit_num_instructions(qc);
+    QkCircuitInstruction inst;
     for (size_t k = 0; k < n; ++k) {
-        QkCircuitInstruction inst;
         qk_circuit_get_instruction(qc, k, &inst);
 
         if (strcmp(inst.name, "rx") == 0) {
@@ -329,6 +332,7 @@ static int test_qdrift_seed_auto_generation(void) {
 
     qk_obs_free(obs);
     qk_circuit_free(qc);
+    qk_circuit_instruction_clear(&inst);
 
     return result;
 }
