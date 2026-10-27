@@ -17,6 +17,7 @@ use crate::pointers::{
     ExposesOwnedPointers, const_ptr_as_ref, expose_by_box, mut_ptr_as_ref, slice_from_ptr,
     try_slice_from_ptr,
 };
+use crate::util;
 use num_complex::Complex64;
 
 use qiskit_quantum_info::sparse_observable::{
@@ -1057,7 +1058,7 @@ pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char
     };
 
     let obs_str = format!("<QkObs with {str_num_terms} on {str_num_qubits}: {str_terms}>");
-    CString::new(obs_str).unwrap().into_raw()
+    util::cstring_from_utf8_lossy(obs_str).into_raw()
 }
 
 /// @ingroup QkObs
@@ -1123,7 +1124,7 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
         if view.num_qubits == 1 { "" } else { "s" },
         view.to_sparse_str()
     );
-    CString::new(string).unwrap().into_raw()
+    util::cstring_from_utf8_lossy(string).into_raw()
 }
 
 /// @ingroup QkBitTerm
