@@ -143,12 +143,10 @@ integers found in `inttypes.h`. For example, `i32` is mapped to `int32_t`.
 C has no namepaces, so every identifier with external linkage shares one flat
 namespace across the entire program. If two header files define a funciton with
 the same name, the linker will report a duplicate symbol error. Library authors
-work around this by prefixing identifiers.
-
-Qiskit prefixes all identifiers with `qk`, `QK`, or `Qk`. In some cases,
-identifiers are prefixed automatically by `cbindgen`. Functions are named
-manually. The pattern `qk_<GROUP>_<VERB>_<EXTRA>` is a useful mental model for
-naming functions.
+work around this by prefixing identifiers. Qiskit prefixes all identifiers with
+`qk`, `QK`, or `Qk`. In some cases, identifiers are prefixed automatically by
+`cbindgen`. Functions are named manually. The pattern
+`qk_<GROUP>_<VERB>_<EXTRA>` is a useful mental model for naming functions.
 
 - `qk_obs_new`
 - `qk_obs_num_qubits`
@@ -178,10 +176,12 @@ $2^{63}/2$.
 
 **Sentinel Examples**
 
-| Type (Rust) | Type (C) | Sentinel | Domain | | ----------- | -------------- |
------------ | ------ | | `*mut T` | `T *` | `NULL` | | | `enum T` | `enum t` |
-`T_UNKNOWN` | | | `isize` | `intptr_t` | `-1` | `>= 0` | | `u64` | `uint64_t` |
-`0` | `>= 1` |
+| Type (Rust) | Type (C)       | Sentinel    | Domain |
+| ----------- | -------------- | ----------- | ------ |
+| `*mut T`    | `T *`          | `NULL`      |        |
+| `enum T`    | `enum t`       | `T_UNKNOWN` |        |
+| `isize`     | `intptr_t`     | `-1`        | `>= 0` |
+| `u64`       | `uint64_t`     | `0`         | `>= 1` |
 
 ```rust
 extern "C" fn qk_matrix_type(matrix: *const Matrix) -> MatrixType {
