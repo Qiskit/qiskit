@@ -17,9 +17,13 @@ pub mod emissions;
 pub mod partition;
 pub mod virtual_type;
 
+<<<<<<< HEAD
 use virtual_type::VirtualType;
 
 /// How to synthesize virtual randomizations.
+=======
+/// The synthesizer to use for virtual gates.
+>>>>>>> randomization-annotations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SynthesizerType {
     RzSx,
@@ -27,12 +31,17 @@ pub enum SynthesizerType {
 }
 
 impl SynthesizerType {
+<<<<<<< HEAD
     /// How many qubits one synthesis covers.
+=======
+    /// The number of qubits the synthesized gate acts on.
+>>>>>>> randomization-annotations
     pub fn num_qubits(&self) -> u32 {
         match self {
             Self::RzSx | Self::RzRx => 1,
         }
     }
+<<<<<<< HEAD
 
     /// Whether a virtual gate of this type is one this can express.
     ///
@@ -46,6 +55,11 @@ impl SynthesizerType {
 }
 
 /// A named distribution to sample virtual gates from.
+=======
+}
+
+/// The distribution to sample virtual gates from.
+>>>>>>> randomization-annotations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DistributionType {
     UniformPauli,
@@ -57,6 +71,7 @@ pub enum DistributionType {
 }
 
 impl DistributionType {
+<<<<<<< HEAD
     /// The algebraic type of the virtual gates drawn from this, which decides what a draw may be
     /// propagated through and which synthesizers can express it.
     pub fn virtual_type(&self) -> VirtualType {
@@ -70,6 +85,9 @@ impl DistributionType {
     }
 
     /// How many qubits one sample covers.
+=======
+    /// The number qubits the sampled virtual gate acts on.
+>>>>>>> randomization-annotations
     pub fn num_qubits(&self) -> u32 {
         match self {
             Self::UniformPauli

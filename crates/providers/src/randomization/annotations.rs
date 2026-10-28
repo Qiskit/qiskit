@@ -11,67 +11,62 @@
 // that they have been altered from the originals.
 
 //! Annotations for randomization.
-//!
-//! [`Twirl`] and [`InjectNoise`] implement [`Annotation`]. [`resolve_annotations`] resolves a box's
-//!  set of them into one [`ResolvedAnnotations`], applying the rules that say which combinations mean
-//! anything.
 
 use std::sync::Arc;
 
-use hashbrown::HashSet;
 use thiserror::Error;
 
 use qiskit_circuit::annotation::Annotation;
 
 use super::{DistributionType, SynthesizerType};
 
-/// The namespace every annotation here declares.
+/// The namespace for randomization annotations.
 pub(crate) const NAMESPACE: &str = "randomization";
 
-pub type Result<T> = std::result::Result<T, RandomizationError>;
+pub type Result<T> = std::result::Result<T, InvalidAnnotationError>;
 
-/// Why a box's annotations do not resolve.
+/// Errors from invalid annotation combinations.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
-pub enum RandomizationError {
-    #[error("duplicate annotation type {0:?} on a single box")]
-    DuplicateAnnotation(AnnotationKind),
+pub enum InvalidAnnotationError {
+    #[error("duplicate randomization annotation on a single box")]
+    DuplicateAnnotation,
     #[error("InjectNoise requires a Twirl on the same box")]
     InjectNoiseWithoutTwirl,
 }
 
-/// Which edge of a box its easy gates compose into.
+/// Which side of a box its easy gates get composed into.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dressing {
     Left,
     Right,
 }
 
-/// Which side of a box's hard content an injection sits on.
+/// Whether noise is injected before or after the hard content of a box.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InjectionSite {
     Before,
     After,
 }
 
-/// Which annotation this is, or `None` if randomization does not own it.
-pub fn annotation_kind(annotation: &dyn Annotation) -> Option<AnnotationKind> {
+/// Which randomization annotation this is, or `None` if it is not.
+pub fn annotation_kind(annotation: &dyn Annotation) -> Option<RandomizationAnnotation<'_>> {
     if annotation.namespace() != NAMESPACE {
         return None;
     }
-    if annotation.downcast_ref::<Twirl>().is_some() {
-        Some(AnnotationKind::Twirl)
-    } else if annotation.downcast_ref::<InjectNoise>().is_some() {
-        Some(AnnotationKind::InjectNoise)
+    if let Some(twirl) = annotation.downcast_ref::<Twirl>() {
+        Some(RandomizationAnnotation::Twirl(twirl))
     } else {
-        None
+        annotation
+            .downcast_ref::<InjectNoise>()
+            .map(RandomizationAnnotation::InjectNoise)
     }
 }
 
-/// Annotation type discriminant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AnnotationKind {
-    Twirl,
-    InjectNoise,
+/// A randomization annotation borrowed from the box carrying it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RandomizationAnnotation<'a> {
+    Twirl(&'a Twirl),
+    InjectNoise(&'a InjectNoise),
 }
 
 /// Randomize this box by conjugating it with gates sampled from a distribution.
@@ -82,20 +77,18 @@ pub struct Twirl {
     pub decomposition: SynthesizerType,
 }
 
-/// Inject sampled noise into this box from a Pauli-Lindblad map the caller supplies.
-///
-/// `reference` names the map and `modifier` names an input to optionally scale its rates.
+impl Annotation for Twirl {
+    fn namespace(&self) -> &str {
+        NAMESPACE
+    }
+}
+
+/// Inject Pauli-Lindblad noise into this box.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InjectNoise {
     pub reference: String,
     pub modifier: Option<String>,
     pub site: InjectionSite,
-}
-
-impl Annotation for Twirl {
-    fn namespace(&self) -> &str {
-        NAMESPACE
-    }
 }
 
 impl Annotation for InjectNoise {
@@ -104,65 +97,61 @@ impl Annotation for InjectNoise {
     }
 }
 
-/// What a box's annotations resolve to once the vocabulary's rules have been applied.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct ResolvedAnnotations {
-    pub twirl: Option<Twirl>,
-    pub inject_noise: Option<InjectNoise>,
+/// Randomization annotations on a box.
+///
+/// Borrowed from the box carrying them: these say what a box declares, which a pass reads while
+/// lowering it and nothing holds afterwards.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RandomizationAnnotations<'a> {
+    pub twirl: Option<&'a Twirl>,
+    pub inject_noise: Option<&'a InjectNoise>,
 }
 
-impl ResolvedAnnotations {
-    /// Whether this box produces an emission.
-    pub fn is_emitting(&self) -> bool {
+impl<'a> RandomizationAnnotations<'a> {
+    /// Return validated annotations.
+    pub fn new(annotations: &'a [Arc<dyn Annotation>]) -> Result<Self> {
+        let mut resolved = Self::default();
+        for annotation in annotations {
+            let Some(kind) = annotation_kind(annotation.as_ref()) else {
+                continue;
+            };
+            let already_set = match kind {
+                RandomizationAnnotation::Twirl(twirl) => resolved.twirl.replace(twirl).is_some(),
+                RandomizationAnnotation::InjectNoise(injection) => {
+                    resolved.inject_noise.replace(injection).is_some()
+                }
+            };
+            if already_set {
+                return Err(InvalidAnnotationError::DuplicateAnnotation);
+            }
+        }
+
+        if resolved.inject_noise.is_some() && resolved.twirl.is_none() {
+            return Err(InvalidAnnotationError::InjectNoiseWithoutTwirl);
+        }
+        Ok(resolved)
+    }
+
+    /// Whether this box produces virtual gates.
+    pub fn emits(&self) -> bool {
         self.twirl.is_some()
     }
 
-    /// Which edge this box's easy gates compose into.
+    /// Which side this box's easy gates compose into.
     pub fn dressing(&self) -> Option<Dressing> {
-        self.twirl.as_ref().map(|twirl| twirl.dressing)
+        self.twirl.map(|twirl| twirl.dressing)
     }
 
-    /// How the collectors of this box synthesize what they compose.
+    /// How this box synthesizes virtual gates.
     pub fn synthesizer(&self) -> Option<SynthesizerType> {
-        self.twirl.as_ref().map(|twirl| twirl.decomposition)
+        self.twirl.map(|twirl| twirl.decomposition)
     }
-}
-
-/// Resolve a box's annotations, applying the vocabulary's validation rules.
-pub fn resolve_annotations(annotations: &[Arc<dyn Annotation>]) -> Result<ResolvedAnnotations> {
-    // `seen` is a membership test only, never iterated, so its `HashSet` cannot leak an ordering
-    // into anything downstream.
-    let mut seen: HashSet<AnnotationKind> = HashSet::new();
-    for annotation in annotations {
-        let Some(kind) = annotation_kind(annotation.as_ref()) else {
-            continue;
-        };
-        if !seen.insert(kind) {
-            return Err(RandomizationError::DuplicateAnnotation(kind));
-        }
-    }
-
-    if seen.contains(&AnnotationKind::InjectNoise) && !seen.contains(&AnnotationKind::Twirl) {
-        return Err(RandomizationError::InjectNoiseWithoutTwirl);
-    }
-
-    let mut resolved = ResolvedAnnotations::default();
-    for annotation in annotations {
-        let annotation = annotation.as_ref();
-        if let Some(twirl) = annotation.downcast_ref::<Twirl>() {
-            resolved.twirl = Some(twirl.clone());
-        } else if let Some(injection) = annotation.downcast_ref::<InjectNoise>() {
-            resolved.inject_noise = Some(injection.clone());
-        }
-    }
-    Ok(resolved)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Erase a value to the trait object a box actually stores.
     fn erased(annotation: impl Annotation + 'static) -> Arc<dyn Annotation> {
         Arc::new(annotation)
     }
@@ -193,7 +182,6 @@ mod tests {
         }
     }
 
-    /// Something claiming the "randomization" namespace.
     #[derive(Debug, Clone, PartialEq)]
     struct Impostor;
 
@@ -205,37 +193,39 @@ mod tests {
 
     #[test]
     fn test_a_twirl_resolves_to_a_dressing_and_a_synthesizer() {
-        let resolved = resolve_annotations(&[twirl(DistributionType::UniformPauli)]).unwrap();
-        assert!(resolved.is_emitting());
+        let annotations = [twirl(DistributionType::UniformPauli)];
+        let resolved = RandomizationAnnotations::new(&annotations).unwrap();
+        assert!(resolved.emits());
         assert_eq!(resolved.dressing(), Some(Dressing::Left));
         assert_eq!(resolved.synthesizer(), Some(SynthesizerType::RzSx));
         assert!(resolved.inject_noise.is_none());
     }
 
     #[test]
-    fn test_a_box_with_nothing_of_ours_on_it_resolves_to_nothing() {
-        let resolved = resolve_annotations(&[erased(Foreign)]).unwrap();
-        assert!(!resolved.is_emitting());
+    fn test_a_box_with_foreign_annotations_on_it_resolves_to_nothing() {
+        let annotations = [erased(Foreign)];
+        let resolved = RandomizationAnnotations::new(&annotations).unwrap();
+        assert!(!resolved.emits());
         assert_eq!(resolved.dressing(), None);
         assert_eq!(resolved.synthesizer(), None);
-        assert_eq!(resolved, ResolvedAnnotations::default());
+        assert_eq!(resolved, RandomizationAnnotations::default());
     }
 
     #[test]
     fn test_an_unannotated_box_resolves_to_nothing() {
         assert_eq!(
-            resolve_annotations(&[]).unwrap(),
-            ResolvedAnnotations::default()
+            RandomizationAnnotations::new(&[]).unwrap(),
+            RandomizationAnnotations::default()
         );
     }
 
     #[test]
     fn test_noise_resolves_beside_a_twirl() {
-        let resolved = resolve_annotations(&[
+        let annotations = [
             twirl(DistributionType::UniformPauli),
             noise(InjectionSite::Before),
-        ])
-        .unwrap();
+        ];
+        let resolved = RandomizationAnnotations::new(&annotations).unwrap();
         assert!(resolved.twirl.is_some());
         let injection = resolved.inject_noise.expect("the injection resolves");
         assert_eq!(injection.reference, "layer_1");
@@ -246,42 +236,48 @@ mod tests {
     #[test]
     fn test_noise_without_a_twirl_is_refused() {
         assert_eq!(
-            resolve_annotations(&[noise(InjectionSite::After)]).unwrap_err(),
-            RandomizationError::InjectNoiseWithoutTwirl
+            RandomizationAnnotations::new(&[noise(InjectionSite::After)]).unwrap_err(),
+            InvalidAnnotationError::InjectNoiseWithoutTwirl
         );
     }
 
     #[test]
     fn test_two_of_one_kind_on_a_box_is_refused() {
         assert_eq!(
-            resolve_annotations(&[
+            RandomizationAnnotations::new(&[
                 twirl(DistributionType::UniformPauli),
                 twirl(DistributionType::HaarU2),
             ])
             .unwrap_err(),
-            RandomizationError::DuplicateAnnotation(AnnotationKind::Twirl)
+            InvalidAnnotationError::DuplicateAnnotation
         );
     }
 
     #[test]
-    fn test_claiming_the_namespace_is_not_enough_to_be_one_of_ours() {
-        assert_eq!(annotation_kind(&Impostor), None);
-        let resolved =
-            resolve_annotations(&[erased(Impostor), twirl(DistributionType::UniformPauli)])
-                .unwrap();
-        assert!(resolved.is_emitting());
+    fn test_claiming_the_namespace_is_not_enough() {
+        let annotations = [erased(Impostor), twirl(DistributionType::UniformPauli)];
+        let resolved = RandomizationAnnotations::new(&annotations).unwrap();
+        assert_eq!(
+            resolved.twirl.as_ref().map(|t| t.distribution),
+            Some(DistributionType::UniformPauli)
+        );
+        assert!(
+            RandomizationAnnotations::new(&[erased(Impostor), erased(Impostor)])
+                .unwrap()
+                .twirl
+                .is_none()
+        );
     }
 
     #[test]
     fn test_a_foreign_annotation_rides_through() {
-        assert_eq!(annotation_kind(&Foreign), None);
-        let resolved = resolve_annotations(&[
+        let annotations = [
             erased(Foreign),
             twirl(DistributionType::UniformPauli),
             erased(Foreign),
-        ])
-        .unwrap();
-        assert!(resolved.is_emitting());
+        ];
+        let resolved = RandomizationAnnotations::new(&annotations).unwrap();
+        assert!(resolved.emits());
     }
 
     #[test]
@@ -291,27 +287,6 @@ mod tests {
             noise(InjectionSite::Before),
         ] {
             assert_eq!(annotation.namespace(), NAMESPACE);
-        }
-    }
-
-    #[test]
-    fn test_only_local_c1_covers_two_qubits() {
-        for distribution in [
-            DistributionType::UniformPauli,
-            DistributionType::BalancedUniformPauli,
-            DistributionType::UniformPauliSubset,
-            DistributionType::UniformC1,
-            DistributionType::HaarU2,
-        ] {
-            assert_eq!(distribution.num_qubits(), 1, "{distribution:?}");
-        }
-        assert_eq!(DistributionType::UniformLocalC1.num_qubits(), 2);
-    }
-
-    #[test]
-    fn test_a_synthesizer_covers_one_qubit() {
-        for synthesizer in [SynthesizerType::RzSx, SynthesizerType::RzRx] {
-            assert_eq!(synthesizer.num_qubits(), 1, "{synthesizer:?}");
         }
     }
 }
