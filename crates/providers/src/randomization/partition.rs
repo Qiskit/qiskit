@@ -60,24 +60,18 @@ impl<T: Copy + Ord> Partition<T> {
     pub fn new(
         parts: impl IntoIterator<Item = impl IntoIterator<Item = T>>,
     ) -> Result<Self, PartitionError> {
-        let parts: Vec<Vec<T>> = parts
-            .into_iter()
-            .map(|part| part.into_iter().collect())
-            .collect();
-        if parts.iter().any(|part| part.is_empty()) {
-            return Err(PartitionError::EmptyPart);
-        }
-
-        let mut splits = Vec::with_capacity(parts.len().saturating_sub(1));
+        let parts = parts.into_iter();
+        let mut elements = Vec::new();
+        let mut splits = Vec::with_capacity(parts.size_hint().0 + 1);
         splits.push(0);
-        let mut elements = Vec::with_capacity(parts.iter().map(Vec::len).sum());
-        for part in &parts {
-            if !elements.is_empty() {
-                splits.push(elements.len() as u32);
+        for part in parts {
+            let start = elements.len();
+            elements.extend(part);
+            if elements.len() == start {
+                return Err(PartitionError::EmptyPart);
             }
-            elements.extend_from_slice(part);
+            splits.push(elements.len() as u32);
         }
-        splits.push(elements.len() as u32);
 
         // Elements must be unique across the whole partition.
         let mut seen = elements.clone();
@@ -92,7 +86,7 @@ impl<T: Copy + Ord> Partition<T> {
         })
     }
 
-    /// How many parts there are, which is at least one.
+    /// How many parts there are.
     pub fn num_parts(&self) -> usize {
         self.splits.len() - 1
     }
@@ -235,6 +229,15 @@ mod tests {
             Partition::new([vec![0usize, 1], vec![1, 2]]).unwrap_err(),
             PartitionError::DuplicateElement
         );
+    }
+
+    #[test]
+    fn test_new_accepts_no_parts_at_all() {
+        let empty = Partition::<usize>::new(Vec::<Vec<usize>>::new()).unwrap();
+        assert_eq!(empty.num_parts(), 0);
+        assert_eq!(empty.num_elements(), 0);
+        assert_eq!(empty.iter().next(), None);
+        assert_eq!(format!("{empty:?}"), "[]");
     }
 
     #[test]
