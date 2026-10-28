@@ -92,26 +92,32 @@ class TestWrapAngles(QiskitTestCase):
         target.add_instruction(XGate())
         target.add_instruction(IfElseOp, name="if_else")
 
-        def wrap_rzz(angles, _qubits):
-            replacement = QuantumCircuit(2)
-            replacement.x(0)
-            replacement.rzz(-angles[0], 0, 1)
-            replacement.x(0)
-            return circuit_to_dag(replacement)
+        circuit = QuantumCircuit(2, 1)
+        circuit.rzz(-0.4, 0, 1)
+        with circuit.if_test((circuit.clbits[0], 0)):
+            circuit.rzz(-0.4, 0, 1)
 
-        WrapAngles.DEFAULT_REGISTRY.add_wrapper("rzz", wrap_rzz)
+        def callback(angles, _qubits):
+            angle = angles[0]
+            qc = QuantumCircuit(2)
+            qc.x(0)
+            qc.rzz(-angle, 0, 1)
+            qc.x(0)
+            return circuit_to_dag(qc)
 
-        qc = QuantumCircuit(2, 1)
-        qc.rzz(-0.4, 0, 1)
-        with qc.if_test((qc.clbits[0], 0)):
-            qc.rzz(-0.4, 0, 1)
+        registry = WrapAngleRegistry()
+        registry.add_wrapper("rzz", callback)
+        wrap_pass = WrapAngles(target, registry)
+        res = wrap_pass(circuit)
 
-        out = transpile(qc, target=target, optimization_level=0)
-        body = out.data[-1].operation.blocks[0]  # true branch of the if_else
-        angle_top_level = [
-            float(i.operation.params[0]) for i in out.data if i.operation.name == "rzz"
-        ]
-        angle_inside_if_else = [
-            float(i.operation.params[0]) for i in body.data if i.operation.name == "rzz"
-        ]
-        self.assertEqual(angle_top_level, angle_inside_if_else)
+        expected = QuantumCircuit(2, 1)
+        expected.x(0)
+        expected.rzz(0.4, 0, 1)
+        expected.x(0)
+
+        with expected.if_test((expected.clbits[0], 0)):
+            expected.x(0)
+            expected.rzz(0.4, 0, 1)
+            expected.x(0)
+
+        self.assertEqual(res, expected)
