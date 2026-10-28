@@ -15,11 +15,9 @@
 import unittest
 import warnings
 
-import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import (
     CDKMRippleCarryAdder,
     DraperQFTAdder,
@@ -37,6 +35,7 @@ from qiskit.synthesis.arithmetic import (
 )
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
 from test import QiskitTestCase
+from test.python.circuit.library.arithmetic_checks import assert_maps_basis_states
 
 ADDERS = {
     "vbe": adder_ripple_v95,
@@ -62,9 +61,9 @@ class TestAdder(QiskitTestCase):
     ):
         """Assert that adder correctly implements the summation.
 
-        This test prepares a equal superposition state in both input registers, then performs
-        the addition on the superposition and checks that the output state is the expected
-        superposition of all possible additions.
+        Uses :func:`assert_maps_basis_states`: comparing only the probabilities of an equal
+        superposition cannot detect wrong sums, since for ``kind="fixed"`` the map
+        ``y -> (x + y) mod 2^n`` is a permutation for every ``x``.
 
         Args:
             num_state_qubits: The number of bits in the numbers that are added.
@@ -75,60 +74,25 @@ class TestAdder(QiskitTestCase):
                 into a third register of appropriate size.
             kind: The kind of adder; "fixed", "half", or "full".
         """
-        circuit = QuantumCircuit(*adder.qregs)
+        offset = 1 if kind == "full" else 0  # the carry-in qubit comes first for full adders
 
-        # create equal superposition
-        if kind == "full":
-            num_superpos_qubits = 2 * num_state_qubits + 1
-        else:
-            num_superpos_qubits = 2 * num_state_qubits
-        circuit.h(range(num_superpos_qubits))
+        def addition(index):
+            cin = index & offset
+            x = (index >> offset) % 2**num_state_qubits
+            y = index >> (num_state_qubits + offset)
+            total = x + y + cin
+            if kind == "fixed":
+                total %= 2**num_state_qubits
+            if inplace:
+                return cin + (x << offset) + (total << (num_state_qubits + offset))
+            return (
+                cin
+                + (x << offset)
+                + (y << (num_state_qubits + offset))
+                + (total << (2 * num_state_qubits + offset))
+            )
 
-        # apply adder circuit
-        circuit.compose(adder, inplace=True)
-
-        # obtain the statevector and the probabilities, we don't trace out the ancilla qubits
-        # as we verify that all ancilla qubits have been uncomputed to state 0 again
-        statevector = Statevector(circuit)
-        probabilities = statevector.probabilities()
-        pad = "0" * circuit.num_ancillas  # state of the ancillas
-
-        # compute the expected results
-        expectations = np.zeros_like(probabilities)
-        num_bits_sum = num_state_qubits + 1
-        # iterate over all possible inputs
-        for x in range(2**num_state_qubits):
-            for y in range(2**num_state_qubits):
-                # compute the sum
-                if kind == "full":
-                    additions = [x + y, 1 + x + y]
-                elif kind == "half":
-                    additions = [x + y]
-                else:
-                    additions = [(x + y) % (2**num_state_qubits)]
-
-                # compute correct index in statevector
-                bin_x = bin(x)[2:].zfill(num_state_qubits)
-                bin_y = bin(y)[2:].zfill(num_state_qubits)
-
-                for i, addition in enumerate(additions):
-                    bin_res = bin(addition)[2:].zfill(num_bits_sum)
-                    if kind == "full":
-                        cin = str(i)
-                        bin_index = (
-                            pad + bin_res + bin_x + cin
-                            if inplace
-                            else pad + bin_res + bin_y + bin_x + cin
-                        )
-                    else:
-                        bin_index = (
-                            pad + bin_res + bin_x if inplace else pad + bin_res + bin_y + bin_x
-                        )
-
-                    index = int(bin_index, 2)
-                    expectations[index] += 1 / 2**num_superpos_qubits
-
-        np.testing.assert_array_almost_equal(expectations, probabilities)
+        assert_maps_basis_states(self, adder, 2 * num_state_qubits + offset, addition)
 
     @data(
         (3, "cdkm", "half"),
@@ -176,44 +140,7 @@ class TestAdder(QiskitTestCase):
                     with self.assertWarns(DeprecationWarning):
                         circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
 
-        self.assertAdditionIsCorrect(num_state_qubits, circuit, True, kind)
-
-    @data(
-        (1, "cdkm", "fixed"),
-        (3, "cdkm", "fixed"),
-        (4, "cdkm", "half"),
-        (1, "vbe", "fixed"),
-        (2, "vbe", "fixed"),
-        (3, "vbe", "fixed"),
-        (4, "vbe", "fixed"),
-        (3, "vbe", "half"),
-        (3, "vbe", "full"),
-        (3, "draper", "fixed"),
-        (3, "draper", "half"),
-    )
-    @unpack
-    def test_summation_on_basis_states(self, num_state_qubits, adder, kind):
-        """Test the adders on every computational basis state.
-
-        The equal-superposition check in ``assertAdditionIsCorrect`` cannot detect wrong sums for
-        ``kind="fixed"``: for every fixed ``x`` the map ``y -> (x + y) mod 2^n`` is a permutation,
-        so a circuit implementing any other permutation yields the same output probabilities.
-        """
-        circuit = ADDERS[adder](num_state_qubits, kind)
-        num_qubits = circuit.num_qubits
-        offset = 1 if kind == "full" else 0  # carry-in qubit comes first for full adders
-        for cin in range(1 + offset):
-            for x in range(2**num_state_qubits):
-                for y in range(2**num_state_qubits):
-                    index = cin + (x << offset) + (y << (num_state_qubits + offset))
-                    out = Statevector.from_int(index, 2**num_qubits).evolve(circuit)
-                    total = x + y + cin
-                    if kind == "fixed":
-                        total %= 2**num_state_qubits
-                    # the sum (and carry-out) is written into the second register, ancillas are 0
-                    expected = cin + (x << offset) + (total << (num_state_qubits + offset))
-                    with self.subTest(x=x, y=y, cin=cin):
-                        self.assertAlmostEqual(abs(out.data[expected]), 1.0)
+                self.assertAdditionIsCorrect(num_state_qubits, circuit, True, kind)
 
     @data(
         adder_ripple_c04,
