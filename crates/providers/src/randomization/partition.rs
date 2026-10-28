@@ -13,7 +13,6 @@
 //! A partition of elements.
 
 use std::fmt;
-use std::hash::Hash;
 
 use thiserror::Error;
 
