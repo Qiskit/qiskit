@@ -31,7 +31,7 @@ use crate::formats::{
 #[brw(big)]
 #[derive(Debug)]
 #[brw(import (version: u8))]
-pub(crate) struct CircuitHeaderV19Pack {
+pub struct CircuitHeaderV19Pack {
     // global circuit data
     pub circuit_name: StringU16Pack,
     #[brw(args(version))]
@@ -116,9 +116,8 @@ fn has_label(extra_fields_flag: u8) -> bool {
 
 #[binrw]
 #[brw(big)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[brw(repr = u8)]
-#[repr(u8)]
 pub enum CircuitOperationType {
     StandardGate = 0,
     StandardInstruction = 1,
@@ -211,7 +210,7 @@ pub struct StandardInstructionData {
 
 #[binrw]
 #[brw(big)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DelayUnitPack {
     #[brw(magic = b'n')]
     NS,
@@ -291,7 +290,7 @@ pub enum ParamDataPack {
     CaseDefault,
 
     #[brw(magic = b'r')]
-    Range(i64, i64, i64), // start, stop, step
+    Range { start: i64, stop: i64, step: i64 },
 
     #[brw(magic = b'n')]
     NumpyObject {
