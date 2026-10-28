@@ -1678,26 +1678,22 @@ class TestSparsePauliOpMethods(QiskitTestCase):
 
         # Verify the matrix is approximately unitary
         identity = a @ a.conj().T
-        np.testing.assert_allclose(identity, np.eye(2), rtol=0.5, atol=1e-5)
+        np.testing.assert_allclose(identity, np.eye(2), atol=1e-5, rtol=1e-3)
 
         # Create SparsePauliOp from the matrix
         op = SparsePauliOp.from_operator(a)
 
         # Test with tolerance that should pass
         self.assertTrue(
-            op.is_unitary(atol=1e-5),
+            op.is_unitary(atol=1e-5, rtol=1e-3),
             "Operator should be considered unitary with given tolerance",
         )
 
         # Test with very small tolerance that should fail
         self.assertFalse(
-            op.is_unitary(atol=1e-10),
+            op.is_unitary(atol=1e-10, rtol=1e-10),
             "Operator should not be considered unitary with very small tolerance",
         )
-
-        # rtol is deprecated and has no effect. test that it warn.
-        with self.assertWarns(DeprecationWarning):
-            op.is_unitary(atol=1e-3, rtol=1e-3)
 
 
 if __name__ == "__main__":

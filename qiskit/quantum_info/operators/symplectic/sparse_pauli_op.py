@@ -478,11 +478,6 @@ class SparsePauliOp(LinearOp):
             copy=False,
         )
 
-    @deprecate_arg(
-        name="rtol",
-        since="2.7",
-        additional_msg="Comparisons are made against zero, therefore relative tolerance never affect comparison. Use atol instead.",
-    )
     def is_unitary(self, atol: float | None = None, rtol: float | None = None) -> bool:
         """Return True if operator is a unitary matrix.
 
@@ -493,21 +488,24 @@ class SparsePauliOp(LinearOp):
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optional. Deprecated and has no effect. See deprecation note.
+            rtol (float): Optional. Relative tolerance for checking if
+                          coefficients are zero (Default: 1e-5).
 
         Returns:
             bool: True if the operator is unitary, False otherwise.
         """
-        # Get default atol
+        # Get default atol and rtol
         if atol is None:
             atol = self.atol
+        if rtol is None:
+            rtol = self.rtol
 
         # Compose with adjoint
         val = self.compose(self.adjoint()).simplify(atol=atol)
         # See if the result is an identity
         return (
             val.size == 1
-            and np.isclose(val.coeffs[0], 1.0, atol=atol)
+            and np.isclose(val.coeffs[0], 1.0, atol=atol, rtol=rtol)
             and not np.any(val.paulis.x)
             and not np.any(val.paulis.z)
         )
