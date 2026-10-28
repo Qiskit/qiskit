@@ -173,8 +173,8 @@ value has additional meaning. `-1` is suitable for index-returning functioons
 because indicies are non-negative. `0` only works when the domain excludes zero.
 `NAN` is problematic because `NAN != NAN`. Constants like `u64::MAX` require
 callers to cast `-1` or include `limits.h` to handle errors without compiler
-warnings. Prefer returning signed types for positive domains unlikely to exceed
-$2^{64}/2$.
+warnings. Prefer returning signed types for positive domains that won't exceed
+$2^{63}/2$.
 
 **Sentinel Examples**
 
