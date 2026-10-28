@@ -15,7 +15,7 @@
 from test import QiskitTestCase
 
 from math import pi
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit
 from qiskit.circuit import Gate, Parameter, Qubit, IfElseOp
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import WrapAngles
