@@ -83,7 +83,7 @@ impl MirInstructionIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mir::Mir;
+    use crate::line_graph::LineGraph;
     use crate::ops::pbc::{AngleType, Pauli, PauliRotation, PauliString};
     use crate::qid::Qid;
     use crate::symbol_table::SymbolIdList;
@@ -112,8 +112,7 @@ mod tests {
 
     #[test]
     fn test_instruction_list() {
-        let mut mir = Mir::new();
-        let instr_list = mir.instructions_mut();
+        let mut instr_list = LineGraph::<MirInstruction>::new();
 
         let instr1 = MirInstruction {
             op: create_pauli_rotation_op(Pauli::X, 8, 0.5),
