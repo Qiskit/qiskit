@@ -172,7 +172,7 @@ because indicies are non-negative. `0` only works when the domain excludes zero.
 `NAN` is problematic because `NAN != NAN`. Constants like `u64::MAX` require
 callers to cast `-1` or include `limits.h` to handle errors without compiler
 warnings. Prefer returning signed types for positive domains that won't exceed
-$2^{63}/2$.
+$2^{63}$.
 
 **Sentinel Examples**
 
@@ -184,12 +184,11 @@ $2^{63}/2$.
 | `u64`       | `uint64_t`     | `0`         | `>= 1` |
 
 ```rust
-extern "C" fn qk_matrix_type(matrix: *const Matrix) -> MatrixType {
-    if matrix.is_null() {
-        MatrixType::Unknown
+pub extern "C" fn qk_matrix_type(matrix: Option<&Matrix>) -> MatrixType {
+    if let Some(matrix) = matrix {
+        matrix.kind.into()        
     } else {
-        let matrix = unsafe { &*matrix };
-        matrix.kind.into()
+        MatrixType::Unknown
     }
 }
 ```
@@ -202,11 +201,9 @@ functions often write to an `out` parameter for the success case. Given an
 
 ```rust
 extern "C" fn qk_obs_matrix(
-    obs: *const QkObs,
-    out: *mut *mut Matrix,
+    obs: &QkObs,
+    out: &mut *mut Matrix,
 ) -> ExitCode {
-    let obs = unsafe { &*obs };
-
     match obs.to_matrix() {
         Ok(matrix) => {
             *out = Box::into_raw(Box::new(matrix));
@@ -222,31 +219,13 @@ extern "C" fn qk_obs_matrix(
 
 ### Panic
 
-You can almost always do better than panicking inside a function called from C.
-We sometimes see `panic!` used to uphold invariants that would otherwise be UB.
-This is a mistake because `panic!` itself is UB inside code called from C.
-
-```rust
-fn read_foo(foo: *mut Foo) {
-    // Don't do this!
-    if foo.is_null() {
-        panic!("foo is null");
-    } 
-}
-
-fn read_bar(bar: *mut Bar) {
-    // Simply dereference if you've documented that `bar` isn't null.
-    let foo = &*foo;
-}
-```
-
-*The helper functions `const_ptr_as_ref` and `mut_ptr_as_ref` are unnecessary.
-Neither are more safe than dereferencing with `&*p` and `&mut *p`.*
-
-You could be panicking without realizing it. For example, indexing with `a[i]`
-syntax is a checked operation, panicking in the out of bounds case. Consider
-using a sentinel, exit code, or `a.get_unchecked(i)` instaed. Be sure to uphold
-the expectations of functions that can panic!
+You can almost always do better than panicking based on caller input. For
+short-lived, experimental programs, panic could be acceptable. However,
+consider that some long-running, production program could depend on Qiskit.
+If a small piece of our hypothetical program uses a Qiskit API incorrectly, it
+would be very unfriendly to crash the entire program! Your code may panic
+without you realizing. For example, the operation `a[i]` panics in the
+out-of-bounds case. 
 
 ## Versioning & Backwards Compatibility
 
@@ -278,6 +257,7 @@ callers could be targeting multiple platforms. For example, `__int128_t` and
 `_Complex double` are potentially relevant in the quantum domain, but those
 types are only available in GCC. In this case, we would be better off using the
 platform independent complex number utilities defined in `complex.h` since C99.
+For reference, Qiskit targets C11 as the minimum C standard.
 
 *See [this PR](https://github.com/Qiskit/qiskit/pull/17011) for details.*
 
