@@ -18,6 +18,8 @@ use thiserror::Error;
 
 use qiskit_circuit::annotation::Annotation;
 
+use super::{DistributionType, SynthesizerType};
+
 /// The namespace for randomization annotations.
 pub(crate) const NAMESPACE: &str = "randomization";
 
@@ -30,47 +32,6 @@ pub enum InvalidAnnotationError {
     DuplicateAnnotation,
     #[error("InjectNoise requires a Twirl on the same box")]
     InjectNoiseWithoutTwirl,
-}
-
-/// The synthesizer to use for virtual gates.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SynthesizerType {
-    RzSx,
-    RzRx,
-}
-
-impl SynthesizerType {
-    /// The number of qubits the synthesized gate acts on.
-    pub fn num_qubits(&self) -> u32 {
-        match self {
-            Self::RzSx | Self::RzRx => 1,
-        }
-    }
-}
-
-/// The distribution to sample virtual gates from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DistributionType {
-    UniformPauli,
-    BalancedUniformPauli,
-    UniformPauliSubset,
-    UniformC1,
-    UniformLocalC1,
-    HaarU2,
-}
-
-impl DistributionType {
-    /// The number qubits the sampled virtual gate acts on.
-    pub fn num_qubits(&self) -> u32 {
-        match self {
-            Self::UniformPauli
-            | Self::BalancedUniformPauli
-            | Self::UniformPauliSubset
-            | Self::UniformC1
-            | Self::HaarU2 => 1,
-            Self::UniformLocalC1 => 2,
-        }
-    }
 }
 
 /// Which side of a box its easy gates get composed into.
@@ -326,27 +287,6 @@ mod tests {
             noise(InjectionSite::Before),
         ] {
             assert_eq!(annotation.namespace(), NAMESPACE);
-        }
-    }
-
-    #[test]
-    fn test_distribution_type_num_qubits() {
-        for distribution in [
-            DistributionType::UniformPauli,
-            DistributionType::BalancedUniformPauli,
-            DistributionType::UniformPauliSubset,
-            DistributionType::UniformC1,
-            DistributionType::HaarU2,
-        ] {
-            assert_eq!(distribution.num_qubits(), 1, "{distribution:?}");
-        }
-        assert_eq!(DistributionType::UniformLocalC1.num_qubits(), 2);
-    }
-
-    #[test]
-    fn test_a_synthesizer_type_num_qubits() {
-        for synthesizer in [SynthesizerType::RzSx, SynthesizerType::RzRx] {
-            assert_eq!(synthesizer.num_qubits(), 1, "{synthesizer:?}");
         }
     }
 }
