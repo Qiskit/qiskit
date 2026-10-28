@@ -15,6 +15,8 @@
 //! This is the base crate that defines the IR, its data structures and built-in operations and
 //! algorithms.
 
+pub mod instruction;
 pub mod line_graph;
+pub mod ops;
 pub mod qid;
 pub mod symbol_table;
