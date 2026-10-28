@@ -21,6 +21,7 @@ import os
 import warnings
 import typing
 
+import numpy as np
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -576,7 +577,7 @@ def _parse_approximation_degree(approximation_degree):
 def _parse_seed_transpiler(seed_transpiler):
     if seed_transpiler is None:
         return None
-    if not isinstance(seed_transpiler, int) or seed_transpiler < 0:
+    if not isinstance(seed_transpiler, (int, np.integer)) or seed_transpiler < 0:
         raise ValueError("Expected non-negative integer as seed for transpiler.")
     return seed_transpiler
 

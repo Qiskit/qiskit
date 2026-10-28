@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The ``seed_transpiler`` argument of :func:`.generate_preset_pass_manager` and
+    :func:`.transpile` now accepts non-negative NumPy integers (for example
+    ``np.int64(7)``), which previously raised a :class:`ValueError`.
