@@ -19,7 +19,7 @@ use crate::symbol_table::SymbolTable;
 
 /// The Qiskit Middle IR
 ///
-/// This represents a quantum MIR compilation unit. It consists of an instruction list, a resource
+/// This represents a quantum Mir compilation unit. It consists of an instruction list, a resource
 /// table and a symbol table.
 #[derive(Debug)]
 pub struct Mir {
@@ -29,12 +29,12 @@ pub struct Mir {
 }
 
 impl Mir {
-    /// Create an empty Mir with virutal qubits; use [Mir::with_space] for physical qubits.    
+    /// Create an empty `Mir` with virtual qubits; use [`Mir::with_space`] for physical qubits.
     pub fn new() -> Self {
         Self::with_space(QidSpace::Virtual)
     }
 
-    /// Create an empty Mir that uses qubits from the given space.
+    /// Create an empty `Mir` that uses qubits from the given space.
     pub fn with_space(space: QidSpace) -> Self {
         Self {
             instructions: LineGraph::new(),
@@ -43,32 +43,32 @@ impl Mir {
         }
     }
 
-    /// The instruction list of this MIR.
+    /// The instruction list of this `Mir`.
     pub fn instructions(&self) -> &LineGraph<MirInstruction> {
         &self.instructions
     }
 
-    /// Mutable access to the instruction list of this MIR.
+    /// Mutable access to the instruction list of this `Mir`.
     pub fn instructions_mut(&mut self) -> &mut LineGraph<MirInstruction> {
         &mut self.instructions
     }
 
-    /// The resource table of this MIR.
+    /// The resource table of this `Mir`.
     pub fn resource_table(&self) -> &ResourceTable {
         &self.resource_table
     }
 
-    /// Mutable access to the resource table of this MIR.
+    /// Mutable access to the resource table of this `Mir`.
     pub fn resource_table_mut(&mut self) -> &mut ResourceTable {
         &mut self.resource_table
     }
 
-    /// The symbol table of this MIR.
+    /// The symbol table of this `Mir`.
     pub fn symbol_table(&self) -> &SymbolTable {
         &self.symbol_table
     }
 
-    /// Mutable access to the symbol table of this MIR.
+    /// Mutable access to the symbol table of this `Mir`.
     pub fn symbol_table_mut(&mut self) -> &mut SymbolTable {
         &mut self.symbol_table
     }
@@ -92,7 +92,7 @@ mod tests {
     fn test_populate_mir() {
         let mut mir = Mir::new();
 
-        // Add a qubit, and an instruction using it to Mir
+        // Add a qubit, and an instruction using it to `Mir`
         let qid_info = QidInfo::new(BitLayout::Base(1));
         let qid = mir.resource_table_mut().add_qid(qid_info.clone()).unwrap();
 
@@ -118,7 +118,7 @@ mod tests {
             instruction
         );
 
-        // Add a symbol to Mir
+        // Add a symbol to `Mir`
         let sym_id = mir
             .symbol_table_mut()
             .add(Symbol::new("a".to_string()))
