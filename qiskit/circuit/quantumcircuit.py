@@ -75,7 +75,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .store import Store
 
-
 if typing.TYPE_CHECKING:
     import types as builtin_types
     import qiskit
@@ -957,6 +956,7 @@ class QuantumCircuit(IR):
        assert qc.size() == 19
 
     .. automethod:: count_ops
+    .. automethod:: count_ops_per_qubit
     .. automethod:: depth
     .. automethod:: get_instructions
     .. automethod:: num_connected_components
@@ -4363,7 +4363,8 @@ class QuantumCircuit(IR):
         """Counts the number of times each operation is used, broken down by qubit.
 
         Returns:
-            A list of dictionaries, one per qubit, mapping operation names to counts. Multi-qubit operations contribute a count to every qubit they touch.
+            A list of dictionaries, one per qubit, mapping operation names to counts.
+            Multi-qubit operations contribute a count to every qubit they touch.
 
         Example:
 
@@ -4376,7 +4377,9 @@ class QuantumCircuit(IR):
                 qc.cx(0, 1)
                 qc.x(2)
                 qc.x(2)
-                
+
+                counts = qc.count_ops_per_qubit()
+
                 print(counts)
         """
         return self._data.count_ops_per_qubit()
