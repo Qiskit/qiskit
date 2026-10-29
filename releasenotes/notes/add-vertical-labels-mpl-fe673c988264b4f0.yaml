@@ -1,0 +1,14 @@
+---
+features_circuits:
+  - |
+    Added the ``vertical_labels`` option to :meth:`.QuantumCircuit.draw` to
+    control whether multi-qubit gate labels are displayed vertically in
+    Matplotlib circuit drawings. The default behavior remains horizontal labels.
+features_visualization:
+  - |
+    Added the ``vertical_labels`` option to :func:`.circuit_drawer` to control
+    whether multi-qubit gate labels are displayed vertically in Matplotlib
+    circuit drawings. Through the :func:`_multiqubit_gate` function of 
+    :class:`.MatplotlibDrawer` the gate labels can be displayed vertically 
+    or horizontally, supporting wrapping when vertical labels are used.
+    The default is to display them horizontally.
