@@ -598,17 +598,17 @@ Control-flow operations
 
 A ``CONTROL_FLOW`` payload starts with a one-byte operation code:
 
-==========  ======================  ================================================================
-Type code   Operation               Payload
-==========  ======================  ================================================================
-``b``       :class:`.BoxOp`         A ``BOX_DURATION``.
-``k``       :class:`.BreakLoopOp`   None.
-``c``       :class:`.ContinueLoopOp` None.
-``f``       :class:`.ForLoopOp`     A ``FOR_COLLECTION``, then a ``LOOP_PARAMETER``.
-``i``       :class:`.IfElseOp`      A ``CONDITION``.
-``s``       :class:`.SwitchCaseOp`  A ``SWITCH_TARGET``, then ``CASE_SPEC``.
-``w``       :class:`.WhileLoopOp`   A ``CONDITION``.
-==========  ======================  ================================================================
+==========  ========================  ================================================================
+Type code   Operation                 Payload
+==========  ========================  ================================================================
+``b``       :class:`.BoxOp`           A ``BOX_DURATION``.
+``k``       :class:`.BreakLoopOp`     None.
+``c``       :class:`.ContinueLoopOp`  None.
+``f``       :class:`.ForLoopOp`       A ``FOR_COLLECTION``, then a ``LOOP_PARAMETER``.
+``i``       :class:`.IfElseOp`        A ``CONDITION``.
+``s``       :class:`.SwitchCaseOp`    A ``SWITCH_TARGET``, then ``CASE_SPEC``.
+``w``       :class:`.WhileLoopOp`     A ``CONDITION``.
+==========  ========================  ================================================================
 
 The circuit bodies of a control-flow operation are ordinary instruction parameters of type ``q``;
 they are not part of ``operation_data``.

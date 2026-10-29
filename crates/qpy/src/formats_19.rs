@@ -33,7 +33,6 @@ use crate::formats::{
 #[brw(import (version: u8))]
 pub struct CircuitHeaderV19Pack {
     // global circuit data
-    pub circuit_name: StringU16Pack,
     #[brw(args(version))]
     pub global_phase: GlobalPhasePack,
     pub num_qubits: u32,
@@ -57,6 +56,7 @@ pub struct CircuitHeaderV19Pack {
     #[br(count = clbit_interner_size as usize)]
     pub clbit_interner: Vec<InternerEntry>,
 
+    pub circuit_name: StringU16Pack,
     // byte-encoded metadata from an external source
     #[bw(calc = metadata.len() as u64)]
     pub metadata_size: u64,
