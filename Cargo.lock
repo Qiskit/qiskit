@@ -2477,6 +2477,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "itertools 0.15.0",
  "mem_dbg",
+ "pyo3",
  "qiskit-passmanager",
  "qiskit-util",
  "rustworkx-core",
