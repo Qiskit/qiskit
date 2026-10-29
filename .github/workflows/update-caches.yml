@@ -18,12 +18,12 @@ on:
 jobs:
   config:
     name: Configure
-    uses: ./.github/workflows/config.yml
+    uses: $/.github/workflows/config.yml
 
   qpy:
     name: QPY
     needs: config
-    uses: ./.github/workflows/qpy.yml
+    uses: $/.github/workflows/qpy.yml
     with:
       python-version: ${{ needs.config.outputs.python-old }}
       runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
