@@ -12,10 +12,10 @@
 
 //! Definition of Instruction and InstructionList used in Qiskit Middle IR.
 
+use crate::line_graph;
 use crate::ops::MirOp;
 use crate::qid::QidList;
 use crate::symbol_table::SymbolIdList;
-use crate::{line_graph, line_graph::LineGraph};
 use std::fmt;
 
 /// Instruction in Qiskit Middle IR
@@ -80,39 +80,42 @@ impl MirInstructionIndex {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct Mir {
-    instructions: LineGraph<MirInstruction>,
-}
-
-impl Mir {
-    pub fn new() -> Self {
-        Self {
-            instructions: LineGraph::<MirInstruction>::new(),
-        }
-    }
-
-    pub fn instructions(&self) -> &LineGraph<MirInstruction> {
-        &self.instructions
-    }
-
-    pub fn instructions_mut(&mut self) -> &mut LineGraph<MirInstruction> {
-        &mut self.instructions
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::{assert_eq, vec};
+
     use super::*;
-    use crate::ops::pbc::{AngleType, Pauli, PauliRotation, PauliString};
+    use crate::line_graph::LineGraph;
+    use crate::ops::pbc::{AngleType, Pauli, PauliMeasure, PauliRotation, PauliString};
     use crate::qid::Qid;
-    use crate::symbol_table::SymbolIdList;
+    use crate::symbol_table::{Symbol, SymbolTable, SymbolType};
 
     fn create_pauli_rotation_op(pauli: Pauli, size: usize, angle: f64) -> MirOp {
         MirOp::PauliRotation(PauliRotation::new(
             PauliString::new(vec![pauli; size]),
             AngleType::new(angle),
         ))
+    }
+
+    #[test]
+    fn test_create_measurement_instruction_with_bool_symbol() {
+        let mut symbol_table = SymbolTable::default();
+        let sym_id = symbol_table
+            .add(Symbol::new("c0".to_string(), SymbolType::Bool))
+            .unwrap();
+        let op = MirOp::PauliMeasure(PauliMeasure::new(PauliString::new(vec![Pauli::I]), true));
+        let instr = MirInstruction {
+            op: op.clone(),
+            qids: QidList::new(vec![Qid::virt(0)]),
+            args: SymbolIdList::default(),
+            returns: SymbolIdList::new(vec![sym_id]),
+        };
+
+        assert_eq!(*instr.op(), op);
+        assert_eq!(instr.returns().inner(), &vec![sym_id]);
+        let symbol = symbol_table.get(sym_id).unwrap();
+        assert_eq!(symbol.name(), "c0");
+        assert_eq!(symbol.symbol_type(), SymbolType::Bool);
     }
 
     #[test]
@@ -132,8 +135,7 @@ mod tests {
 
     #[test]
     fn test_instruction_list() {
-        let mut mir = Mir::new();
-        let instr_list = mir.instructions_mut();
+        let mut instr_list = LineGraph::<MirInstruction>::new();
 
         let instr1 = MirInstruction {
             op: create_pauli_rotation_op(Pauli::X, 8, 0.5),

@@ -41,28 +41,126 @@
 //! meas_1: ═══════════════════════════════════════════════════════════════╡0        ╞
 //!                                                                        └─────────┘
 
+use qiskit_circuit::{
+    Clbit, Qubit,
+    bit::{ShareableClbit, ShareableQubit},
+    circuit_data::CircuitData,
+    dag_circuit::DAGCircuit,
+    operations::{Param, PauliBased, PauliProductMeasurement, PauliProductRotation},
+    packed_instruction::PackedOperation,
+};
 use qiskit_mir::{
-    instruction::{Mir, MirInstruction},
+    instruction::MirInstruction,
+    mir::Mir,
     ops::{
         MirOp,
         pbc::{AngleType, Pauli, PauliRotation, PauliString},
     },
-    qid::{BitLayout, QidInfo, QidList, QidSpace, table::ResourceTable},
+    passes::lowering::lower,
+    qid::{BitLayout, QidInfo, QidList},
     symbol_table::SymbolIdList,
 };
-use std::f64::consts::PI;
+use std::{assert_eq, f64::consts::PI, vec};
+
+// Build the Bell equivalent PBC circuit.
+fn build_bell_pbc_dag() -> DAGCircuit {
+    let qubits = (0..2).map(|_| ShareableQubit::new_anonymous()).collect();
+    let clbits = (0..2).map(|_| ShareableClbit::new_anonymous()).collect();
+    let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+    let rotation = |x: Vec<bool>, z: Vec<bool>, angle: f64| {
+        PackedOperation::from_pauli_based(Box::new(PauliBased::PauliProductRotation(
+            PauliProductRotation {
+                x,
+                z,
+                angle: angle.into(),
+            },
+        )))
+    };
+    let measure = |x: Vec<bool>, z: Vec<bool>| {
+        PackedOperation::from_pauli_based(Box::new(PauliBased::PauliProductMeasurement(
+            PauliProductMeasurement { x, z, neg: false },
+        )))
+    };
+    circuit
+        .push_packed_operation(
+            rotation(vec![false], vec![true], PI / 2.0),
+            None,
+            &[Qubit(0)],
+            &[],
+        )
+        .unwrap();
+    circuit
+        .push_packed_operation(
+            rotation(vec![true], vec![false], PI),
+            None,
+            &[Qubit(0)],
+            &[],
+        )
+        .unwrap();
+    circuit
+        .push_packed_operation(
+            rotation(vec![true, false], vec![false, true], PI / 2.0),
+            None,
+            &[Qubit(0), Qubit(1)],
+            &[],
+        )
+        .unwrap();
+    circuit
+        .push_packed_operation(
+            rotation(vec![false], vec![true], -PI / 2.0),
+            None,
+            &[Qubit(0)],
+            &[],
+        )
+        .unwrap();
+    circuit
+        .push_packed_operation(
+            rotation(vec![true], vec![false], -PI / 2.0),
+            None,
+            &[Qubit(1)],
+            &[],
+        )
+        .unwrap();
+
+    circuit
+        .push_packed_operation(
+            measure(vec![false], vec![true]),
+            None,
+            &[Qubit(0)],
+            &[Clbit(0)],
+        )
+        .unwrap();
+    circuit
+        .push_packed_operation(
+            measure(vec![false], vec![true]),
+            None,
+            &[Qubit(1)],
+            &[Clbit(1)],
+        )
+        .unwrap();
+
+    DAGCircuit::from_circuit_data(&circuit, false, None, None).unwrap()
+}
+
+#[test]
+fn lower_bell_pbc() {
+    let dag = build_bell_pbc_dag();
+    let mir = lower(&dag);
+
+    assert_eq!(mir.instructions().node_count(), 7);
+    assert_eq!(mir.resource_table().iter_qids().len(), 2);
+}
 
 #[test]
 fn construct_bell_mir() {
-    let mut resource_table = ResourceTable::new(QidSpace::Virtual);
     let mut mir = Mir::new();
-    let instr_list = mir.instructions_mut();
 
     // Create Qids for q_0 and q_1.
 
     // These will be virtual to start, and then mapped to physical through
     // transforms on the Mir.
     // They could be created as physical to start with also.
+    let resource_table: &mut qiskit_mir::qid::ResourceTable = mir.resource_table_mut();
     let qid_0 = resource_table
         .add_qid(QidInfo::new(BitLayout::Base(1))) // use Base here to represent individual qubits with no aliasing/overlap
         .unwrap();
@@ -76,6 +174,7 @@ fn construct_bell_mir() {
     // TODO: Write a lowering pass that iterates over the QiskitCircuit (in PBC)
     // and for each operation create the corresponding MIR instruction, adding
     // the Qid to the ResourceTable if they have not already been added.
+    let instr_list: &mut qiskit_mir::line_graph::LineGraph<MirInstruction> = mir.instructions_mut();
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliString::new(vec![Pauli::Y]),
