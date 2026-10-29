@@ -11,3 +11,4 @@
 // that they have been altered from the originals.
 
 pub mod lowering;
+pub use lowering::{DagToMirLowering, lower};

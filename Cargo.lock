@@ -2444,6 +2444,7 @@ dependencies = [
  "bytemuck",
  "hashbrown 0.15.5",
  "itertools 0.15.0",
+ "pyo3",
  "qiskit-circuit",
  "qiskit-passmanager",
  "qiskit-util",
