@@ -12,10 +12,10 @@
 
 //! Definition of Instruction and InstructionList used in Qiskit Middle IR.
 
+use crate::line_graph;
 use crate::ops::MirOp;
 use crate::qid::QidList;
 use crate::symbol_table::SymbolIdList;
-use crate::{line_graph, line_graph::LineGraph};
 use std::fmt;
 
 /// Instruction in Qiskit Middle IR
@@ -29,6 +29,7 @@ use std::fmt;
 /// does not operate on, or effect any QuantumIDs and thus the `qids` list
 /// should be empty.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct MirInstruction {
     op: MirOp,
     qids: QidList,
@@ -80,30 +81,10 @@ impl MirInstructionIndex {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct Mir {
-    instructions: LineGraph<MirInstruction>,
-}
-
-impl Mir {
-    pub fn new() -> Self {
-        Self {
-            instructions: LineGraph::<MirInstruction>::new(),
-        }
-    }
-
-    pub fn instructions(&self) -> &LineGraph<MirInstruction> {
-        &self.instructions
-    }
-
-    pub fn instructions_mut(&mut self) -> &mut LineGraph<MirInstruction> {
-        &mut self.instructions
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::line_graph::LineGraph;
     use crate::ops::pbc::{AngleType, Pauli, PauliRotation, PauliString};
     use crate::qid::Qid;
     use crate::symbol_table::SymbolIdList;
@@ -132,8 +113,7 @@ mod tests {
 
     #[test]
     fn test_instruction_list() {
-        let mut mir = Mir::new();
-        let instr_list = mir.instructions_mut();
+        let mut instr_list = LineGraph::<MirInstruction>::new();
 
         let instr1 = MirInstruction {
             op: create_pauli_rotation_op(Pauli::X, 8, 0.5),

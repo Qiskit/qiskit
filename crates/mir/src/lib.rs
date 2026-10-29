@@ -15,8 +15,11 @@
 //! This is the base crate that defines the IR, its data structures and built-in operations and
 //! algorithms.
 
+#![cfg_attr(feature = "mem_dbg", allow(unexpected_cfgs))]
+
 pub mod instruction;
 pub mod line_graph;
+pub mod mir;
 pub mod ops;
 pub mod qid;
 pub mod symbol_table;
