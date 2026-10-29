@@ -677,10 +677,12 @@ class MatplotlibDrawer:
                         length, _ = self._calculate_vertical_label_line_count(
                             gate_text, raw_gate_width, HIG
                         )
-                        # W is one of the widest characters, so it is used as an estimate to include all the other characters too
-                        char_width = self._get_text_width("W", glob_data, self._style["fs"])
+
+                        in_between_spacing = 0.1
                         gate_width = (
-                            length * char_width + 0.10 if length > 0 else raw_gate_width + 0.10
+                            length * in_between_spacing + 0.10
+                            if length > 0
+                            else raw_gate_width + 0.10
                         )
                     else:
                         gate_width = raw_gate_width + 0.10
