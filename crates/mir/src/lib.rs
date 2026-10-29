@@ -17,6 +17,7 @@
 
 pub mod instruction;
 pub mod line_graph;
+pub mod mir;
 pub mod ops;
 pub mod qid;
 pub mod symbol_table;
