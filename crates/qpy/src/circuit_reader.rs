@@ -302,14 +302,20 @@ pub fn instruction_values_to_params(
             .all(|val| matches!(val, GenericValue::CircuitData(_)))
     {
         // blocks
-        let inst_blocks: Vec<CircuitData> = values
-            .iter()
-            .filter_map(|value| value.as_circuit_data())
+        let out: Vec<Block> = values
+            .into_iter()
+            .filter_map(|value| match value {
+                GenericValue::CircuitData(block_circuit) => {
+                    Some(qpy_data.circuit_data.add_block(*block_circuit))
+                }
+                _ => None,
+            })
             .collect();
-        let params = Parameters::Blocks(inst_blocks);
-        Ok(qpy_data
-            .circuit_data
-            .extract_blocks_from_circuit_parameters(Some(&params)))
+        if out.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(Box::new(Parameters::Blocks(out))))
+        }
     } else {
         // params
         let inst_params: Vec<Param> = values
