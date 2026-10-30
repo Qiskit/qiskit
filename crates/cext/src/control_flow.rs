@@ -27,8 +27,7 @@ use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, Qubit};
 use uuid::Uuid;
 
-use crate::classical_expr::{CDurationInfo, CDurationType, CDurationValue};
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::classical_expr::CDurationInfo;
 use crate::util;
 use num_traits::ToPrimitive;
 
@@ -78,7 +77,7 @@ impl CControlFlowInstruction {
     #[inline]
     fn circuit(&self) -> &CircuitData {
         // SAFETY: Per documentation and CControlFlowInstruction invariants, self.circuit is valid and non-null
-        unsafe { const_ptr_as_ref(self.circuit) }
+        unsafe { &*self.circuit }
     }
 
     // Helper to get the PackedInstruction for this control flow instruction
@@ -1584,7 +1583,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut CSwitchCaseLabels) {
     // SAFETY: Per documentation, labels is a valid pointer to a CSwitchCaseLabels.
-    let labels = unsafe { mut_ptr_as_ref(labels) };
+    let labels = unsafe { &mut *labels };
 
     if !labels.labels.is_null() && labels.num_labels > 0 {
         drop(unsafe {
