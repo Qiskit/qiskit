@@ -115,8 +115,8 @@ manually casting `&mut T` as `*mut T` in the function body.
 The types `Option<&T>`, `Option<&mut T>`, and `NonNull<T>` have the same ABI as
 raw pointers.
 
-Both idioms are useful in combination for free-like function parameters. The
-call `free(NULL)` is a no-op in C. Callers expect this behavior because it makes
+Both idioms are useful in combination for free-like functions. The call
+`free(NULL)` is a no-op in C. Callers expect this behavior because it makes
 memory management less cumbersome. Friendly cleanup functions take ownership of
 `T` and handle the `NULL` case gracefully.
 
