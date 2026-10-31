@@ -27,7 +27,7 @@ impl Constant {
         Self { value }
     }
 
-    /// The tensor this op produces.
+    /// Return the tensor this op produces.
     pub fn value(&self) -> &Tensor {
         &self.value
     }

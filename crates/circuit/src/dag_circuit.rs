@@ -63,7 +63,7 @@ use pyo3::exceptions::{
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use pyo3::types::{IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyDict, PyInt, PyIterator, PyList, PyNone, PySet, PyTuple, PyType};
 
 use rustworkx_core::dag_algo::layers;
 use rustworkx_core::err::ContractError;
@@ -400,12 +400,7 @@ fn reject_new_register(reg: &ClassicalRegister) -> Result<(), DAGError> {
     Err(DAGError::RejectNewRegister(reg.bits().collect_vec()))
 }
 
-#[pyclass(
-    name = "BitLocations",
-    module = "qiskit._accelerate.circuit",
-    sequence,
-    skip_from_py_object
-)]
+#[pyclass(name = "BitLocations", module = "qiskit._accelerate.circuit", sequence)]
 #[derive(Clone, Debug)]
 pub struct PyBitLocations {
     #[pyo3(get)]
@@ -509,6 +504,15 @@ pub struct PyDAGCircuit {
 
 #[pymethods]
 impl PyDAGCircuit {
+    #[classattr]
+    pub fn _qiskit_ir_builtin_(py: Python) -> Bound<PyNone> {
+        // Marker object for type checkers to recognise `DAGCircuit` as a special form of
+        // Python-available IRs, without us having to add subclasses.  (Actually, we don't generate
+        // type stubs for the Rust-defined types, so type checkers still won't be happy, but we
+        // _should_, and this is here for the principle of things.)
+        PyNone::get(py).to_owned()
+    }
+
     #[new]
     pub fn py_new(py: Python) -> Self {
         let out = DAGCircuit::new();
@@ -4689,6 +4693,24 @@ impl PyDAGCircuit {
         }
     }
 
+    /// Retrieve a variable by name, or ``None`` if it is not present in the DAG.
+    ///
+    /// Args:
+    ///     name (str): the variable name.
+    ///
+    /// Returns:
+    ///     The variable if it is found, otherwise ``None``.
+    ///
+    /// See also:
+    ///     :meth:`has_var` checks whether a variable is present.
+    pub fn get_var(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(var) = self.inner.vars_stretches.get_var(name) {
+            var.clone().into_py_any(py)
+        } else {
+            Ok(py.None())
+        }
+    }
+
     /// Is this stretch in the DAG?
     ///
     /// Args:
@@ -4700,6 +4722,24 @@ impl PyDAGCircuit {
         } else {
             let stretch = stretch.extract::<expr::Stretch>()?;
             Ok(self.inner.vars_stretches.stretches().contains(&stretch))
+        }
+    }
+
+    /// Retrieve a stretch by name, or ``None`` if it is not present in the DAG.
+    ///
+    /// Args:
+    ///     name (str): the stretch name.
+    ///
+    /// Returns:
+    ///     The stretch if it is found, otherwise ``None``.
+    ///
+    /// See also:
+    ///     :meth:`has_stretch` checks whether a stretch is present.
+    pub fn get_stretch(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
+        if let Some(stretch) = self.inner.vars_stretches.get_stretch(name) {
+            stretch.clone().into_py_any(py)
+        } else {
+            Ok(py.None())
         }
     }
 
@@ -8941,6 +8981,14 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 }
 
 impl PyDAGCircuit {
+    /// Consume this Python wrapper, returning only the Rust-native parts.
+    ///
+    /// This throws away other Python-specific tracked data.
+    #[inline]
+    pub fn into_inner(self) -> DAGCircuit {
+        self.inner
+    }
+
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
     pub fn from_circuit(
         qc: QuantumCircuitData,

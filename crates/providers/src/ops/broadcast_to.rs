@@ -18,13 +18,6 @@ use super::{ProgramOp, QISKIT};
 use crate::tensor::{Dim, Tensor, TensorError, TensorType};
 
 /// Broadcast a tensor to a target shape, right-aligning the two.
-///
-/// Arithmetic ops broadcast their own operands, so this op is for a shape arithmetic does not
-/// reach. An axis of size one grows to any size and leading axes may be added. An axis cannot be
-/// dropped, since the result shape is the target.
-///
-/// A [`Dim::Bounded`] target axis is copied from the operand, and matches only an identical operand
-/// axis. Evaluation uses the operand's own size for it.
 #[derive(Clone)]
 pub struct BroadcastTo {
     target: Vec<Dim>,
@@ -36,7 +29,7 @@ impl BroadcastTo {
         Self { target }
     }
 
-    /// The shape an operand of shape `shape` is broadcast to.
+    /// Return the shape an operand of shape `shape` is broadcast to.
     ///
     /// A fixed target axis gives its own size. A bounded one takes the operand's size along the axis
     /// it aligns with.
@@ -54,7 +47,6 @@ impl BroadcastTo {
             .map(|(axis, dim)| match *dim {
                 Dim::Fixed(size) => Ok(size),
                 Dim::Bounded { .. } if axis >= offset => Ok(shape[axis - offset]),
-                // A leading axis the operand does not have, so it has no size to copy.
                 Dim::Bounded { .. } => Err(TensorError::DynamicDim {
                     shape: self.target.clone(),
                 }
@@ -95,7 +87,7 @@ mod test {
     use crate::tensor::DType;
     use ndarray::arr2;
 
-    /// A `TensorType` over `shape`; every test here is about the shape alone.
+    /// Return a `TensorType` over `shape`.
     fn ty(shape: Vec<Dim>) -> TensorType {
         TensorType {
             dtype: DType::F64,
@@ -103,7 +95,7 @@ mod test {
         }
     }
 
-    /// A shape of fixed axes.
+    /// Return a shape of fixed axes.
     fn fixed(sizes: &[usize]) -> Vec<Dim> {
         sizes.iter().copied().map(Dim::Fixed).collect()
     }
@@ -154,8 +146,6 @@ mod test {
 
     #[test]
     fn test_infer_output_types_rejects_a_target_it_cannot_reach() {
-        // `rules::broadcast_dims_to` holds the table of what is admitted; these are its refusals
-        // arriving through the op.
         let shots = Dim::Bounded { max: 4000 };
         assert!(matches!(
             BroadcastTo::new(fixed(&[4]))
@@ -193,8 +183,6 @@ mod test {
 
     #[test]
     fn test_eval_takes_a_bounded_axis_size_from_the_operand() {
-        // The bound is 4000 but the tensor has three rows, so the result has three. A bounded axis
-        // takes its size from the operand.
         let x = Tensor::F64(arr2(&[[1.0_f64], [2.0], [3.0]]).into_dyn().into_shared());
         let op = BroadcastTo::new(vec![Dim::Bounded { max: 4000 }, Dim::Fixed(2)]);
         assert_eq!(
@@ -209,8 +197,6 @@ mod test {
 
     #[test]
     fn test_eval_rejects_an_operand_that_does_not_fit_the_target() {
-        // Inference rejects both of these, so a type-checked op cannot reach them. Evaluation
-        // returns an error rather than panicking.
         assert!(matches!(
             BroadcastTo::new(fixed(&[4]))
                 .eval(&[Tensor::from([1.0_f64, 2.0, 3.0])])
