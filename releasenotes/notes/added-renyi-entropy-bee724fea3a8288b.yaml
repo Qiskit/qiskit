@@ -1,9 +1,8 @@
 ---
-features:
+features_quantum_info:
   - |
-    Added the function :func:`~qiskit.quantum_info.states.measures.renyi_entropy` which 
-    computes the Renyi entropy of a state with arbitrary index :math:`\alpha` of an optionally specified 
-    subsystem. By default, the subsystem is taken to be the entire system. For inputs of 
-    :class:`~.quantum_info.StabilizerState`, the entropy is computed efficiently in terms of 
-    the binary rank of the reduced stabilizer tableau. See 
-    `10114 <https://https://github.com/Qiskit/qiskit-terra/issues/10114>` for more details.
+    Added the function :func:`.renyi_entropy`, which computes the Rényi entropy of any order
+    :math:`\alpha \geq 0` of a :class:`.Statevector`, :class:`.DensityMatrix` or
+    :class:`.StabilizerState`, optionally of a subsystem given by ``qargs``. For a
+    :class:`.StabilizerState` the entropy is computed from the binary rank of the stabilizer
+    tableau restricted to the subsystem, without building the density matrix.

@@ -24,6 +24,7 @@ from qiskit.quantum_info import concurrence
 from qiskit.quantum_info import entanglement_of_formation
 from qiskit.quantum_info import mutual_information
 from qiskit.quantum_info import renyi_entropy
+from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.states import shannon_entropy
 from qiskit.quantum_info import negativity
 from test import QiskitTestCase
@@ -377,6 +378,33 @@ class TestStateMeasures(QiskitTestCase):
                     renyi_entropy(stab, alpha, list(range(num_qbits))),
                     renyi_entropy(DensityMatrix(state), alpha, list(range(num_qbits))),
                 )
+
+    def test_renyi_entropy_stabilizer_matches_dense(self):
+        """Test renyi_entropy on random stabilizer states against the dense computation"""
+        for num_qubits in range(2, 6):
+            for seed in range(5):
+                stab = StabilizerState(random_clifford(num_qubits, seed=seed))
+                state = Statevector(stab.clifford.to_circuit())
+                for size in range(num_qubits + 1):
+                    qargs = list(range(num_qubits))[num_qubits - size :]
+                    for alpha in [0, 1, 2]:
+                        self.assertAlmostEqual(
+                            renyi_entropy(stab, alpha, qargs), renyi_entropy(state, alpha, qargs)
+                        )
+
+    def test_renyi_entropy_invalid_input(self):
+        """Test renyi_entropy rejects invalid alpha and qargs"""
+        stab = StabilizerState(random_clifford(3, seed=0))
+        psi = Statevector(stab.clifford.to_circuit())
+        for state in [stab, psi, DensityMatrix(psi)]:
+            with self.assertRaises(QiskitError):
+                renyi_entropy(state, -1, [0])
+            with self.assertRaises(QiskitError):
+                renyi_entropy(state, 2, [3])
+            with self.assertRaises(QiskitError):
+                renyi_entropy(state, 2, [-1])
+            with self.assertRaises(QiskitError):
+                renyi_entropy(state, 2, [0, 0])
 
     def test_concurrence_statevector(self):
         """Test concurrence function on statevector inputs"""

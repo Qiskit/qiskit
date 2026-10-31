@@ -75,6 +75,7 @@ Measures
 .. autofunction:: purity
 .. autofunction:: concurrence
 .. autofunction:: entropy
+.. autofunction:: renyi_entropy
 .. autofunction:: entanglement_of_formation
 .. autofunction:: mutual_information
 
