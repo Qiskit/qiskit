@@ -19,7 +19,8 @@ import ddt
 import qiskit.qasm2
 from qiskit.circuit import Gate, library as lib
 from test import combine
-from test import QiskitTestCase
+
+from . import Qasm2TestCase
 
 
 # We need to use this enum a _bunch_ of times, so let's not give it a long name.
@@ -196,7 +197,7 @@ def eof_parametrisation():
 
 
 @ddt.ddt
-class TestIncompleteStructure(QiskitTestCase):
+class TestIncompleteStructure(Qasm2TestCase):
     PRELUDE = "OPENQASM 2.0; qreg q[5]; creg c[5]; creg cond[1];"
 
     @ddt.idata(bad_token_parametrisation())
@@ -208,7 +209,7 @@ class TestIncompleteStructure(QiskitTestCase):
         prelude = "" if statement.startswith("OPENQASM") else self.PRELUDE
         full = f"{prelude} {statement} {disallowed}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "needed .*, but instead"):
-            qiskit.qasm2.loads(full)
+            self.loads(full)
 
     @ddt.idata(eof_parametrisation())
     def test_eof(self, statement):
@@ -217,44 +218,44 @@ class TestIncompleteStructure(QiskitTestCase):
         prelude = "" if statement.startswith("OPENQASM") else self.PRELUDE
         full = f"{prelude} {statement}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "unexpected end-of-file"):
-            qiskit.qasm2.loads(full)
+            self.loads(full)
 
     def test_loading_directory(self):
         """Test that the correct error is raised when a file fails to open."""
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "failed to read"):
-            qiskit.qasm2.load(".")
+            self.load(".")
 
 
-class TestVersion(QiskitTestCase):
+class TestVersion(Qasm2TestCase):
     def test_invalid_version(self):
         program = "OPENQASM 3.0;"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "can only handle OpenQASM 2.0"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
         program = "OPENQASM 2.1;"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "can only handle OpenQASM 2.0"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
         program = "OPENQASM 20.e-1;"
         with self.assertRaises(qiskit.qasm2.QASM2ParseError):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_openqasm_must_be_first_statement(self):
         program = "qreg q[0]; OPENQASM 2.0;"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "only the first statement"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
 
 @ddt.ddt
-class TestScoping(QiskitTestCase):
+class TestScoping(Qasm2TestCase):
     def test_register_use_before_definition(self):
         program = "CX after[0], after[1]; qreg after[2];"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "not defined in this scope"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
         program = "qreg q[2]; measure q[0] -> c[0]; creg c[2];"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "not defined in this scope"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @combine(
         definer=["qreg reg[2];", "creg reg[2];", "gate reg a {}", "opaque reg a;"],
@@ -263,14 +264,14 @@ class TestScoping(QiskitTestCase):
     def test_register_already_defined(self, definer, bad_definer):
         program = f"{definer} {bad_definer}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data("qreg q[4294967296];", "creg c[4294967296];")
     def test_register_too_large(self, program):
         # The circuit model indexes bits with a `u32`, so this is a parse error rather than a
         # silently truncated register.
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "does not fit in a circuit"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_qelib1_not_implicit(self):
         program = """
@@ -279,7 +280,7 @@ class TestScoping(QiskitTestCase):
             cx q[0], q[1];
         """
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'cx' is not defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_access_gates_before_definition(self):
         program = """
@@ -290,7 +291,7 @@ class TestScoping(QiskitTestCase):
             }
         """
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'cx' is not defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_access_gate_recursively(self):
         program = """
@@ -299,7 +300,7 @@ class TestScoping(QiskitTestCase):
             }
         """
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'cx' is not defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_access_qubits_from_previous_gate(self):
         program = """
@@ -311,7 +312,7 @@ class TestScoping(QiskitTestCase):
             }
         """
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'a' is not defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_access_parameters_from_previous_gate(self):
         program = """
@@ -325,7 +326,7 @@ class TestScoping(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, "'a' is not a parameter.*defined"
         ):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_access_quantum_registers_within_gate(self):
         program = """
@@ -335,7 +336,7 @@ class TestScoping(QiskitTestCase):
             }
         """
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'q' is a quantum register"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_parameters_not_defined_outside_gate(self):
         program = """
@@ -346,7 +347,7 @@ class TestScoping(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, "'a' is not a parameter.*defined"
         ):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_qubits_not_defined_outside_gate(self):
         program = """
@@ -354,22 +355,22 @@ class TestScoping(QiskitTestCase):
             U(0, 0, 0) q;
         """
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'q' is not defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data('include "qelib1.inc";', "gate h q { }")
     def test_gates_cannot_redefine(self, definer):
         program = f"{definer} gate h q {{ }}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_use_undeclared_register_conditional(self):
         program = "qreg q[1]; if (c == 0) U(0, 0, 0) q[0];"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "not defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
 
 @ddt.ddt
-class TestTyping(QiskitTestCase):
+class TestTyping(Qasm2TestCase):
     @ddt.data(
         "CX q[0], U;",
         "measure U -> c[0];",
@@ -382,7 +383,7 @@ class TestTyping(QiskitTestCase):
     def test_cannot_use_gates_incorrectly(self, usage):
         program = f"qreg q[2]; creg c[2]; {usage}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'U' is a gate"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data(
         "measure q[0] -> q[1];",
@@ -393,7 +394,7 @@ class TestTyping(QiskitTestCase):
     def test_cannot_use_qregs_incorrectly(self, usage):
         program = f"qreg q[2]; creg c[2]; {usage}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'q' is a quantum register"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data(
         "CX q[0], c[1];",
@@ -406,17 +407,17 @@ class TestTyping(QiskitTestCase):
     def test_cannot_use_cregs_incorrectly(self, usage):
         program = f"qreg q[2]; creg c[2]; {usage}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'c' is a classical register"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_use_parameters_incorrectly(self):
         program = "gate my_gate(p) q { CX p, q; }"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'p' is a parameter"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_use_qubits_incorrectly(self):
         program = "gate my_gate(p) q { U(q, q, q) q; }"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'q' is a gate qubit"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data(("h", 0), ("h", 2), ("CX", 0), ("CX", 1), ("CX", 3), ("ccx", 2), ("ccx", 4))
     @ddt.unpack
@@ -424,7 +425,7 @@ class TestTyping(QiskitTestCase):
         arguments = ", ".join(f"q[{i}]" for i in range(bad_count))
         program = f'include "qelib1.inc"; qreg q[5];\n{gate} {arguments};'
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "takes .* quantum arguments?"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data(("U", 2), ("U", 4), ("rx", 0), ("rx", 2), ("u3", 1))
     @ddt.unpack
@@ -432,28 +433,28 @@ class TestTyping(QiskitTestCase):
         arguments = ", ".join("0" for _ in [None] * bad_count)
         program = f'include "qelib1.inc"; qreg q[5];\n{gate}({arguments}) q[0];'
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "takes .* parameters?"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
 
 @ddt.ddt
-class TestGateDefinition(QiskitTestCase):
+class TestGateDefinition(Qasm2TestCase):
     def test_no_zero_qubit(self):
         program = "gate zero {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "gates must act on at least one"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
         program = "gate zero(a) {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "gates must act on at least one"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_no_zero_qubit_opaque(self):
         program = "opaque zero;"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "gates must act on at least one"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
         program = "opaque zero(a);"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "gates must act on at least one"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_subscript_qubit(self):
         program = """
@@ -462,22 +463,22 @@ class TestGateDefinition(QiskitTestCase):
             }
         """
         with self.assertRaises(qiskit.qasm2.QASM2ParseError):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_repeat_parameters(self):
         program = "gate my_gate(a, a) q {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_repeat_qubits(self):
         program = "gate my_gate a, a {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_qubit_cannot_shadow_parameter(self):
         program = "gate my_gate(a) a {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data("measure q -> c;", "reset q", "if (c == 0) U(0, 0, 0) q;", "gate my_x q {}")
     def test_definition_cannot_contain_nonunitary(self, statement):
@@ -485,30 +486,30 @@ class TestGateDefinition(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, "only gate applications are valid"
         ):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_redefine_u(self):
         program = "gate U(a, b, c) q {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     def test_cannot_redefine_cx(self):
         program = "gate CX a, b {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
 
 @ddt.ddt
-class TestBitResolution(QiskitTestCase):
+class TestBitResolution(Qasm2TestCase):
     def test_disallow_out_of_range(self):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "out-of-range"):
-            qiskit.qasm2.loads("qreg q[2]; U(0, 0, 0) q[2];")
+            self.loads("qreg q[2]; U(0, 0, 0) q[2];")
 
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "out-of-range"):
-            qiskit.qasm2.loads("qreg q[2]; creg c[2]; measure q[2] -> c[0];")
+            self.loads("qreg q[2]; creg c[2]; measure q[2] -> c[0];")
 
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "out-of-range"):
-            qiskit.qasm2.loads("qreg q[2]; creg c[2]; measure q[0] -> c[2];")
+            self.loads("qreg q[2]; creg c[2]; measure q[0] -> c[2];")
 
     @combine(
         conditional=[True, False],
@@ -532,7 +533,7 @@ class TestBitResolution(QiskitTestCase):
             program += "creg cond[1]; if (cond == 0) "
         program += call
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "duplicate qubit"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data(
         (("q1[1]", "q2[2]"), "CX q1, q2"),
@@ -550,12 +551,12 @@ class TestBitResolution(QiskitTestCase):
         setup = 'include "qelib1.inc";\n' + "\n".join(f"qreg {reg};" for reg in registers)
         program = f"{setup}\n{call};"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "cannot resolve broadcast"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
         cond = "creg cond[1];\nif (cond == 0)"
         program = f"{setup}\n{cond} {call};"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "cannot resolve broadcast"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
     @ddt.data(
         ("qreg q[2]; creg c[2];", "q[0] -> c"),
@@ -568,15 +569,15 @@ class TestBitResolution(QiskitTestCase):
     def test_incorrect_measure_broadcast_lengths(self, setup, operands):
         program = f"{setup}\nmeasure {operands};"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "cannot resolve broadcast"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
         program = f"{setup}\ncreg cond[1];\nif (cond == 0) measure {operands};"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "cannot resolve broadcast"):
-            qiskit.qasm2.loads(program)
+            self.loads(program)
 
 
 @ddt.ddt
-class TestCustomInstructions(QiskitTestCase):
+class TestCustomInstructions(Qasm2TestCase):
     def test_cannot_use_custom_before_definition(self):
         program = "qreg q[2]; my_gate q[0], q[1];"
 
@@ -587,7 +588,7 @@ class TestCustomInstructions(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, "cannot use .* before definition"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_instructions=[qiskit.qasm2.CustomInstruction("my_gate", 0, 2, MyGate)],
             )
@@ -597,7 +598,7 @@ class TestCustomInstructions(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, "custom instruction .* mismatched"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 program, custom_instructions=[qiskit.qasm2.CustomInstruction("U", 2, 1, lib.U2Gate)]
             )
 
@@ -606,21 +607,21 @@ class TestCustomInstructions(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, "custom instruction .* mismatched"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 program, custom_instructions=[qiskit.qasm2.CustomInstruction("CX", 0, 1, lib.XGate)]
             )
 
     def test_builtin_is_typechecked(self):
         program = "qreg q[1]; my(0.5) q[0];"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'my' takes 2 quantum arguments"):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_instructions=[
                     qiskit.qasm2.CustomInstruction("my", 1, 2, lib.RXXGate, builtin=True)
                 ],
             )
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'my' takes 2 parameters"):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_instructions=[
                     qiskit.qasm2.CustomInstruction("my", 2, 1, lib.U2Gate, builtin=True)
@@ -630,7 +631,7 @@ class TestCustomInstructions(QiskitTestCase):
     def test_cannot_define_builtin_twice(self):
         program = "gate builtin q {}; gate builtin q {};"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'builtin' is already defined"):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_instructions=[
                     qiskit.qasm2.CustomInstruction("builtin", 0, 1, lambda: Gate("builtin", 1, []))
@@ -640,7 +641,7 @@ class TestCustomInstructions(QiskitTestCase):
     def test_cannot_redefine_custom_u(self):
         program = "gate U(a, b, c) q {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_instructions=[
                     qiskit.qasm2.CustomInstruction("U", 3, 1, lib.UGate, builtin=True)
@@ -650,7 +651,7 @@ class TestCustomInstructions(QiskitTestCase):
     def test_cannot_redefine_custom_cx(self):
         program = "gate CX a, b {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_instructions=[
                     qiskit.qasm2.CustomInstruction("CX", 0, 2, lib.CXGate, builtin=True)
@@ -663,14 +664,14 @@ class TestCustomInstructions(QiskitTestCase):
     )
     def test_custom_definition_must_match_gate(self, program, builtin):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'my' is mismatched"):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_instructions=[
                     qiskit.qasm2.CustomInstruction("my", 1, 2, lib.RXXGate, builtin=builtin)
                 ],
             )
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'my' is mismatched"):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_instructions=[
                     qiskit.qasm2.CustomInstruction("my", 2, 1, lib.U2Gate, builtin=builtin)
@@ -684,32 +685,32 @@ class TestCustomInstructions(QiskitTestCase):
             qiskit.qasm2.CustomInstruction("my", 1, 2, lib.RZZGate),
         ]
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "duplicate custom instruction"):
-            qiskit.qasm2.loads("", custom_instructions=customs)
+            self.loads("", custom_instructions=customs)
 
     def test_qiskit_delay_float_input_wraps_exception(self):
         program = "opaque delay(t) q; qreg q[1]; delay(1.5) q[0];"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "can only accept an integer"):
-            qiskit.qasm2.loads(program, custom_instructions=qiskit.qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+            self.loads(program, custom_instructions=qiskit.qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
 
     def test_u0_float_input_wraps_exception(self):
         program = "opaque u0(n) q; qreg q[1]; u0(1.1) q[0];"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "must be an integer"):
-            qiskit.qasm2.loads(program, custom_instructions=qiskit.qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+            self.loads(program, custom_instructions=qiskit.qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
 
 
 @ddt.ddt
-class TestCustomClassical(QiskitTestCase):
+class TestCustomClassical(Qasm2TestCase):
     @ddt.data("cos", "exp", "sin", "sqrt", "tan", "ln")
     def test_cannot_override_builtin(self, builtin):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"cannot override builtin"):
-            qiskit.qasm2.loads(
+            self.loads(
                 "",
                 custom_classical=[qiskit.qasm2.CustomClassical(builtin, 1, math.exp)],
             )
 
     def test_duplicate_names_disallowed(self):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"duplicate custom classical"):
-            qiskit.qasm2.loads(
+            self.loads(
                 "",
                 custom_classical=[
                     qiskit.qasm2.CustomClassical("f", 1, math.exp),
@@ -721,7 +722,7 @@ class TestCustomClassical(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"custom classical.*naming clash"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 "",
                 custom_instructions=[
                     qiskit.qasm2.CustomInstruction("f", 0, 1, lib.RXGate, builtin=True)
@@ -733,14 +734,14 @@ class TestCustomClassical(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"custom classical.*cannot shadow"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 "",
                 custom_classical=[qiskit.qasm2.CustomClassical("U", 1, math.exp)],
             )
 
     def test_cannot_shadow_with_gate_definition(self):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"'f' is already defined"):
-            qiskit.qasm2.loads(
+            self.loads(
                 "gate f q {}",
                 custom_classical=[qiskit.qasm2.CustomClassical("f", 1, math.exp)],
             )
@@ -748,7 +749,7 @@ class TestCustomClassical(QiskitTestCase):
     @ddt.data("qreg", "creg")
     def test_cannot_shadow_with_register_definition(self, regtype):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"'f' is already defined"):
-            qiskit.qasm2.loads(
+            self.loads(
                 f"{regtype} f[2];",
                 custom_classical=[qiskit.qasm2.CustomClassical("f", 1, math.exp)],
             )
@@ -764,7 +765,7 @@ class TestCustomClassical(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"custom function argument-count mismatch"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 program, custom_classical=[qiskit.qasm2.CustomClassical("f", n_good, lambda *_: 0)]
             )
 
@@ -774,7 +775,7 @@ class TestCustomClassical(QiskitTestCase):
             U(f(), 0, 0) q[0];
         """
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"user.*returned non-float"):
-            qiskit.qasm2.loads(
+            self.loads(
                 program,
                 custom_classical=[qiskit.qasm2.CustomClassical("f", 0, lambda: "not a float")],
             )
@@ -792,7 +793,7 @@ class TestCustomClassical(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, "caught exception when constant folding"
         ) as excinfo:
-            qiskit.qasm2.loads(
+            self.loads(
                 program, custom_classical=[qiskit.qasm2.CustomClassical("raises", 0, raises)]
             )
         self.assertIs(excinfo.exception.__cause__, inner_exception)
@@ -805,7 +806,7 @@ class TestCustomClassical(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"'f' is a custom classical function"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 program, custom_classical=[qiskit.qasm2.CustomClassical("f", 1, lambda x: x)]
             )
 
@@ -816,7 +817,7 @@ class TestCustomClassical(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"'f' is a custom classical function"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 program, custom_classical=[qiskit.qasm2.CustomClassical("f", 1, lambda x: x)]
             )
 
@@ -828,7 +829,7 @@ class TestCustomClassical(QiskitTestCase):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"'f' is a custom classical function"
         ):
-            qiskit.qasm2.loads(
+            self.loads(
                 program, custom_classical=[qiskit.qasm2.CustomClassical("f", 1, lambda x: x)]
             )
 
@@ -843,7 +844,7 @@ class TestCustomClassical(QiskitTestCase):
             mygate(0.5) q[0];
         """
         # loads() succeeds: the gate body is stored as an expression tree, not evaluated yet.
-        circuit = qiskit.qasm2.loads(
+        circuit = self.loads(
             program,
             custom_classical=[qiskit.qasm2.CustomClassical("bad", 1, always_raises)],
         )
@@ -860,7 +861,7 @@ class TestCustomClassical(QiskitTestCase):
             qreg q[1];
             mygate(0.5) q[0];
         """
-        circuit = qiskit.qasm2.loads(
+        circuit = self.loads(
             program,
             custom_classical=[qiskit.qasm2.CustomClassical("stringify", 1, str)],
         )
@@ -869,7 +870,7 @@ class TestCustomClassical(QiskitTestCase):
 
 
 @ddt.ddt
-class TestStrict(QiskitTestCase):
+class TestStrict(Qasm2TestCase):
     @ddt.data(
         "gate my_gate(p0, p1,) q0, q1 {}",
         "gate my_gate(p0, p1) q0, q1, {}",
@@ -882,34 +883,34 @@ class TestStrict(QiskitTestCase):
     )
     def test_trailing_comma(self, program):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"\[strict\] .*trailing comma"):
-            qiskit.qasm2.loads("OPENQASM 2.0;\n" + program, strict=True)
+            self.loads("OPENQASM 2.0;\n" + program, strict=True)
 
     def test_trailing_semicolon_after_gate(self):
         program = "OPENQASM 2.0; gate my_gate q {};"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"\[strict\] .*extra semicolon"):
-            qiskit.qasm2.loads(program, strict=True)
+            self.loads(program, strict=True)
 
     def test_empty_statement(self):
         program = "OPENQASM 2.0; ;"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"\[strict\] .*empty statement"):
-            qiskit.qasm2.loads(program, strict=True)
+            self.loads(program, strict=True)
 
     def test_required_version_regular(self):
         program = "qreg q[1];"
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"\[strict\] the first statement"
         ):
-            qiskit.qasm2.loads(program, strict=True)
+            self.loads(program, strict=True)
 
     def test_required_version_empty(self):
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"\[strict\] .*needed a version statement"
         ):
-            qiskit.qasm2.loads("", strict=True)
+            self.loads("", strict=True)
 
     def test_barrier_requires_args(self):
         program = "OPENQASM 2.0; qreg q[2]; barrier;"
         with self.assertRaisesRegex(
             qiskit.qasm2.QASM2ParseError, r"\[strict\] barrier statements must have at least one"
         ):
-            qiskit.qasm2.loads(program, strict=True)
+            self.loads(program, strict=True)
