@@ -1,0 +1,6 @@
+fixes:
+  - |
+    Fixed :func:`.qpy.load` failing on custom gates with parameters accepted by
+    their original class, such as a subclass of :class:`.PauliGate` with string
+    parameters. The loaded gate retains its parameters and definition.
+    Fixed `#10577 <https://github.com/Qiskit/qiskit/issues/10577>`__.

@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2025
+// (C) Copyright IBM 2025, 2026
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -35,6 +35,7 @@ use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKin
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 use qiskit_quantum_info::sparse_observable::{BitTerm, PySparseObservable, SparseObservable};
+use qiskit_util::py::ImportOnceCell;
 
 use crate::bytes::Bytes;
 use crate::circuit_reader::{
@@ -55,6 +56,9 @@ pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 pub const STORE_INSTR_CLASS_NAME: &str = "Store";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
 pub const PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME: &str = "PauliProductRotationGate";
+
+static DESERIALIZED_GATE: ImportOnceCell =
+    ImportOnceCell::new("qiskit.qpy.binary_io.circuits", "_DeserializedGate");
 
 fn is_python_gate(
     py: Python,
@@ -795,7 +799,7 @@ pub fn unpack_custom_instruction(
     };
     let inst_obj = match custom_instruction.gate_type {
         CircuitInstructionType::Gate => {
-            let gate_object = imports::GATE.get_bound(py).call1((
+            let gate_object = DESERIALIZED_GATE.get_bound(py).call1((
                 &gate_class_name,
                 custom_instruction.num_qubits,
                 py_params,

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2026.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -59,6 +59,18 @@ if typing.TYPE_CHECKING:
     from qiskit.circuit.annotation import QPYSerializer, Annotation
 
 MAX_LABEL_SIZE = 65535
+
+
+class _DeserializedGate(Gate):
+    """A custom gate whose parameters were validated by its original class."""
+
+    @property
+    def base_class(self):
+        return Gate
+
+    def validate_parameter(self, parameter):
+        """Preserve parameter types supported by QPY for custom gates."""
+        return parameter
 
 
 class _AnnotationSerializationState:
@@ -686,7 +698,7 @@ def _parse_custom_operation(
         return inst_obj
 
     if type_key == type_keys.CircuitInstruction.GATE:
-        inst_obj = Gate(gate_name, num_qubits, params)
+        inst_obj = _DeserializedGate(gate_name, num_qubits, params)
         inst_obj.definition = definition
         return inst_obj
 

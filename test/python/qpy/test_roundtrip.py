@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2025.
+# (C) Copyright IBM 2025, 2026.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,10 +15,12 @@
 import io
 import uuid
 
+import numpy as np
 from ddt import ddt, idata, unpack
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Duration
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, PauliGate, UnitaryGate
+from qiskit.circuit import Gate
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
@@ -94,6 +96,48 @@ class TestQPYRoundtrip(QiskitTestCase):
         qc.cx(1, 2)
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_custom_gate_nonnumeric_parameters(self, version, write_with, read_with):
+        """Custom gates retain parameters accepted by their original class."""
+
+        class ChildPauliGate(PauliGate):
+            pass
+
+        class ChildUnitaryGate(UnitaryGate):
+            pass
+
+        for original_gate in (ChildPauliGate("XY"), ChildUnitaryGate([[0, 1], [1, 0]])):
+            with self.subTest(gate=original_gate.name):
+                original_gate.label = "custom"
+                original = QuantumCircuit(original_gate.num_qubits)
+                original.append(original_gate, original.qubits)
+                original.measure_all()
+                circuit = original
+                for _ in range(2):
+                    with (
+                        io.BytesIO() as stream,
+                        patch(
+                            "qiskit.qpy.common.QPY_RUST_WRITE_MIN_VERSION",
+                            QPY_RUST_WRITE_MIN_VERSION if write_with == "Rust" else QPY_VERSION + 1,
+                        ),
+                        patch(
+                            "qiskit.qpy.common.QPY_RUST_READ_MIN_VERSION",
+                            QPY_RUST_READ_MIN_VERSION if read_with == "Rust" else QPY_VERSION + 1,
+                        ),
+                    ):
+                        dump(circuit, stream, version=version)
+                        stream.seek(0)
+                        circuit = load(stream)[0]
+                    gate = circuit.data[0].operation
+                    self.assertIsInstance(gate, Gate)
+                    if isinstance(original_gate, PauliGate):
+                        self.assertIs(gate.base_class, Gate)
+                    self.assertEqual(gate.name, original_gate.name)
+                    self.assertEqual(gate.label, original_gate.label)
+                    np.testing.assert_equal(gate.params, original_gate.params)
+                    self.assertEqual(gate.definition, original_gate.definition)
+                    self.assertEqual(circuit.decompose(), original.decompose())
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_ifelse(self, version, write_with, read_with):
