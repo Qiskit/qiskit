@@ -2490,6 +2490,7 @@ version = "2.7.0-dev"
 dependencies = [
  "anyhow",
  "hashbrown 0.17.1",
+ "pyo3",
  "qiskit-circuit",
  "qiskit-mir",
  "qiskit-passmanager",
@@ -2537,6 +2538,7 @@ dependencies = [
  "qiskit-cext-vtable",
  "qiskit-circuit",
  "qiskit-circuit-library",
+ "qiskit-mir-passes",
  "qiskit-passmanager",
  "qiskit-qasm2",
  "qiskit-qasm3",
