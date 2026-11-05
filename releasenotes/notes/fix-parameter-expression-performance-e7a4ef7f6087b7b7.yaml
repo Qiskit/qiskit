@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Fixed a performance regression in Qiskit 2.6.0 where building sums of
+    :class:`.ParameterExpression` objects with numeric constants could take time exponential in the
+    number of operations. This affected, for example, the accumulation of the global phase in
+    :class:`.BasisTranslator`. A related exponential slowdown, present since Qiskit 2.1, when
+    repeatedly scaling and adding expressions is also fixed. For example, the following loop
+    previously took tens of seconds for ``n = 40`` and is now fast::
+
+        from qiskit.circuit import Parameter
+
+        expr = 1.0
+        for i in range(n):
+            expr = 2 * Parameter(f"x{i}") + 2 * expr
+
+    As a side effect, the structural form of some expressions has changed. For example,
+    ``2 * (x + 1)`` is now represented as ``2 + 2*x``. Equality comparisons with ``==`` are
+    unaffected.
