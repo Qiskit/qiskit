@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Passes that transform Qiskit IR to MIR.
+//! Passes for MIR.
 
 pub mod dag_to_mir;
+pub mod trivial_mir_layout;
