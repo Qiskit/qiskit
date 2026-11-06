@@ -329,7 +329,7 @@ impl ProgramOp for Split {
 }
 
 /// Draw uniformly distributed bits from a key into a specific dtype.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RandomBits {
     dtype: DType,
     shape: Vec<usize>,
@@ -386,7 +386,7 @@ impl ProgramOp for RandomBits {
         check_blocks(kind, &self.shape, bits)?;
         Ok(vec![TensorType {
             dtype: self.dtype,
-            shape: output_shape(batch, &self.shape)?,
+            shape: broadcast_dims(batch, &dim_shape(&self.shape))?,
         }])
     }
     fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
@@ -541,7 +541,7 @@ mod test {
         );
         assert_eq!(flat, nested, "the shape does not move a word");
 
-        let key_words: Vec<u32> = key.keys().unwrap().keys().iter().copied().collect();
+        let key_words: Vec<u32> = key.keys().unwrap().words().iter().copied().collect();
         let key_pair = [key_words[0], key_words[1]];
         for (index, &word) in flat.iter().enumerate() {
             // A draw starts at block zero, and the block counter maps to Philox's four counter
@@ -827,7 +827,7 @@ mod test {
             .unwrap()[0]
             .keys()
             .unwrap()
-            .keys()
+            .words()
             .iter()
             .copied()
             .collect();
@@ -844,7 +844,7 @@ mod test {
 
         // Each op addresses from block zero.
         let key_pair = {
-            let words: Vec<u32> = key.keys().unwrap().keys().iter().copied().collect();
+            let words: Vec<u32> = key.keys().unwrap().words().iter().copied().collect();
             [words[0], words[1]]
         };
         let mut stream = Philox::new(key_pair, 0);
@@ -858,7 +858,7 @@ mod test {
             .unwrap();
         let from_child = |index: usize| {
             let kind = PrngKind::Philox4x32;
-            let words: Vec<u32> = derived[0].keys().unwrap().keys().iter().copied().collect();
+            let words: Vec<u32> = derived[0].keys().unwrap().words().iter().copied().collect();
             let one = Tensor::Key(
                 KeyTensor::new(
                     kind,
