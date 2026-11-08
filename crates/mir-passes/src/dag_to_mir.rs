@@ -28,15 +28,6 @@ use qiskit_mir::{
 };
 use qiskit_passmanager::{PassContext, StaticPass};
 
-fn pauli_from_bits(x: bool, z: bool) -> Pauli {
-    match (x, z) {
-        (false, false) => Pauli::I,
-        (true, false) => Pauli::X,
-        (false, true) => Pauli::Z,
-        (true, true) => Pauli::Y,
-    }
-}
-
 /// Lower a `DAGCircuit` into Mir.
 pub fn lower_dag(dag: &DAGCircuit) -> anyhow::Result<Mir> {
     let mut mir = Mir::new();
@@ -69,16 +60,14 @@ pub fn lower_dag(dag: &DAGCircuit) -> anyhow::Result<Mir> {
                     .x
                     .iter()
                     .zip(rotation.z.iter())
-                    .map(|(&x, &z)| pauli_from_bits(x, z))
+                    .map(|(&x, &z)| Pauli::from_xz(x, z))
                     .collect();
                 let angle = rotation.angle.try_float().ok_or_else(|| {
                     anyhow::anyhow!("Currently MIR lowering supports only float angles")
                 })?;
-                // In qiskit angles are in radians, but MIR uses rad / \pi.
-                let angle = angle / std::f64::consts::PI;
                 let op = MirOp::PauliRotation(PauliRotation::new(
                     PauliString::new(paulis),
-                    AngleType::new(angle),
+                    AngleType::from_rad(angle),
                 ));
                 mir.instructions_mut().push_back(MirInstruction::new(
                     op,
@@ -92,7 +81,7 @@ pub fn lower_dag(dag: &DAGCircuit) -> anyhow::Result<Mir> {
                     .x
                     .iter()
                     .zip(measurement.z.iter())
-                    .map(|(&x, &z)| pauli_from_bits(x, z))
+                    .map(|(&x, &z)| Pauli::from_xz(x, z))
                     .collect();
                 let node_clbits = dag.get_cargs(instr.clbits);
                 anyhow::ensure!(
@@ -100,16 +89,21 @@ pub fn lower_dag(dag: &DAGCircuit) -> anyhow::Result<Mir> {
                     "PauliProductMeasurement should have 1 clbits"
                 );
                 let sym_id = sym_for_clbits[&node_clbits[0].0];
-                let op = MirOp::PauliMeasure(PauliMeasure::new(
-                    PauliString::new(paulis),
-                    measurement.neg,
-                ));
+                let op = MirOp::PauliMeasure(PauliMeasure::new(PauliString::new(paulis)));
                 mir.instructions_mut().push_back(MirInstruction::new(
                     op,
                     QidList::new(qids),
                     SymbolIdList::default(),
                     SymbolIdList::new(vec![sym_id]),
                 ));
+                if measurement.neg {
+                    mir.instructions_mut().push_back(MirInstruction::new(
+                        MirOp::BoolNot,
+                        QidList::new(vec![]),
+                        SymbolIdList::new(vec![sym_id]),
+                        SymbolIdList::new(vec![sym_id]),
+                    ));
+                }
             }
             other => {
                 anyhow::bail!("MIR lowering doesn't support operation {other:?}");
