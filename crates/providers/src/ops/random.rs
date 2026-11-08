@@ -1710,7 +1710,7 @@ mod test {
         assert_eq!(function.eval(&[]).unwrap()[0].dtype(), DType::U32);
     }
 
-    /// Return the `F64` values a tensor holds.
+    /// Copy and return the flattened values of an F64 tensor.
     fn reals_of(tensor: &Tensor) -> Vec<f64> {
         let Tensor::F64(array) = tensor else {
             panic!("expected F64, got {}", tensor.dtype())
