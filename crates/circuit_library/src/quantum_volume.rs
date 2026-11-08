@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 
 use nalgebra::Matrix4;
@@ -20,7 +21,9 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+#[cfg(feature = "py")]
+use qiskit_circuit::circuit_data::PyCircuitData;
 use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
@@ -84,9 +87,16 @@ fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Matrix4<Comp
 
 const UNITARY_PER_SEED: usize = 50;
 
+#[cfg(feature="py")]
 #[pyfunction]
-#[pyo3(signature=(num_qubits, depth, seed=None))]
-pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyResult<PyCircuitData> {
+#[pyo3(name="quantum_volume", signature=(num_qubits, depth, seed=None))]
+pub fn py_quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyResult<PyCircuitData> {
+    Ok(quantum_volume(num_qubits, depth, seed)?.into())
+
+}
+
+
+pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> Result<CircuitData, CircuitDataError> {
     let width = num_qubits as usize / 2;
     let num_unitaries = width * depth;
     let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
@@ -136,7 +146,7 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
             .flat_map(|seeds| random_unitaries(seeds[0], seeds.len()))
             .collect()
     };
-    Ok(CircuitData::from_packed_operations(
+    CircuitData::from_packed_operations(
         num_qubits,
         0,
         unitaries
@@ -144,6 +154,5 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
             .enumerate()
             .map(|x| build_instruction(x, &mut outer_rng)),
         Param::Float(0.),
-    )?
-    .into())
+    )
 }

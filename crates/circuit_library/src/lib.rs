@@ -10,29 +10,36 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use pyo3::import_exception;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 
+pub mod quantum_volume;
 pub mod blocks;
-pub mod entanglement;
 pub mod iqp;
 pub mod multi_local;
 pub mod parameter_ledger;
-pub mod pauli_evolution;
-mod pauli_feature_map;
-pub mod quantum_volume;
+pub mod entanglement;
 pub mod suzuki_trotter;
+// TODO: Rewrite as Rust native After PauliEvolution Gate ported to Rust
+#[cfg(feature = "py")]
+pub mod pauli_evolution;
+#[cfg(feature = "py")]
+mod pauli_feature_map;
 
+#[cfg(feature = "py")]
 import_exception!(qiskit.exceptions, QiskitError);
+#[cfg(feature = "py")]
 import_exception!(qiskit.circuit.exceptions, CircuitError);
-
+#[cfg(feature = "py")]
 pub fn circuit_library(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(pauli_evolution::py_pauli_evolution))?;
     m.add_wrapped(wrap_pyfunction!(pauli_feature_map::pauli_feature_map))?;
     m.add_wrapped(wrap_pyfunction!(entanglement::get_entangler_map))?;
     m.add_wrapped(wrap_pyfunction!(iqp::py_iqp))?;
     m.add_wrapped(wrap_pyfunction!(iqp::py_random_iqp))?;
-    m.add_wrapped(wrap_pyfunction!(quantum_volume::quantum_volume))?;
+    m.add_wrapped(wrap_pyfunction!(quantum_volume::py_quantum_volume))?;
     m.add_wrapped(wrap_pyfunction!(multi_local::py_n_local))?;
     m.add_class::<blocks::Block>()?;
 

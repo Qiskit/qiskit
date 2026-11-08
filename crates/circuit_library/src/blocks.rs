@@ -9,28 +9,47 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
+#[cfg(feature = "py")]
 use pyo3::{
     prelude::*,
     types::{PyList, PyTuple},
 };
+#[cfg(feature = "py")]
 use qiskit_circuit::{
     NoBlocks,
-    circuit_instruction::OperationFromPython,
+    circuit_instruction::OperationFromPython
+};
+use qiskit_circuit::{
     operations::{Operation, Param, StandardGate},
     packed_instruction::PackedOperation,
 };
 use smallvec::SmallVec;
 
+#[cfg(feature="py")]
 use crate::{QiskitError, entanglement::get_entanglement};
 
 #[derive(Debug, Clone)]
 pub enum BlockOperation {
     Standard { gate: StandardGate },
+    #[cfg(feature = "py")]
     PyCustom { builder: Py<PyAny> },
 }
 
 impl BlockOperation {
+    #[cfg(not(feature = "py"))]
+    pub fn assign_parameters(
+        &self,
+        params: &[&Param],
+    ) -> (PackedOperation, SmallVec<[Param; 3]>) {
+        match self {
+            Self::Standard { gate } => (
+                  (*gate).into(),
+                  SmallVec::from_iter(params.iter().map(|&p| p.clone())),
+            )
+        }
+    }
+
+    #[cfg(feature = "py")]
     pub fn assign_parameters(
         &self,
         params: &[&Param],
@@ -61,23 +80,19 @@ impl BlockOperation {
 }
 
 #[derive(Debug, Clone)]
-#[pyclass]
+#[cfg_attr(feature = "py", pyclass)]
 pub struct Block {
     pub operation: BlockOperation,
     pub num_qubits: u32,
     pub num_parameters: usize,
 }
-
+#[cfg(feature = "py")]
 #[pymethods]
 impl Block {
     #[staticmethod]
-    #[pyo3(signature = (gate,))]
-    pub fn from_standard_gate(gate: StandardGate) -> Self {
-        Block {
-            operation: BlockOperation::Standard { gate },
-            num_qubits: gate.num_qubits(),
-            num_parameters: gate.num_params() as usize,
-        }
+    #[pyo3(name = "from_standard_gate", signature = (gate,))]
+    pub fn py_from_standard_gate(gate: StandardGate) -> Self {
+        Self::from_standard_gate(gate)
     }
 
     #[staticmethod]
@@ -104,6 +119,18 @@ impl Block {
     }
 }
 
+impl Block {
+    pub fn from_standard_gate(gate: StandardGate) -> Self {
+        Block {
+            operation: BlockOperation::Standard { gate },
+            num_qubits: gate.num_qubits(),
+            num_parameters: gate.num_params() as usize,
+        }
+    }
+
+}
+
+
 // We introduce typedefs to make the types more legible. We can understand the hierarchy
 // as follows:
 // Connection: Vec<u32> -- indices that the multi-qubit gate acts on
@@ -123,6 +150,8 @@ pub struct Entanglement {
 }
 
 impl Entanglement {
+
+    #[cfg(feature = "py")]
     /// Create an entanglement from the input of an n_local circuit.
     pub fn from_py(
         num_qubits: u32,
@@ -155,6 +184,7 @@ impl Entanglement {
     }
 }
 
+#[cfg(feature = "py")]
 fn unpack_entanglement(
     num_qubits: u32,
     layer: usize,

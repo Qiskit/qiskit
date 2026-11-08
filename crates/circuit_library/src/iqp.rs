@@ -13,18 +13,23 @@
 use std::f64::consts::PI;
 
 use ndarray::{Array2, ArrayView2};
+#[cfg(feature="py")]
 use numpy::PyReadonlyArray2;
+#[cfg(feature="py")]
 use pyo3::prelude::*;
 use qiskit_circuit::{
     Qubit,
-    circuit_data::{CircuitData, PyCircuitData},
     operations::{Param, StandardGate},
 };
+#[cfg(feature = "py")]
+use qiskit_circuit::circuit_data::PyCircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+
 use rand::prelude::*;
 use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use smallvec::{SmallVec, smallvec};
-
+#[cfg(feature = "py")]
 use crate::CircuitError;
 
 const PI2: f64 = PI / 2.0;
@@ -75,6 +80,23 @@ pub fn iqp(
         .chain(shifts)
         .chain(h_layer)
 }
+
+/// Generate a random Instantaneous Quantum Polynomial time (IQP) circuit.
+///
+/// # Args:
+///  - `num_qubits`: The number of qubits to generate the circuit for
+///  - `seed`: A random seed for generating the interactions matrix.
+///
+/// # Returns
+///
+/// A random IQP circuit.
+pub fn random_iqp(num_qubits: u32, seed: Option<u64>) -> Result<CircuitData, CircuitDataError> {
+    let interactions = generate_random_interactions(num_qubits, seed);
+    let view = interactions.view();
+    let instructions = iqp(view);
+    CircuitData::from_standard_gates(num_qubits, instructions, Param::Float(0.0))
+}
+
 
 /// This generates a random symmetric integer matrix with values in [0,7].
 fn generate_random_interactions(num_qubits: u32, seed: Option<u64>) -> Array2<i64> {
@@ -134,6 +156,7 @@ pub fn check_symmetric(matrix: &ArrayView2<i64>) -> bool {
 ///     [1] M. J. Bremner et al. Average-case complexity versus approximate simulation of
 ///     commuting quantum computations, Phys. Rev. Lett. 117, 080501 (2016).
 ///     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
+#[cfg(feature="py")]
 #[pyfunction]
 #[pyo3(signature = (interactions))]
 pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<PyCircuitData> {
@@ -156,11 +179,10 @@ pub fn py_iqp(interactions: PyReadonlyArray2<i64>) -> PyResult<PyCircuitData> {
 ///
 /// Returns:
 ///     A random IQP circuit.
+#[cfg(feature="py")]
 #[pyfunction]
 #[pyo3(signature = (num_qubits, seed=None))]
 pub fn py_random_iqp(num_qubits: u32, seed: Option<u64>) -> PyResult<PyCircuitData> {
-    let interactions = generate_random_interactions(num_qubits, seed);
-    let view = interactions.view();
-    let instructions = iqp(view);
-    Ok(CircuitData::from_standard_gates(num_qubits, instructions, Param::Float(0.0))?.into())
+    let circuit = random_iqp(num_qubits, seed)?;
+    Ok(circuit.into())
 }

@@ -9,16 +9,20 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
+#[cfg(feature = "py")]
 use std::ops::Deref;
 
 use hashbrown::HashSet;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyString;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+#[cfg(feature = "py")]
+use qiskit_circuit::circuit_data::PyCircuitData;
 use qiskit_circuit::operations::{Param, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -71,10 +75,15 @@ fn rotation_layer<'a>(
                 })
                 .zip(block_params)
                 .map(move |(start_idx, params)| {
+                    #[cfg(feature="py")]
                     let (bound_op, bound_params) = block
                         .operation
                         .assign_parameters(&params)
                         .expect("Failed to rebind");
+                    #[cfg(not(feature= "py"))]
+                    let (bound_op, bound_params) = block
+                          .operation
+                          .assign_parameters(&params);
                     Ok((
                         bound_op,
                         bound_params,
@@ -115,10 +124,16 @@ fn entanglement_layer<'a>(
             .iter()
             .zip(block_params)
             .map(move |(indices, params)| {
+                #[cfg(feature = "py")]
                 let (bound_op, bound_params) = block
                     .operation
                     .assign_parameters(&params)
                     .expect("Failed to rebind");
+                #[cfg(not(feature = "py"))]
+                let (bound_op, bound_params) = block
+                    .operation
+                    .assign_parameters(&params);
+
                 Ok((
                     bound_op,
                     bound_params,
@@ -166,7 +181,7 @@ pub fn n_local(
     parameter_prefix: &str,
     skip_final_rotation_layer: bool,
     skip_unentangled_qubits: bool,
-) -> PyResult<CircuitData> {
+) -> Result<CircuitData, CircuitDataError> {
     // Construct the parameter ledger, which will define all free parameters and provide
     // access to them, given an index for a layer and the current gate to implement.
     let ledger = ParameterLedger::from_nlocal(
@@ -191,7 +206,7 @@ pub fn n_local(
 
     // This struct can be used to yield barrier if insert_barriers is true, otherwise
     // it returns an empty iterator. For conveniently injecting barriers in-between operations.
-    let maybe_barrier = MaybeBarrier::new(num_qubits, insert_barriers)?;
+    let maybe_barrier = MaybeBarrier::new(num_qubits, insert_barriers);
 
     let packed_insts = (0..reps).flat_map(|layer| {
         rotation_layer(
@@ -231,6 +246,7 @@ pub fn n_local(
     }
 }
 
+#[cfg(feature = "py")]
 #[pyfunction]
 #[pyo3(signature = (num_qubits, rotation_blocks, entanglement_blocks, entanglement, reps, insert_barriers, parameter_prefix, skip_final_rotation_layer, skip_unentangled_qubits))]
 #[allow(clippy::too_many_arguments)]
@@ -284,9 +300,9 @@ struct MaybeBarrier {
 }
 
 impl MaybeBarrier {
-    fn new(num_qubits: u32, insert_barriers: bool) -> PyResult<Self> {
+    fn new(num_qubits: u32, insert_barriers: bool) -> Self {
         if !insert_barriers {
-            Ok(Self { barrier: None })
+            Self { barrier: None }
         } else {
             let inst = (
                 PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
@@ -297,9 +313,9 @@ impl MaybeBarrier {
                 vec![] as Vec<Clbit>,
             );
 
-            Ok(Self {
+            Self {
                 barrier: Some(inst),
-            })
+            }
         }
     }
 
