@@ -24,7 +24,7 @@
 //!
 
 use ndarray::{ArcArrayD, IxDyn};
-use rand::distr::{Distribution, Uniform};
+use rand::distr::{Distribution, StandardUniform, Uniform};
 use rand_philox::Philox;
 use thiserror::Error;
 
@@ -490,10 +490,6 @@ impl ProgramOp for RandomBits {
 }
 
 /// Draw uniformly distributed reals from the half-open interval `[0, 1)` using a key.
-///
-/// Each value is built from the same stream bits as [`RandomBits`]: an `F64` takes the top 53 bits
-/// of a `u64` and an `F32` the top 24 bits of a `u32`, scaled by `2^-53` and `2^-24` respectively.
-/// Values are therefore multiples of those scales, so `0.0` can be drawn and `1.0` never is.
 #[derive(Clone)]
 pub struct RandomReal {
     dtype: DType,
@@ -505,7 +501,7 @@ impl RandomReal {
     ///
     /// Returns [`RandomOpError::NotReal`] unless `dtype` is [`DType::F64`] or [`DType::F32`].
     pub fn new(dtype: DType, shape: Vec<usize>) -> Result<Self, RandomOpError> {
-        if real_bits(dtype).is_none() {
+        if !is_drawable_real(dtype) {
             return Err(RandomOpError::NotReal { dtype });
         }
         Ok(Self { dtype, shape })
@@ -517,14 +513,9 @@ impl RandomReal {
     }
 }
 
-/// Return how many stream bits one value of `dtype` consumes, or `None` if it is not a drawable
-/// real, i.e. neither [`DType::F32`] nor [`DType::F64`].
-fn real_bits(dtype: DType) -> Option<usize> {
-    match dtype {
-        DType::F32 => Some(32),
-        DType::F64 => Some(64),
-        _ => None,
-    }
+/// Return whether `dtype` is one `RandomReal` can draw, that is [`DType::F32`] or [`DType::F64`].
+fn is_drawable_real(dtype: DType) -> bool {
+    matches!(dtype, DType::F32 | DType::F64)
 }
 
 impl ProgramOp for RandomReal {
@@ -545,8 +536,7 @@ impl ProgramOp for RandomReal {
     fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
         crate::unpack_operands!(self, inputs, [x]);
         let (kind, batch) = key_type(x)?;
-        let bits = real_bits(self.dtype).expect("the constructor checked the dtype");
-        check_blocks(kind, &self.shape, bits)?;
+        check_substreams(kind, &self.shape, RANDOM_REAL_STRIDE)?;
         Ok(vec![TensorType {
             dtype: self.dtype,
             shape: output_shape(batch, &self.shape)?,
@@ -556,17 +546,21 @@ impl ProgramOp for RandomReal {
         crate::unpack_operands!(self, args, [x]);
         let keys = key_operand(x)?;
         let layout = Layout::new(keys, &self.shape)?;
-        let bits = real_bits(self.dtype).expect("the constructor checked the dtype");
+        // `StandardUniform` takes the top 53 (`F64`) or 24 (`F32`) bits of one word and scales them
+        // into `[0, 1)`, so `0.0` can be drawn and `1.0` never is.
         Ok(vec![match self.dtype {
-            // The top 53 bits of a u64, times 2^-53.
-            DType::F64 => Tensor::F64(draw_values(keys, &layout, bits, |b, i| {
-                let word = (b[2 * i] as u64) | ((b[2 * i + 1] as u64) << 32);
-                (word >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
-            })),
-            // The top 24 bits of a u32, times 2^-24.
-            DType::F32 => Tensor::F32(draw_values(keys, &layout, bits, |b, i| {
-                (b[i] >> 8) as f32 * (1.0 / (1u32 << 24) as f32)
-            })),
+            DType::F64 => Tensor::F64(sample_substreams(
+                keys,
+                &layout,
+                RANDOM_REAL_STRIDE,
+                &StandardUniform,
+            )),
+            DType::F32 => Tensor::F32(sample_substreams(
+                keys,
+                &layout,
+                RANDOM_REAL_STRIDE,
+                &StandardUniform,
+            )),
             dtype => unreachable!("the constructor refuses {dtype}"),
         }])
     }
@@ -574,8 +568,10 @@ impl ProgramOp for RandomReal {
 
 /// Draw each key's values and gather them in output order.
 ///
-/// `value` reads value `i` out of the block of words a key drew, where a value takes `bits` bits
-/// and `bits` divides a block, so that no value straddles two blocks.
+/// A block of the key's stream holds several values side by side (two 64-bit values or four
+/// 32-bit ones), and a value never spills into the next block. A key's values are numbered from
+/// zero, so with two per block, values 0 and 1 are in the first block and 2 and 3 in the second.
+/// `value` is given a block and which of its values to read, and returns that one.
 fn draw_values<T: Clone>(
     keys: &KeyTensor,
     layout: &Layout,
@@ -605,12 +601,45 @@ fn draw_values<T: Clone>(
         .into_shared()
 }
 
+/// Draw one value per output position by sampling `distribution` from a stretch of the key's
+/// stream reserved for that position.
+///
+/// Each position gets its own stretch, `stride` blocks long, so two positions never share words.
+/// The one exception is a draw that needs more than its whole stretch: it would spill into the
+/// next position's, so `stride` is chosen large enough to make that very unlikely
+fn sample_substreams<T: Clone, D: Distribution<T>>(
+    keys: &KeyTensor,
+    layout: &Layout,
+    stride: usize,
+    distribution: &D,
+) -> ArcArrayD<T> {
+    let kind = keys.kind();
+    let width = kind.key_words();
+    let source = flat_key_words(keys);
+    let values: Vec<T> = layout
+        .sources()
+        .map(|(which, position)| {
+            let key = &source[which * width..][..width];
+            let mut stream = Stream::at_substream(kind, key, position, stride);
+            distribution.sample(stream.as_rng())
+        })
+        .collect();
+    ndarray::ArrayD::from_shape_vec(IxDyn(&layout.shape), values)
+        .expect("one value per output position")
+        .into_shared()
+}
+
 /// How many blocks [`UniformInt`] reserves for each value it draws.
 ///
 /// See [`Stream::at_substream`] for how a stride is chosen. At four words per block this holds
 /// 256 attempts, so it is overrun with probability under `2^-256`. The measured rejection rate
 /// of `Uniform<i64>` over its worst range is 1/4, which gives `4^-256`.
 const UNIFORM_INT_STRIDE: usize = 1 << 8;
+
+/// How many blocks [`RandomReal`] reserves for each value it draws.
+///
+/// A draw takes exactly one word of the stream, so a single block per value is never overrun.
+const RANDOM_REAL_STRIDE: usize = 1;
 
 /// Draw integers uniformly from an inclusive range.
 #[derive(Debug, Clone)]
@@ -667,18 +696,12 @@ impl ProgramOp for UniformInt {
         let layout = Layout::new(keys, &self.shape)?;
         let range = Uniform::new_inclusive(self.low, self.high)
             .expect("low <= high is checked in the constructor");
-
-        let width = keys.kind().key_words();
-        let source = flat_key_words(keys);
-        let mut values = Vec::with_capacity(layout.len());
-        for (which, position) in layout.sources() {
-            let key = &source[which * width..][..width];
-            let mut stream = Stream::at_substream(keys.kind(), key, position, UNIFORM_INT_STRIDE);
-            values.push(range.sample(stream.as_rng()));
-        }
-        let array = ndarray::ArrayD::from_shape_vec(IxDyn(&layout.shape), values)
-            .expect("one value per output position");
-        Ok(vec![Tensor::I64(array.into_shared())])
+        Ok(vec![Tensor::I64(sample_substreams(
+            keys,
+            &layout,
+            UNIFORM_INT_STRIDE,
+            &range,
+        ))])
     }
 }
 
@@ -708,7 +731,7 @@ pub enum RandomOpError {
     #[error("{dtype} does not hold raw bits: expected Bit or an unsigned integer")]
     NotBits { dtype: DType },
     /// The dtype is not a real that can be drawn.
-    #[error("{dtype} cannot hold uniform reals: expected F64 or F32")]
+    #[error("{dtype} is not a real dtype that can be drawn: expected F64 or F32")]
     NotReal { dtype: DType },
     /// The range holds no values.
     #[error("the range {low}..={high} is empty")]
@@ -1425,6 +1448,45 @@ mod test {
     }
 
     #[test]
+    fn test_random_real_reads_its_own_substream() {
+        // Each value is one `StandardUniform` draw from its own substream: position 0 uses
+        // substream 0, position 1 uses substream 1, and so on. Were neighbouring values slots of
+        // one block instead, they would share words, so the output is compared with substreams
+        // opened directly on the generator, without the op.
+        let key = key_from(9);
+
+        let Tensor::F64(reals) = &RandomReal::new(DType::F64, vec![7])
+            .unwrap()
+            .eval(std::slice::from_ref(&key))
+            .unwrap()[0]
+        else {
+            panic!("expected F64")
+        };
+        for (position, &value) in reals.iter().enumerate() {
+            assert_eq!(
+                value,
+                reference_real::<f64>(&key, position),
+                "F64 at {position}"
+            );
+        }
+
+        let Tensor::F32(reals) = &RandomReal::new(DType::F32, vec![7])
+            .unwrap()
+            .eval(std::slice::from_ref(&key))
+            .unwrap()[0]
+        else {
+            panic!("expected F32")
+        };
+        for (position, &value) in reals.iter().enumerate() {
+            assert_eq!(
+                value,
+                reference_real::<f32>(&key, position),
+                "F32 at {position}"
+            );
+        }
+    }
+
+    #[test]
     fn test_a_uniform_sample_reads_its_own_substream() {
         // Each sample comes from the substream its own position opens. Were positions adjacent
         // blocks instead, a sample would read words belonging to its neighbour, so this compares
@@ -1710,6 +1772,34 @@ mod test {
         assert_eq!(function.eval(&[]).unwrap()[0].dtype(), DType::U32);
     }
 
+    /// Return the `F64` and `F32` values `StandardUniform` draws from the substream `position` of
+    /// `key`, opened directly on the generator and independently of the op under test.
+    fn reference_real<T>(key: &Tensor, position: usize) -> T
+    where
+        StandardUniform: Distribution<T>,
+    {
+        let words: Vec<u32> = key.keys().unwrap().keys().iter().copied().collect();
+        // Spelled out rather than taken from `RANDOM_REAL_STRIDE`, so that a change to the stride
+        // has to be made here too rather than passing silently.
+        assert_eq!(RANDOM_REAL_STRIDE, 1, "the stride this helper assumes");
+        let mut substream = Philox::new([words[0], words[1]], position as u128);
+        StandardUniform.sample(&mut substream)
+    }
+
+    /// Return the `F64` and `F32` values `StandardUniform` draws from the substream `position` of
+    /// `key`, opened directly on the generator and independently of the op under test.
+    fn reference_real<T>(key: &Tensor, position: usize) -> T
+    where
+        StandardUniform: Distribution<T>,
+    {
+        let words: Vec<u32> = key.keys().unwrap().keys().iter().copied().collect();
+        // Spelled out rather than taken from `RANDOM_REAL_STRIDE`, so that a change to the stride
+        // has to be made here too rather than passing silently.
+        assert_eq!(RANDOM_REAL_STRIDE, 1, "the stride this helper assumes");
+        let mut substream = Philox::new([words[0], words[1]], position as u128);
+        StandardUniform.sample(&mut substream)
+    }
+
     /// Copy and return the flattened values of an F64 tensor.
     fn reals_of(tensor: &Tensor) -> Vec<f64> {
         let Tensor::F64(array) = tensor else {
@@ -1786,110 +1876,67 @@ mod test {
     }
 
     #[test]
-    fn test_random_real_is_the_scaled_high_bits_of_random_bits() {
-        let key = key_from(9);
-        let reals = reals_of(
-            &RandomReal::new(DType::F64, vec![7])
-                .unwrap()
-                .eval(std::slice::from_ref(&key))
-                .unwrap()[0],
-        );
-        let Tensor::U64(raw) = &RandomBits::new(DType::U64, vec![7])
-            .unwrap()
-            .eval(std::slice::from_ref(&key))
-            .unwrap()[0]
-        else {
-            panic!("expected U64")
-        };
-        let expected: Vec<f64> = raw
-            .iter()
-            .map(|w| (w >> 11) as f64 / (1u64 << 53) as f64)
-            .collect();
-        assert_eq!(reals, expected);
-
-        let Tensor::F32(reals) = &RandomReal::new(DType::F32, vec![7])
-            .unwrap()
-            .eval(std::slice::from_ref(&key))
-            .unwrap()[0]
-        else {
-            panic!("expected F32")
-        };
-        let raw = words_of(
-            &RandomBits::new(DType::U32, vec![7])
-                .unwrap()
-                .eval(&[key])
-                .unwrap()[0],
-        );
-        let expected: Vec<f32> = raw
-            .iter()
-            .map(|w| (w >> 8) as f32 / (1u32 << 24) as f32)
-            .collect();
-        assert_eq!(reals.iter().copied().collect::<Vec<_>>(), expected);
-    }
-
-    #[test]
-    fn test_random_real_broadcasts_like_random_bits() {
-        // Key batch `[3, 1]` against payload `[1, 4]` gives `[3, 4]`, where row `i` is key `i`'s
-        // first four values. `RandomBits(U64)` is the reference: a real is its high 53 bits scaled.
-        let scale = |bits: &Tensor| -> Vec<f64> {
-            let Tensor::U64(raw) = bits else {
-                panic!("expected U64")
-            };
-            raw.iter()
-                .map(|w| (w >> 11) as f64 / (1u64 << 53) as f64)
-                .collect()
-        };
-
+    fn test_random_real_broadcasts_a_key_batch_against_the_payload() {
+        // Key batch `[3, 1]` against payload `[1, 4]` gives `[3, 4]`. Each `row` comes from its
+        // own key, and the key never enters the counter, so every row reads the same four
+        // substreams, one per `column`.
         let keys = numbered_keys(&[3, 1], 10);
         let reals = RandomReal::new(DType::F64, vec![1, 4])
             .unwrap()
             .eval(std::slice::from_ref(&keys))
             .unwrap();
         assert_eq!(reals[0].shape(), &[3, 4]);
-        let bits = RandomBits::new(DType::U64, vec![1, 4])
-            .unwrap()
-            .eval(std::slice::from_ref(&keys))
-            .unwrap();
-        assert_eq!(reals_of(&reals[0]), scale(&bits[0]));
+        let words: Vec<u32> = keys.keys().unwrap().keys().iter().copied().collect();
+        let got = reals_of(&reals[0]);
+        for row in 0..3 {
+            let one_key = keys_of(&[], vec![words[2 * row], words[2 * row + 1]]);
+            for column in 0..4 {
+                assert_eq!(
+                    got[4 * row + column],
+                    reference_real::<f64>(&one_key, column),
+                    "row {row}, column {column}"
+                );
+            }
+        }
 
-        // One shared key and payload `[3, 4]`: twelve consecutive positions of a single stream.
+        // One shared key and payload `[3, 4]`: twelve consecutive substreams of that key.
         let key = key_from(2);
         let reals = RandomReal::new(DType::F64, vec![3, 4])
             .unwrap()
             .eval(std::slice::from_ref(&key))
             .unwrap();
-        let bits = RandomBits::new(DType::U64, vec![3, 4])
-            .unwrap()
-            .eval(std::slice::from_ref(&key))
-            .unwrap();
-        assert_eq!(reals_of(&reals[0]), scale(&bits[0]));
+        for (position, &value) in reals_of(&reals[0]).iter().enumerate() {
+            assert_eq!(
+                value,
+                reference_real::<f64>(&key, position),
+                "at {position}"
+            );
+        }
     }
 
     #[test]
-    fn test_random_real_changes_block_when_only_the_key_changes() {
-        // Payload `[1, 2]` is one block of two F64 values per key, so every row starts and ends in
-        // block 0. A cache that remembered only the block index would reuse the previous row.
+    fn test_random_real_changes_stream_when_only_the_key_changes() {
+        // Payload `[1, 2]` reads substreams 0 and 1 of every key, so consecutive rows read the same
+        // positions of different keys. A draw that remembered only the position would reuse the
+        // previous row.
         let keys = numbered_keys(&[3, 1], 10);
         let reals = RandomReal::new(DType::F64, vec![1, 2])
             .unwrap()
             .eval(std::slice::from_ref(&keys))
             .unwrap();
-        let bits = RandomBits::new(DType::U64, vec![1, 2])
-            .unwrap()
-            .eval(std::slice::from_ref(&keys))
-            .unwrap();
-        let Tensor::U64(raw) = &bits[0] else {
-            panic!("expected U64")
-        };
-        let expected: Vec<f64> = raw
-            .iter()
-            .map(|w| (w >> 11) as f64 / (1u64 << 53) as f64)
-            .collect();
-        assert_eq!(reals_of(&reals[0]), expected);
-        let v = reals_of(&reals[0]);
-        assert_ne!(v[0..2], v[2..4], "rows come from different keys");
+        let words: Vec<u32> = keys.keys().unwrap().keys().iter().copied().collect();
+        let got = reals_of(&reals[0]);
+        for row in 0..3 {
+            let one_key = keys_of(&[], vec![words[2 * row], words[2 * row + 1]]);
+            for column in 0..2 {
+                assert_eq!(
+                    got[2 * row + column],
+                    reference_real::<f64>(&one_key, column)
+                );
+            }
+        }
+        assert_ne!(got[0..2], got[2..4], "rows come from different keys");
     }
-
     #[test]
     fn test_random_real_is_deterministic_and_single_use() {
         let op = RandomReal::new(DType::F64, vec![5]).unwrap();
