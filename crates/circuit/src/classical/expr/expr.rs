@@ -716,14 +716,14 @@ mod tests {
         expr.visit_mut(|x| {
             assert!(order.next().unwrap()(&x));
             Ok::<_, Infallible>(())
-        })?;
+        })
+        .unwrap();
 
         assert!(order.next().is_none());
-        Ok(())
     }
 
     #[test]
-    fn test_visit_mut() -> Result<(), Infallible> {
+    fn test_visit_mut() {
         let mut expr: Expr = Binary {
             op: BinaryOp::BitAnd,
             left: Unary {
@@ -754,17 +754,17 @@ mod tests {
                 Ok::<_, Infallible>(())
             }
             _ => Ok(()),
-        })?;
+        })
+        .unwrap();
 
         let Var::Standalone { name, .. } = expr.vars().next().unwrap() else {
             panic!("wrong var type")
         };
         assert_eq!(name.as_str(), "updated");
-        Ok(())
     }
 
     #[test]
-    fn test_structurally_eq_to_self() -> Result<(), Infallible> {
+    fn test_structurally_eq_to_self() {
         let exprs = [
             Expr::Var(Var::Bit {
                 bit: ShareableClbit::new_anonymous(),
@@ -905,8 +905,6 @@ mod tests {
         for expr in exprs.iter() {
             assert!(expr.structurally_equivalent(expr));
         }
-
-        Ok(())
     }
 
     #[test]
@@ -993,7 +991,7 @@ mod tests {
     }
 
     #[test]
-    fn test_structurally_eq_key_function_both() -> Result<(), Infallible> {
+    fn test_structurally_eq_key_function_both() {
         let left_clbit = ShareableClbit::new_anonymous();
         let left_cr = ClassicalRegister::new_owning("a", 3);
         let right_clbit = ShareableClbit::new_anonymous();
@@ -1091,7 +1089,5 @@ mod tests {
             left.structurally_equivalent_by_key(key_func, &right, key_func),
             "Expressions that only care that their vars are of the same kind should be equivalent"
         );
-
-        Ok(())
     }
 }
