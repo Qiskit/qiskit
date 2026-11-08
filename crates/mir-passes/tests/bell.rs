@@ -147,9 +147,8 @@ fn lower_bell_pbc() {
 #[test]
 fn layout_bell_pbc() {
     let dag = build_bell_pbc_dag();
-    let mir_before_layout = lower_dag(&dag).unwrap(); // save a copy for comparison
-
     let mut mir = lower_dag(&dag).unwrap();
+    let instructions_copy = mir.instructions().clone(); // save a copy for comparison
 
     let mut physical_resource_table = ResourceTable::new(QidSpace::Physical);
     physical_resource_table
@@ -158,17 +157,16 @@ fn layout_bell_pbc() {
     physical_resource_table
         .add_qid(QidInfo::new(BitLayout::Base(1)))
         .unwrap();
-    trivial_mir_layout(&mut mir, &physical_resource_table).unwrap();
+    trivial_mir_layout(&mut mir, physical_resource_table.clone()).unwrap();
 
     // Number of instructions did not change
     assert_eq!(
-        mir_before_layout.instructions().node_count(),
+        instructions_copy.node_count(),
         mir.instructions().node_count()
     );
 
     // zip before (b) and after (a) instructions and compare
-    for (b, a) in mir_before_layout
-        .instructions()
+    for (b, a) in instructions_copy
         .iter_main()
         .zip(mir.instructions().iter_main())
     {
@@ -184,13 +182,12 @@ fn layout_bell_pbc() {
         assert_eq!(b.op(), a.op());
         assert_eq!(b.args(), a.args());
         assert_eq!(b.returns(), a.returns());
-
-        //Resoruce table was replaced
-        let table_qids: Vec<_> = mir.resource_table().iter_qids().map(|(q, _)| q).collect();
-        let expected: Vec<_> = physical_resource_table
-            .iter_qids()
-            .map(|(q, _)| q)
-            .collect();
-        assert_eq!(table_qids, expected);
     }
+    // Resource table was replaced
+    let table_qids: Vec<_> = mir.resource_table().iter_qids().map(|(q, _)| q).collect();
+    let expected: Vec<_> = physical_resource_table
+        .iter_qids()
+        .map(|(q, _)| q)
+        .collect();
+    assert_eq!(table_qids, expected);
 }
