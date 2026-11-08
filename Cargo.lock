@@ -2469,6 +2469,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "itertools 0.15.0",
  "mem_dbg",
+ "qiskit-passmanager",
  "qiskit-util",
  "rustworkx-core",
  "thiserror 2.0.21",
