@@ -67,6 +67,10 @@ class TestPiecewiseChebyshev(QiskitTestCase):
     @data(
         (lambda x: np.arcsin(1 / x), 2, [2, 4], 2),
         (lambda x: x / 8, 1, [1, 8], 3),
+        (lambda x: x / 8, 1, [0, 4], 3),
+        (lambda x: x / 8, 1, [2, 8], 3),
+        (lambda x: x / 8, 1, [2, 6], 3),
+        (lambda x: x / 8, 1, [0, 8], 3),
         (np.sqrt, 2, None, 2),
     )
     @unpack
@@ -94,7 +98,8 @@ class TestPiecewiseChebyshev(QiskitTestCase):
                     pw_approximation = PiecewiseChebyshevGate(
                         f_x, num_state_qubits, degree, breakpoints
                     )
-                    num_ancillas = 0 if breakpoints is None else int(len(breakpoints) > 1)
+                    effective_breakpoints = pw_approximation.breakpoints
+                    num_ancillas = int(len(effective_breakpoints) > 2)
                 else:
                     with self.assertWarns(DeprecationWarning):
                         pw_approximation = PiecewiseChebyshev(
@@ -102,7 +107,37 @@ class TestPiecewiseChebyshev(QiskitTestCase):
                         )
                     num_ancillas = None
 
-        self.assertFunctionIsCorrect(pw_approximation, pw_poly, num_ancillas)
+                self.assertFunctionIsCorrect(pw_approximation, pw_poly, num_ancillas)
+
+    def test_piecewise_chebyshev_gate_lower_fallback(self):
+        """Test the fallback rotation below the first supplied breakpoint."""
+        f_x = lambda x: x / 8
+        num_state_qubits = 3
+
+        for use_gate in [True, False]:
+            with self.subTest(use_gate=use_gate):
+                if use_gate:
+                    approximation = PiecewiseChebyshevGate(
+                        f_x, num_state_qubits, degree=1, breakpoints=[1, 8]
+                    )
+                else:
+                    with self.assertWarns(DeprecationWarning):
+                        approximation = PiecewiseChebyshev(
+                            f_x,
+                            degree=1,
+                            breakpoints=[1, 8],
+                            num_state_qubits=num_state_qubits,
+                        )
+
+                circuit = QuantumCircuit(approximation.num_qubits)
+                circuit.compose(approximation, qubits=circuit.qubits, inplace=True)
+                state = Statevector.from_instruction(circuit)
+
+                self.assertAlmostEqual(
+                    state.probabilities(qargs=[num_state_qubits])[1],
+                    1.0,
+                    delta=1e-7,
+                )
 
     def test_piecewise_chebyshev_mutability(self):
         """Test the mutability of the piecewise Chebyshev approximation."""
