@@ -15,10 +15,11 @@
 
 import importlib.metadata
 import os
+import pathlib
 import subprocess
 import tomllib
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = pathlib.Path(__file__).absolute().parents[1]
 
 
 def _minimal_ext_cmd(cmd):
@@ -37,7 +38,7 @@ def _minimal_ext_cmd(cmd):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
-        cwd=os.path.join(os.path.dirname(ROOT_DIR)),
+        cwd=ROOT_DIR,
     ) as proc:
         stdout, stderr = proc.communicate()
         if proc.returncode > 0:
@@ -64,7 +65,7 @@ def _guess_version_from_uninstalled():
     # really who knows what's going on.
     default = "0.0.0"
     try:
-        config = tomllib.load(open(os.path.join(ROOT_DIR, "pyproject.toml"), "rb"))
+        config = tomllib.load(open(ROOT_DIR / "pyproject.toml", "rb"))
     except (OSError, tomllib.TOMLDecodeError):
         return default
     # Defensive against this file not actually being our `pyproject.toml`.
@@ -81,7 +82,7 @@ def get_version_info():
     # up the build under Python 3.
     full_version = VERSION
 
-    if not os.path.exists(os.path.join(os.path.dirname(ROOT_DIR), ".git")):
+    if not (ROOT_DIR / ".git").is_dir():
         return full_version
     try:
         release = _minimal_ext_cmd(["git", "tag", "-l", "--points-at", "HEAD"])
