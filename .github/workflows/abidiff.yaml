@@ -18,8 +18,8 @@ jobs:
 
       - name: Checkout baseline
         run: |
-          git fetch --tags --depth=1 origin
-          tag=$(git tag -l | tail -1)
+          tag=$(git ls-remote --tags --refs origin | awk '{print $2}' | sed 's#refs/tags/##' | tail -1)
+          git fetch --depth=1 origin "refs/tags/${tag}"
           git checkout "${tag}"
 
       - name: Cache toolchain
@@ -64,5 +64,5 @@ jobs:
         run: |
           cd dist/c/lib
           abidiff libqiskit.so.base libqiskit.so \
-            --header-dirs-1 ../include \
+            --headers-dir-1 ../include \
             --drop-private-types \
