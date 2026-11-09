@@ -1,8 +1,4 @@
 ---
-features_visualization:
-  - |
-    The Rust circuit drawer can now reverse its qubit and classical bit wire
-    order, matching the ``reverse_bits`` behavior of the Python text drawer.
 features_c:
   - |
     Added the ``reverse_bits`` field to :c:struct:`QkCircuitDrawerConfig`,
