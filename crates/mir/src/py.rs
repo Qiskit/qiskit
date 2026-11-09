@@ -45,7 +45,7 @@ impl PyMir {
         self.0.instructions().node_count()
     }
 
-    fn num_qubits(&self) -> usize {
+    fn num_qids(&self) -> usize {
         self.0.resource_table().iter_qids().len()
     }
 }

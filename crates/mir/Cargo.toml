@@ -14,6 +14,7 @@ workspace = true
 
 [features]
 mem_dbg = ["dep:mem_dbg"]
+py = ["dep:pyo3"]
 passmanager = ["dep:qiskit-passmanager"]
 
 [dependencies]
@@ -34,6 +35,3 @@ name = "memory_report"
 required-features = ["mem_dbg"]
 # Prints a report from `main` rather than running `#[test]` functions.
 harness = false
-
-[features]
-py = ["dep:pyo3"]

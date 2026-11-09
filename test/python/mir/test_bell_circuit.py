@@ -19,6 +19,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import Pass, LoweringPassManager
 from qiskit.transpiler import generate_preset_pbc_pass_manager
 from qiskit.transpiler.passes import LitinskiTransformation
+from test import QiskitTestCase
 
 
 class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
@@ -49,37 +50,43 @@ def make_bell_circuit():
     return qc
 
 
-class TestBellCircuitMIR(unittest.TestCase):
+class TestBellCircuitMIR(QiskitTestCase):
     """Unit tests for lowering Bell circuit to MIR."""
-    
+
     def test_bell_circuit(self):
-        print("\n--- Running without Litinski Transformation ---")
+        """Test lowering a Bell circuit to MIR after the preset PBC passes."""
         qc = make_bell_circuit()
         pm = LoweringPassManager(
             [CircuitToDag()]
-            + [LegacyDagPass(pass_) for pass_ in generate_preset_pbc_pass_manager().to_flow_controller().tasks]
+            + [
+                LegacyDagPass(pass_)
+                for pass_ in generate_preset_pbc_pass_manager().to_flow_controller().tasks
+            ]
             + [mir_passes.DagToMirPass()]
         )
         mir_instance: Any = pm.run(qc)
-        print(mir_instance)
-        assert isinstance(mir_instance, mir.Mir)
+        self.log.debug(mir_instance)
+        self.assertIsInstance(mir_instance, mir.Mir)
         self.assertEqual(mir_instance.num_instructions(), 7)
-        self.assertEqual(mir_instance.num_qubits(), 2)        
+        self.assertEqual(mir_instance.num_qids(), 2)
 
     def test_bell_circuit_with_litinski(self):
-        print("\n--- Running with Litinski Transformation ---")
+        """Test lowering a Bell circuit to MIR with the Litinski transformation."""
         qc = make_bell_circuit()
         pm = LoweringPassManager(
             [CircuitToDag()]
-            + [LegacyDagPass(pass_) for pass_ in generate_preset_pbc_pass_manager().to_flow_controller().tasks]
+            + [
+                LegacyDagPass(pass_)
+                for pass_ in generate_preset_pbc_pass_manager().to_flow_controller().tasks
+            ]
             + [LegacyDagPass(LitinskiTransformation(fix_clifford=False))]
             + [mir_passes.DagToMirPass()]
         )
         mir_instance: Any = pm.run(qc)
-        print(mir_instance)
-        assert isinstance(mir_instance, mir.Mir)
+        self.log.debug(mir_instance)
+        self.assertIsInstance(mir_instance, mir.Mir)
         self.assertEqual(mir_instance.num_instructions(), 2)
-        self.assertEqual(mir_instance.num_qubits(), 2)        
+        self.assertEqual(mir_instance.num_qids(), 2)
 
 
 if __name__ == "__main__":

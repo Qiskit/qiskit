@@ -19,6 +19,7 @@ use qiskit_circuit::dag_circuit::PyDAGCircuit;
 
 /// PyO3 wrapper that exposes DagToMirPass as a Python pass.
 #[pyclass(name = "DagToMirPass", module = "qiskit._accelerate.mir_passes")]
+#[derive(Default)]
 pub struct PyDagToMirPass;
 
 #[pymethods]
@@ -50,12 +51,6 @@ impl PyDagToMirPass {
         let mir = lower_dag(dag_ref)
             .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
         Ok(PyMir(mir))
-    }
-}
-
-impl Default for PyDagToMirPass {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
