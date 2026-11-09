@@ -29,7 +29,6 @@ pub enum MirOp {
     PauliRotation(PauliRotation),
     PauliMeasure(PauliMeasure),
     // Classical Operations
-
     /// Logical NOT of a classical bit.
     ///
     /// This instruction has a single arg (a boolean symbol) - the source clbit.
