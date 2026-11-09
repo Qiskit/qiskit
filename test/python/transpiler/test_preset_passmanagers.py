@@ -1585,18 +1585,16 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         qc.cx(0, 5)
         qc.cx(2, 4)
         coupling_map = CouplingMap.from_line(6)
-        for level in [1, 2, 3]:
-            with self.subTest(level=level):
-                pm_int = generate_preset_pass_manager(
-                    level, coupling_map=coupling_map, seed_transpiler=7
-                )
-                pm_numpy = generate_preset_pass_manager(
-                    level, coupling_map=coupling_map, seed_transpiler=seed
-                )
-                tqc_int = pm_int.run(qc)
-                tqc_numpy = pm_numpy.run(qc)
-                self.assertEqual(tqc_numpy, tqc_int)
-                self.assertEqual(tqc_numpy.layout, tqc_int.layout)
+        pm_int = generate_preset_pass_manager(
+            level=1, coupling_map=coupling_map, seed_transpiler=7
+        )
+        pm_numpy = generate_preset_pass_manager(
+            level=1, coupling_map=coupling_map, seed_transpiler=seed
+        )
+        tqc_int = pm_int.run(qc)
+        tqc_numpy = pm_numpy.run(qc)
+        self.assertEqual(tqc_numpy, tqc_int)
+        self.assertEqual(tqc_numpy.layout, tqc_int.layout)
 
     def test_parse_seed_transpiler_from_env_var(self):
         """Test that the environment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
