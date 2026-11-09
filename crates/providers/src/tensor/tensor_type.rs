@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! The static counterpart of a tensor: a dtype paired with a shape of per-axis sizes.
+//! The static counterpart of a tensor.
 
 use std::fmt;
 
@@ -30,10 +30,10 @@ pub enum Dim {
 }
 
 impl Dim {
-    /// Whether every size `offered` allows is a size this dimension allows.
+    /// Return whether every size `offered` allows is a size this dimension allows.
     ///
     /// A fixed dimension allows only its own size. Broadcasting, where a size of `1` stands for any
-    /// size, is [`rules::broadcast_dims`].
+    /// size, is [`broadcast_dims`].
     pub fn admits(self, offered: Dim) -> bool {
         match (self, offered) {
             (Dim::Fixed(n), Dim::Fixed(m)) => n == m,
@@ -54,7 +54,7 @@ impl fmt::Display for Dim {
 }
 
 /// Render a shape as `[4000, <=2]`.
-pub(super) fn fmt_shape(shape: &[Dim]) -> String {
+pub(crate) fn fmt_shape(shape: &[Dim]) -> String {
     let dims: Vec<String> = shape.iter().map(Dim::to_string).collect();
     format!("[{}]", dims.join(", "))
 }
@@ -76,17 +76,15 @@ pub fn require_static(shape: &[Dim]) -> Result<Vec<usize>, TensorError> {
 
 /// Compute the type-level NumPy-style broadcast shape for two operand shapes.
 ///
-/// This is the [`Dim`]-level counterpart of [`broadcast_shape`](super::broadcast_shape), predicting
-/// a result shape from operand shapes with no tensor data in hand. Over fixed axes the rules are
-/// exactly `broadcast_shape`'s:
+/// This is the [`Dim`]-level counterpart of [`broadcast_shape`](super::broadcast_shape).
 ///
 /// - `Fixed(1)` broadcasts against anything.
 /// - `Fixed(m)` against `Fixed(n)` with `m != n`, neither of them `1`, is
 ///   [`TensorError::DimShapeMismatch`].
 ///
 /// A [`Dim::Bounded`] axis passes through where it meets a size of `1`, including the implicit `1`s
-/// that pad the shorter shape. Anywhere else it would have to be compared against the size it meets,
-/// which needs its true size, so it is [`TensorError::DynamicDim`].
+/// that pad the shorter shape. Anywhere else it is [`TensorError::DynamicDim`], since comparing it
+/// against the size it meets needs its true size.
 pub fn broadcast_dims(a: &[Dim], b: &[Dim]) -> Result<Vec<Dim>, TensorError> {
     align_axes(a, b, Dim::Fixed(1))
         .map(|pair| match pair {
@@ -99,6 +97,30 @@ pub fn broadcast_dims(a: &[Dim], b: &[Dim]) -> Result<Vec<Dim>, TensorError> {
                 lhs: a.to_vec(),
                 rhs: b.to_vec(),
             }),
+        })
+        .collect()
+}
+
+/// Compute the shape `shape` is broadcast to when the target is `target`, right-aligning the two.
+pub fn broadcast_dims_to(shape: &[Dim], target: &[Dim]) -> Result<Vec<Dim>, TensorError> {
+    let mismatch = || TensorError::DimShapeMismatch {
+        lhs: shape.to_vec(),
+        rhs: target.to_vec(),
+    };
+    if shape.len() > target.len() {
+        return Err(mismatch());
+    }
+    align_axes(shape, target, Dim::Fixed(1))
+        .map(|pair| match pair {
+            (from, to) if from == to => Ok(to),
+            (Dim::Fixed(1), to @ Dim::Fixed(_)) => Ok(to),
+            (Dim::Bounded { .. }, _) => Err(TensorError::DynamicDim {
+                shape: shape.to_vec(),
+            }),
+            (_, Dim::Bounded { .. }) => Err(TensorError::DynamicDim {
+                shape: target.to_vec(),
+            }),
+            _ => Err(mismatch()),
         })
         .collect()
 }
@@ -118,10 +140,9 @@ impl TensorType {
         require_static(&self.shape).ok()
     }
 
-    /// Whether every tensor satisfying `other` also satisfies this type.
+    /// Return whether every tensor satisfying `other` also satisfies this type.
     ///
-    /// A value of type `other` already fits this one, rather than fitting after broadcasting. It is
-    /// [`Tensor::matches`](super::Tensor::matches) with a type in place of the tensor.
+    /// This is the type-level counterpart of [`Tensor::matches`](super::Tensor::matches).
     pub fn admits(&self, other: &TensorType) -> bool {
         self.dtype == other.dtype
             && self.shape.len() == other.shape.len()
@@ -133,7 +154,7 @@ impl TensorType {
     }
 }
 
-/// Render as `F64[4000, <=2]`, so that a type can be named in an error a caller reads.
+/// Render as `F64[4000, <=2]`.
 impl fmt::Display for TensorType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.dtype, fmt_shape(&self.shape))
@@ -144,7 +165,6 @@ impl fmt::Display for TensorType {
 mod test {
     use super::*;
 
-    /// A `TensorType` over `shape`; the dtype is irrelevant to every test that uses this.
     fn bit_type(shape: Vec<Dim>) -> TensorType {
         TensorType {
             dtype: DType::Bit,
@@ -284,6 +304,75 @@ mod test {
             broadcast_dims(&[bounded, Dim::Fixed(3)], &[Dim::Fixed(3)]).unwrap(),
             vec![bounded, Dim::Fixed(3)]
         );
+    }
+
+    #[test]
+    fn test_broadcast_dims_to_reaches_the_target() {
+        let fixed = |sizes: &[usize]| sizes.iter().copied().map(Dim::Fixed).collect::<Vec<_>>();
+
+        // A size of 1 grows to the target's size, and a size already the target's is unchanged.
+        assert_eq!(
+            broadcast_dims_to(&fixed(&[1, 5]), &fixed(&[3, 5])).unwrap(),
+            fixed(&[3, 5])
+        );
+        // So do the implicit leading axes that pad the shorter shape.
+        assert_eq!(
+            broadcast_dims_to(&fixed(&[5]), &fixed(&[3, 5])).unwrap(),
+            fixed(&[3, 5])
+        );
+        assert_eq!(broadcast_dims_to(&[], &fixed(&[3])).unwrap(), fixed(&[3]));
+        assert_eq!(broadcast_dims_to(&[], &[]).unwrap(), vec![]);
+    }
+
+    #[test]
+    fn test_broadcast_dims_to_copies_a_bounded_axis_from_the_operand() {
+        let bounded = Dim::Bounded { max: 4000 };
+        assert_eq!(
+            broadcast_dims_to(&[bounded, Dim::Fixed(1)], &[bounded, Dim::Fixed(5)]).unwrap(),
+            vec![bounded, Dim::Fixed(5)]
+        );
+    }
+
+    #[test]
+    fn test_broadcast_dims_to_rejects_a_bounded_axis_with_no_known_size() {
+        let bounded = Dim::Bounded { max: 4000 };
+        let other = Dim::Bounded { max: 8 };
+        for (shape, target, at_fault) in [
+            // A bounded operand axis has no size to compare against a fixed target.
+            (vec![bounded], vec![Dim::Fixed(5)], vec![bounded]),
+            // Growing into a bounded axis would need a number of copies that is unknown.
+            (vec![Dim::Fixed(1)], vec![bounded], vec![bounded]),
+            (vec![Dim::Fixed(5)], vec![bounded], vec![bounded]),
+            (vec![], vec![bounded], vec![bounded]),
+            // Two different bounds need not be equal sizes.
+            (vec![other], vec![bounded], vec![other]),
+        ] {
+            assert!(
+                matches!(
+                    broadcast_dims_to(&shape, &target).unwrap_err(),
+                    TensorError::DynamicDim { shape: reported } if reported == at_fault
+                ),
+                "for {shape:?} broadcast to {target:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_broadcast_dims_to_rejects_a_target_it_cannot_reach() {
+        // A size other than 1 cannot grow, and an axis cannot be dropped.
+        for (shape, target) in [
+            (vec![Dim::Fixed(3)], vec![Dim::Fixed(4)]),
+            (vec![Dim::Fixed(5)], vec![Dim::Fixed(1)]),
+            (vec![Dim::Fixed(1), Dim::Fixed(3)], vec![Dim::Fixed(3)]),
+        ] {
+            assert!(
+                matches!(
+                    broadcast_dims_to(&shape, &target).unwrap_err(),
+                    TensorError::DimShapeMismatch { lhs, rhs } if lhs == shape && rhs == target
+                ),
+                "for {shape:?} broadcast to {target:?}"
+            );
+        }
     }
 
     #[test]

@@ -146,7 +146,6 @@ macro_rules! expose_by_arc {
         }
     }};
 }
-#[expect(unused_imports)]
 pub use {expose_by_arc, expose_by_box};
 
 /// No-op function whose only purpose is to force use of wrapping `unsafe {}` blocks around certain
@@ -199,30 +198,6 @@ pub(crate) unsafe fn slice_from_ptr<'a, T>(ptr: *const T, len: usize) -> &'a [T]
     unsafe { try_slice_from_ptr(ptr, len) }.expect("caller should ensure a valid pointer")
 }
 
-/// Casts a const pointer to a reference. Panics if the pointer is null or not aligned.
-///
-/// # Safety
-///
-/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
-/// While the resulting reference exists, the memory pointed to must not be mutated.
-pub(crate) unsafe fn const_ptr_as_ref<'a, T>(ptr: *const T) -> &'a T {
-    check_ptr(ptr).unwrap();
-    let as_ref = unsafe { ptr.as_ref() };
-    as_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
-}
-
-/// Casts a mut pointer to a mut reference. Panics if the pointer is null or not aligned.
-///
-/// # Safety
-///
-/// This function requires ``ptr`` to be point to an initialized object of type ``T``.
-/// While the resulting reference exists, the memory pointed to must not be accessed otherwise.
-pub(crate) unsafe fn mut_ptr_as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
-    check_ptr(ptr).unwrap();
-    let as_mut_ref = unsafe { ptr.as_mut() };
-    as_mut_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
-}
-
 /// Clone a new [`Arc`] from a pointer.
 ///
 /// The given `ptr` is only borrowed; it is valid to be given to `Arc::from_raw` (or this function)
@@ -232,7 +207,6 @@ pub(crate) unsafe fn mut_ptr_as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
 ///
 /// `ptr` must be the result of a call to [`Arc<T>::into_raw`] and still be valid to pass to
 /// [`Arc::from_raw`].
-#[expect(dead_code)] // Whichever PR using this that merges first to remove.
 pub unsafe fn arc_clone_from_raw<T: ?Sized>(ptr: *const T) -> Arc<T> {
     // SAFETY: per documentation, `ptr` is from `Arc::into_raw` and still valid.
     unsafe { Arc::increment_strong_count(ptr) };

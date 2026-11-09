@@ -62,6 +62,10 @@ pub enum ExitCode {
     TargetInvalidInstKey = 304,
     /// Transpilation failed
     TranspilerError = 400,
+    /// Incompatible types.
+    IncompatibleTypes = 401,
+    /// Type casting error.
+    CastingError = 402,
     /// QkDag operation error
     DagError = 500,
     /// The DAGs have mismatching qubit/clbit amounts during compose.
@@ -74,6 +78,14 @@ pub enum ExitCode {
     ParameterNameConflict = 601,
     /// QPY serialization, deserialization, or file I/O failed.
     QpyError = 700,
+    /// QkCircuit operation error
+    CircuitError = 800,
+    /// Incorrect delay unit added to the circuit. Use specialized function.
+    IncorrectDelayUnit = 801,
+    /// CustomOperation error
+    CustomOperation = 900,
+    /// Repeated vtable slot error
+    CustomOperationRepeatedSlot = 901,
 }
 
 impl From<ArithmeticError> for ExitCode {
