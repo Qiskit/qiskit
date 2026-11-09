@@ -15,11 +15,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-tags: true
 
       - name: Checkout baseline
         run: |
-          tag=$(git ls-remote --tags --refs origin | awk '{print $2}' | sed 's#refs/tags/##' | tail -1)
-          git fetch --depth=1 origin "refs/tags/${tag}"
+          tag=$(git tag -l | sort -V | tail -1)
           git checkout "${tag}"
 
       - name: Cache toolchain
