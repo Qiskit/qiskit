@@ -10,7 +10,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qiskit"
+version = "2.7.0.dev0"
 description = "An open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives."
+readme = { file = "README.md", content-type = "text/markdown; variant=GFM" }
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = [
@@ -18,6 +20,17 @@ license-files = [
 ]
 authors = [
     { name = "Qiskit Development Team", email = "qiskit@us.ibm.com" },
+]
+dependencies = [
+    # SPEC 0: you're free to raise the lower bound if needed, provided it's at least two years old.
+    "numpy>=2.0,<3",
+    "scipy>=1.14",
+
+    # Unrestricted, but don't bump unless you have to.
+    "rustworkx>=0.15.0",
+    "dill>=0.3",
+    "stevedore>=3.0.0",
+    "typing-extensions",
 ]
 keywords = [
     "qiskit",
@@ -41,8 +54,6 @@ classifiers = [
     "Topic :: Software Development :: Compilers",
     "Development Status :: 5 - Production/Stable",
 ]
-# These are configured in the `tool.setuptools.dynamic` table.
-dynamic = ["version", "readme", "dependencies"]
 
 # The optional dependencies of a project are part of the interface presented through
 #   pip install qiskit[extra1,extra2,...]
@@ -271,11 +282,6 @@ dev = [
 
 [tool.setuptools]
 include-package-data = true
-
-[tool.setuptools.dynamic]
-version = { file = "qiskit/VERSION.txt" }
-readme = { file = "README.md", content-type = "text/markdown" }
-dependencies = {file = "requirements.txt" }
 
 [tool.setuptools.packages.find]
 include = ["qiskit", "qiskit.*"]
