@@ -25,6 +25,7 @@ use crate::transpiler::target::parse_params;
 use bytemuck::AnyBitPattern;
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2};
+use num_bigint::BigUint;
 use num_complex::{Complex64, ComplexFloat};
 
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
@@ -32,13 +33,14 @@ use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::circuit_drawer::draw_circuit;
 use qiskit_circuit::classical::expr::Expr;
+use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, BoxDuration, BoxedCustomOperation, ControlFlow, ControlFlowInstruction, DelayUnit,
-    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, BoxDuration, BoxedCustomOperation, Condition, ControlFlow, ControlFlowInstruction,
+    DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
+    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter_table::ParameterTableError;
@@ -2743,8 +2745,19 @@ pub unsafe extern "C" fn qk_circuit_box(
     clbits: *const u32,
     out_inst_idx: *mut usize,
 ) -> ExitCode {
+    // SAFETY: Per documentation, circuit is non-null and aligned.
+    let circuit = unsafe { &mut *circuit };
+
+    // SAFETY: Per documentation, body is non-null, aligned, and owned by the caller.
+    let body = unsafe { Box::from_raw(body) };
+
+    let control_flow = ControlFlow::Box {
+        duration: None,
+        annotations: Default::default(),
+    };
+
     // SAFETY: Per documentation, the pointers are non-null and aligned.
-    unsafe { append_box(circuit, body, qubits, clbits, None, out_inst_idx) }
+    unsafe { push_control_flow(circuit, control_flow, body, qubits, clbits, out_inst_idx) }
 }
 
 /// @ingroup QkCircuit
@@ -2802,12 +2815,23 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
     duration: *const CDurationInfo,
     out_inst_idx: *mut usize,
 ) -> ExitCode {
+    // SAFETY: Per documentation, circuit is non-null and aligned.
+    let circuit = unsafe { &mut *circuit };
+
+    // SAFETY: Per documentation, body is non-null, aligned, and owned by the caller.
+    let body = unsafe { Box::from_raw(body) };
+
     // SAFETY: Per documentation, duration is a valid, non null, aligned pointer to a QkDurationInfo.
     let info = unsafe { *duration };
     let duration = Some(BoxDuration::Duration(info.into()));
 
+    let control_flow = ControlFlow::Box {
+        duration,
+        annotations: Default::default(),
+    };
+
     // SAFETY: Per documentation, the pointers are non-null and aligned.
-    unsafe { append_box(circuit, body, qubits, clbits, duration, out_inst_idx) }
+    unsafe { push_control_flow(circuit, control_flow, body, qubits, clbits, out_inst_idx) }
 }
 
 /// @ingroup QkCircuit
@@ -2868,27 +2892,32 @@ pub unsafe extern "C" fn qk_circuit_box_duration_expr(
     duration: *const Expr,
     out_inst_idx: *mut usize,
 ) -> ExitCode {
+    // SAFETY: Per documentation, circuit is non-null and aligned.
+    let circuit = unsafe { &mut *circuit };
+
+    // SAFETY: Per documentation, body is non-null, aligned, and owned by the caller.
+    let body = unsafe { Box::from_raw(body) };
+
     // SAFETY: Per documentation, duration is a valid, non null, aligned pointer to a QkExprNode.
     let info = unsafe { &*duration };
     let duration = Some(BoxDuration::Expr(info.clone()));
 
+    let control_flow = ControlFlow::Box {
+        duration,
+        annotations: Default::default(),
+    };
     // SAFETY: Per documentation, the pointers are non-null and aligned.
-    unsafe { append_box(circuit, body, qubits, clbits, duration, out_inst_idx) }
+    unsafe { push_control_flow(circuit, control_flow, body, qubits, clbits, out_inst_idx) }
 }
 
-unsafe fn append_box(
-    circuit: *mut CircuitData,
-    body: *mut CircuitData,
+unsafe fn push_control_flow(
+    circuit: &mut CircuitData,
+    control_flow: ControlFlow,
+    body: Box<CircuitData>,
     qubits: *const u32,
     clbits: *const u32,
-    duration: Option<BoxDuration>,
     out_inst_idx: *mut usize,
 ) -> ExitCode {
-    // SAFETY: Per documentation, circuit is non-null and aligned.
-    let circuit = unsafe { &mut *circuit };
-    // SAFETY: Per documentation, body is non-null, aligned, and owned by the caller.
-    let body = unsafe { Box::from_raw(body) };
-
     let num_qubits = body.num_qubits();
     let num_clbits = body.num_clbits();
 
@@ -2897,19 +2926,16 @@ unsafe fn append_box(
     // SAFETY: Per documentation, clbits is an array of num_clbits uint32_t elements.
     let cargs = unsafe { cast_to_bit_slice(clbits, num_clbits) };
 
-    let box_block = circuit.add_block(*body);
-    let box_op = PackedOperation::from(ControlFlowInstruction {
-        control_flow: ControlFlow::Box {
-            duration,
-            annotations: Default::default(),
-        },
+    let block = circuit.add_block(*body);
+    let operation = PackedOperation::from(ControlFlowInstruction {
+        control_flow,
         num_qubits: num_qubits as u32,
         num_clbits: num_clbits as u32,
     });
 
     let ret = circuit.push_packed_operation(
-        box_op,
-        Some(Parameters::Blocks(vec![box_block])),
+        operation,
+        Some(Parameters::Blocks(vec![block])),
         qargs,
         cargs,
     );
@@ -2929,6 +2955,255 @@ unsafe fn append_box(
         }
     }
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a while loop with a classical-bit condition to a circuit.
+///
+/// A while loop executes its body repeatedly for as long as its condition holds, checking the
+/// condition before each iteration. Here the condition is that the clbit at index ``clbit`` in
+/// ``circuit`` has the value ``value``. To condition on a register or an expression instead, use
+/// ``qk_circuit_while_loop_reg`` or ``qk_circuit_while_loop_expr``.
+///
+/// This function takes ownership of ``body``, even on failure. The caller must not use or free
+/// ``body`` afterwards.
+///
+/// @param circuit A non-null pointer to the circuit to append the loop to.
+/// @param body A non-null pointer to the circuit to use as the body of the loop.
+/// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
+///     ``qk_circuit_num_qubits(body)``, mapping the body's qubits onto ``circuit``'s qubits.
+/// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
+///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
+///     can be a null pointer if ``body`` has no clbits.
+/// @param clbit The index of the clbit in ``circuit`` that the condition tests.
+/// @param value The value of the clbit for which the loop continues.
+/// @param out_inst_idx A pointer to a ``size_t`` to write the index of the loop in ``circuit``
+///     to, or ``NULL`` if it is not needed.
+///
+/// @return An exit code. If ``clbit`` is not a valid clbit index in ``circuit``, it will return
+///     ``QkExitCode_IndexError``.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(1, 1);
+///
+/// QkCircuit *body = qk_circuit_new(1, 1);
+/// uint32_t body_qubits[1] = {0};
+/// qk_circuit_gate(body, QkGate_H, body_qubits, NULL);
+/// qk_circuit_measure(body, 0, 0);
+///
+/// uint32_t qubits[1] = {0};
+/// uint32_t clbits[1] = {0};
+/// qk_circuit_while_loop_bit(qc, body, qubits, clbits, 0, true, NULL);
+///
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// ``qubits`` and ``clbits`` must be arrays of ``uint32_t`` of length
+/// ``qk_circuit_num_qubits(body)`` and ``qk_circuit_num_clbits(body)`` respectively, containing
+/// valid qubit/clbit indices into ``circuit``. Behavior is undefined otherwise.
+///
+/// If not null, ``out_inst_idx`` must be a valid, aligned pointer to a ``size_t``.
+///
+/// Behavior is undefined if ``circuit`` or ``body`` is not a valid, non-null pointer to a
+/// ``QkCircuit``, or if ``body`` is not owned by the caller.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_while_loop_bit(
+    circuit: *mut CircuitData,
+    body: *mut CircuitData,
+    qubits: *const u32,
+    clbits: *const u32,
+    clbit: u32,
+    value: bool,
+    out_inst_idx: *mut usize,
+) -> ExitCode {
+    // SAFETY: Per documentation, circuit is non-null and aligned.
+    let circuit = unsafe { &mut *circuit };
+
+    // SAFETY: Per documentation, body is non-null, aligned, and owned by the caller.
+    let body = unsafe { Box::from_raw(body) };
+
+    let Some(clbit) = circuit.clbits().get(Clbit::from(clbit)) else {
+        return ExitCode::IndexError;
+    };
+    let condition = Condition::Bit(clbit.clone(), value);
+
+    let control_flow = ControlFlow::While { condition };
+
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    unsafe { push_control_flow(circuit, control_flow, body, qubits, clbits, out_inst_idx) }
+}
+
+/// @ingroup QkCircuit
+/// Append a while loop with a classical-register condition to a circuit.
+///
+/// This is ``qk_circuit_while_loop_bit`` with the condition that the value of ``creg`` equals
+/// ``value``. ``creg`` must have been added to ``circuit``, for example with
+/// ``qk_circuit_add_classical_register``.
+///
+/// This function takes ownership of ``body``, even on failure. The caller must not use or free
+/// ``body`` afterwards. ``creg`` is copied, so the caller keeps ownership of it.
+///
+/// @param circuit A non-null pointer to the circuit to append the loop to.
+/// @param body A non-null pointer to the circuit to use as the body of the loop.
+/// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
+///     ``qk_circuit_num_qubits(body)``, mapping the body's qubits onto ``circuit``'s qubits.
+/// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
+///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
+///     can be a null pointer if ``body`` has no clbits.
+/// @param creg A non-null pointer to the ``QkClassicalRegister`` that the condition tests.
+/// @param value The value of the register for which the loop continues.
+/// @param out_inst_idx A pointer to a ``size_t`` to write the index of the loop in ``circuit``
+///     to, or ``NULL`` if it is not needed.
+///
+/// @return An exit code. If ``creg`` is not a register of ``circuit``, it will return
+///     ``QkExitCode_RegisterNotFound``.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// QkClassicalRegister *creg = qk_classical_register_new(2, "c");
+/// qk_circuit_add_classical_register(qc, creg);
+///
+/// QkCircuit *body = qk_circuit_new(2, 2);
+/// uint32_t body_qubits[2] = {0, 1};
+/// qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
+/// qk_circuit_measure(body, 0, 0);
+/// qk_circuit_measure(body, 1, 1);
+///
+/// uint32_t qubits[2] = {0, 1};
+/// uint32_t clbits[2] = {0, 1};
+/// qk_circuit_while_loop_reg(qc, body, qubits, clbits, creg, 0, NULL);
+///
+/// qk_classical_register_free(creg);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// ``qubits`` and ``clbits`` must be arrays of ``uint32_t`` of length
+/// ``qk_circuit_num_qubits(body)`` and ``qk_circuit_num_clbits(body)`` respectively, containing
+/// valid qubit/clbit indices into ``circuit``. Behavior is undefined otherwise.
+///
+/// If not null, ``out_inst_idx`` must be a valid, aligned pointer to a ``size_t``.
+///
+/// Behavior is undefined if ``circuit`` or ``body`` is not a valid, non-null pointer to a
+/// ``QkCircuit``, if ``body`` is not owned by the caller, or if ``creg`` is not a valid,
+/// non-null pointer to a ``QkClassicalRegister``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_while_loop_reg(
+    circuit: *mut CircuitData,
+    body: *mut CircuitData,
+    qubits: *const u32,
+    clbits: *const u32,
+    creg: *const ClassicalRegister,
+    value: u64,
+    out_inst_idx: *mut usize,
+) -> ExitCode {
+    // SAFETY: Per documentation, circuit is non-null and aligned.
+    let circuit = unsafe { &mut *circuit };
+
+    // SAFETY: Per documentation, body is non-null, aligned, and owned by the caller.
+    let body = unsafe { Box::from_raw(body) };
+
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let creg = unsafe { &*creg };
+
+    if !circuit.cregs().contains(creg) {
+        return ExitCode::RegisterNotFound;
+    }
+
+    // TODO: accept values wider than 64 bits once a big-integer type is exposed to C.
+    let value = BigUint::from(value);
+
+    let condition = Condition::Register(creg.clone(), value);
+
+    let control_flow = ControlFlow::While { condition };
+
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    unsafe { push_control_flow(circuit, control_flow, body, qubits, clbits, out_inst_idx) }
+}
+
+/// @ingroup QkCircuit
+/// Append a while loop with an expression condition to a circuit.
+///
+/// This is ``qk_circuit_while_loop_bit`` with the condition given as a ``QkExprNode``, which
+/// must have the ``Bool`` type.
+///
+/// This function takes ownership of ``body``, even on failure. The caller must not use or free
+/// ``body`` afterwards. The ``expr`` expression is copied, so the caller keeps ownership of it.
+///
+/// @param circuit A non-null pointer to the circuit to append the loop to.
+/// @param body A non-null pointer to the circuit to use as the body of the loop.
+/// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
+///     ``qk_circuit_num_qubits(body)``, mapping the body's qubits onto ``circuit``'s qubits.
+/// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
+///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
+///     can be a null pointer if ``body`` has no clbits.
+/// @param expr A non-null pointer to the ``QkExprNode`` defining the condition of the loop. Any
+///     variables in it must belong to ``circuit``.
+/// @param out_inst_idx A pointer to a ``size_t`` to write the index of the loop in ``circuit``
+///     to, or ``NULL`` if it is not needed.
+///
+/// @return An exit code. If ``expr`` does not have the ``Bool`` type, it will return
+///     ``QkExitCode_IncompatibleTypes``.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is a While instruction with an expression condition
+/// const QkExprNode *expr = qk_control_flow_condition_expr(cf_inst);
+///
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+///
+/// QkCircuit *body = qk_circuit_new(2, 0);
+/// uint32_t body_qubits[2] = {0, 1};
+/// qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
+///
+/// uint32_t qubits[2] = {1, 0};
+/// qk_circuit_while_loop_expr(qc, body, qubits, NULL, expr, NULL);
+///
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// ``qubits`` and ``clbits`` must be arrays of ``uint32_t`` of length
+/// ``qk_circuit_num_qubits(body)`` and ``qk_circuit_num_clbits(body)`` respectively, containing
+/// valid qubit/clbit indices into ``circuit``. Behavior is undefined otherwise.
+///
+/// If not null, ``out_inst_idx`` must be a valid, aligned pointer to a ``size_t``.
+///
+/// Behavior is undefined if ``circuit`` or ``body`` is not a valid, non-null pointer to a
+/// ``QkCircuit``, if ``body`` is not owned by the caller, or if ``expr`` is not a valid,
+/// non-null pointer to a ``QkExprNode``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_while_loop_expr(
+    circuit: *mut CircuitData,
+    body: *mut CircuitData,
+    qubits: *const u32,
+    clbits: *const u32,
+    expr: *const Expr,
+    out_inst_idx: *mut usize,
+) -> ExitCode {
+    // SAFETY: Per documentation, circuit is non-null and aligned.
+    let circuit = unsafe { &mut *circuit };
+
+    // SAFETY: Per documentation, body is non-null, aligned, and owned by the caller.
+    let body = unsafe { Box::from_raw(body) };
+
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let expr = unsafe { &*expr };
+    if expr.ty() != Type::Bool {
+        return ExitCode::IncompatibleTypes;
+    }
+    let condition = Condition::Expr(expr.clone());
+
+    let control_flow = ControlFlow::While { condition };
+
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    unsafe { push_control_flow(circuit, control_flow, body, qubits, clbits, out_inst_idx) }
 }
 
 /// The configuration options for the ``qk_circuit_draw`` function.
@@ -3389,6 +3664,7 @@ mod test {
     use qiskit_circuit::{
         bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit},
         circuit_data::CircuitData,
+        classical::expr::Value,
         operations::Param,
     };
     use std::mem::MaybeUninit;
@@ -3451,6 +3727,86 @@ mod test {
             unsafe { qk_circuit_box(circuit, body, qubits.as_ptr(), ptr::null(), &mut box_index) };
         assert_eq!(exit_code, ExitCode::Success);
         assert_eq!(box_index, 0);
+
+        unsafe {
+            qk_circuit_free(circuit);
+        }
+    }
+
+    #[test]
+    fn test_circuit_while_loop_bit() {
+        let circuit = qk_circuit_new(1, 1);
+        let body = qk_circuit_new(1, 0);
+        let qubits = [0_u32];
+        let mut while_loop_index = usize::MAX;
+
+        let exit_code = unsafe {
+            qk_circuit_while_loop_bit(
+                circuit,
+                body,
+                qubits.as_ptr(),
+                ptr::null(),
+                0,
+                true,
+                &mut while_loop_index,
+            )
+        };
+        assert_eq!(exit_code, ExitCode::Success);
+        assert_eq!(while_loop_index, 0);
+
+        unsafe {
+            qk_circuit_free(circuit);
+        }
+    }
+
+    #[test]
+    fn test_circuit_while_loop_reg() {
+        let circuit = qk_circuit_new(1, 0);
+        let body = qk_circuit_new(1, 0);
+        let qubits = [0_u32];
+        let creg = ClassicalRegister::new_owning("my_reg", 2);
+        unsafe { (*circuit).add_creg(creg.clone(), true).unwrap() }
+        let mut while_loop_index = usize::MAX;
+        let exit_code = unsafe {
+            qk_circuit_while_loop_reg(
+                circuit,
+                body,
+                qubits.as_ptr(),
+                ptr::null(),
+                &creg,
+                3,
+                &mut while_loop_index,
+            )
+        };
+        assert_eq!(exit_code, ExitCode::Success);
+        assert_eq!(while_loop_index, 0);
+
+        unsafe {
+            qk_circuit_free(circuit);
+        }
+    }
+
+    #[test]
+    fn test_circuit_while_loop_expr() {
+        let circuit = qk_circuit_new(1, 0);
+        let body = qk_circuit_new(1, 0);
+        let qubits = [0_u32];
+        let expr = Expr::Value(Value::Uint {
+            raw: BigUint::from(1u32),
+            ty: Type::Bool,
+        });
+
+        let exit_code = unsafe {
+            qk_circuit_while_loop_expr(
+                circuit,
+                body,
+                qubits.as_ptr(),
+                ptr::null(),
+                &expr,
+                ptr::null_mut(),
+            )
+        };
+        assert_eq!(exit_code, ExitCode::Success);
 
         unsafe {
             qk_circuit_free(circuit);
