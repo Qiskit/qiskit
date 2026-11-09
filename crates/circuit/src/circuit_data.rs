@@ -998,9 +998,7 @@ impl CircuitData {
                     #[cfg(feature = "py")]
                     let symbols = param.iter_parameters()?;
                     #[cfg(not(feature = "py"))]
-                    let symbols = match param.iter_parameters() {
-                        Ok(symbols) => symbols,
-                    };
+                    let Ok(symbols) = param.iter_parameters();
                     for symbol in symbols {
                         self.param_table.track(&symbol, Some(usage))?;
                     }
@@ -1079,9 +1077,7 @@ impl CircuitData {
         let param_iter = self.global_phase.iter_parameters()?;
 
         #[cfg(not(feature = "py"))]
-        let param_iter = match self.global_phase.iter_parameters() {
-            Ok(iter) => iter,
-        };
+        let Ok(param_iter) = self.global_phase.iter_parameters();
         for symbol in param_iter {
             self.param_table
                 .track(&symbol, Some(ParameterUse::GlobalPhase))?;
@@ -1361,9 +1357,7 @@ impl CircuitData {
             let param_iter = value.as_ref().iter_parameters()?;
 
             #[cfg(not(feature = "py"))]
-            let param_iter = match value.as_ref().iter_parameters() {
-                Ok(iter) => iter,
-            };
+            let Ok(param_iter) = value.as_ref().iter_parameters();
 
             for inner_symbol in param_iter {
                 uuids.push(self.param_table.track(&inner_symbol, None)?);

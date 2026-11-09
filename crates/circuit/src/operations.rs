@@ -168,6 +168,11 @@ impl From<ParamError> for PyErr {
     }
 }
 
+#[cfg(feature = "py")]
+type ParamResult<T> = PyResult<T>;
+#[cfg(not(feature = "py"))]
+type ParamResult<T> = Result<T, Infallible>;
+
 impl Param {
     /// Get the float value, if one is stored.
     pub fn try_float(&self) -> Option<f64> {
@@ -176,8 +181,8 @@ impl Param {
             _ => None,
         }
     }
-    #[cfg(feature = "py")]
-    pub fn eq(&self, other: &Param) -> PyResult<bool> {
+
+    pub fn eq(&self, other: &Param) -> ParamResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(a == b),
             [Self::Float(a), Self::ParameterExpression(b)] => {
@@ -187,10 +192,14 @@ impl Param {
                 Ok(a.as_ref() == &ParameterExpression::from_f64(*b))
             }
             [Self::ParameterExpression(a), Self::ParameterExpression(b)] => Ok(a == b),
+            #[cfg(feature = "py")]
             [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
+            #[cfg(feature = "py")]
             [Self::Obj(_), Self::Float(_)] => Ok(false),
             [Self::Float(_), Self::Obj(_)] => Ok(false),
+            #[cfg(feature = "py")]
             [Self::Obj(_a), Self::ParameterExpression(_b)] => Ok(false),
+            #[cfg(feature = "py")]
             [Self::ParameterExpression(_a), Self::Obj(_b)] => Ok(false),
             [Self::Int(int), Self::Int(other_int)] => Ok(int == other_int),
             [Self::Int(int), Self::Float(float)] | [Self::Float(float), Self::Int(int)] => {
@@ -201,43 +210,14 @@ impl Param {
                 let int_as_val: Value = (*int).into();
                 Ok(ParameterExpression::from(int_as_val) == **expr)
             }
+            #[cfg(feature = "py")]
             [Self::Int(int), Self::Obj(obj)] | [Self::Obj(obj), Self::Int(int)] => {
                 Python::attach(|py| obj.bind(py).eq(int))
             }
         }
     }
 
-    #[cfg(not(feature = "py"))]
-    pub fn eq(&self, other: &Param) -> Result<bool, TryFromIntError> {
-        match [self, other] {
-            [Self::Float(a), Self::Float(b)] => Ok(a == b),
-            [Self::Float(a), Self::ParameterExpression(b)] => {
-                Ok(&ParameterExpression::from_f64(*a) == b.as_ref())
-            }
-            [Self::ParameterExpression(a), Self::Float(b)] => {
-                Ok(a.as_ref() == &ParameterExpression::from_f64(*b))
-            }
-            [Self::ParameterExpression(a), Self::ParameterExpression(b)] => Ok(a == b),
-            [Self::Int(int), Self::Int(other_int)] => Ok(int == other_int),
-            [Self::Int(int), Self::Float(float)] | [Self::Float(float), Self::Int(int)] => {
-                Ok(float == &(*int as f64))
-            }
-            [Self::Int(int), Self::ParameterExpression(expr)]
-            | [Self::ParameterExpression(expr), Self::Int(int)] => {
-                Ok(ParameterExpression::from(Value::from(*int)) == **expr)
-            }
-        }
-    }
-
-    #[cfg(feature = "py")]
-    pub fn is_close(&self, other: &Param, max_relative: f64) -> PyResult<bool> {
-        match [self, other] {
-            [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
-            _ => self.eq(other),
-        }
-    }
-    #[cfg(not(feature = "py"))]
-    pub fn is_close(&self, other: &Param, max_relative: f64) -> Result<bool, TryFromIntError> {
+    pub fn is_close(&self, other: &Param, max_relative: f64) -> ParamResult<bool> {
         match [self, other] {
             [Self::Float(a), Self::Float(b)] => Ok(relative_eq!(a, b, max_relative = max_relative)),
             _ => self.eq(other),
@@ -247,11 +227,11 @@ impl Param {
     // TODO: Replace `Box<dyn Iterator>` with a custom iterator struct. The
     // Box<dyn Iterator> is an anti-pattern which shouldn't really be needed.
     /// Get an iterator over any `Symbol` instances tracked within this `Param`.
-    #[cfg(feature = "py")]
-    pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol> + '_>> {
+    pub fn iter_parameters(&self) -> ParamResult<Box<dyn Iterator<Item = Symbol> + '_>> {
         match self {
             Param::Float(_) | Param::Int(_) => Ok(Box::new(::std::iter::empty())),
             Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols().cloned())),
+            #[cfg(feature = "py")]
             Param::Obj(obj) => {
                 Python::attach(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
                     let parameters_attr = intern!(py, "parameters");
@@ -271,17 +251,6 @@ impl Param {
                     }
                 })
             }
-        }
-    }
-
-    // TODO: Replace `Box<dyn Iterator>` with a custom iterator struct. The
-    // Box<dyn Iterator> is an anti-pattern which shouldn't really be needed.
-    /// Get an iterator over any `Symbol` instances tracked within this `Param`.
-    #[cfg(not(feature = "py"))]
-    pub fn iter_parameters(&self) -> Result<Box<dyn Iterator<Item = Symbol> + '_>, Infallible> {
-        match self {
-            Param::Float(_) | Param::Int(_) => Ok(Box::new(::std::iter::empty())),
-            Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols().cloned())),
         }
     }
 

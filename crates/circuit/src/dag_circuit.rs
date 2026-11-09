@@ -6365,8 +6365,8 @@ impl DAGCircuit {
             .filter(|node: &NodeIndex| matches!(&self.dag[*node], NodeType::Operation(_)))
     }
 
-    #[cfg(feature = "py")]
     // TODO: Move Python auxiliary method
+    #[cfg(feature = "py")]
     fn topological_key_sort(
         &self,
         py: Python,
