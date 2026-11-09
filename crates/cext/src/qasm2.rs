@@ -107,8 +107,6 @@ pub unsafe extern "C" fn qk_openqasm2_options_set_strict(
 ///
 /// @param options A handle to the options to modify.
 /// @param path A nul-terminated string giving the directory to search.
-/// @param error Receives a description on failure, released with ``qk_str_free``.  This may be a
-///     null pointer, in which case the description is discarded.
 ///
 /// @return ``QkExitCode_Success`` if the directory was appended,
 ///     ``QkExitCode_NullPointerError`` if ``path`` is null, or ``QkExitCode_CInputError`` if
@@ -116,26 +114,19 @@ pub unsafe extern "C" fn qk_openqasm2_options_set_strict(
 ///
 /// # Safety
 ///
-/// ``options`` must be a valid handle, ``path`` null or a valid pointer to a nul-terminated
-/// string, and ``error`` null or valid for a pointer write.
+/// ``options`` must be a valid handle, and ``path`` null or a valid pointer to a nul-terminated
+/// string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_openqasm2_options_append_include_path(
     options: *mut OpenQasm2Options,
     path: *const c_char,
-    error: *mut *mut c_char,
 ) -> ExitCode {
     if path.is_null() {
         return ExitCode::NullPointerError;
     }
     // SAFETY: per documentation, `path` points to a nul-terminated string.
     let Ok(path) = unsafe { CStr::from_ptr(path) }.to_str() else {
-        return unsafe {
-            return_error(
-                error,
-                ExitCode::CInputError,
-                "the include path was not valid UTF-8",
-            )
-        };
+        return ExitCode::CInputError;
     };
     // SAFETY: per documentation, `options` is a valid handle.
     unsafe { &mut *options }

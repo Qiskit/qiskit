@@ -144,7 +144,7 @@ def load_qasm2_from_c(
     capi.qk_openqasm2_options_set_strict(options, strict)
     for path in include_path:
         code = capi.qk_openqasm2_options_append_include_path(
-            options, os.fspath(path).encode("utf-8"), None
+            options, os.fspath(path).encode("utf-8")
         )
         if code != capi.QkExitCode.Success.value.value:
             capi.qk_openqasm2_options_free(options)
