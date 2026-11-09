@@ -39,7 +39,7 @@
 //! meas_0: ════════════════════════════════════════════════════╡0        ╞╡         ╞
 //!                                                             └─────────┘│         │
 //! meas_1: ═══════════════════════════════════════════════════════════════╡0        ╞
-//!                                                                        └─────────┘
+//!   
 
 use qiskit_mir::{
     instruction::MirInstruction,
@@ -51,7 +51,6 @@ use qiskit_mir::{
     qid::{BitLayout, QidInfo, QidList},
     symbol_table::SymbolIdList,
 };
-
 #[test]
 fn construct_bell_mir() {
     let mut mir = Mir::new();

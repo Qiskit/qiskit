@@ -33,6 +33,17 @@ pub enum Pauli {
     Y,
 }
 
+impl Pauli {
+    pub const fn from_xz(x: bool, z: bool) -> Self {
+        match (x, z) {
+            (false, false) => Pauli::I,
+            (true, false) => Pauli::X,
+            (false, true) => Pauli::Z,
+            (true, true) => Pauli::Y,
+        }
+    }
+}
+
 impl fmt::Display for Pauli {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{self:?}")
