@@ -27,7 +27,7 @@ use crate::util;
 /// The type is deliberately opaque: the setters are the only supported way to change an option,
 /// so fields can be added later without changing the layout that programs compiled against an
 /// older header expect.
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct OpenQasm2Options {
     /// Directories searched, in order, to resolve an `include` statement.
     include_path: Vec<PathBuf>,
