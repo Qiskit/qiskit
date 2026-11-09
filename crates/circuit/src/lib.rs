@@ -72,8 +72,12 @@ pub struct Stretch(u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Block(u32);
 
-/// Marker object for use with `OperationFromPython` that marks that the extraction should fail if
-/// the object contains circuit blocks.
+// Although this marker only exists to be used with Operations coming from
+// Python, we need to keep it exposed due to `qiskit-synthesis` depending on it.
+// Once the PyO3 dependency is removed from `qiskit-synthesis`, we can put this
+// back inside of `circuit_instruction.rs`.
+/// Marker object for use with `OperationFromPython` that marks that the
+/// extraction should fail if the object contains circuit blocks.
 pub struct NoBlocks;
 
 pub use blocks::ControlFlowBlocks;
