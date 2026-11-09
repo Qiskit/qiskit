@@ -72,7 +72,10 @@ def _guess_version_from_uninstalled():
     return config.get("project", {}).get("version", default)
 
 
-VERSION = importlib.metadata.version("qiskit") or _guess_version_from_uninstalled()
+try:
+    VERSION = importlib.metadata.version("qiskit")
+except importlib.metadata.PackageNotFoundError:
+    VERSION = _guess_version_from_uninstalled()
 
 
 def get_version_info():
