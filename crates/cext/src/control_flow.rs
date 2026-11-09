@@ -838,7 +838,7 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_kind(
 ///     The control flow instruction must be of a Box kind with a concrete duration.
 ///
 /// @return A `QkDurationInfo` struct containing the duration value and unit. The returned values
-///     are invalid if `cf_inst` isn't a Box instruction with a duration.
+///     are invalid if `cf_inst` isn't a Box instruction with a concrete duration.
 ///
 /// # Example
 /// ```c
@@ -887,7 +887,7 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_val_info(
 /// @return A pointer to the ``QkExpr`` representing the duration expression.
 ///     The expression is valid as long as the control flow instruction exists.
 ///     The expression is owned by the control flow instruction and must not be freed by the caller.
-///     Returns `NULL` if `cf_inst` isn't a Box instruction with a duration.
+///     Returns `NULL` if `cf_inst` isn't a Box instruction with an expression duration.
 ///
 /// # Example
 /// ```c
@@ -1546,7 +1546,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
 ///     The struct will contain a pointer to an array of labels and the number of labels.
 ///     If ``num_labels > 0``, you should call `qk_control_flow_switch_case_labels_clear`
 ///     to free the memory allocated by this function. The returned values are invalid if `cf_inst`
-///     isn't a Switch instruction.
+///     isn't a Switch instruction or if a case label does not fit in `uint64_t`.
 ///
 /// # Example
 /// ```c
