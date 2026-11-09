@@ -27,49 +27,40 @@ static void build_circuit_based_on_entanglement_strategy(uint32_t num_qubits, ui
     uint32_t connections_reverse_linear[3][3] = {{2, 3, 4}, {1, 2, 3}, {0, 1, 2}};
     uint32_t connections_circular[5][3] = {{3, 4, 0}, {4, 0, 1}, {0, 1, 2}, {1, 2, 3}, {2, 3, 4}};
 
-    if (strategy == QkEntanglementStrategy_Pairwise) {
-        // Add rotation layer for X Gate
-        for (uint32_t i = 0; i < (uint32_t)num_qubits; i++) {
-            qk_circuit_gate(circuit, QkGate_X, (uint32_t[1]){i}, NULL);
-        }
-
-        // Add entanglement layer for CX Gate
-        qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 1}, NULL);
-        qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){2, 3}, NULL);
-        qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){1, 2}, NULL);
-        qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){3, 4}, NULL);
-
-        return;
-    }
-
     for (uint32_t i = 0; i < reps; i++) {
-        // Add rotation layer for Y Gate
-        for (uint32_t j = 0; j < num_qubits; j++) {
-            qk_circuit_gate(circuit, QkGate_Y, (uint32_t[1]){j}, NULL);
-        }
         // Add entanglement layer for CCX Gate
         switch (strategy) {
         case QkEntanglementStrategy_Full:
+            for (uint32_t j = 0; j < num_qubits; j++)
+                qk_circuit_gate(circuit, QkGate_Y, (uint32_t[1]){j}, NULL);
             for (size_t j = 0; j < 10; j++) {
                 qk_circuit_gate(circuit, QkGate_CCX, connections_full[j], NULL);
             }
             break;
         case QkEntanglementStrategy_Linear:
+            for (uint32_t j = 0; j < num_qubits; j++)
+                qk_circuit_gate(circuit, QkGate_Y, (uint32_t[1]){j}, NULL);
             for (size_t j = 0; j < 3; j++) {
                 qk_circuit_gate(circuit, QkGate_CCX, connections_linear[j], NULL);
             }
             break;
         case QkEntanglementStrategy_ReverseLinear:
+            for (uint32_t j = 0; j < num_qubits; j++)
+                qk_circuit_gate(circuit, QkGate_Y, (uint32_t[1]){j}, NULL);
             for (size_t j = 0; j < 3; j++) {
                 qk_circuit_gate(circuit, QkGate_CCX, connections_reverse_linear[j], NULL);
             }
             break;
         case QkEntanglementStrategy_Circular:
+            for (uint32_t j = 0; j < num_qubits; j++)
+                qk_circuit_gate(circuit, QkGate_Y, (uint32_t[1]){j}, NULL);
             for (size_t j = 0; j < 5; j++) {
                 qk_circuit_gate(circuit, QkGate_CCX, connections_circular[j], NULL);
             }
             break;
         case QkEntanglementStrategy_Sca:
+            for (uint32_t j = 0; j < num_qubits; j++)
+                qk_circuit_gate(circuit, QkGate_Y, (uint32_t[1]){j}, NULL);
             for (size_t k = 0; k < 5; k++) {
                 int offset = ((int)k) - ((int)i);
                 int ind = offset >= 0 ? offset : 5 + offset;
@@ -79,6 +70,16 @@ static void build_circuit_based_on_entanglement_strategy(uint32_t num_qubits, ui
                 }
                 qk_circuit_gate(circuit, QkGate_CCX, connection, NULL);
             }
+            break;
+        case QkEntanglementStrategy_Pairwise:
+            for (uint32_t j = 0; j < (uint32_t)num_qubits; j++)
+                qk_circuit_gate(circuit, QkGate_X, (uint32_t[1]){j}, NULL);
+
+            // Add entanglement layer for CX Gate
+            qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 1}, NULL);
+            qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){2, 3}, NULL);
+            qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){1, 2}, NULL);
+            qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){3, 4}, NULL);
             break;
         }
     }
@@ -149,13 +150,14 @@ static int test_parameter_prefix(void) {
             if (strncmp(parameter_str, settings.parameter_prefix, prefix_len) != 0) {
                 result = EqualityError;
                 qk_str_free(parameter_str);
+                qk_circuit_instruction_clear(&inst);
                 break;
             }
             qk_str_free(parameter_str);
         }
+        qk_circuit_instruction_clear(&inst);
     }
 
-    qk_circuit_instruction_clear(&inst);
     qk_circuit_free(qc);
 
     return result;
@@ -283,7 +285,7 @@ static int test_entanglement_by_strategy(void) {
         }
         if (!(compare_circuits(qc, expected))) {
             result = EqualityError;
-            printf("Strategy %s failed", strategies[(size_t)strategy]);
+            fprintf(stderr, "Strategy %s failed", strategies[(size_t)strategy]);
             qk_circuit_free(qc);
             goto cleanup;
         }
@@ -309,8 +311,9 @@ static int test_pairwise_with_3_qubits(void) {
     QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 3, entanglement_blocks,
                                                1, &settings);
     if (qc != NULL) {
-        printf("Inconsistent result when testing pairwise entanglement with 3 qubits: A null "
-               "response was expected, but a circuit was obtained.");
+        fprintf(stderr,
+                "Inconsistent result when testing pairwise entanglement with 3 qubits: A null "
+                "response was expected, but a circuit was obtained.");
         qk_circuit_free(qc);
         return EqualityError;
     }
@@ -328,8 +331,8 @@ static int test_full_entanglement_with_3_qubit_gate_for_2_qubits(void) {
         qk_circuit_library_n_local(num_qubits, rotation_blocks, 1, entanglement_blocks, 1, NULL);
 
     if (qc != NULL) {
-        printf("Inconsistent result when testing 2 qubits with a 3 qubit gate: A null "
-               "response was expected, but a circuit was returned.");
+        fprintf(stderr, "Inconsistent result when testing 2 qubits with a 3 qubit gate: A null "
+                        "response was expected, but a circuit was returned.");
         qk_circuit_free(qc);
         return EqualityError;
     }
