@@ -2,23 +2,23 @@ name: Compare C ABI
 
 on:
   pull_request:
-    # paths:
-    #   - "crates/bindgen/**"
-    #   - "crates/bindgen-cli/**"
-    #   - "crates/cext/**"
-    #   - "crates/cext-vtable"
+    paths:
+      - "crates/bindgen/**"
+      - "crates/bindgen-cli/**"
+      - "crates/cext/**"
+      - "crates/cext-vtable/**"
 
 jobs:
   abidiff:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - name: Checkout
+      - name: Checkout w/ tags
         uses: actions/checkout@v7
         with:
           fetch-tags: true
 
-      - name: Fetch baseline
+      - name: Checkout baseline
         run: |
           tag=$(git tag -l | tail -1)
           git checkout "${tag}"
@@ -45,21 +45,24 @@ jobs:
       - name: Build baseline
         run: |
           make cheader clib-dev
-          mv dist/c/lib/libqiskit.so dist/c/lib/libqiskit.so.main
+          mv dist/c/lib/libqiskit.so dist/c/lib/libqiskit.so.base
 
-      - name: Fetch changes
-        uses: actions/checkout@v7
-        with:
-          clean: false
+      - name: Fetch commit
+        run: |
+          git checkout -
 
-      - name: Build changes
+      - name: Build commit
         run: make cheader clib-dev
 
-      - name: Install tools
+      - name: Install ABI tools
         run: |
           sudo apt update
           sudo apt install --no-install-recommends -y abigail-tools
 
-      - name: Compare
+      - name: Compare ABI
         continue-on-error: true
-        run: abidiff --hd1 dist/c/include --drop-private-types dist/c/lib/libqiskit.so.main dist/c/lib/libqiskit.so
+        run: |
+          cd dist/c/lib
+          abidiff libqiskit.so.base libqiskit.so \
+            --header-file-1 ../include \
+            --drop-private-types \
