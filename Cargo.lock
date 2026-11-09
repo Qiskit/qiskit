@@ -2481,6 +2481,8 @@ dependencies = [
  "qiskit-passmanager",
  "qiskit-util",
  "rustworkx-core",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 

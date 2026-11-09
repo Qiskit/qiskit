@@ -23,7 +23,7 @@ use thiserror::Error;
 ///
 /// This represents a quantum Mir compilation unit. It consists of an instruction list, a resource
 /// table and a symbol table.
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Mir {
     instructions: LineGraph<MirInstruction>,
     resource_table: ResourceTable,
