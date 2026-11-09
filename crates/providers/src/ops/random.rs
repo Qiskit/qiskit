@@ -502,7 +502,7 @@ impl ProgramOp for RandomBits {
 }
 
 /// Draw uniformly distributed reals from the half-open interval `[0, 1)` using a key.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RandomReal {
     dtype: DType,
     shape: Vec<usize>,
@@ -1947,21 +1947,7 @@ mod test {
     where
         StandardUniform: Distribution<T>,
     {
-        let words: Vec<u32> = key.keys().unwrap().keys().iter().copied().collect();
-        // Spelled out rather than taken from `RANDOM_REAL_STRIDE`, so that a change to the stride
-        // has to be made here too rather than passing silently.
-        assert_eq!(RANDOM_REAL_STRIDE, 1, "the stride this helper assumes");
-        let mut substream = Philox::new([words[0], words[1]], position as u128);
-        StandardUniform.sample(&mut substream)
-    }
-
-    /// Return the `F64` and `F32` values `StandardUniform` draws from the substream `position` of
-    /// `key`, opened directly on the generator and independently of the op under test.
-    fn reference_real<T>(key: &Tensor, position: usize) -> T
-    where
-        StandardUniform: Distribution<T>,
-    {
-        let words: Vec<u32> = key.keys().unwrap().keys().iter().copied().collect();
+        let words: Vec<u32> = key.keys().unwrap().words().iter().copied().collect();
         // Spelled out rather than taken from `RANDOM_REAL_STRIDE`, so that a change to the stride
         // has to be made here too rather than passing silently.
         assert_eq!(RANDOM_REAL_STRIDE, 1, "the stride this helper assumes");
@@ -2055,7 +2041,7 @@ mod test {
             .eval(std::slice::from_ref(&keys))
             .unwrap();
         assert_eq!(reals[0].shape(), &[3, 4]);
-        let words: Vec<u32> = keys.keys().unwrap().keys().iter().copied().collect();
+        let words: Vec<u32> = keys.keys().unwrap().words().iter().copied().collect();
         let got = reals_of(&reals[0]);
         for row in 0..3 {
             let one_key = keys_of(&[], vec![words[2 * row], words[2 * row + 1]]);
@@ -2093,7 +2079,7 @@ mod test {
             .unwrap()
             .eval(std::slice::from_ref(&keys))
             .unwrap();
-        let words: Vec<u32> = keys.keys().unwrap().keys().iter().copied().collect();
+        let words: Vec<u32> = keys.keys().unwrap().words().iter().copied().collect();
         let got = reals_of(&reals[0]);
         for row in 0..3 {
             let one_key = keys_of(&[], vec![words[2 * row], words[2 * row + 1]]);
