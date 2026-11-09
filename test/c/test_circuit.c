@@ -1298,7 +1298,7 @@ static int test_circuit_draw(void) {
     QkPauliProductMeasurement ppm = {z, x, 4, true};
     qk_circuit_pauli_product_measurement(circuit, &ppm, qubits, 0);
 
-    QkCircuitDrawerConfig config = {false, true, 80, 0, false};
+    QkCircuitDrawerConfig config = {false, true, 80, 0, false, false};
 
     char *circ_str = qk_circuit_draw(circuit, &config);
 
@@ -1311,7 +1311,7 @@ static int test_circuit_draw(void) {
 
 static int test_circuit_draw_empty(void) {
     QkCircuit *circuit = qk_circuit_new(0, 0);
-    QkCircuitDrawerConfig config = {false, true, 80, 0, true};
+    QkCircuitDrawerConfig config = {false, true, 80, 0, true, false};
 
     char *circ_str = qk_circuit_draw(circuit, &config);
     if (circ_str == NULL || strcmp(circ_str, "") != 0) {
@@ -1324,6 +1324,26 @@ static int test_circuit_draw_empty(void) {
     qk_circuit_free(circuit);
 
     return Ok;
+}
+
+static int test_circuit_draw_reverse_bits(void) {
+    QkCircuit *circuit = qk_circuit_new(3, 0);
+    qk_circuit_gate(circuit, QkGate_X, (uint32_t[]){0}, NULL);
+    QkCircuitDrawerConfig config = {false, false, 80, 0, true, true};
+
+    char *circ_str = qk_circuit_draw(circuit, &config);
+    char *q2 = strstr(circ_str, "q_2:");
+    char *q1 = strstr(circ_str, "q_1:");
+    char *q0 = strstr(circ_str, "q_0:");
+    int result = Ok;
+    if (q2 == NULL || q1 == NULL || q0 == NULL || !(q2 < q1 && q1 < q0)) {
+        fprintf(stderr, "Circuit drawer did not reverse the qubit wires:\n%s", circ_str);
+        result = EqualityError;
+    }
+
+    qk_str_free(circ_str);
+    qk_circuit_free(circuit);
+    return result;
 }
 
 static int test_parameterized_circuit(void) {
@@ -1909,6 +1929,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_unitary_gate_3q);
     num_failed += RUN_TEST(test_circuit_draw);
     num_failed += RUN_TEST(test_circuit_draw_empty);
+    num_failed += RUN_TEST(test_circuit_draw_reverse_bits);
     num_failed += RUN_TEST(test_get_instruction_params);
     num_failed += RUN_TEST(test_instruction_params_ownership);
     num_failed += RUN_TEST(test_parameterized_circuit);
