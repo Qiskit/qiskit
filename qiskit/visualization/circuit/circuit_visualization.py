@@ -76,7 +76,7 @@ def circuit_drawer(
     expr_len: int = 30,
     measure_arrows: bool | None = None,
     barrier_label_len: int = 16,
-    vertical_labels: bool = False,
+    vertical_labels: str = "none",
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -192,9 +192,9 @@ def circuit_drawer(
         barrier_label_len: The number of characters to display for
             :class:`.Barrier` labels in the output circuit. If this number is exceeded,
             the string will be truncated at that number and '...' added to the end.
-        vertical_labels: If True, the labels of multiple qubit gates are drawn vertically in
-            ``mpl`` output. Short labels and labels containing math remain horizontal.
-            Defaults to ``False``.
+        vertical_labels: Only used for ``mpl`` output. Valid choices are ``auto`` and ``none``.
+                Math text and short labels remain horizontal. If ``auto``, multiple-qubit gate labels
+                are drawn vertically. Default is ``none``.
 
     Returns:
         :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -722,7 +722,7 @@ def _matplotlib_circuit_drawer(
     expr_len=30,
     measure_arrows=None,
     barrier_label_len=16,
-    vertical_labels: bool = False,
+    vertical_labels: str = "none",
 ):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -762,9 +762,9 @@ def _matplotlib_circuit_drawer(
             instead place the name of the bit or register in the measure box.
         barrier_label_len (int): Optional. The number of characters to display for
             :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
-        vertical_labels: Only used for ``mpl`` output. Math text and short labels remain
-            horizontal. If True, multiple-qubit gate labels are drawn vertically. Default
-            is False.
+        vertical_labels: Only used for ``mpl`` output. Valid choices are ``auto`` and ``none``.
+            Math text and short labels remain horizontal. If ``auto``, multiple-qubit gate labels
+            are drawn vertically. Default is ``none``.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram

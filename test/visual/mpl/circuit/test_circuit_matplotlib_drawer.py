@@ -2089,7 +2089,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         qc.append(AnnotatedOperation(gate, ControlModifier(1)), [1, 2, 3])
 
         fname = "vertical_multi_qubit_gate_labels.png"
-        self.circuit_drawer(qc, output="mpl", filename=fname, vertical_labels=True)
+        self.circuit_drawer(qc, output="mpl", filename=fname, vertical_labels="auto")
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

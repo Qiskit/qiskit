@@ -117,7 +117,7 @@ class MatplotlibDrawer:
         expr_len=30,
         measure_arrows=None,
         barrier_label_len=16,
-        vertical_labels=False,
+        vertical_labels="none",
     ):
         self._circuit = circuit
         self._qubits = qubits
@@ -468,9 +468,24 @@ class MatplotlibDrawer:
                     self._get_text_width(ctrl_text, glob_data, fontsize=self._style["sfs"]) - 0.05
                 )
 
+                # calculating the span of the gate for vertical label compatibility check
+                num_ctrl_qubits = getattr(node.op, "num_ctrl_qubits", 0)
+                if getattr(node.op, "modifiers", None):
+                    num_ctrl_qubits = sum(
+                        modifier.num_ctrl_qubits
+                        for modifier in node.op.modifiers
+                        if isinstance(modifier, ControlModifier)
+                    )
+                wire_indices = [
+                    wire_map[qarg]
+                    for qarg in node.qargs[num_ctrl_qubits:]
+                    if qarg in self._qubits and qarg in wire_map
+                ]
+                span = max(wire_indices) - min(wire_indices)
+
                 # mandatory check for vertical label compatibility, when vertical_labels is True
-                node_data[node]._effectively_vertical, span = self._is_vertical_label(
-                    node, gate_text, wire_map
+                node_data[node]._effectively_vertical = self._is_vertical_label(
+                    node, gate_text, span
                 )
 
                 # get param_width, but 0 for gates with array params or circuits in params
@@ -487,11 +502,9 @@ class MatplotlibDrawer:
                         param_text, glob_data, fontsize=self._style["sfs"], param=True
                     )
                     if node_data[node]._effectively_vertical:
-                        lines_count, text = self._vertical_label_lines(
-                            param_text, raw_param_width, HIG + span
-                        )
-                        node_data[node].param_text = text
-                        param_width = lines_count * LINE_HEIGHT_SFS
+                        lines = self._vertical_label_lines(param_text, raw_param_width, HIG + span)
+                        node_data[node].param_text = "\n".join(lines)
+                        param_width = len(lines) * LINE_HEIGHT_SFS
                     else:
                         param_width = raw_param_width + 0.08
                 else:
@@ -684,11 +697,9 @@ class MatplotlibDrawer:
                     )
 
                     if node_data[node]._effectively_vertical:
-                        lines_count, text = self._vertical_label_lines(
-                            gate_text, raw_gate_width, HIG + span
-                        )
-                        gate_text = text
-                        gate_width = WID + (lines_count - 1) * LINE_HEIGHT_FS
+                        lines = self._vertical_label_lines(gate_text, raw_gate_width, HIG + span)
+                        gate_text = "\n".join(lines)
+                        gate_width = WID + (len(lines) - 1) * LINE_HEIGHT_FS
                         if node_data[node].param_text:
                             gate_width += param_width
                     else:
@@ -713,31 +724,16 @@ class MatplotlibDrawer:
 
         return layer_widths
 
-    def _is_vertical_label(self, node, gate_text, wire_map):
-        """Return whether the label belongs to a multiqubit gate and should have vertical text
-        and also the wire span of the gate."""
-        num_ctrl_qubits = getattr(node.op, "num_ctrl_qubits", 0)
-        if getattr(node.op, "modifiers", None):
-            num_ctrl_qubits = sum(
-                modifier.num_ctrl_qubits
-                for modifier in node.op.modifiers
-                if isinstance(modifier, ControlModifier)
-            )
-        wire_indices = [
-            wire_map[qarg]
-            for qarg in node.qargs[num_ctrl_qubits:]
-            if qarg in self._qubits and qarg in wire_map
-        ]
-        span = max(wire_indices) - min(wire_indices)
+    def _is_vertical_label(self, node, gate_text, span):
+        """Return whether the label belongs to a multiqubit gate and should have vertical text."""
         op = node.op
         return (
-            self._vertical_labels
+            self._vertical_labels == "auto"
             and span > 0
             and gate_text
             and len(gate_text) > 3
             and gate_text.count("$") == 0
-            and not isinstance(op, (SwapGate, RZZGate)),
-            span,
+            and not isinstance(op, (SwapGate, RZZGate))
         )
 
     def _vertical_label_lines(self, gate_text_original, full_text_width, available_height):
@@ -768,9 +764,7 @@ class MatplotlibDrawer:
         if current_line:
             lines.append(current_line)
 
-        final_text = "\n".join(lines)
-
-        return len(lines), final_text
+        return lines
 
     def _set_bit_reg_info(self, wire_map, qubits_dict, clbits_dict, glob_data):
         """Get all the info for drawing bit/reg names and numbers"""
