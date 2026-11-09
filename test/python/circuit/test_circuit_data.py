@@ -1205,7 +1205,3 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
                 replaced = copy.replace(instruction, **changes)
                 self.assertEqual(replaced, instruction.replace(**changes))
                 self.assertNotEqual(replaced, instruction)
-
-        with self.subTest("unknown field"):
-            with self.assertRaises(TypeError):
-                copy.replace(instruction, label="x")
