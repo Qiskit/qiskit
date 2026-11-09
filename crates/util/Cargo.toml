@@ -11,6 +11,9 @@ doctest = false
 
 [features]
 py = ["dep:pyo3"]
+# Renamed from the implicit `mimalloc` implied by `dependencies.mimalloc.optional = true` to make it
+# clearer that it turns on a _global_ feature.
+global_mimalloc = ["dep:mimalloc"]
 
 [lints]
 workspace = true
@@ -21,3 +24,4 @@ pyo3 = { workspace = true, optional = true }
 thiserror.workspace = true
 indexmap.workspace = true
 foldhash.workspace = true
+mimalloc = { workspace = true, optional = true, features = ["local_dynamic_tls"] }
