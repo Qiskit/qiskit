@@ -13,13 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - name: Checkout tags
+      - name: Checkout
         uses: actions/checkout@v7
-        with:
-          fetch-tags: true
 
       - name: Checkout baseline
         run: |
+          git fetch --tags --depth=1 origin
           tag=$(git tag -l | tail -1)
           git checkout "${tag}"
 
@@ -65,5 +64,5 @@ jobs:
         run: |
           cd dist/c/lib
           abidiff libqiskit.so.base libqiskit.so \
-            --header-dir-1 ../include \
+            --header-dirs-1 ../include \
             --drop-private-types \
