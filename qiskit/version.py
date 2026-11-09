@@ -13,8 +13,10 @@
 
 """Contains Qiskit version."""
 
+import importlib.metadata
 import os
 import subprocess
+import tomllib
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -56,8 +58,20 @@ def git_version():
     return git_revision
 
 
-with open(os.path.join(ROOT_DIR, "VERSION.txt")) as version_file:
-    VERSION = version_file.read().strip()
+def _guess_version_from_uninstalled():
+    # Somebody is trying to import us without properly installing the package.  That _probably_
+    # means we've got a `pyproject.toml` file available to read the version from, but if not then
+    # really who knows what's going on.
+    default = "0.0.0"
+    try:
+        config = tomllib.load(open(os.path.join(ROOT_DIR, "pyproject.toml"), "rb"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return default
+    # Defensive against this file not actually being our `pyproject.toml`.
+    return config.get("project", {}).get("version", default)
+
+
+VERSION = importlib.metadata.version("qiskit") or _guess_version_from_uninstalled()
 
 
 def get_version_info():

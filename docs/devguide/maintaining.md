@@ -8,8 +8,8 @@ The information detailed here is mostly related to Qiskit releases and other int
 
 The version of the Qiskit package and crates is mentioned in a few places:
 
-* `qiskit/VERSION.txt` for defining the Python package and docs
-* `Cargo.toml` for defining the Rust crates
+* `pyproject.toml` (`project.version`) for defining the Python package and docs
+* `Cargo.toml` (`workspace.package.version`) for defining the Rust crates
 * `crates/bindgen/include/qiskit/version.h` for defining the C header file
 * `docs/release_notes.rst` for configuring the release-notes documentation build
 * `.mergify.yml` (implicitly via a branch name) for configuring where Mergify targets backports
