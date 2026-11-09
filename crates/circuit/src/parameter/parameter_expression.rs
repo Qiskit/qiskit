@@ -910,6 +910,19 @@ impl PyParameterExpression {
 
     /// Return a SymPy equivalent of this expression.
     ///
+    /// .. note::
+    ///
+    ///   This is for interoperability only. Qiskit will not accept or work with raw Sympy or
+    ///   Symengine expressions in its parameters, because they do not contain the tracking
+    ///   information used in circuit-parameter binding and assignment.
+    ///
+    /// .. warning::
+    ///
+    ///   This method will pass strings from the expression to SymPy which is
+    ///   inherently unsafe as SymPy heavily relies on Python's :func:`.eval`
+    ///   function for the processing of strings. This method is not safe to
+    ///   use with untrusted input.
+    ///
     /// Returns:
     ///     A SymPy equivalent of this expression.
     pub fn sympify(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -2069,8 +2082,8 @@ unsafe impl ::bytemuck::CheckedBitPattern for OpCode {
 unsafe impl ::bytemuck::NoUninit for OpCode {}
 
 impl OpCode {
-    pub fn from_u8(value: u8) -> PyResult<OpCode> {
-        Ok(bytemuck::checked::cast::<u8, OpCode>(value))
+    pub fn try_from_u8(value: u8) -> Result<OpCode, bytemuck::checked::CheckedCastError> {
+        bytemuck::checked::try_cast::<u8, OpCode>(value)
     }
 }
 
@@ -2327,5 +2340,15 @@ fn qpy_replay_inner(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_op_code_from_u8_invalid_input() {
+        assert!(OpCode::try_from_u8(123).is_err())
     }
 }
