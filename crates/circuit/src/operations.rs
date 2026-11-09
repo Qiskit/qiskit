@@ -17,8 +17,6 @@ use std::any::Any;
 use std::convert::Infallible;
 use std::fmt::Debug;
 use std::num::NonZero;
-#[cfg(not(feature = "py"))]
-use std::num::TryFromIntError;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -196,6 +194,7 @@ impl Param {
             [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
             #[cfg(feature = "py")]
             [Self::Obj(_), Self::Float(_)] => Ok(false),
+            #[cfg(feature = "py")]
             [Self::Float(_), Self::Obj(_)] => Ok(false),
             #[cfg(feature = "py")]
             [Self::Obj(_a), Self::ParameterExpression(_b)] => Ok(false),
