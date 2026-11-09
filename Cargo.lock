@@ -2370,7 +2370,6 @@ dependencies = [
  "bytemuck",
  "derive_more",
  "hashbrown 0.17.1",
- "mimalloc",
  "nalgebra 0.35.0",
  "ndarray",
  "num-bigint",
@@ -2506,7 +2505,6 @@ version = "2.7.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
- "mimalloc",
  "pyo3",
  "qiskit-accelerate",
  "qiskit-bindgen",
@@ -2669,6 +2667,7 @@ version = "2.7.0-dev"
 dependencies = [
  "foldhash 0.2.0",
  "indexmap",
+ "mimalloc",
  "num-complex",
  "pyo3",
  "thiserror 2.0.21",

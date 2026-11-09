@@ -21,6 +21,7 @@ workspace = true
 # crates as standalone binaries, executables, we need `libpython` to be linked in, so we make the
 # feature a default, and run `cargo test --no-default-features` to turn it off.
 cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-accelerate/cache_pygates", "qiskit-transpiler/cache_pygates", "qiskit-cext/cache_pygates", "qiskit-qpy/cache_pygates"]
+global_mimalloc = ["qiskit-util/global_mimalloc"]
 
 [build-dependencies]
 anyhow.workspace = true
@@ -44,4 +45,3 @@ qiskit-transpiler.workspace = true
 qiskit-util.workspace = true
 qiskit-quantum-info = { workspace = true, features = ["python"] }
 qiskit-synthesis.workspace = true
-mimalloc = { workspace = true, optional = true, features = ["local_dynamic_tls"] }
