@@ -42,7 +42,19 @@ pub use table::ResourceTable;
 /// The first rule is enforced in the type system by the structure of MIR instructions.  The second
 /// rule is checked by the verification logic; it is an error for a complete MIR transformation to
 /// leave reachable instructions in place that violate the overlap rules.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, bytemuck::Zeroable)]
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+    bytemuck::Zeroable,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[repr(transparent)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct Qid(u32);
@@ -164,7 +176,18 @@ impl fmt::Display for Qid {
 /// The "memory spaces" that a [`Qid`] can exist in.
 ///
 /// The semantics of the [`Qid`] in a complete program varies based on what space it is in.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, bytemuck::Zeroable, bytemuck::Contiguous)]
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Debug,
+    bytemuck::Zeroable,
+    bytemuck::Contiguous,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 #[repr(u8)]
 pub enum QidSpace {
@@ -198,7 +221,7 @@ impl QidSpace {
 ///
 /// Logically this is just a two-tuple of `(Qid, u32)`, but with an internal trick to make
 /// `Option<QidBit>` the same size as `QidBit`.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct QidBit {
     qid: Qid,
@@ -264,7 +287,7 @@ impl Ord for QidBit {
 /// In general, the validity of this object is dependent on the rest of the context for the [`Qid`]s
 /// it refers to.  You can construct a [`BitLayout`] that does not follow the rules, but
 /// [`ResourceTable`] methods will reject them.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub enum BitLayout {
     /// A [`Qid`] that has undefined size.
@@ -305,7 +328,7 @@ impl BitLayout {
 /// This is likely to be extended as MIR develops, and we learn more about what abstractions are
 /// suitable; the API split between "abstractly described in MIR" and "concretely described by
 /// custom backend target descriptors" is not clear yet.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct QidInfo {
     layout: BitLayout,
@@ -329,7 +352,7 @@ impl QidInfo {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct QidList(Vec<Qid>);
 
@@ -371,5 +394,39 @@ mod tests {
             QidBit::new(Qid::phys(1), 1),
         ];
         assert_eq!(weird, expected);
+    }
+
+    #[test]
+    fn qid_serde_round_trips() {
+        for qid in [Qid::virt(3), Qid::phys(4)] {
+            let json_dump = serde_json::to_string(&qid).unwrap();
+            let restored: Qid = serde_json::from_str(&json_dump).unwrap();
+
+            assert_eq!(restored, qid);
+            assert_eq!(restored.space(), qid.space());
+            assert_eq!(restored.value(), qid.value());
+        }
+    }
+
+    #[test]
+    fn qid_bit_serde_round_trips() {
+        let bit = QidBit::new(Qid::phys(5), 12);
+        let json_dump = serde_json::to_string(&bit).unwrap();
+        let restored: QidBit = serde_json::from_str(&json_dump).unwrap();
+
+        assert_eq!(restored, bit);
+        assert_eq!(restored.qid(), bit.qid());
+        assert_eq!(restored.bit(), bit.bit());
+    }
+
+    #[test]
+    fn qid_info_alias_serde_round_trip() {
+        let info = QidInfo::new(BitLayout::Alias(
+            vec![Some(QidBit::new(Qid::virt(0), 0)), None].into_boxed_slice(),
+        ));
+        let json_dump = serde_json::to_string(&info).unwrap();
+        let restored: QidInfo = serde_json::from_str(&json_dump).unwrap();
+
+        assert_eq!(restored, info);
     }
 }

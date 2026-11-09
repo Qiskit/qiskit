@@ -46,14 +46,13 @@ use qiskit_mir::{
     mir::Mir,
     ops::{
         MirOp,
-        pbc::{AngleType, Pauli, PauliRotation, PauliString},
+        pbc::{AngleType, Pauli, PauliMeasure, PauliRotation, PauliString},
     },
     qid::{BitLayout, QidInfo, QidList},
-    symbol_table::SymbolIdList,
+    symbol_table::{Symbol, SymbolIdList, SymbolType},
 };
 
-#[test]
-fn construct_bell_mir() {
+fn build_bell_mir() -> Mir {
     let mut mir = Mir::new();
 
     // Create Qids for q_0 and q_1.
@@ -67,6 +66,13 @@ fn construct_bell_mir() {
         .unwrap();
     let qid_1 = resource_table
         .add_qid(QidInfo::new(BitLayout::Base(1))) // use Base here to represent individual qubits with no aliasing/overlap
+        .unwrap();
+    let symbol_table = mir.symbol_table_mut();
+    let clbit0 = symbol_table
+        .add(Symbol::new("clbit0".to_string(), SymbolType::Bool))
+        .unwrap();
+    let clbit1 = symbol_table
+        .add(Symbol::new("clbit1".to_string(), SymbolType::Bool))
         .unwrap();
 
     // Here the instructions are created manually, from visually inspecting the
@@ -125,9 +131,47 @@ fn construct_bell_mir() {
         SymbolIdList::default(),
         SymbolIdList::default(),
     ));
+    instr_list.push_back(MirInstruction::new(
+        MirOp::PauliMeasure(PauliMeasure::new(PauliString::new(vec![Pauli::Z]))),
+        QidList::new(vec![qid_0]),
+        SymbolIdList::default(),
+        SymbolIdList::new(vec![clbit0]),
+    ));
+    instr_list.push_back(MirInstruction::new(
+        MirOp::PauliMeasure(PauliMeasure::new(PauliString::new(vec![Pauli::Z]))),
+        QidList::new(vec![qid_1]),
+        SymbolIdList::default(),
+        SymbolIdList::new(vec![clbit1]),
+    ));
 
-    //
-    // Measures go here -- Not Defined Yet
+    mir
+}
 
+#[test]
+fn construct_bell_mir() {
+    let mir = build_bell_mir();
     mir.verify().unwrap();
+}
+
+#[test]
+fn bell_mir_serde_roundtrip() {
+    let mir = build_bell_mir();
+    let json_dump = serde_json::to_string(&mir).unwrap();
+    let restored: Mir = serde_json::from_str(&json_dump).unwrap();
+
+    // Validate that it contains the same instructions.
+    let orig_instrs: Vec<&MirInstruction> =
+        mir.instructions().iter_main().map(|n| n.weight()).collect();
+    let restored_instrs: Vec<&MirInstruction> = restored
+        .instructions()
+        .iter_main()
+        .map(|n| n.weight())
+        .collect();
+    assert_eq!(orig_instrs, restored_instrs);
+    // Same qids
+    for (qid, info) in mir.resource_table().iter_qids() {
+        assert_eq!(restored.resource_table().info(qid), Some(info));
+    }
+
+    restored.verify().unwrap();
 }

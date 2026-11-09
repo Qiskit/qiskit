@@ -33,7 +33,7 @@ use thiserror::Error;
 /// `returns` field should be an empty vector. Similarly, a branch operation
 /// does not operate on, or effect any QuantumIDs and thus the `qids` list
 /// should be empty.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct MirInstruction {
     op: MirOp,
@@ -590,5 +590,40 @@ mod tests {
             instr_with_qids.verify(&resource_table, &symbol_table),
             Err(InstructionVerificationError::QidWidthMismatch { len1: 1, len2: 0 })
         ));
+    }
+
+    #[test]
+    fn line_graph_of_instructions_round_trips() {
+        let mut symbol_table = SymbolTable::default();
+        let sym_id = symbol_table
+            .add(Symbol::new("c0".to_string(), SymbolType::Bool))
+            .unwrap();
+        let mut instructions: line_graph::LineGraph<MirInstruction> = line_graph::LineGraph::new();
+        instructions.push_back(MirInstruction {
+            op: MirOp::PauliRotation(PauliRotation::new(
+                PauliString::new(vec![Pauli::X; 2]),
+                AngleType::new(0.5),
+            )),
+            qids: QidList::new(vec![Qid::virt(0), Qid::virt(1)]),
+            args: SymbolIdList::default(),
+            returns: SymbolIdList::default(),
+        });
+        instructions.push_back(MirInstruction {
+            op: MirOp::PauliMeasure(PauliMeasure::new(PauliString::new(vec![Pauli::Z; 2]))),
+            qids: QidList::new(vec![Qid::virt(1), Qid::virt(3)]),
+            args: SymbolIdList::default(),
+            returns: SymbolIdList::new(vec![sym_id]),
+        });
+
+        let json_dump = serde_json::to_string(&instructions).unwrap();
+        let restored: line_graph::LineGraph<MirInstruction> =
+            serde_json::from_str(&json_dump).unwrap();
+
+        let orig_instrs: Vec<&MirInstruction> =
+            instructions.iter_main().map(|n| n.weight()).collect();
+        let restored_instrs: Vec<&MirInstruction> =
+            restored.iter_main().map(|n| n.weight()).collect();
+
+        assert_eq!(orig_instrs, restored_instrs);
     }
 }
