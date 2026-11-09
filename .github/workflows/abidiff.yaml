@@ -62,4 +62,4 @@ jobs:
 
       - name: Compare
         continue-on-error: true
-        run: abidiff dist/c/lib/libqiskit.so.main dist/c/lib/libqiskit.so
+        run: abidiff --hd1 dist/c/include --drop-private-types dist/c/lib/libqiskit.so.main dist/c/lib/libqiskit.so
