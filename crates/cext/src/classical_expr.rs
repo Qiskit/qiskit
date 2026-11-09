@@ -1084,7 +1084,7 @@ impl CBigUint {
     /// # Safety
     ///
     /// The buffer must be valid for the lifetime of the returned slice.
-    unsafe fn to_biguint(&self) -> BigUint {
+    pub(crate) unsafe fn to_biguint(&self) -> BigUint {
         // SAFETY: Guaranteed by the caller.
         Self::biguint_from_u64_slice(unsafe { self.as_slice() })
     }
