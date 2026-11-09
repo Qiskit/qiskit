@@ -30,6 +30,3 @@ pub mod symbol_table;
 
 #[cfg(feature = "py")]
 pub mod py;
-
-#[cfg(feature = "py")]
-pub use py::mir_mod;
