@@ -3568,7 +3568,7 @@ mod test {
 
     #[test]
     fn test_count_ops_per_qubit() -> Result<(), CircuitDataError> {
-        let mut qc = CircuitData::with_capacity(2, 0, 2, Param::Float(0.0))?;
+        let mut qc = CircuitData::with_capacity(2, 0, 3, Param::Float(0.0))?;
 
         qc.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])?;
         qc.push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])?;
