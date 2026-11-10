@@ -42,9 +42,9 @@ pub enum Dressing {
 /// Where noise is injected in the box.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InjectionSite {
-    Start,
+    Before,
     Between,
-    End,
+    After,
 }
 
 /// Which randomization annotation this is, or `None` if it is not.
@@ -269,7 +269,7 @@ mod tests {
     fn test_the_annotations_share_one_flat_namespace() {
         for annotation in [
             twirl(DistributionKind::UniformPauli),
-            noise(InjectionSite::End),
+            noise(InjectionSite::After),
         ] {
             assert_eq!(annotation.namespace(), NAMESPACE);
         }
