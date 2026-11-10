@@ -101,9 +101,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     try:
         pi_symbol = pi_symbols[output]
     except KeyError as ex:
-        raise QiskitError(
-            "pi_check parameter output should be text, latex, mpl, or qasm."
-        ) from ex
+        raise QiskitError("pi_check parameter output should be text, latex, mpl, or qasm.") from ex
 
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
