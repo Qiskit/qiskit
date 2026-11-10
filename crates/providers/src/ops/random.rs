@@ -64,12 +64,6 @@ impl Stream {
     }
 }
 
-/// Return the block holding word `word` of a stream, and the word's offset within it.
-fn word_block(kind: PrngKind, word: usize) -> (usize, usize) {
-    let per_block = kind.block_words();
-    (word / per_block, word % per_block)
-}
-
 /// Return how many blocks a payload of `shape` takes at `bits_per_position` bits each.
 fn blocks_needed(kind: PrngKind, shape: &[usize], bits_per_position: usize) -> u128 {
     let bits = positions(shape).saturating_mul(bits_per_position as u128);
@@ -159,9 +153,7 @@ struct Layout {
     /// The output strides of the key batch's axes, zero where an axis is shared.
     key_strides: Vec<usize>,
     /// The output strides of the payload shape's axes, zero where an axis is shared.
-    draw_strides: Vec<usize>,
-    /// The number of values in the output.
-    len: usize,
+    payload_strides: Vec<usize>,
 }
 
 impl Layout {
@@ -187,47 +179,39 @@ impl Layout {
 
         Ok(Self {
             key_strides: strides(batch),
-            draw_strides: strides(shape),
-            len: out.iter().product(),
+            payload_strides: strides(shape),
             shape: out,
         })
     }
 
     /// Return how many values are in the output.
     fn len(&self) -> usize {
-        self.len
+        self.shape.iter().product()
     }
 
-    /// Return which key, and which of its values, each output reads, in row-major order.
+    /// Return which key and corresponding value each output reads in row-major order.
     ///
     /// The indices are carried along rather than recovered from each position, so that stepping to the
     /// next output is an increment.
-    fn sources(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
+    fn sources(&self) -> impl ExactSizeIterator<Item = (usize, usize)> + '_ {
         let rank = self.shape.len();
         let mut index = vec![0usize; rank];
         let mut key = 0usize;
         let mut counter = 0usize;
-        let mut remaining = self.len;
-        std::iter::from_fn(move || {
-            if remaining == 0 {
-                return None;
-            }
-            remaining -= 1;
+        (0..self.len()).map(move |_| {
             let current = (key, counter);
-            // Step the odometer, undoing each axis that wraps and advancing the first that does
-            // not. An axis contributes its stride on the way up and loses it all on the way round.
             for axis in (0..rank).rev() {
                 index[axis] += 1;
                 key += self.key_strides[axis];
-                counter += self.draw_strides[axis];
+                counter += self.payload_strides[axis];
                 if index[axis] < self.shape[axis] {
                     break;
                 }
                 key -= self.key_strides[axis] * index[axis];
-                counter -= self.draw_strides[axis] * index[axis];
+                counter -= self.payload_strides[axis] * index[axis];
                 index[axis] = 0;
             }
-            Some(current)
+            current
         })
     }
 }
@@ -338,7 +322,7 @@ impl ProgramOp for Split {
             let words = &source[key * width..][..width];
             // A derived key takes `width` words starting at word `payload * width` of the stream.
             // Several keys can share a block.
-            let (block_index, offset) = word_block(kind, payload * width);
+            let (block_index, offset) = kind.word_block(payload * width);
             let read = &mut block[..offset + width];
             Stream::at_block(kind, words, block_index).fill(read);
             into.copy_from_slice(&read[offset..]);
