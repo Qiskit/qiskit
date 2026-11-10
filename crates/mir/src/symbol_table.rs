@@ -62,26 +62,43 @@ impl SymbolTableErrorKind {
     }
 }
 
+/// The kind of classical value a symbol holds.
+/// This classifies the data a symbol represents, independent to its id or its name.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum SymbolType {
+    Bool,
+}
+
 /// Symbol represents various types of classical information. This will start
 /// with variables, but likely grow to include other things over time.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct Symbol {
     /// Symbol ID used in the IR. This field should be set when adding to the
     /// Symbol Table. This field is intentionally private and does not have a
     /// set method because it should not be set outside of this module.
     sym_id: Option<SymbolId>,
     name: String,
+    symbol_type: SymbolType,
 }
 
 impl Symbol {
     /// Create a new (empty) symbol.
-    pub const fn new(name: String) -> Self {
-        Self { sym_id: None, name }
+    pub const fn new(name: String, symbol_type: SymbolType) -> Self {
+        Self {
+            sym_id: None,
+            name,
+            symbol_type,
+        }
     }
 
     /// Get the name for this symbol.
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn symbol_type(&self) -> SymbolType {
+        self.symbol_type
     }
 
     /// Get the symbol id field for this symbol.
@@ -100,7 +117,10 @@ impl fmt::Display for Symbol {
     }
 }
 
+/// An opaque, cheap reference to a symbol in the SymbolTable.
+/// Instructions and other constructs refer to symbols by SymbolId.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct SymbolId(usize);
 
 impl fmt::Display for SymbolId {
@@ -110,6 +130,7 @@ impl fmt::Display for SymbolId {
 }
 
 #[derive(Default, Debug)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct SymbolTable {
     sym_table: Vec<Symbol>,
 }
@@ -155,6 +176,7 @@ impl SymbolTable {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct SymbolIdList(Vec<SymbolId>);
 
 impl SymbolIdList {
@@ -180,16 +202,17 @@ mod tests {
 
     #[test]
     fn test_basic_symbol() {
-        let new_sym = Symbol::new(String::from("test"));
+        let new_sym = Symbol::new(String::from("test"), SymbolType::Bool);
 
         assert_eq!(new_sym.sym_id, None);
         assert_eq!(new_sym.name, "test");
+        assert_eq!(new_sym.symbol_type(), SymbolType::Bool);
     }
 
     #[test]
     fn test_sym_table_add_symbols() {
-        let new_sym = Symbol::new(String::from("test"));
-        let mut new_sym2 = Symbol::new(String::from("bad"));
+        let new_sym = Symbol::new(String::from("test"), SymbolType::Bool);
+        let mut new_sym2 = Symbol::new(String::from("bad"), SymbolType::Bool);
 
         new_sym2.sym_id = Some(SymbolId(1));
 
@@ -207,7 +230,7 @@ mod tests {
 
     #[test]
     fn test_get_symbol() {
-        let new_sym = Symbol::new(String::from("test"));
+        let new_sym = Symbol::new(String::from("test"), SymbolType::Bool);
         let mut copy_sym = new_sym.clone();
 
         let mut sym_table = SymbolTable::default();
@@ -216,6 +239,10 @@ mod tests {
         copy_sym.sym_id = Some(sym_id);
 
         assert_eq!(*sym_table.get(sym_id).unwrap(), copy_sym);
+        assert_eq!(
+            sym_table.get(sym_id).unwrap().symbol_type(),
+            SymbolType::Bool
+        );
 
         assert!(sym_table.get(SymbolId(1)).is_none());
     }

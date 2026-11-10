@@ -16,13 +16,6 @@ mod capi;
 mod mir;
 mod passmanager;
 
-#[cfg(feature = "mimalloc")]
-use mimalloc::MiMalloc;
-
-#[cfg(feature = "mimalloc")]
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
-
 #[inline(always)]
 #[doc(hidden)]
 fn add_submodule<F>(m: &Bound<PyModule>, constructor: F, name: &str) -> PyResult<()>

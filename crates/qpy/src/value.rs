@@ -535,12 +535,6 @@ impl GenericValue {
             self.clone()
         }
     }
-    pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
-        match self {
-            GenericValue::CircuitData(circuit_data) => Some(circuit_data.as_ref().clone()),
-            _ => None,
-        }
-    }
     // return the inner GenericValue slice when the GenericData is a Tuple
     pub(crate) fn as_slice(&self) -> Option<&[GenericValue]> {
         match self {
@@ -840,11 +834,6 @@ pub(crate) fn serialize_generic_value(
         }
         GenericValue::Null => (ValueType::Null, Bytes::new()),
         GenericValue::CircuitData(circuit_data) => {
-            let layout = serialize(&crate::circuit_writer::pack_layout(
-                None,
-                circuit_data,
-                qpy_data.version,
-            )?)?;
             let packed_circuit = pack_circuit(
                 circuit_data,
                 ExtraCircuitData {
@@ -852,7 +841,7 @@ pub(crate) fn serialize_generic_value(
                     // Circuit metadata is always decoded with `json.loads`, and older Qiskit
                     // releases require the decoded value to be a dictionary.
                     metadata: "{}".into(),
-                    layout,
+                    layout: None,
                 },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
