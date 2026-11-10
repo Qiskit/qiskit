@@ -2524,6 +2524,7 @@ dependencies = [
  "qiskit-cext-vtable",
  "qiskit-circuit",
  "qiskit-circuit-library",
+ "qiskit-mir",
  "qiskit-passmanager",
  "qiskit-qasm2",
  "qiskit-qasm3",

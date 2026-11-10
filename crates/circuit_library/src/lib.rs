@@ -15,12 +15,12 @@ use pyo3::import_exception;
 #[cfg(feature = "py")]
 use pyo3::prelude::*;
 
-pub mod quantum_volume;
 pub mod blocks;
+pub mod entanglement;
 pub mod iqp;
 pub mod multi_local;
 pub mod parameter_ledger;
-pub mod entanglement;
+pub mod quantum_volume;
 pub mod suzuki_trotter;
 // TODO: Rewrite as Rust native After PauliEvolution Gate ported to Rust
 #[cfg(feature = "py")]

@@ -20,9 +20,9 @@ use pyo3::types::PyString;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 #[cfg(feature = "py")]
 use qiskit_circuit::circuit_data::PyCircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::{Param, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 
@@ -75,15 +75,13 @@ fn rotation_layer<'a>(
                 })
                 .zip(block_params)
                 .map(move |(start_idx, params)| {
-                    #[cfg(feature="py")]
+                    #[cfg(feature = "py")]
                     let (bound_op, bound_params) = block
                         .operation
                         .assign_parameters(&params)
                         .expect("Failed to rebind");
-                    #[cfg(not(feature= "py"))]
-                    let (bound_op, bound_params) = block
-                          .operation
-                          .assign_parameters(&params);
+                    #[cfg(not(feature = "py"))]
+                    let (bound_op, bound_params) = block.operation.assign_parameters(&params);
                     Ok((
                         bound_op,
                         bound_params,
@@ -130,9 +128,7 @@ fn entanglement_layer<'a>(
                     .assign_parameters(&params)
                     .expect("Failed to rebind");
                 #[cfg(not(feature = "py"))]
-                let (bound_op, bound_params) = block
-                    .operation
-                    .assign_parameters(&params);
+                let (bound_op, bound_params) = block.operation.assign_parameters(&params);
 
                 Ok((
                     bound_op,

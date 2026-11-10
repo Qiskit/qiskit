@@ -15,37 +15,35 @@ use pyo3::{
     types::{PyList, PyTuple},
 };
 #[cfg(feature = "py")]
-use qiskit_circuit::{
-    NoBlocks,
-    circuit_instruction::OperationFromPython
-};
+use qiskit_circuit::{NoBlocks, circuit_instruction::OperationFromPython};
 use qiskit_circuit::{
     operations::{Operation, Param, StandardGate},
     packed_instruction::PackedOperation,
 };
 use smallvec::SmallVec;
 
-#[cfg(feature="py")]
+#[cfg(feature = "py")]
 use crate::{QiskitError, entanglement::get_entanglement};
 
 #[derive(Debug, Clone)]
 pub enum BlockOperation {
-    Standard { gate: StandardGate },
+    Standard {
+        gate: StandardGate,
+    },
     #[cfg(feature = "py")]
-    PyCustom { builder: Py<PyAny> },
+    PyCustom {
+        builder: Py<PyAny>,
+    },
 }
 
 impl BlockOperation {
     #[cfg(not(feature = "py"))]
-    pub fn assign_parameters(
-        &self,
-        params: &[&Param],
-    ) -> (PackedOperation, SmallVec<[Param; 3]>) {
+    pub fn assign_parameters(&self, params: &[&Param]) -> (PackedOperation, SmallVec<[Param; 3]>) {
         match self {
             Self::Standard { gate } => (
-                  (*gate).into(),
-                  SmallVec::from_iter(params.iter().map(|&p| p.clone())),
-            )
+                (*gate).into(),
+                SmallVec::from_iter(params.iter().map(|&p| p.clone())),
+            ),
         }
     }
 
@@ -127,9 +125,7 @@ impl Block {
             num_parameters: gate.num_params() as usize,
         }
     }
-
 }
-
 
 // We introduce typedefs to make the types more legible. We can understand the hierarchy
 // as follows:
@@ -150,7 +146,6 @@ pub struct Entanglement {
 }
 
 impl Entanglement {
-
     #[cfg(feature = "py")]
     /// Create an entanglement from the input of an n_local circuit.
     pub fn from_py(

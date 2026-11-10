@@ -21,9 +21,9 @@ use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 #[cfg(feature = "py")]
 use qiskit_circuit::circuit_data::PyCircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
@@ -87,16 +87,22 @@ fn random_unitaries(seed: u64, size: usize) -> impl Iterator<Item = Matrix4<Comp
 
 const UNITARY_PER_SEED: usize = 50;
 
-#[cfg(feature="py")]
+#[cfg(feature = "py")]
 #[pyfunction]
 #[pyo3(name="quantum_volume", signature=(num_qubits, depth, seed=None))]
-pub fn py_quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyResult<PyCircuitData> {
+pub fn py_quantum_volume(
+    num_qubits: u32,
+    depth: usize,
+    seed: Option<u64>,
+) -> PyResult<PyCircuitData> {
     Ok(quantum_volume(num_qubits, depth, seed)?.into())
-
 }
 
-
-pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> Result<CircuitData, CircuitDataError> {
+pub fn quantum_volume(
+    num_qubits: u32,
+    depth: usize,
+    seed: Option<u64>,
+) -> Result<CircuitData, CircuitDataError> {
     let width = num_qubits as usize / 2;
     let num_unitaries = width * depth;
     let mut permutation: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();

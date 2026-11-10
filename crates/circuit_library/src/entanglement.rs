@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
+use crate::QiskitError;
 use itertools::Itertools;
 #[cfg(feature = "py")]
 use pyo3::prelude::*;
@@ -21,8 +23,6 @@ use pyo3::{
     types::{PyAnyMethods, PyList, PyListMethods, PyString, PyTuple},
 };
 use thiserror::Error;
-#[cfg(feature = "py")]
-use crate::QiskitError;
 
 /// Get all-to-all entanglement. For 4 qubits and block size 2 we have:
 /// [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
@@ -109,7 +109,7 @@ impl std::fmt::Display for InvalidEntanglement {
     }
 }
 
-#[cfg(feature ="py")]
+#[cfg(feature = "py")]
 impl From<InvalidEntanglement> for PyErr {
     fn from(value: InvalidEntanglement) -> PyErr {
         QiskitError::new_err(value.0)
