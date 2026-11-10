@@ -22,7 +22,7 @@ use crate::ops::pbc::{PauliMeasure, PauliRotation};
 ///
 /// This is intended to be grouped by logical category of operations (e.g.,
 /// quantum, control flow, classical, etc).
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub enum MirOp {
     // Quantum operations

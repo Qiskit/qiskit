@@ -13,7 +13,12 @@
 use std::ops;
 
 use hashbrown::HashSet;
-use rustworkx_core::petgraph::{acyclic::Acyclic, data::Build, prelude::*, visit};
+use rustworkx_core::petgraph::{
+    acyclic::Acyclic,
+    data::Build,
+    prelude::*,
+    visit::{self, IntoNodeReferences},
+};
 
 use super::*;
 use qiskit_util::IndexMap;
@@ -287,6 +292,65 @@ impl ops::Index<Qid> for ResourceTable {
         &self.qids[self
             .index_from_qid(index)
             .expect("caller enforces qid should be present")]
+    }
+}
+
+/// Serializes `ResourceTable` as a plain list of nodes and a list of edges, discarding the
+/// `Acyclic` wrapper's internal bookkeeping.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct ResourceTableData {
+    space: QidSpace,
+    nodes: Vec<QidInfo>,
+    edges: Vec<(u32, u32)>,
+}
+
+impl serde::Serialize for ResourceTable {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let graph = self.qids.inner();
+        let nodes: Vec<QidInfo> = graph
+            .node_references()
+            .map(|(_, info)| info.clone())
+            .collect();
+        let edges: Vec<(u32, u32)> = graph
+            .edge_references()
+            .map(|edge| (edge.source().index() as u32, edge.target().index() as u32))
+            .collect();
+        ResourceTableData {
+            space: self.space,
+            nodes,
+            edges,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ResourceTable {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let data = ResourceTableData::deserialize(deserializer)?;
+        let mut graph = Graph::with_capacity(data.nodes.len(), data.edges.len());
+        for node in data.nodes {
+            graph.add_node(node);
+        }
+        for (from, to) in data.edges {
+            graph
+                .try_add_edge(
+                    NodeIndex::new(from as usize),
+                    NodeIndex::new(to as usize),
+                    (),
+                )
+                .map_err(|e| {
+                    serde::de::Error::custom(format!(
+                        "invalid edge in serialized ResourceTable: {e}"
+                    ))
+                })?;
+        }
+        let qids = Acyclic::try_from_graph(graph).map_err(|_| {
+            serde::de::Error::custom("serialized ResourceTable graph contains a cycle")
+        })?;
+        Ok(ResourceTable {
+            space: data.space,
+            qids,
+        })
     }
 }
 
@@ -579,5 +643,34 @@ mod tests {
             table.mark_contains(Qid::phys(100), qids[0]),
             Err(ContainsError::AbsentQid(q)) if q == Qid::phys(100)
         ));
+    }
+
+    #[test]
+    fn resource_table_serde_round_trip() {
+        let mut table = ResourceTable::new(QidSpace::Virtual);
+        let base_qid_0 = table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+        let base_qid_1 = table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+        let alias_qid = table
+            .add_qid(QidInfo::new(BitLayout::Alias(
+                [
+                    Some(QidBit::new(base_qid_0, 0)),
+                    Some(QidBit::new(base_qid_1, 0)),
+                ]
+                .into(),
+            )))
+            .unwrap();
+        let abstract_qid = table.add_qid(QidInfo::new(BitLayout::Abstract)).unwrap();
+        table.mark_contains(alias_qid, abstract_qid).unwrap();
+
+        let json_dump = serde_json::to_string(&table).unwrap();
+        let restored: ResourceTable = serde_json::from_str(&json_dump).unwrap();
+
+        for &qid in &[base_qid_0, base_qid_1, alias_qid, abstract_qid] {
+            assert_eq!(restored.info(qid), table.info(qid));
+        }
+        assert!(!restored.overlap([base_qid_0, base_qid_1]));
+        assert!(restored.overlap([base_qid_0, alias_qid]));
+        assert!(restored.overlap([base_qid_1, alias_qid]));
+        assert!(restored.overlap([alias_qid, abstract_qid]));
     }
 }

@@ -64,14 +64,14 @@ impl SymbolTableErrorKind {
 
 /// The kind of classical value a symbol holds.
 /// This classifies the data a symbol represents, independent to its id or its name.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum SymbolType {
     Bool,
 }
 
 /// Symbol represents various types of classical information. This will start
 /// with variables, but likely grow to include other things over time.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct Symbol {
     /// Symbol ID used in the IR. This field should be set when adding to the
@@ -119,7 +119,7 @@ impl fmt::Display for Symbol {
 
 /// An opaque, cheap reference to a symbol in the SymbolTable.
 /// Instructions and other constructs refer to symbols by SymbolId.
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct SymbolId(usize);
 
@@ -129,7 +129,7 @@ impl fmt::Display for SymbolId {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct SymbolTable {
     sym_table: Vec<Symbol>,
@@ -175,7 +175,7 @@ impl SymbolTable {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct SymbolIdList(Vec<SymbolId>);
 
@@ -245,5 +245,40 @@ mod tests {
         );
 
         assert!(sym_table.get(SymbolId(1)).is_none());
+    }
+
+    #[test]
+    fn symbol_serde_round_trips() {
+        for sym_id in [None, Some(SymbolId(202))] {
+            let mut sym = Symbol::new("my_symbol".to_string(), SymbolType::Bool);
+            sym.sym_id = sym_id;
+
+            let json_dump = serde_json::to_string(&sym).unwrap();
+            let restored: Symbol = serde_json::from_str(&json_dump).unwrap();
+
+            assert_eq!(sym, restored);
+        }
+    }
+
+    #[test]
+    fn symbol_table_serde_round_trip() {
+        let mut table = SymbolTable::default();
+        let id1 = table
+            .add(Symbol::new("first".to_string(), SymbolType::Bool))
+            .unwrap();
+        let id2 = table
+            .add(Symbol::new("second".to_string(), SymbolType::Bool))
+            .unwrap();
+
+        let json_dump = serde_json::to_string(&table).unwrap();
+        let restored: SymbolTable = serde_json::from_str(&json_dump).unwrap();
+
+        let restored_first = restored.get(id1).unwrap();
+        assert_eq!(restored_first.name(), "first");
+        assert_eq!(restored_first.id(), Some(id1));
+
+        let restored_second = restored.get(id2).unwrap();
+        assert_eq!(restored_second.name(), "second");
+        assert_eq!(restored_second.id(), Some(id2));
     }
 }

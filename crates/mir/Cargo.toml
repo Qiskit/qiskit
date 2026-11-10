@@ -21,10 +21,12 @@ hashbrown.workspace = true
 mem_dbg = { workspace = true, optional = true }
 qiskit-util.workspace = true
 rustworkx-core.workspace = true
+serde.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
 itertools.workspace = true
+serde_json = "1.0"
 
 [[test]]
 name = "memory_report"

@@ -424,6 +424,31 @@ impl<T> ops::IndexMut<Index> for LineGraph<T> {
     }
 }
 
+/// Serializes as the main sequence content only, in order as a list.
+/// It discards internal bookkeeping, since these are implementation details.
+/// KNOWN ISSUE: orphan sequences are silently dropped.
+impl<T: serde::Serialize> serde::Serialize for LineGraph<T> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeSeq;
+        let mut seq = serializer.serialize_seq(None)?;
+        for node in self.iter_main() {
+            seq.serialize_element(node.weight())?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de, T: serde::Deserialize<'de>> serde::Deserialize<'de> for LineGraph<T> {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let items: Vec<T> = Vec::deserialize(deserializer)?;
+        let mut graph = Self::with_capacity(items.len());
+        for item in items {
+            graph.push_back(item);
+        }
+        Ok(graph)
+    }
+}
+
 /// A slot in the graph.
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
@@ -1125,5 +1150,25 @@ mod tests {
             .collect::<Vec<_>>();
         indices_main_rev.reverse();
         assert_eq!(indices.as_slice(), indices_main_rev.as_slice());
+    }
+}
+
+#[cfg(test)]
+mod serde_tests {
+    use super::*;
+
+    #[test]
+    fn sequence_round_trip() {
+        let mut g = LineGraph::<u8>::new();
+        g.push_back(1);
+        g.push_back(2);
+        g.push_back(3);
+        let json_dump = serde_json::to_string(&g).unwrap();
+        let restored: LineGraph<u8> = serde_json::from_str(&json_dump).unwrap();
+
+        let original: Vec<u8> = g.iter_main().map(|n| *n.weight()).collect();
+        let round_tripped: Vec<u8> = restored.iter_main().map(|n| *n.weight()).collect();
+        assert_eq!(original, round_tripped);
+        assert_eq!(round_tripped, vec![1, 2, 3]);
     }
 }
