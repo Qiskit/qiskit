@@ -31,6 +31,7 @@ use qiskit_circuit::operations::{ArrayType, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_util::complex::{C_ZERO, IM, c64};
 const EPS: f64 = 1e-10;
+const GATE_EQ_TOL:f64 = 1e-8;
 
 /// Compute the eigenvectors and eigenvalues for a 2x2 matrix
 ///
@@ -372,7 +373,7 @@ fn repetition_search(
 
     while d <= mux.len() / 2 {
         let mut disentanglement = false;
-        if abs_diff_eq!(mux[d], mux[0], epsilon = 1e-8) {
+        if abs_diff_eq!(mux[d], mux[0], epsilon = GATE_EQ_TOL) {
             let mux_org = mux_copy.clone();
             let repetitions = mux.len() / (2 * d);
             let mut p = 0;
@@ -413,7 +414,7 @@ fn repetition_verify(
     let mut next_base = base + d;
 
     while i < d {
-        if !abs_diff_eq!(mux[base], mux[next_base], epsilon = 1e-8) {
+        if !abs_diff_eq!(mux[base], mux[next_base], epsilon = GATE_EQ_TOL) {
             return false;
         }
         mux_copy[next_base] = None;
