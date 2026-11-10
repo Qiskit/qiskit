@@ -2729,7 +2729,9 @@ pub unsafe extern "C" fn qk_circuit_delay_unit(
 /// @param out_inst_idx A pointer to a ``size_t`` to write the index of the box in ``circuit`` to,
 ///     or ``NULL`` if it is not needed.
 ///
-/// @return An exit code.
+/// @return ``QkExitCode_Success`` if the box was appended or
+///     ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
+///     parameter names.
 ///
 /// # Example
 /// ```c
@@ -2785,7 +2787,9 @@ pub unsafe extern "C" fn qk_circuit_box(
 /// @param out_inst_idx A pointer to a ``size_t`` to write the index of the box in ``circuit`` to,
 ///     or ``NULL`` if it is not needed.
 ///
-/// @return An exit code.
+/// @return ``QkExitCode_Success`` if the box was appended or
+///     ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
+///     parameter names.
 ///
 /// # Example
 /// ```c
@@ -2849,7 +2853,9 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
 /// @param out_inst_idx A pointer to a ``size_t`` to write the index of the box in ``circuit`` to,
 ///     or ``NULL`` if it is not needed.
 ///
-/// @return An exit code.
+/// @return ``QkExitCode_Success`` if the box was appended or
+///     ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
+///     parameter names.
 ///
 /// # Example
 /// ```c
