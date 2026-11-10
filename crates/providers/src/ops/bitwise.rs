@@ -29,7 +29,7 @@ fn is_bit(dtype: DType) -> bool {
 macro_rules! bitwise_binary_op {
     ($name:ident, $op_name:literal, $eval_fn:expr) => {
         #[doc = concat!("Elementwise `", $op_name, "` of two `Bit` tensors of identical shape.")]
-        #[derive(Clone)]
+        #[derive(Clone, Debug)]
         pub struct $name;
 
         impl ProgramOp for $name {
@@ -69,7 +69,7 @@ bitwise_binary_op!(BitwiseOr, "bitwise_or", Tensor::bitor_tensor);
 bitwise_binary_op!(BitwiseXor, "bitwise_xor", Tensor::bitxor_tensor);
 
 /// Elementwise bitwise NOT of a `Bit` tensor.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BitwiseNot;
 
 impl ProgramOp for BitwiseNot {
@@ -102,7 +102,7 @@ impl ProgramOp for BitwiseNot {
 }
 
 /// XOR-reduction of a `Bit` tensor along a specified axis, removing that axis.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Parity {
     axis: usize,
 }
@@ -111,6 +111,11 @@ impl Parity {
     /// Construct a `Parity` op that reduces along `axis`.
     pub fn new(axis: usize) -> Self {
         Self { axis }
+    }
+
+    /// Return the axis this op reduces along.
+    pub fn axis(&self) -> usize {
+        self.axis
     }
 }
 
@@ -122,6 +127,9 @@ impl ProgramOp for Parity {
     }
     fn namespace(&self) -> &str {
         QISKIT
+    }
+    fn describe(&self) -> Option<String> {
+        Some(format!("axis={}", self.axis))
     }
     fn arity(&self) -> usize {
         1
@@ -202,8 +210,9 @@ mod tests {
                 .into_dyn()
                 .into_shared(),
         );
-        let result = Parity::new(0).eval(&[x]).unwrap();
-        assert_eq!(result, vec![bit(&[1, 1, 0])]);
+        let op = Parity::new(0);
+        assert_eq!(op.axis(), 0);
+        assert_eq!(op.eval(&[x]).unwrap(), vec![bit(&[1, 1, 0])]);
     }
 
     #[test]

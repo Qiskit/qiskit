@@ -160,6 +160,7 @@ mod circuit {
             export_fn!(qk_circuit_delay_dt),
             export_fn!(qk_circuit_delay_unit),
             export_fn!(qk_circuit_custom_operation),
+            export_fn!(qk_control_flow_condition_reg_cond_biguint),
         ]
     });
 }
@@ -234,6 +235,10 @@ mod dag {
             export_fn!(qk_dag_set_global_phase),
             export_fn!(qk_dag_view_instruction),
             export_fn!(qk_dag_apply_custom_operation),
+            export_fn!(qk_dag_apply_pauli_product_rotation),
+            export_fn!(qk_dag_apply_pauli_product_measurement),
+            export_fn!(qk_dag_op_node_pauli_product_rotation),
+            export_fn!(qk_dag_op_node_pauli_product_measurement),
         ]
     });
 }
@@ -577,6 +582,8 @@ mod classical_expr {
             export_fn!(qk_var_name),
             export_fn!(qk_var_type_info),
             export_fn!(qk_stretch_name),
+            export_fn!(qk_value_biguint),
+            export_fn!(qk_biguint_clear),
         ]
     });
 }

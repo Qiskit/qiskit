@@ -44,7 +44,11 @@ pub use table::ResourceTable;
 /// leave reachable instructions in place that violate the overlap rules.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, bytemuck::Zeroable)]
 #[repr(transparent)]
-#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
+#[cfg_attr(
+    feature = "mem_dbg",
+    derive(mem_dbg::MemSize, mem_dbg::MemDbg),
+    mem_size(flat)
+)]
 pub struct Qid(u32);
 impl Qid {
     /// The bitwidth allowed for use by values.
@@ -165,7 +169,11 @@ impl fmt::Display for Qid {
 ///
 /// The semantics of the [`Qid`] in a complete program varies based on what space it is in.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, bytemuck::Zeroable, bytemuck::Contiguous)]
-#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
+#[cfg_attr(
+    feature = "mem_dbg",
+    derive(mem_dbg::MemSize, mem_dbg::MemDbg),
+    mem_size(flat)
+)]
 #[repr(u8)]
 pub enum QidSpace {
     /// Qids that can be freely created and manipulated within transformations on MIR itself.
@@ -199,7 +207,11 @@ impl QidSpace {
 /// Logically this is just a two-tuple of `(Qid, u32)`, but with an internal trick to make
 /// `Option<QidBit>` the same size as `QidBit`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
+#[cfg_attr(
+    feature = "mem_dbg",
+    derive(mem_dbg::MemSize, mem_dbg::MemDbg),
+    mem_size(flat)
+)]
 pub struct QidBit {
     qid: Qid,
     /// The bitwise negation of the index.

@@ -1,0 +1,5 @@
+---
+build:
+  - |
+    The undocumented ``env`` recipe in the ``Makefile`` has been removed.  This made a rather
+    opinionated choice to use ``conda``, which is not standard for the modern Python ecosystem.

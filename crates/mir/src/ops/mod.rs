@@ -16,7 +16,7 @@
 
 pub mod pbc;
 
-use crate::ops::pbc::PauliRotation;
+use crate::ops::pbc::{PauliMeasure, PauliRotation};
 
 /// Enum to track the various Operations in MIR.
 ///
@@ -27,12 +27,21 @@ use crate::ops::pbc::PauliRotation;
 pub enum MirOp {
     // Quantum operations
     PauliRotation(PauliRotation),
+    PauliMeasure(PauliMeasure),
+    // Classical Operations
+    /// Logical NOT of a classical bit.
+    ///
+    /// This instruction has a single arg (a boolean symbol) - the source clbit.
+    /// It has a single return with (a boolean symbol) - the destination bit.
+    /// Semantics: returns[0] = NOT(args[0]).
+    BoolNot,
 }
 
 #[cfg(test)]
 mod tests {
     use crate::ops::MirOp;
     use crate::ops::PauliRotation;
+    use crate::ops::pbc::PauliMeasure;
     use crate::ops::pbc::{AngleType, Pauli, PauliString};
 
     #[test]
@@ -46,6 +55,9 @@ mod tests {
             AngleType::new(0.5),
         ));
 
+        let mir_op3 = MirOp::PauliMeasure(PauliMeasure::new(PauliString::new(vec![Pauli::I; 8])));
+
         assert_eq!(mir_op, mir_op2);
+        assert_ne!(mir_op2, mir_op3);
     }
 }
