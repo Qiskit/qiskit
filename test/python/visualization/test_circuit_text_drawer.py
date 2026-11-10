@@ -2023,9 +2023,9 @@ class TestTextDrawerParams(QiskitTestCase):
         """Text pi in circuit with parameter expression."""
         expected = "\n".join(
             [
-                "   ┌─────────────────────┐",
-                "q: ┤ Rx((π - x)*(π - y)) ├",
-                "   └─────────────────────┘",
+                "   ┌─────────────────────────┐",
+                "q: ┤ Rx(((π) - x)*((π) - y)) ├",
+                "   └─────────────────────────┘",
             ]
         )
 
@@ -4375,11 +4375,12 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         circuit = QuantumCircuit(qr, cr)
 
         a = Parameter("a")
+        angle = Parameter("π/a")
         circuit.h(0)
         circuit.measure(0, 2)
         with circuit.for_loop((2, 4, 8), loop_parameter=a):
             circuit.cx(0, 1)
-            circuit.rx(pi / a, 1)
+            circuit.rx(angle, 1)
             circuit.measure(0, 0)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)
