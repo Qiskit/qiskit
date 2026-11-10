@@ -51,7 +51,6 @@ use crate::parameter::symbol_expr::SymbolVector;
 use crate::parameter::symbol_expr::{self, SymbolExpr};
 #[cfg(feature = "py")]
 use crate::parameter::symbol_parser::parse_expression;
-#[cfg(feature = "py")]
 use qiskit_util::IndexSet;
 
 #[cfg(feature = "py")]
@@ -164,7 +163,6 @@ impl ParameterExpression {
         (self.name_map == other.name_map) && self.expr.eq_exact(&other.expr)
     }
 
-    #[cfg(feature = "py")]
     pub fn qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::new();
         let mut unused: IndexSet<_> = self.name_map.values().cloned().collect();
@@ -214,7 +212,7 @@ impl ParameterExpression {
         for symbol in unused {
             replay.push(OPReplay {
                 op: OpCode::MUL,
-                lhs: Some(ParameterValueType::Parameter(PyParameter(Arc::new(symbol)))),
+                lhs: Some(ParameterValueType::Parameter(Arc::new(symbol))),
                 rhs: Some(ParameterValueType::Int(0)),
             });
             replay.push(OPReplay {
@@ -2015,16 +2013,50 @@ fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<Bound<'_, PyAny>> {
 /// A singular parameter value used for QPY serialization. This covers anything
 /// but a [PyParameterExpression], which is represented by [None] in the serialization.
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "py", derive(IntoPyObject, FromPyObject))]
+// #[cfg_attr(feature = "py", derive(IntoPyObject, FromPyObject))]
 pub enum ParameterValueType {
     Int(i64),
     Float(f64),
     Complex(Complex64),
-    #[cfg(feature = "py")]
-    Parameter(PyParameter),
+    Parameter(Arc<Symbol>),
 }
 
 #[cfg(feature = "py")]
+impl<'a, 'py> FromPyObject<'a, 'py> for ParameterValueType {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(as_int) = obj.extract() {
+            Ok(ParameterValueType::Int(as_int))
+        } else if let Ok(as_float) = obj.extract() {
+            Ok(ParameterValueType::Float(as_float))
+        } else if let Ok(as_complex) = obj.extract() {
+            Ok(ParameterValueType::Complex(as_complex))
+        } else {
+            let as_expr: PyParameter = obj.extract()?;
+            Ok(ParameterValueType::Parameter(as_expr.0))
+        }
+    }
+}
+
+#[cfg(feature = "py")]
+impl<'py> IntoPyObject<'py> for ParameterValueType {
+    type Target = PyAny;
+
+    type Output = Bound<'py, PyAny>;
+
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            ParameterValueType::Int(int) => int.into_bound_py_any(py),
+            ParameterValueType::Float(float) => float.into_bound_py_any(py),
+            ParameterValueType::Complex(complex) => complex.into_bound_py_any(py),
+            ParameterValueType::Parameter(symbol) => PyParameter(symbol).into_bound_py_any(py),
+        }
+    }
+}
+
 impl ParameterValueType {
     fn extract_from_expr(expr: &SymbolExpr) -> Option<ParameterValueType> {
         if let Some(value) = expr.eval(true) {
@@ -2034,7 +2066,7 @@ impl ParameterValueType {
                 Value::Complex(c) => Some(ParameterValueType::Complex(c)),
             }
         } else if let SymbolExpr::Symbol(symbol) = expr {
-            Some(Self::Parameter(PyParameter(symbol.clone())))
+            Some(Self::Parameter(symbol.clone()))
         } else {
             // ParameterExpressions have the value None, as they must be constructed
             None
@@ -2045,8 +2077,7 @@ impl ParameterValueType {
 impl From<ParameterValueType> for ParameterExpression {
     fn from(value: ParameterValueType) -> Self {
         match value {
-            #[cfg(feature = "py")]
-            ParameterValueType::Parameter(PyParameter(symbol)) => {
+            ParameterValueType::Parameter(symbol) => {
                 let expr = SymbolExpr::Symbol(symbol);
                 Self::from_symbol_expr(expr)
             }
@@ -2204,7 +2235,6 @@ impl OPReplay {
 /// Args:
 ///     - joint_parameter_expr: The full expression, e.g. expr1 + expr2.
 ///     - sub_expr: The sub expression, on whose symbols we restrict the name map.
-#[cfg(feature = "py")]
 fn filter_name_map(
     sub_expr: &SymbolExpr,
     name_map: &HashMap<String, Symbol>,
@@ -2222,7 +2252,6 @@ fn filter_name_map(
     }
 }
 
-#[cfg(feature = "py")]
 fn qpy_replay_inner(
     expr: &ParameterExpression,
     name_map: &HashMap<String, Symbol>,
