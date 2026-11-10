@@ -167,6 +167,11 @@ impl Mean {
         Self { axis }
     }
 
+    /// Return the axis this op reduces along.
+    pub fn axis(&self) -> usize {
+        self.axis
+    }
+
     /// Compute the mean of `x` along `self.axis`, which must be in bounds for `x`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
         // can't use `ndarray::mean_axis` because it returns `None` for a zero-length axis.
@@ -211,6 +216,16 @@ impl Variance {
     /// correction `ddof`.
     pub fn new(axis: usize, ddof: f64) -> Self {
         Self { axis, ddof }
+    }
+
+    /// Return the axis this op reduces along.
+    pub fn axis(&self) -> usize {
+        self.axis
+    }
+
+    /// Return the degrees-of-freedom correction subtracted from the divisor.
+    pub fn ddof(&self) -> f64 {
+        self.ddof
     }
 
     /// Compute the variance of `x` along `self.axis`.
@@ -263,6 +278,16 @@ impl Std {
         Self { axis, ddof }
     }
 
+    /// Return the axis this op reduces along.
+    pub fn axis(&self) -> usize {
+        self.axis
+    }
+
+    /// Return the degrees-of-freedom correction subtracted from the divisor.
+    pub fn ddof(&self) -> f64 {
+        self.ddof
+    }
+
     /// Compute the standard deviation of `x` along `self.axis`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
         match Variance::new(self.axis, self.ddof).reduce_axis(x) {
@@ -301,6 +326,17 @@ mod tests {
             dtype,
             shape: vec![rows, cols],
         }
+    }
+
+    #[test]
+    fn test_a_reduction_reports_what_it_was_built_with() {
+        assert_eq!(Mean::new(1).axis(), 1);
+
+        let variance = Variance::new(2, 1.0);
+        assert_eq!((variance.axis(), variance.ddof()), (2, 1.0));
+
+        let std = Std::new(0, 0.5);
+        assert_eq!((std.axis(), std.ddof()), (0, 0.5));
     }
 
     // --- Mean tests ---
