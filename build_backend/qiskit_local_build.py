@@ -16,6 +16,9 @@ This is a very thin wrapper around `maturin`.  The purpose of it is to let us co
 system of environment variables to control various things about the build, rather than requiring
 people to hard-couple to Maturin's opinionated (and not fantastically documented) PEP 517
 configuration.
+
+We should not include any build-critical logic in this build backend; this is only supposed to be
+for rewriting custom configurations from Qiskit-specific forms into `maturin`-understood ones.
 """
 
 # The things we export are the PEP 517 / PEP 660 hooks.
@@ -81,6 +84,13 @@ def build_profile():
 
 
 def feature_overrides() -> set[str] | None:
+    """Convert the feature-setting environment variables into a suitable feature set.
+
+    Returns ``None`` if we resolve to the defaults.  An empty iterable means the feature set needs
+    to be explicitly overridden to be empty."""
+    # Qiskit's environment variables are additive (or subtractive) from the base configuration,
+    # whereas Maturin's `--features`-like flags are overrides.  To make our set of features, we have
+    # to start from the defaults and modify, rather than building up a set of additions/removals.
     default_features = frozenset(
         PYPROJECT_TOML.get("tool", {}).get("maturin", {}).get("features", ())
     )
@@ -131,6 +141,7 @@ def update_config_from_environment(
     extra_args = []
     if profile := parsed.profile or build_profile():
         extra_args.append(f"--profile={profile}")
+
     if parsed.all_features:
         extra_args.append("--all-features")
     elif parsed.features is not None:
@@ -138,6 +149,8 @@ def update_config_from_environment(
         features = [feature for arg in parsed.features for feature in arg.replace(",", " ").split()]
         extra_args.append(f"--features={','.join(features)}")
     elif (features := feature_overrides()) is not None:
+        # Note that this is a configuration override even if `features` is empty; the case of
+        # "unset" is different to "set to empty".
         extra_args.append(f"--features={','.join(sorted(features))}")
 
     # Ours go at the start, so any `--` present doesn't mess us up.

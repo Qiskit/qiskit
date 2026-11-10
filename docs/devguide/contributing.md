@@ -190,26 +190,26 @@ interaction](#advanced-build-system-interaction).
 
   Corresponds to the Cargo `--profile` (where Qiskit's `debug` sets Cargo's `dev`).
 
-* `QISKIT_BUILD_WITH_MIMALLOC=1`: use
+* `QISKIT_BUILD_WITH_MIMALLOC`: if set to `1`, use
   [mimalloc](https://github.com/microsoft/mimalloc) as the global allocator in the library, rather
   than the system default.  This is generally more performant and uses less memory.  Requires a C
   compiler during the build.  This is also read by `make c`.
 
   Corresponds to the Rust feature `global_mimalloc`.
 
-* `QISKIT_NO_CACHE_GATES=1`: disable runtime caching of Python gate objects in the Rust components
-  of `QuantumCircuit` and `DAGCircuit`.  Having the cache generally makes Python-space operations
-  faster, but uses more memory.  You typically should not set this unless your workflows only very
-  rarely need to access the `CircuitInstruction.operation` or `DAGOpNode.op` attributes.  This has
-  no effect in stand-alone C builds without Python bindings.
+* `QISKIT_NO_CACHE_GATES`: if set to `1`, disable runtime caching of Python gate objects in the Rust
+  components of `QuantumCircuit` and `DAGCircuit`.  Having the cache generally makes Python-space
+  operations faster, but uses more memory.  You typically should not set this unless your workflows
+  only very rarely need to access the `CircuitInstruction.operation` or `DAGOpNode.op` attributes.
+  This has no effect in stand-alone C builds without Python bindings.
 
   Corresponds to the negation of the Rust feature `cache_pygates`.
 
-* `QISKIT_ALLOW_AUTOMATIC_RUST_INSTALLATION`: if set, this permits (but does not force) the
+* `QISKIT_ALLOW_AUTOMATIC_RUST_INSTALLATION`: if set to `1`, this permits (but does not force) the
   underlying build system to install a Rust toolchain if necessary.  Qiskit's build backend
-  suppresses this automatic behavior by default so that it is opt in rather than opt out.  Set this
-  variable to `1` to disable the suppression.  This will have no effect if the build backend does
-  not attempt or is otherwise not configured to attempt automatic installation.
+  suppresses this automatic behavior by default so that it is opt in rather than opt out.  This will
+  have no effect if the build backend does not attempt or is otherwise not configured to attempt
+  automatic installation.
 
 ### Advanced build-system interaction
 
