@@ -2023,9 +2023,9 @@ class TestTextDrawerParams(QiskitTestCase):
         """Text pi in circuit with parameter expression."""
         expected = "\n".join(
             [
-                "   ┌─────────────────────────┐",
-                "q: ┤ Rx(((π) - x)*((π) - y)) ├",
-                "   └─────────────────────────┘",
+                "   ┌─────────────────────┐",
+                "q: ┤ Rx((π - x)*(π - y)) ├",
+                "   └─────────────────────┘",
             ]
         )
 
