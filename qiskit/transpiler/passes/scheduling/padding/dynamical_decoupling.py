@@ -25,7 +25,6 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.passes.scheduling.padding.base_padding import BasePadding
 from qiskit.transpiler.target import Target
 
@@ -330,19 +329,19 @@ class PadDynamicalDecoupling(BasePadding):
         if len(self._dd_sequence) == 1:
             # Special case of using a single gate for DD
             u_inv = self._dd_sequence[0].inverse().to_matrix()
-            theta, phi, lam, phase = OneQubitEulerDecomposer().angles_and_phase(u_inv)
+            decomposer = OneQubitEulerDecomposer("U")
             if isinstance(next_node, DAGOpNode) and isinstance(next_node.op, (UGate, U3Gate)):
                 # Absorb the inverse into the successor (from left in circuit)
                 op = next_node.op
-                theta_r, phi_r, lam_r = op.params
-                op.params = Optimize1qGates.compose_u3(theta_r, phi_r, lam_r, theta, phi, lam)
+                theta, phi, lam, phase = decomposer.angles_and_phase(op.to_matrix() @ u_inv)
+                op.params = [theta, phi, lam]
                 next_node.op = op
                 sequence_gphase += phase
             elif isinstance(prev_node, DAGOpNode) and isinstance(prev_node.op, (UGate, U3Gate)):
                 # Absorb the inverse into the predecessor (from right in circuit)
                 op = prev_node.op
-                theta_l, phi_l, lam_l = op.params
-                op.params = Optimize1qGates.compose_u3(theta, phi, lam, theta_l, phi_l, lam_l)
+                theta, phi, lam, phase = decomposer.angles_and_phase(u_inv @ op.to_matrix())
+                op.params = [theta, phi, lam]
                 new_prev_node = dag.substitute_node(prev_node, op)
                 start_time = self.property_set["node_start_time"].pop(prev_node)
                 if start_time is not None:

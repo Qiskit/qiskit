@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed :class:`.PadDynamicalDecoupling` to preserve global phase when inserting
+    a single-gate sequence, such as a Hahn echo. The inverse of the inserted gate
+    is now absorbed into a neighboring :class:`.UGate` or :class:`.U3Gate` with
+    the phase of the complete product accounted for.
+    Fixed `#17437 <https://github.com/Qiskit/qiskit/issues/17437>`__.

@@ -18,7 +18,7 @@ from numpy import pi
 from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit, Delay, Measure, Reset, Parameter
-from qiskit.circuit.library import XGate, YGate, RXGate, UGate, CXGate, HGate
+from qiskit.circuit.library import XGate, YGate, RXGate, UGate, U3Gate, CXGate, HGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
@@ -29,7 +29,7 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
-from test import QiskitTestCase
+from test import QiskitTestCase, combine
 
 
 @ddt
@@ -90,6 +90,35 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
             ],
             dt=1e-9,
         )
+
+    @combine(
+        neighbor=[UGate, U3Gate],
+        position=["predecessor", "successor"],
+        dd_gate=[XGate(), YGate(), RXGate(0.7)],
+        global_phase=[0, 0.37],
+        angles=[(0.4, -0.6, 1.3), (0, 0, 0), (pi, 0, pi)],
+    )
+    def test_single_gate_preserves_global_phase(
+        self, neighbor, position, dd_gate, global_phase, angles
+    ):
+        """Absorbing a single DD gate preserves the full operator, including phase."""
+        circuit = QuantumCircuit(1, global_phase=global_phase)
+        gate = neighbor(*angles)
+        if position == "predecessor":
+            circuit.append(gate, [0])
+            circuit.delay(300, 0)
+        else:
+            circuit.delay(300, 0)
+            circuit.append(gate, [0])
+        durations = InstructionDurations([(gate.name, None, 50), (dd_gate.name, None, 50)], dt=1e-9)
+        result = PassManager(
+            [
+                ALAPScheduleAnalysis(durations),
+                PadDynamicalDecoupling(durations, [dd_gate], skip_reset_qubits=False),
+            ]
+        ).run(circuit)
+        self.assertEqual(result.count_ops().get(dd_gate.name), 1)
+        self.assertEqual(Operator(result), Operator(circuit))
 
     def test_insert_dd_ghz(self):
         """Test DD gates are inserted in correct spots.
@@ -408,7 +437,6 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
     def test_insert_midmeas_hahn_alap(self):
         """Test a single X gate as Hahn echo can absorb in the downstream circuit.
 
-        global phase: 3π/2
                                ┌────────────────┐       ┌───┐       ┌────────────────┐»
         q_0: ────────■─────────┤ Delay(625[dt]) ├───────┤ X ├───────┤ Delay(625[dt]) ├»
                    ┌─┴─┐       └────────────────┘┌──────┴───┴──────┐└────────────────┘»
@@ -437,7 +465,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         midmeas_dd = pm.run(self.midmeas)
 
-        combined_u = UGate(0, 0, 0)
+        combined_u = UGate(0, pi, -pi)
 
         expected = QuantumCircuit(3, 1)
         expected.cx(0, 1)
@@ -452,7 +480,6 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.cx(1, 2)
         expected.cx(0, 1)
         expected.delay(700, 2)
-        expected.global_phase = pi
 
         self.assertEqual(midmeas_dd, expected)
         # check the absorption into U was done correctly
@@ -506,12 +533,14 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.cx(0, 1)
         expected.delay(700, 2)
 
+        expected.global_phase = pi / 2
+
         self.assertEqual(midmeas_dd, expected)
         # check the absorption into U was done correctly
-        self.assertTrue(
-            Operator(XGate()).equiv(
-                Operator(UGate(3 * pi / 4, -pi / 2, pi / 2)) & Operator(RXGate(pi / 4))
-            )
+        np.testing.assert_allclose(
+            np.exp(1j * expected.global_phase) * combined_u.to_matrix(),
+            RXGate(pi / 4).inverse().to_matrix() @ XGate().to_matrix(),
+            atol=1e-14,
         )
 
     def test_insert_ghz_uhrig(self):
