@@ -92,6 +92,19 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     Raises:
         QiskitError: if output is not a valid option.
     """
+    pi_symbols = {
+        "text": "π",
+        "qasm": "pi",
+        "latex": "\\pi",
+        "mpl": "$\\pi$",
+    }
+    try:
+        pi_symbol = pi_symbols[output]
+    except KeyError as ex:
+        raise QiskitError(
+            "pi_check parameter output should be text, latex, mpl, or qasm."
+        ) from ex
+
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
         values = inpt._values()
@@ -106,7 +119,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
                 # therefore we use _Value instead of just str(abs(val))
                 sym_str = str(qiskit._accelerate.circuit.ParameterExpression._Value(abs(val)))
                 sym_str_re = re.compile(rf"(?<!\d){re.escape(sym_str)}(?!\d)")
-                pi_replacement = f"({pi})"
+                pi_replacement = pi if pi == pi_symbol else f"({pi})"
                 param_str = sym_str_re.sub(lambda _: pi_replacement, param_str)
         return param_str
     elif isinstance(inpt, str):
@@ -116,16 +129,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         if abs(single_inpt) < eps:
             return "0"
 
-        if output == "text":
-            pi = "π"
-        elif output == "qasm":
-            pi = "pi"
-        elif output == "latex":
-            pi = "\\pi"
-        elif output == "mpl":
-            pi = "$\\pi$"
-        else:
-            raise QiskitError("pi_check parameter output should be text, latex, mpl, or qasm.")
+        pi = pi_symbol
 
         neg_str = "-" if single_inpt < 0 else ""
         abs_inpt = abs(single_inpt)

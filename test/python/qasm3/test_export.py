@@ -590,7 +590,7 @@ PauliEvolution_1(_t_2_) q[0], q[1];
 
         out_qasm = dumps(qc)
 
-        self.assertIn("rz(23.141592653589793 + (pi)*th) q[0];", out_qasm)
+        self.assertIn("rz(23.141592653589793 + pi*th) q[0];", out_qasm)
         self.assertIn("rz(th**(pi/2)) q[0];", out_qasm)
         self.assertIn("rz((pi/2)**th) q[0];", out_qasm)
         self.assertIn("rz((2/(1*pi))*th) q[0];", out_qasm)
@@ -598,6 +598,8 @@ PauliEvolution_1(_t_2_) q[0], q[1];
         self.assertIn("rz((1/(2*pi))**th) q[0];", out_qasm)
         self.assertEqual(pi_check(th + pi / 2, output="latex"), r"(\frac{\pi}{2}) + th")
         self.assertEqual(pi_check(th + pi / 2, output="mpl"), r"($\pi$/2) + th")
+        self.assertEqual(pi_check(th + pi, output="latex"), r"\pi + th")
+        self.assertEqual(pi_check(th + pi, output="mpl"), r"$\pi$ + th")
 
     def test_standard_parameterized_gate_called_multiple_times(self):
         """Test that a parameterized gate is called correctly if the first instance of it is
