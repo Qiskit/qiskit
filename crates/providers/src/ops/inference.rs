@@ -125,7 +125,7 @@ pub(super) fn promoted_dtype(x: DType, y: DType, accepts: Accepts) -> Result<DTy
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tensor::{Dim, TensorError};
+    use crate::tensor::{Dim, TensorError, dim_shape};
 
     /// Admit every dtype, so that a rule is exercised with nothing of its own rejected.
     fn any(_dtype: DType) -> bool {
@@ -136,7 +136,7 @@ mod test {
     fn ty(dtype: DType, shape: &[usize]) -> TensorType {
         TensorType {
             dtype,
-            shape: shape.iter().copied().map(Dim::Fixed).collect(),
+            shape: dim_shape(shape),
         }
     }
 
