@@ -2,11 +2,11 @@ name: Compare C ABI
 
 on:
   pull_request:
-    # paths:
-    #   - "crates/bindgen/**"
-    #   - "crates/bindgen-cli/**"
-    #   - "crates/cext/**"
-    #   - "crates/cext-vtable/**"
+    paths:
+      - "crates/bindgen/**"
+      - "crates/bindgen-cli/**"
+      - "crates/cext/**"
+      - "crates/cext-vtable/**"
 
 jobs:
   abidiff:
