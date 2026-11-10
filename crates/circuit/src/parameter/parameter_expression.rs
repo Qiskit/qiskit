@@ -2026,7 +2026,6 @@ fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<Bound<'_, PyAny>> {
 /// A singular parameter value used for QPY serialization. This covers anything
 /// but a [PyParameterExpression], which is represented by [None] in the serialization.
 #[derive(Clone, Debug)]
-// #[cfg_attr(feature = "py", derive(IntoPyObject, FromPyObject))]
 pub enum ParameterValueType {
     Int(i64),
     Float(f64),
