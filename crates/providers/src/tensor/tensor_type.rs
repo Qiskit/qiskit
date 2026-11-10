@@ -53,6 +53,29 @@ impl fmt::Display for Dim {
     }
 }
 
+impl From<usize> for Dim {
+    fn from(size: usize) -> Dim {
+        Dim::Fixed(size)
+    }
+}
+
+impl From<&usize> for Dim {
+    fn from(size: &usize) -> Dim {
+        Dim::Fixed(*size)
+    }
+}
+
+impl From<&Dim> for Dim {
+    fn from(dim: &Dim) -> Dim {
+        *dim
+    }
+}
+
+/// Collect axis sizes into a shape of [`Dim`].
+pub fn dim_shape(shape: impl IntoIterator<Item = impl Into<Dim>>) -> Vec<Dim> {
+    shape.into_iter().map(Into::into).collect()
+}
+
 /// Render a shape as `[4000, <=2]`.
 pub(crate) fn fmt_shape(shape: &[Dim]) -> String {
     let dims: Vec<String> = shape.iter().map(Dim::to_string).collect();
@@ -239,6 +262,28 @@ mod test {
     }
 
     #[test]
+    fn test_dim_shape_accepts_sizes_and_dims() {
+        let expected = [Dim::Fixed(3), Dim::Fixed(8)];
+
+        // Sizes, owned or borrowed, and a lazy iterator over them.
+        let sizes = vec![3, 8];
+        assert_eq!(dim_shape([3, 8]), expected);
+        assert_eq!(dim_shape(&sizes), expected);
+        assert_eq!(dim_shape(sizes.clone()), expected);
+        assert_eq!(
+            dim_shape(sizes.iter().map(|n| n + 1)),
+            [4, 9].map(Dim::Fixed)
+        );
+
+        // Dimensions pass through, so a bounded axis keeps its bound.
+        let dims = vec![Dim::Fixed(3), Dim::Bounded { max: 8 }];
+        assert_eq!(dim_shape(&dims), dims);
+        assert_eq!(dim_shape(dims.clone()), dims);
+
+        assert!(dim_shape(&sizes[..0]).is_empty());
+    }
+
+    #[test]
     fn test_require_static() {
         assert_eq!(
             require_static(&[Dim::Fixed(3), Dim::Fixed(8)]).unwrap(),
@@ -308,19 +353,20 @@ mod test {
 
     #[test]
     fn test_broadcast_dims_to_reaches_the_target() {
-        let fixed = |sizes: &[usize]| sizes.iter().copied().map(Dim::Fixed).collect::<Vec<_>>();
-
         // A size of 1 grows to the target's size, and a size already the target's is unchanged.
         assert_eq!(
-            broadcast_dims_to(&fixed(&[1, 5]), &fixed(&[3, 5])).unwrap(),
-            fixed(&[3, 5])
+            broadcast_dims_to(&dim_shape([1, 5]), &dim_shape([3, 5])).unwrap(),
+            dim_shape([3, 5])
         );
         // So do the implicit leading axes that pad the shorter shape.
         assert_eq!(
-            broadcast_dims_to(&fixed(&[5]), &fixed(&[3, 5])).unwrap(),
-            fixed(&[3, 5])
+            broadcast_dims_to(&dim_shape([5]), &dim_shape([3, 5])).unwrap(),
+            dim_shape([3, 5])
         );
-        assert_eq!(broadcast_dims_to(&[], &fixed(&[3])).unwrap(), fixed(&[3]));
+        assert_eq!(
+            broadcast_dims_to(&[], &dim_shape([3])).unwrap(),
+            dim_shape([3])
+        );
         assert_eq!(broadcast_dims_to(&[], &[]).unwrap(), vec![]);
     }
 

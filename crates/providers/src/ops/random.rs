@@ -30,7 +30,7 @@ use thiserror::Error;
 use super::{ProgramOp, QISKIT};
 use crate::tensor::{
     DType, Dim, KeyTensor, PrngKind, Tensor, TensorError, TensorType, broadcast_dims,
-    broadcast_shape,
+    broadcast_shape, dim_shape,
 };
 
 /// An open stream of one [`PrngKind`], positioned at a block.
@@ -116,12 +116,6 @@ fn key_operand(operand: &Tensor) -> Result<&KeyTensor, RandomOpError> {
     operand.keys().ok_or_else(|| RandomOpError::KeyType {
         actual: operand.tensor_type(),
     })
-}
-
-/// Return the shape a key operand's `batch` and a payload `shape` produce together.
-fn output_shape(batch: &[Dim], shape: &[usize]) -> Result<Vec<Dim>, TensorError> {
-    let payload: Vec<Dim> = shape.iter().copied().map(Dim::Fixed).collect();
-    broadcast_dims(batch, &payload)
 }
 
 /// Return every key's words, as one flat vector in row-major order.
@@ -253,7 +247,7 @@ impl ProgramOp for Entropy {
     fn infer_output_types(&self, _inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
         Ok(vec![TensorType {
             dtype: DType::Key(self.kind),
-            shape: self.shape.iter().copied().map(Dim::Fixed).collect(),
+            shape: dim_shape(&self.shape),
         }])
     }
     fn eval(&self, _args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
@@ -302,7 +296,7 @@ impl ProgramOp for Split {
         check_blocks(kind, &self.shape, 32 * kind.key_words())?;
         Ok(vec![TensorType {
             dtype: DType::Key(kind),
-            shape: output_shape(batch, &self.shape)?,
+            shape: broadcast_dims(batch, &dim_shape(&self.shape))?,
         }])
     }
     fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {

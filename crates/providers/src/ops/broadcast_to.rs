@@ -15,7 +15,7 @@
 use super::error::MathOpError;
 use super::inference::broadcast_to;
 use super::{ProgramOp, QISKIT};
-use crate::tensor::{Dim, Tensor, TensorError, TensorType, fmt_shape};
+use crate::tensor::{Dim, Tensor, TensorError, TensorType, dim_shape, fmt_shape};
 
 /// Broadcast a tensor to a target shape, right-aligning the two.
 #[derive(Clone, Debug)]
@@ -41,7 +41,7 @@ impl BroadcastTo {
     fn concrete_target(&self, shape: &[usize]) -> Result<Vec<usize>, MathOpError> {
         let Some(offset) = self.target.len().checked_sub(shape.len()) else {
             return Err(TensorError::DimShapeMismatch {
-                lhs: shape.iter().copied().map(Dim::Fixed).collect(),
+                lhs: dim_shape(shape),
                 rhs: self.target.clone(),
             }
             .into());
@@ -105,7 +105,7 @@ mod test {
 
     /// Return a shape of fixed axes.
     fn fixed(sizes: &[usize]) -> Vec<Dim> {
-        sizes.iter().copied().map(Dim::Fixed).collect()
+        dim_shape(sizes)
     }
 
     #[test]
