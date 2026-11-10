@@ -22,8 +22,8 @@ use crate::error::ParseError;
 #[derive(Clone)]
 pub struct CustomInstruction {
     pub name: String,
-    pub num_params: usize,
-    pub num_qubits: usize,
+    pub num_params: u32,
+    pub num_qubits: u32,
     pub builtin: bool,
 }
 
@@ -31,7 +31,7 @@ pub struct CustomInstruction {
 #[pymethods]
 impl CustomInstruction {
     #[new]
-    fn __new__(name: String, num_params: usize, num_qubits: usize, builtin: bool) -> Self {
+    fn __new__(name: String, num_params: u32, num_qubits: u32, builtin: bool) -> Self {
         Self {
             name,
             num_params,

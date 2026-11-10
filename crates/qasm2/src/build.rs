@@ -364,12 +364,7 @@ pub(crate) fn build_circuit(
                         "nested gate declaration: missing an EndDeclareGate",
                     ));
                 }
-                current_body = Some((
-                    name.clone(),
-                    *num_qubits as u32,
-                    *num_params as u32,
-                    Vec::new(),
-                ));
+                current_body = Some((name.clone(), *num_qubits, *num_params, Vec::new()));
             }
             InternalBytecode::GateInBody {
                 id,
@@ -403,7 +398,7 @@ pub(crate) fn build_circuit(
                         "opaque declaration nested inside another gate declaration",
                     ));
                 }
-                registry.declare(name.clone(), *num_qubits as u32, *num_params as u32, None);
+                registry.declare(name.clone(), *num_qubits, *num_params, None);
             }
         }
     }

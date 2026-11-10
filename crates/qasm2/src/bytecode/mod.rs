@@ -75,8 +75,8 @@ pub enum InternalBytecode {
     },
     DeclareGate {
         name: String,
-        num_qubits: usize,
-        num_params: usize,
+        num_qubits: u32,
+        num_params: u32,
     },
     GateInBody {
         id: GateId,
@@ -86,8 +86,8 @@ pub enum InternalBytecode {
     EndDeclareGate {},
     DeclareOpaque {
         name: String,
-        num_qubits: usize,
-        num_params: usize,
+        num_qubits: u32,
+        num_params: u32,
     },
     SpecialInclude {
         indices: Vec<usize>,
