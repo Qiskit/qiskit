@@ -18,11 +18,6 @@ jobs:
         with:
           fetch-tags: true
 
-      - name: Checkout baseline
-        run: |
-          tag=$(git tag -l | sort -V | tail -1)
-          git checkout "${tag}"
-
       - name: Cache toolchain
         uses: actions/cache@v6
         with:
@@ -44,15 +39,15 @@ jobs:
 
       - name: Build baseline
         run: |
+          tag=$(git tag -l | sort -V | tail -1)
+          git checkout "${tag}"
           make cheader clib-dev
           mv dist/c/lib/libqiskit.so dist/c/lib/libqiskit.so.base
 
-      - name: Checkout PR
+      - name: Build changes
         run: |
           git checkout -
-
-      - name: Build PR
-        run: make cheader clib-dev
+          make cheader clib-dev
 
       - name: Install ABI tools
         uses: awalsh128/cache-apt-pkgs-action@v1
@@ -61,7 +56,6 @@ jobs:
           version: 1.0
 
       - name: Compare ABI
-        continue-on-error: true
         run: |
           cd dist/c/lib
           abidiff libqiskit.so.base libqiskit.so \
