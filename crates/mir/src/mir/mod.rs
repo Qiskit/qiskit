@@ -30,15 +30,6 @@ pub struct Mir {
     symbol_table: SymbolTable,
 }
 
-qiskit_util::dyn_types::static_dyn_typed!(Mir);
-// This impl and the `qiskit-passmanager` dependency it requires lives here instead of at
-// `qiskit-mir-passes` where the actual lowering passes are defined, since Rust orphan rule
-// allows an impl of a foreign trait for a local type only in the crate that defines the
-// trait or at the crate that defines the type. If we want to decouple mir crate from
-// `qiskit-passmanager`, we can do it by wrapping the Mir type with something like
-// MirIR(Mir), but it will make our code much less ergonomic.
-impl qiskit_passmanager::IR for Mir {}
-
 impl Mir {
     /// Create an empty `Mir` with virtual qubits; use [`Mir::with_space`] for physical qubits.
     pub fn new() -> Self {
@@ -115,6 +106,12 @@ impl Default for Mir {
     fn default() -> Self {
         Self::new()
     }
+}
+#[cfg(feature = "passmanager")]
+mod passmanager {
+    use super::Mir;
+    qiskit_util::dyn_types::static_dyn_typed!(Mir);
+    impl qiskit_passmanager::IR for Mir {}
 }
 
 #[derive(Debug, Error)]

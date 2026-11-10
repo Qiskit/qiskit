@@ -16,5 +16,5 @@ workspace = true
 anyhow.workspace = true
 hashbrown.workspace = true
 qiskit-circuit = {workspace = true, features = ["passmanager"]}
-qiskit-mir.workspace = true
+qiskit-mir = {workspace = true, features = ["passmanager"] }
 qiskit-passmanager.workspace = true

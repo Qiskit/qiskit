@@ -14,13 +14,13 @@ workspace = true
 
 [features]
 mem_dbg = ["dep:mem_dbg"]
+passmanager = ["dep:qiskit-passmanager"]
 
 [dependencies]
-anyhow.workspace = true
 bytemuck.workspace = true
 hashbrown.workspace = true
 mem_dbg = { workspace = true, optional = true }
-qiskit-passmanager.workspace = true
+qiskit-passmanager = {workspace = true, optional = true }
 qiskit-util.workspace = true
 rustworkx-core.workspace = true
 thiserror.workspace = true
