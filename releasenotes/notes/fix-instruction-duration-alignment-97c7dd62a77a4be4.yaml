@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed :class:`.InstructionDurationCheck` to request rescheduling when a delay
+    violates either acquisition alignment or pulse alignment. Previously, a
+    delay that met just one of the two constraints was incorrectly accepted,
+    including when the other alignment was one.
+    Fixed `#17436 <https://github.com/Qiskit/qiskit/issues/17436>`__.
