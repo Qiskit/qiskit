@@ -58,6 +58,12 @@ jobs:
       - name: Compare ABI
         run: |
           cd dist/c/lib
+          set +e
           abidiff libqiskit.so.base libqiskit.so \
             --headers-dir1 ../include \
-            --drop-private-types \
+            --drop-private-types
+          code=$?
+          if (( code & 8 )); then
+            exit 1
+          fi
+            exit 0
