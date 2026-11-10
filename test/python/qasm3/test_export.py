@@ -38,7 +38,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
-from qiskit.circuit.library import PauliEvolutionGate, PermutationGate
+from qiskit.circuit.library import LinearFunction, PauliEvolutionGate, PermutationGate
 from qiskit.qasm3 import (
     Exporter,
     dumps,
@@ -53,7 +53,7 @@ from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm3.exceptions import QASM3ImporterError
 from qiskit import qpy
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import Operator, Pauli
 from qiskit.utils import optionals
 from test import QiskitTestCase
 
@@ -270,6 +270,39 @@ class TestCircuitQASM3(QiskitTestCase):
 
         self.assertEqual(Exporter().dumps(circuit), expected_qasm)
         self.assertEqual(Exporter(disable_constants=True).dumps(circuit), expected_qasm)
+
+    @data(False, True)
+    def test_linear_function_export(self, disable_constants):
+        """Linear functions encode their matrix in a parameterless definition."""
+        circuit = QuantumCircuit(2)
+        circuit.append(LinearFunction([[1, 1], [0, 1]]), [0, 1])
+        expected = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate linear_function _gate_q_0, _gate_q_1 {",
+                "  cx _gate_q_1, _gate_q_0;",
+                "}",
+                "qubit[2] q;",
+                "linear_function q[0], q[1];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(circuit, disable_constants=disable_constants), expected)
+
+    @data(False, True)
+    def test_distinct_linear_functions_roundtrip(self, disable_constants):
+        """Different matrices and repeated gates preserve their qubit ordering."""
+        if not optionals.HAS_QASM3_IMPORT:
+            self.skipTest("OpenQASM 3 importer is not installed")
+        circuit = QuantumCircuit(3)
+        first = LinearFunction([[1, 1], [0, 1]])
+        circuit.append(first, [0, 1])
+        circuit.append(LinearFunction([[1, 0], [1, 1]]), [1, 2])
+        circuit.append(first, [2, 0])
+        original = Operator(circuit).data
+        restored = Operator(loads(dumps(circuit, disable_constants=disable_constants))).data
+        self.assertTrue(abs(original - restored).max() < 1e-12)
 
     def test_same_composite_circuits(self):
         """Test when a composite circuit is added to the circuit multiple times."""

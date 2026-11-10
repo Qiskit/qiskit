@@ -1,0 +1,5 @@
+fixes:
+  - |
+    Fixed OpenQASM export of :class:`.LinearFunction` gates. The binary matrix
+    and original circuit are now represented by a parameterless gate definition
+    instead of being emitted as OpenQASM gate arguments.

@@ -239,6 +239,12 @@ class LinearFunction(Gate):
 
         self.definition = synth_cnot_count_full_pmh(self.linear)
 
+    def _qasm_decomposition(self):
+        """Return a gate whose matrix data is encoded in its definition."""
+        out = self.definition.to_gate()
+        out.name = self.name
+        return out
+
     @deprecate_func(
         since="2.1",
         additional_msg="Call LinearFunction.definition instead, or compile the circuit.",
