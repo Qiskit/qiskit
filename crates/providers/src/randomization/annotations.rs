@@ -30,8 +30,6 @@ pub type Result<T> = std::result::Result<T, InvalidAnnotationError>;
 pub enum InvalidAnnotationError {
     #[error("duplicate randomization annotation on a single box")]
     DuplicateAnnotation,
-    #[error("InjectNoise requires a Twirl on the same box")]
-    InjectNoiseWithoutTwirl,
 }
 
 /// Which side of a box its easy gates get composed into.
@@ -124,9 +122,6 @@ impl<'a> RandomizationAnnotations<'a> {
             }
         }
 
-        if resolved.inject_noise.is_some() && resolved.twirl.is_none() {
-            return Err(InvalidAnnotationError::InjectNoiseWithoutTwirl);
-        }
         Ok(resolved)
     }
 
@@ -229,14 +224,6 @@ mod tests {
         assert_eq!(injection.reference, "layer_1");
         assert_eq!(injection.site, InjectionSite::Between);
         assert_eq!(injection.modifier, None);
-    }
-
-    #[test]
-    fn test_noise_without_a_twirl_is_refused() {
-        assert_eq!(
-            RandomizationAnnotations::new(&[noise(InjectionSite::End)]).unwrap_err(),
-            InvalidAnnotationError::InjectNoiseWithoutTwirl
-        );
     }
 
     #[test]
