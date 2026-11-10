@@ -41,7 +41,7 @@ pub enum Dressing {
     Right,
 }
 
-/// Where noise is injected before or after the hard content of a box.
+/// Where noise is injected in the box.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InjectionSite {
     Start,
