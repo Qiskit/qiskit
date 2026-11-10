@@ -63,6 +63,30 @@ class TestGenericBackendV2(QiskitTestCase):
         with self.assertRaises(QiskitError):
             GenericBackendV2(num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"], seed=42)
 
+    @data(11, 42)
+    def test_seed_independent_of_coupling_edge_order(self, seed):
+        """Equivalent coupling maps give the same seeded instruction properties."""
+        edges = [(0, 1), (1, 2), (1, 0), (2, 1)]
+        first_map = CouplingMap(edges)
+        second_map = CouplingMap(list(reversed(edges)))
+        backends = [
+            GenericBackendV2(3, basis_gates=["u", "cz", "cx"], coupling_map=cmap, seed=seed)
+            for cmap in (first_map, second_map)
+        ]
+        first, second = (backend.target for backend in backends)
+        for name in first.operation_names:
+            self.assertEqual(set(first[name]), set(second[name]))
+            for qargs, properties in first[name].items():
+                with self.subTest(instruction=name, qargs=qargs):
+                    other = second[name][qargs]
+                    if properties is None:
+                        self.assertIsNone(other)
+                    else:
+                        self.assertEqual(properties.duration, other.duration)
+                        self.assertEqual(properties.error, other.error)
+        self.assertEqual(first_map.get_edges(), edges)
+        self.assertEqual(second_map.get_edges(), list(reversed(edges)))
+
     def test_cx_1Q(self):
         """Test failing with a backend with single qubit but with a two-qubit basis gate"""
         with self.assertRaises(QiskitError):

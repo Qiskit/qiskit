@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed seeded noise-property generation in :class:`.GenericBackendV2` so that
+    equivalent coupling maps produce the same instruction durations and errors
+    regardless of their edge iteration order. This also makes repeated use of
+    :meth:`.CouplingMap.make_symmetric` reproducible with a fixed backend seed.
+    Seeded properties for a coupling map whose edges were not in sorted order
+    may differ from previous releases.
+    Fixed `#17459 <https://github.com/Qiskit/qiskit/issues/17459>`__.

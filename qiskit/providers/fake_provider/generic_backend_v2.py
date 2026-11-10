@@ -280,7 +280,11 @@ class GenericBackendV2(BackendV2):
             noise_params: Error and duration noise values/ranges to
                 include in instruction properties.
         """
-        qarg_set = self._coupling_map if instruction.num_qubits > 1 else range(self.num_qubits)
+        # Assign random samples to edges in a stable order, including after
+        # CouplingMap.make_symmetric(), whose edge order is not deterministic.
+        qarg_set = (
+            sorted(self._coupling_map) if instruction.num_qubits > 1 else range(self.num_qubits)
+        )
         props = {}
         for qarg in qarg_set:
             try:
