@@ -18,12 +18,12 @@ pub mod virtual_type;
 
 /// The synthesizer to use for virtual gates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SynthesizerType {
+pub enum SynthesizerKind {
     RzSx,
     RzRx,
 }
 
-impl SynthesizerType {
+impl SynthesizerKind {
     /// The number of qubits the synthesized gate acts on.
     pub fn num_qubits(&self) -> u32 {
         match self {
@@ -34,25 +34,25 @@ impl SynthesizerType {
 
 /// The distribution to sample virtual gates from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DistributionType {
+pub enum DistributionKind {
     UniformPauli,
-    BalancedUniformPauli,
-    UniformPauliSubset,
-    UniformC1,
-    UniformLocalC1,
+    // BalancedUniformPauli,
+    // UniformPauliSubset,
+    // UniformC1,
     HaarU2,
+    // UniformLocalC1,
 }
 
-impl DistributionType {
-    /// The number qubits the sampled virtual gate acts on.
+impl DistributionKind {
+    /// The number of qubits the sampled virtual gate acts on.
     pub fn num_qubits(&self) -> u32 {
         match self {
             Self::UniformPauli
-            | Self::BalancedUniformPauli
-            | Self::UniformPauliSubset
-            | Self::UniformC1
+            // | Self::BalancedUniformPauli
+            // | Self::UniformPauliSubset
+            // | Self::UniformC1
             | Self::HaarU2 => 1,
-            Self::UniformLocalC1 => 2,
+            // Self::UniformLocalC1 => 2,
         }
     }
 }
