@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed ``pi_check`` formatting of numeric constants within
+    :class:`.ParameterExpression` instances.  Replacements are now delimited so that a
+    matching sequence of digits within a larger number is not changed, and are wrapped
+    in parentheses to preserve operator precedence.  This prevents QASM exporters from
+    silently changing expressions such as ``theta ** (pi / 2)`` or
+    ``theta / (pi / 2)``, and preserves equivalent formatting in circuit drawers.
