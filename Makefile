@@ -32,8 +32,8 @@ env:
 	fi;
 
 lint:
-	ruff check qiskit test tools setup.py
-	tools/verify_headers.py qiskit test tools
+	ruff check qiskit test tools build_backend
+	tools/verify_headers.py qiskit test tools build_backend
 	tools/find_optional_imports.py
 	tools/find_stray_release_notes.py
 	tools/verify_images.py
@@ -41,10 +41,10 @@ lint:
 	cargo clippy --all-targets -- -D warnings
 
 style:
-	black --check qiskit test tools setup.py docs/conf.py
+	black --check qiskit test tools build_backend docs/conf.py
 
 black:
-	black qiskit test tools setup.py docs/conf.py
+	black qiskit test tools build_backend docs/conf.py
 
 .PHONY: miri
 miri:

@@ -1,0 +1,18 @@
+---
+build:
+  - |
+    Qiskit's Python-space build system has changed to a thin wrapper around ``maturin``.  This
+    change should not impact downstream users who build via PEP-517-compatible build frontends,
+    which is the recommended way to build Qiskit.
+
+    The most visible low-level consequences of this change are:
+
+    * there are no longer any ``setup.py`` or ``MANIFEST.in`` files in any source tree.
+    * the build requirements have changed, such that neither ``setuptools`` nor ``setuptools-rust``
+      are required, but ``maturin>=1.12.1`` is.
+    * calls to the underlying ``maturin`` build system will not interpret Qiskit's compile-time
+      configuration environment variables (but the in-tree PEP-517 build-backend wrapper will).
+
+    This change will enable Qiskit in the future to more easily support free-threaded Python builds,
+    generate type stubs for Rust-implemented code, and keep pace with improvements in the mixed
+    Rust/Python ecosystem.

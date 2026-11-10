@@ -1,12 +1,11 @@
 [build-system]
-# This is duplicated as `dependency-groups.build` for convenience.
+# This is duplicated as `dependency-groups.build` for convenience.  Sync updates there.
 requires = [
-    # Minimum is for PEP 639 / SPDX licence metadata.
-    "setuptools>=77.0",
-    # Minimum is for `Extension(generated_files=...)`.
-    "setuptools-rust>=1.13.0",
+    # Minimum version is for the `tool.maturin.include` generated-files support.
+    "maturin>=1.12.1",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "qiskit_local_build"
+backend-path = ["build_backend"]
 
 [project]
 name = "qiskit"
@@ -200,7 +199,7 @@ default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultScheduli
 # process.  If you intended that, use `project.optional-dependencies` instead.
 [dependency-groups]
 # Sync with `build-system.requires`.
-build = ["setuptools>=77.0", "setuptools-rust>=1.13.0"]
+build = ["maturin>=1.12.1"]
 # We use quite tight pins on pylint and astroid because they have a habit of adding new
 # on-by-default lints that are harder to deal with.
 lint = [
@@ -280,11 +279,36 @@ dev = [
     {include-group = "doc"},
 ]
 
-[tool.setuptools]
-include-package-data = true
+[tool.maturin]
+module-name = "qiskit._accelerate"
+manifest-path = "crates/pyext/Cargo.toml"
+python-source = "."
+python-packages = ["qiskit"]
+profile = "release"
+editable-profile = "dev"
+# Default features for the `maturin` build.  This could be `default-features` of `pyext`, but having
+# it set here is more convenient for reading in our custom PEP-517 build backend, which needs to be
+# able to read the defaults.
+features = ["cache_pygates"]
+include = [
+    # Generated files from Rust build scripts.
+    { path = "include/**/*", from = "out-dir", to = "qiskit/capi/" },
+    { path = "_ctypes.py", from = "out-dir", to = "qiskit/capi/" },
 
-[tool.setuptools.packages.find]
-include = ["qiskit", "qiskit.*"]
+    # Additional files to include in Python packaging.  Maturin tends to keep all files inside
+    # `qiskit/` _anyway_, unless they're in `.gitignore` or are built dynamic-library artefacts, so
+    # things like our `.json` files typically get copied anyway.  However, as of Maturin 1.16, this
+    # is not clearly documented, so we spell it out explicitly.
+    { path = "qiskit/qasm/libs/**/*.inc", format = ["sdist", "wheel"] },
+    { path = "qiskit/visualization/**/*.json", format = ["sdist", "wheel"] },
+
+    # Additional tooling that we only include in source distributions.
+    { path = "build_backend/**/*.py", format = ["sdist"] },
+    { path = "Makefile", format = ["sdist"] },
+    { path = ".stestr.conf", format = ["sdist"] },
+    { path = "test/**/*", format = ["sdist"] },
+    { path = "crates/**/*", format = ["sdist"] },
+]
 
 [tool.black]
 line-length = 100
@@ -392,6 +416,10 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403"]  # allow star imports in init files for re-export
 "*.ipynb" = ["F821"]
+"build_backend/*" = [
+    "INP001",  # implicit-namespace-package: the build backend is a regular package in a subdir.
+    "T201",    # flake8-print: the build backend is supposed to print messages to the user.
+]
 # Security rules from bandit don't apply to tests and utils
 "tools/*" = [
 # Tools can print to stdout
