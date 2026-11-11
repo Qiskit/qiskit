@@ -2172,7 +2172,9 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
 /// Substitute an operation in a node in a ``QkDag`` with a unitary gate
 /// corresponding to the specified unitary matrix.
 ///
-/// The new operation should match the shape of the replaced operation.
+/// The operation isn't replaced if ``node`` is out of bounds or the unitary doesn't match the
+/// shape of the replaced operation.
+///
 /// The qargs and cargs for the node will remain the same.
 ///
 /// @param dag Pointer to the DAG.
@@ -2221,13 +2223,10 @@ pub unsafe extern "C" fn qk_dag_substitute_node_with_unitary(
     let array = unsafe { unitary_from_pointer(matrix, num_qubits, None) }
         .expect("infallible without tolerance checking");
 
-    dag.substitute_op(
-        NodeIndex::new(node as usize),
-        UnitaryGate { array }.into(),
-        None,
-        None,
-    )
-    .expect("Failed to substitute op.")
+    let i = NodeIndex::new(node as usize);
+    if dag.dag().contains_node(i) {
+        let _ = dag.substitute_op(i, UnitaryGate { array }.into(), None, None);
+    }
 }
 
 /// @ingroup QkDag
