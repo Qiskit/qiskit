@@ -2061,7 +2061,7 @@ class TestLoadFromQPY(QiskitTestCase):
             self.assertDeprecatedBitProperties(old, new)
 
     def test_register_condition(self):
-        """Test that using register condition passes as long as the register index is not too large"""
+        """Test register conditions with values larger than a signed 64-bit integer."""
         n_qubits = 2
         cr0 = ClassicalRegister(n_qubits)
         cr1 = ClassicalRegister(n_qubits)
@@ -2084,9 +2084,15 @@ class TestLoadFromQPY(QiskitTestCase):
         with qc.if_test((cr0, 7342574385754343653453453453533935345)):
             qc.x(qr)
         qc.measure(qr, cr1)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+            self.assertEqual(qc, new_qc)
+
         with self.assertRaisesRegex(QpyError, "exceeds i64::MAX"):
             with io.BytesIO() as fptr:
-                dump(qc, fptr)
+                dump(qc, fptr, version=18)
 
     def test_load_empty_vars_while(self):
         """Test loading circuit with vars in while closures."""
@@ -2361,3 +2367,36 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(self.qc, new_circ)
         self.assertDeprecatedBitProperties(self.qc, new_circ)
+
+    def test_duration_units(self):
+        """Test that duration units are preserved when dumping and loading."""
+        qc = QuantumCircuit(1)
+        qc.delay(10, 0, unit="dt")
+        qc.delay(20, 0, unit="s")
+        qc.delay(30, 0, unit="ms")
+        qc.delay(40, 0, unit="us")
+        qc.delay(50, 0, unit="ns")
+        qc.delay(60, 0, unit="ps")
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_parameterized_delay_unit(self):
+        """Test that a parameterized delay retains its unit after a QPY round trip."""
+        qc = QuantumCircuit(1)
+        qc.delay(Parameter("t"), 0, unit="dt")
+        qc.delay(Parameter("s"), 0, unit="s")
+        qc.delay(Parameter("tt"), 0, unit="ms")
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+
+        self.assertEqual(new_circuit.data[0].operation.unit, "dt")
+        self.assertEqual(new_circuit.data[1].operation.unit, "s")
+        self.assertEqual(new_circuit.data[2].operation.unit, "ms")
+        self.assertEqual(qc, new_circuit)
