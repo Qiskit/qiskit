@@ -107,6 +107,12 @@ impl Default for Mir {
         Self::new()
     }
 }
+#[cfg(feature = "passmanager")]
+mod passmanager {
+    use super::Mir;
+    qiskit_util::dyn_types::static_dyn_typed!(Mir);
+    impl qiskit_passmanager::IR for Mir {}
+}
 
 #[derive(Debug, Error)]
 pub enum MirVerificationError {
