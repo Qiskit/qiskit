@@ -12,7 +12,7 @@
 
 //! Validate memory analysis of Mir structs using mem_dbg feature works.   
 
-use mem_dbg::{MemSize, SizeFlags};
+use mem_dbg::{DbgFlags, MemDbg, MemSize, SizeFlags};
 use qiskit_mir::instruction::MirInstruction;
 use qiskit_mir::line_graph::LineGraph;
 use qiskit_mir::ops::MirOp;
@@ -36,6 +36,14 @@ fn validate_mem_dbg() {
 
     let mut graph = LineGraph::new();
     graph.push_back(instr);
+
+    // Verify mem_size
     let used = graph.mem_size(SizeFlags::default());
     assert!(used > 0, "Expected positive memory allocation");
+
+    // Verify mem_dbg. Write into a buffer insteaf of stdout.
+    let mut buffer = String::new();
+    graph
+        .mem_dbg_on(&mut buffer, DbgFlags::default())
+        .expect("failed to render mem_dbg tree");
 }
