@@ -233,7 +233,7 @@ fn pack_parameter_replay_entry(
         ParameterValueType::Parameter(parameter) => {
             // We don't distinguish between `Parameter` and `ParameterVectorElement` in the QPY
             // format here, because we only use the UUID as a lookup anyway.
-            (ParameterType::Parameter, *parameter.0.uuid().as_bytes())
+            (ParameterType::Parameter, *parameter.uuid().as_bytes())
         }
     })
 }

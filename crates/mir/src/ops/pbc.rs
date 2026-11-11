@@ -24,13 +24,28 @@ use std::{f64, fmt};
 /// I have not yet looked at the existing implementation pwdin Qiskit to know
 /// whether the same could be done with them.
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
-#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
+#[cfg_attr(
+    feature = "mem_dbg",
+    derive(mem_dbg::MemSize, mem_dbg::MemDbg),
+    mem_size(flat)
+)]
 pub enum Pauli {
     #[default]
     I,
     X,
     Z,
     Y,
+}
+
+impl Pauli {
+    pub const fn from_xz(x: bool, z: bool) -> Self {
+        match (x, z) {
+            (false, false) => Pauli::I,
+            (true, false) => Pauli::X,
+            (false, true) => Pauli::Z,
+            (true, true) => Pauli::Y,
+        }
+    }
 }
 
 impl fmt::Display for Pauli {
@@ -80,7 +95,11 @@ impl PauliString {
 /// and simple arithmetic on them is exact.  This is not the case with raw radians, which incur
 /// round-off error due to the irrational `pi`.
 #[derive(Debug, Copy, Clone, PartialEq)]
-#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
+#[cfg_attr(
+    feature = "mem_dbg",
+    derive(mem_dbg::MemSize, mem_dbg::MemDbg),
+    mem_size(flat)
+)]
 pub struct AngleType(f64);
 
 impl AngleType {
@@ -167,6 +186,7 @@ impl fmt::Display for PauliRotation {
 /// length as `paulis` (one qid per Pauli), `args` must be empty, and `returns`
 /// must contain exactly one `SymbolId` for the boolean result.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct PauliMeasure {
     paulis: PauliString,
 }

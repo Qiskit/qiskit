@@ -65,6 +65,11 @@ impl SymbolTableErrorKind {
 /// The kind of classical value a symbol holds.
 /// This classifies the data a symbol represents, independent to its id or its name.
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(
+    feature = "mem_dbg",
+    derive(mem_dbg::MemSize, mem_dbg::MemDbg),
+    mem_size(flat)
+)]
 pub enum SymbolType {
     Bool,
 }
@@ -120,7 +125,11 @@ impl fmt::Display for Symbol {
 /// An opaque, cheap reference to a symbol in the SymbolTable.
 /// Instructions and other constructs refer to symbols by SymbolId.
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
+#[cfg_attr(
+    feature = "mem_dbg",
+    derive(mem_dbg::MemSize, mem_dbg::MemDbg),
+    mem_size(flat)
+)]
 pub struct SymbolId(usize);
 
 impl fmt::Display for SymbolId {
