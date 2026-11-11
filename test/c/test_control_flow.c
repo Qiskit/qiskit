@@ -48,6 +48,32 @@ void inner_expr_free(QkExprNode *);
 // clang-format on
 QkCircuit *inner_test_control_flow_circuit();
 
+// Build the body shared by the box tests.
+static QkCircuit *build_box_body(void) {
+    QkCircuit *body = qk_circuit_new(2, 1);
+    uint32_t cx_qubits[2] = {0, 1};
+    qk_circuit_gate(body, QkGate_CX, cx_qubits, NULL);
+    qk_circuit_measure(body, 0, 0);
+    return body;
+}
+
+// Build a circuit with a single box. Returns NULL if appending the box fails.
+static QkCircuit *build_box_circuit_duration_info(const QkDurationInfo *duration) {
+    QkCircuit *circuit = qk_circuit_new(3, 3);
+    uint32_t box_qubits[2] = {2, 0};
+    uint32_t box_clbits[1] = {1};
+
+    // The box takes ownership of the body.
+    QkExitCode result = qk_circuit_box_duration_info(circuit, build_box_body(), box_qubits,
+                                                     box_clbits, duration, NULL);
+    if (result != QkExitCode_Success) {
+        fprintf(stderr, "qk_circuit_box_duration_info failed with exit code %d\n", result);
+        qk_circuit_free(circuit);
+        return NULL;
+    }
+    return circuit;
+}
+
 // Test a box which is constructed like this in Python
 // qc = QuantumCircuit(3,3)
 // inner = QuantumCircuit(2,1)
@@ -56,7 +82,13 @@ QkCircuit *inner_test_control_flow_circuit();
 // qc.box(inner, [2,0], [1], duration=0.1, unit='s')
 static int test_box_and_bit_mapping(void) {
     int result = Ok;
-    QkCircuit *circuit = inner_test_control_flow_circuit();
+    QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
+    QkCircuit *circuit = build_box_circuit_duration_info(&duration);
+
+    if (circuit == NULL) {
+        return RuntimeError;
+    }
+
     QkControlFlowInstruction *cf_inst = NULL;
 
     cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
@@ -153,112 +185,6 @@ static int test_box_and_bit_mapping(void) {
         goto cleanup;
     }
 
-cleanup:
-    if (cf_inst != NULL) {
-        qk_control_flow_instruction_free(cf_inst);
-    }
-    qk_circuit_free(circuit);
-    return result;
-}
-
-// Build the body shared by the box tests.
-static QkCircuit *build_box_body(void) {
-    QkCircuit *body = qk_circuit_new(2, 1);
-    uint32_t cx_qubits[2] = {0, 1};
-    qk_circuit_gate(body, QkGate_CX, cx_qubits, NULL);
-    qk_circuit_measure(body, 0, 0);
-    return body;
-}
-
-// Build a circuit with a single box. Returns NULL if appending the box fails.
-static QkCircuit *build_box_circuit_duration_info(const QkDurationInfo *duration) {
-    QkCircuit *circuit = qk_circuit_new(3, 3);
-    uint32_t box_qubits[2] = {2, 0};
-    uint32_t box_clbits[1] = {1};
-
-    // The box takes ownership of the body.
-    QkExitCode result = qk_circuit_box_duration_info(circuit, build_box_body(), box_qubits,
-                                                     box_clbits, duration, NULL);
-    if (result != QkExitCode_Success) {
-        fprintf(stderr, "qk_circuit_box_duration_info failed with exit code %d\n", result);
-        qk_circuit_free(circuit);
-        return NULL;
-    }
-    return circuit;
-}
-
-// Build a circuit with a single box. Returns NULL if appending the box fails.
-static QkCircuit *build_box_circuit_expr(const QkExprNode *duration_expr) {
-    QkCircuit *circuit = qk_circuit_new(3, 3);
-    uint32_t box_qubits[2] = {2, 0};
-    uint32_t box_clbits[1] = {1};
-
-    // The box takes ownership of the body.
-    QkExitCode result = qk_circuit_box_duration_expr(circuit, build_box_body(), box_qubits,
-                                                     box_clbits, duration_expr, NULL);
-    if (result != QkExitCode_Success) {
-        fprintf(stderr, "qk_circuit_box_duration_expr failed with exit code %d\n", result);
-        qk_circuit_free(circuit);
-        return NULL;
-    }
-    return circuit;
-}
-
-// Test that a Box added with `qk_circuit_box` reads back correctly through the control flow
-// accessors, on a circuit built entirely from C rather than by the
-// `inner_test_control_flow_circuit` fixture.
-static int test_box_construction(void) {
-    int result = Ok;
-    QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
-    QkCircuit *circuit = build_box_circuit_duration_info(&duration);
-    QkControlFlowInstruction *cf_inst = NULL;
-
-    if (circuit == NULL) {
-        return RuntimeError;
-    }
-
-    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
-    if (cf_inst == NULL) {
-        fprintf(stderr, "Failed to get control flow instruction\n");
-        result = NullptrError;
-        goto cleanup;
-    }
-
-    QkControlFlowKind kind = qk_control_flow_kind(cf_inst);
-    if (kind != QkControlFlowKind_Box) {
-        fprintf(stderr, "Expected Box, got %u\n", kind);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    size_t num_blocks = qk_control_flow_num_blocks(cf_inst);
-    if (num_blocks != 1) {
-        fprintf(stderr, "Expected 1 block for Box, got %zu\n", num_blocks);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    const QkCircuit *block_circuit = qk_control_flow_block_circuit(cf_inst, 0);
-    if (block_circuit == NULL) {
-        fprintf(stderr, "Failed to get block circuit at index 0\n");
-        result = NullptrError;
-        goto cleanup;
-    }
-
-    uint32_t num_qubits = qk_circuit_num_qubits(block_circuit);
-    if (num_qubits != 2) {
-        fprintf(stderr, "Expected 2 qubits in block circuit, got %u\n", num_qubits);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    uint32_t num_clbits = qk_circuit_num_clbits(block_circuit);
-    if (num_clbits != 1) {
-        fprintf(stderr, "Expected 1 clbit in block circuit, got %u\n", num_clbits);
-        result = EqualityError;
-        goto cleanup;
-    }
-
     QkCircuitInstruction body_inst;
     qk_circuit_get_instruction(block_circuit, 0, &body_inst);
     bool cx_ok = strcmp(body_inst.name, "cx") == 0 && body_inst.num_qubits == 2 &&
@@ -281,57 +207,29 @@ static int test_box_construction(void) {
         goto cleanup;
     }
 
-    const uint32_t *qubit_mapping = qk_control_flow_qubit_map(cf_inst);
-    if (qubit_mapping == NULL) {
-        fprintf(stderr, "Failed to get qubit mapping\n");
-        result = NullptrError;
-        goto cleanup;
-    }
-
-    if (qubit_mapping[0] != 2 || qubit_mapping[1] != 0) {
-        fprintf(stderr, "Expected qubit mapping [2, 0], got [%u, %u]\n", qubit_mapping[0],
-                qubit_mapping[1]);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    const uint32_t *clbit_mapping = qk_control_flow_clbit_map(cf_inst);
-    if (clbit_mapping == NULL) {
-        fprintf(stderr, "Failed to get clbit mapping\n");
-        result = NullptrError;
-        goto cleanup;
-    }
-
-    if (clbit_mapping[0] != 1) {
-        fprintf(stderr, "Expected clbit_mapping[0] == 1, got %u\n", clbit_mapping[0]);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    QkBoxDurationKind duration_kind = qk_control_flow_box_duration_kind(cf_inst);
-    if (duration_kind != QkBoxDurationKind_Duration) {
-        fprintf(stderr, "Expected QkBoxDurationKind_Duration, got %d\n", duration_kind);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    QkDurationInfo duration_info = qk_control_flow_box_duration_val_info(cf_inst);
-    if (duration_info.ty != QkDurationType_S) {
-        fprintf(stderr, "Expected QkDurationType_S, got %d\n", duration_info.ty);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    if (duration_info.value.time != 0.1) {
-        fprintf(stderr, "Expected duration value 0.1, got %f\n", duration_info.value.time);
-        result = EqualityError;
-        goto cleanup;
-    }
-
 cleanup:
-    qk_control_flow_instruction_free(cf_inst);
+    if (cf_inst != NULL) {
+        qk_control_flow_instruction_free(cf_inst);
+    }
     qk_circuit_free(circuit);
     return result;
+}
+
+// Build a circuit with a single box. Returns NULL if appending the box fails.
+static QkCircuit *build_box_circuit_expr(const QkExprNode *duration_expr) {
+    QkCircuit *circuit = qk_circuit_new(3, 3);
+    uint32_t box_qubits[2] = {2, 0};
+    uint32_t box_clbits[1] = {1};
+
+    // The box takes ownership of the body.
+    QkExitCode result = qk_circuit_box_duration_expr(circuit, build_box_body(), box_qubits,
+                                                     box_clbits, duration_expr, NULL);
+    if (result != QkExitCode_Success) {
+        fprintf(stderr, "qk_circuit_box_duration_expr failed with exit code %d\n", result);
+        qk_circuit_free(circuit);
+        return NULL;
+    }
+    return circuit;
 }
 
 // Test that `qk_circuit_box` produces a Box with no duration.
@@ -1121,7 +1019,6 @@ int test_control_flow(void) {
     int num_failed = 0;
 
     num_failed += RUN_TEST(test_box_and_bit_mapping);
-    num_failed += RUN_TEST(test_box_construction);
     num_failed += RUN_TEST(test_box_without_duration);
     num_failed += RUN_TEST(test_box_with_duration_expr);
     num_failed += RUN_TEST(test_box_duration_dt);

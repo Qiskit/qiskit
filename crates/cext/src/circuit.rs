@@ -3482,14 +3482,22 @@ mod test {
     }
 
     #[test]
-    fn test_circuit_box() {
+    fn test_append_box() {
         let circuit = qk_circuit_new(1, 0);
         let body = qk_circuit_new(1, 0);
         let qubits = [0_u32];
 
         let mut box_index = usize::MAX;
-        let exit_code =
-            unsafe { qk_circuit_box(circuit, body, qubits.as_ptr(), ptr::null(), &mut box_index) };
+        let exit_code = unsafe {
+            append_box(
+                circuit,
+                body,
+                qubits.as_ptr(),
+                ptr::null(),
+                None,
+                &mut box_index,
+            )
+        };
         assert_eq!(exit_code, ExitCode::Success);
         assert_eq!(box_index, 0);
 
