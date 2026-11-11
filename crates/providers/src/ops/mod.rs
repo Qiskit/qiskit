@@ -18,6 +18,7 @@ mod broadcast_to;
 mod cast;
 mod constant;
 mod error;
+mod euler_angles;
 mod inference;
 mod program_op;
 mod random;
@@ -30,6 +31,7 @@ pub use broadcast_to::BroadcastTo;
 pub use cast::Cast;
 pub use constant::Constant;
 pub use error::MathOpError;
+pub use euler_angles::EulerAngles;
 pub use program_op::{BoxedOpError, BoxedProgramOp, ErasedProgramOp, ProgramOp, QISKIT};
 pub use random::{CounterUnit, Entropy, RandomOpError, Split};
 
