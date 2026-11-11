@@ -1241,9 +1241,10 @@ class QASM3Builder:
             )
             if isinstance(indexset, range):
                 # OpenQASM 3 uses inclusive ranges on both ends, unlike Python.
+                end = indexset.stop - 1 if indexset.step > 0 else indexset.stop + 1
                 indexset_ast = ast.Range(
                     start=self.build_integer(indexset.start),
-                    end=self.build_integer(indexset.stop - 1),
+                    end=self.build_integer(end),
                     step=self.build_integer(indexset.step) if indexset.step != 1 else None,
                 )
             else:

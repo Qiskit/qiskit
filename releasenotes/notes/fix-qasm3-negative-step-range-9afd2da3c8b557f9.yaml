@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed :func:`.qasm3.dumps` and :func:`.qasm3.dump` writing the wrong end value for a
+    :class:`.ForLoopOp` over a ``range`` with a negative step, which added extra iterations.
+    For example, ``range(5, -1, -2)`` was exported as ``[5:-2:-2]`` instead of ``[5:-2:0]``.
