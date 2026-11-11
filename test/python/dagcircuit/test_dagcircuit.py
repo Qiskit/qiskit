@@ -65,6 +65,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.quantum_info import Pauli
 from qiskit.converters import circuit_to_dag
+from qiskit._accelerate.circuit import _TestCustomOperation
 from test import QiskitTestCase
 
 
@@ -1956,6 +1957,18 @@ class TestDagEquivalence(DAGTest):
         dag_op_node_2 = DAGOpNode(op=instruction, qargs=(qubit1, qubit2), cargs=())
 
         self.assertEqual(dag_op_node, dag_op_node_2)
+
+    def test_native_custom_operation_eq(self):
+        """Native custom operations participate in DAG equality."""
+
+        def build(value):
+            out = DAGCircuit()
+            out.add_qubits([Qubit()])
+            out.apply_operation_back(_TestCustomOperation(value), out.qubits)
+            return out
+
+        self.assertEqual(build(1), build(1))
+        self.assertNotEqual(build(1), build(2))
 
     def test_unitary_gate_variants_eq(self):
         """Test equality of equal DAGOpNodes containing unitary gates."""

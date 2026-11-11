@@ -33,7 +33,7 @@ use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
     OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, UnitaryGate,
+    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, UnitaryGate, TestCustomOperation
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -643,6 +643,13 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let py = ob.py();
+        if let Ok(operation) = ob.extract::<PyRef<TestCustomOperation>>() {
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_custom_operation(Box::new(operation.clone())),
+                params: None,
+                label: None,
+            });
+        }
         let ob_type = ob
             .getattr(intern!(py, "base_class"))
             .ok()

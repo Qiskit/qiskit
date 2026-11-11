@@ -2325,6 +2325,77 @@ pub trait CustomOperation:
     fn is_unitary(&self) -> bool;
 }
 
+/// A minimal native custom operation used to exercise Rust-backed operations from Python tests.
+#[cfg(feature = "py")]
+#[pyclass(
+    module = "qiskit._accelerate.circuit",
+    name = "_TestCustomOperation",
+    frozen
+)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct TestCustomOperation {
+    pub value: u8,
+}
+
+#[cfg(feature = "py")]
+#[pymethods]
+impl TestCustomOperation {
+    #[new]
+    fn new(value: u8) -> Self {
+        Self { value }
+    }
+
+    #[getter]
+    fn name(&self) -> &str {
+        "test_custom"
+    }
+
+    #[getter]
+    fn num_qubits(&self) -> u32 {
+        1
+    }
+
+    #[getter]
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+
+    #[getter]
+    fn params(&self) -> [Param; 0] {
+        []
+    }
+}
+
+#[cfg(feature = "py")]
+impl Operation for TestCustomOperation {
+    fn name(&self) -> &str {
+        "test_custom"
+    }
+
+    fn num_qubits(&self) -> u32 {
+        1
+    }
+
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+
+    fn num_params(&self) -> u32 {
+        0
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+#[cfg(feature = "py")]
+impl CustomOperation for TestCustomOperation {
+    fn is_unitary(&self) -> bool {
+        false
+    }
+}
+
 impl PartialEq for dyn CustomOperation {
     fn eq(&self, other: &Self) -> bool {
         ComparableOp::rich_eq(self, other)
