@@ -15,31 +15,11 @@ from typing import Any
 
 from qiskit import QuantumCircuit
 from qiskit._accelerate import mir, mir_passes
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager import Pass, LoweringPassManager
+from qiskit.passmanager import LoweringPassManager
 from qiskit.transpiler import generate_preset_pbc_pass_manager
 from qiskit.transpiler.passes import LitinskiTransformation
 from test import QiskitTestCase
-
-
-class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
-    _qiskit_pass_ir_in_ = QuantumCircuit
-    _qiskit_pass_ir_out_ = DAGCircuit
-
-    def _qiskit_pass_run_(self, ir, context):
-        return ir.to_dag(copy_operations=False)
-
-
-class LegacyDagPass(Pass[DAGCircuit]):
-    _qiskit_pass_ir_in_ = DAGCircuit
-    _qiskit_pass_ir_out_ = DAGCircuit
-
-    def __init__(self, task):
-        super().__init__()
-        self._task = task
-
-    def _qiskit_pass_run_(self, ir, context):
-        return self._task.run(ir)
+from test.python.mir.pass_adaptor import CircuitToDag, LegacyDagPass
 
 
 def make_bell_circuit():
@@ -65,7 +45,7 @@ class TestBellCircuitMIR(QiskitTestCase):
             + [mir_passes.DagToMirPass()]
         )
         mir_instance: Any = pm.run(qc)
-        self.log.debug(mir_instance)
+        self.log.debug(f"mir_instance=\n{mir_instance}")
         self.assertIsInstance(mir_instance, mir.Mir)
         self.assertEqual(mir_instance.num_instructions(), 7)
         self.assertEqual(mir_instance.num_qids(), 2)
@@ -83,7 +63,7 @@ class TestBellCircuitMIR(QiskitTestCase):
             + [mir_passes.DagToMirPass()]
         )
         mir_instance: Any = pm.run(qc)
-        self.log.debug(mir_instance)
+        self.log.debug(f"mir_instance=\n{mir_instance}")
         self.assertIsInstance(mir_instance, mir.Mir)
         self.assertEqual(mir_instance.num_instructions(), 2)
         self.assertEqual(mir_instance.num_qids(), 2)
