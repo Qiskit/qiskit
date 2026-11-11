@@ -64,10 +64,9 @@ pub(crate) const QELIB1: [StandardGate; 23] = [
 const BUILTIN_CLASSICAL: [&str; 6] = ["cos", "exp", "ln", "sin", "sqrt", "tan"];
 
 /// Define a simple newtype that just has a single non-public `usize` field, has a `new`
-/// constructor, and implements `Copy` and `IntoPy`.  The first argument is the name of the type,
-/// the second is whether to also define addition to make offsetting the newtype easier.
+/// constructor, and implements `Copy` and `IntoPy`.
 macro_rules! newtype_id {
-    ($id:ident, false) => {
+    ($id:ident) => {
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
         #[cfg_attr(feature = "py", derive(IntoPyObject, IntoPyObjectRef))]
         pub struct $id(usize);
@@ -82,23 +81,11 @@ macro_rules! newtype_id {
             }
         }
     };
-
-    ($id:ident, true) => {
-        newtype_id!($id, false);
-
-        impl std::ops::Add<usize> for $id {
-            type Output = Self;
-
-            fn add(self, rhs: usize) -> Self {
-                Self::new(self.0 + rhs)
-            }
-        }
-    };
 }
 
-newtype_id!(GateId, false);
-newtype_id!(CregId, false);
-newtype_id!(ParamId, false);
+newtype_id!(GateId);
+newtype_id!(CregId);
+newtype_id!(ParamId);
 
 /// A symbol in the global symbol table.  Parameters and individual qubits can't be in the global
 /// symbol table, as there is no way for them to be defined.
