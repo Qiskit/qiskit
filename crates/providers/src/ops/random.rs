@@ -66,8 +66,15 @@ impl Stream {
 
 /// Return how many blocks a payload of `shape` takes at `bits_per_position` bits each.
 fn blocks_needed(kind: PrngKind, shape: &[usize], bits_per_position: usize) -> u128 {
-    let bits = positions(shape).saturating_mul(bits_per_position as u128);
-    bits.div_ceil((32 * kind.block_words()) as u128)
+    let bits_per_position = bits_per_position as u128;
+    let bits_per_block = (32 * kind.block_words()) as u128;
+    let num_positions = positions(shape);
+    // be a bit careful about order of operations to avoid needlessly saturating u128::MAX
+    (num_positions / bits_per_block)
+        .saturating_mul(bits_per_position)
+        .saturating_add(
+            ((num_positions % bits_per_block) * bits_per_position).div_ceil(bits_per_block),
+        )
 }
 
 /// Check that we will not run out of words when requiring `bits_per_position` bits for every payload position.
@@ -227,6 +234,11 @@ impl Entropy {
     pub fn kind(&self) -> PrngKind {
         self.kind
     }
+
+    /// Return the shape of the keys produced.
+    pub fn shape(&self) -> &[usize] {
+        &self.shape
+    }
 }
 
 impl ProgramOp for Entropy {
@@ -273,6 +285,11 @@ impl Split {
     pub fn new(shape: Vec<usize>) -> Self {
         Self { shape }
     }
+
+    /// Return the shape of the keys derived per input key.
+    pub fn shape(&self) -> &[usize] {
+        &self.shape
+    }
 }
 
 impl ProgramOp for Split {
@@ -312,14 +329,21 @@ impl ProgramOp for Split {
         // A derived key spans at most one block boundary, so reading from its first word's block
         // takes this much room at the most. The buffer is reused across outputs.
         let mut block = vec![0u32; kind.block_words() + width];
+        // (key, block) location of the current buffer, and how many of its words are filled.
+        let mut held: Option<(usize, usize)> = None;
+        let mut filled = 0usize;
         for ((key, payload), into) in layout.sources().zip(key_words.chunks_mut(width)) {
-            let words = &source[key * width..][..width];
             // A derived key takes `width` words starting at word `payload * width` of the stream.
-            // Several keys can share a block.
             let (block_index, offset) = kind.word_block(payload * width);
-            let read = &mut block[..offset + width];
-            Stream::at_block(kind, words, block_index).fill(read);
-            into.copy_from_slice(&read[offset..]);
+            // Several keys share a block, so a whole block is drawn and held until another one is needed.
+            let wanted = offset + width;
+            if held != Some((key, block_index)) || filled < wanted {
+                let words = &source[key * width..][..width];
+                filled = wanted.max(kind.block_words());
+                Stream::at_block(kind, words, block_index).fill(&mut block[..filled]);
+                held = Some((key, block_index));
+            }
+            into.copy_from_slice(&block[offset..wanted]);
         }
         Ok(vec![Tensor::Key(KeyTensor::new(
             kind,
@@ -349,6 +373,11 @@ impl RandomBits {
     /// Return the dtype of the values drawn.
     pub fn dtype(&self) -> DType {
         self.dtype
+    }
+
+    /// Return the shape of the values drawn per key.
+    pub fn shape(&self) -> &[usize] {
+        &self.shape
     }
 }
 
@@ -911,6 +940,15 @@ mod test {
             blocks_needed(kind, &[usize::MAX; 3], 1),
             u128::MAX.div_ceil(block_bits as u128)
         );
+
+        // A payload whose bit total overflows `u128` still reports its true block count, which a
+        // wide enough counter affords. Saturating the bit total first would divide `u128::MAX`
+        // back down to a count well inside the counter.
+        assert_eq!(
+            blocks_needed(kind, &[1usize << 63, 1 << 63], 64),
+            1u128 << 125,
+            "2^126 values of 64 bits are 2^125 blocks of 128 bits"
+        );
     }
 
     #[test]
@@ -1142,6 +1180,160 @@ mod test {
                 0x30193e3c, 0xa82aad38, 0xf48e6bfb, 0xab96c3d4, 0xc9bd190e,
             ]
         );
+    }
+
+    #[test]
+    fn test_split_reads_each_block_once() {
+        // Several derived keys share a block, so `eval` holds a block while consecutive keys read
+        // it. Drawing per key would give the same words, so the output is compared against the
+        // block function directly rather than against another run of `eval`.
+        let kind = PrngKind::Philox4x32;
+        let per_block = kind.block_words() / kind.key_words();
+        assert!(per_block > 1, "philox fits two keys in a block");
+
+        let key = key_from(31);
+        let key_pair = {
+            let words: Vec<u32> = key.keys().unwrap().words().iter().copied().collect();
+            [words[0], words[1]]
+        };
+        // Enough keys to cross several blocks, and an odd count so the last block is partly read.
+        let derived: Vec<u32> = Split::new(vec![7])
+            .eval(std::slice::from_ref(&key))
+            .unwrap()[0]
+            .keys()
+            .unwrap()
+            .words()
+            .iter()
+            .copied()
+            .collect();
+
+        for (index, words) in derived.chunks(kind.key_words()).enumerate() {
+            let (block, offset) = kind.word_block(index * kind.key_words());
+            let expected = rand_philox::philox4x32_10([block as u32, 0, 0, 0], key_pair);
+            assert_eq!(
+                words,
+                &expected[offset..offset + kind.key_words()],
+                "derived key {index} is block {block} at offset {offset}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_entropy_reports_its_kind_and_shape() {
+        let op = Entropy::new(PrngKind::Philox4x32, vec![2, 3]);
+        assert_eq!(op.kind(), PrngKind::Philox4x32);
+        assert_eq!(op.shape(), &[2, 3]);
+        assert_eq!(op.full_name(), "qiskit.entropy");
+        assert_eq!(op.arity(), 0);
+        assert!(op.has_builtin_eval());
+    }
+
+    #[test]
+    fn test_entropy_of_no_axes_is_one_key() {
+        let op = Entropy::new(PrngKind::Philox4x32, vec![]);
+        let minted = op.eval(&[]).unwrap().remove(0);
+        assert_eq!(minted.shape(), &[] as &[usize]);
+        assert_eq!(minted.keys().unwrap().words().len(), 2);
+        assert!(minted.matches(&op.infer_output_types(&[]).unwrap()[0]));
+    }
+
+    #[test]
+    fn test_split_reports_its_shape() {
+        let op = Split::new(vec![4, 5]);
+        assert_eq!(op.shape(), &[4, 5]);
+        assert_eq!(op.full_name(), "qiskit.split");
+        assert_eq!(op.arity(), 1);
+        assert!(op.has_builtin_eval());
+    }
+
+    #[test]
+    fn test_the_random_ops_refuse_an_operand_that_is_not_a_key() {
+        let not_a_key = TensorType {
+            dtype: DType::U32,
+            shape: fixed(&[2]),
+        };
+        let operand = Tensor::U32(
+            ndarray::ArrayD::from_shape_vec(IxDyn(&[2]), vec![7u32, 8])
+                .unwrap()
+                .into_shared(),
+        );
+
+        let assert_key_type = |error: RandomOpError, what: &str| {
+            assert!(
+                matches!(&error, RandomOpError::KeyType { actual } if actual.dtype == DType::U32),
+                "{what}: got {error:?}"
+            );
+        };
+
+        let split = Split::new(vec![2]);
+        assert_key_type(
+            split
+                .infer_output_types(std::slice::from_ref(&not_a_key))
+                .unwrap_err(),
+            "split inference",
+        );
+        assert_key_type(
+            split.eval(std::slice::from_ref(&operand)).unwrap_err(),
+            "split eval",
+        );
+
+        let draw = RandomBits::new(DType::U32, vec![2]).unwrap();
+        assert_key_type(
+            draw.infer_output_types(&[not_a_key]).unwrap_err(),
+            "random_bits inference",
+        );
+        assert_key_type(draw.eval(&[operand]).unwrap_err(), "random_bits eval");
+    }
+
+    #[test]
+    fn test_the_random_ops_refuse_a_payload_the_keys_do_not_broadcast_to() {
+        let key_type = TensorType {
+            dtype: DType::Key(PrngKind::Philox4x32),
+            shape: fixed(&[3]),
+        };
+        let keys = numbered_keys(&[3], 0);
+
+        // Inference compares `Dim` shapes and evaluation compares sizes, so the two report the
+        // mismatch through their own variant.
+        let assert_inference = |error: RandomOpError, what: &str| {
+            assert!(
+                matches!(
+                    &error,
+                    RandomOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs })
+                        if lhs == &fixed(&[3]) && rhs == &fixed(&[4])
+                ),
+                "{what}: got {error:?}"
+            );
+        };
+        let assert_eval = |error: RandomOpError, what: &str| {
+            assert!(
+                matches!(
+                    &error,
+                    RandomOpError::Tensor(TensorError::ShapeMismatch { lhs, rhs })
+                        if lhs == &[3] && rhs == &[4]
+                ),
+                "{what}: got {error:?}"
+            );
+        };
+
+        let split = Split::new(vec![4]);
+        assert_inference(
+            split
+                .infer_output_types(std::slice::from_ref(&key_type))
+                .unwrap_err(),
+            "split inference",
+        );
+        assert_eval(
+            split.eval(std::slice::from_ref(&keys)).unwrap_err(),
+            "split eval",
+        );
+
+        let draw = RandomBits::new(DType::U32, vec![4]).unwrap();
+        assert_inference(
+            draw.infer_output_types(&[key_type]).unwrap_err(),
+            "random_bits inference",
+        );
+        assert_eval(draw.eval(&[keys]).unwrap_err(), "random_bits eval");
     }
 
     #[test]
