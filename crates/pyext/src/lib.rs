@@ -11,16 +11,10 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-pub use qiskit_cext::*;
 
 mod capi;
-
-#[cfg(feature = "mimalloc")]
-use mimalloc::MiMalloc;
-
-#[cfg(feature = "mimalloc")]
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+mod mir;
+mod passmanager;
 
 #[inline(always)]
 #[doc(hidden)]
@@ -39,6 +33,8 @@ where
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, capi::capi_mod, "capi")?;
+    add_submodule(m, passmanager::passmanager_mod, "passmanager")?;
+    add_submodule(m, mir::mir_mod, "mir")?;
     add_submodule(m, ::qiskit_transpiler::passes::alap_schedule_analysis_mod, "alap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::asap_schedule_analysis_mod, "asap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::apply_layout_mod, "apply_layout")?;

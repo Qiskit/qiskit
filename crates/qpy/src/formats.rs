@@ -162,7 +162,7 @@ pub struct CircuitInstructionV2Pack {
     #[br(parse_with = ConditionPack::read, args(condition_register_size, extract_conditional_key(extras_key), condition_value))]
     #[bw(write_with = ConditionPack::write)]
     pub condition: ConditionPack,
-    #[br(count = num_qargs + num_cargs)]
+    #[br(count = num_qargs as usize + num_cargs as usize)]
     #[br(if(read_bits))]
     pub bit_data: Vec<CircuitInstructionArgPack>,
     #[br(count = num_parameters as usize)]

@@ -21,10 +21,13 @@
 use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
+use pyo3::exceptions::PyUserWarning;
 use qiskit_util::IndexSet;
+use std::sync::Arc;
 
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyTuple};
+use qiskit_circuit::annotation::Annotation;
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -95,7 +98,7 @@ fn pack_instructions(
 > {
     let mut custom_operations = HashMap::new();
     let mut custom_new_operations = Vec::new();
-    let instructions = qpy_data.circuit_data.data().to_vec();
+    let instructions = qpy_data.circuit_data.data();
     Ok((
         instructions
             .iter()
@@ -113,9 +116,9 @@ fn pack_instructions(
 }
 
 pub(crate) fn pack_annotations(
-    annotations: &[Py<PyAny>],
+    annotations: &[Arc<dyn Annotation>],
     qpy_data: &mut QPYWriteData,
-) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
+) -> Result<Option<formats::InstructionsAnnotationPack>, QpyError> {
     let annotations_pack: Vec<formats::InstructionAnnotationPack> = annotations
         .iter()
         .map(|annotation| {
@@ -200,6 +203,9 @@ fn pack_instruction_blocks(
     inst: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> Result<Vec<formats::GenericDataPack>, QpyError> {
+    if matches!(qpy_data.caller, QpyCaller::Native) {
+        return Err(QpyError::PythonOnly("Control Flow operations"));
+    }
     let blocks = qpy_data
         .circuit_data
         .unpack_blocks_to_circuit_parameters(inst.params.as_deref())
@@ -275,6 +281,25 @@ fn pack_instruction(
     // common data extraction for all instruction types
     if let Some(label) = instruction.label.as_deref() {
         instruction_pack.label = label.clone();
+        if label.len() > u16::MAX as usize {
+            if matches!(qpy_data.caller, QpyCaller::Python) {
+                // if we are in python we can emit warnings
+                // otherwise we just silently truncate the label
+                qpy_data.caller.attach(
+                    "warn about truncated label",
+                    |py| -> Result<_, QpyError> {
+                        imports::WARNINGS_WARN.get_bound(py).call1((
+                            "Label exceeded maximum length and was truncated.",
+                            py.get_type::<PyUserWarning>(),
+                            1,
+                        ))?;
+                        Ok(())
+                    },
+                )?;
+            }
+            instruction_pack.label.truncate(u16::MAX as usize - 3);
+            instruction_pack.label.push_str("...");
+        }
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
     if matches!(qpy_data.caller, QpyCaller::Python)
@@ -449,12 +474,12 @@ fn pack_control_flow_inst(
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let mut packed_annotations = None;
     let mut packed_condition: formats::ConditionPack = Default::default();
-    let params = match control_flow_inst.control_flow.clone() {
+    let params = match &control_flow_inst.control_flow {
         ControlFlow::Box {
             duration,
             annotations,
         } => {
-            packed_annotations = pack_annotations(&annotations, qpy_data)?;
+            packed_annotations = pack_annotations(annotations, qpy_data)?;
             let mut params = Vec::new();
             params.extend(pack_instruction_blocks(instruction, qpy_data)?);
             match duration {
@@ -468,12 +493,12 @@ fn pack_control_flow_inst(
                 Some(box_duration) => match box_duration {
                     BoxDuration::Duration(duration) => {
                         let duration_value = match duration {
-                            Duration::dt(v) => GenericValue::Int64(v),
+                            Duration::dt(v) => GenericValue::Int64(*v),
                             Duration::ps(v)
                             | Duration::us(v)
                             | Duration::ns(v)
                             | Duration::ms(v)
-                            | Duration::s(v) => GenericValue::Float64(v),
+                            | Duration::s(v) => GenericValue::Float64(*v),
                         };
                         let duration_unit_string =
                             GenericValue::String(duration.unit().to_string());
@@ -484,7 +509,7 @@ fn pack_control_flow_inst(
                     }
                     BoxDuration::Expr(exp) => {
                         let duration_value_pack =
-                            pack_generic_value(&GenericValue::Expression(exp), qpy_data)?;
+                            pack_generic_value(&GenericValue::Expression(exp.clone()), qpy_data)?;
                         let duration_unit_string = GenericValue::String("expr".to_string());
                         params.push(duration_value_pack);
                         params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
@@ -498,11 +523,11 @@ fn pack_control_flow_inst(
             collection,
             loop_param,
         } => {
-            let collection_value = pack_for_collection(&collection, qpy_data.version);
+            let collection_value = pack_for_collection(collection, qpy_data.version);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
                 Some(LoopParam::Parameter(symbol)) => {
-                    GenericValue::ParameterExpressionSymbol(symbol.into())
+                    GenericValue::ParameterExpressionSymbol(Arc::new(symbol.clone()))
                 }
                 Some(LoopParam::Variable(_)) => GenericValue::Null,
             };
@@ -513,11 +538,11 @@ fn pack_control_flow_inst(
             params
         }
         ControlFlow::IfElse { condition } => {
-            packed_condition = pack_condition(condition, qpy_data)?;
+            packed_condition = pack_condition(condition.clone(), qpy_data)?;
             pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::While { condition } => {
-            packed_condition = pack_condition(condition, qpy_data)?;
+            packed_condition = pack_condition(condition.clone(), qpy_data)?;
             pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::Switch {
@@ -531,11 +556,11 @@ fn pack_control_flow_inst(
             // or the special default case label
             let target_value = match target {
                 SwitchTarget::Bit(clbit) => {
-                    GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit))
+                    GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit.clone()))
                 }
-                SwitchTarget::Expr(exp) => GenericValue::Expression(exp),
+                SwitchTarget::Expr(exp) => GenericValue::Expression(exp.clone()),
                 SwitchTarget::Register(reg) => {
-                    GenericValue::Register(ParamRegisterValue::Register(reg))
+                    GenericValue::Register(ParamRegisterValue::Register(reg.clone()))
                 }
             };
             let case_circuits = extract_instruction_blocks(instruction, qpy_data);
@@ -776,7 +801,11 @@ fn pack_quantum_register(
             .collect();
 
         formats::RegisterPack::V4(formats::RegisterV4Pack {
-            register_type: RegisterType::Qreg,
+            register_type: if qreg.is_ancilla() {
+                RegisterType::Areg
+            } else {
+                RegisterType::Qreg
+            },
             standalone: qreg.is_owning() as u8,
             in_circuit: in_circuit as u8,
             name: qreg.name().to_string(),
@@ -806,7 +835,11 @@ fn pack_quantum_register(
             0
         };
         formats::RegisterPack::V18(formats::RegisterV18Pack {
-            register_type: RegisterType::Qreg,
+            register_type: if qreg.is_ancilla() {
+                RegisterType::Areg
+            } else {
+                RegisterType::Qreg
+            },
             standalone: qreg.is_owning() as u8,
             size: qreg.len() as u32,
             register_attachment,
@@ -1196,17 +1229,17 @@ fn pack_custom_instruction(
             base_gate = gate.getattr("base_gate")?.clone();
             let definition: QuantumCircuitData = gate.getattr("_definition")?.extract()?;
             let metadata = serialize_metadata(&definition.metadata, None)?;
-            let layout = serialize(&pack_layout(
+            let layout = pack_layout(
                 definition.transpile_layout.clone(),
                 &definition.data,
                 qpy_data.version,
-            )?)?;
+            )?;
             Some(serialize(&pack_circuit(
                 &definition.data,
                 ExtraCircuitData {
                     name: definition.name,
                     metadata,
-                    layout,
+                    layout: Some(layout),
                 },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
@@ -1221,17 +1254,14 @@ fn pack_custom_instruction(
             .py_definition(py)?
             .map(|defn| {
                 let metadata = serialize_metadata(&defn.metadata, None)?;
-                let layout = serialize(&pack_layout(
-                    defn.transpile_layout.clone(),
-                    &defn.data,
-                    qpy_data.version,
-                )?)?;
+                let layout =
+                    pack_layout(defn.transpile_layout.clone(), &defn.data, qpy_data.version)?;
                 pack_circuit(
                     &defn.data,
                     ExtraCircuitData {
                         name: defn.name,
                         metadata,
-                        layout,
+                        layout: Some(layout),
                     },
                     qpy_data.version,
                     qpy_data.annotation_handler.child()?,
@@ -1409,15 +1439,7 @@ pub(crate) fn pack_circuit(
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
-    let layout = if extra.layout.is_empty() {
-        default_layout()
-    } else {
-        crate::value::deserialize_with_args::<formats::LayoutV2Pack, (u8,)>(
-            &extra.layout,
-            (version,),
-        )?
-        .0
-    };
+    let layout = extra.layout.unwrap_or_else(default_layout);
     let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
         .annotation_handler
         .dump_serializers()?
