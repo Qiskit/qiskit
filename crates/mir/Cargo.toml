@@ -14,12 +14,14 @@ workspace = true
 
 [features]
 mem_dbg = ["dep:mem_dbg"]
+py = ["dep:pyo3"]
 passmanager = ["dep:qiskit-passmanager"]
 
 [dependencies]
 bytemuck.workspace = true
 hashbrown.workspace = true
 mem_dbg = { workspace = true, optional = true }
+pyo3 = { workspace = true, optional = true }
 qiskit-passmanager = {workspace = true, optional = true }
 qiskit-util.workspace = true
 rustworkx-core.workspace = true

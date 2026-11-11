@@ -122,6 +122,15 @@ pub enum MirVerificationError {
     // SymbolTable, ResourceTable, etc)
 }
 
+impl std::fmt::Display for Mir {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for node in self.instructions.iter_main() {
+            writeln!(f, "{}", node.weight())?;
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
