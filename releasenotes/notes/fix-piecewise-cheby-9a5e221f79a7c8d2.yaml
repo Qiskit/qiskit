@@ -1,9 +1,10 @@
 ---
 fixes:
   - |
-    Fixed a bug in :class:`.PiecewiseChebyshevGate` where the the piecewise polynomial was
-    incorrectly padded with a 0-constant instead of the identity polynomial (the constant 1)
-    as documented, and as previously done in the (now deprecated) :class:`.PiecewiseChebyshev` circuit.
+    Fixed a bug in :class:`.PiecewiseChebyshevGate` where the function was approximated
+    outside the given breakpoints instead of padding with the identity polynomial
+    (the constant :math:`\arcsin(1)`) as documented, and as previously done in the (now deprecated) 
+    :class:`.PiecewiseChebyshev` circuit.
 
     See `#17454 <https://github.com/Qiskit/qiskit/issues/17454>`__.
 

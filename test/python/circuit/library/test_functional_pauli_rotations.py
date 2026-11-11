@@ -355,6 +355,9 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                     return x
                 elif x < 6:
                     return x**2
+                elif x >= 6:
+                    # outside the breakpoints the function is the identity, arcsin(1)
+                    return np.arcsin(1)
 
                 return x**3
 
