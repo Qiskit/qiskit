@@ -31,7 +31,7 @@ pub use broadcast_to::BroadcastTo;
 pub use cast::Cast;
 pub use constant::Constant;
 pub use error::MathOpError;
-pub use euler_angles::EulerAngles;
+pub use euler_angles::EulerAnglesZYZ;
 pub use program_op::{BoxedOpError, BoxedProgramOp, ErasedProgramOp, ProgramOp, QISKIT};
 pub use random::{CounterUnit, Entropy, RandomOpError, Split};
 

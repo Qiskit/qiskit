@@ -46,17 +46,17 @@ const NUM_ANGLES: usize = 3;
 /// ```
 
 #[derive(Clone, Debug)]
-pub struct EulerAngles {
+pub struct EulerAnglesZYZ {
     atol: f64,
 }
 
-impl Default for EulerAngles {
+impl Default for EulerAnglesZYZ {
     fn default() -> Self {
-        EulerAngles::new(DEFAULT_ATOL)
+        EulerAnglesZYZ::new(DEFAULT_ATOL)
     }
 }
 
-impl EulerAngles {
+impl EulerAnglesZYZ {
     /// Construct an `EulerAngles` op resolving degenerate unitaries within `atol`.
     pub fn new(atol: f64) -> Self {
         Self { atol }
@@ -142,11 +142,11 @@ fn leading_axes(shape: &[Dim]) -> Option<&[Dim]> {
     }
 }
 
-impl ProgramOp for EulerAngles {
+impl ProgramOp for EulerAnglesZYZ {
     type Error = MathOpError;
 
     fn name(&self) -> &str {
-        "euler_angles"
+        "euler_angles_zyz"
     }
     fn namespace(&self) -> &str {
         QISKIT
@@ -228,7 +228,7 @@ mod test {
     /// Return the three angles the op resolves a single `matrix` into.
     fn resolve_one(matrix: Array2<Complex64>) -> [f64; 3] {
         let operand = Tensor::from(matrix.into_dyn());
-        let resolved = EulerAngles::default()
+        let resolved = EulerAnglesZYZ::default()
             .eval(std::slice::from_ref(&operand))
             .unwrap();
         let Tensor::F64(angles) = &resolved[0] else {
@@ -250,7 +250,7 @@ mod test {
 
     #[test]
     fn test_euler_angles_full_name_and_arity() {
-        let op = EulerAngles::default();
+        let op = EulerAnglesZYZ::default();
         assert_eq!(op.full_name(), "qiskit.euler_angles");
         assert_eq!(op.arity(), 1);
         assert_eq!(op.atol(), DEFAULT_ATOL);
@@ -267,7 +267,7 @@ mod test {
             (vec![0, 2, 2], vec![0, 3]),
         ] {
             assert_eq!(
-                EulerAngles::default()
+                EulerAnglesZYZ::default()
                     .infer_output_types(&[ty(DType::C128, &operand)])
                     .unwrap(),
                 vec![ty(DType::F64, &result)],
@@ -280,7 +280,7 @@ mod test {
     fn test_a_bounded_batch_axis_is_carried_through() {
         let bounded = Dim::Bounded { max: 32 };
         assert_eq!(
-            EulerAngles::default()
+            EulerAnglesZYZ::default()
                 .infer_output_types(&[TensorType {
                     dtype: DType::C128,
                     shape: vec![bounded, Dim::Fixed(2), Dim::Fixed(2)],
@@ -300,7 +300,7 @@ mod test {
             let operand = ty(DType::C128, &shape);
             assert!(
                 matches!(
-                    EulerAngles::default().infer_output_types(std::slice::from_ref(&operand)).unwrap_err(),
+                    EulerAnglesZYZ::default().infer_output_types(std::slice::from_ref(&operand)).unwrap_err(),
                     MathOpError::WrongTrailingShape { operand: 0, ref expected, .. }
                         if expected == "[2, 2]"
                 ),
@@ -310,7 +310,7 @@ mod test {
 
         // A bounded matrix axis is refused, even when size 2
         assert!(matches!(
-            EulerAngles::default()
+            EulerAnglesZYZ::default()
                 .infer_output_types(&[TensorType {
                     dtype: DType::C128,
                     shape: vec![Dim::Bounded { max: 2 }, Dim::Fixed(2)],
@@ -326,7 +326,7 @@ mod test {
             let operand = ty(dtype, &[2, 2]);
             assert!(
                 matches!(
-                    EulerAngles::default().infer_output_types(std::slice::from_ref(&operand)).unwrap_err(),
+                    EulerAnglesZYZ::default().infer_output_types(std::slice::from_ref(&operand)).unwrap_err(),
                     MathOpError::UnsupportedDType { operand: 0, dtype: refused }
                         if refused == dtype
                 ),
@@ -334,7 +334,7 @@ mod test {
             );
         }
         assert!(matches!(
-            EulerAngles::default()
+            EulerAnglesZYZ::default()
                 .eval(&[Tensor::from([1.0_f64, 2.0, 3.0, 4.0])])
                 .unwrap_err(),
             MathOpError::UnsupportedDType {
@@ -443,7 +443,7 @@ mod test {
 
     #[test]
     fn test_the_resolved_angles_are_continuous_at_the_degenerate_points() {
-        let op = EulerAngles::new(1e-6);
+        let op = EulerAnglesZYZ::new(1e-6);
         let resolve = |matrix: Array2<Complex64>| {
             let operand = Tensor::from(matrix.into_dyn());
             let resolved = op.eval(&[operand]).unwrap();
@@ -478,7 +478,7 @@ mod test {
         let operand = Tensor::from(unitary(lambda, theta, phi, 0.0).into_dyn());
 
         let resolve = |atol: f64| {
-            let resolved = EulerAngles::new(atol)
+            let resolved = EulerAnglesZYZ::new(atol)
                 .eval(std::slice::from_ref(&operand))
                 .unwrap();
             let Tensor::F64(angles) = &resolved[0] else {
@@ -512,7 +512,7 @@ mod test {
             }
         }
 
-        let resolved = EulerAngles::default()
+        let resolved = EulerAnglesZYZ::default()
             .eval(&[Tensor::from(stacked)])
             .unwrap();
         assert_eq!(resolved[0].shape(), &[cases.len(), 3]);
@@ -546,7 +546,7 @@ mod test {
 
         let mut transposed = stacked.view();
         transposed.swap_axes(1, 2);
-        let resolved = EulerAngles::default()
+        let resolved = EulerAnglesZYZ::default()
             .eval(&[Tensor::from(transposed.to_owned())])
             .unwrap();
         let Tensor::F64(angles) = &resolved[0] else {
@@ -571,7 +571,7 @@ mod test {
     #[test]
     fn test_an_empty_batch_resolves_to_no_angles() {
         let operand = Tensor::from(ArrayD::<Complex64>::zeros(IxDyn(&[0, 2, 2])));
-        let resolved = EulerAngles::default().eval(&[operand]).unwrap();
+        let resolved = EulerAnglesZYZ::default().eval(&[operand]).unwrap();
         assert_eq!(resolved[0].shape(), &[0, 3]);
         assert_eq!(resolved[0].dtype(), DType::F64);
     }
@@ -603,7 +603,7 @@ mod test {
         let mut function = ProgramFunction::new();
         let matrices = function.add_parameter(ty(DType::C128, &[6, 2, 2]));
         let angles = function
-            .add_op(EulerAngles::default(), &[matrices])
+            .add_op(EulerAnglesZYZ::default(), &[matrices])
             .unwrap()[0];
         let mean = function.add_op(Mean::new(0), &[angles]).unwrap()[0];
 
