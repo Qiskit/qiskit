@@ -296,7 +296,7 @@ class Operator(LinearOp):
             "r": np.array([[0.5, -0.5j], [0.5j, 0.5]], dtype=complex),
             "l": np.array([[0.5, 0.5j], [-0.5j, 0.5]], dtype=complex),
         }
-        if re.match(r"^[IXYZHST01rl\-+]+$", label) is None:
+        if not re.fullmatch(r"[IXYZHST01rl\-+]+", label):
             raise QiskitError("Label contains invalid characters.")
         # Initialize an identity matrix and apply each gate
         num_qubits = len(label)

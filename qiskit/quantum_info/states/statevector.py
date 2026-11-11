@@ -784,7 +784,7 @@ class Statevector(QuantumState, TolerancesMixin):
                          specified num_qubits.
         """
         # Check label is valid
-        if re.match(r"^[01rl\-+]+$", label) is None:
+        if not re.fullmatch(r"[01rl\-+]+", label):
             raise QiskitError("Label contains invalid characters.")
         # We can prepare Z-eigenstates by converting the computational
         # basis bit-string to an integer and preparing that unit vector
@@ -792,7 +792,7 @@ class Statevector(QuantumState, TolerancesMixin):
         # then apply Hadamard gates to rotate 0 and 1s to + and -.
         z_label = label
         xy_states = False
-        if re.match("^[01]+$", label) is None:
+        if not re.fullmatch("[01]+", label):
             # We have X or Y eigenstates so replace +,r with 0 and
             # -,l with 1 and prepare the corresponding Z state
             xy_states = True

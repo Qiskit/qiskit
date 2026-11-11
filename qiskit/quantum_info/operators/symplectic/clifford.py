@@ -749,7 +749,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             "H": HGate(),
             "S": SGate(),
         }
-        if re.match(r"^[IXYZHS\-+]+$", label) is None:
+        if not re.fullmatch(r"[IXYZHS\-+]+", label):
             raise QiskitError("Label contains invalid characters.")
         # Initialize an identity matrix and apply each gate
         num_qubits = len(label)
