@@ -25,9 +25,13 @@
 //!   IO contract of a quantum program.
 //! - [`randomization`] defines randomization semantics for [`QuantumProgram`]s.
 //! - [`render`] writes a program out for a person to read, as a listing or as a drawing.
+//! - [`python`] binds the parts of all this that `qiskit.quantum_program` exposes, behind the
+//!   `python` feature.
 pub mod data_tree;
 pub mod ops;
 pub mod program;
+#[cfg(feature = "python")]
+pub mod python;
 pub mod randomization;
 pub mod render;
 pub mod tensor;
