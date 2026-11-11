@@ -10,11 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Expr, ExprKind, PyExpr};
+use crate::classical::expr::Expr;
+#[cfg(feature = "py")]
+use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
+#[cfg(feature = "py")]
 use crate::imports;
+#[cfg(feature = "py")]
+use pyo3::exceptions::PyValueError;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyTuple;
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
 
 /// A unary expression.
@@ -52,11 +60,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for UnaryOp {
 }
 
 impl UnaryOp {
-    pub fn from_u8(value: u8) -> PyResult<UnaryOp> {
-        Ok(bytemuck::checked::cast::<u8, UnaryOp>(value))
+    pub fn try_from_u8(value: u8) -> Result<UnaryOp, bytemuck::checked::CheckedCastError> {
+        bytemuck::checked::try_cast::<u8, UnaryOp>(value)
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Unary {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -67,6 +76,7 @@ impl<'py> IntoPyObject<'py> for Unary {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Unary {
     type Error = <PyUnary as FromPyObject<'a, 'py>>::Error;
 
@@ -76,6 +86,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Unary {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for UnaryOp {
     type Target = PyAny;
     type Output = Bound<'py, Self::Target>;
@@ -86,20 +97,24 @@ impl<'py> IntoPyObject<'py> for UnaryOp {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for UnaryOp {
     type Error = PyErr;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob.getattr(intern!(ob.py(), "value"))?;
-        Ok(bytemuck::checked::cast(value.extract::<u8>()?))
+        bytemuck::checked::try_cast(value.extract::<u8>()?)
+            .map_err(|e| PyValueError::new_err(e.to_string()))
     }
 }
 
 /// A Python descriptor to prevent PyO3 from attempting to import the Python-side
 /// enum before we're initialized.
+#[cfg(feature = "py")]
 #[pyclass(module = "qiskit._accelerate.circuit.classical.expr")]
 struct PyUnaryOp;
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyUnaryOp {
     fn __get__(&self, obj: &Bound<PyAny>, _obj_type: &Bound<PyAny>) -> Py<PyAny> {
@@ -113,6 +128,7 @@ impl PyUnaryOp {
 ///     op: The opcode describing which operation is being done.
 ///     operand: The operand of the operation.
 ///     type: The resolved type of the result.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     extends = PyExpr,
@@ -123,6 +139,7 @@ impl PyUnaryOp {
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyUnary(Unary);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyUnary {
     // The docstring for 'Op' is defined in Python (expr.py).
@@ -192,5 +209,15 @@ impl PyUnary {
             self.get_operand(py)?.bind(py).repr()?,
             self.get_type(py)?.bind(py).repr()?,
         ))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_unary_op_from_u8_invalid_input() {
+        assert!(UnaryOp::try_from_u8(123).is_err())
     }
 }

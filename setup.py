@@ -56,7 +56,7 @@ else:
     features = ["cache_pygates"]
 
 if os.getenv("QISKIT_BUILD_WITH_MIMALLOC") == "1":
-    features.append("mimalloc")
+    features.append("global_mimalloc")
 
 
 setup(
@@ -70,5 +70,5 @@ setup(
             generated_files={"include": "qiskit.capi", "_ctypes.py": "qiskit.capi"},
         )
     ],
-    options={"bdist_wheel": {"py_limited_api": "cp310"}},
+    options={"bdist_wheel": {"py_limited_api": "cp311"}},
 )

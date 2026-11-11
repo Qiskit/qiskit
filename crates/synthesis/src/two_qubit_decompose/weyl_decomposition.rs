@@ -26,6 +26,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
+use thiserror::Error;
 
 use crate::QiskitError;
 use crate::euler_one_qubit_decomposer::{
@@ -304,6 +305,36 @@ pub enum Specialization {
 }
 impl_intopyobject_for_copy_pyclass!(Specialization);
 
+#[derive(Error, Debug)]
+pub enum SpecializationError {
+    #[error("unknown specialization discriminant '{0}'")]
+    UnknownDiscriminant(u8),
+}
+
+impl From<SpecializationError> for PyErr {
+    fn from(error: SpecializationError) -> Self {
+        PyValueError::new_err(error.to_string())
+    }
+}
+
+impl Specialization {
+    pub fn from_u8(val: u8) -> Result<Self, SpecializationError> {
+        match val {
+            0 => Ok(Self::General),
+            1 => Ok(Self::IdEquiv),
+            2 => Ok(Self::SWAPEquiv),
+            3 => Ok(Self::PartialSWAPEquiv),
+            4 => Ok(Self::PartialSWAPFlipEquiv),
+            5 => Ok(Self::ControlledEquiv),
+            6 => Ok(Self::MirrorControlledEquiv),
+            7 => Ok(Self::fSimaabEquiv),
+            8 => Ok(Self::fSimabbEquiv),
+            9 => Ok(Self::fSimabmbEquiv),
+            x => Err(SpecializationError::UnknownDiscriminant(x)),
+        }
+    }
+}
+
 #[pymethods]
 impl Specialization {
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
@@ -326,21 +357,7 @@ impl Specialization {
 
     #[staticmethod]
     fn _from_u8(val: u8) -> PyResult<Self> {
-        match val {
-            0 => Ok(Self::General),
-            1 => Ok(Self::IdEquiv),
-            2 => Ok(Self::SWAPEquiv),
-            3 => Ok(Self::PartialSWAPEquiv),
-            4 => Ok(Self::PartialSWAPFlipEquiv),
-            5 => Ok(Self::ControlledEquiv),
-            6 => Ok(Self::MirrorControlledEquiv),
-            7 => Ok(Self::fSimaabEquiv),
-            8 => Ok(Self::fSimabbEquiv),
-            9 => Ok(Self::fSimabmbEquiv),
-            x => Err(PyValueError::new_err(format!(
-                "unknown specialization discriminant '{x}'"
-            ))),
-        }
+        Self::from_u8(val).map_err(Into::into)
     }
 }
 
@@ -369,11 +386,7 @@ fn matrixview4_to_faer<T: nalgebra::Scalar + Copy>(mat: MatrixView4<T>) -> MatRe
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
-#[pyclass(
-    module = "qiskit._accelerate.two_qubit_decompose",
-    subclass,
-    skip_from_py_object
-)]
+#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitWeylDecomposition {
     #[pyo3(get)]
     pub(super) a: f64,
@@ -1127,7 +1140,7 @@ impl TwoQubitWeylDecomposition {
                 &[Qubit(0)],
             )?;
         }
-        global_phase += c2r.global_phase;
+        global_phase += c1r.global_phase;
         let c1l = unitary_to_gate_sequence_inner(
             nalgebra_array_view::<Complex64, U2, U2>(self.K1l.as_view()),
             &target_1q_basis_list,
@@ -1144,6 +1157,7 @@ impl TwoQubitWeylDecomposition {
                 &[Qubit(1)],
             )?;
         }
+        global_phase += c1l.global_phase;
         gate_sequence.set_global_phase_f64(global_phase);
         Ok(gate_sequence.into())
     }
