@@ -29,4 +29,11 @@ jobs:
               popd
           done
       - name: Run Rust Tests
-        run: cargo test
+        run: cargo test --all-features
+      - name: Build all examples
+        run: |
+          cargo build --examples --all-features
+      - name: Run MIR Memory Report Example
+        run: |
+          cargo run --example memory_report -p qiskit-mir --all-features
+  

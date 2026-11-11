@@ -26,8 +26,10 @@ thiserror.workspace = true
 [dev-dependencies]
 itertools.workspace = true
 
-[[test]]
+[[example]]
 name = "memory_report"
 required-features = ["mem_dbg"]
-# Prints a report from `main` rather than running `#[test]` functions.
-harness = false
+
+[[test]]
+name = "validate_mem_dbg"
+required-features = ["mem_dbg"]
