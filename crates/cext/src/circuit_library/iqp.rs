@@ -13,7 +13,7 @@
 use crate::pointers::ExposesOwnedPointers;
 use ndarray::ArrayView2;
 use qiskit_circuit::{circuit_data::CircuitData, operations::Param};
-use qiskit_circuit_library::iqp::{check_symmetric, iqp, py_random_iqp};
+use qiskit_circuit_library::iqp::{check_symmetric, iqp, random_iqp};
 
 /// @ingroup QkCircuitLibrary
 /// Generate an Instantaneous Quantum Polynomial (IQP) circuit from an
@@ -105,7 +105,7 @@ pub unsafe extern "C" fn qk_circuit_library_iqp(
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_circuit_library_random_iqp(num_qubits: u32, seed: i64) -> *mut CircuitData {
     let seed = if seed < 0 { None } else { Some(seed as u64) };
-    let circuit_data = py_random_iqp(num_qubits, seed)
+    let circuit_data = random_iqp(num_qubits, seed)
         .expect("qk_circuit_library_random_iqp: failed to build random IQP circuit");
-    Box::into_raw(Box::new(circuit_data.into()))
+    circuit_data.into_leaked()
 }
