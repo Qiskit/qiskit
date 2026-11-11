@@ -13,9 +13,9 @@
 use hashbrown::HashSet;
 
 use ndarray::Array2;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods, PyReadonlyArray1};
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use pyo3::{
     IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError},
@@ -26,22 +26,22 @@ use pyo3::{
 };
 use std::collections::btree_map;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use std::{
     iter::zip,
     sync::{Arc, RwLock},
 };
 use thiserror::Error;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use crate::imports;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 static PAULI_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
@@ -914,42 +914,42 @@ impl ::std::fmt::Display for InnerWriteError {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<InnerReadError> for PyErr {
     fn from(value: InnerReadError) -> PyErr {
         PyRuntimeError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<InnerWriteError> for PyErr {
     fn from(value: InnerWriteError) -> PyErr {
         PyRuntimeError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<PauliFromU8Error> for PyErr {
     fn from(value: PauliFromU8Error) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<CoherenceError> for PyErr {
     fn from(value: CoherenceError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<LabelError> for PyErr {
     fn from(value: LabelError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<ArithmeticError> for PyErr {
     fn from(value: ArithmeticError) -> PyErr {
         PyValueError::new_err(value.to_string())
@@ -958,7 +958,7 @@ impl From<ArithmeticError> for PyErr {
 
 /// The single-character string label used to represent this term in the
 /// :class:`QubitSparsePauliList` alphabet.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyfunction]
 #[pyo3(name = "label")]
 fn pauli_label(py: Python<'_>, slf: Pauli) -> &Bound<'_, PyString> {
@@ -978,7 +978,7 @@ fn pauli_label(py: Python<'_>, slf: Pauli) -> &Bound<'_, PyString> {
 ///
 /// The resulting class is attached to `QubitSparsePauliList` as a class attribute, and its
 /// `__qualname__` is set to reflect this.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 fn make_py_pauli(py: Python) -> PyResult<Py<PyType>> {
     let terms = [Pauli::X, Pauli::Y, Pauli::Z]
         .into_iter()
@@ -1015,7 +1015,7 @@ fn make_py_pauli(py: Python) -> PyResult<Py<PyType>> {
 // singletons and subclasses of Python `int`.  We only use this for interaction with "high level"
 // Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
 // efficiently.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Pauli {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -1046,7 +1046,7 @@ impl<'py> IntoPyObject<'py> for Pauli {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Pauli {
     type Error = PyErr;
 
@@ -1208,21 +1208,21 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Pauli {
 ///     :param int|None num_qubits: Optional number of qubits for the operator.  For most data
 ///         inputs, this can be inferred and need not be passed.  It is only necessary for the
 ///         sparse-label format.  If given unnecessarily, it must match the data input.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyclass(name = "QubitSparsePauli", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
 pub struct PyQubitSparsePauli {
     inner: QubitSparsePauli,
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl PyQubitSparsePauli {
     pub fn inner(&self) -> &QubitSparsePauli {
         &self.inner
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyQubitSparsePauli {
     #[new]
@@ -1709,7 +1709,7 @@ impl PyQubitSparsePauli {
 ///   :meth:`to_sparse_list`       Express the observable in a sparse list format with elements
 ///                                ``(paulis, indices)``.
 ///   ===========================  =================================================================
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyclass(
     name = "QubitSparsePauliList",
     module = "qiskit.quantum_info",
@@ -1721,7 +1721,7 @@ pub struct PyQubitSparsePauliList {
     pub inner: Arc<RwLock<QubitSparsePauliList>>,
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyQubitSparsePauliList {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -2310,14 +2310,14 @@ impl PyQubitSparsePauliList {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<QubitSparsePauli> for PyQubitSparsePauli {
     fn from(val: QubitSparsePauli) -> PyQubitSparsePauli {
         PyQubitSparsePauli { inner: val }
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for QubitSparsePauli {
     type Target = PyQubitSparsePauli;
     type Output = Bound<'py, Self::Target>;
@@ -2328,7 +2328,7 @@ impl<'py> IntoPyObject<'py> for QubitSparsePauli {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<QubitSparsePauliList> for PyQubitSparsePauliList {
     fn from(val: QubitSparsePauliList) -> PyQubitSparsePauliList {
         PyQubitSparsePauliList {
@@ -2337,7 +2337,7 @@ impl From<QubitSparsePauliList> for PyQubitSparsePauliList {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for QubitSparsePauliList {
     type Target = PyQubitSparsePauliList;
     type Output = Bound<'py, Self::Target>;
