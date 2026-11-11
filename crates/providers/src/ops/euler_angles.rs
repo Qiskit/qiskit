@@ -251,7 +251,7 @@ mod test {
     #[test]
     fn test_euler_angles_full_name_and_arity() {
         let op = EulerAnglesZYZ::default();
-        assert_eq!(op.full_name(), "qiskit.euler_angles");
+        assert_eq!(op.full_name(), "qiskit.euler_angles_zyz");
         assert_eq!(op.arity(), 1);
         assert_eq!(op.atol(), DEFAULT_ATOL);
         assert!(op.has_builtin_eval());
