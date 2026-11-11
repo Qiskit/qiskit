@@ -19,6 +19,7 @@ from ddt import ddt, data, unpack
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import BlueprintCircuit
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import (
     PiecewiseChebyshev,
     PiecewiseChebyshevGate,
@@ -33,8 +34,10 @@ class TestPiecewiseChebyshev(QiskitTestCase):
 
     def assertFunctionIsCorrect(self, function_circuit, reference, num_ancillas=None):
         """Assert that ``function_circuit`` implements the reference function ``reference``."""
-        function_circuit._build()
-        num_ancillas = function_circuit.num_ancillas if num_ancillas is None else num_ancillas
+        if isinstance(function_circuit, BlueprintCircuit):
+            function_circuit._build()
+            num_ancillas = function_circuit.num_ancillas if num_ancillas is None else num_ancillas
+
         num_state_qubits = function_circuit.num_qubits - num_ancillas - 1
 
         circuit = QuantumCircuit(num_state_qubits + 1 + num_ancillas)
@@ -102,7 +105,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
                         )
                     num_ancillas = None
 
-        self.assertFunctionIsCorrect(pw_approximation, pw_poly, num_ancillas)
+                self.assertFunctionIsCorrect(pw_approximation, pw_poly, num_ancillas)
 
     def test_piecewise_chebyshev_mutability(self):
         """Test the mutability of the piecewise Chebyshev approximation."""
