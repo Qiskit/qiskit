@@ -277,13 +277,13 @@ pub(crate) fn build_circuit(
                 }
             }
             InternalBytecode::DeclareQreg { name, size } => {
-                let register = QuantumRegister::new_owning(name.clone(), *size as u32);
+                let register = QuantumRegister::new_owning(name.clone(), *size);
                 circuit.add_qreg(register, true).map_err(|err| {
                     ParseError::new(format!("failed to declare qreg '{name}': {err}"))
                 })?;
             }
             InternalBytecode::DeclareCreg { name, size } => {
-                let register = ClassicalRegister::new_owning(name.clone(), *size as u32);
+                let register = ClassicalRegister::new_owning(name.clone(), *size);
                 cregs.push(register.clone());
                 circuit.add_creg(register, true).map_err(|err| {
                     ParseError::new(format!("failed to declare creg '{name}': {err}"))

@@ -83,19 +83,20 @@ pub struct Qubit(pub u32);
 #[repr(transparent)]
 pub struct Clbit(pub u32);
 
-impl Add<usize> for Qubit {
+/// Offset a qubit by a number of positions, for walking over a contiguous register.
+impl Add<u32> for Qubit {
     type Output = Self;
 
-    fn add(self, by: usize) -> Self {
-        Self(self.0 + by as u32)
+    fn add(self, by: u32) -> Self {
+        Self(self.0 + by)
     }
 }
 
-impl Add<usize> for Clbit {
+impl Add<u32> for Clbit {
     type Output = Self;
 
-    fn add(self, by: usize) -> Self {
-        Self(self.0 + by as u32)
+    fn add(self, by: u32) -> Self {
+        Self(self.0 + by)
     }
 }
 

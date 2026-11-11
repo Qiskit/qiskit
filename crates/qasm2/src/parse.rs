@@ -104,11 +104,11 @@ newtype_id!(ParamId, false);
 /// symbol table, as there is no way for them to be defined.
 pub enum GlobalSymbol {
     Qreg {
-        size: usize,
+        size: u32,
         start: Qubit,
     },
     Creg {
-        size: usize,
+        size: u32,
         start: Clbit,
         index: CregId,
     },
@@ -172,7 +172,7 @@ impl GateSymbol {
 /// The `Range` operand only occurs when a register is used as an operation target.
 enum Operand<T> {
     Single(T),
-    Range(usize, T),
+    Range(u32, T),
 }
 
 /// The available types for the arrays of parameters in a gate call.  The `Constant` variant is for
@@ -234,8 +234,8 @@ pub struct State {
     /// symbol table or not, any gate-based definition of this symbol must match the signature we
     /// expect for it.
     overridable_gates: HashMap<String, OverridableGate>,
-    num_qubits: usize,
-    num_clbits: usize,
+    num_qubits: u32,
+    num_clbits: u32,
     num_cregs: usize,
     num_gates: usize,
     /// Whether a version statement is allowed in this position.
@@ -632,11 +632,11 @@ impl State {
     fn complete_operand<T>(
         &mut self,
         name: &str,
-        register_size: usize,
+        register_size: u32,
         register_start: T,
     ) -> Result<Operand<T>, ParseError>
     where
-        T: std::ops::Add<usize, Output = T>,
+        T: std::ops::Add<u32, Output = T>,
     {
         let lbracket_token = match self.accept(TokenType::LBracket)? {
             Some(token) => token,
@@ -645,8 +645,8 @@ impl State {
         let index_token = self.expect(TokenType::Integer, "an integer index", &lbracket_token)?;
         let index = index_token.int(&self.context);
         self.expect(TokenType::RBracket, "a closing bracket", &lbracket_token)?;
-        if index < register_size {
-            Ok(Operand::Single(register_start + index))
+        if index < register_size as usize {
+            Ok(Operand::Single(register_start + index as u32))
         } else {
             Err(ParseError::new(message_generic(
                 Some(&Position::new(
@@ -1130,7 +1130,7 @@ impl State {
         // If we're here we either have to broadcast or it's a 3+q gate - either way, we're not as
         // worried about performance.
         let mut qubits = HashSet::<Qubit>::with_capacity(qargs.len());
-        let mut broadcast_length = 0usize;
+        let mut broadcast_length = 0u32;
         for qarg in qargs {
             match qarg {
                 Operand::Single(index) => {
@@ -1219,7 +1219,7 @@ impl State {
                 _ => unreachable!(),
             }
         }
-        Ok(broadcast_length)
+        Ok(broadcast_length as usize)
     }
 
     /// Emit the bytecode for a single gate application in the global scope.  This could
@@ -1382,9 +1382,7 @@ impl State {
         } else if let Some(num_gate_qubits) = num_gate_qubits {
             (0..num_gate_qubits).map(Qubit).collect::<Vec<_>>()
         } else {
-            (0..self.num_qubits)
-                .map(|i| Qubit(i as u32))
-                .collect::<Vec<_>>()
+            (0..self.num_qubits).map(Qubit).collect::<Vec<_>>()
         };
         self.expect(TokenType::Semicolon, "';'", &barrier_token)?;
         if qubits.is_empty() {
@@ -1432,7 +1430,7 @@ impl State {
                             value: value.clone(),
                         })
                     }));
-                    Ok(q_size)
+                    Ok(q_size as usize)
                 }
                 _ => Err(ParseError::new(message_generic(
                     Some(&Position::new(
@@ -1458,7 +1456,7 @@ impl State {
                             clbit: c_start + i,
                         })
                     }));
-                    Ok(q_size)
+                    Ok(q_size as usize)
                 }
                 _ => Err(ParseError::new(message_generic(
                     Some(&Position::new(
@@ -1501,7 +1499,7 @@ impl State {
                             value: value.clone(),
                         })
                     }));
-                    Ok(size)
+                    Ok(size as usize)
                 }
             }
         } else {
@@ -1516,31 +1514,34 @@ impl State {
                             qubit: start + offset,
                         })
                     }));
-                    Ok(size)
+                    Ok(size as usize)
                 }
             }
         }
     }
 
+    /// The error for a register that the circuit model cannot index.
+    fn register_too_large(&self, token: &Token) -> ParseError {
+        ParseError::new(message_generic(
+            Some(&Position::new(
+                self.current_filename(),
+                token.line,
+                token.col,
+            )),
+            &format!(
+                "a register of size {} does not fit in a circuit, which can index at most {} bits",
+                token.text(&self.context),
+                u32::MAX
+            ),
+        ))
+    }
+
     /// The index a new register of `size` bits starts at, if the circuit model can hold it.
-    fn register_start(&self, count: usize, size: usize, token: &Token) -> Result<u32, ParseError> {
-        let fits = count
-            .checked_add(size)
-            .is_some_and(|total| total <= u32::MAX as usize);
-        if !fits {
-            return Err(ParseError::new(message_generic(
-                Some(&Position::new(
-                    self.current_filename(),
-                    token.line,
-                    token.col,
-                )),
-                &format!(
-                    "a register of size {size} does not fit in a circuit, which can index at most {} bits",
-                    u32::MAX
-                ),
-            )));
+    fn register_start(&self, count: u32, size: u32, token: &Token) -> Result<u32, ParseError> {
+        if count.checked_add(size).is_none() {
+            return Err(self.register_too_large(token));
         }
-        Ok(count as u32)
+        Ok(count)
     }
 
     /// Parse a declaration of a classical register, emitting the relevant bytecode and adding the
@@ -1552,9 +1553,10 @@ impl State {
         let name = name_token.id(&self.context);
         let lbracket_token = self.expect(TokenType::LBracket, "'['", &creg_token)?;
         let size_token = self.expect(TokenType::Integer, "an integer", &lbracket_token)?;
-        let size = size_token.int(&self.context);
         self.expect(TokenType::RBracket, "']'", &lbracket_token)?;
         self.expect(TokenType::Semicolon, "';'", &creg_token)?;
+        let size = u32::try_from(size_token.int(&self.context))
+            .map_err(|_| self.register_too_large(&size_token))?;
         let start = self.register_start(self.num_clbits, size, &size_token)?;
         let symbol = GlobalSymbol::Creg {
             size,
@@ -1587,9 +1589,10 @@ impl State {
         let name = name_token.id(&self.context);
         let lbracket_token = self.expect(TokenType::LBracket, "'['", &qreg_token)?;
         let size_token = self.expect(TokenType::Integer, "an integer", &lbracket_token)?;
-        let size = size_token.int(&self.context);
         self.expect(TokenType::RBracket, "']'", &lbracket_token)?;
         self.expect(TokenType::Semicolon, "';'", &qreg_token)?;
+        let size = u32::try_from(size_token.int(&self.context))
+            .map_err(|_| self.register_too_large(&size_token))?;
         let start = self.register_start(self.num_qubits, size, &size_token)?;
         let symbol = GlobalSymbol::Qreg {
             size,

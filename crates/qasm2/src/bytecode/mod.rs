@@ -67,11 +67,11 @@ pub enum InternalBytecode {
     },
     DeclareQreg {
         name: String,
-        size: usize,
+        size: u32,
     },
     DeclareCreg {
         name: String,
-        size: usize,
+        size: u32,
     },
     DeclareGate {
         name: String,
