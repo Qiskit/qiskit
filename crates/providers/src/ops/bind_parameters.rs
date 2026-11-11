@@ -416,22 +416,23 @@ mod test {
 
     #[test]
     fn test_eval_evaluates_every_expression_over_every_set_of_values() {
+        // The six results are distinct, so any transposition of expressions against sets of
+        // values is caught. Each is exact in binary floating point, which keeps the comparison
+        // exact: Miri's shims for the transcendental functions are deliberately perturbed by up
+        // to an ULP, and independently per call.
         let (x, y) = (symbol("x"), symbol("y"));
         let op = real_op(
             vec![
                 expr(&x).add(&expr(&y)).unwrap(),
                 expr(&x).mul(&expr(&x)).unwrap(),
-                expr(&y).sin(),
+                expr(&y).sub(&expr(&x)).unwrap(),
             ],
             vec![x, y],
         );
         assert_eq!(
             op.eval(&[tensor(&[2, 2], &[0.5, 1.5, 2.0, -0.25])])
                 .unwrap(),
-            vec![tensor(
-                &[2, 3],
-                &[2.0, 0.25, 1.5_f64.sin(), 1.75, 4.0, (-0.25_f64).sin(),]
-            )],
+            vec![tensor(&[2, 3], &[2.0, 0.25, 1.0, 1.75, 4.0, -2.25])],
             "the values match evaluating the expressions directly"
         );
     }
