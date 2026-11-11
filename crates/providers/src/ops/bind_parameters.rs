@@ -29,6 +29,11 @@ use crate::tensor::{DType, Dim, Tensor, TensorType};
 /// value per expression. Leading axes on the operand are a batch prefix. The result dtype is
 /// `F64` or `C128`. When an expression evaluates to a complex number, an `F64` result keeps just
 /// the real part.
+///
+/// ## Warning
+///
+/// This operation raises errors in [`Self::evaluation`] at runtime when a parameter
+/// expression cannot be evaluated, including situations like divide-by-zero.
 #[derive(Clone, Debug)]
 pub struct BindParameters {
     expressions: Vec<ParameterExpression>,
