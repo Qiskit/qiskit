@@ -318,7 +318,7 @@ impl Heuristic {
     /// Set the weight of the ``wait_time`` heuristic: the score added per unit of time
     /// that a swap must wait before both of its physical qubits are free.  This should be
     /// small relative to ``basic``; the ``"wait_time"`` preset of :class:`.SabreSwap` uses
-    /// ``0.0025``.  ``swap_cost`` is the expected cost of a swap relative to a two-qubit DAG node.
+    /// ``0.0005``.  ``swap_cost`` is the expected cost of a swap relative to a two-qubit DAG node.
     #[pyo3(signature = (weight, swap_cost=3))]
     pub fn with_wait_time(&self, weight: f64, swap_cost: u32) -> Self {
         Self {

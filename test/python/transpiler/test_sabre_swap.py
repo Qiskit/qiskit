@@ -111,7 +111,7 @@ class TestSabreSwap(QiskitTestCase):
         "decay",
         "wait_time",
         Heuristic()
-        .with_wait_time(0.0025, swap_cost=5)
+        .with_wait_time(0.0005, swap_cost=5)
         .with_basic(1.0, SetScaling.Constant)
         .with_lookahead([0.1], SetScaling.Constant)
         .with_decay(0.001, 5),
@@ -155,7 +155,7 @@ class TestSabreSwap(QiskitTestCase):
         "decay",
         "wait_time",
         Heuristic()
-        .with_wait_time(0.0025, swap_cost=5)
+        .with_wait_time(0.0005, swap_cost=5)
         .with_basic(1.0, SetScaling.Constant)
         .with_lookahead([0.1], SetScaling.Constant)
         .with_decay(0.001, 5),
@@ -347,7 +347,7 @@ class TestSabreSwap(QiskitTestCase):
             .with_basic(1.0, SetScaling.Size).with_lookahead([0.5], SetScaling.Size)
         )
         if wait_time:
-            heuristic = heuristic.with_wait_time(0.0025)
+            heuristic = heuristic.with_wait_time(0.0005)
         qc = looping_circuit(3, 1)
         qc.measure_all()
         coupling_map = CouplingMap.from_line(qc.num_qubits)
@@ -526,8 +526,8 @@ class TestSabreSwap(QiskitTestCase):
         *(
             (wait_time_weight, lookahead_weight, expected_swap, seed)
             for wait_time_weight, lookahead_weight, expected_swap in [
-                (0.0025, 1e-6, {2, 3}),
-                (0.0025, 1.0, {1, 2}),
+                (0.0005, 1e-6, {2, 3}),
+                (0.0005, 1.0, {1, 2}),
             ]
             for seed in range(10)
         )
@@ -646,14 +646,14 @@ class TestSabreSwap(QiskitTestCase):
         """The wait-time component is included in representations and equality."""
         heuristic = (
             Heuristic()
-            .with_wait_time(0.0025)
+            .with_wait_time(0.0005)
             .with_basic(1.0, SetScaling.Constant)
             .with_lookahead([0.1], SetScaling.Constant)
             .with_decay(0.001, 5)
         )
-        self.assertIn("wait_time=WaitTimeHeuristic(weight=0.0025, swap_cost=3)", repr(heuristic))
+        self.assertIn("wait_time=WaitTimeHeuristic(weight=0.0005, swap_cost=3)", repr(heuristic))
         self.assertIn("wait_time=None", repr(Heuristic()))
-        self.assertNotEqual(Heuristic(), Heuristic().with_wait_time(0.0025))
+        self.assertNotEqual(Heuristic(), Heuristic().with_wait_time(0.0005))
 
     def test_rejects_too_many_qubits(self):
         """Test that a sensible Python-space error message is emitted if the DAG has an incorrect
