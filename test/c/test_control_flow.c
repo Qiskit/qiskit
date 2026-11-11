@@ -204,22 +204,6 @@ static QkCircuit *build_box_circuit_expr(const QkExprNode *duration_expr) {
     return circuit;
 }
 
-// Build a circuit with a single box with no duration. Returns NULL if appending the box fails.
-static QkCircuit *build_box_circuit_no_duration(void) {
-    QkCircuit *circuit = qk_circuit_new(3, 3);
-    uint32_t box_qubits[2] = {2, 0};
-    uint32_t box_clbits[1] = {1};
-
-    // The box takes ownership of the body.
-    QkExitCode result = qk_circuit_box(circuit, build_box_body(), box_qubits, box_clbits, NULL);
-    if (result != QkExitCode_Success) {
-        fprintf(stderr, "qk_circuit_box failed with exit code %d\n", result);
-        qk_circuit_free(circuit);
-        return NULL;
-    }
-    return circuit;
-}
-
 // Test that a Box added with `qk_circuit_box` reads back correctly through the control flow
 // accessors, on a circuit built entirely from C rather than by the
 // `inner_test_control_flow_circuit` fixture.
@@ -353,11 +337,17 @@ cleanup:
 // Test that `qk_circuit_box` produces a Box with no duration.
 static int test_box_without_duration(void) {
     int result = Ok;
-    QkCircuit *circuit = build_box_circuit_no_duration();
     QkControlFlowInstruction *cf_inst = NULL;
+    QkCircuit *circuit = qk_circuit_new(3, 3);
+    uint32_t box_qubits[2] = {2, 0};
+    uint32_t box_clbits[1] = {1};
 
-    if (circuit == NULL) {
-        return RuntimeError;
+    // The box takes ownership of the body.
+    QkExitCode exit_code = qk_circuit_box(circuit, build_box_body(), box_qubits, box_clbits, NULL);
+    if (exit_code != QkExitCode_Success) {
+        fprintf(stderr, "qk_circuit_box failed with exit code %d\n", exit_code);
+        result = RuntimeError;
+        goto cleanup;
     }
 
     cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
