@@ -69,13 +69,25 @@ impl Distribution {
     }
 }
 
+/// One sample of a distribution.
+///
+/// Holds the two together so that emissions placing slots of one draw cannot disagree about what
+/// was drawn. Two emissions are of one sample exactly when their `uuid` matches and of one
+/// distribution exactly when their `distribution` compares equal: both are comparisons of values
+/// so neither depends on whether the `Arc` happens to be shared.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Draw {
+    /// Which sample.
+    pub uuid: Uuid,
+    /// What it was drawn from.
+    pub distribution: Distribution,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Emit {
     pub direction: Option<Direction>,
-    /// What the sample this belongs to draws from.
-    pub distribution: Arc<Distribution>,
-    /// Which sample.
-    pub uuid: Uuid,
+    /// The sample this places a slot of.
+    pub draw: Arc<Draw>,
     /// Which part of that sample's factorization this emission places.
     pub slot: u32,
     /// Whether to invert the sampled value before composing it.
@@ -88,7 +100,8 @@ impl Operation for Emit {
     }
 
     fn num_qubits(&self) -> u32 {
-        self.distribution
+        self.draw
+            .distribution
             .slot_qubits(self.slot)
             .expect("an emission places a slot its distribution has")
     }
@@ -192,8 +205,7 @@ mod tests {
     fn emission_at(distribution: Distribution, uuid: Uuid, slot: u32) -> Emit {
         Emit {
             direction: Some(Direction::Forward),
-            distribution: Arc::new(distribution),
-            uuid,
+            draw: Arc::new(Draw { uuid, distribution }),
             slot,
             adjoint: false,
         }
@@ -227,7 +239,7 @@ mod tests {
             adjoint: true,
             ..near.clone()
         };
-        assert_eq!(near.uuid, far.uuid);
+        assert_eq!(near.draw.uuid, far.draw.uuid);
         assert_ne!(near, far);
     }
 
@@ -241,18 +253,20 @@ mod tests {
             Distribution::Sample(DistributionType::UniformPauli),
             Uuid::new_v4(),
         );
-        assert_ne!(first.uuid, second.uuid);
+        assert_ne!(first.draw.uuid, second.draw.uuid);
         assert_ne!(first, second);
     }
 
     #[test]
     fn test_noise_emits_are_told_apart_by_their_slot() {
         let uuid = Uuid::new_v4();
-        let distribution = Arc::new(noise(2));
+        let draw = Arc::new(Draw {
+            uuid,
+            distribution: noise(2),
+        });
         let first = Emit {
             direction: Some(Direction::Forward),
-            distribution: Arc::clone(&distribution),
-            uuid,
+            draw: Arc::clone(&draw),
             slot: 0,
             adjoint: false,
         };
@@ -260,9 +274,41 @@ mod tests {
             slot: 1,
             ..first.clone()
         };
-        assert_eq!(first.uuid, second.uuid);
-        assert!(Arc::ptr_eq(&first.distribution, &second.distribution));
+        assert_eq!(first.draw.uuid, second.draw.uuid);
+        assert_eq!(first.draw.distribution, second.draw.distribution);
         assert_ne!(first, second);
+    }
+
+    #[test]
+    fn test_one_draw_is_one_draw_however_it_was_built() {
+        // The property that lets an emission be written by hand: a draw is identified by what it
+        // says rather than by which allocation it sits in. Two emissions built separately with
+        // one uuid and one distribution are of the same draw as two that share an `Arc`.
+        let uuid = Uuid::new_v4();
+        let built = |slot| Emit {
+            direction: Some(Direction::Forward),
+            draw: Arc::new(Draw {
+                uuid,
+                distribution: noise(2),
+            }),
+            slot,
+            adjoint: false,
+        };
+        let separate = [built(0), built(1)];
+        assert!(!Arc::ptr_eq(&separate[0].draw, &separate[1].draw));
+        assert_eq!(separate[0].draw, separate[1].draw);
+
+        let shared_draw = Arc::new(Draw {
+            uuid,
+            distribution: noise(2),
+        });
+        let shared = Emit {
+            direction: Some(Direction::Forward),
+            draw: Arc::clone(&shared_draw),
+            slot: 0,
+            adjoint: false,
+        };
+        assert_eq!(separate[0], shared);
     }
 
     #[test]
