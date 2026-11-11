@@ -2803,8 +2803,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
         barrier_label_len,
         idle_wires,
         reverse_bits,
-    )
-    .unwrap();
+    );
 
     util::cstring_from_utf8_lossy(circuit_str).into_raw()
 }

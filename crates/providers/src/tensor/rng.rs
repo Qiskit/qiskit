@@ -52,6 +52,12 @@ impl PrngKind {
         }
     }
 
+    /// Return `(idx_block, idx_offset_in_box)` pair for a given word index.
+    pub fn word_block(self, word: usize) -> (usize, usize) {
+        let per_block = self.block_words();
+        (word / per_block, word % per_block)
+    }
+
     /// Return how many blocks the counter addresses, or `None` if more than `usize::MAX`.
     ///
     /// Multiplied by [`Self::block_words`], this bounds the number of words a sampler of fixed
@@ -146,6 +152,16 @@ mod test {
     fn test_prng_kind_widths() {
         assert_eq!(PrngKind::Philox4x32.key_words(), 2);
         assert_eq!(PrngKind::Philox4x32.block_words(), 4);
+    }
+
+    #[test]
+    fn test_word_block_splits_into_block_and_offset() {
+        let kind = PrngKind::Philox4x32;
+        let per_block = kind.block_words();
+        assert_eq!(kind.word_block(0), (0, 0));
+        assert_eq!(kind.word_block(per_block - 1), (0, per_block - 1));
+        assert_eq!(kind.word_block(per_block), (1, 0));
+        assert_eq!(kind.word_block(3 * per_block + 2), (3, 2));
     }
 
     #[test]
