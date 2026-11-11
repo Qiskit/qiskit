@@ -1316,6 +1316,8 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 /// instruction is in an inconsistent state (e.g. the matrix parameter does not match the stated
 /// instruction size), then the buffer will be filled with `nan`.
 ///
+/// No-op if `index` is out of bounds or references a non-unitary instruction.
+///
 /// @param circuit A pointer to the circuit to get the unitary from.
 /// @param index The index of the instruction to get the unitary for.
 /// @param out Allocated and aligned pointer to write the unitary matrix to.
@@ -1334,9 +1336,13 @@ pub unsafe extern "C" fn qk_circuit_inst_unitary(
 ) {
     // SAFETY: Per documentation the pointer is to a valid, non-null QkCircuit.
     let circuit = unsafe { &*circuit };
-    let instr: &PackedInstruction = &circuit.data()[index];
+
+    let Some(instr) = &circuit.data().get(index) else {
+        return;
+    };
+
     let OperationRef::Unitary(unitary) = instr.op.view() else {
-        panic!("Instruction at index {index} is not a unitary");
+        return;
     };
 
     // It is possible in safe Rust to create a `PackedInstruction` whose array object is
@@ -1505,6 +1511,7 @@ pub unsafe extern "C" fn qk_circuit_num_instructions(circuit: *const CircuitData
 /// It is not a pointer to the underlying object, but contains a copy of the properties of the
 /// instruction for inspection.
 #[repr(C)]
+#[derive(Debug, Default)]
 pub struct CInstruction {
     /// The instruction name
     name: *mut c_char,
@@ -1525,11 +1532,10 @@ impl CInstruction {
     /// Create a `CInstruction` that owns pointers to copies of the information in the given
     /// `PackedInstruction`.
     ///
+    ///
+    ///
     /// This must be cleared by a call to `qk_circuit_instruction_clear` to avoid leaking its
     /// allocations.
-    ///
-    /// Panics if the operation name contains a nul, or if the instruction has non-numeric
-    /// parameters (not [Param::Float] or [Param::ParameterExpression]).
     pub(crate) fn from_packed_instruction_with_numeric(
         packed: &PackedInstruction,
         qargs_interner: &Interner<[Qubit]>,
@@ -1543,12 +1549,11 @@ impl CInstruction {
             .iter()
             .map(|p| match p {
                 Param::Float(_) | Param::ParameterExpression(_) | Param::Int(_) => {
-                    Some(Box::into_raw(Box::new(p.clone())))
+                    Box::into_raw(Box::new(p.clone()))
                 }
-                _ => None,
+                _ => Box::into_raw(Box::new(Param::Float(0.0))),
             })
-            .collect::<Option<Box<[*mut Param]>>>()
-            .expect("caller is responsible for ensuring all parameters are numeric");
+            .collect::<Box<[*mut Param]>>();
         Self {
             name,
             num_qubits: qargs.len() as u32,
@@ -1575,7 +1580,8 @@ impl CInstruction {
 ///
 /// @param circuit A pointer to the circuit to get the instruction details for.
 /// @param index The instruction index to get the instruction details of.
-/// @param instruction A pointer to where to write out the ``QkCircuitInstruction``
+/// @param instruction A pointer to write out the ``QkCircuitInstruction``. The output is
+///     invalid if `index` is out of bounds.
 ///
 ///
 /// # Example
@@ -1590,10 +1596,9 @@ impl CInstruction {
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
-/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
-/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
-/// non-null pointer to a memory allocation with sufficient space for a ``QkCircuitInstruction``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``instruction`` is not a valid, non-null pointer to a memory
+/// allocation with sufficient space for a ``QkCircuitInstruction``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_get_instruction(
     circuit: *const CircuitData,
@@ -1602,11 +1607,17 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ) {
     // SAFETY: Per documentation, `circuit` is a pointer to valid data.
     let circuit = unsafe { &*circuit };
-    let inst = CInstruction::from_packed_instruction_with_numeric(
-        &circuit.data()[index],
-        circuit.qargs_interner(),
-        circuit.cargs_interner(),
-    );
+
+    let inst = if let Some(packed_instruction) = circuit.data().get(index) {
+        CInstruction::from_packed_instruction_with_numeric(
+            packed_instruction,
+            circuit.qargs_interner(),
+            circuit.cargs_interner(),
+        )
+    } else {
+        CInstruction::default()
+    };
+
     // SAFETY: per documentation, `instruction` is a pointer to a sufficient allocation.
     unsafe { instruction.write(inst) };
 }
@@ -1846,15 +1857,15 @@ pub unsafe extern "C" fn qk_circuit_pauli_product_rotation(
 /// @param index The circuit instruction index.
 /// @param instruction A pointer to an allocated ``QkPauliProductRotation`` to store the data.
 ///
-/// @return ``QkExitCode_Success`` if the data was written into the instruction, or
-///    ``QkExitCode_InvalidOperationKind`` if the index did not point to a ``QkPauliProductRotation``.
+/// @return ``QkExitCode_Success`` if the data was written into the instruction,
+///    ``QkExitCode_InvalidOperationKind`` if the index did not point to a
+///    ``QkPauliProductRotation``, or `QkExitCode_IndexError` if `index` is out of bounds.
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
-/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
-/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
-/// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductRotation``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``instruction`` is not a valid, non-null pointer to a memory
+/// allocation with sufficient space for a ``QkPauliProductRotation``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_inst_pauli_product_rotation(
     circuit: *const CircuitData,
@@ -1864,8 +1875,12 @@ pub unsafe extern "C" fn qk_circuit_inst_pauli_product_rotation(
     // SAFETY: The user guarantees the circuit pointer is valid to read.
     let circuit = unsafe { &*circuit };
 
+    let Some(operation) = circuit.data().get(index).map(|i| i.op.view()) else {
+        return ExitCode::IndexError;
+    };
+
     // Ensure the operation has the correct type, otherwise return early
-    let OperationRef::PauliProductRotation(rotation) = circuit.data()[index].op.view() else {
+    let OperationRef::PauliProductRotation(rotation) = operation else {
         return ExitCode::InvalidOperationKind;
     };
 
@@ -1968,16 +1983,15 @@ pub unsafe extern "C" fn qk_circuit_pauli_product_measurement(
 /// @param index The circuit instruction index.
 /// @param instruction A pointer to an allocated ``QkPauliProductMeasurement`` to store the data.
 ///
-/// @return ``QkExitCode_Success`` if the data was written into the instruction, or
+/// @return ``QkExitCode_Success`` if the data was written into the instruction,
 ///     ``QkExitCode_InvalidOperationKind`` if the index did not point to a
-///     ``QkPauliProductMeasurement``.
+///     ``QkPauliProductMeasurement``, or ``QkExitCode_IndexError`` if `index` is out of bounds.
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``. The
-/// value for ``index`` must be less than the value returned by ``qk_circuit_num_instructions``
-/// otherwise this function will panic. Behavior is undefined if ``instruction`` is not a valid,
-/// non-null pointer to a memory allocation with sufficient space for a ``QkPauliProductMeasurement``.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// Behavior is undefined if ``instruction`` is not a valid, non-null pointer to a memory
+/// allocation with sufficient space for a ``QkPauliProductMeasurement``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
     circuit: *const CircuitData,
@@ -1987,8 +2001,12 @@ pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
     // SAFETY: The user guarantees the circuit pointer is valid to read.
     let circuit = unsafe { &*circuit };
 
+    let Some(operation) = circuit.data().get(index).map(|i| i.op.view()) else {
+        return ExitCode::IndexError;
+    };
+
     // Ensure the operation has the correct type, otherwise return early
-    let OperationRef::PauliProductMeasurement(measure) = circuit.data()[index].op.view() else {
+    let OperationRef::PauliProductMeasurement(measure) = operation else {
         return ExitCode::InvalidOperationKind;
     };
 
