@@ -31,7 +31,7 @@ use qiskit_circuit::operations::{ArrayType, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_util::complex::{C_ZERO, IM, c64};
 const EPS: f64 = 1e-10;
-const GATE_EQ_TOL:f64 = 1e-8;
+const GATE_EQ_TOL: f64 = 1e-8;
 
 /// Compute the eigenvectors and eigenvalues for a 2x2 matrix
 ///
