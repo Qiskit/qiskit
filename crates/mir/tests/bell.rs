@@ -51,7 +51,6 @@ use qiskit_mir::{
     qid::{BitLayout, QidInfo, QidList},
     symbol_table::SymbolIdList,
 };
-
 #[test]
 fn construct_bell_mir() {
     let mut mir = Mir::new();
@@ -129,6 +128,5 @@ fn construct_bell_mir() {
     //
     // Measures go here -- Not Defined Yet
 
-    // TODO: Add back when verify implemented.
-    //instr_list.verify().unwrap();
+    mir.verify().unwrap();
 }
