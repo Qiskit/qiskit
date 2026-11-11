@@ -29,6 +29,7 @@ itertools.workspace = true
 [[example]]
 name = "memory_report"
 required-features = ["mem_dbg"]
+harness = false
 
 [[test]]
 name = "validate_mem_dbg"
