@@ -150,6 +150,12 @@ mod py;
 #[cfg(feature = "py")]
 pub use py::*;
 
+/// The indices of `qubits`, as the plain integers that the Python-space bytecode protocol uses.
+#[cfg(feature = "py")]
+fn qubit_indices(qubits: Vec<Qubit>) -> Vec<u32> {
+    qubits.into_iter().map(|qubit| qubit.0).collect()
+}
+
 #[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for InternalBytecode {
     type Target = Bytecode;
@@ -167,7 +173,7 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     qubits,
                 } => Bytecode {
                     opcode: OpCode::Gate,
-                    operands: (id, arguments, qubits)
+                    operands: (id, arguments, qubit_indices(qubits))
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),
@@ -180,14 +186,14 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     value,
                 } => Bytecode {
                     opcode: OpCode::ConditionedGate,
-                    operands: (id, arguments, qubits, creg, value)
+                    operands: (id, arguments, qubit_indices(qubits), creg, value)
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),
                 },
                 InternalBytecode::Measure { qubit, clbit } => Bytecode {
                     opcode: OpCode::Measure,
-                    operands: (qubit, clbit).into_pyobject(py)?.into_any().unbind(),
+                    operands: (qubit.0, clbit.0).into_pyobject(py)?.into_any().unbind(),
                 },
                 InternalBytecode::ConditionedMeasure {
                     qubit,
@@ -196,22 +202,28 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     value,
                 } => Bytecode {
                     opcode: OpCode::ConditionedMeasure,
-                    operands: (qubit, clbit, creg, value)
+                    operands: (qubit.0, clbit.0, creg, value)
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),
                 },
                 InternalBytecode::Reset { qubit } => Bytecode {
                     opcode: OpCode::Reset,
-                    operands: (qubit,).into_pyobject(py)?.into_any().unbind(),
+                    operands: (qubit.0,).into_pyobject(py)?.into_any().unbind(),
                 },
                 InternalBytecode::ConditionedReset { qubit, creg, value } => Bytecode {
                     opcode: OpCode::ConditionedReset,
-                    operands: (qubit, creg, value).into_pyobject(py)?.into_any().unbind(),
+                    operands: (qubit.0, creg, value)
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
                 },
                 InternalBytecode::Barrier { qubits } => Bytecode {
                     opcode: OpCode::Barrier,
-                    operands: (qubits,).into_pyobject(py)?.into_any().unbind(),
+                    operands: (qubit_indices(qubits),)
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
                 },
                 InternalBytecode::DeclareQreg { name, size } => Bytecode {
                     opcode: OpCode::DeclareQreg,
@@ -239,7 +251,11 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     // parameters changing here, so we can just use `OpCode::Gate` unlike in the
                     // internal bytecode.
                     opcode: OpCode::Gate,
-                    operands: (id, py::GateBodyArguments::new(arguments), qubits)
+                    operands: (
+                        id,
+                        py::GateBodyArguments::new(arguments),
+                        qubit_indices(qubits),
+                    )
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),

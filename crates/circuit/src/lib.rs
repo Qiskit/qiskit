@@ -47,39 +47,11 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
-#[derive(
-    Copy,
-    Clone,
-    Debug,
-    Hash,
-    Ord,
-    PartialOrd,
-    Eq,
-    PartialEq,
-    FromPyObject,
-    Zeroable,
-    Pod,
-    IntoPyObject,
-    IntoPyObjectRef,
-)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, Zeroable, Pod)]
 #[repr(transparent)]
 pub struct Qubit(pub u32);
 
-#[derive(
-    Copy,
-    Clone,
-    Debug,
-    Hash,
-    Ord,
-    PartialOrd,
-    Eq,
-    PartialEq,
-    FromPyObject,
-    Zeroable,
-    Pod,
-    IntoPyObject,
-    IntoPyObjectRef,
-)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, Zeroable, Pod)]
 #[repr(transparent)]
 pub struct Clbit(pub u32);
 
