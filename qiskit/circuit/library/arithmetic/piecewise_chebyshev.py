@@ -426,7 +426,8 @@ class PiecewiseChebyshevGate(Gate):
             breakpoints = [0]
 
         # the private property are the _unpadded_ breakpoints
-        self._breakpoints = breakpoints
+        # we copy the list to avoid the user changing their local reference
+        self._breakpoints = breakpoints.copy()
 
         # we calculate whether a compare qubit is required from the _padded_ breakpoints,
         # which are in self.breakpoints
