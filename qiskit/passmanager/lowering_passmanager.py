@@ -316,8 +316,14 @@ class TaskStages(LoweringTask, MutableMapping):
         return slice(*bounds, index.step)
 
     def _splice(self, at: int, name: str, task: LoweringTask) -> None:
-        """Insert ``name`` at index ``at``, in place."""
-        items = [pair for pair in self._stages.items() if pair[0] != name]
+        """Insert ``name`` at index ``at``, in place.
+
+        Raises:
+            ValueError: if ``name`` is already present.
+        """
+        if name in self._stages:
+            raise ValueError(f"stage names must be unique, but these repeat: [{name!r}]")
+        items = list(self._stages.items())
         self._stages.clear()
         self._stages.update(chain(items[:at], [(name, task)], items[at:]))
 
@@ -326,13 +332,13 @@ class TaskStages(LoweringTask, MutableMapping):
 
         Args:
             pos: the stage to insert before, by name or by position.
-            stage: the ``(name, task)`` pair to insert.  A name that is already present moves to
-                the new position.
+            stage: the ``(name, task)`` pair to insert.
 
         Raises:
             KeyError: if ``pos`` is a name that is not present.
             IndexError: if ``pos`` is a position that is out of range.
             TypeError: if ``stage`` is not a ``(name, task)`` pair.
+            ValueError: if the name of ``stage`` is already present.
         """
         self._splice(self._index_of(pos), *_as_stage(stage))
 
@@ -341,13 +347,13 @@ class TaskStages(LoweringTask, MutableMapping):
 
         Args:
             pos: the stage to insert after, by name or by position.
-            stage: the ``(name, task)`` pair to insert.  A name that is already present moves to
-                the new position.
+            stage: the ``(name, task)`` pair to insert.
 
         Raises:
             KeyError: if ``pos`` is a name that is not present.
             IndexError: if ``pos`` is a position that is out of range.
             TypeError: if ``stage`` is not a ``(name, task)`` pair.
+            ValueError: if the name of ``stage`` is already present.
         """
         self._splice(self._index_of(pos) + 1, *_as_stage(stage))
 

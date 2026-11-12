@@ -1280,11 +1280,24 @@ class TestTaskStagesMapping(QiskitTestCase):
         self.stages.insert_after("m", ("n", self.c))
         self.assertEqual(["init", "m", "n", "layout", "opt"], list(self.stages))
 
-    def test_insert_moves_an_existing_name(self):
-        """Test that inserting a name already present moves it rather than duplicating it."""
-        self.stages.insert_after("init", ("opt", self.b))
-        self.assertEqual(["init", "opt", "layout"], list(self.stages))
-        self.assertIs(self.b, self.stages["opt"])
+    def test_insert_rejects_an_existing_name(self):
+        """Test that inserting a name already present raises, rather than moving it."""
+        with self.assertRaisesRegex(ValueError, "stage names must be unique"):
+            self.stages.insert_after("init", ("opt", self.b))
+        with self.assertRaisesRegex(ValueError, "stage names must be unique"):
+            self.stages.insert_before("opt", ("init", self.b))
+
+        # the anchor naming itself is a positional request about a settled position
+        with self.assertRaisesRegex(ValueError, "stage names must be unique"):
+            self.stages.insert_before("layout", ("layout", self.b))
+        expected = [("init", self.a), ("layout", self.b), ("opt", self.c)]
+        self.assertEqual(expected, list(self.stages.items()))
+
+    def test_insert_moves_a_stage_after_deleting_it(self):
+        """Test that deleting a stage first is how to move it to a new position."""
+        del self.stages["init"]
+        self.stages.insert_before("opt", ("init", self.a))
+        self.assertEqual(["layout", "init", "opt"], list(self.stages))
 
     def test_insert_returns_none(self):
         """Test that inserting mutates in place and returns nothing."""
