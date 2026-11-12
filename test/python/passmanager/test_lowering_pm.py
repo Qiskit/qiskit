@@ -789,6 +789,11 @@ class TestTasks(QiskitTestCase):
         with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
             _ = LoweringPassManager(["nope"])
 
+    def test_init_rejects_a_non_iterable_non_task(self):
+        """Test that an input that is neither a task nor iterable names both options."""
+        with self.assertRaisesRegex(TypeError, "expected a task or an iterable of tasks, got 5"):
+            _ = LoweringPassManager(5)
+
     def test_append_rejects_foreign_task_subclass(self):
         """Test that a subclass of the task interface is not executable."""
 
@@ -817,15 +822,25 @@ class TestTasks(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = LoweringPassManager([stages])
 
-    def test_init_rejects_task_stages(self):
-        """Test that passing task stages directly raises, since they iterate names."""
+    def test_init_accepts_a_lone_task(self):
+        """Test that a single task needs no enclosing iterable."""
         stages = TaskStages([("lower", CircuitToDag())])
-        with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
-            _ = LoweringPassManager(stages)
+        for task in (stages, CircuitToDag(), TaskSequence([CircuitToDag()])):
+            pm = LoweringPassManager(task)
+            self.assertEqual(QuantumCircuit(1).to_dag(), pm.run(QuantumCircuit(1)))
 
-        # nesting it as a single task is what was meant
-        pm = LoweringPassManager([stages])
-        self.assertEqual(QuantumCircuit(1).to_dag(), pm.run(QuantumCircuit(1)))
+        # task stages iterate over names, so a lone one is itself rather than a list of strings
+        self.assertEqual([stages], list(LoweringPassManager(stages).to_task_sequence()))
+
+    def test_init_flattens_a_task_sequence(self):
+        """Test that a lone task sequence flattens rather than nesting in a singleton."""
+        tasks = [CircuitToDag(), RemoveIdentities(), DagToCircuit()]
+        pm = LoweringPassManager(TaskSequence(tasks))
+        self.assertEqual(tasks, list(pm.to_task_sequence()))
+
+        # test round-trip
+        rebuilt = LoweringPassManager(pm.to_task_sequence())
+        self.assertEqual(tasks, list(rebuilt.to_task_sequence()))
 
     def test_task_is_reusable(self):
         """Test that the same task may be given to more than one pass manager."""

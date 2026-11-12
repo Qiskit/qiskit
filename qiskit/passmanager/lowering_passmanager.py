@@ -607,17 +607,26 @@ class LoweringPassManager:
         intend to lift this restriction in the future.
     """
 
-    def __init__(self, tasks: Iterable[LoweringTask] = ()) -> None:
+    def __init__(self, tasks: LoweringTask | Iterable[LoweringTask] = ()) -> None:
         """
         Args:
-            tasks: any tasks with which to initialize the pass manager.  Passing this is equivalent
-                to calling :meth:`append` in a loop with the arguments.
+            tasks: one or more tasks with which to initialize the pass manager.  Passing an iterable
+                of tasks is equivalent to calling :meth:`append` in a loop.  Passing a single task,
+                (except the special case of :class:`~.TaskSequence` which is itself an iterable of
+                tasks) is equivalent to calling :meth:`append` on the task.
 
         Raises:
             TypeError: if any element is not an executable :class:`LoweringTask`, or if the
                 resulting pipeline is ill-typed.
         """
         self._native = passmanager.PassManager()
+        if isinstance(tasks, LoweringTask) and not isinstance(tasks, TaskSequence):
+            self.append(tasks)
+            return
+        try:
+            tasks = iter(tasks)
+        except TypeError:
+            raise TypeError(f"expected a task or an iterable of tasks, got {tasks!r}") from None
         for task in tasks:
             self.append(task)
 
