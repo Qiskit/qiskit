@@ -14,7 +14,6 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::Hash;
-#[cfg(feature = "py")]
 use std::iter::zip;
 #[cfg(feature = "py")]
 use std::ops::Deref;
@@ -45,24 +44,24 @@ use crate::dot_utils::build_dot;
 use crate::error::DAGCircuitError;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
-#[cfg(feature = "py")]
-use crate::operations::{ArrayType, BoxDuration, LoopParam, StandardInstruction};
 use crate::operations::{
-    Condition, ControlFlow, ControlFlowInstruction, ControlFlowView, Operation, OperationRef,
-    Param, StandardGate, SwitchTarget,
+    ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
+    LoopParam, Operation, OperationRef, Param, ParamError, StandardGate, StandardInstruction,
+    SwitchTarget,
 };
 #[cfg(feature = "py")]
 use crate::operations::{PyInstruction, PyOpKind};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
+use crate::parameter::symbol_expr::Symbol;
 use crate::register_data::{RegisterAlreadyExists, RegisterData};
 use crate::var_stretch_container::{
     StretchType, VarStretchContainer, VarStretchContainerError, VarType,
 };
 use crate::variable_mapper::VariableMapper;
-use crate::{Block, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode};
+use crate::{Block, BlocksMode, Clbit, ControlFlowBlocks, Qubit, Stretch, Var, VarsMode, vf2};
 #[cfg(feature = "py")]
-use crate::{BlockMapper, imports, instruction, vf2};
+use crate::{BlockMapper, imports, instruction};
 #[cfg(feature = "py")]
 use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
@@ -109,26 +108,21 @@ fn dag_compose_width_error(bit_kind: &str, other: usize, dest: usize) -> String 
     format!("Cannot compose onto a DAGCircuit with fewer {bit_kind} ({other} > {dest}).")
 }
 
-#[cfg(feature = "py")]
-use crate::imports::PARAMETER;
 use crate::instruction::Parameters;
-#[cfg(feature = "py")]
 use crate::parameter_table::ParameterUuid;
-#[cfg(feature = "py")]
 use approx::relative_eq;
 #[cfg(feature = "py")]
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::Infallible;
-#[cfg(feature = "py")]
 use std::f64::consts::PI;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
-#[cfg(feature = "py")]
 use uuid::Uuid;
+
+use thiserror::Error;
 
 static CONTROL_FLOW_OP_NAMES: [&str; 5] =
     ["for_loop", "while_loop", "if_else", "switch_case", "box"];
-#[cfg(feature = "py")]
 static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "continue_loop"];
 
 pub use rustworkx_core::petgraph::stable_graph::NodeIndex;
@@ -1861,710 +1855,7 @@ impl PyDAGCircuit {
         self.inner.num_tensor_factors()
     }
 
-    fn __eq__(&self, py: Python, other: &PyDAGCircuit) -> PyResult<bool> {
-        fn eq_inner(
-            py: Python,
-            slf: &DAGCircuit,
-            slf_qubit_map: &HashMap<Qubit, Qubit>,
-            slf_clbit_map: &HashMap<Clbit, Clbit>,
-            other: &DAGCircuit,
-            other_qubit_map: &HashMap<Qubit, Qubit>,
-            other_clbit_map: &HashMap<Clbit, Clbit>,
-        ) -> PyResult<bool> {
-            // Try to convert to float, but in case of unbound ParameterExpressions
-            // a TypeError will be raise, fallback to normal equality in those
-            // cases.
-            let phase_is_close = |self_phase: f64, other_phase: f64| -> bool {
-                ((self_phase - other_phase + PI).rem_euclid(2. * PI) - PI).abs() <= 1.0e-10
-            };
-            let normalize_param = |param: &Param| {
-                if let Param::ParameterExpression(ob) = param {
-                    // try casting ParameterExpression to Param, prioritizing Float
-                    Param::from_expr(ob.as_ref().clone(), true)
-                } else {
-                    Ok(param.clone())
-                }
-            };
-
-            let phase_eq = match [
-                normalize_param(&slf.global_phase)?,
-                normalize_param(&other.global_phase)?,
-            ] {
-                [Param::Float(self_phase), Param::Float(other_phase)] => {
-                    Ok(phase_is_close(self_phase, other_phase))
-                }
-                _ => slf.global_phase.eq(&other.global_phase),
-            }?;
-            if !phase_eq {
-                return Ok(false);
-            }
-
-            // We don't do any semantic equivalence between Var nodes, as things stand; DAGs can only be
-            // equal in our mind if they use the exact same UUID vars.
-            if slf.vars_stretches != other.vars_stretches {
-                return Ok(false);
-            }
-
-            // Check if qregs are the same.
-            let self_qregs = slf.qregs.registers();
-            let other_qregs = &other.qregs;
-            if self_qregs.len() != other_qregs.len() {
-                return Ok(false);
-            }
-            for (regname, self_bits) in self_qregs.iter().map(|reg| (reg.name(), reg)) {
-                let self_bits: Vec<ShareableQubit> = self_bits.bits().collect();
-                let other_bits: Vec<ShareableQubit> = match other_qregs.get(regname) {
-                    Some(bits) => bits.bits().collect(),
-                    None => return Ok(false),
-                };
-                if !slf
-                    .qubits
-                    .map_objects(self_bits)?
-                    .map(|q| &slf_qubit_map[&q])
-                    .eq(other
-                        .qubits
-                        .map_objects(other_bits)?
-                        .map(|q| &other_qubit_map[&q]))
-                {
-                    return Ok(false);
-                }
-            }
-
-            // Check if cregs are the same.
-            let self_cregs = slf.cregs.registers();
-            let other_cregs = &other.cregs;
-            if self_cregs.len() != other_cregs.len() {
-                return Ok(false);
-            }
-
-            for (regname, self_bits) in self_cregs.iter().map(|reg| (reg.name(), reg)) {
-                let self_bits: Vec<ShareableClbit> = self_bits.bits().collect();
-                let other_bits: Vec<ShareableClbit> = match other_cregs.get(regname) {
-                    Some(bits) => bits.bits().collect(),
-                    None => return Ok(false),
-                };
-                if !slf
-                    .clbits
-                    .map_objects(self_bits)?
-                    .map(|c| &slf_clbit_map[&c])
-                    .eq(other
-                        .clbits
-                        .map_objects(other_bits)?
-                        .map(|c| &other_clbit_map[&c]))
-                {
-                    return Ok(false);
-                }
-            }
-
-            // Check for VF2 isomorphic match.
-            let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<bool> {
-                match [n1, n2] {
-                    [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
-                        if inst1.op.name() != inst2.op.name() {
-                            return Ok(false);
-                        }
-                        let check_args = || -> bool {
-                            let node1_qargs = slf
-                                .qargs_interner
-                                .get(inst1.qubits)
-                                .iter()
-                                .map(|q| &slf_qubit_map[q]);
-                            let node2_qargs = other
-                                .qargs_interner
-                                .get(inst2.qubits)
-                                .iter()
-                                .map(|q| &other_qubit_map[q]);
-                            let node1_cargs = slf
-                                .cargs_interner
-                                .get(inst1.clbits)
-                                .iter()
-                                .map(|c| &slf_clbit_map[c]);
-                            let node2_cargs = other
-                                .cargs_interner
-                                .get(inst2.clbits)
-                                .iter()
-                                .map(|c| &other_clbit_map[c]);
-                            if SEMANTIC_EQ_SYMMETRIC.contains(&inst1.op.name()) {
-                                let node1_qargs = node1_qargs.collect::<HashSet<&Qubit>>();
-                                let node2_qargs = node2_qargs.collect::<HashSet<&Qubit>>();
-                                let node1_cargs = node1_cargs.collect::<HashSet<&Clbit>>();
-                                let node2_cargs = node2_cargs.collect::<HashSet<&Clbit>>();
-                                if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
-                                    return false;
-                                }
-                            } else if node1_qargs.ne(node2_qargs) || node1_cargs.ne(node2_cargs) {
-                                return false;
-                            }
-                            true
-                        };
-                        if let (Some(cf1), Some(cf2)) = (
-                            slf.try_view_control_flow(inst1),
-                            other.try_view_control_flow(inst2),
-                        ) {
-                            if inst1.op.num_qubits() != inst2.op.num_qubits() {
-                                return Ok(false);
-                            }
-                            // These map the bit indices used in blocks to their indices in the
-                            // root DAG.
-                            let slf_block_qubit_map = (0..inst1.op.num_qubits())
-                                .map(Qubit)
-                                .zip(
-                                    slf.qargs_interner
-                                        .get(inst1.qubits)
-                                        .iter()
-                                        .map(|q| slf_qubit_map[q]),
-                                )
-                                .collect();
-                            let slf_block_clbit_map = (0..inst1.op.num_clbits())
-                                .map(Clbit)
-                                .zip(
-                                    slf.cargs_interner
-                                        .get(inst1.clbits)
-                                        .iter()
-                                        .map(|c| slf_clbit_map[c]),
-                                )
-                                .collect();
-                            let other_block_qubit_map = (0..inst2.op.num_qubits())
-                                .map(Qubit)
-                                .zip(
-                                    other
-                                        .qargs_interner
-                                        .get(inst2.qubits)
-                                        .iter()
-                                        .map(|q| other_qubit_map[q]),
-                                )
-                                .collect();
-                            let other_block_clbit_map = (0..inst2.op.num_clbits())
-                                .map(Clbit)
-                                .zip(
-                                    other
-                                        .cargs_interner
-                                        .get(inst2.clbits)
-                                        .iter()
-                                        .map(|c| other_clbit_map[c]),
-                                )
-                                .collect();
-
-                            let block_eq = |slf_block: &DAGCircuit,
-                                            other_block: &DAGCircuit|
-                             -> PyResult<bool> {
-                                eq_inner(
-                                    py,
-                                    slf_block,
-                                    &slf_block_qubit_map,
-                                    &slf_block_clbit_map,
-                                    other_block,
-                                    &other_block_qubit_map,
-                                    &other_block_clbit_map,
-                                )
-                            };
-
-                            #[derive(Debug, PartialEq)]
-                            enum VarKey {
-                                Bit(Clbit),
-                                Register(Vec<Clbit>),
-                                Var(expr::Var),
-                            }
-
-                            let slf_var_key = |v: &expr::Var| -> VarKey {
-                                match v {
-                                    expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
-                                    expr::Var::Bit { bit } => {
-                                        VarKey::Bit(slf_clbit_map[&slf.clbits.find(bit).unwrap()])
-                                    }
-                                    expr::Var::Register { register, .. } => VarKey::Register(
-                                        register
-                                            .iter()
-                                            .map(|bit| {
-                                                slf_clbit_map[&slf.clbits.find(&bit).unwrap()]
-                                            })
-                                            .collect(),
-                                    ),
-                                }
-                            };
-                            let other_var_key = |v: &expr::Var| -> VarKey {
-                                match v {
-                                    expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
-                                    expr::Var::Bit { bit } => VarKey::Bit(
-                                        other_clbit_map[&other.clbits.find(bit).unwrap()],
-                                    ),
-                                    expr::Var::Register { register, .. } => VarKey::Register(
-                                        register
-                                            .iter()
-                                            .map(|bit| {
-                                                other_clbit_map[&other.clbits.find(&bit).unwrap()]
-                                            })
-                                            .collect(),
-                                    ),
-                                }
-                            };
-
-                            let condition_eq = |condition_a: &Condition,
-                                                condition_b: &Condition|
-                             -> bool {
-                                match condition_a {
-                                    Condition::Bit(bit_a, value_a) => match condition_b {
-                                        Condition::Bit(bit_b, value_b) => {
-                                            value_a == value_b
-                                                && slf_clbit_map[&slf.clbits.find(bit_a).unwrap()]
-                                                    == other_clbit_map
-                                                        [&other.clbits.find(bit_b).unwrap()]
-                                        }
-                                        _ => false,
-                                    },
-                                    Condition::Register(reg_a, value_a) => match condition_b {
-                                        Condition::Register(reg_b, value_b) => {
-                                            value_a == value_b
-                                                && reg_a
-                                                    .iter()
-                                                    .map(|a| {
-                                                        slf_clbit_map[&slf.clbits.find(&a).unwrap()]
-                                                    })
-                                                    .eq(reg_b.iter().map(|b| {
-                                                        other_clbit_map
-                                                            [&other.clbits.find(&b).unwrap()]
-                                                    }))
-                                        }
-                                        _ => false,
-                                    },
-                                    Condition::Expr(expr_a) => match condition_b {
-                                        Condition::Expr(expr_b) => expr_a
-                                            .structurally_equivalent_by_key(
-                                                slf_var_key,
-                                                expr_b,
-                                                other_var_key,
-                                            ),
-                                        _ => false,
-                                    },
-                                }
-                            };
-
-                            match (cf1, cf2) {
-                                (
-                                    ControlFlowView::Box {
-                                        duration: duration_a,
-                                        annotations: annotations_a,
-                                        body: body_a,
-                                    },
-                                    ControlFlowView::Box {
-                                        duration: duration_b,
-                                        annotations: annotations_b,
-                                        body: body_b,
-                                    },
-                                ) => {
-                                    let duration_eq = match duration_a {
-                                        Some(BoxDuration::Expr(duration_a)) => match duration_b {
-                                            Some(BoxDuration::Expr(duration_b)) => duration_a
-                                                .structurally_equivalent_by_key(
-                                                    &slf_var_key,
-                                                    duration_b,
-                                                    &other_var_key,
-                                                ),
-                                            _ => false,
-                                        },
-                                        Some(BoxDuration::Duration(duration_a)) => match duration_b
-                                        {
-                                            Some(BoxDuration::Duration(duration_b)) => {
-                                                duration_a == duration_b
-                                            }
-                                            _ => false,
-                                        },
-                                        None => duration_b.is_none(),
-                                    };
-                                    Ok(duration_eq
-                                        && annotations_a.len() == annotations_b.len()
-                                        && zip(annotations_a, annotations_b)
-                                            .fold(true, |tot, (a, b)| a.eq(b) && tot)
-                                        && block_eq(body_a, body_b)?)
-                                }
-                                (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
-                                    Ok(true)
-                                }
-                                (ControlFlowView::ContinueLoop, ControlFlowView::ContinueLoop) => {
-                                    Ok(true)
-                                }
-                                (
-                                    ControlFlowView::ForLoop {
-                                        collection: collection_a,
-                                        loop_param: loop_param_a,
-                                        body: body_a,
-                                    },
-                                    ControlFlowView::ForLoop {
-                                        collection: collection_b,
-                                        loop_param: loop_param_b,
-                                        body: body_b,
-                                    },
-                                ) => {
-                                    if collection_a != collection_b {
-                                        return Ok(false);
-                                    }
-                                    match (loop_param_a, loop_param_b) {
-                                        (
-                                            Some(LoopParam::Parameter(loop_param_a)),
-                                            Some(LoopParam::Parameter(loop_param_b)),
-                                        ) => {
-                                            // Until we have a way to assign parameters in a DAG, we need
-                                            // to convert a for loop's body DAG back to a circuit.
-                                            let sentinel = PARAMETER
-                                                .get_bound(py)
-                                                .call1((Uuid::new_v4().to_string(),))?;
-                                            let mut body_a_circuit =
-                                                CircuitData::from_dag_ref(body_a)?;
-                                            if body_a_circuit.uses_parameter(loop_param_a) {
-                                                body_a_circuit.assign_parameters_from_mapping([
-                                                    (
-                                                        ParameterUuid::from_symbol(loop_param_a),
-                                                        Param::ParameterExpression(Arc::new(
-                                                            ParameterExpression::from_symbol(
-                                                                sentinel.clone().extract()?,
-                                                            ),
-                                                        )),
-                                                    ),
-                                                ])?;
-                                            }
-                                            let body_a = DAGCircuit::from_circuit_data(
-                                                &body_a_circuit,
-                                                false,
-                                                None,
-                                                None,
-                                            )?;
-
-                                            let mut body_b_circuit =
-                                                CircuitData::from_dag_ref(body_b)?;
-                                            if body_b_circuit.uses_parameter(loop_param_b) {
-                                                body_b_circuit.assign_parameters_from_mapping([
-                                                    (
-                                                        ParameterUuid::from_symbol(loop_param_b),
-                                                        Param::ParameterExpression(Arc::new(
-                                                            ParameterExpression::from_symbol(
-                                                                sentinel.clone().extract()?,
-                                                            ),
-                                                        )),
-                                                    ),
-                                                ])?;
-                                            }
-                                            let body_b = DAGCircuit::from_circuit_data(
-                                                &body_b_circuit,
-                                                false,
-                                                None,
-                                                None,
-                                            )?;
-                                            block_eq(&body_a, &body_b)
-                                        }
-                                        (
-                                            Some(LoopParam::Variable(var_a)),
-                                            Some(LoopParam::Variable(var_b)),
-                                        ) => {
-                                            if var_a != var_b {
-                                                return Ok(false);
-                                            }
-                                            block_eq(body_a, body_b)
-                                        }
-                                        (None, None) => block_eq(body_a, body_b),
-                                        _ => Ok(false),
-                                    }
-                                }
-                                (
-                                    ControlFlowView::IfElse {
-                                        condition: condition_a,
-                                        true_body: true_body_a,
-                                        false_body: false_body_a,
-                                    },
-                                    ControlFlowView::IfElse {
-                                        condition: condition_b,
-                                        true_body: true_body_b,
-                                        false_body: false_body_b,
-                                    },
-                                ) => {
-                                    let false_body_eq = || -> PyResult<bool> {
-                                        match (false_body_a, false_body_b) {
-                                            (Some(false_body_a), Some(false_body_b)) => {
-                                                block_eq(false_body_a, false_body_b)
-                                            }
-                                            (None, None) => Ok(true),
-                                            _ => Ok(false),
-                                        }
-                                    };
-                                    Ok(condition_eq(condition_a, condition_b)
-                                        && block_eq(true_body_a, true_body_b)?
-                                        && false_body_eq()?)
-                                }
-                                (
-                                    ControlFlowView::Switch {
-                                        target: target_a,
-                                        cases_specifier: cases_a,
-                                    },
-                                    ControlFlowView::Switch {
-                                        target: target_b,
-                                        cases_specifier: cases_b,
-                                    },
-                                ) => {
-                                    let target_eq = || -> bool {
-                                        match target_a {
-                                            SwitchTarget::Bit(bit_a) => match target_b {
-                                                SwitchTarget::Bit(bit_b) => {
-                                                    slf_clbit_map[&slf.clbits.find(bit_a).unwrap()]
-                                                        == other_clbit_map
-                                                            [&other.clbits.find(bit_b).unwrap()]
-                                                }
-                                                _ => false,
-                                            },
-                                            SwitchTarget::Register(reg_a) => match target_b {
-                                                SwitchTarget::Register(reg_b) => reg_a
-                                                    .iter()
-                                                    .map(|a| {
-                                                        slf_clbit_map[&slf.clbits.find(&a).unwrap()]
-                                                    })
-                                                    .eq(reg_b.iter().map(|b| {
-                                                        other_clbit_map
-                                                            [&other.clbits.find(&b).unwrap()]
-                                                    })),
-                                                _ => false,
-                                            },
-                                            SwitchTarget::Expr(expr_a) => match target_b {
-                                                SwitchTarget::Expr(expr_b) => expr_a
-                                                    .structurally_equivalent_by_key(
-                                                        slf_var_key,
-                                                        expr_b,
-                                                        other_var_key,
-                                                    ),
-                                                _ => false,
-                                            },
-                                        }
-                                    };
-                                    if cases_a.len() != cases_b.len() || !target_eq() {
-                                        return Ok(false);
-                                    }
-                                    for ((a_label_spec, a_block), (b_label_spec, b_block)) in
-                                        cases_a.iter().zip(cases_b.iter())
-                                    {
-                                        if a_label_spec.iter().collect::<HashSet<_>>()
-                                            != b_label_spec.iter().collect::<HashSet<_>>()
-                                        {
-                                            return Ok(false);
-                                        }
-                                        if !block_eq(a_block, b_block)? {
-                                            return Ok(false);
-                                        }
-                                    }
-                                    Ok(true)
-                                }
-                                (
-                                    ControlFlowView::While {
-                                        condition: condition_a,
-                                        body: body_a,
-                                    },
-                                    ControlFlowView::While {
-                                        condition: condition_b,
-                                        body: body_b,
-                                    },
-                                ) => Ok(condition_eq(condition_a, condition_b)
-                                    && block_eq(body_a, body_b)?),
-                                _ => Ok(false),
-                            }
-                        } else {
-                            match [inst1.op.view(), inst2.op.view()] {
-                                [
-                                    OperationRef::StandardGate(gate1),
-                                    OperationRef::StandardGate(gate2),
-                                ] => Ok(gate1 == gate2
-                                    && check_args()
-                                    && inst1
-                                        .params_view()
-                                        .iter()
-                                        .zip(inst2.params_view())
-                                        .all(|(a, b)| a.is_close(b, 1e-10).unwrap())),
-                                [
-                                    OperationRef::StandardInstruction(op1),
-                                    OperationRef::StandardInstruction(op2),
-                                ] => Ok(match [op1, op2] {
-                                    [
-                                        StandardInstruction::Barrier(n1),
-                                        StandardInstruction::Barrier(n2),
-                                    ] => n1 == n2,
-                                    [
-                                        StandardInstruction::Delay(unit1),
-                                        StandardInstruction::Delay(unit2),
-                                    ] => {
-                                        let duration1 = &inst1.params_view()[0];
-                                        let duration2 = &inst2.params_view()[0];
-                                        unit1 == unit2 && duration1.is_close(duration2, 1e-10)?
-                                    }
-                                    [
-                                        StandardInstruction::Measure,
-                                        StandardInstruction::Measure,
-                                    ] => true,
-                                    [StandardInstruction::Reset, StandardInstruction::Reset] => {
-                                        true
-                                    }
-                                    _ => false,
-                                } && check_args()),
-                                [OperationRef::PyCustom(op1), OperationRef::PyCustom(op2)] => {
-                                    Ok(op1.ob.bind(py).eq(&op2.ob)? && check_args())
-                                }
-                                // Handle the edge case where we end up with a Python object and a standard
-                                // gate/instruction.
-                                // This typically only happens if we have a ControlledGate in Python
-                                // and we have mutable state set.
-                                [
-                                    OperationRef::StandardGate(_),
-                                    OperationRef::PyCustom(PyInstruction {
-                                        kind: PyOpKind::Gate,
-                                        ob,
-                                        ..
-                                    }),
-                                ] => Ok(slf.unpack_py_op(py, inst1)?.eq(ob)? && check_args()),
-                                [
-                                    OperationRef::PyCustom(PyInstruction {
-                                        kind: PyOpKind::Gate,
-                                        ob,
-                                        ..
-                                    }),
-                                    OperationRef::StandardGate(_),
-                                ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
-                                [
-                                    OperationRef::StandardInstruction(_),
-                                    OperationRef::PyCustom(PyInstruction {
-                                        kind: PyOpKind::Instruction,
-                                        ob,
-                                        ..
-                                    }),
-                                ] => Ok(slf.unpack_py_op(py, inst1)?.eq(ob)? && check_args()),
-                                [
-                                    OperationRef::PyCustom(PyInstruction {
-                                        kind: PyOpKind::Instruction,
-                                        ob,
-                                        ..
-                                    }),
-                                    OperationRef::StandardInstruction(_),
-                                ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
-                                [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
-                                    if check_args() {
-                                        match [&op_a.array, &op_b.array] {
-                                            [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
-                                                Ok(relative_eq!(
-                                                    a,
-                                                    b,
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ))
-                                            }
-                                            [ArrayType::OneQ(a), ArrayType::NDArray(b)]
-                                            | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
-                                                if b.shape()[0] == 2 {
-                                                    for i in 0..2 {
-                                                        for j in 0..2 {
-                                                            if !relative_eq!(
-                                                                b[[i, j]],
-                                                                a[(i, j)],
-                                                                max_relative = 1e-5,
-                                                                epsilon = 1e-8
-                                                            ) {
-                                                                return Ok(false);
-                                                            }
-                                                        }
-                                                    }
-                                                    Ok(true)
-                                                } else {
-                                                    Ok(false)
-                                                }
-                                            }
-                                            [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
-                                            | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
-                                                if b.shape()[0] == 4 {
-                                                    for i in 0..4 {
-                                                        for j in 0..4 {
-                                                            if !relative_eq!(
-                                                                b[[i, j]],
-                                                                a[(i, j)],
-                                                                max_relative = 1e-5,
-                                                                epsilon = 1e-8
-                                                            ) {
-                                                                return Ok(false);
-                                                            }
-                                                        }
-                                                    }
-                                                    Ok(true)
-                                                } else {
-                                                    Ok(false)
-                                                }
-                                            }
-                                            [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
-                                                Ok(relative_eq!(
-                                                    a,
-                                                    b,
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ))
-                                            }
-                                            [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
-                                                Ok(relative_eq!(
-                                                    a,
-                                                    b,
-                                                    max_relative = 1e-5,
-                                                    epsilon = 1e-8
-                                                ))
-                                            }
-                                            _ => Ok(false),
-                                        }
-                                    } else {
-                                        Ok(false)
-                                    }
-                                }
-                                [
-                                    OperationRef::PauliProductMeasurement(op_a),
-                                    OperationRef::PauliProductMeasurement(op_b),
-                                ] => Ok((op_a == op_b) && check_args()),
-                                [
-                                    OperationRef::PauliProductRotation(op_a),
-                                    OperationRef::PauliProductRotation(op_b),
-                                ] => Ok((op_a == op_b) && check_args()),
-                                [OperationRef::Store(store_a), OperationRef::Store(store_b)] => {
-                                    Ok(store_a == store_b)
-                                }
-                                _ => Ok(false),
-                            }
-                        }
-                    }
-                    [NodeType::QubitIn(bit1), NodeType::QubitIn(bit2)] => {
-                        Ok(slf_qubit_map[bit1] == other_qubit_map[bit2])
-                    }
-                    [NodeType::ClbitIn(bit1), NodeType::ClbitIn(bit2)] => {
-                        Ok(slf_clbit_map[bit1] == other_clbit_map[bit2])
-                    }
-                    [NodeType::QubitOut(bit1), NodeType::QubitOut(bit2)] => {
-                        Ok(slf_qubit_map[bit1] == other_qubit_map[bit2])
-                    }
-                    [NodeType::ClbitOut(bit1), NodeType::ClbitOut(bit2)] => {
-                        Ok(slf_clbit_map[bit1] == other_clbit_map[bit2])
-                    }
-                    [NodeType::VarIn(var1), NodeType::VarIn(var2)]
-                    | [NodeType::VarOut(var1), NodeType::VarOut(var2)] => {
-                        // TODO: do we need to convert classical bits and registers here?
-                        //   no if Var wires are always standalone
-                        Ok(slf.vars_stretches.vars().get(*var1).unwrap()
-                            == other.vars_stretches.vars().get(*var2).unwrap())
-                    }
-                    _ => Ok(false),
-                }
-            };
-            let node_match = |n1: &NodeType, n2: &NodeType| -> PyResult<Option<()>> {
-                node_match(n1, n2).map(|ok| ok.then_some(()))
-            };
-
-            vf2::is_isomorphic_with_semantics(
-                &slf.dag,
-                &other.dag,
-                (node_match, vf2::NoSemantics::new()),
-                true,
-                vf2::Problem::Exact,
-                None,
-            )
-            .map_err(|e| match e {
-                vf2::IsIsomorphicError::NodeMatcher(e) => e,
-                vf2::IsIsomorphicError::EdgeMatcher(_) => unreachable!(),
-            })
-        }
+    fn __eq__(&self, other: &PyDAGCircuit) -> PyResult<bool> {
         if self.num_qubits() != other.num_qubits() || self.num_clbits() != other.num_clbits() {
             return Ok(false);
         }
@@ -2574,15 +1865,14 @@ impl PyDAGCircuit {
         let slf_clbit_map: HashMap<Clbit, Clbit> = (0..self.num_clbits())
             .map(|i| (Clbit::new(i), Clbit::new(i)))
             .collect();
-        eq_inner(
-            py,
+        Ok(eq_inner(
             &self.inner,
             &slf_qubit_map,
             &slf_clbit_map,
             &other.inner,
             &slf_qubit_map,
             &slf_clbit_map,
-        )
+        )?)
     }
 
     /// Are these two DAGs structurally equal?
@@ -8714,6 +8004,730 @@ impl DAGCircuit {
                 }
                 None => self.is_wire_idle(*wire),
             })
+    }
+}
+
+#[derive(Error, Debug)]
+enum EqError {
+    #[cfg(feature = "py")]
+    #[error(transparent)]
+    FromPython(#[from] PyErr),
+    #[error(transparent)]
+    ParamError(#[from] ParamError),
+    #[error(transparent)]
+    AbsentObject(crate::object_registry::AbsentObject),
+    #[error(transparent)]
+    CircuitDataError(#[from] crate::circuit_data::CircuitDataError),
+    #[error(transparent)]
+    DAGError(#[from] DAGError),
+}
+
+impl<T: Debug> From<crate::object_registry::AbsentObject<T>> for EqError {
+    fn from(val: crate::object_registry::AbsentObject<T>) -> Self {
+        Self::AbsentObject(val.erase_type())
+    }
+}
+
+#[cfg(feature = "py")]
+impl From<EqError> for PyErr {
+    fn from(err: EqError) -> PyErr {
+        match err {
+            #[cfg(feature = "py")]
+            EqError::FromPython(e) => e,
+            EqError::ParamError(e) => e.into(),
+            EqError::AbsentObject(e) => e.into(),
+            EqError::CircuitDataError(e) => e.into(),
+            EqError::DAGError(e) => e.into(),
+        }
+    }
+}
+
+fn eq_inner(
+    slf: &DAGCircuit,
+    slf_qubit_map: &HashMap<Qubit, Qubit>,
+    slf_clbit_map: &HashMap<Clbit, Clbit>,
+    other: &DAGCircuit,
+    other_qubit_map: &HashMap<Qubit, Qubit>,
+    other_clbit_map: &HashMap<Clbit, Clbit>,
+) -> Result<bool, EqError> {
+    // Try to convert to float, but in case of unbound ParameterExpressions
+    // a TypeError will be raise, fallback to normal equality in those
+    // cases.
+    let phase_is_close = |self_phase: f64, other_phase: f64| -> bool {
+        ((self_phase - other_phase + PI).rem_euclid(2. * PI) - PI).abs() <= 1.0e-10
+    };
+    let normalize_param = |param: &Param| {
+        if let Param::ParameterExpression(ob) = param {
+            // try casting ParameterExpression to Param, prioritizing Float
+            Param::from_expr(ob.as_ref().clone(), true)
+        } else {
+            Ok(param.clone())
+        }
+    };
+
+    let phase_eq = match [
+        normalize_param(&slf.global_phase)?,
+        normalize_param(&other.global_phase)?,
+    ] {
+        [Param::Float(self_phase), Param::Float(other_phase)] => {
+            Ok(phase_is_close(self_phase, other_phase))
+        }
+        _ => slf.global_phase.eq(&other.global_phase),
+    }?;
+    if !phase_eq {
+        return Ok(false);
+    }
+
+    // We don't do any semantic equivalence between Var nodes, as things stand; DAGs can only be
+    // equal in our mind if they use the exact same UUID vars.
+    if slf.vars_stretches != other.vars_stretches {
+        return Ok(false);
+    }
+
+    // Check if qregs are the same.
+    let self_qregs = slf.qregs.registers();
+    let other_qregs = &other.qregs;
+    if self_qregs.len() != other_qregs.len() {
+        return Ok(false);
+    }
+    for (regname, self_bits) in self_qregs.iter().map(|reg| (reg.name(), reg)) {
+        let self_bits: Vec<ShareableQubit> = self_bits.bits().collect();
+        let other_bits: Vec<ShareableQubit> = match other_qregs.get(regname) {
+            Some(bits) => bits.bits().collect(),
+            None => return Ok(false),
+        };
+        if !slf
+            .qubits
+            .map_objects(self_bits)?
+            .map(|q| &slf_qubit_map[&q])
+            .eq(other
+                .qubits
+                .map_objects(other_bits)?
+                .map(|q| &other_qubit_map[&q]))
+        {
+            return Ok(false);
+        }
+    }
+
+    // Check if cregs are the same.
+    let self_cregs = slf.cregs.registers();
+    let other_cregs = &other.cregs;
+    if self_cregs.len() != other_cregs.len() {
+        return Ok(false);
+    }
+
+    for (regname, self_bits) in self_cregs.iter().map(|reg| (reg.name(), reg)) {
+        let self_bits: Vec<ShareableClbit> = self_bits.bits().collect();
+        let other_bits: Vec<ShareableClbit> = match other_cregs.get(regname) {
+            Some(bits) => bits.bits().collect(),
+            None => return Ok(false),
+        };
+        if !slf
+            .clbits
+            .map_objects(self_bits)?
+            .map(|c| &slf_clbit_map[&c])
+            .eq(other
+                .clbits
+                .map_objects(other_bits)?
+                .map(|c| &other_clbit_map[&c]))
+        {
+            return Ok(false);
+        }
+    }
+
+    // Check for VF2 isomorphic match.
+    let node_match = |n1: &NodeType, n2: &NodeType| -> Result<bool, EqError> {
+        match [n1, n2] {
+            [NodeType::Operation(inst1), NodeType::Operation(inst2)] => {
+                if inst1.op.name() != inst2.op.name() {
+                    return Ok(false);
+                }
+                let check_args = || -> bool {
+                    let node1_qargs = slf
+                        .qargs_interner
+                        .get(inst1.qubits)
+                        .iter()
+                        .map(|q| &slf_qubit_map[q]);
+                    let node2_qargs = other
+                        .qargs_interner
+                        .get(inst2.qubits)
+                        .iter()
+                        .map(|q| &other_qubit_map[q]);
+                    let node1_cargs = slf
+                        .cargs_interner
+                        .get(inst1.clbits)
+                        .iter()
+                        .map(|c| &slf_clbit_map[c]);
+                    let node2_cargs = other
+                        .cargs_interner
+                        .get(inst2.clbits)
+                        .iter()
+                        .map(|c| &other_clbit_map[c]);
+                    if SEMANTIC_EQ_SYMMETRIC.contains(&inst1.op.name()) {
+                        let node1_qargs = node1_qargs.collect::<HashSet<&Qubit>>();
+                        let node2_qargs = node2_qargs.collect::<HashSet<&Qubit>>();
+                        let node1_cargs = node1_cargs.collect::<HashSet<&Clbit>>();
+                        let node2_cargs = node2_cargs.collect::<HashSet<&Clbit>>();
+                        if node1_qargs != node2_qargs || node1_cargs != node2_cargs {
+                            return false;
+                        }
+                    } else if node1_qargs.ne(node2_qargs) || node1_cargs.ne(node2_cargs) {
+                        return false;
+                    }
+                    true
+                };
+                if let (Some(cf1), Some(cf2)) = (
+                    slf.try_view_control_flow(inst1),
+                    other.try_view_control_flow(inst2),
+                ) {
+                    if inst1.op.num_qubits() != inst2.op.num_qubits() {
+                        return Ok(false);
+                    }
+                    // These map the bit indices used in blocks to their indices in the
+                    // root DAG.
+                    let slf_block_qubit_map = (0..inst1.op.num_qubits())
+                        .map(Qubit)
+                        .zip(
+                            slf.qargs_interner
+                                .get(inst1.qubits)
+                                .iter()
+                                .map(|q| slf_qubit_map[q]),
+                        )
+                        .collect();
+                    let slf_block_clbit_map = (0..inst1.op.num_clbits())
+                        .map(Clbit)
+                        .zip(
+                            slf.cargs_interner
+                                .get(inst1.clbits)
+                                .iter()
+                                .map(|c| slf_clbit_map[c]),
+                        )
+                        .collect();
+                    let other_block_qubit_map = (0..inst2.op.num_qubits())
+                        .map(Qubit)
+                        .zip(
+                            other
+                                .qargs_interner
+                                .get(inst2.qubits)
+                                .iter()
+                                .map(|q| other_qubit_map[q]),
+                        )
+                        .collect();
+                    let other_block_clbit_map = (0..inst2.op.num_clbits())
+                        .map(Clbit)
+                        .zip(
+                            other
+                                .cargs_interner
+                                .get(inst2.clbits)
+                                .iter()
+                                .map(|c| other_clbit_map[c]),
+                        )
+                        .collect();
+
+                    let block_eq = |slf_block: &DAGCircuit,
+                                    other_block: &DAGCircuit|
+                     -> Result<bool, EqError> {
+                        eq_inner(
+                            slf_block,
+                            &slf_block_qubit_map,
+                            &slf_block_clbit_map,
+                            other_block,
+                            &other_block_qubit_map,
+                            &other_block_clbit_map,
+                        )
+                    };
+
+                    #[derive(Debug, PartialEq)]
+                    enum VarKey {
+                        Bit(Clbit),
+                        Register(Vec<Clbit>),
+                        Var(expr::Var),
+                    }
+
+                    let slf_var_key = |v: &expr::Var| -> VarKey {
+                        match v {
+                            expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
+                            expr::Var::Bit { bit } => {
+                                VarKey::Bit(slf_clbit_map[&slf.clbits.find(bit).unwrap()])
+                            }
+                            expr::Var::Register { register, .. } => VarKey::Register(
+                                register
+                                    .iter()
+                                    .map(|bit| slf_clbit_map[&slf.clbits.find(&bit).unwrap()])
+                                    .collect(),
+                            ),
+                        }
+                    };
+                    let other_var_key = |v: &expr::Var| -> VarKey {
+                        match v {
+                            expr::Var::Standalone { .. } => VarKey::Var(v.clone()),
+                            expr::Var::Bit { bit } => {
+                                VarKey::Bit(other_clbit_map[&other.clbits.find(bit).unwrap()])
+                            }
+                            expr::Var::Register { register, .. } => VarKey::Register(
+                                register
+                                    .iter()
+                                    .map(|bit| other_clbit_map[&other.clbits.find(&bit).unwrap()])
+                                    .collect(),
+                            ),
+                        }
+                    };
+
+                    let condition_eq = |condition_a: &Condition, condition_b: &Condition| -> bool {
+                        match condition_a {
+                            Condition::Bit(bit_a, value_a) => match condition_b {
+                                Condition::Bit(bit_b, value_b) => {
+                                    value_a == value_b
+                                        && slf_clbit_map[&slf.clbits.find(bit_a).unwrap()]
+                                            == other_clbit_map[&other.clbits.find(bit_b).unwrap()]
+                                }
+                                _ => false,
+                            },
+                            Condition::Register(reg_a, value_a) => match condition_b {
+                                Condition::Register(reg_b, value_b) => {
+                                    value_a == value_b
+                                        && reg_a
+                                            .iter()
+                                            .map(|a| slf_clbit_map[&slf.clbits.find(&a).unwrap()])
+                                            .eq(reg_b.iter().map(|b| {
+                                                other_clbit_map[&other.clbits.find(&b).unwrap()]
+                                            }))
+                                }
+                                _ => false,
+                            },
+                            Condition::Expr(expr_a) => match condition_b {
+                                Condition::Expr(expr_b) => expr_a.structurally_equivalent_by_key(
+                                    slf_var_key,
+                                    expr_b,
+                                    other_var_key,
+                                ),
+                                _ => false,
+                            },
+                        }
+                    };
+
+                    match (cf1, cf2) {
+                        (
+                            ControlFlowView::Box {
+                                duration: duration_a,
+                                annotations: annotations_a,
+                                body: body_a,
+                            },
+                            ControlFlowView::Box {
+                                duration: duration_b,
+                                annotations: annotations_b,
+                                body: body_b,
+                            },
+                        ) => {
+                            let duration_eq = match duration_a {
+                                Some(BoxDuration::Expr(duration_a)) => match duration_b {
+                                    Some(BoxDuration::Expr(duration_b)) => duration_a
+                                        .structurally_equivalent_by_key(
+                                            &slf_var_key,
+                                            duration_b,
+                                            &other_var_key,
+                                        ),
+                                    _ => false,
+                                },
+                                Some(BoxDuration::Duration(duration_a)) => match duration_b {
+                                    Some(BoxDuration::Duration(duration_b)) => {
+                                        duration_a == duration_b
+                                    }
+                                    _ => false,
+                                },
+                                None => duration_b.is_none(),
+                            };
+                            Ok(duration_eq
+                                && annotations_a.len() == annotations_b.len()
+                                && zip(annotations_a, annotations_b)
+                                    .fold(true, |tot, (a, b)| a.eq(b) && tot)
+                                && block_eq(body_a, body_b)?)
+                        }
+                        (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => Ok(true),
+                        (ControlFlowView::ContinueLoop, ControlFlowView::ContinueLoop) => Ok(true),
+                        (
+                            ControlFlowView::ForLoop {
+                                collection: collection_a,
+                                loop_param: loop_param_a,
+                                body: body_a,
+                            },
+                            ControlFlowView::ForLoop {
+                                collection: collection_b,
+                                loop_param: loop_param_b,
+                                body: body_b,
+                            },
+                        ) => {
+                            if collection_a != collection_b {
+                                return Ok(false);
+                            }
+                            match (loop_param_a, loop_param_b) {
+                                (
+                                    Some(LoopParam::Parameter(loop_param_a)),
+                                    Some(LoopParam::Parameter(loop_param_b)),
+                                ) => {
+                                    // Until we have a way to assign parameters in a DAG, we need
+                                    // to convert a for loop's body DAG back to a circuit.
+                                    let sentinel =
+                                        Symbol::standalone(Uuid::new_v4().to_string(), None);
+                                    let mut body_a_circuit = CircuitData::from_dag_ref(body_a)?;
+                                    if body_a_circuit.uses_parameter(loop_param_a) {
+                                        body_a_circuit.assign_parameters_from_mapping([(
+                                            ParameterUuid::from_symbol(loop_param_a),
+                                            Param::ParameterExpression(Arc::new(
+                                                ParameterExpression::from_symbol(sentinel.clone()),
+                                            )),
+                                        )])?;
+                                    }
+                                    let body_a = DAGCircuit::from_circuit_data(
+                                        &body_a_circuit,
+                                        false,
+                                        None,
+                                        None,
+                                    )?;
+
+                                    let mut body_b_circuit = CircuitData::from_dag_ref(body_b)?;
+                                    if body_b_circuit.uses_parameter(loop_param_b) {
+                                        body_b_circuit.assign_parameters_from_mapping([(
+                                            ParameterUuid::from_symbol(loop_param_b),
+                                            Param::ParameterExpression(Arc::new(
+                                                ParameterExpression::from_symbol(sentinel.clone()),
+                                            )),
+                                        )])?;
+                                    }
+                                    let body_b = DAGCircuit::from_circuit_data(
+                                        &body_b_circuit,
+                                        false,
+                                        None,
+                                        None,
+                                    )?;
+                                    block_eq(&body_a, &body_b)
+                                }
+                                (
+                                    Some(LoopParam::Variable(var_a)),
+                                    Some(LoopParam::Variable(var_b)),
+                                ) => {
+                                    if var_a != var_b {
+                                        return Ok(false);
+                                    }
+                                    block_eq(body_a, body_b)
+                                }
+                                (None, None) => block_eq(body_a, body_b),
+                                _ => Ok(false),
+                            }
+                        }
+                        (
+                            ControlFlowView::IfElse {
+                                condition: condition_a,
+                                true_body: true_body_a,
+                                false_body: false_body_a,
+                            },
+                            ControlFlowView::IfElse {
+                                condition: condition_b,
+                                true_body: true_body_b,
+                                false_body: false_body_b,
+                            },
+                        ) => {
+                            let false_body_eq = || -> Result<bool, EqError> {
+                                match (false_body_a, false_body_b) {
+                                    (Some(false_body_a), Some(false_body_b)) => {
+                                        block_eq(false_body_a, false_body_b)
+                                    }
+                                    (None, None) => Ok(true),
+                                    _ => Ok(false),
+                                }
+                            };
+                            Ok(condition_eq(condition_a, condition_b)
+                                && block_eq(true_body_a, true_body_b)?
+                                && false_body_eq()?)
+                        }
+                        (
+                            ControlFlowView::Switch {
+                                target: target_a,
+                                cases_specifier: cases_a,
+                            },
+                            ControlFlowView::Switch {
+                                target: target_b,
+                                cases_specifier: cases_b,
+                            },
+                        ) => {
+                            let target_eq = || -> bool {
+                                match target_a {
+                                    SwitchTarget::Bit(bit_a) => match target_b {
+                                        SwitchTarget::Bit(bit_b) => {
+                                            slf_clbit_map[&slf.clbits.find(bit_a).unwrap()]
+                                                == other_clbit_map
+                                                    [&other.clbits.find(bit_b).unwrap()]
+                                        }
+                                        _ => false,
+                                    },
+                                    SwitchTarget::Register(reg_a) => match target_b {
+                                        SwitchTarget::Register(reg_b) => reg_a
+                                            .iter()
+                                            .map(|a| slf_clbit_map[&slf.clbits.find(&a).unwrap()])
+                                            .eq(reg_b.iter().map(|b| {
+                                                other_clbit_map[&other.clbits.find(&b).unwrap()]
+                                            })),
+                                        _ => false,
+                                    },
+                                    SwitchTarget::Expr(expr_a) => match target_b {
+                                        SwitchTarget::Expr(expr_b) => expr_a
+                                            .structurally_equivalent_by_key(
+                                                slf_var_key,
+                                                expr_b,
+                                                other_var_key,
+                                            ),
+                                        _ => false,
+                                    },
+                                }
+                            };
+                            if cases_a.len() != cases_b.len() || !target_eq() {
+                                return Ok(false);
+                            }
+                            for ((a_label_spec, a_block), (b_label_spec, b_block)) in
+                                cases_a.iter().zip(cases_b.iter())
+                            {
+                                if a_label_spec.iter().collect::<HashSet<_>>()
+                                    != b_label_spec.iter().collect::<HashSet<_>>()
+                                {
+                                    return Ok(false);
+                                }
+                                if !block_eq(a_block, b_block)? {
+                                    return Ok(false);
+                                }
+                            }
+                            Ok(true)
+                        }
+                        (
+                            ControlFlowView::While {
+                                condition: condition_a,
+                                body: body_a,
+                            },
+                            ControlFlowView::While {
+                                condition: condition_b,
+                                body: body_b,
+                            },
+                        ) => {
+                            Ok(condition_eq(condition_a, condition_b) && block_eq(body_a, body_b)?)
+                        }
+                        _ => Ok(false),
+                    }
+                } else {
+                    match [inst1.op.view(), inst2.op.view()] {
+                        [
+                            OperationRef::StandardGate(gate1),
+                            OperationRef::StandardGate(gate2),
+                        ] => Ok(gate1 == gate2
+                            && check_args()
+                            && inst1
+                                .params_view()
+                                .iter()
+                                .zip(inst2.params_view())
+                                .all(|(a, b)| a.is_close(b, 1e-10).unwrap())),
+                        [
+                            OperationRef::StandardInstruction(op1),
+                            OperationRef::StandardInstruction(op2),
+                        ] => Ok(match [op1, op2] {
+                            [
+                                StandardInstruction::Barrier(n1),
+                                StandardInstruction::Barrier(n2),
+                            ] => n1 == n2,
+                            [
+                                StandardInstruction::Delay(unit1),
+                                StandardInstruction::Delay(unit2),
+                            ] => {
+                                let duration1 = &inst1.params_view()[0];
+                                let duration2 = &inst2.params_view()[0];
+                                unit1 == unit2 && duration1.is_close(duration2, 1e-10)?
+                            }
+                            [StandardInstruction::Measure, StandardInstruction::Measure] => true,
+                            [StandardInstruction::Reset, StandardInstruction::Reset] => true,
+                            _ => false,
+                        } && check_args()),
+                        #[cfg(feature = "py")]
+                        [OperationRef::PyCustom(op1), OperationRef::PyCustom(op2)] => {
+                            Python::attach(|py| Ok(op1.ob.bind(py).eq(&op2.ob)? && check_args()))
+                        }
+                        // Handle the edge case where we end up with a Python object and a standard
+                        // gate/instruction.
+                        // This typically only happens if we have a ControlledGate in Python
+                        // and we have mutable state set.
+                        #[cfg(feature = "py")]
+                        [
+                            OperationRef::StandardGate(_),
+                            OperationRef::PyCustom(PyInstruction {
+                                kind: PyOpKind::Gate,
+                                ob,
+                                ..
+                            }),
+                        ] => Python::attach(|py| {
+                            Ok(slf.unpack_py_op(py, inst1)?.eq(ob)? && check_args())
+                        }),
+                        #[cfg(feature = "py")]
+                        [
+                            OperationRef::PyCustom(PyInstruction {
+                                kind: PyOpKind::Gate,
+                                ob,
+                                ..
+                            }),
+                            OperationRef::StandardGate(_),
+                        ] => Python::attach(|py| {
+                            Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args())
+                        }),
+                        #[cfg(feature = "py")]
+                        [
+                            OperationRef::StandardInstruction(_),
+                            OperationRef::PyCustom(PyInstruction {
+                                kind: PyOpKind::Instruction,
+                                ob,
+                                ..
+                            }),
+                        ] => Python::attach(|py| {
+                            Ok(slf.unpack_py_op(py, inst1)?.eq(ob)? && check_args())
+                        }),
+                        #[cfg(feature = "py")]
+                        [
+                            OperationRef::PyCustom(PyInstruction {
+                                kind: PyOpKind::Instruction,
+                                ob,
+                                ..
+                            }),
+                            OperationRef::StandardInstruction(_),
+                        ] => Python::attach(|py| {
+                            Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args())
+                        }),
+                        [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
+                            if check_args() {
+                                match [&op_a.array, &op_b.array] {
+                                    [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
+                                        Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                    }
+                                    [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                    | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                                        if b.shape()[0] == 2 {
+                                            for i in 0..2 {
+                                                for j in 0..2 {
+                                                    if !relative_eq!(
+                                                        b[[i, j]],
+                                                        a[(i, j)],
+                                                        max_relative = 1e-5,
+                                                        epsilon = 1e-8
+                                                    ) {
+                                                        return Ok(false);
+                                                    }
+                                                }
+                                            }
+                                            Ok(true)
+                                        } else {
+                                            Ok(false)
+                                        }
+                                    }
+                                    [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                    | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                                        if b.shape()[0] == 4 {
+                                            for i in 0..4 {
+                                                for j in 0..4 {
+                                                    if !relative_eq!(
+                                                        b[[i, j]],
+                                                        a[(i, j)],
+                                                        max_relative = 1e-5,
+                                                        epsilon = 1e-8
+                                                    ) {
+                                                        return Ok(false);
+                                                    }
+                                                }
+                                            }
+                                            Ok(true)
+                                        } else {
+                                            Ok(false)
+                                        }
+                                    }
+                                    [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
+                                        Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                    }
+                                    [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
+                                        Ok(relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8))
+                                    }
+                                    _ => Ok(false),
+                                }
+                            } else {
+                                Ok(false)
+                            }
+                        }
+                        [
+                            OperationRef::PauliProductMeasurement(op_a),
+                            OperationRef::PauliProductMeasurement(op_b),
+                        ] => Ok((op_a == op_b) && check_args()),
+                        [
+                            OperationRef::PauliProductRotation(op_a),
+                            OperationRef::PauliProductRotation(op_b),
+                        ] => Ok((op_a == op_b) && check_args()),
+                        [OperationRef::Store(store_a), OperationRef::Store(store_b)] => {
+                            Ok(store_a == store_b)
+                        }
+                        _ => Ok(false),
+                    }
+                }
+            }
+            [NodeType::QubitIn(bit1), NodeType::QubitIn(bit2)] => {
+                Ok(slf_qubit_map[bit1] == other_qubit_map[bit2])
+            }
+            [NodeType::ClbitIn(bit1), NodeType::ClbitIn(bit2)] => {
+                Ok(slf_clbit_map[bit1] == other_clbit_map[bit2])
+            }
+            [NodeType::QubitOut(bit1), NodeType::QubitOut(bit2)] => {
+                Ok(slf_qubit_map[bit1] == other_qubit_map[bit2])
+            }
+            [NodeType::ClbitOut(bit1), NodeType::ClbitOut(bit2)] => {
+                Ok(slf_clbit_map[bit1] == other_clbit_map[bit2])
+            }
+            [NodeType::VarIn(var1), NodeType::VarIn(var2)]
+            | [NodeType::VarOut(var1), NodeType::VarOut(var2)] => {
+                // TODO: do we need to convert classical bits and registers here?
+                //   no if Var wires are always standalone
+                Ok(slf.vars_stretches.vars().get(*var1).unwrap()
+                    == other.vars_stretches.vars().get(*var2).unwrap())
+            }
+            _ => Ok(false),
+        }
+    };
+    let node_match = |n1: &NodeType, n2: &NodeType| -> Result<Option<()>, EqError> {
+        node_match(n1, n2).map(|ok| ok.then_some(()))
+    };
+
+    vf2::is_isomorphic_with_semantics(
+        &slf.dag,
+        &other.dag,
+        (node_match, vf2::NoSemantics::new()),
+        true,
+        vf2::Problem::Exact,
+        None,
+    )
+    .map_err(|e| match e {
+        vf2::IsIsomorphicError::NodeMatcher(e) => e,
+        vf2::IsIsomorphicError::EdgeMatcher(_) => unreachable!(),
+    })
+}
+
+impl PartialEq for DAGCircuit {
+    fn eq(&self, other: &DAGCircuit) -> bool {
+        if self.num_qubits() != other.num_qubits() || self.num_clbits() != other.num_clbits() {
+            return false;
+        }
+        let slf_qubit_map: HashMap<Qubit, Qubit> = (0..self.num_qubits())
+            .map(|i| (Qubit::new(i), Qubit::new(i)))
+            .collect();
+        let slf_clbit_map: HashMap<Clbit, Clbit> = (0..self.num_clbits())
+            .map(|i| (Clbit::new(i), Clbit::new(i)))
+            .collect();
+        eq_inner(
+            self,
+            &slf_qubit_map,
+            &slf_clbit_map,
+            other,
+            &slf_qubit_map,
+            &slf_clbit_map,
+        )
+        .unwrap_or(false)
     }
 }
 
