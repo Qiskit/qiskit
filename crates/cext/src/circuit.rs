@@ -1532,8 +1532,6 @@ impl CInstruction {
     /// Create a `CInstruction` that owns pointers to copies of the information in the given
     /// `PackedInstruction`.
     ///
-    ///
-    ///
     /// This must be cleared by a call to `qk_circuit_instruction_clear` to avoid leaking its
     /// allocations.
     pub(crate) fn from_packed_instruction_with_numeric(

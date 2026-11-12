@@ -60,7 +60,7 @@ pub extern "C" fn qk_dag_new() -> *mut DAGCircuit {
 }
 
 /// @ingroup QkDag
-/// Add a quantum register to the DAG. The register isn't added if invalid.
+/// Add a quantum register to the DAG. No-op if `reg` is invalid.
 ///
 /// @param dag A pointer to the DAG.
 /// @param reg A pointer to the quantum register.
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn qk_dag_add_quantum_register(
 }
 
 /// @ingroup QkDag
-/// Add a classical register to the DAG. The register isn't added if invalid.
+/// Add a classical register to the DAG. No-op if `reg` is invalid.
 ///
 /// @param dag A pointer to the DAG.
 /// @param reg A pointer to the classical register.
@@ -345,7 +345,7 @@ pub unsafe extern "C" fn qk_dag_node_type(dag: *const DAGCircuit, node: u32) -> 
 /// @param dag A pointer to the DAG.
 /// @param qubit The qubit to get the input node index of.
 ///
-/// @return The input node index. The index is invalid if `qubit` is out of bounds.
+/// @return The input node index. The returned index is invalid if `qubit` is out of bounds.
 ///
 /// # Safety
 ///
@@ -368,7 +368,7 @@ pub unsafe extern "C" fn qk_dag_qubit_in_node(dag: *const DAGCircuit, qubit: u32
 /// @param dag A pointer to the DAG.
 /// @param qubit The qubit to get the output node index of.
 ///
-/// @return The output node index. The index is invalid if `qubit` is out of bounds.
+/// @return The output node index. The returned index is invalid if `qubit` is out of bounds.
 ///
 /// # Safety
 ///
@@ -391,7 +391,7 @@ pub unsafe extern "C" fn qk_dag_qubit_out_node(dag: *const DAGCircuit, qubit: u3
 /// @param dag A pointer to the DAG.
 /// @param clbit The clbit to get the input node index of.
 ///
-/// @return The input node index. The index is invalid if `clbit` is out of bounds.
+/// @return The input node index. The returned index is invalid if `clbit` is out of bounds.
 ///
 /// # Safety
 ///
@@ -414,7 +414,7 @@ pub unsafe extern "C" fn qk_dag_clbit_in_node(dag: *const DAGCircuit, clbit: u32
 /// @param dag A pointer to the DAG.
 /// @param clbit The clbit to get the output node index of.
 ///
-/// @return The output node index. The index is invalid if `clbit` is out of bounds.
+/// @return The output node index. The returned index is invalid if `clbit` is out of bounds.
 ///
 /// # Safety
 ///
@@ -437,8 +437,8 @@ pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u3
 /// @param dag A pointer to the DAG.
 /// @param node The endpoint node to get the wire value of.
 ///
-/// @return The value (e.g. qubit, clbit, or var) within the endpoint node. The value is
-///     invalid if the node isn't a wire input or output.
+/// @return The value (e.g. qubit, clbit, or var) within the endpoint node. The returned value is
+///     invalid if `node` isn't a wire endpoint.
 ///
 /// # Safety
 ///
@@ -464,13 +464,13 @@ pub unsafe extern "C" fn qk_dag_wire_node_value(dag: *const DAGCircuit, node: u3
 }
 
 /// @ingroup QkDag
-/// Gets the number of qubits of the specified operation node.
+/// Gets the number of qubits for the specified operation node.
 ///
 /// @param dag A pointer to the DAG.
 /// @param node The operation node to get the number of qubits of.
 ///
-/// @return The number of qubits of the operation. The number is invalid if `node` is out of bounds
-///     or the node isn't an operation.
+/// @return The number of qubits for the operation. The returned number is invalid if `node` is out
+///     of bounds or isn't an operation.
 ///
 /// # Safety
 ///
@@ -494,8 +494,8 @@ pub unsafe extern "C" fn qk_dag_op_node_num_qubits(dag: *const DAGCircuit, node:
 /// @param dag A pointer to the DAG.
 /// @param node The operation node to get the number of clbits of.
 ///
-/// @return The number of clbits of the operation. The number is invalid if `node` is out of bounds
-///     or the node isn't an operation.
+/// @return The number of clbits of the operation. The returned number is invalid if `node` is out
+///     of bounds or isn't an operation.
 ///
 /// # Safety
 ///
@@ -519,8 +519,8 @@ pub unsafe extern "C" fn qk_dag_op_node_num_clbits(dag: *const DAGCircuit, node:
 /// @param dag A pointer to the DAG.
 /// @param node The operation node to get the number of params of.
 ///
-/// @return The number of params of the operation. The number is invalid if `node` is out of bounds
-///     or the node isn't an operation.
+/// @return The number of params of the operation. The returned number is invalid if `node` is out
+///     of bounds isn't an operation.
 ///
 /// # Safety
 ///
@@ -545,7 +545,7 @@ pub unsafe extern "C" fn qk_dag_op_node_num_params(dag: *const DAGCircuit, node:
 /// @param node The operation node to get the qubits of.
 ///
 /// @return A pointer to the qubits. Use ``qk_dag_op_node_num_qubits`` to determine the number of
-///     elements. Returns `NULL` if `node` is out of bounds or the node isn't an operation.
+///     elements. Returns `NULL` if `node` is out of bounds isn't an operation.
 ///
 /// # Safety
 ///
@@ -570,7 +570,7 @@ pub unsafe extern "C" fn qk_dag_op_node_qubits(dag: *const DAGCircuit, node: u32
 /// @param node The operation node to get the clbits of.
 ///
 /// @return A pointer to the clbits. Use ``qk_dag_op_node_num_clbits`` to determine the number of
-///     elements. Returns `NULL` if `node` is out of bounds or the node isn't an operation.
+///     elements. Returns `NULL` if `node` is out of bounds or isn't an operation.
 ///
 /// # Safety
 ///
@@ -589,7 +589,9 @@ pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32
 }
 
 /// @ingroup QkDag
-/// Apply a ``QkGate`` to the DAG.
+/// Apply a ``QkGate`` to the DAG if valid.
+///
+/// `dag` is left unchanged if `qubits` contains an out of bounds index.
 ///
 /// @param dag A pointer to the DAG to apply the gate to.
 /// @param gate The StandardGate to apply.
@@ -600,8 +602,8 @@ pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32
 /// @param front If ``true``, the gate is applied as the first operation on the specified qubits,
 ///     rather than as the last.
 ///
-/// @return The index of the newly added operation node. The index is invalid if `qubits` contains
-///     an out of bounds index.
+/// @return The index of the newly added operation node. The returned index is invalid if `dag` was
+///     left unchanged.
 ///
 /// # Example
 /// ```c
@@ -677,13 +679,15 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 /// @ingroup QkDag
 /// Apply a measure to a DAG.
 ///
+/// `dag` is left unchanged if `qubit` or `clbit` is out of bounds.
+///
 /// @param dag The circuit to apply to.
 /// @param qubit The qubit index to measure.
 /// @param clbit The clbit index to store the result in.
 /// @param front Whether to apply the measure at the start of the circuit. Usually `false`.
 ///
-/// @return The node index of the created instruction. The index is invalid if `qubit` or `clbit`
-///     is out of bounds.
+/// @return The node index of the created instruction. The returned index is invalid if the `dag`
+///     was left unchanged.
 ///
 /// # Example
 ///
@@ -737,12 +741,14 @@ pub unsafe extern "C" fn qk_dag_apply_measure(
 /// @ingroup QkDag
 /// Apply a reset to the DAG.
 ///
+/// `dag` is left unchanged if `qubit` `is out of bounds.
+///
 /// @param dag The circuit to apply to.
 /// @param qubit The qubit index to reset.
 /// @param front Whether to apply the reset at the start of the circuit. Usually `false`.
 ///
-/// @return The node index of the created instruction. The index is invalid if `qubit` is out of
-///     bounds.
+/// @return The node index of the created instruction. The returned index is invalid if the `dag`
+///     was left unchanged.
 ///
 /// # Examples
 ///
@@ -791,14 +797,16 @@ pub unsafe extern "C" fn qk_dag_apply_reset(dag: *mut DAGCircuit, qubit: u32, fr
 /// @ingroup QkDag
 /// Apply a barrier to the DAG.
 ///
+/// `dag` is left unchanged if `qubits` contains an out of bounds index.
+///
 /// @param dag The circuit to apply to.
 /// @param qubits The qubit indices to apply the barrier to.  This can be null, in which case
 ///     `num_qubits` is not read, and the barrier is applied to all qubits in the DAG.
 /// @param num_qubits How many qubits the barrier applies to.
 /// @param front Whether to apply the barrier at the start of the circuit. Usually `false`.
 ///
-/// @return The node index of the created instruction. The index is invalid if `qubits` contains
-///     an out of bounds index.
+/// @return The node index of the created instruction. The returned index is invalid if the `dag`
+///     was left unchanged.
 ///
 /// # Examples
 ///
@@ -871,6 +879,8 @@ pub unsafe extern "C" fn qk_dag_apply_barrier(
 /// @ingroup QkDag
 /// Apply a unitary gate to a DAG.
 ///
+/// `dag` is left unchanged if `qubits` contains an out of bounds index.
+///
 /// The values in `matrix` should form a row-major unitary matrix of the correct size for the number
 /// of qubits.  The data is copied out of the pointer, and only needs to be valid for reads until
 /// this function returns.
@@ -884,8 +894,8 @@ pub unsafe extern "C" fn qk_dag_apply_barrier(
 /// @param num_qubits The number of qubits the gate applies to.
 /// @param front Whether to apply the gate at the start of the circuit. Usually `false`.
 ///
-/// @return The node index of the created instruction. The index is invalid if `qubits` contains
-///     an out of bounds index.
+/// @return The node index of the created instruction. The returned index is invalid if the `dag`
+///     was left unchanged.
 ///
 /// # Safety
 ///
@@ -945,14 +955,16 @@ pub unsafe extern "C" fn qk_dag_apply_unitary(
 /// @ingroup QkDag
 /// Apply a ``QkPauliProductRotation`` to a DAG.
 ///
+/// `dag` is left unchanged if `qubits` contains an out of bounds index.
+///
 /// @param dag The DAG to apply the operation to.
 /// @param rotation A pointer to the ``QkPauliProductRotation`` to apply.
 /// @param qubits A pointer to the qubit array.
 /// @param front If ``true``, the operation is applied as the first operation on the specified
 ///     qubits, rather than as the last.
 ///
-/// @return The index of the newly added operation node. The index is invalid if `qubits` contains
-///     an out of bounds index.
+/// @return The index of the newly added operation node. The returned index is invalid if the `dag`
+///     was left unchanged.
 ///
 /// # Example
 ///
@@ -1039,6 +1051,8 @@ pub unsafe extern "C" fn qk_dag_apply_pauli_product_rotation(
 /// @ingroup QkDag
 /// Apply a ``QkPauliProductMeasurement`` to a DAG.
 ///
+/// `dag` is left unchanged if `qubits` or `clbit` has an out of bounds index.
+///
 /// @param dag The DAG to apply the operation to.
 /// @param measurement A pointer to the ``QkPauliProductMeasurement`` to apply.
 /// @param qubits A pointer to the qubit array.
@@ -1046,7 +1060,8 @@ pub unsafe extern "C" fn qk_dag_apply_pauli_product_rotation(
 /// @param front If ``true``, the operation is applied as the first operation on the specified
 ///     qubits, rather than as the last.
 ///
-/// @return The index of the newly added operation node.
+/// @return The index of the newly added operation node. The returned index is invalid if the `dag`
+///     was left unchanged.
 ///
 /// # Example
 ///
@@ -1149,9 +1164,9 @@ pub unsafe extern "C" fn qk_dag_apply_pauli_product_measurement(
 /// @param node The operation node index.
 /// @param instruction A pointer to an allocated ``QkPauliProductRotation`` to store the data.
 ///
-/// @return ``QkExitCode_Success`` if the data was written into the instruction,
-///    ``QkExitCode_IndexError`` if ``node`` is not an operation node in ``dag``, or
-///    ``QkExitCode_InvalidOperationKind`` if the node did not point to a ``QkPauliProductRotation``.
+/// @return `QkExitCode_Success` if the data was written into the instruction.
+///     `QkExitCode_IndexError` if `node` is out of bounds.
+///     `QkExitCode_InvalidOperationKind` if `node` ins't a `QkPauliProductRotation`.
 ///
 /// # Safety
 ///
@@ -1167,9 +1182,13 @@ pub unsafe extern "C" fn qk_dag_op_node_pauli_product_rotation(
     // SAFETY: per documentation, `dag` points to valid data.
     let dag = unsafe { &*dag };
 
-    let Some(NodeType::Operation(instr)) = dag.dag().node_weight(NodeIndex::new(node as usize))
-    else {
+    let i = NodeIndex::new(node as usize);
+    let Some(node) = dag.dag().node_weight(i) else {
         return ExitCode::IndexError;
+    };
+
+    let NodeType::Operation(instr) = node else {
+        return ExitCode::InvalidOperationKind;
     };
 
     // Ensure the operation has the correct type, otherwise return early
@@ -1213,9 +1232,8 @@ pub unsafe extern "C" fn qk_dag_op_node_pauli_product_rotation(
 /// @param instruction A pointer to an allocated ``QkPauliProductMeasurement`` to store the data.
 ///
 /// @return ``QkExitCode_Success`` if the data was written into the instruction.
-///     ``QkExitCode_IndexError`` if ``node`` is out of bounds.
-///     ``QkExitCode_InvalidOperationKind`` if ``node`` isn't a Pauli product measurement
-///     operation.
+///     ``QkExitCode_IndexError`` if ``node`` is out of bounds. ``QkExitCode_InvalidOperationKind``
+///     if ``node`` isn't a Pauli product measurement operation.
 ///
 /// # Safety
 ///
@@ -1267,8 +1285,8 @@ pub unsafe extern "C" fn qk_dag_op_node_pauli_product_measurement(
 /// @param out_params A buffer to be filled with the gate's params or NULL
 ///     if they're not wanted. `0` is used for non-float params.
 ///
-/// @return The gate value. The returned gate is invalid if `node` is out of bounds or isn't a
-///     standard gate operation.
+/// @return The gate value. The returned gate is invalid if `node` is out of bounds or isn't an
+///     operation.
 ///
 /// # Example
 /// ```c
@@ -1328,8 +1346,9 @@ pub unsafe extern "C" fn qk_dag_op_node_gate_op(
 }
 
 /// @ingroup QkDag
-/// Copy out the unitary matrix of the corresponding node index. `out` isn't written if `node`
-/// is out of bounds or the node isn't a unitary operation.
+/// Copy out the unitary matrix of the corresponding node index.
+///
+/// No-op if `node` is out of bounds or isn't a unitary operation.
 ///
 /// @param dag The circuit to read from.
 /// @param node The node index of the unitary matrix instruction.
@@ -1417,7 +1436,8 @@ pub enum COperationKind {
 /// @param dag A pointer to the DAG.
 /// @param node The operation node to get the "kind" of.
 ///
-/// @return The "kind" of the node. `QkOperationKind_Unknown` if `node` isn't an operation.
+/// @return The "kind" of the node. Returns `QkOperationKind_Unknown` if `node` is out of bounds or
+///     isn't an operation.
 ///
 /// # Safety
 ///
@@ -1661,7 +1681,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// @param dag The circuit to get the instruction from.
 /// @param index The index of the instruction in `dag`.
 /// @param[out] out The memory location to write the result to. The output is invalid if `index` is
-///     out of bounds or the node isn't an operation.
+///     out of bounds or isn't an operation.
 ///
 /// # Safety
 ///
@@ -1845,7 +1865,7 @@ pub unsafe extern "C" fn qk_dag_free(dag: *mut DAGCircuit) {
 ///
 /// @param dag A pointer to the DAG from which to create the circuit.
 ///
-/// @return A pointer to the new circuit or `NULL` if the conversion failed.
+/// @return A pointer to the new circuit or `NULL` if the conversion fails.
 ///
 /// # Example
 ///
