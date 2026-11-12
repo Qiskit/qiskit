@@ -31,6 +31,7 @@ from qiskit.utils.optionals import HAS_SYMPY
 
 param_x = Parameter("x")
 param_y = Parameter("y")
+param_z = Parameter("z")
 nested_expr = param_x + param_y - param_x
 nested_expr = nested_expr.subs({param_y: param_x})
 
@@ -74,6 +75,23 @@ real_values = [0.41, 0.9, -0.83, math.pi, -math.pi / 124, -42.42]
 @ddt.ddt
 class TestParameterExpression(QiskitTestCase):
     """Test parameter expression."""
+
+    def assertStructurallyEqualResult(
+        self, left: ParameterExpression, right: ParameterExpression, result: bool
+    ):
+        """Assert that ``left.structurally_equal(right) == result`` with a better error message."""
+        self.assertIsInstance(left, ParameterExpression)
+        self.assertIsInstance(right, ParameterExpression)
+        if left.structurally_equal(right) != result:
+            op = "not ==" if result else "=="
+            msg = f"Assertion failure: '{left}' should {op} '{right}'."
+            raise self.failureException(msg)
+
+    def assertStructurallyEqual(self, left, right):
+        self.assertStructurallyEqualResult(left, right, True)
+
+    def assertNotStructurallyEqual(self, left, right):
+        self.assertStructurallyEqualResult(left, right, False)
 
     @ddt.data(param_x, param_x + param_y, (param_x + 1.0).bind({param_x: 1.0}))
     def test_num_parameters(self, expr):
@@ -1036,7 +1054,7 @@ class TestParameterExpression(QiskitTestCase):
         value = 1.234
 
         for terms in [add_sub_terms, pow_terms, rpow_terms, mul_terms, rdiv_terms, div_terms]:
-            for lhs, rhs in itertools.combinations(terms, 2):
+            for lhs, rhs in itertools.permutations(terms, 2):
                 with self.subTest(lhs=lhs, rhs=rhs):
                     reference = getattr(lhs.bind({x: value}), method)(rhs.bind({x: value}))
                     expression = getattr(lhs, method)(rhs)
@@ -1052,3 +1070,93 @@ class TestParameterExpression(QiskitTestCase):
 
         expected = x + y - 3.0
         self.assertEqual(expected, sub2)
+
+    def test_deep_string_parse(self):
+        """Test that the string parser can handle very deep expressions."""
+        n = 100_000
+        a = Parameter("a")
+        expr_str = "a" + " ** a" * n
+        # This is an explicitly private constructor, but the purpose of the test is for _any_ string
+        # constructor; we can change it over to a new API if/when we expose one.
+        out = ParameterExpression({"a": a}, expr_str)
+        expected = a
+        for _ in range(n):
+            # TODO: actually this seems like a weirdness in the parser: ` ** ` should be
+            # right-associative (so it should be `a**expected`).  We have to use `**` in the test to
+            # avoid complexity explosion via attempted simplification.
+            expected = expected**a
+        self.assertStructurallyEqual(out, expected)
+
+    def test_structurally_equal_simplification(self):
+        x = Parameter("x")
+        y = Parameter("y")
+
+        # These two expressions do not canonicalise to each other, as of the introduction of the
+        # test (2026-09-07), so they should not appear structurally equal.  If canonicalisation is
+        # introduced, the test case should be changed (after we've checked that `structurally_equal`
+        # is actually correct).
+        left = x + y + 1
+        right = 1 + y + x
+        self.assertEqual(left, right)
+        self.assertNotStructurallyEqual(left, right)
+
+    @ddt.unpack
+    @ddt.data(
+        (param_x, param_x, True),
+        (param_x, param_y, False),
+        (param_x + 1, param_x + 1, True),
+        (param_x + 1, param_x + 2, False),
+        (param_x + 1, param_y + 1, False),
+        (-param_x, -param_x, True),
+        (-param_x, -param_y, False),
+        (param_x + (2 * param_y), param_x + (2 * param_y), True),
+        (param_x + (2 * param_y), param_x + (2 * param_z), False),
+        ((-param_x) ** param_y, (-param_x) ** param_y, True),
+        ((-param_x) ** param_y, (-param_y) ** (param_x), False),
+        (param_x**-param_y, param_x**-param_y, True),
+        (param_x + param_y, param_x - param_y, False),
+        (-param_x, param_x.sin(), False),
+    )
+    def test_structurally_equal(self, left, right, expected):
+        self.assertStructurallyEqualResult(left, right, expected)
+
+    @ddt.data("__add__", "__sub__")
+    def test_optimization_with_shared_terms(self, method):
+        """Adding or subtracting two expressions with a shared term should fold the constants and
+        either double or cancel the shared term.
+
+        Tests all combinations of ``x+1, x-1, -x+1, -x-1`` with add/sub, comparing against the
+        expected simplified expression.
+        """
+        # (expression, coefficient of x, constant); the coefficient and constant are used to
+        # compute the expected expression.
+        terms = [
+            (param_x + 1, 1, 1),
+            (param_x - 1, 1, -1),
+            (-param_x + 1, -1, 1),
+            (-param_x - 1, -1, -1),
+        ]
+        # all ordered pairs, including an expression paired with itself
+        for (lhs, left_coeff, left_const), (rhs, right_coeff, right_const) in itertools.product(
+            terms, repeat=2
+        ):
+            with self.subTest(lhs=str(lhs), method=method, rhs=str(rhs)):
+                expression = getattr(lhs, method)(rhs)
+
+                # compute expected simplified expression directly
+                coeff = getattr(left_coeff, method)(right_coeff)
+                const = getattr(left_const, method)(right_const)
+                expected = coeff * param_x + const
+
+                self.assertStructurallyEqual(expression, expected)
+
+    def test_deep_parameter_expression(self):
+        a = Parameter("a")
+        param_expr = a
+        for _ in range(10_000):
+            param_expr = param_expr.sin()
+        grad = param_expr.gradient(a)
+        subs = param_expr.subs({a: Parameter("b")})
+        conjugate = param_expr.conjugate()
+        final_expr = grad + subs + subs - conjugate
+        self.assertIsInstance(final_expr, ParameterExpression)

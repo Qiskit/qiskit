@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::PyErr;
+use pyo3::exceptions::PyRecursionError;
 use thiserror::Error;
 
 mod py_exceptions {
@@ -145,6 +146,12 @@ pub enum QpyError {
     /// A QPY feature that requires the Python runtime was used from a native caller.
     #[error("QPY feature '{0}' is only available when QPY is invoked from Python")]
     PythonOnly(&'static str),
+
+    #[error(transparent)]
+    AllocationError(std::collections::TryReserveError),
+
+    #[error("exceeded maximum recursion depth")]
+    RecursionError,
 }
 
 impl From<QpyError> for PyErr {
@@ -156,14 +163,29 @@ impl From<QpyError> for PyErr {
                 min_version,
             } => PyUnsupportedFeatureForVersion::new_err((feature, min_version, version)),
             QpyError::PythonError(py_err) => py_err,
+            QpyError::RecursionError => PyRecursionError::new_err(error.to_string()),
             _ => PyQpyError::new_err(error.to_string()),
         }
     }
 }
 
 impl From<binrw::Error> for QpyError {
-    fn from(err: binrw::Error) -> Self {
-        QpyError::BinRwError(err.to_string())
+    fn from(binrw_error: binrw::Error) -> Self {
+        let binrw_string = binrw_error.to_string();
+        match binrw_error {
+            binrw::Error::Custom { pos: _pos, err } => match err.downcast::<QpyError>() {
+                Ok(error_box) => *error_box,
+                Err(_) => QpyError::BinRwError(binrw_string),
+            },
+            binrw::Error::Backtrace(backtrace) => match *backtrace.error {
+                binrw::Error::Custom { pos: _pos, err } => match err.downcast::<QpyError>() {
+                    Ok(error_box) => *error_box,
+                    Err(_) => QpyError::BinRwError(binrw_string),
+                },
+                _ => QpyError::BinRwError(binrw_string),
+            },
+            _ => QpyError::BinRwError(binrw_string),
+        }
     }
 }
 

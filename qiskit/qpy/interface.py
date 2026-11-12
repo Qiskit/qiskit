@@ -24,6 +24,7 @@ from collections.abc import Iterable, Mapping
 import struct
 import warnings
 import re
+import sys
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -274,6 +275,11 @@ def dump(
             _write_circuit(file_obj, program)
 
 
+def _get_recursion_limit() -> int:
+    """Get a recursion limit suitable for the parser."""
+    return sys.getrecursionlimit() // 10
+
+
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: type[JSONDecoder] | None = None,
@@ -304,6 +310,12 @@ def load(
 
     which will read the contents of the qpy and return a list of
     :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
+
+    .. note::
+        Certain aspects of QPY payload deserialization are recursive, and will raise a
+        :exc:`RecursionError` if anything requires excessive depth to evaluate. This maxmimum
+        depth can be adjusted using :func:`sys.setrecursionlimit`; the actual limit is
+        one-tenth of this value.
 
     Args:
         file_obj: A file like object that contains the QPY binary
@@ -342,9 +354,18 @@ def load(
             f"The QPY format version being read, {version}, isn't supported by "
             "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
         )
+    config = user_config.get_config()
+    min_qpy_version = config.get("min_qpy_version")
+    if min_qpy_version is not None and version < min_qpy_version:
+        raise QpyError(
+            f"QPY version {version} is lower than the configured minimum "
+            f"version {min_qpy_version}."
+        )
     use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
     if use_rust:
-        return _qpy.load(file_obj, metadata_deserializer, annotation_factories)
+        return _qpy.load(
+            file_obj, metadata_deserializer, annotation_factories, _get_recursion_limit()
+        )
 
     if version < 10:
         data = formats.FILE_HEADER._make(
@@ -359,14 +380,6 @@ def load(
                 formats.FILE_HEADER_V10_PACK,
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
-        )
-
-    config = user_config.get_config()
-    min_qpy_version = config.get("min_qpy_version")
-    if min_qpy_version is not None and data.qpy_version < min_qpy_version:
-        raise QpyError(
-            f"QPY version {data.qpy_version} is lower than the configured minimum "
-            f"version {min_qpy_version}."
         )
 
     if data.preface.decode(common.ENCODE) != "QISKIT":
