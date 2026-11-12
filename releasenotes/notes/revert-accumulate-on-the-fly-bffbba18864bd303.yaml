@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed a performance issue in large symbolic expressions containing
+    sums of constants and parameters. `#16753 <https://github.com/Qiskit/qiskit/pull/16753>`__
+    introduced a regression since the on-the-fly accumulation caused repeatedly
+    expanding and comparing large expressions. This PR is reverted, causing constants
+    to not be accumulated but the performance is restored.
+
+    See `#17306 <https://github.com/Qiskit/qiskit/issues/17306>`__.
+
