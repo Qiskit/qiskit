@@ -232,10 +232,19 @@ pub(crate) fn write_expression<W: Write + Seek>(
 pub(crate) fn read_expression<R: Read + Seek>(
     reader: &mut R,
     endian: Endian,
-    (qpy_data,): (&QPYReadData,),
+    (qpy_data,): (&mut QPYReadData,),
 ) -> BinResult<Expr> {
+    qpy_data.remaining_depth =
+        qpy_data
+            .remaining_depth
+            .checked_sub(1)
+            .ok_or_else(|| Error::Custom {
+                pos: reader.stream_position().unwrap_or(0),
+                err: Box::new(QpyError::RecursionError),
+            })?;
+
     let exp_element = ExpressionElementPack::read_options(reader, endian, ())?;
-    match exp_element {
+    let result = match exp_element {
         ExpressionElementPack::Value { kind, value } => {
             Ok(Expr::Value(unpack_expression_value(kind, value)))
         }
@@ -312,5 +321,7 @@ pub(crate) fn read_expression<R: Read + Seek>(
                 constant,
             })))
         }
-    }
+    };
+    qpy_data.remaining_depth += 1;
+    result
 }

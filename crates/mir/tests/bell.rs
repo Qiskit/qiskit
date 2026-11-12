@@ -51,8 +51,6 @@ use qiskit_mir::{
     qid::{BitLayout, QidInfo, QidList},
     symbol_table::SymbolIdList,
 };
-use std::f64::consts::PI;
-
 #[test]
 fn construct_bell_mir() {
     let mut mir = Mir::new();
@@ -80,7 +78,7 @@ fn construct_bell_mir() {
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliString::new(vec![Pauli::Y]),
-            AngleType::new(PI / 2.0),
+            AngleType::new(0.5),
         )),
         QidList::new(vec![qid_0]),
         SymbolIdList::default(),
@@ -90,7 +88,7 @@ fn construct_bell_mir() {
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliString::new(vec![Pauli::X]),
-            AngleType::new(PI),
+            AngleType::new(1.0),
         )),
         QidList::new(vec![qid_0]),
         SymbolIdList::default(),
@@ -100,7 +98,7 @@ fn construct_bell_mir() {
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliString::new(vec![Pauli::Z, Pauli::X]),
-            AngleType::new(PI / 2.0),
+            AngleType::new(0.5),
         )),
         QidList::new(vec![qid_0, qid_1]),
         SymbolIdList::default(),
@@ -110,7 +108,7 @@ fn construct_bell_mir() {
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliString::new(vec![Pauli::Z]),
-            AngleType::new(-PI / 2.0),
+            AngleType::new(-0.5),
         )),
         QidList::new(vec![qid_0]),
         SymbolIdList::default(),
@@ -120,7 +118,7 @@ fn construct_bell_mir() {
     instr_list.push_back(MirInstruction::new(
         MirOp::PauliRotation(PauliRotation::new(
             PauliString::new(vec![Pauli::X]),
-            AngleType::new(-PI / 2.0),
+            AngleType::new(-0.5),
         )),
         QidList::new(vec![qid_1]),
         SymbolIdList::default(),
@@ -130,6 +128,5 @@ fn construct_bell_mir() {
     //
     // Measures go here -- Not Defined Yet
 
-    // TODO: Add back when verify implemented.
-    //instr_list.verify().unwrap();
+    mir.verify().unwrap();
 }
