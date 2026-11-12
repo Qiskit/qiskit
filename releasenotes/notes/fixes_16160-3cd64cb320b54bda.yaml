@@ -8,4 +8,4 @@ fixes:
     carry the ``0x`` prefix and as binary otherwise, so the data returned by such backends is no
     longer misinterpreted.
 
-    See `#16160 <https://github.com/Qiskit/qiskit/issues/16160>`__ and `#15694 <https://github.com/Qiskit/qiskit/issues/15694>`__
+    See `#16160 <https://github.com/Qiskit/qiskit/issues/16160>`__.
