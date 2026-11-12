@@ -9,7 +9,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# Modified to resolve classical-bit bindings when drawing control-flow blocks.
 
 """
 A module for drawing circuits in ascii art or some other text representation
