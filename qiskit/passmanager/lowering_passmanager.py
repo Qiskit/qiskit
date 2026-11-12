@@ -252,6 +252,29 @@ class TaskStages(LoweringTask, MutableMapping):
             raise IndexError(f"stage position out of range: {pos}")
         return pos % len(self._stages)
 
+    def _name_of(self, pos: str | int) -> str:
+        """Resolve a stage name, or a position that may be negative, to a name.
+
+        Raises:
+            KeyError: if ``pos`` is a name that is not present.
+            IndexError: if ``pos`` is a position that is out of range.
+        """
+        return list(self._stages)[self._index_of(pos)]
+
+    def _slice_of(self, index: slice) -> slice:
+        """Resolve any stage names in a slice's bounds to their positions.
+
+        Raises:
+            KeyError: if a bound is a name that is not present.
+        """
+        # we can't use _index_of() unconditionally because the integer position bounds are
+        # incorrect with respect to standard slicing conventions.
+        bounds = tuple(
+            self._index_of(bound) if isinstance(bound, str) else bound
+            for bound in (index.start, index.stop)
+        )
+        return slice(*bounds, index.step)
+
     def _splice(self, at: int, name: str, task: LoweringTask) -> None:
         """Insert ``name`` at index ``at``, in place."""
         items = [pair for pair in self._stages.items() if pair[0] != name]
@@ -294,6 +317,8 @@ class TaskStages(LoweringTask, MutableMapping):
     @typing.overload
     def __getitem__(self, index: str | int) -> LoweringTask: ...
 
+    # TODO: once the minimum supported Python is 3.12, parametrize this as
+    # `slice[str | int, str | int, int]`.  `slice` is not subscriptable before then.
     @typing.overload
     def __getitem__(self, index: slice) -> typing.Self: ...
 
@@ -301,21 +326,17 @@ class TaskStages(LoweringTask, MutableMapping):
     def __getitem__(self, index: list[str | int]) -> typing.Self: ...
 
     def __getitem__(self, index):
-        """Get the task of a stage by name or position, or new task stages from a slice."""
-        if isinstance(index, str):
-            return self._stages[index]
-        items = list(self._stages.items())
         if isinstance(index, slice):
-            return type(self)(items[index])
+            return type(self)(list(self._stages.items())[self._slice_of(index)])
         if isinstance(index, list):
-            return type(self)(items[self._index_of(pos)] for pos in index)
-        return items[index][1]
+            return type(self)((name, self._stages[name]) for name in map(self._name_of, index))
+        return self._stages[self._name_of(index)]
 
-    def __setitem__(self, name: str, task: LoweringTask):
-        self._stages[name] = task
+    def __setitem__(self, pos: str | int, task: LoweringTask):
+        self._stages[pos if isinstance(pos, str) else self._name_of(pos)] = task
 
-    def __delitem__(self, name: str):
-        del self._stages[name]
+    def __delitem__(self, index: str | int):
+        del self._stages[self._name_of(index)]
 
     def __iter__(self) -> typing.Iterator[str]:
         """Iterate over the stage names, in execution order."""
