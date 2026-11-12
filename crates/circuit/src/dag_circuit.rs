@@ -8028,6 +8028,15 @@ impl<T: Debug> From<crate::object_registry::AbsentObject<T>> for EqError {
     }
 }
 
+// Mirror the never type behavior so ? on a Result<T, Infallible> is basically an
+// unwrap. We can remove this when the MSRV is raised above 1.100 and the never
+// type is stabilized and Infallible becomes an alias.
+impl From<Infallible> for EqError {
+    fn from(value: Infallible) -> Self {
+        match value {}
+    }
+}
+
 #[cfg(feature = "py")]
 impl From<EqError> for PyErr {
     fn from(err: EqError) -> PyErr {
