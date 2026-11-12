@@ -1973,6 +1973,11 @@ class TestDagEquivalence(DAGTest):
         python = build(Gate("test_custom", 1, [1.0]))
         self.assertEqual(native, python)
         self.assertEqual(python, native)
+        self.assertNotEqual(native, build(Gate("test_custom", 1, [2.0])))
+        python_with_definition = Gate("test_custom", 1, [1.0])
+        python_with_definition.definition = QuantumCircuit(1)
+        python_with_definition.definition.x(0)
+        self.assertNotEqual(native, build(python_with_definition))
 
     def test_unitary_gate_variants_eq(self):
         """Test equality of equal DAGOpNodes containing unitary gates."""
