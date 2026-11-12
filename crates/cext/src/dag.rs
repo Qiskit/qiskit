@@ -494,7 +494,7 @@ pub unsafe extern "C" fn qk_dag_op_node_num_qubits(dag: *const DAGCircuit, node:
 /// @param dag A pointer to the DAG.
 /// @param node The operation node to get the number of clbits of.
 ///
-/// @return The number of clbits of the operation. The returned number is invalid if `node` is out
+/// @return The number of clbits for the operation. The returned number is invalid if `node` is out
 ///     of bounds or isn't an operation.
 ///
 /// # Safety
@@ -627,7 +627,7 @@ pub unsafe extern "C" fn qk_dag_op_node_clbits(dag: *const DAGCircuit, node: u32
 /// or params for a given gate. You can check ``qk_gate_num_qubits`` and ``qk_gate_num_params`` to
 /// determine how many qubits and params are required for a given gate.
 ///
-/// Behavior is undefined if ``dag`` is unaligned or non-null.
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_dag_apply_gate(
     dag: *mut DAGCircuit,
@@ -702,7 +702,7 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if `dag` is unaligned or non-null.
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_dag_apply_measure(
     dag: *mut DAGCircuit,
@@ -763,7 +763,7 @@ pub unsafe extern "C" fn qk_dag_apply_measure(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if `dag` is unaligned or non-null.
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_dag_apply_reset(dag: *mut DAGCircuit, qubit: u32, front: bool) -> u32 {
     // SAFETY: per documentation, `dag` points to valid data.
