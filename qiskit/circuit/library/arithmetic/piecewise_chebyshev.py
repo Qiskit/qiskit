@@ -415,6 +415,9 @@ class PiecewiseChebyshevGate(Gate):
             breakpoints: the breakpoints to define the piecewise-linear function.
                 Defaults to the full interval.
             label: A label for the gate.
+
+        Raises:
+            ValueError: If a single breakpoint is given, since this does not define an interval.
         """
         # Store parameters
         self.f_x = f_x
@@ -423,7 +426,12 @@ class PiecewiseChebyshevGate(Gate):
 
         # validate the breakpoints
         if breakpoints is None:
-            breakpoints = [0]
+            breakpoints = [0, 2**num_state_qubits]
+        elif len(breakpoints) < 2:
+            raise ValueError(
+                f"The breakpoints {breakpoints} do not define an interval, at least two are "
+                "required. Use None to approximate on the full interval."
+            )
 
         # the private property are the _unpadded_ breakpoints
         # we copy the list to avoid the user changing their local reference
@@ -463,10 +471,6 @@ class PiecewiseChebyshevGate(Gate):
         """
         breakpoints = self._breakpoints
         num_state_qubits = self.num_state_qubits
-
-        # Need to take into account the case in which no breakpoints were provided in first place
-        if breakpoints == [0]:
-            breakpoints = [0, 2**num_state_qubits]
 
         num_intervals = len(breakpoints)
 

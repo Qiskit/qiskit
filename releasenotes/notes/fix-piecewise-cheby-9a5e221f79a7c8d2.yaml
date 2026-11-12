@@ -7,4 +7,8 @@ fixes:
     :class:`.PiecewiseChebyshev` circuit.
 
     See `#17454 <https://github.com/Qiskit/qiskit/issues/17454>`__.
+  - |
+    Fixed :class:`.PiecewiseChebyshevGate` to explicitly raise an error if only a single
+    breakpoint is given, which is invalid as it does not unambigiously define approximation
+    intervals, instead of silently applying the identity polynomial globally.
 
