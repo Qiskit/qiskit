@@ -211,10 +211,50 @@ class TaskSequence(LoweringTask, MutableSequence):
 
 
 class TaskStages(LoweringTask, MutableMapping):
-    """A mutable sequence of named tasks to run in order.
+    """An insertion-order-preserving mutable mapping of named tasks.
 
-    Task stages have the same execution behavior as a :class:`~.TaskSequence`. They simply
-    additionally assign a name to each task they run.
+    This class has the same sequential execution behavior as a :class:`~.TaskSequence`, but
+    additionally, every task is assigned a string name corresponding to its mapping key.
+
+    .. code-block:: python
+
+        stages = TaskStages({"first": first_stage, "second": second_stage})
+
+        # append one or more stages
+        stages["third"] = third_stage
+        stages.update(other_stages)
+
+        # modify a stage
+        stages["second"] = new_second_stage
+
+        # inspect a stage
+        stages["first"]
+
+        # iterate over stages
+        for name, stage in stages.items():
+            print(name, stage)
+
+        # insert a new stage
+        stages.insert_after("second", ("mid", mid_stage))
+
+    Because this container preserves order and represents sequential execution of tasks, for
+    convenience, a stage can be identified by position wherever it can be identified by
+    name, and also supports slicing.
+
+    .. code-block:: python
+
+        # get the 2nd stage, equivalent to stages["second"] continuing the above example
+        stages[1]
+
+        # new TaskStages containing stages "second" through to the second-last stage
+        stages["second": -1]
+
+        # insert stages right before "third"
+        stages[:"third"] + {"inserted": inserted_stage} + stages["third":]
+
+        # remove the 3rd stage
+        stages.pop(2)
+
 
     Task stages are permitted to be ill-typed while they are being assembled: they may hold two
     consecutive tasks whose IR types disagree.  IR type checking happens when these task stages are
