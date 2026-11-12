@@ -291,7 +291,7 @@ class SparsePauliOp(LinearOp):
 
     def __getitem__(self, key):
         """Return a view of the SparsePauliOp."""
-        # Returns a view of specified rows of the PauliList
+        # Returns a copy of specified rows of the PauliList
         # This supports all slicing operations the underlying array supports.
         if isinstance(key, (int, np.integer)):
             key = [key]
