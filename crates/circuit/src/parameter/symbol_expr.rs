@@ -2034,8 +2034,8 @@ impl SymbolExpr {
                                 // case: l_lhs - (lv + rv)
                                 (_, SymbolExpr::Value(lv)) => {
                                     return Some(_sub(
-                                        l_lhs.as_ref().clone(),
                                         SymbolExpr::Value(rv + lv),
+                                        l_lhs.as_ref().clone(),
                                     ));
                                 }
                                 (_, _) => (),
