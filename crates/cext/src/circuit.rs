@@ -1665,6 +1665,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 /// }
 /// ```
 #[repr(C)]
+#[derive(Debug, Default)]
 pub struct CInstructionView {
     /// The `name_len` UTF-8 encoded bytes that represent the instruction name.  This is not
     /// nul-terminated; you must take care to use functions like `strncmp` bounded by `name_len`
