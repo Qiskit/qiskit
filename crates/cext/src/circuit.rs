@@ -85,7 +85,7 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
     };
 
     CircuitData::new(qubits, clbits, (0.).into())
-        .unwrap()
+        .expect("should have unique shareable bits")
         .into_leaked()
 }
 
@@ -96,7 +96,7 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 /// @param name The name string for the created register. The name must be comprised of
 /// valid UTF-8 characters.
 ///
-/// @return A pointer to the created register
+/// @return A pointer to the created register or `NULL` if `name` is invalid UTF-8.
 ///
 /// # Example
 /// ```c
@@ -114,13 +114,13 @@ pub unsafe extern "C" fn qk_quantum_register_new(
     name: *const c_char,
 ) -> *mut QuantumRegister {
     // SAFETY: Per documentation the pointer for name is a valid CStr pointer
-    let name = unsafe {
-        CStr::from_ptr(name)
-            .to_str()
-            .expect("Invalid UTF-8 character")
-            .to_string()
-    };
-    QuantumRegister::new_owning(name, num_qubits).into_leaked()
+    let name = unsafe { CStr::from_ptr(name) };
+
+    if let Ok(name) = name.to_str() {
+        QuantumRegister::new_owning(name, num_qubits).into_leaked()
+    } else {
+        ptr::null_mut()
+    }
 }
 
 /// @ingroup QkQuantumRegister
@@ -265,7 +265,7 @@ pub unsafe extern "C" fn qk_quantum_register_circuit_bits(
 /// @param name The name string for the created register. The name must be comprised of
 /// valid UTF-8 characters.
 ///
-/// @return A pointer to the created register
+/// @return A pointer to the created register or `NULL` if `name` is invalid UTF-8.
 ///
 /// # Example
 /// ```c
@@ -283,13 +283,13 @@ pub unsafe extern "C" fn qk_classical_register_new(
     name: *const c_char,
 ) -> *mut ClassicalRegister {
     // SAFETY: Per documentation the pointer for name is a valid CStr pointer
-    let name = unsafe {
-        CStr::from_ptr(name)
-            .to_str()
-            .expect("Invalid UTF-8 character")
-            .to_string()
-    };
-    ClassicalRegister::new_owning(name, num_clbits).into_leaked()
+    let name = unsafe { CStr::from_ptr(name) };
+
+    if let Ok(name) = name.to_str() {
+        ClassicalRegister::new_owning(name, num_clbits).into_leaked()
+    } else {
+        ptr::null_mut()
+    }
 }
 
 /// @ingroup QkClassicalRegister
@@ -428,7 +428,7 @@ pub unsafe extern "C" fn qk_classical_register_circuit_bits(
 }
 
 /// @ingroup QkCircuit
-/// Add a quantum register to a given quantum circuit
+/// Add a quantum register to the circuit. No-op if `reg` is invalid.
 ///
 /// @param circuit A pointer to the circuit.
 /// @param reg A pointer to the quantum register
@@ -455,9 +455,7 @@ pub unsafe extern "C" fn qk_circuit_add_quantum_register(
     let circuit = unsafe { &mut *circuit };
     let qreg = unsafe { &*reg };
 
-    circuit
-        .add_qreg(qreg.clone(), true)
-        .expect("Invalid register unable to be added to circuit");
+    let _ = circuit.add_qreg(qreg.clone(), true);
 }
 
 /// @ingroup QkCircuit
@@ -507,7 +505,7 @@ pub unsafe extern "C" fn qk_circuit_num_quantum_registers(circuit: *const Circui
 /// @param qreg_idx The index of the quantum register to retrieve.
 ///
 /// @return A borrowed pointer to the quantum register at the specified index.
-///         Do not free this pointer.
+///         Do not free this pointer. Returns `NULL` if `qreg_idx` is out of bounds.
 ///
 /// # Example
 /// ```c
@@ -533,11 +531,15 @@ pub unsafe extern "C" fn qk_circuit_get_quantum_register(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { &*circuit };
 
-    ptr::from_ref(&circuit.qregs()[qreg_idx])
+    circuit
+        .qregs()
+        .get(qreg_idx)
+        .map(ptr::from_ref)
+        .unwrap_or_default()
 }
 
 /// @ingroup QkCircuit
-/// Add a classical register to a given quantum circuit
+/// Add a classical register to the circuit. No-op if `reg` is invalid.
 ///
 /// @param circuit A pointer to the circuit.
 /// @param reg A pointer to the classical register
@@ -564,9 +566,7 @@ pub unsafe extern "C" fn qk_circuit_add_classical_register(
     let circuit = unsafe { &mut *circuit };
     let creg = unsafe { &*reg };
 
-    circuit
-        .add_creg(creg.clone(), true)
-        .expect("Invalid register unable to be added to circuit");
+    let _ = circuit.add_creg(creg.clone(), true);
 }
 
 /// @ingroup QkCircuit
@@ -616,7 +616,7 @@ pub unsafe extern "C" fn qk_circuit_num_classical_registers(circuit: *const Circ
 /// @param creg_idx The index of the classical register to retrieve.
 ///
 /// @return A borrowed pointer to the classical register at the specified index.
-///         Do not free this pointer.
+///         Do not free this pointer. Returns `NULL` if `creg_idx` is out of bounds.
 ///
 /// # Example
 /// ```c
@@ -642,7 +642,11 @@ pub unsafe extern "C" fn qk_circuit_get_classical_register(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { &*circuit };
 
-    ptr::from_ref(&circuit.cregs()[creg_idx])
+    circuit
+        .cregs()
+        .get(creg_idx)
+        .map(ptr::from_ref)
+        .unwrap_or_default()
 }
 
 /// @ingroup QkCircuit
@@ -1086,15 +1090,19 @@ pub unsafe extern "C" fn qk_circuit_measure(
 pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { &mut *circuit };
-    circuit
-        .push_packed_operation(
-            PackedOperation::from_standard_instruction(StandardInstruction::Reset),
-            None,
-            &[Qubit(qubit)],
-            &[],
-        )
-        .unwrap();
-    ExitCode::Success
+
+    let result = circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(StandardInstruction::Reset),
+        None,
+        &[Qubit(qubit)],
+        &[],
+    );
+
+    if result.is_ok() {
+        ExitCode::Success
+    } else {
+        ExitCode::CircuitError
+    }
 }
 
 /// @ingroup QkCircuit
@@ -1141,15 +1149,19 @@ pub unsafe extern "C" fn qk_circuit_barrier(
         let as_u32 = unsafe { std::slice::from_raw_parts(qubits, num_qubits as usize) };
         bytemuck::cast_slice(as_u32)
     };
-    circuit
-        .push_packed_operation(
-            PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
-            None,
-            qubits,
-            &[],
-        )
-        .unwrap();
-    ExitCode::Success
+
+    let result = circuit.push_packed_operation(
+        PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
+        None,
+        qubits,
+        &[],
+    );
+
+    if result.is_ok() {
+        ExitCode::Success
+    } else {
+        ExitCode::CircuitError
+    }
 }
 
 /// An individual operation count represented by the operation name
@@ -1302,11 +1314,13 @@ pub unsafe extern "C" fn qk_circuit_unitary(
     // Create PackedOperation -> push to circuit_data
     let u_gate = Box::new(UnitaryGate { array: mat });
     let op = PackedOperation::from_unitary(u_gate);
-    circuit
-        .push_packed_operation(op, None, qubits, &[])
-        .unwrap();
-    // Return success
-    ExitCode::Success
+    let result = circuit.push_packed_operation(op, None, qubits, &[]);
+
+    if result.is_ok() {
+        ExitCode::Success
+    } else {
+        ExitCode::CircuitError
+    }
 }
 
 /// @ingroup QkCircuit
@@ -1405,12 +1419,11 @@ pub unsafe extern "C" fn qk_circuit_inst_unitary(
 /// @param index The index of the instruction to get the kind for.
 ///
 /// @return A ``QkOperationKind`` enum value representing the kind of instruction at the given
-/// index.
+/// index. `QkOperationKind_Unknown` if `index` is out of bounds.
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``
-/// and if ``index`` is out of bounds for the number of instructions in the circuit.
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_instruction_kind(
     circuit: *const CircuitData,
@@ -1418,7 +1431,11 @@ pub unsafe extern "C" fn qk_circuit_instruction_kind(
 ) -> COperationKind {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { &*circuit };
-    let instr: &PackedInstruction = &circuit.data()[index];
+
+    let Some(instr) = circuit.data().get(index) else {
+        return COperationKind::Unknown;
+    };
+
     match instr.op.view() {
         OperationRef::StandardGate(_) => COperationKind::Gate,
         OperationRef::StandardInstruction(instr) => match instr {
@@ -1835,9 +1852,7 @@ pub unsafe extern "C" fn qk_circuit_pauli_product_rotation(
 
     let pbc = PauliBased::PauliProductRotation(pbc_rotation);
     let packed = PackedOperation::from_pauli_based(Box::new(pbc));
-    circuit
-        .push_packed_operation(packed, params, qubits, &[])
-        .expect("Failed pushing packed QkPauliProductRotation");
+    let _ = circuit.push_packed_operation(packed, params, qubits, &[]);
 }
 
 /// @ingroup QkCircuit
