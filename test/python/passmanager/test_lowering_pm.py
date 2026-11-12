@@ -1176,58 +1176,68 @@ class TestTaskStagesMapping(QiskitTestCase):
 
     def test_insert_after_by_name(self):
         """Test inserting directly after a named stage."""
-        out = self.stages.insert_after("init", ("new", self.b))
-        self.assertEqual(["init", "new", "layout", "opt"], list(out))
+        self.stages.insert_after("init", ("new", self.b))
+        self.assertEqual(["init", "new", "layout", "opt"], list(self.stages))
 
     def test_insert_after_by_position(self):
-        """Test inserting directly after a position, including from the end."""
-        self.assertEqual(
-            ["init", "new", "layout", "opt"], list(self.stages.insert_after(0, ("new", self.b)))
-        )
-        self.assertEqual(
-            ["init", "layout", "opt", "new"], list(self.stages.insert_after(-1, ("new", self.b)))
-        )
+        """Test inserting directly after a position."""
+        self.stages.insert_after(0, ("new", self.b))
+        self.assertEqual(["init", "new", "layout", "opt"], list(self.stages))
+
+    def test_insert_after_negative_position(self):
+        """Test inserting directly after a position counted from the end."""
+        self.stages.insert_after(-1, ("new", self.b))
+        self.assertEqual(["init", "layout", "opt", "new"], list(self.stages))
 
     def test_insert_before_by_name(self):
         """Test inserting directly before a named stage."""
-        out = self.stages.insert_before("layout", ("new", self.b))
-        self.assertEqual(["init", "new", "layout", "opt"], list(out))
+        self.stages.insert_before("layout", ("new", self.b))
+        self.assertEqual(["init", "new", "layout", "opt"], list(self.stages))
 
     def test_insert_before_by_position(self):
-        """Test inserting directly before a position, including from the end."""
-        self.assertEqual(
-            ["new", "init", "layout", "opt"], list(self.stages.insert_before(0, ("new", self.b)))
-        )
-        self.assertEqual(
-            ["init", "layout", "new", "opt"], list(self.stages.insert_before(-1, ("new", self.b)))
-        )
+        """Test inserting directly before a position."""
+        self.stages.insert_before(0, ("new", self.b))
+        self.assertEqual(["new", "init", "layout", "opt"], list(self.stages))
 
-    def test_insert_at_the_ends(self):
-        """Test inserting after the last stage and before the first."""
-        self.assertEqual(
-            ["init", "layout", "opt", "new"], list(self.stages.insert_after("opt", ("new", self.b)))
-        )
-        self.assertEqual(
-            ["new", "init", "layout", "opt"],
-            list(self.stages.insert_before("init", ("new", self.b))),
-        )
+    def test_insert_before_negative_position(self):
+        """Test inserting directly before a position counted from the end."""
+        self.stages.insert_before(-1, ("new", self.b))
+        self.assertEqual(["init", "layout", "new", "opt"], list(self.stages))
 
-    def test_insert_chains(self):
-        """Test inserting several stages by chaining the calls."""
-        out = self.stages.insert_after("init", ("m", self.b)).insert_after("m", ("n", self.c))
-        self.assertEqual(["init", "m", "n", "layout", "opt"], list(out))
+    def test_insert_after_the_last_stage(self):
+        """Test inserting after the last stage."""
+        self.stages.insert_after("opt", ("new", self.b))
+        self.assertEqual(["init", "layout", "opt", "new"], list(self.stages))
+
+    def test_insert_before_the_first_stage(self):
+        """Test inserting before the first stage."""
+        self.stages.insert_before("init", ("new", self.b))
+        self.assertEqual(["new", "init", "layout", "opt"], list(self.stages))
+
+    def test_repeated_inserts(self):
+        """Test inserting several stages in successive calls."""
+        self.stages.insert_after("init", ("m", self.b))
+        self.stages.insert_after("m", ("n", self.c))
+        self.assertEqual(["init", "m", "n", "layout", "opt"], list(self.stages))
 
     def test_insert_moves_an_existing_name(self):
         """Test that inserting a name already present moves it rather than duplicating it."""
-        out = self.stages.insert_after("init", ("opt", self.b))
-        self.assertEqual(["init", "opt", "layout"], list(out))
-        self.assertIs(self.b, out["opt"])
+        self.stages.insert_after("init", ("opt", self.b))
+        self.assertEqual(["init", "opt", "layout"], list(self.stages))
+        self.assertIs(self.b, self.stages["opt"])
 
-    def test_insert_leaves_the_original_alone(self):
-        """Test that inserting returns new task stages."""
-        out = self.stages.insert_after("init", ("new", self.b))
-        self.assertIsNot(self.stages, out)
-        self.assertEqual(["init", "layout", "opt"], list(self.stages))
+    def test_insert_returns_none(self):
+        """Test that inserting mutates in place and returns nothing."""
+        self.assertIsNone(self.stages.insert_after("init", ("new", self.b)))
+        self.assertIsNone(self.stages.insert_before("init", ("newer", self.c)))
+        self.assertEqual(["newer", "init", "new", "layout", "opt"], list(self.stages))
+
+    def test_insert_keeps_other_tasks(self):
+        """Test that inserting leaves the other stages' tasks untouched."""
+        self.stages.insert_after("init", ("new", self.b))
+        self.assertIs(self.a, self.stages["init"])
+        self.assertIs(self.b, self.stages["layout"])
+        self.assertIs(self.c, self.stages["opt"])
 
     def test_insert_rejects_bad_position(self):
         """Test that an absent name or out-of-range position raises."""
@@ -1237,6 +1247,7 @@ class TestTaskStagesMapping(QiskitTestCase):
             self.stages.insert_after(3, ("new", self.b))
         with self.assertRaisesRegex(IndexError, "out of range"):
             self.stages.insert_before(-4, ("new", self.b))
+        self.assertEqual(["init", "layout", "opt"], list(self.stages))
 
     def test_insert_rejects_bad_shapes(self):
         """Test that a badly-typed name or a non-pair raises."""
@@ -1244,11 +1255,12 @@ class TestTaskStagesMapping(QiskitTestCase):
             self.stages.insert_after("init", (5, self.b))
         with self.assertRaisesRegex(TypeError, r"expected a \(name, task\) pair"):
             self.stages.insert_after("init", [("m", self.b), ("n", self.c)])
+        self.assertEqual(["init", "layout", "opt"], list(self.stages))
 
     def test_inserted_stage_runs(self):
         """Test running a pass manager whose stage was inserted."""
         stages = TaskStages([("lower", CircuitToDag()), ("raise", DagToCircuit())])
-        stages = stages.insert_after("lower", ("clean", RemoveIdentities()))
+        stages.insert_after("lower", ("clean", RemoveIdentities()))
         pm = LoweringPassManager([stages])
 
         circuit = QuantumCircuit(2)

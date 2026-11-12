@@ -260,13 +260,14 @@ class TaskStages(LoweringTask, MutableMapping):
             raise IndexError(f"stage position out of range: {pos}")
         return pos % len(self.stages)
 
-    def _splice(self, at: int, name: str, task: LoweringTask) -> typing.Self:
-        """Return new task stages with ``name`` inserted at index ``at``."""
+    def _splice(self, at: int, name: str, task: LoweringTask) -> None:
+        """Insert ``name`` at index ``at``, in place."""
         items = [pair for pair in self.stages.items() if pair[0] != name]
-        return type(self)(chain(items[:at], [(name, task)], items[at:]))
+        self.stages.clear()
+        self.stages.update(chain(items[:at], [(name, task)], items[at:]))
 
-    def insert_before(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> typing.Self:
-        """Return new task stages with ``stage`` inserted directly before ``pos``.
+    def insert_before(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> None:
+        """Insert ``stage`` directly before ``pos``, in place.
 
         Args:
             pos: the stage to insert before, by name or by position.
@@ -278,10 +279,10 @@ class TaskStages(LoweringTask, MutableMapping):
             IndexError: if ``pos`` is a position that is out of range.
             TypeError: if ``stage`` is not a ``(name, task)`` pair.
         """
-        return self._splice(self._index_of(pos), *_as_stage(stage))
+        self._splice(self._index_of(pos), *_as_stage(stage))
 
-    def insert_after(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> typing.Self:
-        """Return new task stages with ``stage`` inserted directly after ``pos``.
+    def insert_after(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> None:
+        """Insert ``stage`` directly after ``pos``, in place.
 
         Args:
             pos: the stage to insert after, by name or by position.
@@ -293,7 +294,7 @@ class TaskStages(LoweringTask, MutableMapping):
             IndexError: if ``pos`` is a position that is out of range.
             TypeError: if ``stage`` is not a ``(name, task)`` pair.
         """
-        return self._splice(self._index_of(pos) + 1, *_as_stage(stage))
+        self._splice(self._index_of(pos) + 1, *_as_stage(stage))
 
     def __len__(self) -> int:
         return len(self.stages)
