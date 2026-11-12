@@ -1961,14 +1961,18 @@ class TestDagEquivalence(DAGTest):
     def test_native_custom_operation_eq(self):
         """Native custom operations participate in DAG equality."""
 
-        def build(value):
+        def build(operation):
             out = DAGCircuit()
             out.add_qubits([Qubit()])
-            out.apply_operation_back(_TestCustomOperation(value), out.qubits)
+            out.apply_operation_back(operation, out.qubits)
             return out
 
-        self.assertEqual(build(1), build(1))
-        self.assertNotEqual(build(1), build(2))
+        native = build(_TestCustomOperation(1))
+        self.assertEqual(native, build(_TestCustomOperation(1)))
+        self.assertNotEqual(native, build(_TestCustomOperation(2)))
+        python = build(Gate("test_custom", 1, [1.0]))
+        self.assertEqual(native, python)
+        self.assertEqual(python, native)
 
     def test_unitary_gate_variants_eq(self):
         """Test equality of equal DAGOpNodes containing unitary gates."""

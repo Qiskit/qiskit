@@ -2361,8 +2361,8 @@ impl TestCustomOperation {
     }
 
     #[getter]
-    fn params(&self) -> [Param; 0] {
-        []
+    fn params(&self) -> [Param; 1] {
+        [Param::Float(self.value.into())]
     }
 }
 
@@ -2381,7 +2381,7 @@ impl Operation for TestCustomOperation {
     }
 
     fn num_params(&self) -> u32 {
-        0
+        1
     }
 
     fn directive(&self) -> bool {
@@ -2392,7 +2392,7 @@ impl Operation for TestCustomOperation {
 #[cfg(feature = "py")]
 impl CustomOperation for TestCustomOperation {
     fn is_unitary(&self) -> bool {
-        false
+        true
     }
 }
 
