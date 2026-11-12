@@ -13,6 +13,7 @@
 """
 Dataclass tools for data namespaces (bins)
 """
+
 from __future__ import annotations
 
 from typing import Any

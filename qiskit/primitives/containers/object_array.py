@@ -13,6 +13,7 @@
 """
 Object ND-array initialization function.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
