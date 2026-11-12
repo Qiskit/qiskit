@@ -99,7 +99,7 @@ fn generic_value_to_param_data_pack(
         }),
         GenericValue::Null => formats::ParamDataPack::Null,
         GenericValue::Expression(expression) => {
-            formats::ParamDataPack::Expression(formats::ExpressionPack {
+            formats::ParamDataPack::Expression(crate::formats_19::ExpressionPack {
                 expression: pack_expression(expression, qpy_data)?,
             })
         }
@@ -174,7 +174,7 @@ fn pack_control_flow_v19(
                 formats::BoxDurationPack::Duration(pack_duration(duration))
             }
             Some(BoxDuration::Expr(expression)) => {
-                formats::BoxDurationPack::Expression(formats::ExpressionPack {
+                formats::BoxDurationPack::Expression(crate::formats_19::ExpressionPack {
                     expression: pack_expression(expression, qpy_data)?,
                 })
             }
@@ -230,7 +230,7 @@ fn pack_control_flow_v19(
                     })
                 }
                 SwitchTarget::Expr(expression) => {
-                    formats::SwitchTargetPack::Expression(formats::ExpressionPack {
+                    formats::SwitchTargetPack::Expression(crate::formats_19::ExpressionPack {
                         expression: pack_expression(expression, qpy_data)?,
                     })
                 }
@@ -269,7 +269,7 @@ fn pack_condition_v19(
             value.clone(),
         ),
         Condition::Expr(expression) => {
-            formats::ConditionV19Pack::Expression(formats::ExpressionPack {
+            formats::ConditionV19Pack::Expression(crate::formats_19::ExpressionPack {
                 expression: pack_expression(expression, qpy_data)?,
             })
         }

@@ -368,6 +368,7 @@ pub struct QPYReadData {
     pub vectors: HashMap<Uuid, Arc<SymbolVector>>,
     pub parameter_vectors: Vec<Arc<SymbolVector>>,
     pub annotation_handler: AnnotationHandler,
+    pub remaining_depth: usize,
 }
 
 // this is how tags for various value types are encoded in a QPY file
@@ -653,12 +654,6 @@ impl GenericValue {
             self.clone()
         }
     }
-    pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
-        match self {
-            GenericValue::CircuitData(circuit_data) => Some(circuit_data.as_ref().clone()),
-            _ => None,
-        }
-    }
     // return the inner GenericValue slice when the GenericData is a Tuple
     pub(crate) fn as_slice(&self) -> Option<&[GenericValue]> {
         match self {
@@ -851,10 +846,11 @@ pub(crate) fn load_value(
             Ok(GenericValue::ParameterExpressionVectorSymbol(symbol.into()))
         }
         ValueType::ParameterExpression => {
-            let (parameter_expression_pack, _) = deserialize_with_args::<
-                formats::ParameterExpressionPack,
-                _,
-            >(bytes, (qpy_data.version,))?;
+            let (parameter_expression_pack, _) =
+                deserialize_with_args::<formats::ParameterExpressionPack, _>(
+                    bytes,
+                    (qpy_data.version, 0, qpy_data.remaining_depth),
+                )?;
             let exp = unpack_parameter_expression(&parameter_expression_pack, qpy_data)?;
             Ok(GenericValue::ParameterExpression(Arc::new(exp)))
         }
@@ -884,14 +880,17 @@ pub(crate) fn load_value(
             Ok(GenericValue::Register(register_value))
         }
         ValueType::Circuit => {
-            let (packed_circuit, _) =
-                deserialize_with_args::<formats::QPYCircuit, (u8,)>(bytes, (qpy_data.version,))?;
+            let (packed_circuit, _) = deserialize_with_args::<formats::QPYCircuit, (u8, usize)>(
+                bytes,
+                (qpy_data.version, qpy_data.remaining_depth),
+            )?;
             let circuit = unpack_circuit(
                 &packed_circuit,
                 qpy_data.version,
                 qpy_data.use_symengine,
                 qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
+                qpy_data.remaining_depth,
             )?;
             Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
@@ -1087,7 +1086,15 @@ pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack
         .elements
         .iter()
-        .map(|data_pack| unpack_generic_value(data_pack, qpy_data, endian))
+        .map(|data_pack| {
+            qpy_data.remaining_depth = qpy_data
+                .remaining_depth
+                .checked_sub(1)
+                .ok_or_else(|| QpyError::RecursionError)?;
+            let result = unpack_generic_value(data_pack, qpy_data, endian);
+            qpy_data.remaining_depth += 1;
+            result
+        })
         .collect()
 }
 
@@ -1146,17 +1153,21 @@ pub(crate) fn get_circuit_type_key(
 
 pub(crate) fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> Result<Bytes, QpyError> {
     let packed_expression = formats::ExpressionPack {
-        expression: crate::expr::pack_expression(exp, qpy_data)?,
+        expression: exp.clone(),
+        _phantom: std::marker::PhantomData,
     };
-    serialize(&packed_expression)
+    serialize_with_args(&packed_expression, (qpy_data,))
 }
 
 pub(crate) fn deserialize_expression(
     raw_expression: &Bytes,
-    qpy_data: &QPYReadData,
+    qpy_data: &mut QPYReadData,
 ) -> Result<Expr, QpyError> {
-    let (exp_pack, _) = deserialize::<formats::ExpressionPack>(raw_expression)?;
-    crate::expr::unpack_expression(exp_pack.expression, qpy_data)
+    let (exp_pack, _) = deserialize_with_args::<formats::ExpressionPack, (&mut QPYReadData,)>(
+        raw_expression,
+        (qpy_data,),
+    )?;
+    Ok(exp_pack.expression)
 }
 
 pub(crate) fn pack_standalone_var(

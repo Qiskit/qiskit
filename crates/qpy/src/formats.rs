@@ -12,14 +12,17 @@
 
 use crate::bytes::Bytes;
 use crate::error::{QpyError, to_binrw_error};
+use crate::expr::{read_expression, write_expression};
 pub(crate) use crate::formats_19::*;
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    ProgramType, RegisterType, SymbolicEncoding, ValueType,
+    ProgramType, QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
+use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
+use std::marker::PhantomData;
 
 /// The QPY file header
 /// This is up-to-date with all the header data found in QPY13.
@@ -58,9 +61,10 @@ pub struct QPYFileHeader {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import (version: u8))]
+#[bw(import (version: u8))]
+#[br(import (version: u8, max_depth: usize))]
 pub struct QPYCircuit {
-    #[br(args(version,))]
+    #[br(args(version, max_depth))]
     pub header: CircuitHeaderPack,
     #[br(count = header.num_vars())]
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
@@ -69,10 +73,11 @@ pub struct QPYCircuit {
     #[br(if(version >= 18))]
     pub parameter_vectors: Option<ParameterVectorTablePack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
-    #[br(count = header.num_instructions(), args { inner: (version, true,) })]
+    #[br(count = header.num_instructions(), args { inner: (version, true, max_depth) })]
     #[bw(args(version))]
     pub instructions: Vec<CircuitInstructionPack>,
-    #[brw(if(version < 18), args(version,))]
+    #[bw(if(version < 18), args(version,))]
+    #[br(if(version < 18), args(version, max_depth))]
     pub calibrations: Option<CalibrationsPack>,
     #[brw(args(version,))]
     pub layout: LayoutV2Pack,
@@ -80,13 +85,13 @@ pub struct QPYCircuit {
 
 #[binrw]
 #[derive(Debug)]
-#[br(import (version: u8))]
+#[br(import (version: u8, max_depth: usize))]
 pub enum CircuitHeaderPack {
     #[br(pre_assert(version <= 18))]
     V12(#[br(args(version,))] CircuitHeaderV12Pack),
 
     #[br(pre_assert(version >= 19))]
-    V19(#[br(args(version,))] CircuitHeaderV19Pack),
+    V19(#[br(args(version, max_depth))] CircuitHeaderV19Pack),
 }
 
 impl CircuitHeaderPack {
@@ -185,7 +190,7 @@ pub enum RegisterPack {
 
 #[binrw]
 #[derive(Debug)]
-#[br(import (version: u8, read_bits: bool))]
+#[br(import (version: u8, read_bits: bool, max_depth: usize))]
 #[bw(import(version: u8))]
 pub enum CircuitInstructionPack {
     #[br(pre_assert(version <= 18))]
@@ -193,7 +198,7 @@ pub enum CircuitInstructionPack {
 
     #[br(pre_assert(version >= 19))]
     V19(
-        #[br(args(version))]
+        #[br(args(version, max_depth))]
         #[bw(args(version))]
         CircuitInstructionV19Pack,
     ),
@@ -978,8 +983,12 @@ pub struct ParameterExpressionSubsOpPack {
 /// It's not completely clear to me why the symbol table was originally structured as it was, since not all the data is used
 #[binrw]
 #[brw(big)]
+#[bw(import(version: u8))]
+#[br(
+    import(version: u8, depth: usize, max_depth: usize),
+    pre_assert(depth <= max_depth, "exceeded max depth")
+)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
 pub struct ParameterExpressionPack {
     #[bw(calc = symbol_table_data.len() as u64)]
     pub symbol_tables_length: u64,
@@ -987,7 +996,7 @@ pub struct ParameterExpressionPack {
     pub expression_data_length: u64,
     #[br(count = expression_data_length)]
     pub expression_data: Bytes,
-    #[br(count = symbol_tables_length, args { inner: (version,) })]
+    #[br(count = symbol_tables_length, args { inner: (version, depth, max_depth) })]
     #[bw(args(version))]
     pub symbol_table_data: Vec<ParameterExpressionSymbolPack>,
 }
@@ -998,8 +1007,9 @@ pub struct ParameterExpressionPack {
 // e.g. whether we can avoid storing the symbols and only use their uuid
 #[binrw]
 #[brw(big)]
+#[bw(import(version: u8))]
+#[br(import(version: u8, depth: usize, max_depth: usize))]
 #[derive(Debug)]
-#[brw(import(version: u8))]
 pub enum ParameterExpressionSymbolPack {
     #[brw(magic = b'p')]
     Parameter(ParameterExpressionParameterSymbolPack),
@@ -1011,7 +1021,11 @@ pub enum ParameterExpressionSymbolPack {
     /// given to `ParameterExpression.subs` calls, which include expressions.  The equivalent "read"
     /// code would load up the entries, then immediately filter them out to make the symbol map.
     #[brw(magic = b'e')]
-    ParameterExpression(#[brw(args(version))] ParameterExpressionParameterExpressionSymbolPack),
+    ParameterExpression(
+        #[bw(args(version))]
+        #[br(args(version, depth, max_depth))]
+        ParameterExpressionParameterExpressionSymbolPack,
+    ),
 }
 
 // symbol->value mapping for parameter expressions
@@ -1045,13 +1059,15 @@ pub struct ParameterExpressionParameterVectorSymbolPack {
 // parameter expression->value mapping for parameter expressions
 #[binrw]
 #[brw(big)]
+#[bw(import(version: u8))]
+#[br(import(version: u8, depth: usize, max_depth: usize))]
 #[derive(Debug)]
-#[brw(import(version: u8))]
 pub struct ParameterExpressionParameterExpressionSymbolPack {
     pub value_key: u8,
     #[bw(calc = value_data.len() as u64)]
     pub value_data_len: u64,
-    #[brw(args(version))]
+    #[bw(args(version))]
+    #[br(args(version, depth + 1, max_depth))]
     pub symbol_data: ParameterExpressionPack,
     #[br(count = value_data_len)]
     pub value_data: Bytes,
@@ -1086,8 +1102,24 @@ pub struct MappingItem {
 }
 
 // *****Expression handling (used in expr.rs)*****
-// Expressions are recursive, self-delimiting trees. References to circuit objects remain in their
-// wire representation here and are resolved only after the surrounding circuit has been built.
+// expressions are stored as a consecutive list of expression elements
+// that encode a tree structure in inorder traversal
+// since QPY doesn't explicitly store the number of elements in the expression
+// we need to manually handle byte-level reading along with parsing the expression
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[br(import(qpy_read_data: &mut QPYReadData))]
+#[bw(import(qpy_write_data: &'a QPYWriteData<'a>))]
+pub struct ExpressionPack<'a> {
+    #[br(parse_with = read_expression, args(qpy_read_data))]
+    #[bw(write_with = write_expression, args(qpy_write_data))]
+    pub expression: Expr,
+
+    #[br(ignore)]
+    #[bw(ignore)]
+    pub _phantom: PhantomData<&'a Option<Expr>>,
+}
 // The types of values for elements of the expression - boolean and specific-width ints
 // That can correspond to the values of specific clbits, floats and durations
 #[derive(BinWrite, BinRead, Clone, Debug)]
@@ -1101,6 +1133,38 @@ pub enum ExpressionTypePack {
     Float,
     #[brw(magic = b'd')]
     Duration,
+}
+
+/// A single node in the legacy (QPY <= 18) prefix-encoded expression stream.
+#[derive(BinWrite, BinRead, Debug)]
+#[brw(big)]
+pub enum ExpressionElementPack {
+    #[brw(magic = b'x')]
+    Var {
+        kind: ExpressionTypePack,
+        value: ExpressionVarElementPack,
+    },
+    #[brw(magic = b's')]
+    Stretch {
+        kind: ExpressionTypePack,
+        index: u16,
+    },
+    #[brw(magic = b'v')]
+    Value {
+        kind: ExpressionTypePack,
+        value: ExpressionValueElementPack,
+    },
+    #[brw(magic = b'c')]
+    Cast {
+        kind: ExpressionTypePack,
+        implicit: u8,
+    },
+    #[brw(magic = b'u')]
+    Unary { kind: ExpressionTypePack, op: u8 },
+    #[brw(magic = b'b')]
+    Binary { kind: ExpressionTypePack, op: u8 },
+    #[brw(magic = b'i')]
+    Index { kind: ExpressionTypePack },
 }
 
 /// Context-free representation of a classical expression in the QPY wire format.
@@ -1299,18 +1363,20 @@ pub struct AnnotationHeaderStaticPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub struct CalibrationsPack {
     #[bw(calc = calibrations.len() as u16)]
     pub num_cals: u16,
-    #[br(count = num_cals, args { inner: (version,) })]
+    #[br(count = num_cals, args { inner: (version, max_depth) })]
     pub calibrations: Vec<CalibrationDefPack>,
 }
 
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub struct CalibrationDefPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
@@ -1326,14 +1392,18 @@ pub struct CalibrationDefPack {
     pub qubits: Vec<i64>,
     #[br(count = num_params)]
     pub params: Vec<GenericDataPack>,
-    #[br(args(version,))]
+    #[br(args(version, 0, max_depth))]
     pub schedule: ScheduleBlockPack,
 }
 
 #[binrw]
 #[brw(big)]
+#[bw(import(version: u8))] // should not work for version < 5 but we do not support it yet
+#[br(
+    import(version: u8, depth: usize, max_depth: usize),
+    pre_assert(depth <= max_depth, "exceeded max depth")
+)]
 #[derive(Debug)]
-#[brw(import(version: u8))] // should not work for version < 5 but we do not support it yet
 pub struct ScheduleBlockPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
@@ -1348,7 +1418,7 @@ pub struct ScheduleBlockPack {
     // originally to be handled with metadata deserializer
     pub metadata: Bytes,
     pub alignment_context: AlignmentContextPack,
-    #[br(count = num_elements, args { inner: (version,) })]
+    #[br(count = num_elements, args { inner: (version, depth, max_depth) })]
     pub elements: Vec<ScheduleBlockElementPack>,
     #[br(if(version >= 7))]
     // originially a reference is either null or ScheduleBlockPack
@@ -1368,11 +1438,12 @@ pub struct AlignmentContextPack {
 // Otherwise, it contains operands sequence and a name value
 #[binrw]
 #[brw(big)]
+#[bw(import(version: u8))]
+#[br(import(version: u8, depth: usize, max_depth: usize))]
 #[derive(Debug)]
-#[brw(import(version: u8))]
 pub struct ScheduleBlockElementPack {
     pub element_type: u8,
-    #[br(if(element_type == b's'), args(version,))]
+    #[br(if(element_type == b's'), args(version, depth + 1, max_depth))]
     pub nested_schedule: Option<ScheduleBlockPack>,
     #[br(if(element_type != b's'))]
     pub non_nested_data: Option<ScheduleBlockElementNonNestedDataPack>,
@@ -1484,4 +1555,145 @@ pub struct ScheduleOperandKernelPack {
 pub struct ScheduleOperandDiscriminatorPack {
     pub data: MappingPack,
     pub name: GenericDataPack,
+}
+
+#[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
+mod tests {
+    use std::io::Cursor;
+
+    use super::*;
+
+    #[test]
+    fn test_nested_expression_exceeds_max_depth() {
+        const MAX_DEPTH: usize = 10;
+
+        let expression = nested_expression(MAX_DEPTH + 1);
+        let mut cursor = Cursor::new(Vec::new());
+        expression
+            .write_args(&mut cursor, (0,))
+            .expect("write should succeed");
+
+        cursor.set_position(0);
+        let result = ParameterExpressionPack::read_args(&mut cursor, (0, 0, MAX_DEPTH));
+        assert!(result.is_err());
+
+        let error = result.unwrap_err();
+        let error = nested_root_cause(&error);
+
+        let expected = "exceeded max depth";
+        assert!(matches!(error, binrw::Error::AssertFail { message, .. } if message == expected));
+    }
+
+    fn nested_expression(depth: usize) -> ParameterExpressionPack {
+        let mut root = ParameterExpressionPack {
+            expression_data: Bytes::new(),
+            symbol_table_data: vec![],
+        };
+
+        let mut next = &mut root;
+        for _ in 0..depth {
+            let symbol_data = ParameterExpressionPack {
+                expression_data: Bytes::new(),
+                symbol_table_data: vec![],
+            };
+
+            let symbol = ParameterExpressionParameterExpressionSymbolPack {
+                value_key: b'e',
+                symbol_data,
+                value_data: Bytes::new(),
+            };
+
+            let symbol = ParameterExpressionSymbolPack::ParameterExpression(symbol);
+            next.symbol_table_data.push(symbol);
+
+            let symbol = next
+                .symbol_table_data
+                .first_mut()
+                .expect("should have a symbol");
+
+            let ParameterExpressionSymbolPack::ParameterExpression(symbol_expr) = symbol else {
+                panic!("should be expression");
+            };
+
+            next = &mut symbol_expr.symbol_data;
+        }
+
+        root
+    }
+
+    #[test]
+    fn test_nested_schedule_exceeds_max_depth() {
+        const MAX_DEPTH: usize = 10;
+
+        let schedule = nested_schedule(MAX_DEPTH + 1);
+        let mut cursor = Cursor::new(Vec::new());
+        schedule
+            .write_args(&mut cursor, (0,))
+            .expect("write should succeed");
+
+        cursor.set_position(0);
+        let result = ScheduleBlockPack::read_args(&mut cursor, (0, 0, MAX_DEPTH));
+        assert!(result.is_err());
+
+        let error = result.unwrap_err();
+        let error = nested_root_cause(&error);
+
+        let expected = "exceeded max depth";
+        assert!(matches!(error, binrw::Error::AssertFail { message, .. } if message == expected));
+    }
+
+    fn nested_schedule(depth: usize) -> ScheduleBlockPack {
+        let mut root = ScheduleBlockPack {
+            name: String::new(),
+            metadata: Bytes::new(),
+            alignment_context: AlignmentContextPack {
+                type_key: 0,
+                sequence: GenericDataSequencePack { elements: vec![] },
+            },
+            elements: vec![],
+            references: None,
+        };
+
+        let mut next = &mut root;
+        for _ in 0..depth {
+            let schedule = ScheduleBlockPack {
+                name: String::new(),
+                metadata: Bytes::new(),
+                alignment_context: AlignmentContextPack {
+                    type_key: 0,
+                    sequence: GenericDataSequencePack { elements: vec![] },
+                },
+                elements: vec![],
+                references: None,
+            };
+
+            let element = ScheduleBlockElementPack {
+                element_type: b's',
+                nested_schedule: Some(schedule),
+                non_nested_data: None,
+            };
+
+            next.elements.push(element);
+
+            let element = next.elements.first_mut().expect("should have a schedule");
+            next = element
+                .nested_schedule
+                .as_mut()
+                .expect("should have nested schedule");
+        }
+
+        root
+    }
+
+    fn nested_root_cause(error: &binrw::Error) -> &binrw::Error {
+        let mut error = error.root_cause();
+
+        while let binrw::Error::EnumErrors { variant_errors, .. } = error {
+            let (_, last) = variant_errors.last().expect("should contain an error");
+            error = last.root_cause();
+        }
+
+        error
+    }
 }
