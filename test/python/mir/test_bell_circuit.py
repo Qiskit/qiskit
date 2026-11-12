@@ -63,7 +63,7 @@ class TestBellCircuitMIR(QiskitTestCase):
             + [mir_passes.DagToMirPass()]
         )
         mir_instance: Any = pm.run(qc)
-        self.log.debug(f"mir_instance=\n{mir_instance}")
+        self.log.debug("mir_instance=\n%s", mir_instance)
         self.assertIsInstance(mir_instance, mir.Mir)
         self.assertEqual(mir_instance.num_instructions(), 2)
         self.assertEqual(mir_instance.num_qids(), 2)

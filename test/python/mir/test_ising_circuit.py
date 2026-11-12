@@ -70,7 +70,7 @@ class TestIsingCircuitMIR(QiskitTestCase):
         """Test lowering Ising circuit to MIR."""
         qc = make_ising_circuit(steps, h)
         mir_instance: Any = self.pm.run(qc)
-        self.log.debug(f"steps={steps}, h={h}, mir_instance=\n{mir_instance}")
+        self.log.debug("steps=%s, h=%s, mir_instance=\n%s", steps, h, mir_instance)
         self.assertIsInstance(mir_instance, mir.Mir)
         self.assertEqual(mir_instance.num_qids(), NODES)
         num_instructions = steps * (len(EDGES) + NODES) + NODES
