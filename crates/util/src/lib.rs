@@ -16,6 +16,13 @@ pub mod dyn_types;
 #[cfg(feature = "py")]
 pub mod py;
 
+/// Set the global allocator centrally for both `cext` and `pyext`, so that Cargo feature
+/// unification detects that the `global_mimalloc` features on both of them can be safely combined.
+/// This is useful for the `--all-features` flag in things like Clippy.
+#[cfg(feature = "global_mimalloc")]
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 /// A common type alias to use IndexMap with Qiskit's default hasher all
 /// internal crate usage of IndexMap should use this instead of the indexmap
 /// crate directly.

@@ -22,12 +22,12 @@ use virtual_type::VirtualType;
 
 /// The synthesizer to use for virtual gates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SynthesizerType {
+pub enum SynthesizerKind {
     RzSx,
     RzRx,
 }
 
-impl SynthesizerType {
+impl SynthesizerKind {
     /// The number of qubits the synthesized gate acts on.
     pub fn num_qubits(&self) -> u32 {
         match self {
@@ -45,23 +45,24 @@ impl SynthesizerType {
 
 /// The distribution to sample virtual gates from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DistributionType {
+pub enum DistributionKind {
     UniformPauli,
-    BalancedUniformPauli,
-    UniformPauliSubset,
-    UniformC1,
-    UniformLocalC1,
+    // BalancedUniformPauli,
+    // UniformPauliSubset,
+    // UniformC1,
     HaarU2,
+    // UniformLocalC1,
 }
 
-impl DistributionType {
+impl DistributionKind {
     /// The algebraic type of the sampled virtual gates.
     pub fn virtual_type(&self) -> VirtualType {
         match self {
-            Self::UniformPauli | Self::BalancedUniformPauli | Self::UniformPauliSubset => {
-                VirtualType::Pauli
-            }
-            Self::UniformC1 | Self::UniformLocalC1 => VirtualType::C1,
+            Self::UniformPauli => VirtualType::Pauli,
+            // Self::BalancedUniformPauli | Self::UniformPauliSubset => {
+            //     VirtualType::Pauli
+            // }
+            // Self::UniformC1 | Self::UniformLocalC1 => VirtualType::C1,
             Self::HaarU2 => VirtualType::U2,
         }
     }
@@ -70,11 +71,11 @@ impl DistributionType {
     pub fn factorization(&self) -> Partition<u32> {
         match self {
             Self::UniformPauli
-            | Self::BalancedUniformPauli
-            | Self::UniformPauliSubset
-            | Self::UniformC1
+            // | Self::BalancedUniformPauli
+            // | Self::UniformPauliSubset
+            // | Self::UniformC1
             | Self::HaarU2 => Partition::whole([0]),
-            Self::UniformLocalC1 => Partition::singletons([0, 1]),
+            // Self::UniformLocalC1 => Partition::singletons([0, 1]),
         }
         .expect("a distribution's factorization covers at least one qubit")
     }
@@ -84,8 +85,8 @@ impl DistributionType {
         self.factorization().num_elements() as u32
     }
 
-    /// The number of factors in this distribution.
-    pub fn num_slots(&self) -> usize {
+    /// The number o tensor factors in this distribution.
+    pub fn num_factors(&self) -> usize {
         self.factorization().num_parts()
     }
 }

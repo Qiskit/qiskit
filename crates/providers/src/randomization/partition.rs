@@ -35,7 +35,7 @@ pub enum PartitionError {
 /// While a partition can have no parts, each part must have an element.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Partition<T> {
-    /// The elements, in part order then slot order.
+    /// The elements, in part order then factor order.
     elements: Box<[T]>,
     /// Where each part after the first begins.
     splits: Box<[u32]>,

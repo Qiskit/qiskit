@@ -20,7 +20,7 @@ use qiskit_circuit::operations::{CustomOperation, Operation};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
 use super::virtual_type::VirtualType;
-use super::{Direction, DistributionType, SynthesizerType};
+use super::{Direction, DistributionKind, SynthesizerKind};
 
 /// The name of the emit operation.
 pub const EMIT_NAME: &str = "emit";
@@ -36,26 +36,26 @@ pub enum Distribution {
         modifier: Option<Box<str>>,
         num_qubits: u32,
     },
-    Sample(DistributionType),
+    Sample(DistributionKind),
 }
 
 impl Distribution {
-    /// How many virtual gates each sample decomposes into.
-    pub fn num_slots(&self) -> usize {
+    /// How many tensor factors each sample decomposes into.
+    pub fn num_factors(&self) -> usize {
         match self {
             Self::Noise { num_qubits, .. } => *num_qubits as usize,
-            Self::Sample(distribution) => distribution.num_slots(),
+            Self::Sample(distribution) => distribution.num_factors(),
         }
     }
 
-    /// The width of the virtual gate of `slot`, or `None` if it has no such slot.
-    pub fn slot_qubits(&self, slot: u32) -> Option<u32> {
+    /// The width of the virtual gate of `factor`, or `None` if it has no such factor.
+    pub fn factor_qubits(&self, factor: u32) -> Option<u32> {
         match self {
-            // Every slot of a noise map is one qubit's local Pauli.
-            Self::Noise { num_qubits, .. } => (slot < *num_qubits).then_some(1),
+            // Every factor of a noise map is one qubit's local Pauli.
+            Self::Noise { num_qubits, .. } => (factor < *num_qubits).then_some(1),
             Self::Sample(distribution) => distribution
                 .factorization()
-                .part(slot as usize)
+                .part(factor as usize)
                 .map(|part| part.len() as u32),
         }
     }
@@ -69,15 +69,10 @@ impl Distribution {
     }
 }
 
-/// One sample of a distribution.
-///
-/// Holds the two together so that emissions placing slots of one draw cannot disagree about what
-/// was drawn. Two emissions are of one sample exactly when their `uuid` matches and of one
-/// distribution exactly when their `distribution` compares equal: both are comparisons of values
-/// so neither depends on whether the `Arc` happens to be shared.
+/// A sample of a distribution.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Draw {
-    /// Which sample.
+    /// Unique identifier of the sample.
     pub uuid: Uuid,
     /// What it was drawn from.
     pub distribution: Distribution,
@@ -86,11 +81,11 @@ pub struct Draw {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Emit {
     pub direction: Option<Direction>,
-    /// The sample this places a slot of.
+    /// The sample from which to select the factor.
     pub draw: Arc<Draw>,
-    /// Which part of that sample's factorization this emission places.
-    pub slot: u32,
-    /// Whether to invert the sampled value before composing it.
+    /// Which factor of the distribution this emit corresponds to.
+    pub factor: u32,
+    /// Whether to invert the sample before composing it.
     pub adjoint: bool,
 }
 
@@ -102,8 +97,8 @@ impl Operation for Emit {
     fn num_qubits(&self) -> u32 {
         self.draw
             .distribution
-            .slot_qubits(self.slot)
-            .expect("an emission places a slot its distribution has")
+            .factor_qubits(self.factor)
+            .expect("an emission places a factor its distribution has")
     }
 
     fn num_clbits(&self) -> u32 {
@@ -130,7 +125,7 @@ pub type CollectStep = (Vec<u32>, PackedInstruction);
 #[derive(Debug, Clone)]
 pub struct Collect {
     /// How gathered gates are synthesized.
-    pub synthesizer: SynthesizerType,
+    pub synthesizer: SynthesizerKind,
     pub steps: Vec<CollectStep>,
 }
 
@@ -141,7 +136,7 @@ impl PartialEq for Collect {
 }
 
 impl Collect {
-    pub fn new(synthesizer: SynthesizerType) -> Self {
+    pub fn new(synthesizer: SynthesizerKind) -> Self {
         Collect {
             synthesizer,
             steps: Vec::new(),
@@ -189,7 +184,7 @@ impl CustomOperation for Collect {
 mod tests {
     use super::*;
 
-    /// A Pauli-Lindblad map over `width` qubits which factorizes into one slot each.
+    /// A Pauli-Lindblad map over `width` qubits factorizes into `width` factors.
     fn noise(width: u32) -> Distribution {
         Distribution::Noise {
             reference: "layer_1".into(),
@@ -202,38 +197,29 @@ mod tests {
         emission_at(distribution, uuid, 0)
     }
 
-    fn emission_at(distribution: Distribution, uuid: Uuid, slot: u32) -> Emit {
+    fn emission_at(distribution: Distribution, uuid: Uuid, factor: u32) -> Emit {
         Emit {
             direction: Some(Direction::Forward),
             draw: Arc::new(Draw { uuid, distribution }),
-            slot,
+            factor,
             adjoint: false,
         }
     }
 
     #[test]
-    fn test_an_emission_is_as_wide_as_one_slot() {
+    fn test_an_emission_is_as_wide_as_one_factor() {
         let pauli = emission(
-            Distribution::Sample(DistributionType::UniformPauli),
+            Distribution::Sample(DistributionKind::UniformPauli),
             Uuid::new_v4(),
         );
         assert_eq!(pauli.num_qubits(), 1);
-        for slot in 0..2 {
-            let local = emission_at(
-                Distribution::Sample(DistributionType::UniformLocalC1),
-                Uuid::new_v4(),
-                slot,
-            );
-            assert_eq!(local.num_qubits(), 1, "a local-C1 slot is one qubit");
-        }
-        // A noise slot is one qubit's Pauli however wide the map is.
         assert_eq!(emission(noise(3), Uuid::new_v4()).num_qubits(), 1);
     }
 
     #[test]
     fn test_emissions_of_one_sample_share_a_uuid_and_differ_otherwise() {
         let uuid = Uuid::new_v4();
-        let distribution = Distribution::Sample(DistributionType::UniformPauli);
+        let distribution = Distribution::Sample(DistributionKind::UniformPauli);
         let near = emission(distribution, uuid);
         let far = Emit {
             adjoint: true,
@@ -246,11 +232,11 @@ mod tests {
     #[test]
     fn test_two_uuids_from_one_distribution_are_independent() {
         let first = emission(
-            Distribution::Sample(DistributionType::UniformPauli),
+            Distribution::Sample(DistributionKind::UniformPauli),
             Uuid::new_v4(),
         );
         let second = emission(
-            Distribution::Sample(DistributionType::UniformPauli),
+            Distribution::Sample(DistributionKind::UniformPauli),
             Uuid::new_v4(),
         );
         assert_ne!(first.draw.uuid, second.draw.uuid);
@@ -258,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_noise_emits_are_told_apart_by_their_slot() {
+    fn test_noise_emits_are_told_apart_by_their_factor() {
         let uuid = Uuid::new_v4();
         let draw = Arc::new(Draw {
             uuid,
@@ -267,11 +253,11 @@ mod tests {
         let first = Emit {
             direction: Some(Direction::Forward),
             draw: Arc::clone(&draw),
-            slot: 0,
+            factor: 0,
             adjoint: false,
         };
         let second = Emit {
-            slot: 1,
+            factor: 1,
             ..first.clone()
         };
         assert_eq!(first.draw.uuid, second.draw.uuid);
@@ -281,17 +267,14 @@ mod tests {
 
     #[test]
     fn test_one_draw_is_one_draw_however_it_was_built() {
-        // The property that lets an emission be written by hand: a draw is identified by what it
-        // says rather than by which allocation it sits in. Two emissions built separately with
-        // one uuid and one distribution are of the same draw as two that share an `Arc`.
         let uuid = Uuid::new_v4();
-        let built = |slot| Emit {
+        let built = |factor| Emit {
             direction: Some(Direction::Forward),
             draw: Arc::new(Draw {
                 uuid,
                 distribution: noise(2),
             }),
-            slot,
+            factor,
             adjoint: false,
         };
         let separate = [built(0), built(1)];
@@ -305,7 +288,7 @@ mod tests {
         let shared = Emit {
             direction: Some(Direction::Forward),
             draw: Arc::clone(&shared_draw),
-            slot: 0,
+            factor: 0,
             adjoint: false,
         };
         assert_eq!(separate[0], shared);
@@ -315,14 +298,14 @@ mod tests {
     fn test_distribution_virtual_type() {
         assert_eq!(noise(1).virtual_type(), VirtualType::Pauli);
         assert_eq!(
-            Distribution::Sample(DistributionType::HaarU2).virtual_type(),
+            Distribution::Sample(DistributionKind::HaarU2).virtual_type(),
             VirtualType::U2
         );
     }
 
     #[test]
     fn test_a_collector_starts_empty_and_as_wide_as_its_synthesizer() {
-        let collector = Collect::new(SynthesizerType::RzSx);
+        let collector = Collect::new(SynthesizerKind::RzSx);
         assert!(collector.is_empty());
         assert_eq!(collector.num_qubits(), 1);
         assert_eq!(collector.name(), COLLECT_NAME);
@@ -330,7 +313,7 @@ mod tests {
 
     #[test]
     fn test_a_collector_accepts_what_its_synthesizer_can_express() {
-        let collector = Collect::new(SynthesizerType::RzSx);
+        let collector = Collect::new(SynthesizerKind::RzSx);
         for virtual_type in [VirtualType::Pauli, VirtualType::C1, VirtualType::U2] {
             assert!(collector.accepts(virtual_type), "{virtual_type:?}");
         }
@@ -339,6 +322,6 @@ mod tests {
     #[test]
     fn test_neither_operation_is_unitary() {
         assert!(!emission(noise(0), Uuid::new_v4()).is_unitary());
-        assert!(!Collect::new(SynthesizerType::RzRx).is_unitary());
+        assert!(!Collect::new(SynthesizerKind::RzRx).is_unitary());
     }
 }
