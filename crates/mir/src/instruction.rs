@@ -15,11 +15,11 @@
 use crate::line_graph;
 use crate::ops::{
     MirOp,
-    MirOp::{PauliMeasure, PauliRotation},
+    MirOp::{BoolNot, PauliMeasure, PauliRotation},
     pbc::PauliString,
 };
 use crate::qid::{Qid, QidList, table::ResourceTable};
-use crate::symbol_table::SymbolIdList;
+use crate::symbol_table::{SymbolId, SymbolIdList, SymbolTable, SymbolType};
 use std::fmt;
 use thiserror::Error;
 
@@ -86,6 +86,7 @@ impl MirInstruction {
     pub fn verify(
         &self,
         resource_table: &ResourceTable,
+        symbol_table: &SymbolTable,
     ) -> Result<(), InstructionVerificationError> {
         // Verify all Qids exist in the ResourceTable
         for &q in self.qids().inner().iter() {
@@ -108,6 +109,9 @@ impl MirInstruction {
             }
             PauliMeasure(pauli_measure) => {
                 self.verify_pauli_op(pauli_measure.paulis(), resource_table)?;
+            }
+            BoolNot => {
+                self.verify_bool_not(symbol_table)?;
             }
         }
         Ok(())
@@ -150,6 +154,44 @@ impl MirInstruction {
 
         Ok(())
     }
+
+    /// Verify BoolNot instruction. It verify that:
+    /// 1. The instruction qids list is empty.
+    /// 2. The instruction has one arg, and one returns.
+    /// 3. Both `SymbolId`s exist in the `SymbolTable`.
+    /// 4. Both symbols type is `SymbolType::Bool`.
+    fn verify_bool_not(
+        &self,
+        symbol_table: &SymbolTable,
+    ) -> Result<(), InstructionVerificationError> {
+        if !self.qids.is_empty() {
+            return Err(InstructionVerificationError::QidWidthMismatch {
+                len1: self.qids.len() as u32,
+                len2: 0,
+            });
+        }
+        if self.args.len() != 1 || self.returns.len() != 1 {
+            return Err(InstructionVerificationError::OperandCountMismatch {
+                expected_args: 1,
+                expected_returns: 1,
+                found_args: self.args.len() as u32,
+                found_returns: self.returns.len() as u32,
+            });
+        }
+        for sym_id in [self.args.inner()[0], self.returns.inner()[0]] {
+            let symbol = symbol_table
+                .get(sym_id)
+                .ok_or(InstructionVerificationError::SymbolNotFound { sym_id })?;
+            if symbol.symbol_type() != SymbolType::Bool {
+                return Err(InstructionVerificationError::SymbolTypeMismatch {
+                    sym_id,
+                    expected: SymbolType::Bool,
+                    found: symbol.symbol_type(),
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Display for MirInstruction {
@@ -164,7 +206,7 @@ impl fmt::Display for MirInstruction {
 
 #[derive(Error, Debug)]
 pub enum InstructionVerificationError {
-    #[error("Qid width ({}) does not match pauli count ({})", len1, len2)]
+    #[error("Qid width ({}) does not match expected width ({})", len1, len2)]
     QidWidthMismatch { len1: u32, len2: u32 },
     #[error("Qid {} not found in resource table.", qid)]
     QidNotFound { qid: Qid },
@@ -172,6 +214,27 @@ pub enum InstructionVerificationError {
     AbstractQidNotAllowed { qid: Qid },
     #[error("Overlapping Qids")]
     AliasedQids,
+    #[error(
+        "Operand count mismatch: expected {} args and {} returns, found {} args and {} returns",
+        expected_args,
+        expected_returns,
+        found_args,
+        found_returns
+    )]
+    OperandCountMismatch {
+        expected_args: u32,
+        expected_returns: u32,
+        found_args: u32,
+        found_returns: u32,
+    },
+    #[error("Symbol {} not found in symbol table", sym_id)]
+    SymbolNotFound { sym_id: SymbolId },
+    #[error("Symbol {} has type {:?}, expected {:?}", sym_id, found, expected)]
+    SymbolTypeMismatch {
+        sym_id: SymbolId,
+        found: SymbolType,
+        expected: SymbolType,
+    },
 }
 
 pub struct MirInstructionIndex(line_graph::Index);
@@ -289,6 +352,7 @@ mod tests {
     #[test]
     fn test_invalid_pauli_instruction() {
         let mut resource_table = ResourceTable::new(QidSpace::Virtual);
+        let symbol_table = SymbolTable::default();
         let qid_len = 8;
         let pauli_len = 4;
         let qids = (0..qid_len)
@@ -305,7 +369,7 @@ mod tests {
             returns: SymbolIdList::default(),
         };
 
-        let result = instr.verify(&resource_table);
+        let result = instr.verify(&resource_table, &symbol_table);
 
         assert!(matches!(
             result,
@@ -318,6 +382,7 @@ mod tests {
     #[test]
     fn test_missing_qid() {
         let resource_table = ResourceTable::new(QidSpace::Virtual);
+        let symbol_table = SymbolTable::default();
         let qid = Qid::virt(0);
         let instr = MirInstruction {
             op: create_pauli_rotation_op(Pauli::X, 1, 0.5),
@@ -326,7 +391,7 @@ mod tests {
             returns: SymbolIdList::default(),
         };
 
-        let result = instr.verify(&resource_table);
+        let result = instr.verify(&resource_table, &symbol_table);
 
         assert!(matches!(
             result,
@@ -337,6 +402,7 @@ mod tests {
     #[test]
     fn test_abstract_qid() {
         let mut resource_table = ResourceTable::new(QidSpace::Virtual);
+        let symbol_table = SymbolTable::default();
         // Qid with Abstract layout cannot be used in instructions because they
         // have no width associated with them
         let qid = resource_table
@@ -352,7 +418,7 @@ mod tests {
 
         assert!(
             matches!(
-                bad_instr.verify(&resource_table),
+                bad_instr.verify(&resource_table, &symbol_table),
                 Err(InstructionVerificationError::AbstractQidNotAllowed { qid: _ })
             ),
             "Missed identifying abstract Qid in instruction"
@@ -362,6 +428,7 @@ mod tests {
     #[test]
     fn test_wide_qids() {
         let mut resource_table = ResourceTable::new(QidSpace::Virtual);
+        let symbol_table = SymbolTable::default();
         let qid_container = resource_table
             .add_qid(QidInfo::new(BitLayout::Base(2)))
             .unwrap();
@@ -387,7 +454,7 @@ mod tests {
             returns: SymbolIdList::default(),
         };
 
-        good_instr.verify(&resource_table).unwrap();
+        good_instr.verify(&resource_table, &symbol_table).unwrap();
 
         good_instr = MirInstruction {
             op: create_pauli_rotation_op(Pauli::Y, 2, 0.5),
@@ -396,7 +463,7 @@ mod tests {
             returns: SymbolIdList::default(),
         };
 
-        good_instr.verify(&resource_table).unwrap();
+        good_instr.verify(&resource_table, &symbol_table).unwrap();
 
         let mut bad_instr = MirInstruction {
             op: create_pauli_rotation_op(Pauli::Z, 3, 0.5),
@@ -407,7 +474,7 @@ mod tests {
 
         assert!(
             matches!(
-                bad_instr.verify(&resource_table),
+                bad_instr.verify(&resource_table, &symbol_table),
                 Err(InstructionVerificationError::QidWidthMismatch { len1: 2, len2: 3 })
             ),
             "Mismatched operand lengths"
@@ -422,7 +489,7 @@ mod tests {
 
         assert!(
             matches!(
-                bad_instr.verify(&resource_table),
+                bad_instr.verify(&resource_table, &symbol_table),
                 Err(InstructionVerificationError::QidWidthMismatch { len1: 2, len2: 1 }),
             ),
             "Mismatched operand lengths",
@@ -432,6 +499,7 @@ mod tests {
     #[test]
     fn test_aliased_qids() {
         let mut resource_table = ResourceTable::new(QidSpace::Virtual);
+        let symbol_table = SymbolTable::default();
         let qid_container = resource_table
             .add_qid(QidInfo::new(BitLayout::Base(2)))
             .unwrap();
@@ -457,7 +525,7 @@ mod tests {
         };
 
         // This should pass verification because Qids do not overlap
-        good_instr.verify(&resource_table).unwrap();
+        good_instr.verify(&resource_table, &symbol_table).unwrap();
 
         let bad_instr = MirInstruction {
             op: create_pauli_rotation_op(Pauli::X, 3, 0.5),
@@ -468,10 +536,59 @@ mod tests {
 
         assert!(
             matches!(
-                bad_instr.verify(&resource_table),
+                bad_instr.verify(&resource_table, &symbol_table),
                 Err(InstructionVerificationError::AliasedQids)
             ),
             "Missed identifying aliased qids"
         );
+    }
+
+    #[test]
+    fn test_bool_not() {
+        let mut resource_table = ResourceTable::new(QidSpace::Virtual);
+        let mut symbol_table = SymbolTable::default();
+        let qid = resource_table
+            .add_qid(QidInfo::new(BitLayout::Base(1)))
+            .unwrap();
+        let src = symbol_table
+            .add(Symbol::new("c0".to_string(), SymbolType::Bool))
+            .unwrap();
+        let dest = symbol_table
+            .add(Symbol::new("c1".to_string(), SymbolType::Bool))
+            .unwrap();
+        let instr = MirInstruction {
+            op: MirOp::BoolNot,
+            qids: QidList::new(vec![]),
+            args: SymbolIdList::new(vec![src]),
+            returns: SymbolIdList::new(vec![dest]),
+        };
+        instr.verify(&resource_table, &symbol_table).unwrap();
+
+        let instr_wrong_arity = MirInstruction {
+            op: MirOp::BoolNot,
+            qids: QidList::new(vec![]),
+            args: SymbolIdList::new(vec![]),
+            returns: SymbolIdList::new(vec![dest]),
+        };
+        assert!(matches!(
+            instr_wrong_arity.verify(&resource_table, &symbol_table),
+            Err(InstructionVerificationError::OperandCountMismatch {
+                expected_args: 1,
+                expected_returns: 1,
+                found_args: 0,
+                found_returns: 1,
+            })
+        ));
+
+        let instr_with_qids = MirInstruction {
+            op: MirOp::BoolNot,
+            qids: QidList::new(vec![qid]),
+            args: SymbolIdList::new(vec![]),
+            returns: SymbolIdList::new(vec![dest]),
+        };
+        assert!(matches!(
+            instr_with_qids.verify(&resource_table, &symbol_table),
+            Err(InstructionVerificationError::QidWidthMismatch { len1: 1, len2: 0 })
+        ));
     }
 }

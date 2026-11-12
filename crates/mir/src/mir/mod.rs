@@ -94,10 +94,11 @@ impl Mir {
     ///
     /// This is not intended to be run *during* a pass to ensure correctness.
     pub fn verify(&self) -> Result<(), MirVerificationError> {
-        Ok(self
-            .instructions
-            .iter_main()
-            .try_for_each(|instr| instr.weight().verify(&self.resource_table))?)
+        Ok(self.instructions.iter_main().try_for_each(|instr| {
+            instr
+                .weight()
+                .verify(&self.resource_table, &self.symbol_table)
+        })?)
     }
 }
 
@@ -106,6 +107,12 @@ impl Default for Mir {
         Self::new()
     }
 }
+#[cfg(feature = "passmanager")]
+mod passmanager {
+    use super::Mir;
+    qiskit_util::dyn_types::static_dyn_typed!(Mir);
+    impl qiskit_passmanager::IR for Mir {}
+}
 
 #[derive(Debug, Error)]
 pub enum MirVerificationError {
@@ -113,6 +120,15 @@ pub enum MirVerificationError {
     InstructionList(#[from] InstructionVerificationError),
     // This can be expanded to include other types of verification errors (e.g.,
     // SymbolTable, ResourceTable, etc)
+}
+
+impl std::fmt::Display for Mir {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for node in self.instructions.iter_main() {
+            writeln!(f, "{}", node.weight())?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

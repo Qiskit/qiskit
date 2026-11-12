@@ -245,6 +245,16 @@ impl<'a> InstructionRef<'a> {
         self.instruction().body.view()
     }
 
+    /// Return the op this instruction applies, when it is an op of type `O`.
+    ///
+    /// This is `None` for a parameter, a call or a result, and for an op of any other type.
+    pub fn downcast<O: ProgramOp + 'static>(&self) -> Option<&'a O> {
+        match self.view() {
+            InstructionView::Op(op) => op.downcast_ref(),
+            _ => None,
+        }
+    }
+
     /// Return the values this instruction consumes, in operand order.
     pub fn operands(&self) -> &'a [Value] {
         &self.instruction().operands
@@ -1074,6 +1084,29 @@ mod test {
             add.operand_types().collect::<Vec<_>>(),
             vec![&f64_1d(2), &f64_1d(2)]
         );
+    }
+
+    #[test]
+    fn an_ops_payload_is_read_back_by_downcasting() {
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(f64_1d(2));
+        let mean = function.add_op(Mean::new(0), &[x]).unwrap()[0];
+        let cast = function.add_op(Cast::new(DType::I64), &[mean]).unwrap()[0];
+        function.add_result(cast).unwrap();
+
+        // A function stores its ops type-erased, so we need to know the type to downcast
+        let mean = function.instruction(mean.instruction()).unwrap();
+        assert_eq!(mean.downcast::<Mean>().map(Mean::axis), Some(0));
+
+        let cast = function.instruction(cast.instruction()).unwrap();
+        assert_eq!(cast.downcast::<Cast>().map(Cast::target), Some(DType::I64));
+
+        // Other op modes, or giving the wrong type, returns None
+        assert!(mean.downcast::<Cast>().is_none());
+        let parameter = function.instruction(function.parameters()[0]).unwrap();
+        assert!(parameter.downcast::<Mean>().is_none());
+        let result = function.instruction(function.results()[0]).unwrap();
+        assert!(result.downcast::<Cast>().is_none());
     }
 
     // ---------------------------------------------------------------------------
