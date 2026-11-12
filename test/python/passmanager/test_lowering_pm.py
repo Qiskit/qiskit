@@ -850,7 +850,7 @@ class TestTasks(QiskitTestCase):
         self.assertEqual(circuit, pm.run(circuit))
 
         # the edit is not visible in the pass manager, nor in a task sequence read back from it
-        self.assertEqual([], pm.to_task_sequence()[1].tasks)
+        self.assertEqual([], list(pm.to_task_sequence()[1]))
         self.assertEqual(circuit, LoweringPassManager(pm.to_task_sequence()).run(circuit))
 
 
@@ -876,7 +876,7 @@ class TestTaskSequenceProtocol(QiskitTestCase):
         """Test that a slice returns a new task sequence of those tasks."""
         sliced = self.task_sequence[0:2]
         self.assertIsInstance(sliced, TaskSequence)
-        self.assertEqual([self.a, self.b], sliced.tasks)
+        self.assertEqual([self.a, self.b], list(sliced))
 
         # the slice is a new object, so editing it leaves the original alone
         sliced.append(RemoveIdentities())
@@ -884,25 +884,25 @@ class TestTaskSequenceProtocol(QiskitTestCase):
 
     def test_slice_with_step(self):
         """Test that a strided slice is honoured."""
-        self.assertEqual([self.c, self.b, self.a], self.task_sequence[::-1].tasks)
+        self.assertEqual([self.c, self.b, self.a], list(self.task_sequence[::-1]))
 
     def test_index_with_list(self):
         """Test that a list of positions returns those tasks in that order."""
         picked = self.task_sequence[[2, 0]]
         self.assertIsInstance(picked, TaskSequence)
-        self.assertEqual([self.c, self.a], picked.tasks)
+        self.assertEqual([self.c, self.a], list(picked))
 
     def test_index_with_list_of_negatives(self):
         """Test that a list of positions accepts negative indices."""
-        self.assertEqual([self.c, self.b], self.task_sequence[[-1, -2]].tasks)
+        self.assertEqual([self.c, self.b], list(self.task_sequence[[-1, -2]]))
 
     def test_index_with_empty_list(self):
         """Test that an empty list of positions gives an empty task sequence."""
-        self.assertEqual([], self.task_sequence[[]].tasks)
+        self.assertEqual([], list(self.task_sequence[[]]))
 
     def test_index_with_repeated_position(self):
         """Test that a repeated position repeats the task."""
-        self.assertEqual([self.a, self.a], self.task_sequence[[0, 0]].tasks)
+        self.assertEqual([self.a, self.a], list(self.task_sequence[[0, 0]]))
 
     def test_index_with_list_out_of_range(self):
         """Test that an out-of-range position in a list raises."""
@@ -912,23 +912,23 @@ class TestTaskSequenceProtocol(QiskitTestCase):
     def test_add(self):
         """Test that two task sequences concatenate into a new one."""
         out = TaskSequence([self.a]) + TaskSequence([self.b])
-        self.assertEqual([self.a, self.b], out.tasks)
+        self.assertEqual([self.a, self.b], list(out))
 
     def test_add_accepts_any_iterable(self):
         """Test that concatenation accepts any iterable of tasks."""
-        self.assertEqual([self.a, self.b], (TaskSequence([self.a]) + [self.b]).tasks)
-        self.assertEqual([self.a, self.b], (TaskSequence([self.a]) + iter([self.b])).tasks)
+        self.assertEqual([self.a, self.b], list(TaskSequence([self.a]) + [self.b]))
+        self.assertEqual([self.a, self.b], list(TaskSequence([self.a]) + iter([self.b])))
 
     def test_radd(self):
         """Test that an iterable of tasks concatenates with a task sequence on the right."""
         out = [self.a] + TaskSequence([self.b])
         self.assertIsInstance(out, TaskSequence)
-        self.assertEqual([self.a, self.b], out.tasks)
+        self.assertEqual([self.a, self.b], list(out))
 
     def test_add_defers_non_task_rejection(self):
         """Test that a non-task concatenates in and is rejected when it is appended."""
         task_sequence = TaskSequence([self.a]) + ["nope"]
-        self.assertEqual([self.a, "nope"], task_sequence.tasks)
+        self.assertEqual([self.a, "nope"], list(task_sequence))
         with self.assertRaisesRegex(TypeError, "expected a Pass, TaskSequence or TaskStages"):
             _ = LoweringPassManager([task_sequence])
 
@@ -940,28 +940,28 @@ class TestTaskSequenceProtocol(QiskitTestCase):
     def test_add_task_stages_takes_names(self):
         """Test that concatenating task stages takes their names, since they iterate names."""
         stages = TaskStages([("init", self.b)])
-        self.assertEqual([self.a, "init"], (TaskSequence([self.a]) + stages).tasks)
+        self.assertEqual([self.a, "init"], list(TaskSequence([self.a]) + stages))
 
         # their tasks concatenate, and they nest as a single task
-        self.assertEqual([self.a, self.b], (TaskSequence([self.a]) + stages.values()).tasks)
-        self.assertEqual([self.a, stages], TaskSequence([self.a, stages]).tasks)
+        self.assertEqual([self.a, self.b], list(TaskSequence([self.a]) + stages.values()))
+        self.assertEqual([self.a, stages], list(TaskSequence([self.a, stages])))
 
     def test_iadd_accepts_any_iterable(self):
         """Test that in-place concatenation extends from any iterable of tasks."""
         task_sequence = TaskSequence([self.a])
         task_sequence += [self.b]
         task_sequence += TaskSequence([self.c])
-        self.assertEqual([self.a, self.b, self.c], task_sequence.tasks)
+        self.assertEqual([self.a, self.b, self.c], list(task_sequence))
 
     def test_extend(self):
         """Test extending a task sequence from an iterable."""
         task_sequence = TaskSequence([self.a])
         task_sequence.extend([self.b, self.c])
-        self.assertEqual([self.a, self.b, self.c], task_sequence.tasks)
+        self.assertEqual([self.a, self.b, self.c], list(task_sequence))
 
     def test_copy_construct(self):
         """Test that a task sequence can be built from another task sequence."""
-        self.assertEqual(self.task_sequence.tasks, TaskSequence(self.task_sequence).tasks)
+        self.assertEqual(self.task_sequence, TaskSequence(self.task_sequence))
 
     def test_is_mutable_sequence(self):
         """Test that a task sequence registers as a mutable sequence."""
@@ -969,20 +969,21 @@ class TestTaskSequenceProtocol(QiskitTestCase):
 
     def test_insert(self):
         """Test inserting a task before a position."""
-        self.task_sequence.insert(1, CountGates())
-        self.assertEqual([self.a, self.task_sequence[1], self.b, self.c], self.task_sequence.tasks)
+        inserted = CountGates()
+        self.task_sequence.insert(1, inserted)
+        self.assertEqual([self.a, inserted, self.b, self.c], list(self.task_sequence))
 
     def test_delitem_and_remove(self):
         """Test deleting a task by position and by value."""
         del self.task_sequence[0]
-        self.assertEqual([self.b, self.c], self.task_sequence.tasks)
+        self.assertEqual([self.b, self.c], list(self.task_sequence))
         self.task_sequence.remove(self.c)
-        self.assertEqual([self.b], self.task_sequence.tasks)
+        self.assertEqual([self.b], list(self.task_sequence))
 
     def test_setitem(self):
         """Test replacing a task by position."""
         self.task_sequence[0] = self.b
-        self.assertEqual([self.b, self.b, self.c], self.task_sequence.tasks)
+        self.assertEqual([self.b, self.b, self.c], list(self.task_sequence))
 
     def test_eq(self):
         """Test that task sequences compare by their tasks."""
@@ -1323,7 +1324,7 @@ class TestToTaskSequence(QiskitTestCase):
         tasks = [CircuitToDag(), RemoveIdentities(), DagToCircuit()]
         pm = LoweringPassManager(tasks)
         task_sequence = pm.to_task_sequence()
-        self.assertEqual(task_sequence.tasks, tasks)
+        self.assertEqual(tasks, list(task_sequence))
 
         circuit = QuantumCircuit(2)
         circuit.cx(0, 1)
@@ -1337,7 +1338,7 @@ class TestToTaskSequence(QiskitTestCase):
 
         # the pass manager holds the empty placeholder it lowered, not the edited one
         read_back = pm.to_task_sequence()
-        self.assertEqual([], read_back[1].tasks)
+        self.assertEqual([], list(read_back[1]))
         self.assertIsNot(placeholder, read_back[1])
         self.assertEqual(
             "TaskSequence([CircuitToDag(), TaskSequence([]), DagToCircuit()])", repr(read_back)

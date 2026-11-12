@@ -276,7 +276,7 @@ fn task_from_py_inner(ob: &Bound<PyAny>, depth: usize) -> PyResult<Task> {
     }
     if ob.is_instance(TASK_SEQUENCE.get_bound(py))? {
         let tasks = ob
-            .getattr(intern!(py, "tasks"))?
+            .getattr(intern!(py, "_tasks"))?
             .try_iter()?
             .map(|task| task_from_py_inner(&task?, depth + 1))
             .collect::<PyResult<Vec<_>>>()?;
@@ -284,7 +284,7 @@ fn task_from_py_inner(ob: &Bound<PyAny>, depth: usize) -> PyResult<Task> {
     }
     if ob.is_instance(TASK_STAGES.get_bound(py))? {
         let stages = ob
-            .getattr(intern!(py, "stages"))?
+            .getattr(intern!(py, "_stages"))?
             .cast_into::<PyDict>()?
             .iter()
             .map(|(name, task)| {
