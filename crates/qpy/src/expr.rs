@@ -229,8 +229,8 @@ pub(crate) fn write_expression<W: Write + Seek>(
                     writer,
                     QpyError::UnsupportedFeatureForVersion {
                         feature: "classical expr.Range".to_string(),
-                        version: 18,
-                        min_version: qpy_data.version,
+                        version: qpy_data.version,
+                        min_version: 18,
                     },
                 ));
             }
@@ -250,10 +250,19 @@ pub(crate) fn write_expression<W: Write + Seek>(
 pub(crate) fn read_expression<R: Read + Seek>(
     reader: &mut R,
     endian: Endian,
-    (qpy_data,): (&QPYReadData,),
+    (qpy_data,): (&mut QPYReadData,),
 ) -> BinResult<Expr> {
+    qpy_data.remaining_depth =
+        qpy_data
+            .remaining_depth
+            .checked_sub(1)
+            .ok_or_else(|| Error::Custom {
+                pos: reader.stream_position().unwrap_or(0),
+                err: Box::new(QpyError::RecursionError),
+            })?;
+
     let exp_element = ExpressionElementPack::read_options(reader, endian, ())?;
-    match exp_element {
+    let result = match exp_element {
         ExpressionElementPack::Value(value_type_pack, value_element_pack) => Ok(Expr::Value(
             unpack_expression_value(value_type_pack, value_element_pack),
         )),
@@ -313,7 +322,7 @@ pub(crate) fn read_expression<R: Read + Seek>(
             let operand = read_expression(reader, endian, (qpy_data,))?;
             let constant = operand.is_const();
             Ok(Expr::Unary(Box::new(Unary {
-                op: UnaryOp::from_u8(op).map_err(|_| Error::NoVariantMatch { pos: (0) })?,
+                op: UnaryOp::try_from_u8(op).map_err(|_| Error::NoVariantMatch { pos: (0) })?,
                 operand,
                 ty: unpack_expression_type(unary_type_pack),
                 constant,
@@ -324,7 +333,7 @@ pub(crate) fn read_expression<R: Read + Seek>(
             let right = read_expression(reader, endian, (qpy_data,))?;
             let constant = left.is_const() && right.is_const();
             Ok(Expr::Binary(Box::new(Binary {
-                op: BinaryOp::from_u8(op).map_err(|_| Error::NoVariantMatch { pos: (0) })?,
+                op: BinaryOp::try_from_u8(op).map_err(|_| Error::NoVariantMatch { pos: (0) })?,
                 left,
                 right,
                 ty: unpack_expression_type(binary_type_pack),
@@ -337,8 +346,8 @@ pub(crate) fn read_expression<R: Read + Seek>(
                     reader,
                     QpyError::UnsupportedFeatureForVersion {
                         feature: "classical expr.Range".to_string(),
-                        version: 18,
-                        min_version: qpy_data.version,
+                        version: qpy_data.version,
+                        min_version: 18,
                     },
                 ));
             }
@@ -354,5 +363,7 @@ pub(crate) fn read_expression<R: Read + Seek>(
                 constant,
             })))
         }
-    }
+    };
+    qpy_data.remaining_depth += 1;
+    result
 }

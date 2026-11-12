@@ -10,13 +10,21 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(any(feature = "py", test))]
 use crate::classical::expr::cast::Cast;
-use crate::classical::expr::{Expr, ExprKind, PyExpr, Value};
+use crate::classical::expr::{Expr, Value};
+#[cfg(feature = "py")]
+use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
+#[cfg(any(feature = "py", test))]
 use num_bigint::BigUint;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::{PyAny, PyTuple};
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
+#[cfg(feature = "py")]
 use std::boxed::Box;
 
 /// A range expression that represents a sequence of values.
@@ -37,6 +45,7 @@ pub struct Range {
 // is an equivalence relation (reflexive, symmetric, transitive).
 impl Eq for Range {}
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Range {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -47,6 +56,7 @@ impl<'py> IntoPyObject<'py> for Range {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for &'_ Range {
     type Target = <Range as IntoPyObject<'py>>::Target;
     type Output = <Range as IntoPyObject<'py>>::Output;
@@ -57,6 +67,7 @@ impl<'py> IntoPyObject<'py> for &'_ Range {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Range {
     type Error = <PyRangeExpr as FromPyObject<'a, 'py>>::Error;
 
@@ -151,6 +162,7 @@ impl Range {
 }
 
 /// Helper function to convert Python values to Expr::Value
+#[cfg(feature = "py")]
 fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
     if let Ok(raw) = value.extract::<i64>() {
         if raw < 0 {
@@ -180,6 +192,7 @@ fn py_value_to_expr(_py: Python, value: &Bound<PyAny>) -> PyResult<Expr> {
 }
 
 /// Helper function to determine the common type with maximum bit width
+#[cfg(feature = "py")]
 fn determine_common_max_type(types: &[Type]) -> Type {
     let mut max_type = types[0];
 
@@ -207,6 +220,7 @@ fn determine_common_max_type(types: &[Type]) -> Type {
 ///     stop: The inclusive stop value of the range.
 ///     step: Optional step value for the range. Defaults to 1.
 ///     type: The resolved type of the result.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     from_py_object,
@@ -219,6 +233,7 @@ fn determine_common_max_type(types: &[Type]) -> Type {
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct PyRangeExpr(pub Range);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyRangeExpr {
     #[new]

@@ -410,10 +410,7 @@ pub(crate) fn py_convert_to_generic_value(
         ValueType::Tuple => {
             let elements: Vec<GenericValue> = py_object
                 .try_iter()?
-                .map(|data_item| {
-                    // let data_item = possible_data_item?;
-                    py_convert_to_generic_value(&data_item?)
-                })
+                .map(|data_item| py_convert_to_generic_value(&data_item?))
                 .collect::<Result<_, QpyError>>()?;
             Ok(GenericValue::Tuple(elements))
         }
@@ -451,7 +448,12 @@ pub(crate) fn py_convert_to_generic_value(
 pub(crate) fn py_convert_from_generic_value(
     py: Python,
     value: &GenericValue,
+    remaining_depth: usize,
 ) -> Result<Py<PyAny>, QpyError> {
+    let remaining_depth = remaining_depth
+        .checked_sub(1)
+        .ok_or_else(|| QpyError::RecursionError)?;
+
     match value {
         GenericValue::Bool(value) => Ok(value.into_py_any(py)?),
         GenericValue::Int64(value) => Ok(value.into_py_any(py)?),
@@ -475,7 +477,7 @@ pub(crate) fn py_convert_from_generic_value(
         GenericValue::Tuple(values) => {
             let elements: Vec<Py<PyAny>> = values
                 .iter()
-                .map(|v| py_convert_from_generic_value(py, v))
+                .map(|v| py_convert_from_generic_value(py, v, remaining_depth))
                 .collect::<Result<_, QpyError>>()?;
             Ok(PyTuple::new(py, &elements)?.into_py_any(py)?)
         }
@@ -584,12 +586,12 @@ fn deserialize_metadata(
 
 // This function finalizes the creation of QuantumCircuit from CircuitData by performing the Python-only
 // required operations: handling layouts and metadata, and creating the Python QuantumCircuit object.
-pub(crate) fn py_circuit_data_to_quantum_circuit(
-    py: Python,
+pub(crate) fn py_circuit_data_to_quantum_circuit<'py>(
+    py: Python<'py>,
     circuit_data: CircuitData,
     packed_circuit: &formats::QPYCircuit,
     metadata_deserializer: Option<&Py<PyAny>>,
-) -> Result<Py<PyAny>, QpyError> {
+) -> Result<Bound<'py, PyAny>, QpyError> {
     let py_circuit_data: PyCircuitData = circuit_data.into();
     let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &py_circuit_data)?;
     let metadata =
@@ -602,7 +604,7 @@ pub(crate) fn py_circuit_data_to_quantum_circuit(
     if let Some(layout) = unpacked_layout {
         circuit.setattr("_layout", layout)?;
     }
-    Ok(circuit.unbind().as_any().clone())
+    Ok(circuit)
 }
 
 // This method handles all the non-standard, non-custom gates which have no rust-space implementation

@@ -15,8 +15,11 @@ use std::error::Error;
 use crate::classical::expr::{Binary, Cast, Index, Range, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use hashbrown::HashMap;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyDict;
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
 
 /// A classical expression.
@@ -500,6 +503,7 @@ impl From<Box<Range>> for Expr {
 ///
 /// All subclasses are responsible for setting their ``type`` attribute in their ``__init__``, and
 /// should not call the parent initializer.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     hash,
@@ -511,6 +515,7 @@ impl From<Box<Range>> for Expr {
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 pub struct PyExpr(pub ExprKind); // ExprKind is used for fast extraction from Python
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyExpr {
     /// Call the relevant ``visit_*`` method on the given :class:`ExprVisitor`.  The usual entry
@@ -561,6 +566,7 @@ impl PyExpr {
 
 /// The expression's kind, used internally during Python instance extraction to avoid
 /// `isinstance` checks.
+#[cfg(feature = "py")]
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ExprKind {
@@ -574,6 +580,7 @@ pub enum ExprKind {
     Range,
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Expr {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -593,6 +600,7 @@ impl<'py> IntoPyObject<'py> for Expr {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
     type Error = PyErr;
 
@@ -613,6 +621,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::Infallible;
+
     use crate::bit::{ClassicalRegister, ShareableClbit};
     use crate::classical::expr::{
         Binary, BinaryOp, Cast, Expr, ExprRef, ExprRefMut, IdentifierRef, Index, Stretch, Unary,
@@ -622,7 +632,6 @@ mod tests {
     use crate::duration::Duration;
     use hashbrown::HashMap;
     use num_bigint::BigUint;
-    use pyo3::{PyErr, PyResult};
     use uuid::Uuid;
 
     #[test]
@@ -815,7 +824,7 @@ mod tests {
     }
 
     #[test]
-    fn test_visit_mut_ordering() -> PyResult<()> {
+    fn test_visit_mut_ordering() {
         let mut expr: Expr = Binary {
             op: BinaryOp::Mul,
             left: Binary {
@@ -891,15 +900,15 @@ mod tests {
 
         expr.visit_mut(|x| {
             assert!(order.next().unwrap()(&x));
-            Ok::<_, PyErr>(())
-        })?;
+            Ok::<_, Infallible>(())
+        })
+        .unwrap();
 
         assert!(order.next().is_none());
-        Ok(())
     }
 
     #[test]
-    fn test_visit_mut() -> PyResult<()> {
+    fn test_visit_mut() {
         let mut expr: Expr = Binary {
             op: BinaryOp::BitAnd,
             left: Unary {
@@ -927,20 +936,20 @@ mod tests {
         expr.visit_mut(|x| match x {
             ExprRefMut::Var(Var::Standalone { name, .. }) => {
                 *name = "updated".to_string();
-                Ok::<_, PyErr>(())
+                Ok::<_, Infallible>(())
             }
             _ => Ok(()),
-        })?;
+        })
+        .unwrap();
 
         let Var::Standalone { name, .. } = expr.vars().next().unwrap() else {
             panic!("wrong var type")
         };
         assert_eq!(name.as_str(), "updated");
-        Ok(())
     }
 
     #[test]
-    fn test_structurally_eq_to_self() -> PyResult<()> {
+    fn test_structurally_eq_to_self() {
         let exprs = [
             Expr::Var(Var::Bit {
                 bit: ShareableClbit::new_anonymous(),
@@ -1081,8 +1090,6 @@ mod tests {
         for expr in exprs.iter() {
             assert!(expr.structurally_equivalent(expr));
         }
-
-        Ok(())
     }
 
     #[test]
@@ -1169,7 +1176,7 @@ mod tests {
     }
 
     #[test]
-    fn test_structurally_eq_key_function_both() -> PyResult<()> {
+    fn test_structurally_eq_key_function_both() {
         let left_clbit = ShareableClbit::new_anonymous();
         let left_cr = ClassicalRegister::new_owning("a", 3);
         let right_clbit = ShareableClbit::new_anonymous();
@@ -1267,7 +1274,5 @@ mod tests {
             left.structurally_equivalent_by_key(key_func, &right, key_func),
             "Expressions that only care that their vars are of the same kind should be equivalent"
         );
-
-        Ok(())
     }
 }
