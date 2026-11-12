@@ -3372,20 +3372,24 @@ c2: 3/════════════════════════�
             )
             .unwrap();
 
-        let vis_matrix = VisualizationMatrix::from_circuit(&circuit, false, true, true);
-        assert_eq!(vis_matrix.qubit_map, vec![Some(2), Some(1), Some(0)]);
-        assert_eq!(vis_matrix.clbit_map, vec![Some(4), Some(3)]);
-
         let result = draw_circuit(&circuit, false, false, Some(80), 0, true, true);
-        let wire_labels: Vec<&str> = result
-            .lines()
-            .filter_map(|line| {
-                let (label, _) = line.split_once(':')?;
-                let label = label.trim();
-                (label.starts_with('q') || label.starts_with('c')).then_some(label)
-            })
-            .collect();
-        assert_eq!(wire_labels, vec!["q_2", "q_1", "q_0", "c_1", "c_0"]);
+        let expected = "
+          ┌─┴─┐┌─┐
+q_2: ─────┤ X ├┤M├
+          └───┘└╥┘
+            │
+q_1: ───────┼─────
+            │
+     ┌───┐  │
+q_0: ┤ H ├──■─────
+     └───┘
+
+c_1: ═════════════
+
+                ║
+c_0: ═══════════╩═
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
     #[test]
@@ -3410,12 +3414,18 @@ c2: 3/════════════════════════�
             )
             .unwrap();
 
-        let vis_matrix = VisualizationMatrix::from_circuit(&circuit, false, false, true);
-        assert_eq!(
-            vis_matrix.qubit_map,
-            vec![None, Some(1), None, Some(0), None]
-        );
-        assert_eq!(vis_matrix.clbit_map, vec![None, Some(2), None]);
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, false, true);
+        let expected = "
+      ┌─┐
+q_3: ─┤M├─
+      └╥┘
+     ┌───┐
+q_1: ┤ H ├
+     └───┘
+       ║
+c_1: ══╩══
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
     #[test]
@@ -3430,12 +3440,33 @@ c2: 3/════════════════════════�
         _ = circuit.add_creg(creg_0, true);
         _ = circuit.add_creg(creg_1, true);
 
-        let vis_matrix = VisualizationMatrix::from_circuit(&circuit, true, true, true);
-        assert_eq!(vis_matrix.qubit_map, vec![Some(0)]);
-        assert_eq!(
-            vis_matrix.clbit_map,
-            vec![Some(2), Some(2), Some(1), Some(1)]
-        );
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
+            .unwrap();
+        for clbit in [Clbit(0), Clbit(2)] {
+            circuit
+                .push_packed_operation(
+                    PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+                    None,
+                    &[Qubit(0)],
+                    &[clbit],
+                )
+                .unwrap();
+        }
+
+        let result = draw_circuit(&circuit, true, false, Some(80), 0, true, true);
+        let expected = "
+      ┌───┐┌─┐┌─┐
+   q: ┤ H ├┤M├┤M├
+      └───┘└╥┘└╥┘
+               ║
+c1: 2/═════════╩═
+               0
+            ║  ║
+c0: 2/══════╩══╬═
+            0  ║
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
     #[test]
