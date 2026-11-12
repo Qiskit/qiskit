@@ -381,7 +381,7 @@ pub unsafe extern "C" fn qk_dag_qubit_out_node(dag: *const DAGCircuit, qubit: u3
     let i = qubit as usize;
     dag.qubit_io_map()
         .get(i)
-        .map(|io| io[0].index())
+        .map(|io| io[1].index())
         .unwrap_or_default() as u32
 }
 
@@ -427,7 +427,7 @@ pub unsafe extern "C" fn qk_dag_clbit_out_node(dag: *const DAGCircuit, clbit: u3
     let i = clbit as usize;
     dag.clbit_io_map()
         .get(i)
-        .map(|io| io[0].index())
+        .map(|io| io[1].index())
         .unwrap_or_default() as u32
 }
 
