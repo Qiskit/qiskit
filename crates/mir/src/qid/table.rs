@@ -13,7 +13,7 @@
 use std::ops;
 
 use hashbrown::HashSet;
-use rustworkx_core::petgraph::{acyclic::Acyclic, data::Build, prelude::*, visit};
+use rustworkx_core::petgraph::{algo::has_path_connecting, prelude::*, visit};
 
 use super::*;
 use qiskit_util::IndexMap;
@@ -92,7 +92,7 @@ pub struct ResourceTable {
     /// from the "bigger" qid to the smaller one.
     ///
     /// The graph is indexed by the table's [`Qid::value`]s.
-    qids: Acyclic<Graph<QidInfo, ()>>,
+    qids: Graph<QidInfo, ()>,
 }
 impl ResourceTable {
     /// Initialize a new resource table with no capacity.
@@ -107,8 +107,7 @@ impl ResourceTable {
     pub fn with_capacity(space: QidSpace, qids: usize, subrelations: usize) -> Self {
         Self {
             space,
-            qids: Acyclic::try_from_graph(Graph::with_capacity(qids, subrelations))
-                .expect("empty graphs cannot have cycles"),
+            qids: Graph::with_capacity(qids, subrelations),
         }
     }
 
@@ -200,9 +199,9 @@ impl ResourceTable {
         };
         let idx = self.qids.add_node(info);
         for contained in contains {
-            self.qids
-                .try_add_edge(idx, contained, ())
-                .expect("adding an edge to a leaf not should not cause a cycle");
+            // idx was just created, so it has no incoming edges. Therefore it cannot be part of a
+            // cycle. No check is needed here.
+            self.qids.add_edge(idx, contained, ());
         }
         Ok(qid)
     }
@@ -217,9 +216,12 @@ impl ResourceTable {
         let small_idx = self
             .index_from_qid(smaller)
             .ok_or(ContainsError::AbsentQid(smaller))?;
-        self.qids
-            .try_update_edge(big_idx, small_idx, ())
-            .map_err(|_| ContainsError::Cycle)?;
+        // Adding the edge big_index -> small_idx would create a cycle if there is a path
+        // from small_idx to big_idx.
+        if has_path_connecting(&self.qids, small_idx, big_idx, None) {
+            return Err(ContainsError::Cycle);
+        }
+        self.qids.update_edge(big_idx, small_idx, ());
         Ok(())
     }
 
@@ -289,11 +291,6 @@ impl ops::Index<Qid> for ResourceTable {
             .expect("caller enforces qid should be present")]
     }
 }
-
-// TEMPORARY: ResourceTable is not actually thread-safe — Acyclic's is not
-// thread safe. This is here ONLY to enable using  MIR as passmanager IR.
-// Tracked for removal: https://github.com/Qiskit/qiskit/issues/17397
-unsafe impl Sync for ResourceTable {}
 
 #[cfg(test)]
 mod tests {
