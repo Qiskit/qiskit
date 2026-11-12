@@ -1029,6 +1029,28 @@ class TestTaskStagesMapping(QiskitTestCase):
         self.assertIsInstance(sliced, TaskStages)
         self.assertEqual([("layout", self.b), ("opt", self.c)], list(sliced.items()))
 
+    def test_slice_by_name(self):
+        """Test that a slice bound may be a name, standing for that stage's position."""
+        self.assertEqual(["init", "layout"], list(self.stages[:"opt"]))
+        self.assertEqual(["layout", "opt"], list(self.stages["layout":]))
+        self.assertEqual(["init", "layout"], list(self.stages[0:"opt"]))
+        self.assertEqual(["init", "layout"], list(self.stages["init":-1]))
+
+        # a name bound slices exactly as the position of that stage does
+        self.assertEqual(list(self.stages[:2]), list(self.stages[:"opt"]))
+        with self.assertRaisesRegex(KeyError, "no stage named 'nope'"):
+            _ = self.stages[:"nope"]
+
+    def test_slice_by_name_with_step(self):
+        """Test that a strided slice honours a name bound."""
+        self.assertEqual(["init", "opt"], list(self.stages["init"::2]))
+        self.assertEqual(["opt", "layout", "init"], list(self.stages["opt"::-1]))
+
+    def test_slice_clamps_out_of_range_positions(self):
+        """Test that out-of-range slice bounds clamp rather than raising."""
+        self.assertEqual(["init", "layout", "opt"], list(self.stages[0:99]))
+        self.assertEqual(["init", "layout", "opt"], list(self.stages[-99:]))
+
     def test_index_with_list_of_positions(self):
         """Test that a list of positions returns those stages in that order."""
         picked = self.stages[[2, 0]]
@@ -1091,9 +1113,46 @@ class TestTaskStagesMapping(QiskitTestCase):
         """Test that task stages register as a mutable mapping."""
         self.assertIsInstance(self.stages, MutableMapping)
 
+    def test_setitem(self):
+        """Test replacing a stage's task by name or position."""
+        new = CountGates()
+        for pos in ("layout", 1, -2):
+            stages = TaskStages(self.stages)
+            stages[pos] = new
+            expected = [("init", self.a), ("layout", new), ("opt", self.c)]
+            self.assertEqual(expected, list(stages.items()))
+
+        with self.assertRaisesRegex(IndexError, "out of range"):
+            self.stages[3] = new
+        with self.assertRaisesRegex(IndexError, "out of range"):
+            self.stages[-4] = new
+        expected = [("init", self.a), ("layout", self.b), ("opt", self.c)]
+        self.assertEqual(expected, list(self.stages.items()))
+
+    def test_setitem_appends_a_new_name(self):
+        """Test that assigning to an absent name appends it as a new stage."""
+        self.stages["new"] = self.a
+        self.assertEqual(["init", "layout", "opt", "new"], list(self.stages))
+        self.assertIs(self.a, self.stages["new"])
+
     def test_delitem(self):
-        """Test deleting a stage by name."""
-        del self.stages["layout"]
+        """Test deleting a stage by name or position."""
+        for index in ("layout", 1, -2):
+            stages = TaskStages(self.stages)
+            del stages[index]
+            self.assertEqual([("init", self.a), ("opt", self.c)], list(stages.items()))
+
+        with self.assertRaisesRegex(KeyError, "no stage named 'nope'"):
+            del self.stages["nope"]
+        with self.assertRaisesRegex(IndexError, "out of range"):
+            del self.stages[3]
+        with self.assertRaisesRegex(IndexError, "out of range"):
+            del self.stages[-4]
+        self.assertEqual(["init", "layout", "opt"], list(self.stages))
+
+    def test_pop_by_position(self):
+        """Test that the inherited `pop` reaches a stage by position."""
+        self.assertIs(self.b, self.stages.pop(1))
         self.assertEqual(["init", "opt"], list(self.stages))
 
     def test_duplicate_name_raises(self):
