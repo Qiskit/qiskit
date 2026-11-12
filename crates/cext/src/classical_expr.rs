@@ -1084,7 +1084,7 @@ impl CBigUint {
     /// # Safety
     ///
     /// The buffer must be valid for the lifetime of the returned slice.
-    pub(crate) unsafe fn to_biguint(&self) -> BigUint {
+    unsafe fn to_biguint(&self) -> BigUint {
         // SAFETY: Guaranteed by the caller.
         Self::biguint_from_u64_slice(unsafe { self.as_slice() })
     }
@@ -1093,7 +1093,7 @@ impl CBigUint {
     ///
     /// Note: this really belongs on `BigUint` and not here. I expect eventually
     /// they will add a function that can be used instead of this one.
-    pub(crate) fn biguint_from_u64_slice(u64_slice: &[u64]) -> BigUint {
+    fn biguint_from_u64_slice(u64_slice: &[u64]) -> BigUint {
         BigUint::new(
             u64_slice
                 .iter()
@@ -1103,7 +1103,11 @@ impl CBigUint {
     }
 
     /// Free the limb buffer allocation.
-    pub(crate) unsafe fn free(self) {
+    ///
+    /// # Safety
+    ///
+    /// The buffer must be valid for freeing.
+    unsafe fn free(self) {
         let slice = ptr::slice_from_raw_parts_mut(self.limbs, self.num_limbs);
         // SAFETY: Caller must pass a valid allocation.
         drop(unsafe { Box::from_raw(slice) });
@@ -1114,7 +1118,7 @@ impl CBigUint {
     /// # Safety
     ///
     /// The buffer must be valid for the lifetime of the returned slice.
-    pub(crate) unsafe fn as_slice(&self) -> &[u64] {
+    unsafe fn as_slice(&self) -> &[u64] {
         if self.num_limbs == 0 {
             return &[];
         }
