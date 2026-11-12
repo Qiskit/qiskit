@@ -30,10 +30,12 @@ use crate::formats::{
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import (version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub struct CircuitHeaderV19Pack {
     // global circuit data
-    #[brw(args(version))]
+    #[bw(args(version))]
+    #[br(args(version, max_depth))]
     pub global_phase: GlobalPhasePack,
     pub num_qubits: u32,
     pub num_clbits: u32,
@@ -68,7 +70,8 @@ pub struct CircuitHeaderV19Pack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub struct CircuitInstructionV19Pack {
     pub operation: CircuitOperationType,
     // Interner index
@@ -76,7 +79,7 @@ pub struct CircuitInstructionV19Pack {
     // Interner index
     pub cargs: u32,
 
-    #[br(args(operation, version))]
+    #[br(args(operation, version, max_depth))]
     #[bw(args(version))]
     pub operation_data: OperationData,
 
@@ -84,7 +87,7 @@ pub struct CircuitInstructionV19Pack {
     // or dynamic in the body)
     #[bw(calc = params.len() as u16)]
     pub num_parameters: u16,
-    #[br(count = num_parameters as usize, args { inner: (version,) })]
+    #[br(count = num_parameters as usize, args { inner: (version, max_depth) })]
     #[bw(args(version))]
     pub params: Vec<ParamDataPack>,
 
@@ -135,7 +138,7 @@ pub enum CircuitOperationType {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import(op_type: CircuitOperationType, version: u8))]
+#[br(import(op_type: CircuitOperationType, version: u8, max_depth: usize))]
 #[bw(import(version: u8))]
 pub enum OperationData {
     // The value of the gate from qiskit_circuit::standard_gate::StandardGate
@@ -149,13 +152,21 @@ pub enum OperationData {
     Custom(u64),
     // Store gate class name like is done now for Python defined operations in Qiskit
     #[br(pre_assert(op_type == CircuitOperationType::FromPython))]
-    FromPython(#[brw(args(version))] FromPythonPack),
+    FromPython(
+        #[bw(args(version))]
+        #[br(args(version, max_depth))]
+        FromPythonPack,
+    ),
     // Store the raw npy bytes of the underlying array
     #[br(pre_assert(op_type == CircuitOperationType::UnitaryGate))]
     UnitaryGate(Complex64MatrixPack),
     // Store the base gate and then the extra control metadata
     #[br(pre_assert(op_type == CircuitOperationType::Controlled))]
-    Controlled(#[brw(args(version))] ControlledGatePack),
+    Controlled(
+        #[bw(args(version))]
+        #[br(args(version, max_depth))]
+        ControlledGatePack,
+    ),
     // Store the circuit bodies and the condition explicitly in the pack
     #[br(pre_assert(op_type == CircuitOperationType::ControlFlow))]
     ControlFlow(ControlFlowPack),
@@ -261,7 +272,8 @@ impl From<DelayUnitPack> for DelayUnit {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub enum ParamDataPack {
     #[brw(magic = b'b')]
     Bool(u8), // TODO: make this an actual boolean
@@ -304,7 +316,7 @@ pub enum ParamDataPack {
     Tuple {
         #[bw(calc = elements.len() as u64)]
         num_elements: u64,
-        #[br(count = num_elements, args { inner: (version,) })]
+        #[br(count = num_elements, args { inner: (version, max_depth) })]
         #[bw(args(version))]
         elements: Vec<ParamDataPack>,
     },
@@ -316,7 +328,11 @@ pub enum ParamDataPack {
     ParameterVectorElement(#[brw(args(version))] ParameterVectorElementPack),
 
     #[brw(magic = b'e')]
-    ParameterExpression(#[brw(args(version))] ParameterExpressionPack),
+    ParameterExpression(
+        #[bw(args(version))]
+        #[br(args(version, 0, max_depth))]
+        ParameterExpressionPack,
+    ),
 
     #[brw(magic = b's')]
     String(StringU16Pack),
@@ -337,7 +353,11 @@ pub enum ParamDataPack {
     Register(ParamDataRegisterPack),
 
     #[brw(magic = b'q')]
-    Circuit(#[brw(args(version))] Box<QPYCircuit>),
+    Circuit(
+        #[bw(args(version))]
+        #[br(args(version, max_depth))]
+        Box<QPYCircuit>,
+    ),
 }
 
 /// A register-valued instruction parameter in QPY 19 and newer.
@@ -359,13 +379,14 @@ pub enum ParamDataRegisterPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub struct FromPythonPack {
     pub class_name: StringU16Pack,
     pub op_name: StringU16Pack,
     #[bw(calc = init_params.len() as u16)]
     pub num_init_params: u16,
-    #[br(count = num_init_params, args { inner: (version,) })]
+    #[br(count = num_init_params, args { inner: (version, max_depth) })]
     #[bw(args(version))]
     pub init_params: Vec<NamedParamDataPack>,
 }
@@ -373,19 +394,23 @@ pub struct FromPythonPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub struct NamedParamDataPack {
     pub name: StringU16Pack,
-    #[brw(args(version))]
+    #[bw(args(version))]
+    #[br(args(version, max_depth))]
     pub value: ParamDataPack,
 }
 
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub struct ControlledGatePack {
-    #[brw(args(version))]
+    #[bw(args(version))]
+    #[br(args(version, max_depth))]
     pub from_python: FromPythonPack,
     pub num_ctrl_qubits: u32,
     pub ctrl_state: u32,
@@ -541,7 +566,8 @@ pub enum InternerEntry {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u8))]
+#[bw(import(version: u8))]
+#[br(import(version: u8, max_depth: usize))]
 pub enum GlobalPhasePack {
     #[brw(magic = b'f')]
     Float(f64),
@@ -553,7 +579,11 @@ pub enum GlobalPhasePack {
     ParameterVectorElement(#[brw(args(version))] ParameterVectorElementPack),
 
     #[brw(magic = b'e')]
-    ParameterExpression(#[brw(args(version))] ParameterExpressionPack),
+    ParameterExpression(
+        #[bw(args(version))]
+        #[br(args(version, 0, max_depth))]
+        ParameterExpressionPack,
+    ),
 }
 
 /// QPY 19 operation payload for a Pauli-evolution gate.  Unlike the legacy custom-operation
