@@ -19,7 +19,7 @@ from qiskit.passmanager import LoweringPassManager
 from qiskit.transpiler import generate_preset_pbc_pass_manager
 from qiskit.transpiler.passes import LitinskiTransformation
 from test import QiskitTestCase
-from test.python.mir.pass_adaptor import CircuitToDag, LegacyDagPass
+from test.python.pass_adaptor import CircuitToDag, LegacyDagPass
 
 
 def make_bell_circuit():

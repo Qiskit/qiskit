@@ -19,32 +19,29 @@ from qiskit._accelerate import mir, mir_passes
 from qiskit.passmanager import LoweringPassManager
 from qiskit.transpiler import generate_preset_pbc_pass_manager
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import SparseObservable
+from qiskit.synthesis import LieTrotter
 from test import QiskitTestCase, combine
-from test.python.mir.pass_adaptor import CircuitToDag, LegacyDagPass
+from test.python.pass_adaptor import CircuitToDag, LegacyDagPass
 
 EDGES = [(0, 1), (0, 2), (1, 3), (2, 3)]
 NODES = 1 + max(max(e) for e in EDGES)
 
 
-def make_ising_circuit(steps=1, h=0.5):
+def make_ising_circuit(steps=1, h=0.5, J=1.0):
     """Build a Trotterized transverse-field Ising circuit on a 2x2 grid of qubits."""
-    J = 1.0  # Ising coupling
     dt = 0.1  # Trotter step size
     qubits = [Qubit() for _ in range(NODES)]
     clbits = [Clbit() for _ in range(NODES)]
+    hamiltonian = SparseObservable.from_sparse_list(
+        [("ZZ", edge, J) for edge in EDGES] + [("X", (i,), h) for i in range(NODES)],
+        num_qubits=NODES,
+    )
+    synthesis = LieTrotter(reps=steps)
+    gate = PauliEvolutionGate(hamiltonian, time=dt * steps, synthesis=synthesis)
+
     qc = QuantumCircuit(qubits, clbits)
-    for _ in range(steps):
-        # ZZ couplings
-        for i, j in EDGES:
-            pauli = Pauli("ZZ")
-            gate = PauliEvolutionGate(pauli, time=-J * dt)
-            qc.append(gate, [qubits[i], qubits[j]])
-        # transverse X fields
-        for i in range(NODES):
-            pauli = Pauli("X")
-            gate = PauliEvolutionGate(pauli, time=-h * dt)
-            qc.append(gate, [qubits[i]])
+    qc.append(gate, qc.qubits)
     for i in range(NODES):
         qc.measure(qubits[i], clbits[i])
     return qc
