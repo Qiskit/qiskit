@@ -162,14 +162,10 @@ class TaskSequence(LoweringTask, MutableSequence):
         Args:
             tasks: the initial tasks.
         """
-        self.tasks: list[LoweringTask] = list(tasks)
-        """The tasks, in execution order.
-        
-        This list can be safely mutated in-place.
-        """
+        self._tasks: list[LoweringTask] = list(tasks)
 
     def __len__(self) -> int:
-        return len(self.tasks)
+        return len(self._tasks)
 
     @typing.overload
     def __getitem__(self, index: int) -> LoweringTask: ...
@@ -183,35 +179,35 @@ class TaskSequence(LoweringTask, MutableSequence):
     def __getitem__(self, index):
         """Get the task at a position, or a new :class:`~.TaskSequence` of the tasks in a slice."""
         if isinstance(index, slice):
-            return type(self)(self.tasks[index])
+            return type(self)(self._tasks[index])
         if isinstance(index, list):
-            return type(self)(self.tasks[idx] for idx in index)
-        return self.tasks[index]
+            return type(self)(self._tasks[idx] for idx in index)
+        return self._tasks[index]
 
     def __setitem__(self, index, task):
-        self.tasks[index] = task
+        self._tasks[index] = task
 
     def __delitem__(self, index):
-        del self.tasks[index]
+        del self._tasks[index]
 
     def insert(self, index: int, value: LoweringTask):
         """Insert ``task`` before position ``index``."""
-        self.tasks.insert(index, value)
+        self._tasks.insert(index, value)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, TaskSequence):
             return NotImplemented
-        return self.tasks == other.tasks
+        return self._tasks == other._tasks
 
     def __add__(self, other: Iterable[LoweringTask]) -> typing.Self:
-        return type(self)(chain(self.tasks, other))
+        return type(self)(chain(self._tasks, other))
 
     def __radd__(self, other: Iterable[LoweringTask]) -> typing.Self:
-        return type(self)(chain(other, self.tasks))
+        return type(self)(chain(other, self._tasks))
 
     @reprlib.recursive_repr()
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({self.tasks!r})"
+        return f"{type(self).__name__}({self._tasks!r})"
 
 
 class TaskStages(LoweringTask, MutableMapping):
@@ -238,11 +234,7 @@ class TaskStages(LoweringTask, MutableMapping):
             ValueError: if a stage name is repeated, including between ``stages`` and
                 ``kw_stages``.
         """
-        self.stages: dict[str, LoweringTask] = _as_stages(stages, kw_stages)
-        """The stages, in execution order.
-        
-        This dictionary can be safely mutated in-place.
-        """
+        self._stages: dict[str, LoweringTask] = _as_stages(stages, kw_stages)
 
     def _index_of(self, pos: str | int) -> int:
         """Resolve a stage name, or a position that may be negative, to an index.
@@ -253,18 +245,18 @@ class TaskStages(LoweringTask, MutableMapping):
         """
         if isinstance(pos, str):
             try:
-                return list(self.stages).index(pos)
+                return list(self._stages).index(pos)
             except ValueError:
                 raise KeyError(f"no stage named {pos!r}") from None
-        if not -len(self.stages) <= pos < len(self.stages):
+        if not -len(self._stages) <= pos < len(self._stages):
             raise IndexError(f"stage position out of range: {pos}")
-        return pos % len(self.stages)
+        return pos % len(self._stages)
 
     def _splice(self, at: int, name: str, task: LoweringTask) -> None:
         """Insert ``name`` at index ``at``, in place."""
-        items = [pair for pair in self.stages.items() if pair[0] != name]
-        self.stages.clear()
-        self.stages.update(chain(items[:at], [(name, task)], items[at:]))
+        items = [pair for pair in self._stages.items() if pair[0] != name]
+        self._stages.clear()
+        self._stages.update(chain(items[:at], [(name, task)], items[at:]))
 
     def insert_before(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> None:
         """Insert ``stage`` directly before ``pos``, in place.
@@ -297,7 +289,7 @@ class TaskStages(LoweringTask, MutableMapping):
         self._splice(self._index_of(pos) + 1, *_as_stage(stage))
 
     def __len__(self) -> int:
-        return len(self.stages)
+        return len(self._stages)
 
     @typing.overload
     def __getitem__(self, index: str | int) -> LoweringTask: ...
@@ -311,8 +303,8 @@ class TaskStages(LoweringTask, MutableMapping):
     def __getitem__(self, index):
         """Get the task of a stage by name or position, or new task stages from a slice."""
         if isinstance(index, str):
-            return self.stages[index]
-        items = list(self.stages.items())
+            return self._stages[index]
+        items = list(self._stages.items())
         if isinstance(index, slice):
             return type(self)(items[index])
         if isinstance(index, list):
@@ -320,14 +312,14 @@ class TaskStages(LoweringTask, MutableMapping):
         return items[index][1]
 
     def __setitem__(self, name: str, task: LoweringTask):
-        self.stages[name] = task
+        self._stages[name] = task
 
     def __delitem__(self, name: str):
-        del self.stages[name]
+        del self._stages[name]
 
     def __iter__(self) -> typing.Iterator[str]:
         """Iterate over the stage names, in execution order."""
-        return iter(self.stages)
+        return iter(self._stages)
 
     def __eq__(self, other: object) -> bool:
         """Compare equal to other task stages with the same stages in the same order."""
@@ -335,18 +327,18 @@ class TaskStages(LoweringTask, MutableMapping):
         # is execution order, so it is part of the value, and a plain dict is not a task.
         if not isinstance(other, TaskStages):
             return NotImplemented
-        return list(self.stages.items()) == list(other.stages.items())
+        return list(self._stages.items()) == list(other._stages.items())
 
     def __add__(self, other: StagesLike) -> typing.Self:
         """Return new task stages of this object's stages updated with ``other``'s."""
-        out = type(self)(self.stages)
+        out = type(self)(self._stages)
         out.update(_as_stages(other))
         return out
 
     def __radd__(self, other: StagesLike) -> typing.Self:
         """Return new task stages of ``other``'s stages updated with this object's."""
         out = type(self)(other)
-        out.update(self.stages)
+        out.update(self._stages)
         return out
 
     def __iadd__(self, other: StagesLike) -> typing.Self:
@@ -356,7 +348,7 @@ class TaskStages(LoweringTask, MutableMapping):
 
     @reprlib.recursive_repr()
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({list(self.stages.items())!r})"
+        return f"{type(self).__name__}({list(self._stages.items())!r})"
 
 
 def _as_stage(stage: tuple[str, LoweringTask]) -> tuple[str, LoweringTask]:
