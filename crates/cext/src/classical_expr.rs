@@ -148,9 +148,9 @@ impl From<&Type> for CExprTypeInfo {
 /// @param name The name of the variable, as a null-terminated string. Invalid UTF-8 sequences
 ///     are replaced with the Unicode replacement character.
 /// @param ty The type of the variable. ``ty.width`` is the bit width when ``ty.ty`` is
-///     `QkExprType_Uint`, and must not be 0. It is ignored otherwise.
+///     `QkExprType_Uint`, and is ignored otherwise.
 ///
-/// @return The new variable, or ``NULL`` on invalid inputs. Caller owns the return value.
+/// @return The new variable, or ``NULL`` if ``name`` is ``NULL``. Caller owns the return value.
 ///
 /// # Example
 /// ```c
@@ -169,15 +169,12 @@ pub unsafe extern "C" fn qk_var_new(name: *const c_char, ty: CExprTypeInfo) -> *
     if name.is_null() {
         return ptr::null_mut();
     }
+    // SAFETY: Per documentation, `name` points to a valid string.
     let name = unsafe { CStr::from_ptr(name) };
-    let ty: Type = ty.into();
-    if ty == Type::Uint(0) {
-        return ptr::null_mut();
-    }
     let var = Var::Standalone {
         uuid: Uuid::new_v4().as_u128(),
         name: name.to_string_lossy().to_string(),
-        ty,
+        ty: ty.into(),
     };
     Box::into_raw(Box::new(var))
 }
@@ -206,7 +203,7 @@ pub unsafe extern "C" fn qk_var_free(var: *mut Var) {
 /// @param name The name of the stretch, as a null-terminated string. Invalid UTF-8 sequences
 ///     are replaced with the Unicode replacement character.
 ///
-/// @return The new stretch, or ``NULL`` on invalid inputs. Caller owns the return value.
+/// @return The new stretch, or ``NULL`` if ``name`` is ``NULL``. Caller owns the return value.
 ///
 /// # Example
 /// ```c
@@ -224,6 +221,7 @@ pub unsafe extern "C" fn qk_stretch_new(name: *const c_char) -> *mut Stretch {
     if name.is_null() {
         return ptr::null_mut();
     }
+    // SAFETY: Per documentation, `name` points to a valid string.
     let name = unsafe { CStr::from_ptr(name) };
     let stretch = Stretch {
         uuid: Uuid::new_v4().as_u128(),
@@ -303,10 +301,9 @@ pub extern "C" fn qk_value_new_float(val: f64) -> *mut Value {
 /// To construct a value that does not fit in ``uint64_t``, use `qk_value_new_biguint`.
 ///
 /// @param uint The integer to store.
-/// @param bit_width The bit width of the value's `QkExprType_Uint` type, which must be large
-///     enough to hold ``uint``. Pass ``0`` to use a bit width of 64.
+/// @param bit_width The bit width of the value's `QkExprType_Uint` type.
 ///
-/// @return The new value, or ``NULL`` on invalid inputs. Caller owns the return value.
+/// @return The new value. Caller owns the return value.
 ///
 /// # Example
 /// ```c
@@ -316,13 +313,6 @@ pub extern "C" fn qk_value_new_float(val: f64) -> *mut Value {
 /// ```
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_value_new_uint(uint: u64, bit_width: u32) -> *mut Value {
-    let bit_width = match bit_width {
-        0 => 64,
-        _ => bit_width,
-    };
-    if u64::BITS - uint.leading_zeros() > bit_width {
-        return ptr::null_mut();
-    }
     let value = Value::Uint {
         raw: BigUint::from(uint),
         ty: Type::Uint(bit_width),
@@ -333,25 +323,16 @@ pub extern "C" fn qk_value_new_uint(uint: u64, bit_width: u32) -> *mut Value {
 /// @ingroup QkClassicalExpressions
 /// Construct a new unsigned integer value from a `QkBigUint`.
 ///
-/// When ``bit_width`` is less than the full bit size of ``biguint``, out-of-range bits in
-/// ``biguint`` must be all zeros; otherwise, ``NULL`` will be returned.
-///
-/// @note If you pass in a `QkBigUint` that came from calling `qk_value_biguint` or other Qiskit
-/// functions, be aware that the buffer may omit trailing zero limbs and therefore be shorter than
-/// you expect. Passing ``bit_width=0`` may then infer a smaller bit width than intended. Prefer
-/// an explicit (non-zero) bit width in such cases.
-///
 /// @param biguint The integer value for `QkValue`. The buffer is copied, not stored.
-/// @param bit_width The bit width of the value's `QkExprType_Uint` type. When ``bit_width=0``
-///     the bit width is inferred as ``64 * max(biguint.num_limbs, 1)``.
+/// @param bit_width The bit width of the value's `QkExprType_Uint` type.
 ///
-/// @return The new value, or ``NULL`` on invalid inputs. Caller owns the return value.
+/// @return The new value. Caller owns the return value.
 ///
 /// # Example
 /// ```c
 /// uint64_t limbs[3] = {7, 8, 9};
 /// QkBigUint biguint = {limbs, 3};
-/// QkValue *value = qk_value_new_biguint(biguint, 0); // Has a bit width of 192.
+/// QkValue *value = qk_value_new_biguint(biguint, 192);
 /// // Use the value...
 /// qk_value_free(value);
 /// ```
@@ -361,25 +342,10 @@ pub extern "C" fn qk_value_new_uint(uint: u64, bit_width: u32) -> *mut Value {
 /// Behavior is undefined if ``biguint`` is not a valid `QkBigUint`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_value_new_biguint(biguint: CBigUint, bit_width: u32) -> *mut Value {
-    // SAFETY: Per documentation, the limbs are valid for `num_limbs` elements.
-    let biguint_slice = unsafe { biguint.as_slice() };
-    let biguint = CBigUint::biguint_from_u64_slice(biguint_slice);
-    let bit_width: u32 = match bit_width {
-        0 => {
-            let num_limbs = u32::try_from(biguint_slice.len().max(1));
-            let num_bits = num_limbs.ok().and_then(|n| n.checked_mul(u64::BITS));
-            match num_bits {
-                Some(num_bits) => num_bits,
-                None => return ptr::null_mut(),
-            }
-        }
-        _ => bit_width,
-    };
-    if biguint.bits() > u64::from(bit_width) {
-        return ptr::null_mut();
-    }
+    // SAFETY: Per documentation, the `CBigUint` buffer is valid.
+    let biguint_cloned = unsafe { biguint.to_biguint() };
     let value = Value::Uint {
-        raw: biguint,
+        raw: biguint_cloned,
         ty: Type::Uint(bit_width),
     };
     Box::into_raw(Box::new(value))
@@ -1113,7 +1079,17 @@ impl CBigUint {
         CBigUint { limbs, num_limbs }
     }
 
-    /// Create [`num_bigint::BigUint`] from a `&[u64]`.
+    /// Create [`num_bigint::BigUint`] from a [`CBigUint`]. The buffer is copied.
+    ///
+    /// # Safety
+    ///
+    /// The buffer must be valid for the lifetime of the returned slice.
+    pub(crate) unsafe fn to_biguint(&self) -> BigUint {
+        // SAFETY: Guaranteed by the caller.
+        Self::biguint_from_u64_slice(unsafe { self.as_slice() })
+    }
+
+    /// Create [`num_bigint::BigUint`] from a `&[u64]`. The buffer is copied.
     ///
     /// Note: this really belongs on `BigUint` and not here. I expect eventually
     /// they will add a function that can be used instead of this one.
@@ -1134,6 +1110,10 @@ impl CBigUint {
     }
 
     /// View the limbs as a slice.
+    ///
+    /// # Safety
+    ///
+    /// The buffer must be valid for the lifetime of the returned slice.
     pub(crate) unsafe fn as_slice(&self) -> &[u64] {
         if self.num_limbs == 0 {
             return &[];
