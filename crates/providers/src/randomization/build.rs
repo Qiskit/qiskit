@@ -357,7 +357,7 @@ impl Build {
         Ok(layout)
     }
 
-    /// The inverse pair a twirl declares for each subsystem the distribution covers.
+    /// Add the two emits corresponding to a twirl to the layout.
     fn twirl_emissions(
         &mut self,
         twirl: &Twirl,
@@ -395,7 +395,7 @@ impl Build {
         Ok(())
     }
 
-    /// The emissions a noise injection declares: one per qubit and all of one sample.
+    /// Add the emissions corresponding to a Pauli-Lindblad map to the layout.
     fn noise_emissions(
         &mut self,
         injection: &InjectNoise,
@@ -460,7 +460,7 @@ fn collector_wires(box_width: usize, synthesizer: SynthesizerType) -> Vec<WiredC
         .collect()
 }
 
-/// Sweep a box body from the dressing edge to split the absorbable run from the rest.
+/// Sweep a box from the dressing side to separate the easy from hard content.
 fn classify_body(body: &DAGCircuit, dressing: Dressing) -> (Vec<NodeIndex>, Vec<NodeIndex>) {
     let nodes: Vec<_> = body.topological_op_nodes(false).collect();
     let right = matches!(dressing, Dressing::Right);
@@ -497,7 +497,7 @@ fn is_absorbable(dag: &DAGCircuit, inst: &PackedInstruction) -> bool {
         && dag.qargs_interner().get(inst.qubits).len() == 1
 }
 
-/// What a box declares and what it carries that is not ours.
+/// Declaration of how to compile the box.
 struct Declaration<'a> {
     /// The randomization the box asks for as resolved from its annotations.
     randomization: RandomizationAnnotations<'a>,
