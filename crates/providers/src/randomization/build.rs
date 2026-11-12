@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Lower an annotated circuit into emission and collection operations.
+//! Lower an annotated circuit into emits and collects. 
 
 use std::sync::Arc;
 
@@ -78,13 +78,7 @@ pub fn build(dag: &DAGCircuit) -> Result<DAGCircuit> {
     Ok(out.build())
 }
 
-/// Where in a lowered box an emission happens.
-///
-/// A box is written as `Start | easy run | Between | hard content | End` under a left dressing and
-/// `Start | hard content | Between | easy run | End` under a right one. So `Between` is the twirl
-/// point: the boundary between what a collector could absorb and what it could not. The dressing
-/// decides which side of the content that is and therefore which way out of it leads to a
-/// collector without crossing it.
+/// Locations within a box.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Location {
     Start,
@@ -93,7 +87,7 @@ enum Location {
 }
 
 impl Location {
-    /// Every location in the order a box is written.
+    /// Locations written in chronological order.
     const ALL: [Location; 3] = [Location::Start, Location::Between, Location::End];
 
     /// The direction to the nearer collector.
@@ -112,26 +106,21 @@ impl Location {
     }
 }
 
-/// An emission ready to be inserted onto the given wires.
+/// An emission to be inserted onto the given wires.
 struct WiredEmit {
     emit: Emit,
     /// The wires to place the emit on as indices into its box's qargs.
     wires: Vec<u32>,
 }
 
-/// A collector ready to be inserted onto the given wires.
+/// A collector to be inserted onto the given wires.
 struct WiredCollect {
     collect: Collect,
-    /// The wires the collector covers as indices into its box's qargs.
+    /// The wires to place the collect on as indices into its box's qargs.
     wires: Vec<u32>,
 }
 
 /// A box's emissions ordered by location.
-///
-/// Holds the dressing because that is what decides which way out of a location leads to a
-/// collector and so which end of its run is the one nearer the content. Holding it here rather
-/// than passing it per emission is what makes it impossible for two emissions at one location to
-/// disagree about that.
 struct EmissionLayout {
     /// Which side of the hard content a collector could absorb into.
     dressing: Dressing,
@@ -312,8 +301,6 @@ impl Build {
         let mut builder =
             new_dag_body(width, num_clbits, body.num_ops() + layout.len())?.into_builder();
 
-        // The absorbable run goes on the dressing side of the twirl point and the hard content on
-        // the other, so a right dressing is the same walk with the two runs exchanged.
         let (first, second) = match layout.dressing {
             Dressing::Right => (&hard_nodes, &easy_nodes),
             Dressing::Left => (&easy_nodes, &hard_nodes),
@@ -330,7 +317,7 @@ impl Build {
         Ok(builder.build())
     }
 
-    /// Copy a run of a body's nodes and lower a nested annotated box in place.
+    /// Copy nodes from body while lowering any boxes in place.
     fn copy_nodes(
         &mut self,
         body: &DAGCircuit,
@@ -353,7 +340,7 @@ impl Build {
         Ok(())
     }
 
-    /// Turn a box's annotations into the emissions they declare at the locations they go at.
+    /// Turn a box's annotations into emissions.
     fn build_emissions(
         &mut self,
         annotations: &RandomizationAnnotations,
@@ -386,7 +373,7 @@ impl Build {
                 uuid: Uuid::new_v4(),
                 distribution: Distribution::Sample(twirl.distribution),
             });
-            for (slot, offsets) in factorization.iter().enumerate() {
+            for (factor, offsets) in factorization.iter().enumerate() {
                 let wires: Vec<u32> = offsets
                     .iter()
                     .map(|offset| sample[*offset as usize])
@@ -394,7 +381,7 @@ impl Build {
                 let half = |direction, adjoint| Emit {
                     direction: Some(direction),
                     draw: Arc::clone(&draw),
-                    slot: slot as u32,
+                    factor: factor as u32,
                     adjoint,
                 };
                 layout.push_inward(
@@ -427,16 +414,17 @@ impl Build {
         // A site names a side of the hard content. One of those sides is the twirl point and the
         // other is the box end beyond the content, which is what the dressing decides.
         let location = match (injection.site, dressing) {
+            (InjectionSite::Between, _) => Location::Between,
             (InjectionSite::Before, Dressing::Left) => Location::Between,
             (InjectionSite::Before, Dressing::Right) => Location::Start,
             (InjectionSite::After, Dressing::Left) => Location::End,
             (InjectionSite::After, Dressing::Right) => Location::Between,
         };
-        for slot in 0..box_width {
+        for factor in 0..box_width {
             let emit = Emit {
                 direction: Some(location.outward(dressing)),
                 draw: Arc::clone(&draw),
-                slot: slot as u32,
+                factor: factor as u32,
                 adjoint: false,
             };
             layout.push_inward(location, emit, vec![slot as u32]);
@@ -542,8 +530,6 @@ fn declaration(inst: &PackedInstruction) -> Result<Declaration<'_>> {
     })
 }
 
-// --- Appending ------------------------------------------------------------------------------------
-
 /// Create an empty body with the given dimensions and anonymous wires.
 fn new_dag_body(num_qubits: usize, num_clbits: usize, capacity: usize) -> Result<DAGCircuit> {
     let mut body =
@@ -569,7 +555,7 @@ fn append(
     Ok(())
 }
 
-/// Copy an instruction verbatim into `out` and remap its bits through `scope`.
+/// Copy an instruction into `out` while remapping its bits through `scope`.
 fn copy_instruction(
     dag: &DAGCircuit,
     inst: &PackedInstruction,
@@ -583,10 +569,7 @@ fn copy_instruction(
     append(out, inst.op.clone(), params, &qargs, &cargs)
 }
 
-/// Append emissions in the order given with each on the wires.
-///
-/// Written into a box body whose qubits are its qargs in order so a wire is already the body
-/// qubit. A collector goes onto the box from outside and has to be remapped.
+/// Append emissions in the given order.
 fn append_emissions(out: &mut DAGCircuitBuilder, emissions: Vec<WiredEmit>) -> Result<()> {
     for wired in emissions {
         let qargs: Vec<Qubit> = wired.wires.iter().map(|w| Qubit(*w)).collect();
@@ -596,7 +579,7 @@ fn append_emissions(out: &mut DAGCircuitBuilder, emissions: Vec<WiredEmit>) -> R
     Ok(())
 }
 
-/// Append one collector per subsystem.
+/// Append collectors in the given order.
 fn append_collectors(
     out: &mut DAGCircuitBuilder,
     collectors: Vec<WiredCollect>,
@@ -704,7 +687,7 @@ mod tests {
         })
     }
 
-    /// Every operation of a lowered circuit flattened into `(name, qubits)` in topological order.
+    /// Every operation of a circuit flattened into `(name, qubits)` in topological order.
     fn ops_in_order(dag: &DAGCircuit) -> Vec<&PackedInstruction> {
         dag.topological_op_nodes(false)
             .map(|node| dag.dag()[node].unwrap_operation())
@@ -728,7 +711,7 @@ mod tests {
         out
     }
 
-    /// The emissions of a lowered circuit in order with the wires each covers.
+    /// The wired emissions of a circuit.
     fn emissions(dag: &DAGCircuit) -> Vec<WiredEmit> {
         let mut out = Vec::new();
         for inst in ops_in_order(dag) {
@@ -753,7 +736,7 @@ mod tests {
         out
     }
 
-    /// The collectors of a lowered circuit in order with the wires each covers.
+    /// The wired collectors of a circuit.
     fn collectors(dag: &DAGCircuit) -> Vec<WiredCollect> {
         let mut out = Vec::new();
         for inst in ops_in_order(dag) {
@@ -844,15 +827,15 @@ mod tests {
         let uuids: HashSet<Uuid> = pair.iter().map(|wired| wired.emit.draw.uuid).collect();
         assert_eq!(uuids.len(), 2);
         let first = pair[0].emit.draw.uuid;
-        let covered: HashSet<u32> = pair
+        let wires: HashSet<u32> = pair
             .iter()
             .filter(|wired| wired.emit.draw.uuid == first)
             .flat_map(|wired| wired.wires.iter().copied())
             .collect();
         assert_eq!(
-            covered.len(),
+            wires.len(),
             2,
-            "one sample covers the two qubits it correlates"
+            "one sample is connected to the two qubits it correlates"
         );
     }
 
