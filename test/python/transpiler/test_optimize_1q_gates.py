@@ -259,7 +259,7 @@ class TestOptimize1qGates(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(2 * theta + 2 * phi + product_ + 1.2), [qr])
+        expected.append(U1Gate(2 * (theta + phi) + product_ + 1.2), [qr])
 
         after = Optimize1qGates().run(dag)
 
