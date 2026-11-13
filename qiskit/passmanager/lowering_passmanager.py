@@ -22,10 +22,15 @@ from __future__ import annotations
 
 import abc
 import copy as _copy
+from itertools import chain
+import reprlib
 import typing
-from collections.abc import Iterable
+from collections import Counter
+from collections.abc import Iterable, Mapping, MutableMapping, MutableSequence
+from types import MappingProxyType
 from typing import Generic, ClassVar, TypeAlias
 from typing_extensions import TypeVar
+
 
 from qiskit._accelerate import passmanager
 from .exceptions import PassManagerError
@@ -34,9 +39,13 @@ __all__ = [
     "IR",
     "LoweringPassManager",
     "LoweringPassManagerError",
+    "LoweringTask",
     "Pass",
     "PassContextHandle",
     "PassError",
+    "StagesLike",
+    "TaskSequence",
+    "TaskStages",
 ]
 
 
@@ -126,6 +135,324 @@ class LoweringPassManagerError(PassManagerError):
     # state we'll just use the regular display.
 
 
+class LoweringTask(abc.ABC):
+    """A single unit of execution flow in a :class:`LoweringPassManager`.
+
+    A task is either a single :class:`~.Pass`, or a container of other tasks.
+    Containers are freely mutable, and are permitted to be ill-typed while they are being
+    assembled: a :class:`TaskSequence` may hold two consecutive tasks whose IR types disagree, for
+    example. IR type checking happens when a task is given to a :class:`LoweringPassManager`.
+    """
+
+
+StagesLike: TypeAlias = Mapping[str, LoweringTask] | Iterable[tuple[str, LoweringTask]]
+"""Types that :class:`TaskStages` accepts as a collection of stages."""
+
+
+class TaskSequence(LoweringTask, MutableSequence):
+    """A mutable sequence of tasks to run in order.
+
+    Task sequences are permitted to be ill-typed while they are being assembled: they may hold two
+    consecutive tasks whose IR types disagree.  IR type checking happens when this task sequence is
+    given to a :class:`LoweringPassManager`.
+    """
+
+    def __init__(self, tasks: Iterable[LoweringTask] = ()):
+        """
+        Args:
+            tasks: the initial tasks.
+        """
+        self._tasks: list[LoweringTask] = list(tasks)
+
+    def __len__(self) -> int:
+        return len(self._tasks)
+
+    @typing.overload
+    def __getitem__(self, index: int) -> LoweringTask: ...
+
+    @typing.overload
+    def __getitem__(self, index: slice) -> typing.Self: ...
+
+    @typing.overload
+    def __getitem__(self, index: list[int]) -> typing.Self: ...
+
+    def __getitem__(self, index):
+        """Get the task at a position, or a new :class:`~.TaskSequence` of the tasks in a slice."""
+        if isinstance(index, slice):
+            return type(self)(self._tasks[index])
+        if isinstance(index, list):
+            return type(self)(self._tasks[idx] for idx in index)
+        return self._tasks[index]
+
+    def __setitem__(self, index, task):
+        self._tasks[index] = task
+
+    def __delitem__(self, index):
+        del self._tasks[index]
+
+    def insert(self, index: int, value: LoweringTask):
+        """Insert ``task`` before position ``index``."""
+        self._tasks.insert(index, value)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TaskSequence):
+            return NotImplemented
+        return self._tasks == other._tasks
+
+    def __add__(self, other: Iterable[LoweringTask]) -> typing.Self:
+        return type(self)(chain(self._tasks, other))
+
+    def __radd__(self, other: Iterable[LoweringTask]) -> typing.Self:
+        return type(self)(chain(other, self._tasks))
+
+    @reprlib.recursive_repr()
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self._tasks!r})"
+
+
+class TaskStages(LoweringTask, MutableMapping):
+    """An insertion-order-preserving mutable mapping of named tasks.
+
+    This class has the same sequential execution behavior as a :class:`~.TaskSequence`, but
+    additionally, every task is assigned a string name corresponding to its mapping key.
+
+    .. code-block:: python
+
+        stages = TaskStages({"first": first_stage, "second": second_stage})
+
+        # append one or more stages
+        stages["third"] = third_stage
+        stages.update(other_stages)
+
+        # modify a stage
+        stages["second"] = new_second_stage
+
+        # inspect a stage
+        stages["first"]
+
+        # iterate over stages
+        for name, stage in stages.items():
+            print(name, stage)
+
+        # insert a new stage
+        stages.insert_after("second", ("mid", mid_stage))
+
+    Because this container preserves order and represents sequential execution of tasks, for
+    convenience, a stage can be identified by position wherever it can be identified by
+    name, and also supports slicing.
+
+    .. code-block:: python
+
+        # get the 2nd stage, equivalent to stages["second"] continuing the above example
+        stages[1]
+
+        # new TaskStages containing stages "second" through to the second-last stage
+        stages["second": -1]
+
+        # insert stages right before "third"
+        stages[:"third"] + {"inserted": inserted_stage} + stages["third":]
+
+        # remove the 3rd stage
+        stages.pop(2)
+
+
+    Task stages are permitted to be ill-typed while they are being assembled: they may hold two
+    consecutive tasks whose IR types disagree.  IR type checking happens when these task stages are
+    given to a :class:`LoweringPassManager`.
+    """
+
+    def __init__(self, stages: StagesLike = (), /, **kw_stages: LoweringTask):
+        """
+        Args:
+            stages: the initial stages, as a mapping from name to task or an iterable of
+                ``(name, task)`` pairs.
+            kw_stages: initial stages whose names are given by keyword arguments, appended to any
+                entries of ``stages``.
+
+        Raises:
+            TypeError: if ``stages`` is not a mapping or an iterable of ``(name, task)`` pairs.
+            ValueError: if a stage name is repeated, including between ``stages`` and
+                ``kw_stages``.
+        """
+        self._stages: dict[str, LoweringTask] = _as_stages(stages, kw_stages)
+
+    def _index_of(self, pos: str | int) -> int:
+        """Resolve a stage name, or a position that may be negative, to an index.
+
+        Raises:
+            KeyError: if ``pos`` is a name that is not present.
+            IndexError: if ``pos`` is a position that is out of range.
+        """
+        if isinstance(pos, str):
+            try:
+                return list(self._stages).index(pos)
+            except ValueError:
+                raise KeyError(f"no stage named {pos!r}") from None
+        if not -len(self._stages) <= pos < len(self._stages):
+            raise IndexError(f"stage position out of range: {pos}")
+        return pos % len(self._stages)
+
+    def _name_of(self, pos: str | int) -> str:
+        """Resolve a stage name, or a position that may be negative, to a name.
+
+        Raises:
+            KeyError: if ``pos`` is a name that is not present.
+            IndexError: if ``pos`` is a position that is out of range.
+        """
+        return list(self._stages)[self._index_of(pos)]
+
+    def _slice_of(self, index: slice) -> slice:
+        """Resolve any stage names in a slice's bounds to their positions.
+
+        Raises:
+            KeyError: if a bound is a name that is not present.
+        """
+        # we can't use _index_of() unconditionally because the integer position bounds are
+        # incorrect with respect to standard slicing conventions.
+        bounds = tuple(
+            self._index_of(bound) if isinstance(bound, str) else bound
+            for bound in (index.start, index.stop)
+        )
+        return slice(*bounds, index.step)
+
+    def _splice(self, at: int, name: str, task: LoweringTask) -> None:
+        """Insert ``name`` at index ``at``, in place.
+
+        Raises:
+            ValueError: if ``name`` is already present.
+        """
+        if name in self._stages:
+            raise ValueError(f"stage names must be unique, but these repeat: [{name!r}]")
+        items = list(self._stages.items())
+        self._stages.clear()
+        self._stages.update(chain(items[:at], [(name, task)], items[at:]))
+
+    def insert_before(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> None:
+        """Insert ``stage`` directly before ``pos``, in place.
+
+        Args:
+            pos: the stage to insert before, by name or by position.
+            stage: the ``(name, task)`` pair to insert.
+
+        Raises:
+            KeyError: if ``pos`` is a name that is not present.
+            IndexError: if ``pos`` is a position that is out of range.
+            TypeError: if ``stage`` is not a ``(name, task)`` pair.
+            ValueError: if the name of ``stage`` is already present.
+        """
+        self._splice(self._index_of(pos), *_as_stage(stage))
+
+    def insert_after(self, pos: str | int, stage: tuple[str, LoweringTask], /) -> None:
+        """Insert ``stage`` directly after ``pos``, in place.
+
+        Args:
+            pos: the stage to insert after, by name or by position.
+            stage: the ``(name, task)`` pair to insert.
+
+        Raises:
+            KeyError: if ``pos`` is a name that is not present.
+            IndexError: if ``pos`` is a position that is out of range.
+            TypeError: if ``stage`` is not a ``(name, task)`` pair.
+            ValueError: if the name of ``stage`` is already present.
+        """
+        self._splice(self._index_of(pos) + 1, *_as_stage(stage))
+
+    def __len__(self) -> int:
+        return len(self._stages)
+
+    @typing.overload
+    def __getitem__(self, index: str | int) -> LoweringTask: ...
+
+    # TODO: once the minimum supported Python is 3.12, parametrize this as
+    # `slice[str | int, str | int, int]`.  `slice` is not subscriptable before then.
+    @typing.overload
+    def __getitem__(self, index: slice) -> typing.Self: ...
+
+    @typing.overload
+    def __getitem__(self, index: list[str | int]) -> typing.Self: ...
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return type(self)(list(self._stages.items())[self._slice_of(index)])
+        if isinstance(index, list):
+            return type(self)((name, self._stages[name]) for name in map(self._name_of, index))
+        return self._stages[self._name_of(index)]
+
+    def __setitem__(self, pos: str | int, task: LoweringTask):
+        self._stages[pos if isinstance(pos, str) else self._name_of(pos)] = task
+
+    def __delitem__(self, index: str | int):
+        del self._stages[self._name_of(index)]
+
+    def __iter__(self) -> typing.Iterator[str]:
+        """Iterate over the stage names, in execution order."""
+        return iter(self._stages)
+
+    def __eq__(self, other: object) -> bool:
+        """Compare equal to other task stages with the same stages in the same order."""
+        # `Mapping` provides an `__eq__` that ignores order and accepts any mapping.  Stage order
+        # is execution order, so it is part of the value, and a plain dict is not a task.
+        if not isinstance(other, TaskStages):
+            return NotImplemented
+        return list(self._stages.items()) == list(other._stages.items())
+
+    def __add__(self, other: StagesLike) -> typing.Self:
+        """Return new task stages of this object's stages updated with ``other``'s."""
+        out = type(self)(self._stages)
+        out.update(_as_stages(other))
+        return out
+
+    def __radd__(self, other: StagesLike) -> typing.Self:
+        """Return new task stages of ``other``'s stages updated with this object's."""
+        out = type(self)(other)
+        out.update(self._stages)
+        return out
+
+    def __iadd__(self, other: StagesLike) -> typing.Self:
+        """Update these task stages in place with ``other``'s stages."""
+        self.update(_as_stages(other))
+        return self
+
+    @reprlib.recursive_repr()
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({list(self._stages.items())!r})"
+
+
+def _as_stage(stage: tuple[str, LoweringTask]) -> tuple[str, LoweringTask]:
+    """Validate a single ``(name, task)`` pair."""
+    match stage:
+        case (str(), _):
+            return stage
+    raise TypeError(f"expected a (name, task) pair, got {stage!r}")
+
+
+def _as_stages(
+    stages: StagesLike, extra: Mapping[str, LoweringTask] = MappingProxyType({})
+) -> dict[str, LoweringTask]:
+    """Normalize stages-like input to a single dictionary.
+
+    Raises:
+        TypeError: if ``stages`` is not a mapping or an iterable of ``(name, task)`` pairs.
+        ValueError: if a stage name is repeated, including between ``stages`` and ``extra``.
+    """
+    if isinstance(stages, Mapping):
+        pairs = list(stages.items())
+    else:
+        try:
+            pairs = [_as_stage(stage) for stage in stages]
+        except TypeError as exc:
+            raise TypeError(
+                f"expected a mapping or an iterable of (name, task) pairs, got {stages!r}"
+            ) from exc
+    pairs += extra.items()
+    out = dict(pairs)
+    if len(out) != len(pairs):
+        counts = Counter(name for name, _ in pairs)
+        repeated = sorted(name for name, count in counts.items() if count > 1)
+        raise ValueError(f"stage names must be unique, but these repeat: {repeated}")
+    return out
+
+
 @typing.final
 class PassContextHandle:
     """The execution context for a given pass in a lowering pipeline.
@@ -192,7 +519,7 @@ class PassContextHandle:
         self._native.set_ir_modified(val)
 
 
-class Pass(Generic[IRIn, IROut], abc.ABC):
+class Pass(Generic[IRIn, IROut], LoweringTask):
     """An interface for defining passes over IRs.
 
     This is primarily an *implementation* interface.  The typical way to safely consume a
@@ -225,6 +552,9 @@ class Pass(Generic[IRIn, IROut], abc.ABC):
     """The type of the IR that the pass expects."""
     _qiskit_pass_ir_out_: type[AnyIR]
     """The type of the IR that the pass outputs."""
+
+    def __repr__(self) -> str:
+        return f"{self._qiskit_pass_name_ or type(self).__name__}()"
 
     @abc.abstractmethod
     def _qiskit_pass_run_(self, ir: IRIn, context: PassContextHandle) -> IROut:
@@ -277,24 +607,46 @@ class LoweringPassManager:
         intend to lift this restriction in the future.
     """
 
-    def __init__(self, tasks: Iterable[Pass] = ()) -> None:
+    def __init__(self, tasks: LoweringTask | Iterable[LoweringTask] = ()) -> None:
         """
         Args:
-            tasks: any tasks with which to initialize the pass manager.  Passing this is equivalent
-                to calling :meth:`append` in a loop with the arguments.
+            tasks: one or more tasks with which to initialize the pass manager.  Passing an iterable
+                of tasks is equivalent to calling :meth:`append` in a loop.  Passing a single task,
+                (except the special case of :class:`~.TaskSequence` which is itself an iterable of
+                tasks) is equivalent to calling :meth:`append` on the task.
+
+        Raises:
+            TypeError: if any element is not an executable :class:`LoweringTask`, or if the
+                resulting pipeline is ill-typed.
         """
         self._native = passmanager.PassManager()
+        if isinstance(tasks, LoweringTask) and not isinstance(tasks, TaskSequence):
+            self.append(tasks)
+            return
+        try:
+            tasks = iter(tasks)
+        except TypeError:
+            raise TypeError(f"expected a task or an iterable of tasks, got {tasks!r}") from None
         for task in tasks:
             self.append(task)
 
-    def append(self, pass_: Pass, /):
-        """Push a Python-native pass to the end of the current pipeline.
+    def append(self, task: LoweringTask, /):
+        """Push a task to the end of the current pipeline.
 
         Args:
-            pass_: the pass to push.
+            task: the task to push.  This may be a single :class:`Pass`, or a container such as a
+                :class:`TaskSequence` or :class:`TaskStages`.
+
+        Raises:
+            TypeError: if ``task`` is not a :class:`Pass`, :class:`TaskSequence` or
+                :class:`TaskStages`, if it is ill-typed internally, or if its input IR type
+                does not match the output type of the pipeline so far.  The pass manager is left
+                unmodified.
         """
-        # We can extend this method with dispatched type-checking once we expose other tasks, etc.
-        self._native.push_pass(_native_pass_from_lowering_pass(pass_))
+        self._native.push_task(task)
+
+    def __repr__(self) -> str:
+        return repr(self._native)
 
     def run(self, ir: IRIn, *, copy: bool = True) -> object:
         """Run the pipeline on the given IR.
@@ -316,3 +668,26 @@ class LoweringPassManager:
         if copy:
             ir = _copy.copy(ir)
         return self._native.run_simple(ir)
+
+    def to_task_sequence(self) -> TaskSequence:
+        """Return a new task sequence of the tasks that this pass manager runs.
+
+        Mutating the returned task sequence does not affect this pass manager. If your goal is to
+        modify the structure of this pass manager, modify the task sequence as needed and then
+        instantiate a new pass manager. Note, on the other hand, that :meth:`~.append` mutates this
+        pass manager in-place. The :class:`~.Pass` objects within are shared references
+        rather than copies.
+
+        .. code-block:: python
+
+            pass_manager = LoweringPassManager([MyLoweringPass(), MyOptimizationPass()])
+
+            # Insert a pass in the middle
+            tasks = pass_manager.to_task_sequence()
+            tasks.insert(1, MyAnalysisPass())
+            edited = LoweringPassManager(tasks)
+
+        Returns:
+             A new :class:`TaskSequence`.
+        """
+        return TaskSequence(self._native.to_py_tasks())
