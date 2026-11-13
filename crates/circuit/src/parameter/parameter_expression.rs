@@ -432,6 +432,26 @@ impl ParameterExpression {
         })
     }
 
+    /// Add an expression in place; ``self += rhs``.
+    pub fn add_assign(&mut self, rhs: &ParameterExpression) -> Result<(), ParameterError> {
+        for (name, param) in rhs.name_map.iter() {
+            if self
+                .name_map
+                .get(name)
+                .is_some_and(|existing| existing != param)
+            {
+                return Err(ParameterError::NameConflict);
+            }
+        }
+        for (name, param) in rhs.name_map.iter() {
+            self.name_map
+                .entry_ref(name.as_str())
+                .or_insert_with(|| param.clone());
+        }
+        self.expr = &self.expr + &rhs.expr;
+        Ok(())
+    }
+
     /// Multiply with an expression; ``self * rhs``.
     pub fn mul(&self, rhs: &ParameterExpression) -> Result<Self, ParameterError> {
         let name_map = self.merged_name_map(rhs)?;
