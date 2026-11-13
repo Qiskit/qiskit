@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 
+import contextlib
 import io
-import os
 import pathlib
 import re
 import tempfile
@@ -823,16 +823,10 @@ class TestDumpStream(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure([0, 1], [0, 1])
 
-        prevdir = os.getcwd()
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            os.chdir(tmpdir)
-            try:
-                qasm2.dump(qc, "myfile.qasm")
-                with open("myfile.qasm") as fptr:
-                    written = fptr.read()
-            finally:
-                os.chdir(prevdir)
+        with tempfile.TemporaryDirectory() as tmpdir, contextlib.chdir(tmpdir):
+            qasm2.dump(qc, "myfile.qasm")
+            with open("myfile.qasm") as fptr:
+                written = fptr.read()
         self.assertEqual(qasm2.loads(written), qc)
 
     def test_can_write_to_pathlike(self):
@@ -841,16 +835,10 @@ class TestDumpStream(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure([0, 1], [0, 1])
 
-        prevdir = os.getcwd()
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            os.chdir(tmpdir)
-            try:
-                qasm2.dump(qc, pathlib.Path(".") / "myfile.qasm")
-                with open("myfile.qasm") as fptr:
-                    written = fptr.read()
-            finally:
-                os.chdir(prevdir)
+        with tempfile.TemporaryDirectory() as tmpdir, contextlib.chdir(tmpdir):
+            qasm2.dump(qc, pathlib.Path(".") / "myfile.qasm")
+            with open("myfile.qasm") as fptr:
+                written = fptr.read()
         self.assertEqual(qasm2.loads(written), qc)
 
     def test_can_write_to_stream(self):

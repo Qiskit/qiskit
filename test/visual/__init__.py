@@ -12,23 +12,12 @@
 
 """Image comparison tests."""
 
+import contextlib
 import json
 import os
-from contextlib import contextmanager
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw
-
-
-@contextmanager
-def cwd(path):
-    """A context manager to run in a particular path"""
-    oldpwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(oldpwd)
 
 
 class VisualTestUtilities:
@@ -94,7 +83,7 @@ class VisualTestUtilities:
 
         def wrapper(*args, **kwargs):
             image_filename = kwargs["filename"]
-            with cwd(result_dir):
+            with contextlib.chdir(result_dir):
                 results = func(*args, **kwargs)
                 VisualTestUtilities.save_data(image_filename, testname)
             return results
