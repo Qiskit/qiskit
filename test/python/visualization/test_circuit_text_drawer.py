@@ -23,6 +23,7 @@ from codecs import encode
 from math import pi
 
 import numpy
+from ddt import data, ddt
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp, BoxOp
@@ -4071,6 +4072,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         os.remove(filename)
 
 
+@ddt
 class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
     """Test ControlFlowOps."""
 
@@ -4677,6 +4679,45 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         # we don't check the full drawing, we just check the drawing didn't fail
         out = str(circuit_drawer(circuit, output="text"))
         self.assertTrue("For-0 (0, 1, 2)" in out)
+
+    def test_composed_conditional_measurement(self):
+        """Draw the circuit from issue 15822 with bundled classical wires."""
+        cell = QuantumCircuit([Qubit(), Clbit()])
+        with cell.if_test(expr.lift(True)):
+            cell.measure(0, 0)
+
+        actual = QuantumCircuit(2, 2)
+        expected = QuantumCircuit(2, 2)
+        for i in range(2):
+            actual.compose(cell, qubits=[i], clbits=[i], inplace=True)
+            with expected.if_test(expr.lift(True)):
+                expected.measure(i, i)
+
+        self.assertEqual(
+            str(actual.draw("text", cregbundle=True, fold=-1)),
+            str(expected.draw("text", cregbundle=True, fold=-1)),
+        )
+
+    @data(True, False)
+    def test_composed_nested_measurement(self, bundled):
+        """Draw nested measurements on their mapped classical wires."""
+        cell = QuantumCircuit(1, 1)
+        with cell.if_test(expr.lift(True)):
+            with cell.if_test(expr.lift(True)):
+                cell.measure(0, 0)
+
+        actual = QuantumCircuit(2, 2)
+        expected = QuantumCircuit(2, 2)
+        for qubit, clbit in ((1, 0), (0, 1)):
+            actual.compose(cell, qubits=[qubit], clbits=[clbit], inplace=True)
+            with expected.if_test(expr.lift(True)):
+                with expected.if_test(expr.lift(True)):
+                    expected.measure(qubit, clbit)
+
+        self.assertEqual(
+            str(actual.draw("text", cregbundle=bundled, fold=-1)),
+            str(expected.draw("text", cregbundle=bundled, fold=-1)),
+        )
 
     def test_nested_switch_op_var(self):
         """Test switch with standalone Var."""
