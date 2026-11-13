@@ -98,3 +98,12 @@ pub enum Direction {
     Forward,
     Backward,
 }
+
+impl Direction {
+    pub fn reverse(self) -> Self {
+        match self {
+            Direction::Backward => Direction::Forward,
+            Direction::Forward => Direction::Backward,
+        }
+    }
+}

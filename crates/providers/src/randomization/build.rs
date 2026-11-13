@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Lower an annotated circuit into emits and collects. 
+//! Lower an annotated circuit into emits and collects.
 
 use std::sync::Arc;
 
@@ -35,7 +35,7 @@ use super::annotations::{
     annotation_kind,
 };
 use super::emissions::{Collect, Distribution, Draw, Emit};
-use super::{Direction, SynthesizerType};
+use super::{Direction, SynthesizerKind};
 
 /// Why a circuit could not be lowered.
 #[derive(Debug, Error)]
@@ -253,7 +253,7 @@ impl Build {
         }
 
         let dressing = randomization.dressing().unwrap_or(Dressing::Left);
-        let synthesizer = randomization.synthesizer().unwrap_or(SynthesizerType::RzSx);
+        let synthesizer = randomization.synthesizer().unwrap_or(SynthesizerKind::RzSx);
         let layout = self.build_emissions(&randomization, width, dressing)?;
         let content = self.content_body(body, width, num_clbits, layout)?;
 
@@ -427,7 +427,7 @@ impl Build {
                 factor: factor as u32,
                 adjoint: false,
             };
-            layout.push_inward(location, emit, vec![slot as u32]);
+            layout.push_inward(location, emit, vec![factor as u32]);
         }
     }
 }
@@ -444,7 +444,7 @@ fn subsystems(width: u32, box_width: usize) -> Result<Vec<Vec<u32>>> {
 }
 
 /// One collector per subsystem a synthesizer covers with the wires each sits on.
-fn collector_wires(box_width: usize, synthesizer: SynthesizerType) -> Vec<WiredCollect> {
+fn collector_wires(box_width: usize, synthesizer: SynthesizerKind) -> Vec<WiredCollect> {
     let width = synthesizer.num_qubits().max(1) as usize;
     (0..box_width)
         .step_by(width)
@@ -675,7 +675,7 @@ mod tests {
         Arc::new(Twirl {
             distribution,
             dressing,
-            decomposition: SynthesizerType::RzSx,
+            decomposition: SynthesizerKind::RzSx,
         })
     }
 
@@ -804,7 +804,7 @@ mod tests {
     }
 
     #[test]
-    fn test_a_correlated_distribution_is_placed_one_slot_at_a_time() {
+    fn test_a_correlated_distribution_is_placed_one_factor_at_a_time() {
         let lowered = build(&circuit(4, |b| {
             annotated_box(
                 b,
@@ -818,10 +818,10 @@ mod tests {
         assert_eq!(
             pair.len(),
             8,
-            "two samples, two slots each, a pair per slot"
+            "two samples, two factors each, a pair per factor"
         );
         for WiredEmit { emit, wires } in &pair {
-            assert_eq!(wires.len(), 1, "a local-C1 slot is one qubit");
+            assert_eq!(wires.len(), 1, "a local-C1 factor is one qubit");
             assert_eq!(emit.num_qubits(), 1);
         }
         let uuids: HashSet<Uuid> = pair.iter().map(|wired| wired.emit.draw.uuid).collect();
@@ -884,15 +884,15 @@ mod tests {
             .map(|wired| wired.emit.draw.uuid)
             .collect();
         assert_eq!(uuids.len(), 1);
-        let slots: Vec<u32> = noise_emissions
+        let factors: Vec<u32> = noise_emissions
             .iter()
-            .map(|wired| wired.emit.slot)
+            .map(|wired| wired.emit.factor)
             .collect();
-        assert_eq!(slots, vec![0, 1, 2]);
+        assert_eq!(factors, vec![0, 1, 2]);
     }
 
     #[test]
-    fn test_every_slot_of_one_injection_shares_one_description() {
+    fn test_every_factor_of_one_injection_shares_one_description() {
         let lowered = build(&circuit(5, |b| {
             annotated_box(
                 b,
@@ -911,14 +911,14 @@ mod tests {
             .filter(|wired| matches!(wired.emit.draw.distribution, Distribution::Noise { .. }))
             .map(|wired| wired.emit.draw)
             .collect();
-        assert_eq!(draws.len(), 5, "one slot per qubit of the box");
+        assert_eq!(draws.len(), 5, "one factor per qubit of the box");
         for draw in &draws[1..] {
             assert_eq!(
                 &draws[0], draw,
                 "one draw whatever allocation it is read from"
             );
         }
-        assert_eq!(draws[0].distribution.num_slots(), 5);
+        assert_eq!(draws[0].distribution.num_factors(), 5);
     }
 
     #[test]
