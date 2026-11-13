@@ -29,6 +29,13 @@ jobs:
             --component llvm-tools-preview
             --no-self-update
 
+      - name: Cache stestr
+        uses: actions/cache@v6
+        with:
+          key: 'stestr | "${{ runner.os }}" | "coverage" | "${{ github.run_id }}"'
+          restore-keys: 'stestr | "${{ runner.os }}" | "coverage"'
+          path: .stestr
+
       - name: Install dependencies
         run: |
             cargo install --locked grcov@0.8.20
