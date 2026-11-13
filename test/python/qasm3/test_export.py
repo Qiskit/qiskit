@@ -1042,6 +1042,27 @@ c[1] = measure q[1];
         )
         self.assertEqual(dumps(qc), expected_qasm)
 
+    def test_for_loop_range_negative_step(self):
+        """Test that a ``range`` with a negative step exports with the correct inclusive end."""
+        parameter = Parameter("i")
+        qc = QuantumCircuit(1)
+        with qc.for_loop(range(5, -1, -2), parameter):
+            qc.rz(parameter, 0)
+
+        qr_name = qc.qregs[0].name
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                f"qubit[1] {qr_name};",
+                f"for int {parameter.name} in [5:-2:0] {{",
+                f"  rz({parameter.name}) {qr_name}[0];",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
     def test_regular_parameter_in_nested_for_loop(self):
         """Test that a for loop nested inside another outputs the expected result, including
         defining parameters that are used in nested loop scopes."""
