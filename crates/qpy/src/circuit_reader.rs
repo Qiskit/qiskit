@@ -81,6 +81,10 @@ pub struct CustomCircuitInstructionData {
     pub gate_type: CircuitInstructionType,
     pub num_qubits: u32,
     pub num_clbits: u32,
+    #[allow(dead_code)] // Used by the QPY 19 reader.
+    pub num_ctrl_qubits: u32,
+    #[allow(dead_code)] // Used by the QPY 19 reader.
+    pub ctrl_state: u32,
     pub definition_circuit: Option<Py<PyAny>>,
     pub base_gate_raw: Bytes,
 }
@@ -355,7 +359,7 @@ pub fn instruction_values_to_params(
     }
 }
 
-fn unpack_annotations(
+pub(crate) fn unpack_annotations(
     packed_annotations: &Option<formats::InstructionsAnnotationPack>,
     qpy_data: &mut QPYReadData,
 ) -> Result<Vec<Arc<dyn Annotation>>, QpyError> {
@@ -979,7 +983,7 @@ fn unpack_transpile_layout<'py>(
     Ok(transpiled_layout)
 }
 
-fn read_custom_instructions(
+pub(crate) fn read_custom_instructions(
     packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> Result<HashMap<String, CustomCircuitInstructionData>, QpyError> {
@@ -1028,6 +1032,8 @@ fn read_custom_instructions(
             gate_type: operation.gate_type,
             num_qubits: operation.num_qubits,
             num_clbits: operation.num_clbits,
+            num_ctrl_qubits: operation.num_ctrl_qubits,
+            ctrl_state: operation.ctrl_state,
             definition_circuit: definition,
             base_gate_raw: operation.base_gate_raw.clone(),
         };
@@ -1036,7 +1042,7 @@ fn read_custom_instructions(
     Ok(result)
 }
 
-fn add_standalone_vars(
+pub(crate) fn add_standalone_vars(
     packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> Result<(), QpyError> {
@@ -1110,12 +1116,12 @@ fn get_bit_mut<'a, T>(
         .ok_or(QpyError::InvalidBit(format!("{err_name}: {index}")))
 }
 
-fn add_registers_and_bits(
+pub(crate) fn add_registers_and_bits(
     packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> Result<(), QpyError> {
-    let num_qubits = packed_circuit.header.num_qubits as usize;
-    let num_clbits = packed_circuit.header.num_clbits as usize;
+    let num_qubits = packed_circuit.header.num_qubits() as usize;
+    let num_clbits = packed_circuit.header.num_clbits() as usize;
     let mut qubits: Vec<Option<ShareableQubit>> = Vec::new();
     qubits
         .try_reserve_exact(num_qubits)
@@ -1131,7 +1137,7 @@ fn add_registers_and_bits(
 
     // first, create all owning registers and collect their bits
     let mut non_standalone_registers = Vec::new();
-    for raw_register in &packed_circuit.header.registers {
+    for raw_register in packed_circuit.header.registers() {
         match raw_register {
             formats::RegisterPack::V4(packed_register) => {
                 if packed_register.standalone == 0 {
@@ -1419,6 +1425,29 @@ pub(crate) fn unpack_circuit(
     caller: QpyCaller,
     remaining_depth: usize,
 ) -> Result<CircuitData, QpyError> {
+    unpack_circuit_v18(
+        packed_circuit,
+        version,
+        use_symengine,
+        annotation_handler,
+        caller,
+        remaining_depth,
+    )
+}
+
+fn unpack_circuit_v18(
+    packed_circuit: &QPYCircuit,
+    version: u8,
+    use_symengine: bool,
+    annotation_handler: AnnotationHandler,
+    caller: QpyCaller,
+    remaining_depth: usize,
+) -> Result<CircuitData, QpyError> {
+    let formats::CircuitHeaderPack::V12(header) = &packed_circuit.header else {
+        return Err(QpyError::InvalidFormat(
+            "QPY <= 18 circuit has a QPY 19 header".to_string(),
+        ));
+    };
     let remaining_depth = remaining_depth
         .checked_sub(1)
         .ok_or_else(|| QpyError::RecursionError)?;
@@ -1471,8 +1500,8 @@ pub(crate) fn unpack_circuit(
     }
     let global_phase = generic_value_to_param(
         &load_value(
-            packed_circuit.header.global_phase_type,
-            &packed_circuit.header.global_phase_data,
+            header.global_phase_type,
+            &header.global_phase_data,
             &mut qpy_data,
             ValueEndian::Big,
         )?,
@@ -1483,13 +1512,17 @@ pub(crate) fn unpack_circuit(
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;
     let custom_instructions = read_custom_instructions(packed_circuit, &mut qpy_data)?;
     for instruction in &packed_circuit.instructions {
+        let formats::CircuitInstructionPack::V2(instruction) = instruction else {
+            return Err(QpyError::InvalidFormat(
+                "QPY <= 18 circuit has a QPY 19 instruction".to_string(),
+            ));
+        };
         let inst = unpack_instruction(instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
     }
     Ok(qpy_data.circuit_data)
 }
 
-// handling for non control flow gates with conditionals, for backwards compatability
 pub fn wrap_conditional_gate(
     instruction: &formats::CircuitInstructionV2Pack,
     op: PackedOperation,
