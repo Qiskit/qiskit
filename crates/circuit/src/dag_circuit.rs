@@ -52,7 +52,7 @@ use crate::operations::{
     Param, StandardGate, SwitchTarget,
 };
 #[cfg(feature = "py")]
-use crate::operations::{PyInstruction, PyOpKind};
+use crate::operations::{CustomOperation, PyInstruction, PyOpKind};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
 use crate::register_data::{RegisterAlreadyExists, RegisterData};
@@ -1997,6 +1997,44 @@ impl PyDAGCircuit {
                             }
                             true
                         };
+                        let check_params = || -> PyResult<bool> {
+                            let params1 = inst1.params_view();
+                            let params2 = inst2.params_view();
+                            if params1.len() != params2.len() {
+                                return Ok(false);
+                            }
+                            for (param1, param2) in params1.iter().zip(params2) {
+                                if !param1.is_close(param2, 1e-10)? {
+                                    return Ok(false);
+                                }
+                            }
+                            Ok(true)
+                        };
+                        let check_custom_python = |custom: &dyn CustomOperation,
+                                                   python: &PyInstruction,
+                                                   custom_params: &[Param]|
+                         -> PyResult<bool> {
+                            if custom.is_unitary() != (python.kind == PyOpKind::Gate)
+                                || custom.num_qubits() != python.num_qubits()
+                                || custom.num_clbits() != python.num_clbits()
+                                || custom.num_params() != python.num_params()
+                                || custom.directive() != python.directive()
+                                || !check_params()?
+                                || !check_args()
+                            {
+                                return Ok(false);
+                            }
+                            let definitions_equal =
+                                match (custom.definition(custom_params), python.py_definition(py)?)
+                                {
+                                    (None, None) => true,
+                                    (Some(custom), Some(python)) => custom
+                                        .into_py_quantum_circuit(py)?
+                                        .eq(python.data.into_py_quantum_circuit(py)?)?,
+                                    _ => false,
+                                };
+                            Ok(definitions_equal)
+                        };
                         if let (Some(cf1), Some(cf2)) = (
                             slf.try_view_control_flow(inst1),
                             other.try_view_control_flow(inst2),
@@ -2367,13 +2405,7 @@ impl PyDAGCircuit {
                                 [
                                     OperationRef::StandardGate(gate1),
                                     OperationRef::StandardGate(gate2),
-                                ] => Ok(gate1 == gate2
-                                    && check_args()
-                                    && inst1
-                                        .params_view()
-                                        .iter()
-                                        .zip(inst2.params_view())
-                                        .all(|(a, b)| a.is_close(b, 1e-10).unwrap())),
+                                ] => Ok(gate1 == gate2 && check_params()? && check_args()),
                                 [
                                     OperationRef::StandardInstruction(op1),
                                     OperationRef::StandardInstruction(op2),
@@ -2402,6 +2434,18 @@ impl PyDAGCircuit {
                                 [OperationRef::PyCustom(op1), OperationRef::PyCustom(op2)] => {
                                     Ok(op1.ob.bind(py).eq(&op2.ob)? && check_args())
                                 }
+                                [
+                                    OperationRef::CustomOperation(op1),
+                                    OperationRef::CustomOperation(op2),
+                                ] => Ok(op1 == op2 && check_params()? && check_args()),
+                                [
+                                    OperationRef::CustomOperation(custom),
+                                    OperationRef::PyCustom(python),
+                                ] => check_custom_python(custom, python, inst1.params_view()),
+                                [
+                                    OperationRef::PyCustom(python),
+                                    OperationRef::CustomOperation(custom),
+                                ] => check_custom_python(custom, python, inst2.params_view()),
                                 // Handle the edge case where we end up with a Python object and a standard
                                 // gate/instruction.
                                 // This typically only happens if we have a ControlledGate in Python
