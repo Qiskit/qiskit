@@ -46,6 +46,8 @@ pub mod var_stretch_container;
 mod variable_mapper;
 pub mod vf2;
 
+use std::ops::Add;
+
 use bytemuck::{Pod, Zeroable};
 #[cfg(feature = "py")]
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
@@ -63,6 +65,23 @@ pub struct Qubit(pub u32);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, Zeroable, Pod)]
 #[repr(transparent)]
 pub struct Clbit(pub u32);
+
+/// Offset a qubit by a number of positions, for walking over a contiguous register.
+impl Add<u32> for Qubit {
+    type Output = Self;
+
+    fn add(self, by: u32) -> Self {
+        Self(self.0 + by)
+    }
+}
+
+impl Add<u32> for Clbit {
+    type Output = Self;
+
+    fn add(self, by: u32) -> Self {
+        Self(self.0 + by)
+    }
+}
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Var(u32);

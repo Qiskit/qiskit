@@ -21,6 +21,7 @@ use num_bigint::BigUint;
 use pyo3::prelude::*;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::standard_gate::StandardGate;
+use qiskit_circuit::{Clbit, Qubit};
 
 use crate::bytecode::InternalBytecode;
 use crate::error::{
@@ -63,10 +64,9 @@ pub(crate) const QELIB1: [StandardGate; 23] = [
 const BUILTIN_CLASSICAL: [&str; 6] = ["cos", "exp", "ln", "sin", "sqrt", "tan"];
 
 /// Define a simple newtype that just has a single non-public `usize` field, has a `new`
-/// constructor, and implements `Copy` and `IntoPy`.  The first argument is the name of the type,
-/// the second is whether to also define addition to make offsetting the newtype easier.
+/// constructor, and implements `Copy` and `IntoPy`.
 macro_rules! newtype_id {
-    ($id:ident, false) => {
+    ($id:ident) => {
         #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
         #[cfg_attr(feature = "py", derive(IntoPyObject, IntoPyObjectRef))]
         pub struct $id(usize);
@@ -81,41 +81,27 @@ macro_rules! newtype_id {
             }
         }
     };
-
-    ($id:ident, true) => {
-        newtype_id!($id, false);
-
-        impl std::ops::Add<usize> for $id {
-            type Output = Self;
-
-            fn add(self, rhs: usize) -> Self {
-                Self::new(self.0 + rhs)
-            }
-        }
-    };
 }
 
-newtype_id!(GateId, false);
-newtype_id!(CregId, false);
-newtype_id!(ParamId, false);
-newtype_id!(QubitId, true);
-newtype_id!(ClbitId, true);
+newtype_id!(GateId);
+newtype_id!(CregId);
+newtype_id!(ParamId);
 
 /// A symbol in the global symbol table.  Parameters and individual qubits can't be in the global
 /// symbol table, as there is no way for them to be defined.
 pub enum GlobalSymbol {
     Qreg {
-        size: usize,
-        start: QubitId,
+        size: u32,
+        start: Qubit,
     },
     Creg {
-        size: usize,
-        start: ClbitId,
+        size: u32,
+        start: Clbit,
         index: CregId,
     },
     Gate {
-        num_params: usize,
-        num_qubits: usize,
+        num_params: u32,
+        num_qubits: u32,
         index: GateId,
     },
     Classical(ClassicalCallableExt),
@@ -136,8 +122,8 @@ impl GlobalSymbol {
 /// the number of parameters and qubits matches.  This is used when the user specifies custom gates
 /// that are not
 struct OverridableGate {
-    num_params: usize,
-    num_qubits: usize,
+    num_params: u32,
+    num_qubits: u32,
     index: GateId,
 }
 
@@ -154,7 +140,7 @@ impl From<OverridableGate> for GlobalSymbol {
 /// A symbol in the scope of a single gate definition.  This only includes the symbols that are
 /// specifically gate-scoped.  The rest are part of [GlobalSymbol].
 pub enum GateSymbol {
-    Qubit { index: QubitId },
+    Qubit { index: Qubit },
     Parameter { index: ParamId },
 }
 
@@ -173,7 +159,7 @@ impl GateSymbol {
 /// The `Range` operand only occurs when a register is used as an operation target.
 enum Operand<T> {
     Single(T),
-    Range(usize, T),
+    Range(u32, T),
 }
 
 /// The available types for the arrays of parameters in a gate call.  The `Constant` variant is for
@@ -235,8 +221,8 @@ pub struct State {
     /// symbol table or not, any gate-based definition of this symbol must match the signature we
     /// expect for it.
     overridable_gates: HashMap<String, OverridableGate>,
-    num_qubits: usize,
-    num_clbits: usize,
+    num_qubits: u32,
+    num_clbits: u32,
     num_cregs: usize,
     num_gates: usize,
     /// Whether a version statement is allowed in this position.
@@ -461,7 +447,7 @@ impl State {
     /// register, or isn't defined.  This can also be an error if the subscript is opened, but
     /// cannot be completely resolved due to a typing error or other invalid parse.  `Ok(None)` is
     /// returned if the next token in the stream does not match a possible quantum argument.
-    fn accept_qarg(&mut self) -> Result<Option<Operand<QubitId>>, ParseError> {
+    fn accept_qarg(&mut self) -> Result<Option<Operand<Qubit>>, ParseError> {
         let (name, name_token) = match self.accept(TokenType::Id)? {
             None => return Ok(None),
             Some(token) => (token.id(&self.context), token),
@@ -498,8 +484,9 @@ impl State {
     }
 
     /// Take a complete quantum argument from the stream, if it matches.  This is for use within
-    /// gates, and so the only valid type of quantum argument is a single qubit.
-    fn accept_qarg_gate(&mut self) -> Result<Option<Operand<QubitId>>, ParseError> {
+    /// gates, and so the only valid type of quantum argument is a single qubit.  Its index is a
+    /// position in the gate's qubit list, not a qubit of the circuit.
+    fn accept_qarg_gate(&mut self) -> Result<Option<Operand<Qubit>>, ParseError> {
         let (name, name_token) = match self.accept(TokenType::Id)? {
             None => return Ok(None),
             Some(token) => (token.id(&self.context), token),
@@ -537,7 +524,7 @@ impl State {
 
     /// Take a complete quantum argument from the token stream, returning an error message if one
     /// is not present.
-    fn require_qarg(&mut self, instruction: &Token) -> Result<Operand<QubitId>, ParseError> {
+    fn require_qarg(&mut self, instruction: &Token) -> Result<Operand<Qubit>, ParseError> {
         match self.peek_token()?.map(|tok| tok.ttype) {
             Some(TokenType::Id) => self.accept_qarg().map(Option::unwrap),
             Some(_) => {
@@ -566,7 +553,7 @@ impl State {
     /// opened, but cannot be completely resolved due to a typing error or other invalid parse.
     /// `Ok(None)` is returned if the next token in the stream does not match a possible classical
     /// argument.
-    fn accept_carg(&mut self) -> Result<Option<Operand<ClbitId>>, ParseError> {
+    fn accept_carg(&mut self) -> Result<Option<Operand<Clbit>>, ParseError> {
         let (name, name_token) = match self.accept(TokenType::Id)? {
             None => return Ok(None),
             Some(token) => (token.id(&self.context), token),
@@ -604,7 +591,7 @@ impl State {
 
     /// Take a complete classical argument from the token stream, returning an error message if one
     /// is not present.
-    fn require_carg(&mut self, instruction: &Token) -> Result<Operand<ClbitId>, ParseError> {
+    fn require_carg(&mut self, instruction: &Token) -> Result<Operand<Clbit>, ParseError> {
         match self.peek_token()?.map(|tok| tok.ttype) {
             Some(TokenType::Id) => self.accept_carg().map(Option::unwrap),
             Some(_) => {
@@ -632,11 +619,11 @@ impl State {
     fn complete_operand<T>(
         &mut self,
         name: &str,
-        register_size: usize,
+        register_size: u32,
         register_start: T,
     ) -> Result<Operand<T>, ParseError>
     where
-        T: std::ops::Add<usize, Output = T>,
+        T: std::ops::Add<u32, Output = T>,
     {
         let lbracket_token = match self.accept(TokenType::LBracket)? {
             Some(token) => token,
@@ -645,8 +632,8 @@ impl State {
         let index_token = self.expect(TokenType::Integer, "an integer index", &lbracket_token)?;
         let index = index_token.int(&self.context);
         self.expect(TokenType::RBracket, "a closing bracket", &lbracket_token)?;
-        if index < register_size {
-            Ok(Operand::Single(register_start + index))
+        if index < register_size as usize {
+            Ok(Operand::Single(register_start + index as u32))
         } else {
             Err(ParseError::new(message_generic(
                 Some(&Position::new(
@@ -703,7 +690,7 @@ impl State {
         let name_token = self.expect(TokenType::Id, "an identifier", &gate_token)?;
         let name = name_token.id(&self.context);
         // Parse the gate parameters (if any) into the symbol take.
-        let mut num_params = 0usize;
+        let mut num_params = 0u32;
         if let Some(lparen_token) = self.accept(TokenType::LParen)? {
             let mut comma = None;
             while let Some(param_token) = self.accept(TokenType::Id)? {
@@ -711,7 +698,7 @@ impl State {
                 if let Some(symbol) = self.gate_symbols.insert(
                     param_name.to_owned(),
                     GateSymbol::Parameter {
-                        index: ParamId::new(num_params),
+                        index: ParamId::new(num_params as usize),
                     },
                 ) {
                     return Err(ParseError::new(message_generic(
@@ -737,14 +724,14 @@ impl State {
             self.expect(TokenType::RParen, "a closing parenthesis", &lparen_token)?;
         }
         // Parse the quantum parameters into the symbol table.
-        let mut num_qubits = 0usize;
+        let mut num_qubits = 0u32;
         let mut comma = None;
         while let Some(qubit_token) = self.accept(TokenType::Id)? {
             let qubit_name = qubit_token.id(&self.context).to_owned();
             if let Some(symbol) = self.gate_symbols.insert(
                 qubit_name.to_owned(),
                 GateSymbol::Qubit {
-                    index: QubitId::new(num_qubits),
+                    index: Qubit(num_qubits),
                 },
             ) {
                 return Err(ParseError::new(message_generic(
@@ -854,7 +841,7 @@ impl State {
             .expect(TokenType::Id, "an identifier", &opaque_token)?
             .text(&self.context)
             .to_owned();
-        let mut num_params = 0usize;
+        let mut num_params = 0u32;
         if let Some(lparen_token) = self.accept(TokenType::LParen)? {
             let mut comma = None;
             while self.accept(TokenType::Id)?.is_some() {
@@ -867,7 +854,7 @@ impl State {
             self.check_trailing_comma(comma.as_ref())?;
             self.expect(TokenType::RParen, "closing parenthesis", &lparen_token)?;
         }
-        let mut num_qubits = 0usize;
+        let mut num_qubits = 0u32;
         let mut comma = None;
         while self.accept(TokenType::Id)?.is_some() {
             num_qubits += 1;
@@ -936,7 +923,7 @@ impl State {
         }?;
         let parameters =
             self.expect_gate_parameters(&name_token, num_params, in_gate, evaluator)?;
-        let mut qargs = Vec::<Operand<QubitId>>::with_capacity(num_qubits);
+        let mut qargs = Vec::<Operand<Qubit>>::with_capacity(num_qubits as usize);
         let mut comma = None;
         if in_gate {
             while let Some(qarg) = self.accept_qarg_gate()? {
@@ -956,7 +943,7 @@ impl State {
             }
         }
         self.check_trailing_comma(comma.as_ref())?;
-        if qargs.len() != num_qubits {
+        if qargs.len() != num_qubits as usize {
             return match self.peek_token()?.map(|tok| tok.ttype) {
                 Some(TokenType::Semicolon) => Err(ParseError::new(message_generic(
                     Some(&Position::new(
@@ -1012,7 +999,7 @@ impl State {
     fn expect_gate_parameters(
         &mut self,
         name_token: &Token,
-        num_params: usize,
+        num_params: u32,
         in_gate: bool,
         evaluator: ClassicalEvaluator<'_>,
     ) -> Result<GateParameters, ParseError> {
@@ -1026,13 +1013,13 @@ impl State {
                 });
             }
         };
-        let mut seen_params = 0usize;
+        let mut seen_params = 0u32;
         let mut comma = None;
         // This code duplication is to avoid duplication of allocation when parsing the far more
         // common case of expecting constant parameters for a gate application in the body of the
         // OQ2 file.
         let parameters = if in_gate {
-            let mut parameters = Vec::<Expr>::with_capacity(num_params);
+            let mut parameters = Vec::<Expr>::with_capacity(num_params as usize);
             while !self.next_is(TokenType::RParen)? {
                 parameters.push(self.expect_expression(&lparen_token, evaluator)?);
                 seen_params += 1;
@@ -1044,7 +1031,7 @@ impl State {
             self.expect(TokenType::RParen, "')'", &lparen_token)?;
             GateParameters::Expression(parameters)
         } else {
-            let mut parameters = Vec::<f64>::with_capacity(num_params);
+            let mut parameters = Vec::<f64>::with_capacity(num_params as usize);
             while !self.next_is(TokenType::RParen)? {
                 match self.expect_expression(&lparen_token, evaluator)? {
                     Expr::Constant(value) => parameters.push(value),
@@ -1096,7 +1083,7 @@ impl State {
         instruction: &Token,
         gate_id: GateId,
         parameters: GateParameters,
-        qargs: &[Operand<QubitId>],
+        qargs: &[Operand<Qubit>],
         condition: Option<Condition>,
     ) -> Result<usize, ParseError> {
         // Fast path for most common gate patterns that don't need broadcasting.
@@ -1129,8 +1116,8 @@ impl State {
         };
         // If we're here we either have to broadcast or it's a 3+q gate - either way, we're not as
         // worried about performance.
-        let mut qubits = HashSet::<QubitId>::with_capacity(qargs.len());
-        let mut broadcast_length = 0usize;
+        let mut qubits = HashSet::<Qubit>::with_capacity(qargs.len());
+        let mut broadcast_length = 0u32;
         for qarg in qargs {
             match qarg {
                 Operand::Single(index) => {
@@ -1219,7 +1206,7 @@ impl State {
                 _ => unreachable!(),
             }
         }
-        Ok(broadcast_length)
+        Ok(broadcast_length as usize)
     }
 
     /// Emit the bytecode for a single gate application in the global scope.  This could
@@ -1229,7 +1216,7 @@ impl State {
         bc: &mut Vec<Option<InternalBytecode>>,
         gate_id: GateId,
         arguments: Vec<f64>,
-        qubits: Vec<QubitId>,
+        qubits: Vec<Qubit>,
         condition: Option<Condition>,
     ) -> Result<usize, ParseError> {
         if let Some(condition) = condition {
@@ -1257,7 +1244,7 @@ impl State {
         bc: &mut Vec<Option<InternalBytecode>>,
         gate_id: GateId,
         arguments: Vec<Expr>,
-        qubits: Vec<QubitId>,
+        qubits: Vec<Qubit>,
     ) -> Result<usize, ParseError> {
         bc.push(Some(InternalBytecode::GateInBody {
             id: gate_id,
@@ -1336,12 +1323,12 @@ impl State {
     fn parse_barrier(
         &mut self,
         bc: &mut Vec<Option<InternalBytecode>>,
-        num_gate_qubits: Option<usize>,
+        num_gate_qubits: Option<u32>,
     ) -> Result<usize, ParseError> {
         let barrier_token = self.expect_known(TokenType::Barrier);
         let qubits = if !self.next_is(TokenType::Semicolon)? {
             let mut qubits = Vec::new();
-            let mut used = HashSet::<QubitId>::new();
+            let mut used = HashSet::<Qubit>::new();
             let mut comma = None;
             while let Some(qarg) = if num_gate_qubits.is_some() {
                 self.accept_qarg_gate()?
@@ -1380,9 +1367,9 @@ impl State {
                 "[strict] barrier statements must have at least one argument",
             )));
         } else if let Some(num_gate_qubits) = num_gate_qubits {
-            (0..num_gate_qubits).map(QubitId::new).collect::<Vec<_>>()
+            (0..num_gate_qubits).map(Qubit).collect::<Vec<_>>()
         } else {
-            (0..self.num_qubits).map(QubitId::new).collect::<Vec<_>>()
+            (0..self.num_qubits).map(Qubit).collect::<Vec<_>>()
         };
         self.expect(TokenType::Semicolon, "';'", &barrier_token)?;
         if qubits.is_empty() {
@@ -1430,7 +1417,7 @@ impl State {
                             value: value.clone(),
                         })
                     }));
-                    Ok(q_size)
+                    Ok(q_size as usize)
                 }
                 _ => Err(ParseError::new(message_generic(
                     Some(&Position::new(
@@ -1456,7 +1443,7 @@ impl State {
                             clbit: c_start + i,
                         })
                     }));
-                    Ok(q_size)
+                    Ok(q_size as usize)
                 }
                 _ => Err(ParseError::new(message_generic(
                     Some(&Position::new(
@@ -1499,7 +1486,7 @@ impl State {
                             value: value.clone(),
                         })
                     }));
-                    Ok(size)
+                    Ok(size as usize)
                 }
             }
         } else {
@@ -1514,10 +1501,34 @@ impl State {
                             qubit: start + offset,
                         })
                     }));
-                    Ok(size)
+                    Ok(size as usize)
                 }
             }
         }
+    }
+
+    /// The error for a register that the circuit model cannot index.
+    fn register_too_large(&self, token: &Token) -> ParseError {
+        ParseError::new(message_generic(
+            Some(&Position::new(
+                self.current_filename(),
+                token.line,
+                token.col,
+            )),
+            &format!(
+                "a register of size {} does not fit in a circuit, which can index at most {} bits",
+                token.text(&self.context),
+                u32::MAX
+            ),
+        ))
+    }
+
+    /// The index a new register of `size` bits starts at, if the circuit model can hold it.
+    fn register_start(&self, count: u32, size: u32, token: &Token) -> Result<u32, ParseError> {
+        if count.checked_add(size).is_none() {
+            return Err(self.register_too_large(token));
+        }
+        Ok(count)
     }
 
     /// Parse a declaration of a classical register, emitting the relevant bytecode and adding the
@@ -1528,14 +1539,15 @@ impl State {
         let name_token = self.expect(TokenType::Id, "a valid identifier", &creg_token)?;
         let name = name_token.id(&self.context);
         let lbracket_token = self.expect(TokenType::LBracket, "'['", &creg_token)?;
-        let size = self
-            .expect(TokenType::Integer, "an integer", &lbracket_token)?
-            .int(&self.context);
+        let size_token = self.expect(TokenType::Integer, "an integer", &lbracket_token)?;
         self.expect(TokenType::RBracket, "']'", &lbracket_token)?;
         self.expect(TokenType::Semicolon, "';'", &creg_token)?;
+        let size = u32::try_from(size_token.int(&self.context))
+            .map_err(|_| self.register_too_large(&size_token))?;
+        let start = self.register_start(self.num_clbits, size, &size_token)?;
         let symbol = GlobalSymbol::Creg {
             size,
-            start: ClbitId::new(self.num_clbits),
+            start: Clbit(start),
             index: CregId::new(self.num_cregs),
         };
         if self.symbols.insert(name.clone(), symbol).is_none() {
@@ -1563,14 +1575,15 @@ impl State {
         let name_token = self.expect(TokenType::Id, "a valid identifier", &qreg_token)?;
         let name = name_token.id(&self.context);
         let lbracket_token = self.expect(TokenType::LBracket, "'['", &qreg_token)?;
-        let size = self
-            .expect(TokenType::Integer, "an integer", &lbracket_token)?
-            .int(&self.context);
+        let size_token = self.expect(TokenType::Integer, "an integer", &lbracket_token)?;
         self.expect(TokenType::RBracket, "']'", &lbracket_token)?;
         self.expect(TokenType::Semicolon, "';'", &qreg_token)?;
+        let size = u32::try_from(size_token.int(&self.context))
+            .map_err(|_| self.register_too_large(&size_token))?;
+        let start = self.register_start(self.num_qubits, size, &size_token)?;
         let symbol = GlobalSymbol::Qreg {
             size,
-            start: QubitId::new(self.num_qubits),
+            start: Qubit(start),
         };
         if self.symbols.insert(name.clone(), symbol).is_none() {
             self.num_qubits += size;
@@ -1609,8 +1622,8 @@ impl State {
                 if self.define_gate(
                     Some(&include_token),
                     gate.name().to_string(),
-                    gate.num_params() as usize,
-                    gate.num_qubits() as usize,
+                    gate.num_params(),
+                    gate.num_qubits(),
                 )? {
                     indices.push(i);
                 }
@@ -1661,8 +1674,8 @@ impl State {
         &mut self,
         owner: Option<&Token>,
         name: String,
-        num_params: usize,
-        num_qubits: usize,
+        num_params: u32,
+        num_qubits: u32,
     ) -> Result<bool, ParseError> {
         let already_defined = |state: &Self, name: String| {
             let pos = owner.map(|tok| Position::new(state.current_filename(), tok.line, tok.col));
@@ -1672,7 +1685,7 @@ impl State {
             )))
         };
         let mismatched_definitions = |state: &Self, name: String, previous: OverridableGate| {
-            let plural = |count: usize, singular: &str| {
+            let plural = |count: u32, singular: &str| {
                 let mut out = format!("{count} {singular}");
                 if count != 1 {
                     out.push('s');
