@@ -42,6 +42,7 @@ pub const DEFAULT_BARRIER_LABEL_LEN: usize = 16;
 ///   number is exceeded, the label is truncated at that number and '...' is appended.
 ///   Use 0 to apply the default of [DEFAULT_BARRIER_LABEL_LEN] characters.
 /// * idle_wires: If false, removes unused wires from the circuit
+/// * reverse_bits: If true, reverses the order of the qubit and classical bit wires.
 ///
 /// # Returns:
 ///
@@ -53,8 +54,9 @@ pub fn draw_circuit(
     fold: Option<usize>,
     barrier_label_len: usize,
     idle_wires: bool,
+    reverse_bits: bool,
 ) -> String {
-    let vis_mat = VisualizationMatrix::from_circuit(circuit, cregbundle, idle_wires);
+    let vis_mat = VisualizationMatrix::from_circuit(circuit, cregbundle, idle_wires, reverse_bits);
 
     let barrier_label_len = if barrier_label_len != 0 {
         barrier_label_len
@@ -606,7 +608,12 @@ struct VisualizationMatrix<'a> {
 }
 
 impl<'a> VisualizationMatrix<'a> {
-    fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool, idle_wires: bool) -> Self {
+    fn from_circuit(
+        circuit: &'a CircuitData,
+        bundle_cregs: bool,
+        idle_wires: bool,
+        reverse_bits: bool,
+    ) -> Self {
         let mut vis_matrix = VisualizationMatrix {
             layers: Vec::new(),
             circuit,
@@ -619,13 +626,14 @@ impl<'a> VisualizationMatrix<'a> {
         let is_idle = vis_matrix.get_idle_wires(circuit);
 
         (vis_matrix.qubit_map, vis_matrix.num_qubit_wires) =
-            vis_matrix.build_qubit_wires_map(circuit, &is_idle, idle_wires);
+            vis_matrix.build_qubit_wires_map(circuit, &is_idle, idle_wires, reverse_bits);
         (vis_matrix.clbit_map, vis_matrix.num_clbit_wires) = vis_matrix.build_clbit_wires_map(
             circuit,
             &is_idle,
             vis_matrix.num_qubit_wires,
             idle_wires,
             bundle_cregs,
+            reverse_bits,
         );
 
         let num_wires = vis_matrix.num_qubit_wires + vis_matrix.num_clbit_wires;
@@ -700,23 +708,25 @@ impl<'a> VisualizationMatrix<'a> {
         circuit: &CircuitData,
         is_idle: &[bool],
         idle_wires: bool,
+        reverse_bits: bool,
     ) -> (Vec<Option<usize>>, usize) {
-        let mut qubit_map: Vec<Option<usize>> = Vec::new();
         let num_qubits = circuit.num_qubits();
-        let mut num_qubit_wires = if idle_wires { num_qubits } else { 0 };
+        let mut qubit_map = vec![None; num_qubits];
+        let mut num_qubit_wires = 0;
+        let mut add_qubit = |idx: usize| {
+            if idle_wires || !is_idle[idx] {
+                qubit_map[idx] = Some(num_qubit_wires);
+                num_qubit_wires += 1;
+            }
+        };
 
-        if idle_wires {
-            for i in 0..num_qubit_wires {
-                qubit_map.push(Some(i));
+        if reverse_bits {
+            for idx in (0..num_qubits).rev() {
+                add_qubit(idx);
             }
         } else {
-            for is_idle_qub in is_idle[0..num_qubits].iter() {
-                if *is_idle_qub {
-                    qubit_map.push(None);
-                } else {
-                    qubit_map.push(Some(num_qubit_wires));
-                    num_qubit_wires += 1;
-                }
+            for idx in 0..num_qubits {
+                add_qubit(idx);
             }
         }
         (qubit_map, num_qubit_wires)
@@ -732,12 +742,15 @@ impl<'a> VisualizationMatrix<'a> {
         qubit_wires: usize,
         idle_wires: bool,
         bundle_cregs: bool,
+        reverse_bits: bool,
     ) -> (Vec<Option<usize>>, usize) {
-        let mut clbit_map: Vec<Option<usize>> = Vec::new();
+        let num_clbits = circuit.num_clbits();
+        let mut clbit_map = vec![None; num_clbits];
 
         let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
         let mut input_idx = qubit_wires;
-        for (idx, clbit) in circuit.clbits().objects().iter().enumerate() {
+        let mut add_clbit = |idx: usize| {
+            let clbit = &circuit.clbits().objects()[idx];
             if idle_wires || !is_idle[circuit.num_qubits() + idx] {
                 if bundle_cregs {
                     let bit_location = circuit
@@ -752,19 +765,27 @@ impl<'a> VisualizationMatrix<'a> {
                             .0;
 
                         if visited_cregs.contains(creg) {
-                            clbit_map.push(Some(input_idx - 1));
+                            clbit_map[idx] = Some(input_idx - 1);
                         } else {
                             visited_cregs.insert(creg);
-                            clbit_map.push(Some(input_idx));
+                            clbit_map[idx] = Some(input_idx);
                             input_idx += 1;
                         }
-                        continue;
+                        return;
                     }
                 }
-                clbit_map.push(Some(input_idx));
+                clbit_map[idx] = Some(input_idx);
                 input_idx += 1;
-            } else {
-                clbit_map.push(None);
+            }
+        };
+
+        if reverse_bits {
+            for idx in (0..num_clbits).rev() {
+                add_clbit(idx);
+            }
+        } else {
+            for idx in 0..num_clbits {
+                add_clbit(idx);
             }
         }
 
@@ -1816,7 +1837,7 @@ mod tests {
     #[test]
     fn test_empty_circuit() {
         let circuit = CircuitData::new(None, None, Param::Float(0.5)).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, true, false);
 
         assert_eq!("global phase: 0.5", result.trim_end());
     }
@@ -1824,7 +1845,7 @@ mod tests {
     #[test]
     fn test_empty_circuit_zero_phase() {
         let circuit = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, true, false);
 
         assert_eq!("", result.trim_end());
     }
@@ -1867,7 +1888,7 @@ mod tests {
     fn test_creg_bundle() {
         let circuit = basic_circuit();
 
-        let result = draw_circuit(&circuit, true, false, None, 0, true);
+        let result = draw_circuit(&circuit, true, false, None, 0, true, false);
 
         let expected = "
       ┌───┐
@@ -1890,7 +1911,7 @@ c2: 2/══════════
     fn test_merge_wires() {
         let circuit = basic_circuit();
 
-        let result = draw_circuit(&circuit, false, true, None, 0, true);
+        let result = draw_circuit(&circuit, false, true, None, 0, true, false);
         let expected = "
       ┌───┐
  q_0: ┤ H ├──■──
@@ -1940,7 +1961,7 @@ c2_1: ══════════
         };
         circuit.push(inst).unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(100), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, true, false);
         let expected = "
    ┌───┐┌─┐
 q: ┤ H ├┤M├
@@ -1983,7 +2004,7 @@ c: ══════╩═
             .push_standard_gate(StandardGate::H, &[], &[Qubit::new(1)])
             .unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(100), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, true, false);
         let expected = "
       ┌───┐
    q: ┤ H ├
@@ -2018,7 +2039,7 @@ cr_1: ═════
             .push_standard_gate(StandardGate::CZ, &[], &[Qubit::new(0), Qubit::new(1)])
             .unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(10), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(10), 0, true, false);
         let expected = "
       ┌───┐     »
  q_0: ┤ H ├──■──»
@@ -2083,7 +2104,7 @@ c2_1: ══════════»
         let mut inst_clone = circuit.data()[0].clone();
         inst_clone.label = Some(Box::new("my_ch".to_string()));
         circuit.push(inst_clone).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, true, false);
         let expected = "
           ┌────────────┐┌───────────────┐
 q_0: ──■──┤0           ├┤0              ├────■────
@@ -2212,7 +2233,7 @@ q_1: ┤ H ├┤1           ├┤1              ├┤ my_ch ├
             py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, true, false);
         let expected = "
           ┌─────────┐                  ┌────────────────────┐┌──────────┐»
 q_0: ─────┤ Unitary ├──────────────────┤0                   ├┤2         ├»
@@ -2266,7 +2287,7 @@ q_3: ──────────────────────┤1     
                 .collect::<Vec<Param>>();
             circuit.push_standard_gate(op, &params, &qubits).unwrap();
         }
-        let result = draw_circuit(&circuit, false, false, Some(80), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, true, false);
         let expected = "
      ┌───┐  ┌───────────┐      ┌─────┐   ┌─────┐ ┌───────────────────────┐          »
 q_0: ┤ Y ├──┤ Rx(3.141) ├──────┤ Sdg ├───┤ Tdg ├─┤ U3(3.141,3.141,3.141) ├──■───────»
@@ -2353,7 +2374,7 @@ q_4: ─────────────────────────
     fn test_global_phase() {
         let mut circuit = basic_circuit();
         circuit.set_global_phase_param(3.14.into()).unwrap();
-        let result = draw_circuit(&circuit, true, false, None, 0, true);
+        let result = draw_circuit(&circuit, true, false, None, 0, true, false);
 
         let expected = "
 global phase: 3.14
@@ -2380,7 +2401,7 @@ c2: 2/══════════
                 ParameterExpression::from_symbol(Symbol::standalone("ϕ".to_owned(), None)),
             )))
             .unwrap();
-        let result = draw_circuit(&circuit, true, false, Some(80), 0, true);
+        let result = draw_circuit(&circuit, true, false, Some(80), 0, true, false);
 
         let expected = "
 global phase: ϕ
@@ -2422,7 +2443,7 @@ c2: 2/══════════
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, true, false);
         let expected = "
      ┌─────────┐┌────────────┐┌─────────┐
 q_0: ┤0        ├┤0           ├┤0        ├
@@ -2509,7 +2530,7 @@ q_1: ┤1        ├┤1           ├┤1        ├
             circuit.push(inst).unwrap();
         }
 
-        let result = draw_circuit(&circuit, false, false, Some(100), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, true, false);
         let expected = "
           ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐ ░  ░ »
 q_0: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├─░──░─»
@@ -2586,7 +2607,7 @@ c_3: ═════════════════════════
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, true, false);
         let expected = "
      ┌─────────┐┌─────────────┐┌─────────┐
 q_0: ┤0        ├┤0            ├┤0        ├
@@ -2627,7 +2648,7 @@ q_1: ┤1        ├┤1            ├┤1        ├
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, true, false);
         let expected = "
                ┌──────────┐            ┌───────────┐┌─────────┐
 q_0: ──────────┤0         ├────────────┤0          ├┤0        ├
@@ -2680,7 +2701,7 @@ q_1: ┤ Ry(🎩) ├┤1         ├─┤ 💶🔉(🎩) ├─┤1          �
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, None, 0, true);
+        let result = draw_circuit(&circuit, true, true, None, 0, true, false);
         let expected = "
 global phase: 4π/5
       ┌────────────┐ ┌────────────┐ ┌───────────────┐
@@ -2844,7 +2865,7 @@ q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) �
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, Some(80), 0, true);
+        let result = draw_circuit(&circuit, true, true, Some(80), 0, true, false);
         let expected = "
                       ┌────────────┐┌──────────────┐
  q_0: ────────────────┤0 Z         ├┤0  Z          ├
@@ -2927,7 +2948,7 @@ q_10: ────────────────────────�
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, Some(80), 0, true);
+        let result = draw_circuit(&circuit, true, true, Some(80), 0, true, false);
         let expected = "
       ┌───────────┐
 qr_0: ┤0 I        ├───────────────────
@@ -2962,7 +2983,7 @@ cr: 3/══════╩══════════╩══════�
 
         build(&mut circuit);
 
-        let result = draw_circuit(&circuit, false, mergewires, Some(100), 0, true);
+        let result = draw_circuit(&circuit, false, mergewires, Some(100), 0, true, false);
         assert_eq!(result, expected);
     }
 
@@ -3106,7 +3127,7 @@ q_3: ┤ X ├─■─────────────────┤ X ├
         let circuit = labeled_barrier_circuit();
         // A `barrier_label_len` of 0 selects the default of
         // `DEFAULT_BARRIER_LABEL_LEN` characters.
-        let result = draw_circuit(&circuit, false, false, Some(100), 0, false);
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, false, false);
         let expected = "
      ┌───┐ short       a_very_long_barr...
 q_0: ┤ H ├───░─────■────────────░──────────
@@ -3125,7 +3146,7 @@ q_2: ────────░────────────────
     #[test]
     fn test_barrier_label_custom_truncation() {
         let circuit = labeled_barrier_circuit();
-        let result = draw_circuit(&circuit, false, false, Some(100), 5, false);
+        let result = draw_circuit(&circuit, false, false, Some(100), 5, false, false);
         let expected = "
      ┌───┐ short       a_ver...
 q_0: ┤ H ├───░─────■──────░─────
@@ -3161,7 +3182,7 @@ q_2: ────────░────────────────
             py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100), 0, true);
+        let result = draw_circuit(&circuit, false, false, Some(100), 0, true, false);
         let expected = "
 
 q_0: ─────────
@@ -3194,7 +3215,7 @@ q_2: ────░────
             py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100), 16, false);
+        let result = draw_circuit(&circuit, false, false, Some(100), 16, false, false);
         let expected = "
       0123456789abcdef
 q_0: ────────░─────────
@@ -3277,7 +3298,7 @@ q_0: ────────░─────────
                 &[Clbit(6)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80), 0, false);
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, false, false);
         let expected = "
                                 ┌─┐         ┌────────┐
 q0_0: ──■────■──────────────────┤M├─■───────┤0 Z     ├
@@ -3302,7 +3323,7 @@ c2_1: ════════════════════════�
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
 
-        let result_creg_bundle = draw_circuit(&circuit, true, true, Some(80), 0, false);
+        let result_creg_bundle = draw_circuit(&circuit, true, true, Some(80), 0, false, false);
         let expected_creg_bundle = "
                                 ┌─┐         ┌────────┐
 q0_0: ──■────■──────────────────┤M├─■───────┤0 Z     ├
@@ -3327,6 +3348,128 @@ c2: 3/════════════════════════�
     }
 
     #[test]
+    fn test_reverse_bits() {
+        let qreg = QuantumRegister::new_owning("q", 3);
+        let creg = ClassicalRegister::new_owning("c", 2);
+        let qubits: Vec<ShareableQubit> = qreg.iter().collect();
+        let clbits: Vec<ShareableClbit> = creg.iter().collect();
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_qreg(qreg, true);
+        _ = circuit.add_creg(creg, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(2)])
+            .unwrap();
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+                None,
+                &[Qubit(2)],
+                &[Clbit(0)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, true, true);
+        let expected = "
+          ┌─┴─┐┌─┐
+q_2: ─────┤ X ├┤M├
+          └───┘└╥┘
+            │
+q_1: ───────┼─────
+            │
+     ┌───┐  │
+q_0: ┤ H ├──■─────
+     └───┘
+
+c_1: ═════════════
+
+                ║
+c_0: ═══════════╩═
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_reverse_bits_with_idle_wires_removed() {
+        let qreg = QuantumRegister::new_owning("q", 5);
+        let creg = ClassicalRegister::new_owning("c", 3);
+        let qubits: Vec<ShareableQubit> = qreg.iter().collect();
+        let clbits: Vec<ShareableClbit> = creg.iter().collect();
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_qreg(qreg, true);
+        _ = circuit.add_creg(creg, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit(1)])
+            .unwrap();
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+                None,
+                &[Qubit(3)],
+                &[Clbit(1)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(80), 0, false, true);
+        let expected = "
+      ┌─┐
+q_3: ─┤M├─
+      └╥┘
+     ┌───┐
+q_1: ┤ H ├
+     └───┘
+       ║
+c_1: ══╩══
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_reverse_bits_with_bundled_registers() {
+        let qreg = QuantumRegister::new_owning("q", 1);
+        let creg_0 = ClassicalRegister::new_owning("c0", 2);
+        let creg_1 = ClassicalRegister::new_owning("c1", 2);
+        let qubits: Vec<ShareableQubit> = qreg.iter().collect();
+        let clbits: Vec<ShareableClbit> = creg_0.iter().chain(creg_1.iter()).collect();
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_qreg(qreg, true);
+        _ = circuit.add_creg(creg_0, true);
+        _ = circuit.add_creg(creg_1, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
+            .unwrap();
+        for clbit in [Clbit(0), Clbit(2)] {
+            circuit
+                .push_packed_operation(
+                    PackedOperation::from_standard_instruction(StandardInstruction::Measure),
+                    None,
+                    &[Qubit(0)],
+                    &[clbit],
+                )
+                .unwrap();
+        }
+
+        let result = draw_circuit(&circuit, true, false, Some(80), 0, true, true);
+        let expected = "
+      ┌───┐┌─┐┌─┐
+   q: ┤ H ├┤M├┤M├
+      └───┘└╥┘└╥┘
+               ║
+c1: 2/═════════╩═
+               0
+            ║  ║
+c0: 2/══════╩══╬═
+            0  ║
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
     fn test_anonymous_clbits_on_idle_wires() {
         let qubits = vec![ShareableQubit::new_anonymous()];
         let clbits = vec![
@@ -3347,7 +3490,7 @@ c2: 3/════════════════════════�
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, false, Some(80), 0, false);
+        let result = draw_circuit(&circuit, true, false, Some(80), 0, false, false);
         let expected = "
 global phase: 0.9
      ┌───┐┌─┐

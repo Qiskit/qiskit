@@ -1,0 +1,6 @@
+---
+features_c:
+  - |
+    Added the ``reverse_bits`` field to :c:struct:`QkCircuitDrawerConfig`,
+    allowing :c:func:`qk_circuit_draw` to render qubit and classical bit wires
+    in reverse order when the field is set to ``true``.
