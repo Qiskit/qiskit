@@ -23,6 +23,7 @@ from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, UGate, PhaseGate
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
+from qiskit.quantum_info import Operator
 from test import QiskitTestCase
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
@@ -680,6 +681,60 @@ class TestOptimize1qGatesBasis(QiskitTestCase):
         expected.append(U3Gate(alpha, 0, 0), [qr[0]])
         expected.append(U3Gate(0.3, 0, 0), [qr[0]])
 
+        self.assertEqual(expected, result)
+
+    def test_u_after_cancelling_pair(self):
+        """A ``u`` gate that follows a pair cancelling to identity must not become an empty gate.
+
+        See: https://github.com/Qiskit/qiskit/issues/14970
+        """
+        circuit = QuantumCircuit(1)
+        circuit.u(1, 1, 1, 0)
+        circuit.u(-1, -1, -1, 0)
+        circuit.u(1, 0, 0, 0)
+
+        result = PassManager(Optimize1qGates()).run(circuit)
+
+        self.assertEqual([inst.name for inst in result.data], ["u3"])
+        self.assertTrue(Operator(result).equiv(Operator(circuit)))
+
+    def test_u_after_cancelling_pair_basis_u(self):
+        """Same as ``test_u_after_cancelling_pair``, but the output basis is ``u``."""
+        circuit = QuantumCircuit(1)
+        circuit.u(1, 1, 1, 0)
+        circuit.u(-1, -1, -1, 0)
+        circuit.u(1, 0, 0, 0)
+
+        result = PassManager(Optimize1qGates(["u"])).run(circuit)
+
+        self.assertEqual([inst.name for inst in result.data], ["u"])
+        self.assertTrue(Operator(result).equiv(Operator(circuit)))
+
+    def test_p_after_cancelling_pair_basis_u1(self):
+        """A ``p`` gate that follows a cancelling pair is output in the ``u1`` basis."""
+        circuit = QuantumCircuit(1)
+        circuit.p(0.5, 0)
+        circuit.p(-0.5, 0)
+        circuit.p(0.3, 0)
+
+        result = PassManager(Optimize1qGates(["u1"])).run(circuit)
+
+        expected = QuantumCircuit(1)
+        expected.append(U1Gate(0.3), [0])
+        self.assertEqual(expected, result)
+
+    def test_u1_with_target_supporting_only_u(self):
+        """A ``u1`` gate is output as ``u`` when the target only supports ``u``."""
+        circuit = QuantumCircuit(1)
+        circuit.append(U1Gate(0.3), [0])
+
+        target = Target(num_qubits=1)
+        target.add_instruction(UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")))
+
+        result = PassManager(Optimize1qGates(target=target)).run(circuit)
+
+        expected = QuantumCircuit(1)
+        expected.append(UGate(0, 0, 0.3), [0])
         self.assertEqual(expected, result)
 
 

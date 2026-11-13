@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed :class:`.Optimize1qGates` outputting an empty, unnamed gate instead of a :class:`.UGate`
+    or :class:`.U3Gate` in some runs of ``u`` and ``p`` gates.
+    See `#14970 <https://github.com/Qiskit/qiskit/issues/14970>`__.
