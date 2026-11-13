@@ -349,7 +349,7 @@ impl ExprParser<'_> {
     /// exhausted.
     fn next_token(&mut self) -> Result<Option<Token>, ParseError> {
         let mut pointer = self.tokens.len() - 1;
-        while pointer > 1 {
+        while pointer > 0 {
             let out = self.tokens[pointer].next(self.context)?;
             if out.is_some() {
                 return Ok(out);
@@ -364,7 +364,7 @@ impl ExprParser<'_> {
     /// streams yet.  Will only return `None` once all streams are exhausted.
     fn peek_token(&mut self) -> Result<Option<&Token>, ParseError> {
         let mut pointer = self.tokens.len() - 1;
-        while pointer > 1 && self.tokens[pointer].peek(self.context)?.is_none() {
+        while pointer > 0 && self.tokens[pointer].peek(self.context)?.is_none() {
             pointer -= 1;
         }
         self.tokens[pointer].peek(self.context)
