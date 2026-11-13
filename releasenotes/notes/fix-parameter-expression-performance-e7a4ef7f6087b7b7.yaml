@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed a performance regression in :class:`.ParameterExpression` objects, where building 
+    sums with numeric constants, or repeatedly scaling sums, could take time exponential in the 
+    number of operations. This affected, for example, the accumulation of the global phase in
+    :class:`.BasisTranslator`. 
+    As a side effect, the structural form of some expressions has changed. For example,
+    ``2 * (x + 1)`` is now represented as ``2 + 2*x``.
+
+    See `#17306 https://github.com/Qiskit/qiskit/issues/17306`__ 
+    and `#16520 https://github.com/Qiskit/qiskit/issues/16520`__.

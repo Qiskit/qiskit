@@ -432,6 +432,31 @@ fn _sub(lhs: SymbolExpr, rhs: SymbolExpr) -> SymbolExpr {
     }
 }
 
+// make `c + r` (or `c - r` if `neg`), folding a constant at the root of `r` into `c`
+fn _add_constant(c: Value, r: SymbolExpr, neg: bool) -> SymbolExpr {
+    if let SymbolExpr::Value(v) = &r {
+        return SymbolExpr::Value(if neg { c - *v } else { c + *v });
+    }
+    if let Some((rc, rr, rneg)) = r.split_constant() {
+        let c = if neg { c - rc } else { c + rc };
+        return _add_constant(c, rr.clone(), neg ^ rneg);
+    }
+    if c.is_zero() {
+        if neg {
+            match r.neg_opt() {
+                Some(e) => e,
+                None => _neg(r),
+            }
+        } else {
+            r
+        }
+    } else if neg {
+        _sub(SymbolExpr::Value(c), r)
+    } else {
+        _add(SymbolExpr::Value(c), r)
+    }
+}
+
 // functions to make new expr for mul
 #[inline(always)]
 fn _mul(lhs: SymbolExpr, rhs: SymbolExpr) -> SymbolExpr {
@@ -1206,6 +1231,130 @@ impl SymbolExpr {
         }
     }
 
+    /// If this is a sum/sub with a numeric constant at its root, i.e. one of `c + r`, `c - r`,
+    /// `r + c` or `r - c`, return the constant, the remainder `r` and whether `r` is subtracted.
+    fn split_constant(&self) -> Option<(Value, &SymbolExpr, bool)> {
+        match self {
+            SymbolExpr::Binary { op, lhs, rhs } => match (op, lhs.as_ref(), rhs.as_ref()) {
+                (BinaryOp::Add, SymbolExpr::Value(c), r) => Some((*c, r, false)),
+                (BinaryOp::Sub, SymbolExpr::Value(c), r) => Some((*c, r, true)),
+                (BinaryOp::Add, r, SymbolExpr::Value(c)) => Some((*c, r, false)),
+                (BinaryOp::Sub, r, SymbolExpr::Value(c)) => Some((-c, r, false)),
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    /// Split into a numeric constant and a (possibly subtracted) remainder, where the remainder is
+    /// `None` for a bare value and the constant is zero if there is none.
+    fn split_constant_or_zero(&self) -> (Value, Option<&SymbolExpr>, bool) {
+        if let SymbolExpr::Value(v) = self {
+            return (*v, None, false);
+        }
+        match self.split_constant() {
+            Some((c, r, neg)) => (c, Some(r), neg),
+            None => (Value::Int(0), Some(self), false),
+        }
+    }
+
+    /// Add (or subtract if `sub`) if either side is a sum/sub holding a numeric constant, such
+    /// that the result again holds only a single constant at its root, as `c + r` or `c - r`:
+    ///
+    ///   (c1 + r1) + (c2 - r2)  ->  (c1 + c2) + (r1 - r2)
+    ///   (c1 - r1) + t          ->  c1 - (r1 - t)
+    ///   t - (c2 + r2)          ->  -c2 + (t - r2)
+    ///   (c1 + r1) - c2         ->  (c1 - c2) + r1
+    ///
+    /// This only looks at the root nodes of both sides, so the cost does not grow with the length
+    /// of the sequence. Returns `None` if neither side is a sum/sub holding a constant.
+    fn add_sub_constant(&self, rhs: &SymbolExpr, sub: bool, recursive: bool) -> Option<SymbolExpr> {
+        if self.split_constant().is_none() && rhs.split_constant().is_none() {
+            return None;
+        }
+        let (c1, r1, neg1) = self.split_constant_or_zero();
+        let (c2, r2, neg2) = rhs.split_constant_or_zero();
+        let c = if sub { c1 - c2 } else { c1 + c2 };
+        let neg2 = neg2 ^ sub;
+        Some(match (r1, r2) {
+            (None, None) => SymbolExpr::Value(c),
+            (Some(r1), None) => _add_constant(c, r1.clone(), neg1),
+            (None, Some(r2)) => _add_constant(c, r2.clone(), neg2),
+            // c + (+-r1) + (+-r2)  ->  c +- (r1 +- r2)
+            (Some(r1), Some(r2)) => {
+                let inner = if r1.eq_exact(r2) {
+                    // shared term, which is either doubled or canceled
+                    if neg1 == neg2 {
+                        _mul(SymbolExpr::Value(Value::Int(2)), r1.clone())
+                    } else {
+                        SymbolExpr::Value(Value::Int(0))
+                    }
+                } else if neg1 == neg2 {
+                    match r1.add_opt(r2, recursive) {
+                        Some(e) => e,
+                        None => _add(r1.clone(), r2.clone()),
+                    }
+                } else {
+                    match r1.sub_opt(r2, recursive) {
+                        Some(e) => e,
+                        None => _sub(r1.clone(), r2.clone()),
+                    }
+                };
+                _add_constant(c, inner, neg1)
+            }
+        })
+    }
+
+    /// Check if `self` and `rhs` are the same term, to merge or cancel them in `add_opt` and
+    /// `sub_opt`. If not `recursive`, this only compares the structure, since expanding here calls
+    /// back into `add_opt`, which makes the cost grow exponentially in sequences of operations.
+    fn same_term(&self, rhs: &SymbolExpr, recursive: bool) -> bool {
+        if recursive {
+            self.expand().string_id() == rhs.expand().string_id()
+        } else {
+            self.eq_exact(rhs)
+        }
+    }
+
+    /// Multiply each term of a sum/sub sequence holding a numeric constant at its root by the
+    /// numeric value `c`, such that the constant stays a single constant at the root, e.g.
+    /// `2 * (1 + x - 3 * y)` becomes `2 + 2 * x - 6 * y`. Otherwise, the constant would be hidden
+    /// in a product with the sum. Returns `None` if `self` has no constant at its root.
+    fn scale_sum(&self, c: &Value) -> Option<SymbolExpr> {
+        enum Visit<'a> {
+            Enter(&'a SymbolExpr),
+            Exit(&'a BinaryOp),
+        }
+        self.split_constant()?;
+        let c = SymbolExpr::Value(*c);
+        // iterative post-order walk over the sum/sub nodes, as sequences can be long
+        let mut todo = vec![Visit::Enter(self)];
+        let mut done: Vec<SymbolExpr> = Vec::new();
+        while let Some(visit) = todo.pop() {
+            match visit {
+                Visit::Enter(SymbolExpr::Binary {
+                    op: op @ (BinaryOp::Add | BinaryOp::Sub),
+                    lhs,
+                    rhs,
+                }) => {
+                    todo.push(Visit::Exit(op));
+                    todo.push(Visit::Enter(rhs));
+                    todo.push(Visit::Enter(lhs));
+                }
+                Visit::Enter(term) => done.push(&c * term),
+                Visit::Exit(op) => {
+                    let r = done.pop().expect("rhs was scaled");
+                    let l = done.pop().expect("lhs was scaled");
+                    done.push(match op {
+                        BinaryOp::Add => _add(l, r),
+                        _ => _sub(l, r),
+                    });
+                }
+            }
+        }
+        done.pop()
+    }
+
     /// unary operations
     pub fn abs(&self) -> SymbolExpr {
         match self {
@@ -1324,6 +1473,8 @@ impl SymbolExpr {
             Some(rhs.clone())
         } else if rhs.is_zero() {
             Some(self.clone())
+        } else if let Some(e) = self.add_sub_constant(rhs, false, recursive) {
+            Some(e)
         } else {
             // if neg operation, call sub_opt
             if let SymbolExpr::Unary { op, expr } = rhs {
@@ -1500,32 +1651,17 @@ impl SymbolExpr {
                             r_rhs.as_ref(),
                         ) {
                             // shared terms (lv op X) + (rv op X)
+                            // shared terms in sums, (lv + X) + (rv - X), are handled by
+                            // `add_sub_constant`
                             (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
-                                if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
+                                // check the operations first, as expanding can be expensive
+                                if matches!(
+                                    (op, rop),
+                                    (BinaryOp::Mul, BinaryOp::Mul) | (BinaryOp::Div, BinaryOp::Div)
+                                ) && l_rhs.same_term(r_rhs, recursive)
+                                {
                                     let t = SymbolExpr::Value(lv + rv);
                                     match (op, rop) {
-                                        // (lv + X) + (rv + X)  ->  t + 2*X
-                                        // (lv - X) + (rv - X)  ->  t - 2*X
-                                        (BinaryOp::Add, BinaryOp::Add)
-                                        | (BinaryOp::Sub, BinaryOp::Sub) => {
-                                            let two_signed =
-                                                if matches!(op, BinaryOp::Add) { 2 } else { -2 };
-                                            let doubled_signed = _mul(
-                                                SymbolExpr::Value(Value::Int(two_signed)),
-                                                l_rhs.as_ref().clone(),
-                                            );
-                                            return Some(if t.is_zero() {
-                                                doubled_signed
-                                            } else {
-                                                _add(t, doubled_signed)
-                                            });
-                                        }
-                                        // (lv + X) + (rv - X)  ->  X canceled -> (lv+rv) = t
-                                        // (lv - X) + (rv + X)  ->  X canceled -> (lv+rv) = t
-                                        (BinaryOp::Sub, BinaryOp::Add)
-                                        | (BinaryOp::Add, BinaryOp::Sub) => {
-                                            return Some(t);
-                                        }
                                         // (lv * X) + (rv * X)  ->  (lv+rv) * X = t * X
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
                                             if t.is_zero() {
@@ -1554,9 +1690,8 @@ impl SymbolExpr {
                             // only when X == +-Y, so add_opt collapses (rv*X + lv*Y) into a single term
                             (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Div, BinaryOp::Div) = (op, rop)
-                                    && (l_lhs.expand().string_id() == r_lhs.expand().string_id()
-                                        || _neg(l_lhs.as_ref().clone()).expand().string_id()
-                                            == r_lhs.expand().string_id())
+                                    && (l_lhs.same_term(r_lhs, recursive)
+                                        || _neg(l_lhs.as_ref().clone()).same_term(r_lhs, recursive))
                                 {
                                     let tl = _mul(SymbolExpr::Value(*rv), l_lhs.as_ref().clone());
                                     let tr = _mul(SymbolExpr::Value(*lv), r_lhs.as_ref().clone());
@@ -1571,9 +1706,8 @@ impl SymbolExpr {
                             // rewrite Div as Mul when X == +-Y so add_opt collapses them into a single term
                             (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop)
-                                    && (l_rhs.expand().string_id() == r_lhs.expand().string_id()
-                                        || _neg(l_rhs.as_ref().clone()).expand().string_id()
-                                            == r_lhs.expand().string_id())
+                                    && (l_rhs.same_term(r_lhs, recursive)
+                                        || _neg(l_rhs.as_ref().clone()).same_term(r_lhs, recursive))
                                 {
                                     let r = _mul(
                                         SymbolExpr::Value(Value::Real(1.0) / *rv),
@@ -1588,9 +1722,8 @@ impl SymbolExpr {
                             // rewrite Div as Mul when X == +-Y so add_opt collapses them into a single term
                             (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
                                 if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop)
-                                    && (l_lhs.expand().string_id() == r_rhs.expand().string_id()
-                                        || _neg(l_lhs.as_ref().clone()).expand().string_id()
-                                            == r_rhs.expand().string_id())
+                                    && (l_lhs.same_term(r_rhs, recursive)
+                                        || _neg(l_lhs.as_ref().clone()).same_term(r_rhs, recursive))
                                 {
                                     let l = _mul(
                                         SymbolExpr::Value(Value::Real(1.0) / *lv),
@@ -1606,7 +1739,7 @@ impl SymbolExpr {
 
                         if op == rop
                             && let Some(e) = rhs.neg_opt()
-                            && self.expand().string_id() == e.expand().string_id()
+                            && self.same_term(&e, recursive)
                         {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         }
@@ -1620,46 +1753,6 @@ impl SymbolExpr {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         } else {
                             return Some(_mul(SymbolExpr::Value(t), l_rhs.as_ref().clone()));
-                        }
-                    } else if let SymbolExpr::Value(rv) = rhs {
-                        if matches!(op, BinaryOp::Add) {
-                            // implements l_lhs + l_rhs + rv
-                            match (l_lhs.as_ref(), l_rhs.as_ref()) {
-                                // case: (lv + rv) + l_rhs
-                                (SymbolExpr::Value(lv), _) => {
-                                    return Some(_add(
-                                        SymbolExpr::Value(lv + rv),
-                                        l_rhs.as_ref().clone(),
-                                    ));
-                                }
-                                // case: l_lhs + (lv + rv)
-                                (_, SymbolExpr::Value(lv)) => {
-                                    return Some(_add(
-                                        SymbolExpr::Value(lv + rv),
-                                        l_lhs.as_ref().clone(),
-                                    ));
-                                }
-                                (_, _) => (),
-                            }
-                        } else if matches!(op, BinaryOp::Sub) {
-                            // implements l_lhs - l_rhs + rv
-                            match (l_lhs.as_ref(), l_rhs.as_ref()) {
-                                // case: (lv + rv) - l_rhs
-                                (SymbolExpr::Value(lv), _) => {
-                                    return Some(_sub(
-                                        SymbolExpr::Value(lv + rv),
-                                        l_rhs.as_ref().clone(),
-                                    ));
-                                }
-                                // case: (rv - lv) + l_lhs
-                                (_, SymbolExpr::Value(lv)) => {
-                                    return Some(_add(
-                                        SymbolExpr::Value(rv - lv),
-                                        l_lhs.as_ref().clone(),
-                                    ));
-                                }
-                                (_, _) => (),
-                            }
                         }
                     }
                     if recursive {
@@ -1734,6 +1827,8 @@ impl SymbolExpr {
             }
         } else if rhs.is_zero() {
             Some(self.clone())
+        } else if let Some(e) = self.add_sub_constant(rhs, true, recursive) {
+            Some(e)
         } else {
             // if neg, call add_opt
             if let SymbolExpr::Unary { op, expr } = rhs {
@@ -1917,32 +2012,17 @@ impl SymbolExpr {
                             r_rhs.as_ref(),
                         ) {
                             // shared terms: (lv op X) - (rv op X)
+                            // shared terms in sums, (lv + X) - (rv - X), are handled by
+                            // `add_sub_constant`
                             (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
-                                if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
+                                // check the operations first, as expanding can be expensive
+                                if matches!(
+                                    (op, rop),
+                                    (BinaryOp::Mul, BinaryOp::Mul) | (BinaryOp::Div, BinaryOp::Div)
+                                ) && l_rhs.same_term(r_rhs, recursive)
+                                {
                                     let t = SymbolExpr::Value(lv - rv);
                                     match (op, rop) {
-                                        // (lv + X) - (rv + X)  ->  X canceled -> (lv-rv) = t
-                                        // (lv - X) - (rv - X)  ->  X canceled -> (lv-rv) = t
-                                        (BinaryOp::Add, BinaryOp::Add)
-                                        | (BinaryOp::Sub, BinaryOp::Sub) => {
-                                            return Some(t);
-                                        }
-                                        // (lv - X) - (rv + X)  ->  (lv-rv) - 2*X = t - 2*X
-                                        // (lv + X) - (rv - X)  ->  (lv-rv) + 2*X = t + 2*X
-                                        (BinaryOp::Sub, BinaryOp::Add)
-                                        | (BinaryOp::Add, BinaryOp::Sub) => {
-                                            let two_signed =
-                                                if matches!(op, BinaryOp::Sub) { -2 } else { 2 };
-                                            let doubled_signed = _mul(
-                                                SymbolExpr::Value(Value::Int(two_signed)),
-                                                l_rhs.as_ref().clone(),
-                                            );
-                                            return Some(if t.is_zero() {
-                                                doubled_signed
-                                            } else {
-                                                _add(t, doubled_signed)
-                                            });
-                                        }
                                         // (lv * X) - (rv * X)  ->  (lv-rv) * X = t * X
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
                                             if t.is_zero() {
@@ -1971,9 +2051,8 @@ impl SymbolExpr {
                             // only when X == +-Y, so sub_opt collapses rv*X - lv*Y into a single term
                             (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Div, BinaryOp::Div) = (op, rop)
-                                    && (l_lhs.expand().string_id() == r_lhs.expand().string_id()
-                                        || _neg(l_lhs.as_ref().clone()).expand().string_id()
-                                            == r_lhs.expand().string_id())
+                                    && (l_lhs.same_term(r_lhs, recursive)
+                                        || _neg(l_lhs.as_ref().clone()).same_term(r_lhs, recursive))
                                 {
                                     let tl = _mul(SymbolExpr::Value(*rv), l_lhs.as_ref().clone());
                                     let tr = _mul(SymbolExpr::Value(*lv), r_lhs.as_ref().clone());
@@ -1988,9 +2067,8 @@ impl SymbolExpr {
                             // rewrite the Div as a Mul only when X == +-Y so sub_opt collapses them
                             (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop)
-                                    && (l_rhs.expand().string_id() == r_lhs.expand().string_id()
-                                        || _neg(l_rhs.as_ref().clone()).expand().string_id()
-                                            == r_lhs.expand().string_id())
+                                    && (l_rhs.same_term(r_lhs, recursive)
+                                        || _neg(l_rhs.as_ref().clone()).same_term(r_lhs, recursive))
                                 {
                                     let r = _mul(
                                         SymbolExpr::Value(Value::Real(1.0) / *rv),
@@ -2005,9 +2083,8 @@ impl SymbolExpr {
                             // rewrite the Div as a Mul only when X == +-Y so sub_opt collapses them
                             (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
                                 if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop)
-                                    && (l_lhs.expand().string_id() == r_rhs.expand().string_id()
-                                        || _neg(l_lhs.as_ref().clone()).expand().string_id()
-                                            == r_rhs.expand().string_id())
+                                    && (l_lhs.same_term(r_rhs, recursive)
+                                        || _neg(l_lhs.as_ref().clone()).same_term(r_rhs, recursive))
                                 {
                                     let l = _mul(
                                         SymbolExpr::Value(Value::Real(1.0) / *lv),
@@ -2021,7 +2098,7 @@ impl SymbolExpr {
                             (_, _, _, _) => (),
                         }
 
-                        if op == rop && self.expand().string_id() == rhs.expand().string_id() {
+                        if op == rop && self.same_term(rhs, recursive) {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         }
                     } else if let SymbolExpr::Symbol(r) = rhs
@@ -2034,46 +2111,6 @@ impl SymbolExpr {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         } else {
                             return Some(_mul(SymbolExpr::Value(t), l_rhs.as_ref().clone()));
-                        }
-                    } else if let SymbolExpr::Value(rv) = rhs {
-                        if matches!(op, BinaryOp::Add) {
-                            // implements l_lhs + l_rhs - rv
-                            match (l_lhs.as_ref(), l_rhs.as_ref()) {
-                                // case: (lv - rv) + l_rhs
-                                (SymbolExpr::Value(lv), _) => {
-                                    return Some(_add(
-                                        SymbolExpr::Value(lv - rv),
-                                        l_rhs.as_ref().clone(),
-                                    ));
-                                }
-                                // case: l_lhs + (lv - rv)
-                                (_, SymbolExpr::Value(lv)) => {
-                                    return Some(_add(
-                                        SymbolExpr::Value(lv - rv),
-                                        l_lhs.as_ref().clone(),
-                                    ));
-                                }
-                                (_, _) => (),
-                            }
-                        } else if matches!(op, BinaryOp::Sub) {
-                            // implements l_lhs - l_rhs - rv
-                            match (l_lhs.as_ref(), l_rhs.as_ref()) {
-                                // case: (lv - rv) - l_rhs
-                                (SymbolExpr::Value(lv), _) => {
-                                    return Some(_sub(
-                                        SymbolExpr::Value(lv - rv),
-                                        l_rhs.as_ref().clone(),
-                                    ));
-                                }
-                                // case: l_lhs - (lv + rv)
-                                (_, SymbolExpr::Value(lv)) => {
-                                    return Some(_sub(
-                                        l_lhs.as_ref().clone(),
-                                        SymbolExpr::Value(rv + lv),
-                                    ));
-                                }
-                                (_, _) => (),
-                            }
                         }
                     }
                     if recursive {
@@ -2306,6 +2343,9 @@ impl SymbolExpr {
                         None
                     } else {
                         match rhs {
+                            SymbolExpr::Value(v) if matches!(op, BinaryOp::Add | BinaryOp::Sub) => {
+                                self.scale_sum(v)
+                            }
                             SymbolExpr::Value(v) => match l_lhs.as_ref() {
                                 SymbolExpr::Value(lv) => match op {
                                     BinaryOp::Mul => Some(_mul(
@@ -3731,6 +3771,8 @@ impl Value {
                         },
                         _ => None,
                     }
+                } else if let BinaryOp::Add | BinaryOp::Sub = op {
+                    rhs.scale_sum(self)
                 } else {
                     match l.as_ref() {
                         SymbolExpr::Value(v) => match op {
@@ -4536,6 +4578,241 @@ mod test {
             5,
         );
         assert!(!extend_rhs(left_mid, 5).eq_exact(&extend_rhs(right_mid, 5)));
+    }
+
+    /// Count the numeric constants that are direct terms of a sum/sub sequence.
+    fn num_constants_in_sum(expr: &SymbolExpr) -> usize {
+        match expr {
+            SymbolExpr::Value(_) => 1,
+            SymbolExpr::Binary {
+                op: BinaryOp::Add | BinaryOp::Sub,
+                lhs,
+                rhs,
+            } => num_constants_in_sum(lhs) + num_constants_in_sum(rhs),
+            _ => 0,
+        }
+    }
+
+    fn symbol(name: &str) -> SymbolExpr {
+        SymbolExpr::Symbol(Arc::new(Symbol::standalone(name.to_owned(), None)))
+    }
+
+    fn real(value: f64) -> SymbolExpr {
+        SymbolExpr::Value(Value::Real(value))
+    }
+
+    /// Bind the symbols to the given values and evaluate to a real number.
+    fn bind_real(expr: &SymbolExpr, values: &[(&SymbolExpr, f64)]) -> f64 {
+        expr.bind(
+            &values
+                .iter()
+                .map(|(symbol, value)| {
+                    let SymbolExpr::Symbol(symbol) = symbol else {
+                        panic!("expected a symbol")
+                    };
+                    (symbol.as_ref(), Value::Real(*value))
+                })
+                .collect(),
+        )
+        .real()
+        .expect("all symbols are bound")
+    }
+
+    #[test]
+    fn test_add_sub_single_constant() {
+        let x = symbol("x");
+        let y = symbol("y");
+        let sum = &x + &y;
+        let candidates = [
+            &(&sum + &real(1.0)) + &real(2.0),
+            &(&real(1.0) - &sum) - &real(2.0),
+            &(&(&x + &real(1.0)) + &y) + &real(2.0),
+            &(&(&x - &real(1.0)) - &y) - &real(2.0),
+            &(&x + &real(1.0)) + &(&y - &real(2.0)),
+            &(&real(1.0) - &x) - &(&real(2.0) - &y),
+            &(&x + &real(1.0)) - &(&real(2.0) + &y),
+        ];
+        for expr in candidates {
+            assert_eq!(num_constants_in_sum(&expr), 1, "{}", expr.repr(false));
+        }
+    }
+
+    #[test]
+    fn test_add_sub_constant_signs() {
+        // Moving the constants to the root flips the signs of subtracted terms. Evaluate with
+        // unequal values for `x` and `y`, such that a wrong sign changes the result.
+        let x = symbol("x");
+        let y = symbol("y");
+        let (xv, yv) = (0.3, 0.7);
+        let one = real(1.0);
+        let two = real(2.0);
+        // a remainder that itself holds a constant, `1 - (2 - x)`, built by hand since the
+        // operators would fold the constants
+        let nested = SymbolExpr::Binary {
+            op: BinaryOp::Sub,
+            lhs: Arc::new(one.clone()),
+            rhs: Arc::new(SymbolExpr::Binary {
+                op: BinaryOp::Sub,
+                lhs: Arc::new(two.clone()),
+                rhs: Arc::new(x.clone()),
+            }),
+        };
+        let candidates = [
+            (&(&one - &(&x + &y)) - &two, 1.0 - (xv + yv) - 2.0),
+            (&(&one - &x) - &(&two - &y), (1.0 - xv) - (2.0 - yv)),
+            (&(&one - &x) - &(&two + &y), (1.0 - xv) - (2.0 + yv)),
+            (&(&one - &x) + &(&two - &y), (1.0 - xv) + (2.0 - yv)),
+            (&(&x + &one) - &(&two + &y), (xv + 1.0) - (2.0 + yv)),
+            (&(&x + &one) + &(&y - &two), (xv + 1.0) + (yv - 2.0)),
+            (&(&x - &one) - &(&y - &two), (xv - 1.0) - (yv - 2.0)),
+            (&(&one - &x) - &y, 1.0 - xv - yv),
+            (&(&one - &x) + &y, 1.0 - xv + yv),
+            (&(&one - &x) - &two, 1.0 - xv - 2.0),
+            (&x - &(&two - &y), xv - (2.0 - yv)),
+            (&x - &(&two + &y), xv - (2.0 + yv)),
+            (&two - &(&one - &x), 2.0 - (1.0 - xv)),
+            (&two - &(&x - &one), 2.0 - (xv - 1.0)),
+            // shared terms, which are doubled or canceled
+            (&(&one - &x) + &(&two - &x), (1.0 - xv) + (2.0 - xv)),
+            (&(&one - &x) - &(&two - &x), (1.0 - xv) - (2.0 - xv)),
+            (&(&one - &x) - &(&two + &x), (1.0 - xv) - (2.0 + xv)),
+            (&(&x + &one) - &(&two + &x), (xv + 1.0) - (2.0 + xv)),
+            (&real(5.0) + &nested, 5.0 + (1.0 - (2.0 - xv))),
+            (&real(5.0) - &nested, 5.0 - (1.0 - (2.0 - xv))),
+        ];
+        for (expr, expected) in candidates {
+            assert!(num_constants_in_sum(&expr) <= 1, "{}", expr.repr(false));
+            let value = bind_real(&expr, &[(&x, xv), (&y, yv)]);
+            assert!(
+                (value - expected).abs() < 1e-12,
+                "{}: {value} != {expected}",
+                expr.repr(false)
+            );
+        }
+    }
+
+    #[test]
+    fn test_add_sub_cancels_constants() {
+        let x = symbol("x");
+        let y = symbol("y");
+        let expr = &(&(&x + &real(1.0)) + &y) - &real(1.0);
+        assert_eq!(num_constants_in_sum(&expr), 0, "{}", expr.repr(false));
+        assert_eq!(expr, &x + &y);
+    }
+
+    #[test]
+    fn test_interleaved_accumulation() {
+        // Interleaving parametric terms and constants used to lead to exponential runtime, as
+        // in the global phase accumulation of the `BasisTranslator`.
+        // Use a separate symbol per term, such that the sum does not collapse.
+        let symbols: Vec<_> = (0..200)
+            .map(|i| Arc::new(Symbol::standalone(format!("x{i}"), None)))
+            .collect();
+        let mut expr = real(0.0);
+        let mut expected = 0.0;
+        let x_value = 0.5;
+        for (i, symbol) in symbols.iter().enumerate() {
+            let value = (i % 3 + 1) as f64;
+            let x = SymbolExpr::Symbol(symbol.clone());
+            expr = &expr + &(&real(-value) * &x);
+            expr = &expr + &real(value / 2.0);
+            expr = &expr - &real(0.25);
+            expected += -value * x_value + value / 2.0 - 0.25;
+        }
+        assert_eq!(num_constants_in_sum(&expr), 1, "{}", expr.repr(false));
+        assert!(expr.split_constant().is_some());
+
+        let bound = expr.bind(
+            &symbols
+                .iter()
+                .map(|symbol| (symbol.as_ref(), Value::Real(x_value)))
+                .collect(),
+        );
+        let Some(Value::Real(result)) = bound.eval(true) else {
+            panic!("expected a real value")
+        };
+        assert!((result - expected).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_scaled_accumulation() {
+        // Scaling a sum and adding a new term, `2 * x + 2 * expr`, used to lead to exponential
+        // runtime, as the scaled sum hid the constant and was expanded in each addition.
+        let symbols: Vec<_> = (0..200)
+            .map(|i| Arc::new(Symbol::standalone(format!("x{i}"), None)))
+            .collect();
+        // use a real value, as integer coefficients of 2**200 overflow
+        let two = real(2.0);
+        let mut expr = real(1.0);
+        let mut expected = 1.0;
+        let x_value = 0.5;
+        for symbol in symbols.iter() {
+            let x = SymbolExpr::Symbol(symbol.clone());
+            expr = &(&two * &x) + &(&two * &expr);
+            expected = 2.0 * x_value + 2.0 * expected;
+        }
+        assert_eq!(num_constants_in_sum(&expr), 1, "{}", expr.repr(false));
+        assert!(expr.split_constant().is_some());
+
+        let bound = expr.bind(
+            &symbols
+                .iter()
+                .map(|symbol| (symbol.as_ref(), Value::Real(x_value)))
+                .collect(),
+        );
+        let Some(Value::Real(result)) = bound.eval(true) else {
+            panic!("expected a real value")
+        };
+        assert!((result - expected).abs() < 1e-12 * expected);
+    }
+
+    #[test]
+    fn test_scale_sum() {
+        let x = symbol("x");
+        let y = symbol("y");
+        let sum = &(&real(1.0) + &x) - &(&real(3.0) * &y);
+        let expected = &(&real(2.0) + &(&real(2.0) * &x)) - &(&real(6.0) * &y);
+        for scaled in [&real(2.0) * &sum, &sum * &real(2.0)] {
+            assert!(scaled.eq_exact(&expected), "{}", scaled.repr(false));
+        }
+    }
+
+    #[test]
+    fn test_scale_sum_signs() {
+        // Scale sums holding a negated term by a negative factor. These are built by hand, since
+        // the operators would turn `x + (-y)` into `x - y`.
+        let x = symbol("x");
+        let y = symbol("y");
+        let (xv, yv) = (0.3, 0.7);
+        let x_minus_y = SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::new(x.clone()),
+            rhs: Arc::new(SymbolExpr::Unary {
+                op: UnaryOp::Neg,
+                expr: Arc::new(y.clone()),
+            }),
+        };
+        let candidates = [
+            (BinaryOp::Add, 1.0 + (xv - yv)),
+            (BinaryOp::Sub, 1.0 - (xv - yv)),
+        ];
+        for (op, unscaled) in candidates {
+            let sum = SymbolExpr::Binary {
+                op,
+                lhs: Arc::new(real(1.0)),
+                rhs: Arc::new(x_minus_y.clone()),
+            };
+            for scaled in [&real(-2.0) * &sum, &sum * &real(-2.0)] {
+                assert!(scaled.split_constant().is_some(), "{}", scaled.repr(false));
+                let value = bind_real(&scaled, &[(&x, xv), (&y, yv)]);
+                let expected = -2.0 * unscaled;
+                assert!(
+                    (value - expected).abs() < 1e-12,
+                    "{}: {value} != {expected}",
+                    scaled.repr(false)
+                );
+            }
+        }
     }
 
     #[test]
