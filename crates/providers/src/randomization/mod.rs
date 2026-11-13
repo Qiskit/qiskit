@@ -13,8 +13,13 @@
 //! Generate randomizations of quantum circuits and programs.
 
 pub mod annotations;
+pub mod build;
+pub mod emissions;
 pub mod partition;
 pub mod virtual_type;
+
+use partition::Partition;
+use virtual_type::VirtualType;
 
 /// The synthesizer to use for virtual gates.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -28,6 +33,13 @@ impl SynthesizerKind {
     pub fn num_qubits(&self) -> u32 {
         match self {
             Self::RzSx | Self::RzRx => 1,
+        }
+    }
+
+    /// Whether this synthesizer can synthesize a given virtual type.
+    pub fn accepts(&self, _virtual_type: VirtualType) -> bool {
+        match self {
+            Self::RzSx | Self::RzRx => true,
         }
     }
 }
@@ -44,16 +56,39 @@ pub enum DistributionKind {
 }
 
 impl DistributionKind {
-    /// The number of qubits the sampled virtual gate acts on.
-    pub fn num_qubits(&self) -> u32 {
+    /// The algebraic type of the sampled virtual gates.
+    pub fn virtual_type(&self) -> VirtualType {
+        match self {
+            Self::UniformPauli => VirtualType::Pauli,
+            // Self::BalancedUniformPauli | Self::UniformPauliSubset => {
+            //     VirtualType::Pauli
+            // }
+            // Self::UniformC1 | Self::UniformLocalC1 => VirtualType::C1,
+            Self::HaarU2 => VirtualType::U2,
+        }
+    }
+
+    /// How samples from this distribution factorize.
+    pub fn factorization(&self) -> Partition<u32> {
         match self {
             Self::UniformPauli
             // | Self::BalancedUniformPauli
             // | Self::UniformPauliSubset
             // | Self::UniformC1
-            | Self::HaarU2 => 1,
-            // Self::UniformLocalC1 => 2,
+            | Self::HaarU2 => Partition::whole([0]),
+            // Self::UniformLocalC1 => Partition::singletons([0, 1]),
         }
+        .expect("a distribution's factorization covers at least one qubit")
+    }
+
+    /// The total number of qubits.
+    pub fn num_qubits(&self) -> u32 {
+        self.factorization().num_elements() as u32
+    }
+
+    /// The number o tensor factors in this distribution.
+    pub fn num_factors(&self) -> usize {
+        self.factorization().num_parts()
     }
 }
 
@@ -62,4 +97,13 @@ impl DistributionKind {
 pub enum Direction {
     Forward,
     Backward,
+}
+
+impl Direction {
+    pub fn reverse(self) -> Self {
+        match self {
+            Direction::Backward => Direction::Forward,
+            Direction::Forward => Direction::Backward,
+        }
+    }
 }
