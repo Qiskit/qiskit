@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """SI unit utilities"""
-
+from __future__ import annotations
 
 import typing
 

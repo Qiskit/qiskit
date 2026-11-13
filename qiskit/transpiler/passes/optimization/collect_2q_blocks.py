@@ -12,6 +12,7 @@
 
 """Collect sequences of uninterrupted gates acting on 2 qubits."""
 
+from __future__ import annotations
 
 import typing
 
