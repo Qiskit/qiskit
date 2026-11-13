@@ -14,16 +14,16 @@ pub mod pauli_lindblad_map_class;
 pub mod phased_qubit_sparse_pauli;
 pub mod qubit_sparse_pauli;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use pauli_lindblad_map_class::PyPauliLindbladMap;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use phased_qubit_sparse_pauli::{PyPhasedQubitSparsePauli, PyPhasedQubitSparsePauliList};
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use qubit_sparse_pauli::{PyQubitSparsePauli, PyQubitSparsePauliList};
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 pub fn pauli_lindblad_map(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyPauliLindbladMap>()?;
     m.add_class::<PyQubitSparsePauli>()?;
