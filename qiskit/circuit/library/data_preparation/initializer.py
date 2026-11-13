@@ -14,7 +14,7 @@
 Initialize qubit registers to desired arbitrary state.
 """
 
-from __future__ import annotations
+
 from collections.abc import Sequence
 import typing
 

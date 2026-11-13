@@ -14,7 +14,7 @@
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
 """
-from __future__ import annotations
+
 
 import os
 import inspect

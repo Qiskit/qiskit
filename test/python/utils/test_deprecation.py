@@ -12,7 +12,6 @@
 
 """Tests for the functions in ``utils.deprecation``."""
 
-from __future__ import annotations
 
 import sys
 from textwrap import dedent

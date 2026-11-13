@@ -13,7 +13,6 @@
 
 """Integer Comparator."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, Gate
 from qiskit.circuit.exceptions import CircuitError

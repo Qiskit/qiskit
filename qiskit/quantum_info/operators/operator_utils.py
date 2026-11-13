@@ -14,7 +14,6 @@
 Additional utilities for Operators.
 """
 
-from __future__ import annotations
 
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal

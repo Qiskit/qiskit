@@ -12,8 +12,6 @@
 
 """Quantum Volume model circuit."""
 
-from __future__ import annotations
-
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction

@@ -12,7 +12,6 @@
 
 """Tests for the lazy loaders."""
 
-from __future__ import annotations
 
 import importlib.abc
 import importlib.util

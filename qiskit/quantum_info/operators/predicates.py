@@ -14,7 +14,7 @@
 Predicates for operators.
 """
 
-from __future__ import annotations
+
 import functools
 import numpy as np
 

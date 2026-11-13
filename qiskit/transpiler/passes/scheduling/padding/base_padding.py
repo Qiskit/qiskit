@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Padding pass to fill empty timeslot."""
-from __future__ import annotations
+
 
 from collections.abc import Iterable
 import logging

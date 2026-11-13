@@ -12,7 +12,7 @@
 
 """Arbitrary unitary circuit instruction."""
 
-from __future__ import annotations
+
 import math
 
 import typing

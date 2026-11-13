@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Rescheduler pass to adjust node start times."""
-from __future__ import annotations
+
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError

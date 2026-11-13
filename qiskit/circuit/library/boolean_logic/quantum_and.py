@@ -13,7 +13,6 @@
 
 """Boolean AND circuit and gate."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister, Gate
 from qiskit.circuit.library.standard_gates import MCXGate

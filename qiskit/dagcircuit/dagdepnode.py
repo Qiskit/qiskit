@@ -13,7 +13,6 @@
 
 """Object to represent the information at a node in the DAGCircuit."""
 
-from __future__ import annotations
 
 import typing
 from qiskit.exceptions import QiskitError

@@ -12,7 +12,7 @@
 
 """Compute the sum of two qubit registers without any ancillary qubits."""
 
-from __future__ import annotations
+
 from math import ceil
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit

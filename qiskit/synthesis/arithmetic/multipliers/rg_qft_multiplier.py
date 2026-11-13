@@ -12,7 +12,6 @@
 
 """Compute the product of two qubit registers using QFT."""
 
-from __future__ import annotations
 
 import numpy as np
 

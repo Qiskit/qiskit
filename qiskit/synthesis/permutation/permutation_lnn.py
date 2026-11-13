@@ -12,7 +12,7 @@
 
 """Depth-efficient synthesis algorithm for Permutation gates."""
 
-from __future__ import annotations
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit

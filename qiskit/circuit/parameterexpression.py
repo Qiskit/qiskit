@@ -13,8 +13,6 @@
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
 
-from __future__ import annotations
-
 
 from qiskit.utils.optionals import HAS_SYMPY
 import qiskit._accelerate.circuit

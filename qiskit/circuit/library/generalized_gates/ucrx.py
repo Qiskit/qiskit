@@ -12,7 +12,6 @@
 
 """Uniformly controlled Pauli-X rotations."""
 
-from __future__ import annotations
 
 from .uc_pauli_rot import UCPauliRotGate
 

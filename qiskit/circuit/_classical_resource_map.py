@@ -12,7 +12,6 @@
 
 """Shared helper utility for mapping classical resources from one circuit or DAG to another."""
 
-from __future__ import annotations
 
 import typing
 

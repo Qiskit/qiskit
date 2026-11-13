@@ -12,7 +12,7 @@
 
 """The ExcitationPreserving 2-local circuit."""
 
-from __future__ import annotations
+
 from collections.abc import Callable, Iterable
 from numpy import pi
 

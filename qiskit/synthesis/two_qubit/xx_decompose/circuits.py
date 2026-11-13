@@ -22,7 +22,7 @@ Output:
  `a XX + b YY + c ZZ`) using the native operations and local gates.
 """
 
-from __future__ import annotations
+
 import cmath
 from functools import reduce
 import math

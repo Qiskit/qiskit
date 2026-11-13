@@ -12,7 +12,7 @@
 
 """Generic BackendV2 class with a simulated ``run``."""
 
-from __future__ import annotations
+
 import warnings
 
 import numpy as np

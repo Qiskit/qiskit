@@ -13,7 +13,7 @@
 """
 Layer classes for the fast gradient implementation.
 """
-from __future__ import annotations
+
 from abc import abstractmethod, ABC
 
 import numpy as np

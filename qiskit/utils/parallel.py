@@ -52,7 +52,6 @@ Routines for running Python functions in parallel using process pools
 from the multiprocessing library.
 """
 
-from __future__ import annotations
 
 import contextlib
 import functools

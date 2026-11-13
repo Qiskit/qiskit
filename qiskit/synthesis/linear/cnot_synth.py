@@ -16,7 +16,6 @@ circuits with efficient CNOT cost, and the Patel-Hayes-Markov algorithm
 for optimal synthesis of linear (CNOT-only) reversible circuits.
 """
 
-from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit

@@ -12,7 +12,6 @@
 
 """Base Sampler V1 and V2 classes"""
 
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence

@@ -12,7 +12,6 @@
 
 """Check if a property reached a fixed point."""
 
-from __future__ import annotations
 
 from copy import deepcopy
 import operator

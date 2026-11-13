@@ -12,7 +12,6 @@
 
 """Synthesis algorithm for Permutation gates for full-connectivity."""
 
-from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit

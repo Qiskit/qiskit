@@ -14,7 +14,6 @@
 Simulator command to perform multiple pauli gates in a single pass
 """
 
-from __future__ import annotations
 
 import typing
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction

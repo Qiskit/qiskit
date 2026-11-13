@@ -12,7 +12,6 @@
 
 """Base Estimator V1 and V2 classes"""
 
-from __future__ import annotations
 
 from abc import abstractmethod, ABC
 from collections.abc import Iterable, Sequence

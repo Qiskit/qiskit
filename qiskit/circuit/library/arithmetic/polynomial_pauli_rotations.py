@@ -13,7 +13,6 @@
 
 """Polynomially controlled Pauli-rotations."""
 
-from __future__ import annotations
 
 from itertools import product
 

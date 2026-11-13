@@ -48,7 +48,7 @@ an iterator of drawings with the unique data key.
 If a plotter provides object handler for plotted shapes, the plotter API can manage
 the lookup table of the handler and the drawings by using this data key.
 """
-from __future__ import annotations
+
 import warnings
 from collections.abc import Iterator
 from copy import deepcopy

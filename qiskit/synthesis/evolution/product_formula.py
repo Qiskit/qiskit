@@ -12,7 +12,6 @@
 
 """A product formula base for decomposing non-commuting operator exponentials."""
 
-from __future__ import annotations
 
 import warnings
 import itertools

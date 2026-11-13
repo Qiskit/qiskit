@@ -12,7 +12,6 @@
 
 """Return the longest path in a :class:`.DAGCircuit` as a list of DAGNodes."""
 
-from __future__ import annotations
 
 from typing import TYPE_CHECKING
 

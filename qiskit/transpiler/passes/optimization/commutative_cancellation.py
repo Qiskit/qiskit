@@ -12,7 +12,6 @@
 
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
 
-from __future__ import annotations
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.commutation_library import StandardGateCommutations

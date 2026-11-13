@@ -12,7 +12,7 @@
 
 """Two-qubit ZX-rotation gate."""
 
-from __future__ import annotations
+
 from math import sqrt
 import numpy as np
 

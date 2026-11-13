@@ -12,7 +12,6 @@
 
 """Two-qubit ZZ-rotation gate."""
 
-from __future__ import annotations
 
 from cmath import exp
 

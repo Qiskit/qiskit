@@ -12,7 +12,7 @@
 
 """The twirling module."""
 
-from __future__ import annotations
+
 import typing
 
 from qiskit._accelerate.twirling import twirl_circuit as twirl_rs

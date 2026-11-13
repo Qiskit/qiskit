@@ -12,7 +12,6 @@
 
 """Synthesis for multiple-control, multiple-target X Gate."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 

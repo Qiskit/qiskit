@@ -12,7 +12,6 @@
 
 """Graph State circuit and gate."""
 
-from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate

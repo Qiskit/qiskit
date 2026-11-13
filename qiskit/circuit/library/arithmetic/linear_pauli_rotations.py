@@ -13,8 +13,6 @@
 
 """Linearly-controlled X, Y or Z rotation."""
 
-from __future__ import annotations
-
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError

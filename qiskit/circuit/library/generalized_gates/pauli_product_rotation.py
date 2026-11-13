@@ -12,7 +12,6 @@
 
 """A generic Pauli rotation gate."""
 
-from __future__ import annotations
 
 import typing
 import math

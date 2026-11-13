@@ -13,7 +13,6 @@
 
 """Common preset passmanager generators."""
 
-from __future__ import annotations
 
 import collections
 import typing

@@ -12,7 +12,6 @@
 
 """Creating Sabre starting layouts."""
 
-from __future__ import annotations
 
 import itertools
 

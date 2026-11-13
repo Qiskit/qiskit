@@ -13,7 +13,7 @@
 
 """Piecewise-linearly-controlled rotation."""
 
-from __future__ import annotations
+
 import warnings
 from collections.abc import Sequence
 import numpy as np

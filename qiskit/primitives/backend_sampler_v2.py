@@ -12,7 +12,6 @@
 
 """Sampler V2 implementation for an arbitrary Backend object."""
 
-from __future__ import annotations
 
 import warnings
 from collections import defaultdict

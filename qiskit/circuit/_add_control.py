@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Add control to operation if supported."""
-from __future__ import annotations
+
 
 from math import pi
 from qiskit.circuit.exceptions import CircuitError

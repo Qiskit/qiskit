@@ -13,7 +13,6 @@
 
 """Routines for computing expectation values from sampled distributions"""
 
-from __future__ import annotations
 
 import typing
 import numpy as np

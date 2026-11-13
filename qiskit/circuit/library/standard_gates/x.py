@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """X, CX, CCX and multi-controlled X gates."""
-from __future__ import annotations
+
 import warnings
 import numpy
 from qiskit.circuit.annotated_operation import AnnotatedOperation

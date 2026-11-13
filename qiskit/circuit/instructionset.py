@@ -14,7 +14,6 @@
 Instruction collection.
 """
 
-from __future__ import annotations
 
 from collections.abc import MutableSequence
 from typing import TYPE_CHECKING

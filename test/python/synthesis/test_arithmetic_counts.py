@@ -12,7 +12,6 @@
 
 """Test gate counts of synthesis algorithms for arithmetic circuits."""
 
-from __future__ import annotations
 
 import unittest
 

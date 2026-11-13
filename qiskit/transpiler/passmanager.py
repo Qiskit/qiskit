@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Manager for a set of Passes and their scheduling during transpilation."""
-from __future__ import annotations
+
 
 import inspect
 import io

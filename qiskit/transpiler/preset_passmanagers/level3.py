@@ -15,7 +15,7 @@
 Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
 gate cancellation using commutativity rules and unitary synthesis.
 """
-from __future__ import annotations
+
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.passmanager import StagedPassManager
 from qiskit.transpiler.preset_passmanagers import common

@@ -12,7 +12,6 @@
 
 """Compute modular sum of two qubit registers without any ancillary qubits."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import XGate, MCMTGate

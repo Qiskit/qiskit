@@ -12,7 +12,6 @@
 
 """Translate parameterized gates only, and leave others as they are."""
 
-from __future__ import annotations
 
 from qiskit.circuit import Instruction, ParameterExpression, Qubit, Clbit
 from qiskit.circuit.equivalence_library import EquivalenceLibrary

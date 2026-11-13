@@ -13,7 +13,6 @@
 Primitive V1 result abstract base class
 """
 
-from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence

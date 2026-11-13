@@ -12,8 +12,6 @@
 
 """Y and CY gates."""
 
-from __future__ import annotations
-
 
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array

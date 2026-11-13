@@ -12,7 +12,6 @@
 
 """Tools for working with the partial ordering of the type system."""
 
-from __future__ import annotations
 
 __all__ = [
     "CastKind",

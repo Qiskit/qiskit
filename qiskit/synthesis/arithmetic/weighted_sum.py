@@ -12,7 +12,6 @@
 
 """Implement an integer-weighted sum over a set of qubits."""
 
-from __future__ import annotations
 
 import typing
 import numpy as np

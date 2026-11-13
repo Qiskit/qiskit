@@ -13,7 +13,7 @@
 A definition of the approximate circuit compilation optimization problem based on CNOT unit
 definition.
 """
-from __future__ import annotations
+
 import typing
 from abc import ABC
 

@@ -12,7 +12,6 @@
 
 """Phase estimation circuit."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
 from qiskit.utils.deprecation import deprecate_func

@@ -12,7 +12,6 @@
 
 """Tests for Backend Sampler V2."""
 
-from __future__ import annotations
 
 import unittest
 from test import QiskitTestCase, combine

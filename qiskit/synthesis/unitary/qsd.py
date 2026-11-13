@@ -14,7 +14,7 @@ Quantum Shannon Decomposition.
 
 Method is described in arXiv:quant-ph/0406176.
 """
-from __future__ import annotations
+
 import warnings
 from collections.abc import Callable
 import scipy

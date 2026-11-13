@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Contains functions used by the basic provider simulators."""
-from __future__ import annotations
+
 
 from string import ascii_uppercase, ascii_lowercase
 

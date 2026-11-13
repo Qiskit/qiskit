@@ -12,7 +12,6 @@
 
 """Expression visitors."""
 
-from __future__ import annotations
 
 __all__ = [
     "ExprVisitor",

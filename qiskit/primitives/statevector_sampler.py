@@ -13,7 +13,6 @@
 Statevector Sampler V2 class
 """
 
-from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass

@@ -21,7 +21,6 @@ Ross-Selinger Synthesis Plugin
    RossSelingerSynthesis
 """
 
-from __future__ import annotations
 
 from qiskit.converters import circuit_to_dag
 from qiskit.synthesis import gridsynth_unitary

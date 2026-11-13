@@ -12,7 +12,6 @@
 
 """Phase Gate."""
 
-from __future__ import annotations
 
 from cmath import exp
 

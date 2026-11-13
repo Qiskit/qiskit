@@ -13,7 +13,7 @@
 
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
 into smaller sub-blocks, and to consolidate blocks."""
-from __future__ import annotations
+
 
 from collections.abc import Iterable, Callable
 

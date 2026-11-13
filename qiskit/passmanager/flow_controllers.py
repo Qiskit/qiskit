@@ -12,7 +12,6 @@
 
 """Built-in pass flow controllers."""
 
-from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Iterable, Generator

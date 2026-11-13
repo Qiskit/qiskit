@@ -12,7 +12,6 @@
 
 """Code from commutative_analysis pass that checks commutation relations between DAG nodes."""
 
-from __future__ import annotations
 
 from collections.abc import Sequence
 import typing

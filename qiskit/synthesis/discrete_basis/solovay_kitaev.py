@@ -12,7 +12,6 @@
 
 """Synthesize a single qubit gate to a discrete basis set."""
 
-from __future__ import annotations
 
 import typing
 import warnings

@@ -12,7 +12,6 @@
 
 """Rotation around the Y axis."""
 
-from __future__ import annotations
 
 import math
 

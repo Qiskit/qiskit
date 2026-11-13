@@ -12,7 +12,6 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 
-from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod

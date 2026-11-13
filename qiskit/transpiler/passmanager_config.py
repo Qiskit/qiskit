@@ -12,7 +12,6 @@
 
 """Pass Manager Configuration class."""
 
-from __future__ import annotations
 
 import typing
 

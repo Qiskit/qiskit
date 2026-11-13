@@ -12,7 +12,6 @@
 
 """Synthesis for multiple-control, multiple-target Gate."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit._accelerate.synthesis.multi_controlled import mcmt_v_chain

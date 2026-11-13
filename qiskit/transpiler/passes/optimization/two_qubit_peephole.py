@@ -12,7 +12,6 @@
 
 """A transpiler pass to optimize 2q blocks in a circuit."""
 
-from __future__ import annotations
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.target import Target

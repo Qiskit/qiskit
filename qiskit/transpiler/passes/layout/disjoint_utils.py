@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """This module contains common utils for disjoint coupling maps."""
-from __future__ import annotations
 
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit

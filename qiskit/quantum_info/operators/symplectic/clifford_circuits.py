@@ -13,7 +13,6 @@
 Circuit simulation for the Clifford class.
 """
 
-from __future__ import annotations
 
 import numpy as np
 

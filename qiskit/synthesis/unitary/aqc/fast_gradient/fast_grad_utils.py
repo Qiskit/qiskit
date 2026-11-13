@@ -13,7 +13,7 @@
 """
 Utility functions in the fast gradient implementation.
 """
-from __future__ import annotations
+
 
 import numpy as np
 

@@ -13,7 +13,6 @@
 """
 A generic InverseCancellation pass for any set of gate-inverse pairs.
 """
-from __future__ import annotations
 
 
 from qiskit.circuit import Gate

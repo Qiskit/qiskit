@@ -16,7 +16,6 @@
 
 """Uniformly controlled gates (also called multiplexed gates)."""
 
-from __future__ import annotations
 
 import math
 

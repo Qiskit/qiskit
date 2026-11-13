@@ -14,7 +14,7 @@
 Abstract LinearOperator class.
 """
 
-from __future__ import annotations
+
 from abc import ABC
 
 from .base_operator import BaseOperator

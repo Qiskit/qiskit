@@ -16,7 +16,6 @@ Note that these are not intended to be part of the public API of base primitives
 but are here for backward compatibility with BaseSamplerV1 and BaseEstimatorV1 classes.
 """
 
-from __future__ import annotations
 
 from collections.abc import Sequence
 import numpy as np

@@ -12,7 +12,6 @@
 
 """Two-qubit YY-rotation gate."""
 
-from __future__ import annotations
 
 import math
 

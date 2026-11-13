@@ -12,7 +12,6 @@
 
 """Rotation around the Z axis."""
 
-from __future__ import annotations
 
 from cmath import exp
 

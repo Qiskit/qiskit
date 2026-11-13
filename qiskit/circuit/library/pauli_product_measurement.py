@@ -12,7 +12,6 @@
 
 """An instruction to implement a Pauli Product Measurement."""
 
-from __future__ import annotations
 
 import typing
 import numpy as np

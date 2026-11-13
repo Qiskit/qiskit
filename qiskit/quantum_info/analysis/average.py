@@ -12,7 +12,6 @@
 
 """A collection of useful functions for post processing results."""
 
-from __future__ import annotations
 
 import numpy as np
 

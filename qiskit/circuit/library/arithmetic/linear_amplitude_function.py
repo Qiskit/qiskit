@@ -12,7 +12,7 @@
 
 """A class implementing a (piecewise-) linear function on qubit amplitudes."""
 
-from __future__ import annotations
+
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.utils.deprecation import deprecate_func

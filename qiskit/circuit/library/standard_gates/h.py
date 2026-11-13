@@ -12,7 +12,6 @@
 
 """Hadamard gate."""
 
-from __future__ import annotations
 
 from math import sqrt
 

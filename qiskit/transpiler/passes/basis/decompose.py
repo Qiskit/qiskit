@@ -12,7 +12,6 @@
 
 """Expand a gate in a circuit using its decomposition rules."""
 
-from __future__ import annotations
 
 from collections.abc import Sequence
 from fnmatch import fnmatch

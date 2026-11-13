@@ -12,7 +12,6 @@
 
 """Compute the sum of two qubit registers using Classical Addition."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit, Bit
 

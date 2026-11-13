@@ -13,7 +13,7 @@
 """
 Array shape related classes and functions
 """
-from __future__ import annotations
+
 
 from collections.abc import Iterable
 from typing import Protocol, runtime_checkable, Union

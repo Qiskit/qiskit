@@ -12,7 +12,7 @@
 
 """Module containing multi-controlled circuits synthesis with and without ancillary qubits."""
 
-from __future__ import annotations
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError

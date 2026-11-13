@@ -12,7 +12,6 @@
 
 """User interface of qpy serializer."""
 
-from __future__ import annotations
 
 import gzip
 import io

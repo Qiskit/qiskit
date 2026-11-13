@@ -24,7 +24,6 @@ This provides a single function entry point to drawing a circuit object with
 any of the backends.
 """
 
-from __future__ import annotations
 
 import logging
 import os

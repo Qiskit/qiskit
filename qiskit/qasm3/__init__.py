@@ -226,7 +226,6 @@ available on this module, if you wish to build on top of it:
     ``stdgates.inc`` include file.
 """
 
-from __future__ import annotations
 
 import functools
 import typing

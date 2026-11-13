@@ -14,7 +14,6 @@
 Built-in transpiler stage plugins for PBC transpilation.
 """
 
-from __future__ import annotations
 
 import abc
 import typing

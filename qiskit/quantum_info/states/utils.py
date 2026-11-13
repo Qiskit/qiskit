@@ -14,7 +14,7 @@
 Quantum information utility functions for states.
 """
 
-from __future__ import annotations
+
 import math
 
 import numpy as np

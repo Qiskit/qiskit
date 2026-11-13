@@ -12,7 +12,6 @@
 
 """Primitive V1 abstract base class."""
 
-from __future__ import annotations
 
 from abc import ABC
 

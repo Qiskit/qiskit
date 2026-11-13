@@ -12,7 +12,7 @@
 
 """Piecewise-polynomially-controlled Pauli rotations."""
 
-from __future__ import annotations
+
 import warnings
 import numpy as np
 

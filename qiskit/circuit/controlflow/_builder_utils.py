@@ -12,7 +12,6 @@
 
 """Private utility functions that are used by the builder interfaces."""
 
-from __future__ import annotations
 
 import dataclasses
 from typing import TypeVar, TYPE_CHECKING

@@ -12,7 +12,6 @@
 
 """Functions to generate the basic approximations of single qubit gates for Solovay-Kitaev."""
 
-from __future__ import annotations
 
 from qiskit.circuit import Gate
 from qiskit.utils.deprecation import deprecate_func

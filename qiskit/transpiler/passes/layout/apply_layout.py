@@ -12,7 +12,6 @@
 
 """Transform a circuit with virtual qubits into a circuit with physical qubits."""
 
-from __future__ import annotations
 
 from qiskit._accelerate.apply_layout import apply_layout, update_layout
 from qiskit.transpiler.basepasses import TransformationPass

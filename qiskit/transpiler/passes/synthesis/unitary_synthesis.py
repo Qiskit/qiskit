@@ -14,7 +14,7 @@
 Unitary Synthesis Transpiler Pass
 """
 
-from __future__ import annotations
+
 from typing import Any
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES

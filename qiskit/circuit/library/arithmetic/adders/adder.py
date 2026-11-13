@@ -12,7 +12,6 @@
 
 """Compute the sum of two equally sized qubit registers."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.utils.deprecation import deprecate_func

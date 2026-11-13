@@ -14,7 +14,7 @@
 """Routines that use local invariants to compute properties
 of two-qubit unitary operators.
 """
-from __future__ import annotations
+
 import numpy as np
 from qiskit._accelerate.two_qubit_decompose import two_qubit_local_invariants as tqli_rs
 from qiskit._accelerate.two_qubit_decompose import local_equivalence as le_rs

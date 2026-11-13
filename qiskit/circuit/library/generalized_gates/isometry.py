@@ -15,7 +15,6 @@
 Generic isometries from m to n qubits.
 """
 
-from __future__ import annotations
 
 import math
 import numpy as np

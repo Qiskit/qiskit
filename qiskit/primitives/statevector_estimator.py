@@ -13,7 +13,6 @@
 Statevector Estimator V2 class
 """
 
-from __future__ import annotations
 
 from collections.abc import Iterable
 

@@ -16,7 +16,6 @@ Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
 with the :meth:`~qiskit.circuit.QuantumCircuit.barrier` method.
 """
 
-from __future__ import annotations
 
 from qiskit.circuit.instruction import Instruction
 from qiskit._accelerate.circuit import StandardInstructionType

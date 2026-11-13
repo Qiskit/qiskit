@@ -13,8 +13,6 @@
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 
 
-from __future__ import annotations
-
 import numpy as np
 
 from qiskit.circuit.parametervector import ParameterVector

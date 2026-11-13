@@ -12,7 +12,6 @@
 
 """Tests for Statevector Sampler."""
 
-from __future__ import annotations
 
 import unittest
 

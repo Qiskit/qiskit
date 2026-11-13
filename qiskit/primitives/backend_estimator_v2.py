@@ -12,7 +12,6 @@
 
 """Estimator V2 implementation for an arbitrary Backend object."""
 
-from __future__ import annotations
 
 import math
 from collections import defaultdict

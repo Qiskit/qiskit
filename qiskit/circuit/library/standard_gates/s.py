@@ -12,8 +12,6 @@
 
 """The S, Sdg, CS and CSdg gates."""
 
-from __future__ import annotations
-
 
 import numpy
 

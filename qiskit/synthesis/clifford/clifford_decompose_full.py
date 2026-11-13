@@ -13,7 +13,7 @@
 Circuit synthesis for the Clifford class for all-to-all architecture.
 """
 
-from __future__ import annotations
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import Clifford
 from qiskit.synthesis.clifford.clifford_decompose_ag import synth_clifford_ag

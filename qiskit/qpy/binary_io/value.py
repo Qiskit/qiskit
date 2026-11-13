@@ -12,7 +12,6 @@
 
 """Binary IO for any value objects, such as numbers, string, parameters."""
 
-from __future__ import annotations
 
 import collections.abc
 import io

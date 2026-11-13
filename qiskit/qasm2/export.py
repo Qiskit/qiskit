@@ -12,7 +12,6 @@
 
 """Export tools for OpenQASM 2."""
 
-from __future__ import annotations
 
 __all__ = ["dump", "dumps"]
 

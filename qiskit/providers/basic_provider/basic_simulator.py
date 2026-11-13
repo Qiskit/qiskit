@@ -30,7 +30,6 @@ field, which is a result of measurements for each shot.
 
 """
 
-from __future__ import annotations
 
 import math
 import uuid

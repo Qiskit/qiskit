@@ -12,8 +12,6 @@
 
 """Swap gate."""
 
-from __future__ import annotations
-
 
 import numpy
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key

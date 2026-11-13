@@ -12,7 +12,6 @@
 
 """Transpiler pass to drop gates with negligible effects."""
 
-from __future__ import annotations
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.target import Target

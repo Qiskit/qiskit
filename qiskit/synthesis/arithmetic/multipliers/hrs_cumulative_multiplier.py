@@ -12,7 +12,6 @@
 
 """Compute the product of two qubit registers using classical multiplication approach."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import HalfAdderGate, ModularAdderGate

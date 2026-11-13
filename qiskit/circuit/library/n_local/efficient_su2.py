@@ -12,7 +12,7 @@
 
 """The EfficientSU2 2-local circuit."""
 
-from __future__ import annotations
+
 import typing
 from collections.abc import Callable, Iterable
 

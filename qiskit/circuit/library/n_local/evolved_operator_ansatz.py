@@ -12,7 +12,7 @@
 
 """The evolved operator ansatz."""
 
-from __future__ import annotations
+
 from collections.abc import Sequence
 
 import typing

@@ -12,7 +12,6 @@
 
 """Circuit synthesis for pauli evolution gates."""
 
-from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit
 

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """U1 Gate."""
-from __future__ import annotations
+
 from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate

@@ -56,7 +56,6 @@ such gates into ``["cx", "u"]`` basis, and then applies Solovay-Kitaev to the re
    DefaultUnitarySynthesis
 """
 
-from __future__ import annotations
 
 from qiskit.transpiler.passes.synthesis import plugin
 from qiskit._accelerate.unitary_synthesis import synthesize_unitary_matrix

@@ -12,8 +12,6 @@
 
 """A circuit implementing a quadratic form on binary variables."""
 
-from __future__ import annotations
-
 
 import math
 from collections.abc import Sequence
