@@ -1210,18 +1210,29 @@ When adding a new requirement, you must add it to [`pyproject.toml`](pyproject.t
 
 ### Adding an optional dependency
 
-New features can also use optional dependencies, which might be used only in very limited parts of qiskit.
-These are not required to use the rest of the package, and so should not be added to the `project.dependencies` key.
-Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
-To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
-You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
+A new feature can also use an "optional dependency", if the feature is not critical to all Qiskit
+users, and the dependency cannot be made a requirement.  These optional dependencies can have
+stricter requirements than requirements, such as needing a more recent version of Python, or only
+being supported on tier-1 platforms.
 
-### Checking for optionals
+To add an optional dependency, you should:
 
-You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit will be unusable.
-We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
-Instead, you should use [one of the "lazy testers" for optional dependencies](https://quantum.cloud.ibm.com/docs/api/qiskit/utils#optional-dependency-checkers), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
-Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
+- Add [a "lazy dependency tester"](https://quantum.cloud.ibm.com/docs/api/qiskit/utils#optional-dependency-checkers)
+  for the new optional dependency.
+
+- Make sure that all `import`s of the dependency are inside functions whose use is protected by the
+  lazy tester above.
+
+- Consider adding the dependency to one of the `optional-*` groups in the `dependency-groups` table
+  in `pyproject.toml` (or a new group), so it will be pulled in during testing and documentation
+  builds.
+
+- Consider making _groups_ of new dependencies an extra in the `qiskit` package by adding a group to
+  the `project.optional-dependencies` table of `pyproject.toml`.
+
+You must not have a top-level `import` of an optional dependency, even with `try`/`except` idiom for
+attempting imports; these tend to make `import qiskit` sluggish.
+
 
 
 ## Dealing with the git blame ignore list
