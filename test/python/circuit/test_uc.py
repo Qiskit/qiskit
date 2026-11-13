@@ -34,6 +34,15 @@ _not = np.matrix([[0, 1], [1, 0]])
 _had = 1 / np.sqrt(2) * np.matrix([[1, 1], [1, -1]])
 _rand = random_unitary(2, seed=541234).data
 
+_UC_CX_CASES = {
+    "period2": [_rand, _had] * 4,  # depends on one control, mux_simp drops the other two
+    "distinct": [random_unitary(2, seed=s).data for s in range(8)],  # nothing to simplify
+}
+_UC_CX_EXPECTED = {
+    "period2": {(True, True): 1, (True, False): 3, (False, True): 7, (False, False): 21},
+    "distinct": {(True, True): 7, (True, False): 21, (False, True): 7, (False, False): 21},
+}
+
 
 @ddt
 class TestUCGate(QiskitTestCase):
@@ -132,6 +141,21 @@ class TestUCGate(QiskitTestCase):
 
         uc = UCGate(gates, up_to_diagonal=False)
         self.assertTrue(np.allclose(Operator(uc.repeat(2)), Operator(uc) @ Operator(uc)))
+
+    @combine(
+        case=list(_UC_CX_CASES),
+        mux_simp=[True, False],
+        up_to_diagonal=[True, False],
+    )
+    def test_ucg_cx_count(self, case, mux_simp, up_to_diagonal):
+        """Test the number of CX gates of the UCGate decomposition."""
+        qc = QuantumCircuit(4)
+        uc = UCGate(_UC_CX_CASES[case], mux_simp=mux_simp, up_to_diagonal=up_to_diagonal)
+        qc.append(uc, range(4))
+        qc = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertEqual(
+            qc.count_ops().get("cx", 0), _UC_CX_EXPECTED[case][(mux_simp, up_to_diagonal)]
+        )
 
 
 def _get_ucg_matrix(squs):
