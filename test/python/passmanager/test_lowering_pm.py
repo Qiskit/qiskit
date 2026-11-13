@@ -27,15 +27,12 @@ from qiskit.passmanager import (
     LoweringPassManagerError,
     PassContextHandle,
     Pass,
-    PassManagerState,
-    PropertySet,
-    WorkflowStatus,
-    Task,
 )
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.transpiler import generate_preset_pass_manager, CouplingMap, TranspileLayout, Target
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
+from test.python.pass_adaptor import CircuitToDag, DagToCircuit, LegacyDagPass
 
 
 class CountsIR(IR):
@@ -92,43 +89,6 @@ class CliffordCircuit(QuantumCircuit):
 
     This is not actually doing any Clifford checks and is just for testing purposes.
     """
-
-
-class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
-    """A lowering pass from quantum circuit to DAG circuit.
-
-    This does *not* copy the operations.
-    """
-
-    _qiskit_pass_ir_in_ = QuantumCircuit
-    _qiskit_pass_ir_out_ = DAGCircuit
-
-    def _qiskit_pass_run_(self, ir, context):
-        context.ir_modified = True
-        return ir.to_dag(copy_operations=False)
-
-
-class DagToCircuit(Pass[DAGCircuit, QuantumCircuit]):
-    """A lowering pass from quantum circuit to DAG circuit.
-
-    This does *not* copy the operations.
-    """
-
-    _qiskit_pass_ir_in_ = DAGCircuit
-    _qiskit_pass_ir_out_ = QuantumCircuit
-
-    def __init__(self, with_layout: bool = False):
-        super().__init__()
-        self.with_layout = with_layout
-
-    def _qiskit_pass_run_(self, ir, context):
-        context.ir_modified = True
-        circuit = ir.to_circuit(copy_operations=False)
-
-        if self.with_layout:
-            property_set = LegacyDagPass._state_from_context(context).property_set
-            circuit._layout = TranspileLayout.from_property_set(ir, property_set)
-        return circuit
 
 
 class CircuitToCircuitData(Pass[QuantumCircuit, CircuitData]):
@@ -333,51 +293,6 @@ class PopCounts(Pass[CountsIR]):
             context.ir_modified = True
 
         return ir
-
-
-class LegacyDagPass(Pass[DAGCircuit]):
-    """A wrapper for a legacy Python pass."""
-
-    _qiskit_pass_ir_in_ = DAGCircuit
-    _qiskit_pass_ir_out_ = DAGCircuit
-
-    # the key in the pass context under which we store the written keys in the context
-    # -- this is used to convert from/to property sets, since the PassContextHandle does
-    # not have a way to iterate over the (Python) keys
-    _legacy_keys = "___legacy_keys"
-
-    def __init__(self, legacy_task: Task[DAGCircuit, DAGCircuit]):
-        super().__init__()
-        self._task = legacy_task
-
-    def _qiskit_pass_run_(self, ir, context):
-        state = self._state_from_context(context)
-        out, out_state = self._task.execute(ir, state, None)
-        self._update_context(context, state, out_state)
-
-        return out
-
-    @staticmethod
-    def _state_from_context(context: PassContextHandle) -> PassManagerState:
-        dummy_status = WorkflowStatus()
-        property_set = PropertySet(
-            {key: context[key] for key in context.get(LegacyDagPass._legacy_keys, ())}
-        )
-        return PassManagerState(dummy_status, property_set)
-
-    @staticmethod
-    def _update_context(
-        context: PassContextHandle, old_state: PassManagerState, new_state: PassManagerState
-    ):
-        context[LegacyDagPass._legacy_keys] = []
-        for key, value in new_state.property_set.items():
-            context[LegacyDagPass._legacy_keys].append(key)
-            context[key] = value
-
-        for deleted_key in set(old_state.property_set.keys()).difference(
-            new_state.property_set.keys()
-        ):
-            del context[deleted_key]
 
 
 class TestLoweringPassManager(QiskitTestCase):

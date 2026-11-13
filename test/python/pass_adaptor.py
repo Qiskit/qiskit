@@ -12,6 +12,7 @@
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler import TranspileLayout
 from qiskit.passmanager import (
     Task,
     PassContextHandle,
@@ -23,19 +24,40 @@ from qiskit.passmanager import (
 
 
 class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
+    """A lowering pass from quantum circuit to DAG circuit.
+
+    This does *not* copy the operations.
+    """
+
     _qiskit_pass_ir_in_ = QuantumCircuit
     _qiskit_pass_ir_out_ = DAGCircuit
 
     def _qiskit_pass_run_(self, ir, context):
+        context.ir_modified = True
         return ir.to_dag(copy_operations=False)
 
 
 class DagToCircuit(Pass[DAGCircuit, QuantumCircuit]):
+    """A lowering pass from quantum circuit to DAG circuit.
+
+    This does *not* copy the operations.
+    """
+
     _qiskit_pass_ir_in_ = DAGCircuit
     _qiskit_pass_ir_out_ = QuantumCircuit
 
+    def __init__(self, with_layout: bool = False):
+        super().__init__()
+        self.with_layout = with_layout
+
     def _qiskit_pass_run_(self, ir, context):
-        return ir.to_circuit(copy_operations=False)
+        context.ir_modified = True
+        circuit = ir.to_circuit(copy_operations=False)
+
+        if self.with_layout:
+            property_set = LegacyDagPass._state_from_context(context).property_set
+            circuit._layout = TranspileLayout.from_property_set(ir, property_set)
+        return circuit
 
 
 class LegacyDagPass(Pass[DAGCircuit]):
