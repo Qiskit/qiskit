@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed :class:`~qiskit.circuit.library.PiecewiseChebyshevGate` to preserve
+    fallback rotations outside the user-specified breakpoints instead of
+    interpolating the input function over newly extended intervals.
+
+    See `#17454 <https://github.com/Qiskit/qiskit/issues/17454>`__.

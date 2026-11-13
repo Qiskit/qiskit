@@ -425,18 +425,21 @@ class PiecewiseChebyshevGate(Gate):
         if breakpoints is None:
             breakpoints = [0]
 
-        # If the last breakpoint is < num_states, add the identity polynomial
+        self._breakpoints = breakpoints.copy()
+
+        # Extend the breakpoint boundaries for the low-level gate, but keep the user
+        # breakpoints separate so only their intervals are used for interpolation.
         num_states = 2**num_state_qubits
-        if breakpoints[-1] < num_states:
-            breakpoints = breakpoints + [num_states]
+        effective_breakpoints = breakpoints.copy()
+        if effective_breakpoints[-1] < num_states:
+            effective_breakpoints = effective_breakpoints + [num_states]
 
-        # If the first breakpoint is > 0, add the identity polynomial
-        if breakpoints[0] > 0:
-            breakpoints = [0] + breakpoints
+        if effective_breakpoints[0] > 0:
+            effective_breakpoints = [0] + effective_breakpoints
 
-        self.breakpoints = breakpoints
+        self.breakpoints = effective_breakpoints
 
-        num_compare = int(len(breakpoints) > 2)
+        num_compare = int(len(effective_breakpoints) > 2)
         super().__init__("PiecewiseChebyshev", num_state_qubits + num_compare + 1, [], label)
 
         # after initialization, build the polynomials
@@ -452,13 +455,11 @@ class PiecewiseChebyshevGate(Gate):
             TypeError: If the input function is not in the correct format.
         """
 
-        # note this must be the private attribute since we handle missing breakpoints at
-        # 0 and 2 ^ num_qubits here (e.g. if the function we approximate is not defined at 0
-        # and the user takes that into account we just add an identity)
-        breakpoints = self.breakpoints
+        # Interpolate only on the user-supplied intervals. Missing lower and upper
+        # intervals are represented by the fallback polynomial below, not by f_x.
+        breakpoints = self._breakpoints
 
-        # Need to take into account the case in which no breakpoints were provided in first place
-        num_state_qubits = self.num_qubits - 1
+        num_state_qubits = self.num_state_qubits
         if breakpoints == [0]:
             breakpoints = [0, 2**num_state_qubits]
 
