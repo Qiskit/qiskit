@@ -1,0 +1,6 @@
+---
+features_c:
+  - |
+    Added :c:func:`qk_circuit_while_loop_bit`, :c:func:`qk_circuit_while_loop_reg` and
+    :c:func:`qk_circuit_while_loop_expr` for appending a ``while`` loop to a ``QkCircuit``,
+    conditioned on a clbit, a classical register or a ``Bool`` expression respectively.
