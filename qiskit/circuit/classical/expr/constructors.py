@@ -14,6 +14,8 @@
 lifting boilerplate work."""
 
 
+from __future__ import annotations
+
 __all__ = [
     "add",
     "bit_and",
