@@ -623,6 +623,33 @@ class TestBackendSamplerV2(QiskitTestCase):
             backend.level1_sigma / np.sqrt(shots) * 6,
         )
 
+    def test_run_binary_memory(self):
+        """Test a backend reporting level 2 memory as plain bitstrings.
+
+        The samples used to be decoded as hexadecimal, so ``"11"`` was read as
+        ``0x11`` and the sampler silently returned ``"01"`` instead. See
+        https://github.com/Qiskit/qiskit/issues/16160.
+        """
+
+        class BinaryMemoryBackend(BasicSimulator):
+            """BasicSimulator reporting the memory as bitstrings instead of hexadecimal."""
+
+            def run(self, run_input, **options):
+                result = super().run(run_input, **options).result().to_dict()
+                for exp_result in result["results"]:
+                    exp_result["data"]["memory"] = [
+                        bin(int(sample, 16))[2:] for sample in exp_result["data"]["memory"]
+                    ]
+                return BasicProviderJob(self, "binary-memory", Result.from_dict(result))
+
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.x(1)
+        qc.measure_all()
+        sampler = BackendSamplerV2(backend=BinaryMemoryBackend())
+        result = sampler.run([qc], shots=10).result()
+        self.assertEqual(result[0].data.meas.get_counts(), {"11": 10})
+
     @combine(backend=BACKENDS)
     def test_primitive_job_status_done(self, backend):
         """test primitive job's status"""

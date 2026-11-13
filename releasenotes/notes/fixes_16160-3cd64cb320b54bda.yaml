@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed :class:`.BackendSamplerV2` silently returning wrong samples when a backend reports its
+    per-shot ``memory`` as plain binary bitstrings (such as ``"11"``) rather than the hexadecimal
+    strings (such as ``"0x3"``) used by IBM backends, since every entry was previously decoded as
+    base 16 regardless of its format. Memory entries are now decoded as hexadecimal only when they
+    carry the ``0x`` prefix and as binary otherwise, so the data returned by such backends is no
+    longer misinterpreted.
+
+    See `#16160 <https://github.com/Qiskit/qiskit/issues/16160>`__.

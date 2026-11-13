@@ -310,7 +310,10 @@ def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]
     lst = []
     for memory in results:
         if num_bytes > 0:
-            data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in memory)
+            data = b"".join(
+                (int(i, 16) if i.startswith("0x") else int(i, 2)).to_bytes(num_bytes, "big")
+                for i in memory
+            )
             data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
         else:
             # no measure in a circuit
