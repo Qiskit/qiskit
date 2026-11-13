@@ -16,7 +16,7 @@
 //!
 //! Run with:
 //! ```bash
-//! cargo test --test memory_report -p qiskit-mir --features mem_dbg
+//! cargo run --example memory_report -p qiskit-mir --features mem_dbg
 //! ```
 
 #![allow(clippy::print_stdout)]

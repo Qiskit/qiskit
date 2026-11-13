@@ -29,7 +29,7 @@ lint:
 	tools/find_stray_release_notes.py
 	tools/verify_images.py
 	cargo fmt --check
-	cargo clippy --all-targets -- -D warnings
+	cargo clippy --all-targets --all-features -- -D warnings
 
 style:
 	black --check qiskit test tools setup.py docs/conf.py

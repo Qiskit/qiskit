@@ -29,4 +29,6 @@ jobs:
               popd
           done
       - name: Run Rust Tests
-        run: cargo test
+        run: cargo test --all-features
+      - name: Run all examples
+        run: cargo test --examples --all-features

@@ -921,7 +921,7 @@ Rust tests are run separately from the Python and C tests. To run the tests you 
 `cargo test`.
 
 ```bash
-cargo test
+cargo test --all-features
 ```
 
 If you want to run the tests for a single [crate](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)
@@ -1052,7 +1052,10 @@ After this, `ruff` and `black` will be available and can be run from the command
 For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
 code formatting. You can simply run `cargo fmt` (if you installed Rust with the
 default settings using `rustup`), and it will update the code formatting automatically to
-conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`.
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. To ensure optional features are linted as well, run clippy with the `--all-targets` and `--all-features` flags:
+```bash
+cargo clippy --all-targets --all-features -- -D warnings
+```
 
 Rust lint and formatting checks are included in the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
