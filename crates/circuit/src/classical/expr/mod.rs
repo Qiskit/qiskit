@@ -18,6 +18,7 @@ mod cast;
 #[allow(clippy::module_inception)]
 mod expr;
 mod index;
+mod range;
 mod stretch;
 mod unary;
 mod value;
@@ -27,6 +28,7 @@ pub use binary::{Binary, BinaryOp};
 pub use cast::Cast;
 pub use expr::{Expr, ExprRef, ExprRefMut, IdentifierRef};
 pub use index::Index;
+pub use range::Range;
 pub use stretch::Stretch;
 pub use unary::{Unary, UnaryOp};
 pub use value::Value;
@@ -46,6 +48,8 @@ use crate::classical::expr::expr::PyExpr;
 #[cfg(feature = "py")]
 use crate::classical::expr::index::PyIndex;
 #[cfg(feature = "py")]
+use crate::classical::expr::range::PyRangeExpr;
+#[cfg(feature = "py")]
 use crate::classical::expr::stretch::PyStretch;
 #[cfg(feature = "py")]
 use crate::classical::expr::unary::PyUnary;
@@ -64,5 +68,6 @@ pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyVar>()?;
     m.add_class::<PyStretch>()?;
     m.add_class::<PyIndex>()?;
+    m.add_class::<PyRangeExpr>()?;
     Ok(())
 }
