@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-python@v7
         name: Install Python
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install Rust
         run:
@@ -76,6 +76,7 @@ jobs:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           PYTHON: "coverage run --source qiskit --parallel-mode"
+          COVERAGE_CORE: sysmon
 
       - name: Generate ctest coverage report
         run: make ccoverage
