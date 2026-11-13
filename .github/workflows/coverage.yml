@@ -36,9 +36,20 @@ jobs:
           restore-keys: 'stestr | "${{ runner.os }}" | "coverage"'
           path: .stestr
 
+      # save about a minute of CI time by caching grcov
+      - name: Record Rust version for cache key
+        id: rust-version
+        run: 'echo "version=$(rustc --version | tr -d " ()")" >> $GITHUB_OUTPUT'
+
+      - name: Cache grcov
+        uses: actions/cache@v6
+        with:
+          key: 'grcov | "${{ runner.os }}" | "0.8.20" | "${{ steps.rust-version.outputs.version }}"'
+          path: ~/.cargo/bin/grcov
+
       - name: Install dependencies
         run: |
-            cargo install --locked grcov@0.8.20
+            command -v grcov || cargo install --locked grcov@0.8.20
             sudo apt-get install lcov
 
       # This is needed to support any requirements, particularly in the `optionals` set,
