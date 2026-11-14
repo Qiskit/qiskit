@@ -181,6 +181,7 @@ mod test {
     use crate::DataTree;
     use crate::ops::Mean;
     use crate::program::{ProgramEvalError, ProgramFunction, QuantumProgram};
+    use crate::tensor::dim_shape;
 
     /// Return a circuit taking `parameters` with `registers` as `(name, width)` pairs.
     fn circuit(parameters: usize, registers: &[(&str, u32)]) -> CircuitData {
@@ -206,7 +207,7 @@ mod test {
     fn ty(dtype: DType, shape: &[usize]) -> TensorType {
         TensorType {
             dtype,
-            shape: shape.iter().copied().map(Dim::Fixed).collect(),
+            shape: dim_shape(shape),
         }
     }
 
