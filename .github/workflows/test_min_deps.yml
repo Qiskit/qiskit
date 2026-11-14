@@ -3,7 +3,7 @@ name: Test Minimum Dependencies
 on:
   push:
   branches:
-      - test-extremal-dependencies
+      - fork/test-extremal-dependencies
   workflow_dispatch:
 
 jobs:
