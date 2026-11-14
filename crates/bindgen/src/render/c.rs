@@ -24,10 +24,14 @@ fn render_type(ty: &ir::Type, config: &cbindgen::Config) -> String {
                 is_ref,
             } => {
                 assert!(!is_ref, "C++ reference-likes not handled");
-                if *is_const {
+                let nested = matches!(**ty, ir::Type::Ptr { .. });
+                if *is_const && !nested {
                     acc.push_str("const ");
                 }
                 render(ty, config, acc);
+                if *is_const && nested {
+                    acc.push_str(" const");
+                }
                 acc.push_str(" *");
             }
             ir::Type::Path(p) => acc.push_str(p.export_name()),
