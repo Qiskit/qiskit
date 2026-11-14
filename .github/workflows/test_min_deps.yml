@@ -1,7 +1,10 @@
 name: Test Minimum Dependencies
 
 on:
-  pull_request:
+  push:
+  branches:
+      - test-extremal-dependencies
+  workflow_dispatch:
 
 jobs:
   test-min-deps:
