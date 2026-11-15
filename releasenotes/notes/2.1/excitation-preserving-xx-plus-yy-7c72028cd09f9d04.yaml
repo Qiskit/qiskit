@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    :func:`~.circuit.library.excitation_preserving` and :class:`~.circuit.library.ExcitationPreserving` now use a
+    single :class:`~.circuit.library.XXPlusYYGate` where before it used an :class:`~.circuit.library.RXXGate`
+    followed by an :class:`~.circuit.library.RYYGate`.

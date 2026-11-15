@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix a bug in :class:`~.library.Isometry` due to an unnecessary assertion,
+    that led to an error in :meth:`.UnitaryGate.control`
+    when :class:`~.library.UnitaryGate` had more that two qubits.

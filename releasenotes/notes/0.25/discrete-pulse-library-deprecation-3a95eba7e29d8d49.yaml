@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    The :class:`~qiskit.pulse.SymbolicPulse` library was extended. The new pulses in the library are:
+
+      * :func:`~qiskit.pulse.library.GaussianDeriv`
+      * :func:`~qiskit.pulse.library.Sech`
+      * :func:`~qiskit.pulse.library.SechDeriv`
+      * :func:`~qiskit.pulse.library.Square`
+
+    The new functions return a :class:`ScalableSymbolicPulse`, and match the functionality
+    of the corresponding functions in the discrete pulse library, with the exception of
+    `Square()` for which a phase of :math:`2\\pi` shifts by a full cycle (contrary to the
+    discrete `square()` where such a shift was induced by a :math:`\\pi` phase).

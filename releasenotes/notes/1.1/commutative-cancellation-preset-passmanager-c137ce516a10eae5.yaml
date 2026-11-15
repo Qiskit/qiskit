@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added the :class:`.CommutativeCancellation` pass to the ``init`` stage of the preset pass managers for
+    optimization levels 2 and 3. This enables the preset pass managers to cancel additional logical
+    operations at the beginning of the compilation pipeline.
+    

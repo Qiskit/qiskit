@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a performance regression in the :class:`~.SabreLayout` and
+    :class:`~.SabreSwap` transpiler passes.
+    Fixed `#10650 <https://github.com/Qiskit/qiskit-terra/issues/10650>`__

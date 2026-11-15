@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Clarified the error message for invalid specified versions in :meth:`.qpy.dump` to make it easier to act on.

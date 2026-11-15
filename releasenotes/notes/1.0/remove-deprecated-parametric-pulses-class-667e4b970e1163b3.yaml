@@ -1,0 +1,6 @@
+---
+upgrade_pulse:
+  - |
+    The class ``qiskit.pulse.library.ParametricPulse`` and all subclasses are removed.
+    These were deprecated since Qiskit 0.39 (with qiskit-terra 0.22), released in 2022-10.
+    Instead, use :class:`.SymbolicPulse` and check its documentation for details.

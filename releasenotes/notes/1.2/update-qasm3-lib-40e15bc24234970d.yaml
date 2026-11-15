@@ -1,0 +1,7 @@
+---
+features_qasm:
+  - |
+    The vendored version of the OpenQASM 3.0 standard library has been
+    updated to match `the state as of commit 4ca1d79383 <https://github.com/openqasm/openqasm/blob/4ca1d793833b24a195dcb8a5db99f1bd21b0d32f/examples/stdgates.inc>`__.
+    This should generally have no effect on your use of Qiskit, unless you
+    were retrieving our vendored file for your own use.

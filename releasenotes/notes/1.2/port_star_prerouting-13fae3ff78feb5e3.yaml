@@ -1,0 +1,11 @@
+---
+features_transpiler:
+  - |
+    Port part of the logic from the :class:`StarPrerouting`, used to 
+    find a star graph connectivity subcircuit and replaces it with a 
+    linear routing equivalent.
+  - | 
+    The function :func:`star_preroute` now performs the heavily lifting
+    to transform the dag by in the rust space by taking advantage 
+    of the functions :func:`_build_sabre_dag` and 
+    :func:`_apply_sabre_result`.

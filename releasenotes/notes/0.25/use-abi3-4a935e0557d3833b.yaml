@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    By default Qiskit builds its compiled extensions using the
+    `Python Stable ABI <https://docs.python.org/3/c-api/stable.html>`__
+    with support back to the oldest version of Python supported by Qiskit
+    (currently 3.8). This means that moving forward there
+    will be a single precompiled wheels that are shipped on release that
+    works with all of Qiskit's supported Python versions. There isn't any
+    expected runtime performance difference using the limited API so it is
+    enabled by default for all builds now.
+    Previously, the compiled extensions were built using the version specific API and
+    would only work with a single Python version. This change was made
+    to reduce the number of package files we need to build and publish in each
+    release. When building Qiskit from source there should be no changes
+    necessary to the build process except that the default tags in the output
+    filenames will be different to reflect the use of the limited API.

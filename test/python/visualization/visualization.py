@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Tests class with methods for comparing the outputs of visualization tools with expected ones.
 Useful for refactoring purposes."""
@@ -19,11 +18,14 @@ import os
 import unittest
 from filecmp import cmp as cmpfile
 from shutil import copyfile
-import matplotlib
 
-from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals as _optionals
+from test import QiskitTestCase
 
-matplotlib.use("ps")
+if _optionals.HAS_MATPLOTLIB:
+    import matplotlib
+
+    matplotlib.use("ps")
 
 
 def path_to_diagram_reference(filename):
@@ -55,9 +57,11 @@ class QiskitVisualizationTestCase(QiskitTestCase):
         else:
             raise self.failureException("Result and reference do not match.")
 
+    @_optionals.HAS_PIL.require_in_call
     def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
         """Checks if both images are similar enough to be considered equal.
         Similarity is controlled by the ```diff_tolerance``` argument."""
+
         from PIL import Image, ImageChops
 
         if isinstance(current, str):

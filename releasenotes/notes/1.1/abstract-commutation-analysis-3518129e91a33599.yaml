@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Extended the commutation analysis performed by :class:`.CommutationChecker` to only operate on
+    hardware circuits to also work with abstract circuits, i.e. each operation in
+    the input quantum circuit is now checked for its matrix representation before proceeding to the
+    analysis. In addition, the operation is now checked for its ability to be cached in the session
+    commutation library. For example, this now enables computing whether :class:`.AnnotatedOperation`
+    commute. This enables transpiler passes that rely on :class:`.CommutationChecker` internally,
+    such as :class:`.CommutativeCancellation`, during earlier stages of a default transpilation pipeline
+    (prior to basis translation).
+

@@ -1,0 +1,22 @@
+---
+features_c:
+  - |
+    Added ``qk_obs_apply_layout`` to apply new qubit layouts to a ``QkObs`` observable.
+    This function takes the observable, the new qubit indices, and an output number of qubits.
+    Importantly, this function allows applying transpile layouts, usually given as
+    ``QkTranspileLayout`` by a transpiler pass, to an observable. For example:
+
+    .. code-block:: c
+
+      // get the number of output qubits -- transpile_layout is a QkTranspileLayout*
+      uint32_t num_output_qubits = qk_transpile_layout_num_output_qubits(transpile_layout);
+
+      // get the layout including the ancillas (hence the ``false`` in the function call)
+      uint32_t *layout = malloc(sizeof(uint32_t) * num_output_qubits);
+      qk_transpile_layout_final_layout(transpile_layout, false, layout);
+
+      // apply the layout -- obs is a QkObs*
+      int exit = qk_obs_apply_layout(obs, layout, num_output_qubits);
+
+      // free the layout array
+      free(layout);

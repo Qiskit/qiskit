@@ -2,7 +2,7 @@
 features:
   - |
     Added a new parameter, ``add_bits``, to :meth:`.QuantumCircuit.measure_all`.
-    By default it is set to ``True`` to maintain the previous behaviour of adding a new :obj:`.ClassicalRegister` of the same size as the number of qubits to store the measurements.
+    By default it is set to ``True`` to maintain the previous behavior of adding a new :obj:`.ClassicalRegister` of the same size as the number of qubits to store the measurements.
     If set to ``False``, the measurements will be stored in the already existing classical bits.
     For example, if you created a circuit with existing classical bits like::
     

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The parametric form of :class:`.XXPlusYYGate` and :class:`.XXMinusYYGate` returned from
+    :func:`.get_standard_gate_name_mapping` now correctly includes the :math:`\beta` parameter as
+    well as the initial :math:`\theta` rotation.

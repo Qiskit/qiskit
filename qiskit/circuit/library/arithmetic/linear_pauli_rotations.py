@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,9 +13,10 @@
 
 """Linearly-controlled X, Y or Z rotation."""
 
-from typing import Optional
+from __future__ import annotations
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit
+
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
 
 from .functional_pauli_rotations import FunctionalPauliRotations
@@ -27,7 +28,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
     For a register of state qubits :math:`|x\rangle`, a target qubit :math:`|0\rangle` and the
     basis ``'Y'`` this circuit acts as:
 
-    .. parsed-literal::
+    .. code-block:: text
 
             q_0: ─────────────────────────■───────── ... ──────────────────────
                                           │
@@ -51,14 +52,13 @@ class LinearPauliRotations(FunctionalPauliRotations):
 
     def __init__(
         self,
-        num_state_qubits: Optional[int] = None,
+        num_state_qubits: int | None = None,
         slope: float = 1,
         offset: float = 0,
         basis: str = "Y",
         name: str = "LinRot",
     ) -> None:
-        r"""Create a new linear rotation circuit.
-
+        r"""
         Args:
             num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
             slope: The slope of the controlled rotation.
@@ -93,7 +93,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
         """Set the multiplicative factor of the rotation angles.
 
         Args:
-            The slope of the rotation angles.
+            slope: The slope of the rotation angles.
         """
         if self._slope is None or slope != self._slope:
             self._invalidate()
@@ -122,7 +122,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
             self._invalidate()
             self._offset = offset
 
-    def _reset_registers(self, num_state_qubits: Optional[int]) -> None:
+    def _reset_registers(self, num_state_qubits: int | None) -> None:
         """Set the number of state qubits.
 
         Note that this changes the underlying quantum register, if the number of state qubits
@@ -153,7 +153,7 @@ class LinearPauliRotations(FunctionalPauliRotations):
             if raise_on_failure:
                 raise CircuitError(
                     "Not enough qubits in the circuit, need at least "
-                    "{}.".format(self.num_state_qubits + 1)
+                    f"{self.num_state_qubits + 1}."
                 )
 
         return valid
@@ -164,12 +164,65 @@ class LinearPauliRotations(FunctionalPauliRotations):
             return
 
         super()._build()
+        gate = LinearPauliRotationsGate(self.num_state_qubits, self.slope, self.offset, self.basis)
+        self.append(gate, self.qubits)
 
-        circuit = QuantumCircuit(*self.qregs, name=self.name)
+
+class LinearPauliRotationsGate(Gate):
+    r"""Linearly-controlled X, Y or Z rotation.
+
+    For a register of state qubits :math:`|x\rangle`, a target qubit :math:`|0\rangle` and the
+    basis ``'Y'`` this circuit acts as:
+
+    .. parsed-literal::
+
+            q_0: ─────────────────────────■───────── ... ──────────────────────
+                                          │
+                                          .
+                                          │
+        q_(n-1): ─────────────────────────┼───────── ... ───────────■──────────
+                  ┌────────────┐  ┌───────┴───────┐       ┌─────────┴─────────┐
+            q_n: ─┤ RY(offset) ├──┤ RY(2^0 slope) ├  ...  ┤ RY(2^(n-1) slope) ├
+                  └────────────┘  └───────────────┘       └───────────────────┘
+
+    This can for example be used to approximate linear functions, with :math:`a =` ``slope``:math:`/2`
+    and :math:`b =` ``offset``:math:`/2` and the basis ``'Y'``:
+
+    .. math::
+
+        |x\rangle |0\rangle \mapsto \cos(ax + b)|x\rangle|0\rangle + \sin(ax + b)|x\rangle |1\rangle
+
+    Since for small arguments :math:`\sin(x) \approx x` this operator can be used to approximate
+    linear functions.
+    """
+
+    def __init__(
+        self,
+        num_state_qubits: int,
+        slope: float = 1,
+        offset: float = 0,
+        basis: str = "Y",
+        label: str | None = None,
+    ) -> None:
+        r"""
+        Args:
+            num_state_qubits: The number of qubits representing the state :math:`|x\rangle`.
+            slope: The slope of the controlled rotation.
+            offset: The offset of the controlled rotation.
+            basis: The type of Pauli rotation ('X', 'Y', 'Z').
+            label: The label of the gate.
+        """
+        super().__init__("LinPauliRot", num_state_qubits + 1, [], label=label)
+        self.slope = slope
+        self.offset = offset
+        self.basis = basis.lower()
+
+    def _define(self):
+        circuit = QuantumCircuit(self.num_qubits)
 
         # build the circuit
-        qr_state = self.qubits[: self.num_state_qubits]
-        qr_target = self.qubits[self.num_state_qubits]
+        qr_state = circuit.qubits[: self.num_qubits - 1]
+        qr_target = circuit.qubits[-1]
 
         if self.basis == "x":
             circuit.rx(self.offset, qr_target)
@@ -186,4 +239,4 @@ class LinearPauliRotations(FunctionalPauliRotations):
             else:  # 'Z'
                 circuit.crz(self.slope * pow(2, i), q_i, qr_target)
 
-        self.append(circuit.to_gate(), self.qubits)
+        self.definition = circuit

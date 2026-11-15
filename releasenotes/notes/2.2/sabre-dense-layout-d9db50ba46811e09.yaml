@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    :class:`.SabreLayout` uses a "dense subset" layout as one of its trials, following the same
+    algorithm as :class:`.DenseLayout`.  Previously, however, the version used by Sabre was assigning
+    all virtual qubits, including dummy ancillas, to a physical qubit, compromising the effectiveness
+    of the algorithm, but not its correctness.  Sabre will now only use the virtual qubits defined by
+    the user for this initial trial, which may result in small improvements in layout selection
+    when averaged over large classes of circuit.

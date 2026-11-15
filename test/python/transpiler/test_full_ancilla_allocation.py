@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,8 +19,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import CouplingMap, Layout, Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import FullAncillaAllocation
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test import QiskitTestCase
 
 
 class TestFullAncillaAllocation(QiskitTestCase):
@@ -72,7 +72,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
                     4 -> ancilla1
         """
         target = Target(num_qubits=5)
-        target.add_instruction(CXGate(), {edge: None for edge in self.cmap5.get_edges()})
+        target.add_instruction(CXGate(), dict.fromkeys(self.cmap5.get_edges()))
 
         qr = QuantumRegister(3, "q")
         circ = QuantumCircuit(qr)
@@ -194,7 +194,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         )
 
     def test_bad_layout(self):
-        """Layout referes to a register that do not exist in the circuit"""
+        """Layout refers to a register that do not exist in the circuit"""
         qr = QuantumRegister(3, "q")
         circ = QuantumCircuit(qr)
         dag = circuit_to_dag(circ)
@@ -213,6 +213,28 @@ class TestFullAncillaAllocation(QiskitTestCase):
             "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
             cm.exception.message,
         )
+
+    def test_target_without_cmap(self):
+        """Test that FullAncillaAllocation works when the target does not have a coupling map.
+
+        This situation occurs at the early stages of backend bring-up.
+        """
+        target_data = {"basis_gates": ["h"], "num_qubits": 3}
+        target = Target.from_configuration(**target_data)
+
+        circ = QuantumCircuit(1)
+        circ.h(0)
+
+        pass_ = FullAncillaAllocation(target)
+        pass_.property_set["layout"] = Layout.from_intlist([0], *circ.qregs)
+
+        # Pre pass check
+        self.assertEqual(len(pass_.property_set["layout"]), 1)
+
+        pass_.run(circuit_to_dag(circ))
+
+        # Post pass check
+        self.assertEqual(len(pass_.property_set["layout"]), target.num_qubits)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    QPY (using :func:`.qpy.dump` and :func:`.qpy.load`) will now correctly serialize
+    and deserialize quantum circuits with Clifford operators
+    (:class:`~qiskit.quantum_info.Clifford`).

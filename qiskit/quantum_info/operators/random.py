@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,26 +14,31 @@
 Methods to create random operators.
 """
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.random import default_rng
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator, Stinespring
 
-# pylint: disable=unused-import
 from .dihedral.random import random_cnotdihedral
-from .symplectic.random import (
-    random_clifford,
-    random_pauli,
-    random_pauli_list,
-    random_pauli_table,
-    random_stabilizer_table,
-)
+from .symplectic.random import random_clifford, random_pauli, random_pauli_list
+
+__all__ = [
+    "random_clifford",
+    "random_cnotdihedral",
+    "random_hermitian",
+    "random_pauli",
+    "random_pauli_list",
+    "random_quantum_channel",
+    "random_unitary",
+]
 
 DEFAULT_RNG = default_rng()
 
 
-def random_unitary(dims, seed=None):
+def random_unitary(dims: int | tuple, seed: int | np.random.Generator | None = None):
     """Return a random unitary Operator.
 
     The operator is sampled from the unitary Haar measure.
@@ -53,14 +58,16 @@ def random_unitary(dims, seed=None):
     else:
         random_state = default_rng(seed)
 
-    dim = np.product(dims)
+    dim = np.prod(dims)
     from scipy import stats
 
     mat = stats.unitary_group.rvs(dim, random_state=random_state)
     return Operator(mat, input_dims=dims, output_dims=dims)
 
 
-def random_hermitian(dims, traceless=False, seed=None):
+def random_hermitian(
+    dims: int | tuple, traceless: bool = False, seed: int | np.random.Generator | None = None
+):
     """Return a random hermitian Operator.
 
     The operator is sampled from Gaussian Unitary Ensemble.
@@ -84,7 +91,7 @@ def random_hermitian(dims, traceless=False, seed=None):
         rng = default_rng(seed)
 
     # Total dimension
-    dim = np.product(dims)
+    dim = np.prod(dims)
     from scipy import stats
 
     if traceless:
@@ -104,7 +111,12 @@ def random_hermitian(dims, traceless=False, seed=None):
     return Operator(mat, input_dims=dims, output_dims=dims)
 
 
-def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=None):
+def random_quantum_channel(
+    input_dims: int | tuple | None = None,
+    output_dims: int | tuple | None = None,
+    rank: int | None = None,
+    seed: int | np.random.Generator | None = None,
+):
     """Return a random CPTP quantum channel.
 
     This constructs the Stinespring operator for the quantum channel by
@@ -112,7 +124,7 @@ def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=No
 
     Args:
         input_dims (int or tuple): the input dimension of the channel.
-        output_dims (int or tuple): the input dimension of the channel.
+        output_dims (int or tuple): the output dimension of the channel.
         rank (int): Optional. The rank of the quantum channel Choi-matrix.
         seed (int or np.random.Generator): Optional. Set a fixed seed or
                                            generator for RNG.
@@ -133,8 +145,8 @@ def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=No
     elif output_dims is None:
         output_dims = input_dims
 
-    d_in = np.product(input_dims)
-    d_out = np.product(output_dims)
+    d_in = np.prod(input_dims)
+    d_out = np.prod(output_dims)
 
     # If rank is not specified set to the maximum rank for the
     # Choi matrix (input_dim * output_dim)

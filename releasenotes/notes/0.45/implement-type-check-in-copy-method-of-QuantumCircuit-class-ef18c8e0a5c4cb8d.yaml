@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The methods :meth:`.QuantumCircuit.copy` and :meth:`~.QuantumCircuit.copy_empty_like` will now raise an
+    error if the ``name`` argument is incorrectly typed, instead of generating an invalid circuit.

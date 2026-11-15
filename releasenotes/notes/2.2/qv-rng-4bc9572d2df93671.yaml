@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :func:`qiskit.circuit.library.quantum_volume` was updated to handle a
+    :class:`numpy.random.Generator` as input for its ``seed`` argument.
+    Previously, such a generator argument would result in a ``TypeError``.

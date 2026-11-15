@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed `qiskit.primitives.containers.observables_array.ObservablesArray.coerce()`
+    so that it returns a 0-d array when the input is a single, unnested observable. 
+    Previously, it erroneously upgraded to a single dimension, with shape `(1,)`.

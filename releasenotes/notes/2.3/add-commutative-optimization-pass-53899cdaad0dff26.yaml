@@ -1,0 +1,24 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass :class:`.CommutativeOptimization`, that
+    performs gate cancellation and merging exploiting commutativity relations.
+    The pass unifies and extends the functionality of
+    both :class:`.CommutativeCancellation` and
+    :class:`.CommutativeInverseCancellation`.
+
+    Specifically, the pass:
+
+    * Cancels pairs of inverse gates, including pairs that are
+      inverse up to a global phase (adjusting the global phase
+      if necessary).
+    * Attempts to merge consecutive gates when possible, for example
+      sequences of RZ-gates, RX-gates, Pauli rotations, and so on.
+
+    The pass constructor provides two optional parameters:
+    
+    * ``approximation_degree``: specifies the threshold used in the
+      the average gate fidelity computation to decide whether pairs of gates
+      can be considered as canceling or commuting.
+    * ``matrix_max_num_qubits``: sets an upper-bound on the number of qubits
+      for the matrix-based commutativity and inverse checks.

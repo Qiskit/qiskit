@@ -1,0 +1,19 @@
+---
+upgrade_circuits:
+  - |
+    The methods :meth:`.XGate.control`, :meth:`.CXGate.control`, :meth:`.CCXGate.control`,
+    :meth:`.C3XGate.control`, :meth:`.C4XGate.control`, and  :meth:`.MCXGate.control` no
+    longer return an :class:`.AnnotatedOperation` when the argument ``annotated`` is set to
+    ``True``, and instead return the same explicit :class:`.MCXGate` that one would get when 
+    ``annotated`` is ``False``. This is consistent with how the argument ``annotated`` is
+    used across the standard circuit library, where we generally avoid introducing an
+    :class:`.AnnotatedOperation` when a native gate class is already available. In practice,
+    this leads to more efficient decompositions of control-annotated gates in the MCX family.
+fixes:
+  - |
+    Fixed a bug in :meth:`.MCXGate.control`, where adding more controls to an
+    open-controlled :class:`.MCXGate` did not take the ``ctrl_state`` of the
+    controlled MCX gate into account, thus leading to an incorrect ``ctrl_state``
+    of the extended MCX gate. Note that the explicit MCX classes 
+    :class:`.CXGate`, :class:`.CCXGate`, :class:`.C3XGate`, and :class:`.C4XGate`
+    were already handled correctly.

@@ -49,7 +49,7 @@ deprecations:
     constructing parameterized pulse programs.
   - |
     The :attr:`~qiskit.pulse.channels.Channel.parameters` attribute for
-    the following clasess:
+    the following classes:
 
       * :py:class:`~qiskit.pulse.channels.Channel`
       * :py:class:`~qiskit.pulse.instructions.Instruction`.

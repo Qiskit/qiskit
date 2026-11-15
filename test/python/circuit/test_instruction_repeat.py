@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,16 +14,12 @@
 """Test Qiskit's repeat instruction operation."""
 
 import unittest
-from numpy import pi
 
-from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.test import QiskitTestCase
-from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library import SGate, U3Gate, CXGate
+from qiskit.circuit.library import SGate, CXGate, UnitaryGate
 from qiskit.circuit import Instruction, Measure, Gate
-from qiskit.transpiler.passes import Unroller
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase
 
 
 class TestRepeatInt1Q(QiskitTestCase):
@@ -121,37 +117,6 @@ class TestRepeatIntMeasure(QiskitTestCase):
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Instruction)
         self.assertNotIsInstance(result, Gate)
-
-
-class TestRepeatUnroller(QiskitTestCase):
-    """Test unrolling Gate.repeat"""
-
-    def test_unroller_two(self):
-        """Test unrolling gate.repeat(2)."""
-        qr = QuantumRegister(1, "qr")
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().repeat(2), [qr[0]])
-        result = PassManager(Unroller("u3")).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
-
-    def test_unroller_one(self):
-        """Test unrolling gate.repeat(1)."""
-        qr = QuantumRegister(1, "qr")
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().repeat(1), [qr[0]])
-        result = PassManager(Unroller("u3")).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
 
 
 class TestRepeatErrors(QiskitTestCase):

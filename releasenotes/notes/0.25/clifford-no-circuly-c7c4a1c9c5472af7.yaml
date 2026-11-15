@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    :meth:`.Clifford.from_circuit` will no longer attempt to resolve instructions whose
+    :attr:`~.circuit.Instruction.definition` fields are mutually recursive with some other object.
+    Such recursive definitions are already a violation of the strictly hierarchical ordering that
+    the :attr:`~.circuit.Instruction.definition` field requires, and code should not rely on this
+    being possible at all.  If you want to define equivalences that are permitted to have (mutual)
+    cycles, use an :class:`.EquivalenceLibrary`.

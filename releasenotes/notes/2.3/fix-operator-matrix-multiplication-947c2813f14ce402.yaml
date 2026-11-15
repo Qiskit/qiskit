@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The :meth:`.Operator.__matmul__` method now correctly handles
+    :class:`.Statevector` inputs by delegating to
+    :meth:`.Statevector.evolve`, ensuring consistent behavior with
+    operator–statevector application, and returning a :class:`.Statevector` of the
+    appropriate dimension and mathematical matrix multiplication value. 
+    Fixed `#14726 <https://github.com/Qiskit/qiskit/pull/14726>`__.

@@ -1,10 +1,10 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,30 +14,31 @@ Circuit synthesis for the CNOTDihedral class.
 """
 
 import numpy as np
-from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import CNOTDihedral
 
 
-def synth_cnotdihedral_general(elem):
-    """Decompose a CNOTDihedral element into a QuantumCircuit.
+def synth_cnotdihedral_general(elem: CNOTDihedral) -> QuantumCircuit:
+    """Decompose a :class:`.CNOTDihedral` element into a :class:`.QuantumCircuit`.
 
-    Decompose a general CNOTDihedral elements.
-    The number of CNOT gates is not necessarily optimal.
+    Decompose a general :class:`.CNOTDihedral` elements.
+    The number of CX gates is not necessarily optimal.
     For a decomposition of a 1-qubit or 2-qubit element, call
-    synth_cnotdihedral_two_qubits.
+    :func:`.synth_cnotdihedral_two_qubits`.
 
     Args:
-        elem (CNOTDihedral): a CNOTDihedral element.
+        elem: A :class:`.CNOTDihedral` element.
 
-    Return:
-        QuantumCircuit: a circuit implementation of the CNOTDihedral element.
+    Returns:
+        A circuit implementation of the :class:`.CNOTDihedral` element.
 
     Raises:
         QiskitError: if the element could not be decomposed into a circuit.
 
-    Reference:
+    References:
         1. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-           *Scalable randomised benchmarking of non-Clifford gates*,
+           *Scalable randomized benchmarking of non-Clifford gates*,
            npj Quantum Inf 2, 16012 (2016).
     """
 
@@ -83,7 +84,7 @@ def synth_cnotdihedral_general(elem):
     ):
         raise QiskitError("Cannot do Gauss elimination on linear part.")
 
-    # Initialize new_elem to an identity CNOTDihderal element
+    # Initialize new_elem to an identity CNOTDihedral element
     new_elem = elem_cpy.copy()
     new_elem.poly.weight_0 = 0
     new_elem.poly.weight_1 = np.zeros(num_qubits, dtype=np.int8)

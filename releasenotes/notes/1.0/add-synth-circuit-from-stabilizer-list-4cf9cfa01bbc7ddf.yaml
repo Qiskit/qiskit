@@ -1,0 +1,14 @@
+---
+features_synthesis:
+  - |
+    Added a :func:`qiskit.synthesis.synth_circuit_from_stabilizers` function that
+    returns a circuit that outputs the state stabilized by a series of given stabilizers.
+features_quantum_info:
+  - |
+    Added a :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list` method
+    that generates a stabilizer state from a list of stabilizers::
+
+        from qiskit.quantum_info import StabilizerState
+
+        stabilizer_list = ["ZXX", "-XYX", "+ZYY"]
+        stab = StabilizerState.from_stabilizer_list(stabilizer_list)

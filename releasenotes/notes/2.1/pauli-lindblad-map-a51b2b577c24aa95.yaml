@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Introduces the :class:`.QubitSparsePauli`, :class:`.QubitSparsePauliList`, and
+    :class:`.PauliLindbladMap` classes. These classes represent, respectively, a single phase-less
+    Pauli operator, a list of phase-less Pauli operators, and a Pauli Lindblad map, all stored
+    in qubit-sparse format. 

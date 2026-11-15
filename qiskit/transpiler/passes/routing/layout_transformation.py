@@ -4,20 +4,21 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Map (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates."""
+"""Map (with minimum effort) a DAGCircuit onto a ``coupling_map`` adding swap gates."""
 from __future__ import annotations
 
 import numpy as np
 
-from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.target import Target
 
@@ -49,7 +50,7 @@ class LayoutTransformation(TransformationPass):
 
             to_layout (Union[Layout, str]):
                 The final layout of qubits on physical qubits.
-                If the type is str, look up `property_set` when this pass runs.
+                If the type is str, look up ``property_set`` when this pass runs.
 
             seed (Union[int, np.random.default_rng]):
                 Seed to use for random trials.

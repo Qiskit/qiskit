@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :class:`.CUGate` will now behave correctly during calls to :meth:`.QuantumCircuit.assign_parameters`.
+    Previously, it would cause various odd errors, often some time after the initial circuit assignment.
+    See `#7326 <https://github.com/Qiskit/qiskit/issues/7326>`__, `#7410 <https://github.com/Qiskit/qiskit/issues/7410>`__,
+    `#9627 <https://github.com/Qiskit/qiskit/issues/9627>`__, `#10002 <https://github.com/Qiskit/qiskit/issues/10002>`__,
+    and `#10131 <https://github.com/Qiskit/qiskit/issues/10131>`__.

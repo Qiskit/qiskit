@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -88,12 +88,25 @@ class CollectAndCollapse(TransformationPass):
         return dag
 
 
-def collect_using_filter_function(dag, filter_function, split_blocks, min_block_size):
+def collect_using_filter_function(
+    dag,
+    filter_function,
+    split_blocks,
+    min_block_size,
+    split_layers=False,
+    collect_from_back=False,
+    max_block_width=None,
+):
     """Corresponds to an important block collection strategy that greedily collects
     maximal blocks of nodes matching a given ``filter_function``.
     """
     return BlockCollector(dag).collect_all_matching_blocks(
-        filter_fn=filter_function, split_blocks=split_blocks, min_block_size=min_block_size
+        filter_fn=filter_function,
+        split_blocks=split_blocks,
+        min_block_size=min_block_size,
+        split_layers=split_layers,
+        collect_from_back=collect_from_back,
+        max_block_width=max_block_width,
     )
 
 

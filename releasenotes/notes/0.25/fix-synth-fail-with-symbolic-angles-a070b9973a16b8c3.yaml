@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a bug introduced in Qiskit 0.24.0 where numeric rotation angles were no longer substituted
+    for symbolic ones before preparing for two-qubit synthesis. This caused an exception to be
+    raised because the synthesis routines require numberic matrices.

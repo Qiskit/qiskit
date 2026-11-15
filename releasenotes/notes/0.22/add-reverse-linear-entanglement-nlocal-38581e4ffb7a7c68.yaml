@@ -13,5 +13,5 @@ upgrade:
     :class:`~.RealAmplitudes` and :class:`~.EfficientSU2` classes has changed from ``"full"`` to
     ``"reverse_linear"``. This change was made because the output circuit is equivalent but
     uses only :math:`n-1` instead of :math:`\frac{n(n-1)}{2}` :class:`~.CXGate` gates. If you
-    desire the previous default you can explicity set ``entanglement="full"`` when calling either
+    desire the previous default you can explicitly set ``entanglement="full"`` when calling either
     constructor.

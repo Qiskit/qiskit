@@ -9,5 +9,5 @@ features:
       * :class:``~qiskit.pulse.library.Triangle``
 
     The new functions return a ``ScalableSymbolicPulse``. With the exception of the ``Sawtooth`` phase,
-    behaviour is identical to that of the corresponding waveform generators (:class:``~qiskit.pulse.library.sin`` etc).
+    behavior is identical to that of the corresponding waveform generators (:class:``~qiskit.pulse.library.sin`` etc).
     The ``Sawtooth`` phase is defined such that a phase of :math:``2\\pi`` shifts by a full cycle.

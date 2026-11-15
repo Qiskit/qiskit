@@ -1,0 +1,5 @@
+---
+features_primitives:
+  - |
+    Added :meth:`~BitArray.to_bool_array` method to :class:`~BitArray` class that returns the bit array 
+    as a boolean NumPy array. The ``order`` argument can be used to specify the endianness of the output array.

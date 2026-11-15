@@ -1,0 +1,5 @@
+---
+features_c:
+  - |
+    Added a new type ``QkTranspileLayout`` to the C API. This type is used
+    for reasoning about the permutations caused by the transpiler.

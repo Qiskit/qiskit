@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in :func:`qiskit.pulse.utils.format_parameter_value` function that
+    unintentionally converts large enough integer numbers into float values
+    or causes unexpected rounding.
+    See `qiskit/#11971 <https://github.com/Qiskit/qiskit/issues/11971>`__  for details.

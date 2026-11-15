@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,14 +12,20 @@
 
 """Swap gate."""
 
-from typing import Optional, Union
+from __future__ import annotations
+
+
 import numpy
-from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
+from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
+from qiskit._accelerate.circuit import StandardGate
 
 
-class SwapGate(Gate):
+_SWAP_ARRAY = numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
+
+
+@with_gate_array(_SWAP_ARRAY)
+class SwapGate(SingletonGate):
     r"""The SWAP gate.
 
     This is a symmetric and Clifford gate.
@@ -27,15 +33,15 @@ class SwapGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.swap` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─X─
               │
         q_1: ─X─
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -54,74 +60,100 @@ class SwapGate(Gate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label: Optional[str] = None):
-        """Create new SWAP gate."""
+    _standard_gate = StandardGate.Swap
+
+    def __init__(self, label: str | None = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("swap", 2, [], label=label)
 
+    _singleton_lookup_key = stdlib_singleton_key()
+
     def _define(self):
-        """
-        gate swap a,b { cx a,b; cx b,a; cx a,b; }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        """Default definition"""
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = qc
+        #           ┌───┐
+        # q_0: ──■──┤ X ├──■──
+        #      ┌─┴─┐└─┬─┘┌─┴─┐
+        # q_1: ┤ X ├──■──┤ X ├
+        #      └───┘     └───┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.Swap._get_definition(self.params), legacy_qubits=True
+        )
 
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-SWAP gate.
+        """Return a controlled version of the Swap gate.
 
-        One control returns a CSWAP (Fredkin) gate.
+        For a single control qubit, the controlled gate is implemented as :class:`.CSwapGate`
+        (also known as Fredkin gate), regardless of the value of `annotated`.
+
+        For more than one control qubit,
+        the controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, defaults to ``False``.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CSwapGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+            gate = CSwapGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
-        """Return inverse Swap gate (itself)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse Swap gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            SwapGate: inverse gate (self-inverse).
+        """
         return SwapGate()  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the SWAP gate."""
-        return numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=dtype)
+    def __eq__(self, other):
+        return isinstance(other, SwapGate)
 
 
-class CSwapGate(ControlledGate):
+@with_controlled_gate_array(_SWAP_ARRAY, num_ctrl_qubits=1)
+class CSwapGate(SingletonControlledGate):
     r"""Controlled-SWAP gate, also known as the Fredkin gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.cswap` and
     :meth:`~qiskit.circuit.QuantumCircuit.fredkin` methods.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
-    .. parsed-literal::
+    .. code-block:: text
 
         q_0: ─■─
               │
@@ -130,7 +162,7 @@ class CSwapGate(ControlledGate):
         q_2: ─X─
 
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -156,7 +188,7 @@ class CSwapGate(ControlledGate):
         which in our case would be q_2. Thus a textbook matrix for this
         gate will be:
 
-        .. parsed-literal::
+        .. code-block:: text
 
             q_0: ─X─
                   │
@@ -188,33 +220,16 @@ class CSwapGate(ControlledGate):
         |0, b, c\rangle \rightarrow |0, b, c\rangle
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
-    # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1],
-        ]
-    )
-    _matrix0 = numpy.array(
-        [
-            [1, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1],
-        ]
-    )
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    _standard_gate = StandardGate.CSwap
+
+    def __init__(
+        self,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        *,
+        _base_label=None,
+    ):
         """Create new CSWAP gate."""
         super().__init__(
             "cswap",
@@ -223,40 +238,40 @@ class CSwapGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=SwapGate(),
+            base_gate=SwapGate(label=_base_label),
         )
 
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=1)
+
     def _define(self):
+        """Default definition"""
+
+        from qiskit.circuit import QuantumCircuit
+
+        # q_0: ───────■───────
+        #      ┌───┐  │  ┌───┐
+        # q_1: ┤ X ├──■──┤ X ├
+        #      └─┬─┘┌─┴─┐└─┬─┘
+        # q_2: ──■──┤ X ├──■──
+        #           └───┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CSwap._get_definition(self.params), legacy_qubits=True
+        )
+
+    def inverse(self, annotated: bool = False):
+        """Return inverse CSwap gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            CSwapGate: inverse gate (self-inverse).
         """
-        gate cswap a,b,c
-        { cx c,b;
-          ccx a,b,c;
-          cx c,b;
-        }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate, CCXGate
-
-        q = QuantumRegister(3, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[2], q[1]], []),
-            (CCXGate(), [q[0], q[1], q[2]], []),
-            (CXGate(), [q[2], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
-
-        self.definition = qc
-
-    def inverse(self):
-        """Return inverse CSwap gate (itself)."""
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
 
-    def __array__(self, dtype=None):
-        """Return a numpy.array for the Fredkin (CSWAP) gate."""
-        mat = self._matrix1 if self.ctrl_state else self._matrix0
-        if dtype:
-            return numpy.asarray(mat, dtype=dtype)
-        return mat
+    def __eq__(self, other):
+        return isinstance(other, CSwapGate) and self.ctrl_state == other.ctrl_state

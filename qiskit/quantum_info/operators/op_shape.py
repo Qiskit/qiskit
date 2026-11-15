@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,6 +14,7 @@
 Multi-partite matrix and vector shape class
 """
 
+from __future__ import annotations
 import copy
 from functools import reduce
 from operator import mul
@@ -169,7 +170,7 @@ class OpShape:
 
     @property
     def _dim_l(self):
-        """Return the total input dimension."""
+        """Return the total output dimension."""
         if self._dims_l:
             return reduce(mul, self._dims_l)
         return 2**self._num_qargs_l
@@ -180,7 +181,7 @@ class OpShape:
 
     def _validate(self, shape, raise_exception=False):
         """Validate OpShape against a matrix or vector shape."""
-        # pylint: disable=too-many-return-statements
+
         ndim = len(shape)
         if ndim > 2:
             if raise_exception:
@@ -192,7 +193,7 @@ class OpShape:
                 if raise_exception:
                     raise QiskitError(
                         "Output dimensions do not match matrix shape "
-                        "({} != {})".format(reduce(mul, self._dims_l), shape[0])
+                        f"({reduce(mul, self._dims_l)} != {shape[0]})"
                     )
                 return False
         elif shape[0] != 2**self._num_qargs_l:
@@ -206,7 +207,7 @@ class OpShape:
                     if raise_exception:
                         raise QiskitError(
                             "Input dimensions do not match matrix shape "
-                            "({} != {})".format(reduce(mul, self._dims_r), shape[1])
+                            f"({reduce(mul, self._dims_r)} != {shape[1]})"
                         )
                     return False
             elif shape[1] != 2**self._num_qargs_r:
@@ -429,7 +430,7 @@ class OpShape:
                 if self._num_qargs_r != other._num_qargs_l or self._dims_r != other._dims_l:
                     raise QiskitError(
                         "Left and right compose dimensions don't match "
-                        "({} != {})".format(self.dims_r(), other.dims_l())
+                        f"({self.dims_r()} != {other.dims_l()})"
                     )
                 ret._dims_l = self._dims_l
                 ret._dims_r = other._dims_r
@@ -439,7 +440,7 @@ class OpShape:
                 if self._num_qargs_l != other._num_qargs_r or self._dims_l != other._dims_r:
                     raise QiskitError(
                         "Left and right compose dimensions don't match "
-                        "({} != {})".format(self.dims_l(), other.dims_r())
+                        f"({self.dims_l()} != {other.dims_r()})"
                     )
                 ret._dims_l = other._dims_l
                 ret._dims_r = self._dims_r
@@ -452,15 +453,13 @@ class OpShape:
             ret._num_qargs_l = self._num_qargs_l
             if len(qargs) != other._num_qargs_l:
                 raise QiskitError(
-                    "Number of qargs does not match ({} != {})".format(
-                        len(qargs), other._num_qargs_l
-                    )
+                    f"Number of qargs does not match ({len(qargs)} != {other._num_qargs_l})"
                 )
             if self._dims_r or other._dims_r:
                 if self.dims_r(qargs) != other.dims_l():
                     raise QiskitError(
                         "Subsystem dimension do not match on specified qargs "
-                        "{} != {}".format(self.dims_r(qargs), other.dims_l())
+                        f"{self.dims_r(qargs)} != {other.dims_l()}"
                     )
                 dims_r = list(self.dims_r())
                 for i, dim in zip(qargs, other.dims_r()):
@@ -474,15 +473,13 @@ class OpShape:
             ret._num_qargs_r = self._num_qargs_r
             if len(qargs) != other._num_qargs_r:
                 raise QiskitError(
-                    "Number of qargs does not match ({} != {})".format(
-                        len(qargs), other._num_qargs_r
-                    )
+                    f"Number of qargs does not match ({len(qargs)} != {other._num_qargs_r})"
                 )
             if self._dims_l or other._dims_l:
                 if self.dims_l(qargs) != other.dims_r():
                     raise QiskitError(
                         "Subsystem dimension do not match on specified qargs "
-                        "{} != {}".format(self.dims_l(qargs), other.dims_r())
+                        f"{self.dims_l(qargs)} != {other.dims_r()}"
                     )
                 dims_l = list(self.dims_l())
                 for i, dim in zip(qargs, other.dims_l()):
@@ -506,27 +503,23 @@ class OpShape:
                 )
             if self.dims_l(qargs) != other.dims_l():
                 raise QiskitError(
-                    "Cannot add shapes width different left "
-                    "dimension on specified qargs {} != {}".format(
-                        self.dims_l(qargs), other.dims_l()
-                    )
+                    "Cannot add shapes with different left "
+                    f"dimension on specified qargs {self.dims_l(qargs)} != {other.dims_l()}"
                 )
             if self.dims_r(qargs) != other.dims_r():
                 raise QiskitError(
-                    "Cannot add shapes width different total right "
-                    "dimension on specified qargs{} != {}".format(
-                        self.dims_r(qargs), other.dims_r()
-                    )
+                    "Cannot add shapes with different total right "
+                    f"dimension on specified qargs{self.dims_r(qargs)} != {other.dims_r()}"
                 )
         elif self != other:
             if self._dim_l != other._dim_l:
                 raise QiskitError(
-                    "Cannot add shapes width different total left "
-                    "dimension {} != {}".format(self._dim_l, other._dim_l)
+                    "Cannot add shapes with different total left "
+                    f"dimension {self._dim_l} != {other._dim_l}"
                 )
             if self._dim_r != other._dim_r:
                 raise QiskitError(
-                    "Cannot add shapes width different total right "
-                    "dimension {} != {}".format(self._dim_r, other._dim_r)
+                    "Cannot add shapes with different total right "
+                    f"dimension {self._dim_r} != {other._dim_r}"
                 )
         return self

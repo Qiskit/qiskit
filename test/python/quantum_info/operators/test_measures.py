@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,6 @@
 """Tests for operator measures."""
 
 import unittest
-from test import combine
 from ddt import ddt
 
 import numpy as np
@@ -22,7 +21,8 @@ from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
 from qiskit.quantum_info import diamond_norm
-from qiskit.test import QiskitTestCase
+from test import combine
+from test import QiskitTestCase
 
 
 @ddt

@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    The minimum support Rust version for building Qiskit from source (including
+    building the C API in standalone mode) has been increased from Rust 1.79 to
+    Rust 1.85. This change was necessary to enable using a newer version of the
+    Rust linear algebra library `faer <https://crates.io/crates/faer>`__ that is
+    used inside Qiskit. There were issues identified when running Qiskit on
+    Windows with the previous version of faer. These were fixed in the newer
+    release, however a newer version of the Rust compiler is required to build
+    the newer version of faer.

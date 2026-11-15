@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
 import math
-from typing import Tuple
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
@@ -44,7 +43,7 @@ class MinimumPoint(TransformationPass):
     Fields used by this pass in the property set are (all relative to the ``prefix``
     argument):
 
-    * ``{prefix}_minimum_point_state`` - Used to track the state of the minimpoint search
+    * ``{prefix}_minimum_point_state`` - Used to track the state of the minimum point search
     * ``{prefix}_minimum_point`` - This value gets set to ``True`` when either a fixed point
         is reached over the ``backtrack_depth`` executions, or ``backtrack_depth`` was exceeded
         and an earlier minimum is restored.
@@ -114,5 +113,5 @@ class _MinimumPointState:
     __slots__ = ("dag", "score", "since")
 
     dag: DAGCircuit
-    score: Tuple[float, ...]
+    score: tuple[float, ...]
     since: int

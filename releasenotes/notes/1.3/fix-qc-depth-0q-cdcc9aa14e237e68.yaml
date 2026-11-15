@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :meth:`.QuantumCircuit.depth` will now correctly handle operations that
+    do not have operands, such as :class:`.GlobalPhaseGate`.
+  - |
+    :meth:`.QuantumCircuit.depth` will now count the variables and clbits
+    used in real-time expressions as part of the depth calculation.

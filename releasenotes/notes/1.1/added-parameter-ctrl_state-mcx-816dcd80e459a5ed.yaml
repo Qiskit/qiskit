@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Added `ctrl_state` parameter to :func:`QuantumCircuit.mcx()`.
+
+
+    The :func:`QuantumCircuit.mcx()` function in the quantum circuit library has
+    been enhanced to include a `ctrl_state` parameter, allowing users to specify
+    the control state of the multi-controlled X gate. This parameter can accept
+    either a decimal value or a bitstring and defaults to controlling the '1'
+    state if not provided.
+
+    .. code-block:: python
+
+      from qiskit import QuantumCircuit
+      
+      qc = QuantumCircuit(3, 3)
+      qc.mcx([0, 1], 2, ctrl_state="00")

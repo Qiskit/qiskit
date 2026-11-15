@@ -1,0 +1,35 @@
+---
+upgrade_circuits:
+  - |
+    The internal representation of :class:`.UnitaryGate` has changed when they're
+    added to a :class:`.QuantumCircuit`. The object stored in the circuit will
+    not necessarily share a common reference to the object added to the circuit
+    anymore. This was never guaranteed to be the case and mutating the
+    :class:`.UnitaryGate` object directly or by reference was unsound and always
+    likely to corrupt the circuit, especially if you changed the matrix.
+    If you need to mutate an element in the circuit (which is **not** recommended
+    as it’s inefficient and error prone) you should ensure that you do something
+    like::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.quantum_info import random_unitary
+      from qiskit.circuit.library import UnitaryGate
+      import numpy as np
+
+      qc = QuantumCircuit(2)
+      qc.unitary(np.eye(2, dtype=complex))
+
+      new_op = UnitaryGate(random_unitary(2))
+      qc.data[0] = qc.data[0].replace(operation=new_op)
+
+    This also applies to :class:`.DAGCircuit` too, but you can use
+    :meth:`.DAGCircuit.substitute_node` instead.
+  - |
+    The :attr:`.CircuitInstruction.params` attribute for a :class:`.CircuitInstruction`
+    that contains an :class:`.UnitaryGate` for its :attr:`~.CircuitInstruction.operation`
+    will no longer contain the underlying unitary matrix for the gate.
+    This is because the internal representation of the gate no longer
+    treats the matrix object as a parameter. If you need to access the
+    matrix of the gate you can do this either via the
+    :attr:`.CircuitInstruction.matrix` or the :attr:`.UnitaryGate.params`
+    field of the :attr:`.CircuitInstruction.operation`.

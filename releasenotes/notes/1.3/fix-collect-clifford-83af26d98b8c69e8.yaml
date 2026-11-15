@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Add more Clifford gates to the :class:`.CollectCliffords()` transpiler pass.
+    In particular, we have added the gates :class:`ECRGate()`, :class:`DCXGate()`,
+    :class:`iSWAPGate()`, :class:`SXGate()` and :class:`SXdgGate()` to this transpiler pass.

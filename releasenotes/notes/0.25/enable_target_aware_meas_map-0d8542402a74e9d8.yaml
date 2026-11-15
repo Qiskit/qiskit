@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Added :attr:`~.Target.concurrent_measurements` which represents a hardware constraint of qubits
+    measured concurrently. This constraint is provided in the nested list form,
+    in which each element represents qubit group to be measured together. 
+    In an example below,
+    
+    .. code-block:: python
+    
+        [[0, 1], [2, 3, 4]]
+     
+    qubits 0 and 1, and 2, 3 and 4 are measured together on the device.
+    This constraint doesn't block measuring an individual qubit,
+    however, Qiskit scheduler must consider the alignment of 
+    measure operations for those qubits.    

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`.CommutationChecker` class where it would error if a gate's
+    :attr:`~.Gate.name` attribute was UTF8 encoded. Previously only gate names with ascii
+    encoding would work.
+    Fixed `#12501 <https://github.com/Qiskit/qiskit/issues/12051>`__
+    

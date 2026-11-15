@@ -1,0 +1,13 @@
+---
+features_transpiler:
+  - |
+    Custom subclasses of :class:`.BasePassManager` can now modify their
+    :attr:`~.BasePassManager.property_set` attribute during their :meth:`~.BasePassManager._passmanager_frontend`
+    method, to seed initial properties.  This provides symmetry, as it was previously only possible
+    to read the final properties during :meth:`~.BasePassManager._passmanager_backend`.
+upgrade_transpiler:
+  - |
+    The circuit :class:`.PassManager` now always sets the properties ``original_circuit_indices``
+    and ``num_input_qubits`` before execution starts on individual passes.  These are properties of
+    the input circuit, which it was previously up to individual passes to set, often as a side
+    effect of their primary purpose.

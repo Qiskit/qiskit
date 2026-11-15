@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -38,9 +38,20 @@ of the complete initial data.
 
 """
 
-from .pauli_feature_map import PauliFeatureMap
-from .z_feature_map import ZFeatureMap
-from .zz_feature_map import ZZFeatureMap
-from .state_preparation import StatePreparation
+from .pauli_feature_map import PauliFeatureMap, pauli_feature_map, z_feature_map, zz_feature_map
+from ._z_feature_map import ZFeatureMap
+from ._zz_feature_map import ZZFeatureMap
+from .state_preparation import StatePreparation, UniformSuperpositionGate
+from .initializer import Initialize
 
-__all__ = ["PauliFeatureMap", "ZFeatureMap", "ZZFeatureMap", "StatePreparation"]
+__all__ = [
+    "Initialize",
+    "PauliFeatureMap",
+    "StatePreparation",
+    "UniformSuperpositionGate",
+    "ZFeatureMap",
+    "ZZFeatureMap",
+    "pauli_feature_map",
+    "z_feature_map",
+    "zz_feature_map",
+]

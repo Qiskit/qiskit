@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    This release of Qiskit finalizes support for NumPy 2.0.  Qiskit will continue to support both
+    Numpy 1.x and 2.x for the foreseeable future.

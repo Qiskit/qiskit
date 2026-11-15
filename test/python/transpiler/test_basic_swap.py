@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,11 +14,13 @@
 
 import unittest
 from qiskit.transpiler.passes import BasicSwap
+from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.circuit.library import CXGate
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 
 class TestBasicSwap(QiskitTestCase):
@@ -368,6 +370,76 @@ class TestBasicSwap(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_fake_run(self):
+        """A fake run, doesn't change dag
+        q0:--(+)-------.--
+              |        |
+        q1:---|--------|--
+              |
+        q2:---|--------|--
+              |        |
+        q3:---.--[H]--(+)-
+
+        CouplingMap map: [0]--[1]--[2]--[3]
+
+        q0:-------(+)-------.---
+                   |        |
+        q1:-----X--.--[H]--(+)--
+                |
+        q2:--X--X---------------
+             |
+        q3:--X------------------
+
+        """
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+
+        qr = QuantumRegister(4, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[3], qr[0])
+        circuit.h(qr[3])
+        circuit.cx(qr[0], qr[3])
+
+        fake_pm = PassManager([BasicSwap(coupling, fake_run=True)])
+        real_pm = PassManager([BasicSwap(coupling, fake_run=False)])
+
+        self.assertEqual(circuit, fake_pm.run(circuit))
+        self.assertNotEqual(circuit, real_pm.run(circuit))
+        self.assertIsInstance(fake_pm.property_set["final_layout"], Layout)
+        self.assertEqual(fake_pm.property_set["final_layout"], real_pm.property_set["final_layout"])
+
+    def test_preserves_global_phase(self):
+        """The global phase is preserved when no swaps are needed."""
+        coupling = CouplingMap.from_line(3)
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = 0.5
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[2])
+
+        dag = circuit_to_dag(circuit)
+        after = BasicSwap(coupling).run(dag)
+
+        self.assertEqual(after.global_phase, dag.global_phase)
+
+    def test_preserves_global_phase_when_swaps_inserted(self):
+        """The global phase is preserved when routing inserts swaps."""
+        coupling = CouplingMap.from_line(3)
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = 0.5
+        circuit.cx(qr[0], qr[2])
+
+        dag = circuit_to_dag(circuit)
+        pass_ = BasicSwap(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(after.global_phase, dag.global_phase)
+        self.assertEqual(after.count_ops().get("swap", 0), 1)
+        self.assertIsInstance(pass_.property_set["final_layout"], Layout)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,11 +14,15 @@
 Abstract QuantumState class.
 """
 
+from __future__ import annotations
 import copy
 from abc import abstractmethod
 
 import numpy as np
 
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.result.counts import Counts
 
@@ -26,15 +30,15 @@ from qiskit.result.counts import Counts
 class QuantumState:
     """Abstract quantum state base class"""
 
-    def __init__(self, op_shape=None):
+    def __init__(self, op_shape: OpShape | None = None):
         """Initialize a QuantumState object.
 
         Args:
-            op_shape (OpShape): Optional, an OpShape object for state dimensions.
+            op_shape (OpShape):  an OpShape object for state dimensions.
 
         .. note::
 
-            If `op_shape`` is specified it will take precedence over other
+            If ``op_shape`` is specified it will take precedence over other
             kwargs.
         """
         self._op_shape = op_shape
@@ -83,30 +87,25 @@ class QuantumState:
     @abstractmethod
     def is_valid(self, atol=None, rtol=None):
         """Return True if a valid quantum state."""
-        pass
 
     @abstractmethod
     def to_operator(self):
         """Convert state to matrix operator class"""
-        pass
 
     @abstractmethod
     def conjugate(self):
         """Return the conjugate of the operator."""
-        pass
 
     @abstractmethod
     def trace(self):
         """Return the trace of the quantum state as a density matrix."""
-        pass
 
     @abstractmethod
     def purity(self):
         """Return the purity of the quantum state."""
-        pass
 
     @abstractmethod
-    def tensor(self, other):
+    def tensor(self, other: QuantumState) -> QuantumState:
         """Return the tensor product state self ⊗ other.
 
         Args:
@@ -118,10 +117,9 @@ class QuantumState:
         Raises:
             QiskitError: if other is not a quantum state.
         """
-        pass
 
     @abstractmethod
-    def expand(self, other):
+    def expand(self, other: QuantumState) -> QuantumState:
         """Return the tensor product state other ⊗ self.
 
         Args:
@@ -133,7 +131,6 @@ class QuantumState:
         Raises:
             QiskitError: if other is not a quantum state.
         """
-        pass
 
     def _add(self, other):
         """Return the linear combination self + other.
@@ -150,22 +147,22 @@ class QuantumState:
         raise NotImplementedError(f"{type(self)} does not support addition")
 
     def _multiply(self, other):
-        """Return the scalar multipled state other * self.
+        """Return the scalar multiplied state other * self.
 
         Args:
             other (complex): a complex number.
 
         Returns:
-            QuantumState: the scalar multipled state other * self.
+            QuantumState: the scalar multiplied state other * self.
 
         Raises:
-            NotImplementedError: if subclass does not support scala
+            NotImplementedError: if subclass does not support scalar
                                  multiplication.
         """
         raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
     @abstractmethod
-    def evolve(self, other, qargs=None):
+    def evolve(self, other: Operator | QuantumChannel, qargs: list | None = None) -> QuantumState:
         """Evolve a quantum state by the operator.
 
         Args:
@@ -180,10 +177,9 @@ class QuantumState:
             QiskitError: if the operator dimension does not match the
                          specified QuantumState subsystem dimensions.
         """
-        pass
 
     @abstractmethod
-    def expectation_value(self, oper, qargs=None):
+    def expectation_value(self, oper: BaseOperator, qargs: None | list = None) -> complex:
         """Compute the expectation value of an operator.
 
         Args:
@@ -193,10 +189,9 @@ class QuantumState:
         Returns:
             complex: the expectation value.
         """
-        pass
 
     @abstractmethod
-    def probabilities(self, qargs=None, decimals=None):
+    def probabilities(self, qargs: None | list = None, decimals: None | int = None) -> np.ndarray:
         """Return the subsystem measurement probability vector.
 
         Measurement probabilities are with respect to measurement in the
@@ -211,9 +206,8 @@ class QuantumState:
         Returns:
             np.array: The Numpy vector array of probabilities.
         """
-        pass
 
-    def probabilities_dict(self, qargs=None, decimals=None):
+    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -239,7 +233,7 @@ class QuantumState:
             string_labels=True,
         )
 
-    def sample_memory(self, shots, qargs=None):
+    def sample_memory(self, shots: int, qargs: None | list = None) -> np.ndarray:
         """Sample a list of qubit measurement outcomes in the computational basis.
 
         Args:
@@ -249,7 +243,7 @@ class QuantumState:
                                 subsystems (Default: None).
 
         Returns:
-            np.array: list of sampled counts if the order sampled.
+            np.array: list of sampled counts in the order sampled.
 
         Additional Information:
 
@@ -259,7 +253,7 @@ class QuantumState:
             not modified.
 
             The seed for random number generator used for sampling can be
-            set to a fixed value by using the stats :meth:`seed` method.
+            set to a fixed value by using the state's :meth:`seed` method.
         """
         # Get measurement probabilities for measured qubits
         probs = self.probabilities(qargs)
@@ -270,7 +264,7 @@ class QuantumState:
         )
         return self._rng.choice(labels, p=probs, size=shots)
 
-    def sample_counts(self, shots, qargs=None):
+    def sample_counts(self, shots: int, qargs: None | list = None) -> Counts:
         """Sample a dict of qubit measurement outcomes in the computational basis.
 
         Args:
@@ -290,7 +284,7 @@ class QuantumState:
             not modified.
 
             The seed for random number generator used for sampling can be
-            set to a fixed value by using the stats :meth:`seed` method.
+            set to a fixed value by using the state's :meth:`seed` method.
         """
         # Sample list of outcomes
         samples = self.sample_memory(shots, qargs=qargs)
@@ -299,7 +293,7 @@ class QuantumState:
         inds, counts = np.unique(samples, return_counts=True)
         return Counts(zip(inds, counts))
 
-    def measure(self, qargs=None):
+    def measure(self, qargs: list | None = None) -> tuple:
         """Measure subsystems and return outcome and post-measure state.
 
         Note that this function uses the QuantumStates internal random
@@ -337,7 +331,9 @@ class QuantumState:
         return outcome, ret
 
     @staticmethod
-    def _index_to_ket_array(inds, dims, string_labels=False):
+    def _index_to_ket_array(
+        inds: np.ndarray, dims: tuple, string_labels: bool = False
+    ) -> np.ndarray:
         """Convert an index array into a ket array.
 
         Args:
@@ -357,7 +353,7 @@ class QuantumState:
 
         if string_labels:
             max_dim = max(dims)
-            char_kets = np.asarray(kets, dtype=np.unicode_)
+            char_kets = np.asarray(kets, dtype=np.str_)
             str_kets = char_kets[0]
             for row in char_kets[1:]:
                 if max_dim > 10:
@@ -394,7 +390,7 @@ class QuantumState:
 
         # Make dict of tuples
         if string_labels:
-            return dict(zip(kets, vec[inds]))
+            return dict(zip(kets, vals[inds]))
 
         return {tuple(ket): val for ket, val in zip(kets, vals[inds])}
 
@@ -439,7 +435,9 @@ class QuantumState:
         }
 
     @staticmethod
-    def _subsystem_probabilities(probs, dims, qargs=None):
+    def _subsystem_probabilities(
+        probs: np.ndarray, dims: tuple, qargs: None | list = None
+    ) -> np.ndarray:
         """Marginalize a probability vector according to subsystems.
 
         Args:

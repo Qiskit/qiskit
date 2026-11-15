@@ -1,0 +1,16 @@
+---
+deprecations:
+  - |
+    Initializing a :class:`~qiskit.pulse.library.ScalableSymbolicPulse` with complex `amp` value is now deprecated.
+    This change also affects the following library pulses:
+
+      * :class:`~qiskit.pulse.library.Gaussian`
+      * :class:`~qiskit.pulse.library.GaussianSquare`
+      * :class:`~qiskit.pulse.library.Drag`
+      * :class:`~qiskit.pulse.library.Constant`
+
+    Initializing them with complex `amp` is now deprecated as well.
+
+    Instead, one should use two floats for the `amp` and `angle` parameters, where `amp` represents the
+    magnitude of the complex amplitude, and `angle` represents the angle of the complex amplitude. i.e. the
+    complex amplitude is given by `amp` * exp(1j * `angle`).

@@ -1,10 +1,10 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,12 +14,12 @@
 
 import unittest
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ParameterVector, Parameter, Gate, QuantumCircuit
-from qiskit.circuit.library import TwoLocal
+from qiskit.circuit.library import n_local
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import TranslateParameterizedGates
-from qiskit.providers.fake_provider import FakeAthensV2
+from qiskit.providers.fake_provider import GenericBackendV2
+from test import QiskitTestCase
 
 
 class TestTranslateParameterized(QiskitTestCase):
@@ -64,8 +64,8 @@ class TestTranslateParameterized(QiskitTestCase):
 
     def test_target(self):
         """Test unrolling with a target."""
-        target = FakeAthensV2().target
-        circuit = TwoLocal(2, "rz", "cx", reps=2, entanglement="linear")
+        target = GenericBackendV2(num_qubits=5).target
+        circuit = n_local(2, "rz", "cx", reps=2, entanglement="linear")
 
         translator = TranslateParameterizedGates(target=target)
         translated = translator(circuit)

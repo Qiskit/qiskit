@@ -1,0 +1,10 @@
+deprecations_circuits:
+  - |
+    The following classes in the circuit library are deprecated as of Qiskit 2.2
+    and will be removed in Qiskit 3.0. They have been replaced with modern gate equivalents.
+
+      * :class:`.ExactReciprocal` ``-->`` :class:`.ExactReciprocalGate`
+      * :class:`.LinearAmplitudeFunction` ``-->`` :class:`.LinearAmplitudeFunctionGate`
+      * :class:`.PhaseOracle` ``-->`` :class:`.PhaseOracleGate`
+      * :class:`.PiecewisePolynomialPauliRotations` ``-->`` :class:`.PiecewisePolynomialPauliRotationsGate`
+      * :class:`.QuantumVolume` ``-->`` :func:`.quantum_volume`

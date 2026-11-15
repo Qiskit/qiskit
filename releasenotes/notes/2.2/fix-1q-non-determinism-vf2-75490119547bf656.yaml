@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :class:`.VF2Layout` transpiler pass where even with
+    a fixed seed set the output from the pass was potentially non-deterministic;
+    specifically if the input circuit had any active qubits that only contained
+    single qubit operations.
+    Fixed `#14729 <https://github.com/Qiskit/qiskit/issues/14729>`__

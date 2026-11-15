@@ -1,0 +1,9 @@
+---
+build:
+  - |
+    Qiskit no longer uses the dynamic ``qiskit/VERSION.txt`` or ``requirements.txt`` files for
+    defining project metadata in ``pyproject.toml``; both are now static.
+
+    If you relied on ``pip install -r requirements.txt``, you can use ``pip install --only-deps .``
+    as a replacement from pip 26.2 onwards, or from examining the
+    ``project.dependencies`` key of ``pyproject.toml``.

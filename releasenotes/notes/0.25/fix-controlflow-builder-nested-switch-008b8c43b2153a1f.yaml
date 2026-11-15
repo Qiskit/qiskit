@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The control-flow builder interface will now correctly include :class:`.ClassicalRegister`
+    resources from nested switch statements in their containing circuit scopes.  See `#10398
+    <https://github.com/Qiskit/qiskit-terra/issues/10398>`__.

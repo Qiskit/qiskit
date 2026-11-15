@@ -1,0 +1,7 @@
+---
+upgrade_quantum_info:
+  - |
+    Improved the performance of :meth:`.Statevector.expectation_value` for
+    all-identity Pauli operators by relying on the optimized general-case
+    implementation instead of a dedicated shortcut that scaled poorly with
+    the number of qubits.

@@ -1,0 +1,47 @@
+---
+upgrade_qpy:
+  - |
+    The :func:`.qpy.load` function can now raise a
+    :class:`.MissingOptionalLibrary` exception if a QPY v10, v11, or v12
+    payload is passed in that is using symengine symbolic expressions
+    and symengine is not installed. Or if sympy is not installed for any
+    other QPY payload < v13. In the Qiskit 1.x releases symengine and sympy
+    were always guaranteed to be installed, but starting in 2.x this is no
+    longer a hard requirement and may only be needed if you're deserializing a QPY
+    file that was generated using symengine. Parsing these QPY payloads
+    requires symengine (0.11.0 or 0.13.0) as it's usage is baked into the
+    format specification for QPY v10, v11, and v12 so if the payload requires
+    it there is no option but to install a compatible version of symengine.
+    Similarly, sympy was was used for :class:`.ParameterExpression` encoding
+    for all QPY versions from 1 through 12.
+  - |
+    The minimum QPY compatibility version, :attr:`.QPY_COMPATIBILITY_VERSION`,
+    has been raised to 13 from 10 in the 1.x release. This version controls
+    the minimum version of QPY that can be emitted by the :func:`.qpy.dump`
+    function. This means :func:`.qpy.dump` can only emit QPY v13 and v14
+    in this release. QPY v13 is still compatible with Qiskit 1.3.x and 1.4.x
+    which means payloads can be generated in Qiskit 2.x that can be loaded
+    with the Qiskit 1.x release series still.
+
+    This change was necessary as QPY versions 10 through 12 requires either
+    the sympy and symengine libraries to generate a serialization for
+    :class:`.ParameterExpression` objects, but in Qiskit 2.x neither library
+    is required for the :class:`.ParameterExpression` object.
+upgrade_circuits:
+  - |
+    The :meth:`.ParameterExpression.sympify` method can now raise a
+    :class:`.MissingOptionalLibrary` exception if ``sympy`` is not installed.
+    In the Qiskit 1.x releases sympy was always guaranteed to be installed,
+    but starting in 2.x this is no longer a hard requirement and may only be
+    needed if you are using this method. As this functionality explicitly
+    requires ``sympy`` you will need to ensure you have ``sympy`` installed
+    to use the method.
+upgrade_visualization:
+  - |
+    The :func:`.array_to_latex` and :meth:`.Operator.draw` methods can now
+    raise a :class:`.MissingOptionalLibrary` exception if the ``sympy``
+    library is not installed. In the Qiskit 1.x releases symengine and sympy
+    were always guaranteed to be installed, but starting in 2.x this is no
+    longer a hard requirement. The latex visualization for a matrix relies
+    on the sympy library, so if you're using this functionality you should
+    ensure that you have sympy installed.

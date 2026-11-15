@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ import copy
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.coupling import CouplingMap
 
 
 class SwapStrategy:
@@ -30,7 +30,7 @@ class SwapStrategy:
     parallel. This means that a qubit can only be present once in a swap layer. For example, the
     following swap layers represent the optimal swap strategy for a line with five qubits
 
-    .. parsed-literal::
+    .. code-block:: text
 
         (
             ((0, 1), (2, 3)),  # Swap layer no. 1
@@ -86,7 +86,7 @@ class SwapStrategy:
                 raise QiskitError(f"The {i}th swap layer contains a qubit with multiple swaps.")
 
     @classmethod
-    def from_line(cls, line: list[int], num_swap_layers: int | None = None) -> "SwapStrategy":
+    def from_line(cls, line: list[int], num_swap_layers: int | None = None) -> SwapStrategy:
         """Creates a swap strategy for a line graph with the specified number of SWAP layers.
 
         This SWAP strategy will use the full line if instructed to do so (i.e. num_variables

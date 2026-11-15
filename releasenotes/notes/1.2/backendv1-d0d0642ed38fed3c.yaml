@@ -1,0 +1,14 @@
+---
+deprecations_providers:
+  - |
+    The :class:`.BackendV1` class is deprecated and it will be removed not earlier than the next major release.
+    There are several migration paths available depending on the main purpose of the backend object::
+
+      - To expose backend information with no access to execution (just a hardware description), consider constructing a :class:`.Target` directly.
+      - To provides access to execution capabilities, consider relying on the primitives interfaces instead.
+      - Alternatively, to continue providing simultaneous :class:`.Target` (hardware information) and ``run`` (execution) capabilities, consider moving to :class:`.BackendV2` (see <https://qisk.it/backendV1-to-V2>).
+
+  - |
+    The models in :mod:`qiskit.providers.models` are part of the deprecated :class:`.BackendV1` workflow
+    and no longer necessary for :class:`.BackendV2`. If a user workflow requires these representations it
+    likely relies on deprecated functionality and should be updated to use :class:`.BackendV2`.
