@@ -60,8 +60,8 @@ impl MirInstruction {
         &self.qids
     }
 
-    pub fn set_qids(&mut self, qids: QidList) {
-        self.qids = qids;
+    pub fn qids_mut(&mut self) -> &mut QidList {
+        &mut self.qids
     }
 
     pub fn args(&self) -> &SymbolIdList {
@@ -597,20 +597,16 @@ mod tests {
     }
 
     #[test]
-    fn test_get_set_qids() {
-        let qids_list1 = QidList::new(vec![Qid::virt(0), Qid::virt(1)]);
-        let qids_list2 = QidList::new(vec![Qid::virt(1), Qid::virt(0)]);
+    fn test_replace_whole_qids_list() {
         let mut instr = MirInstruction {
             op: create_pauli_rotation_op(Pauli::I, 2, 0.5),
-            qids: qids_list1.clone(),
+            qids: QidList::new(vec![Qid::virt(0), Qid::virt(1)]),
             args: SymbolIdList::default(),
             returns: SymbolIdList::default(),
         };
-        // Check get
-        assert_eq!(*instr.qids(), qids_list1);
+        let qids_list2 = QidList::new(vec![Qid::virt(1), Qid::virt(0)]);
 
-        // Replace qids and assert they were replaced
-        instr.set_qids(qids_list2.clone());
+        *instr.qids_mut() = qids_list2.clone();
         assert_eq!(*instr.qids(), qids_list2);
     }
 }

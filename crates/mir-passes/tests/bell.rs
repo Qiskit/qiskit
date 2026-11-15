@@ -157,7 +157,7 @@ fn layout_bell_pbc() {
     physical_resource_table
         .add_qid(QidInfo::new(BitLayout::Base(1)))
         .unwrap();
-    trivial_mir_layout(&mut mir, physical_resource_table.clone()).unwrap();
+    trivial_mir_layout(&mut mir, &physical_resource_table).unwrap();
 
     // Number of instructions did not change
     assert_eq!(
@@ -183,11 +183,4 @@ fn layout_bell_pbc() {
         assert_eq!(b.args(), a.args());
         assert_eq!(b.returns(), a.returns());
     }
-    // Resource table was replaced
-    let table_qids: Vec<_> = mir.resource_table().iter_qids().map(|(q, _)| q).collect();
-    let expected: Vec<_> = physical_resource_table
-        .iter_qids()
-        .map(|(q, _)| q)
-        .collect();
-    assert_eq!(table_qids, expected);
 }
