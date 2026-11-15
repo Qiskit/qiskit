@@ -60,10 +60,21 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
 
-                # ``descendants`` is unordered, so walk the DAG topologically to re-create the
-                # measurements in their original order. This matters when several measurements
-                # write to the same classical bit: the last one determines the final value.
-                for successor in [n for n in dag.topological_op_nodes() if n in descendants]:
+                # ``descendants`` is unordered. Measurements only depend on each other through
+                # shared wires; if some wire is shared, the original order must be restored since
+                # the last measurement writing to a clbit determines its final value. The
+                # topological sort is only needed in that (rare) case.
+                measures = [n for n in descendants if isinstance(n, DAGOpNode)]
+                seen_wires = set()
+                needs_order = False
+                for node in measures:
+                    for wire in (*node.qargs, *node.cargs):
+                        if wire in seen_wires:
+                            needs_order = True
+                        seen_wires.add(wire)
+                if needs_order:
+                    measures = [n for n in dag.topological_op_nodes() if n in descendants]
+                for successor in measures:
                     if isinstance(successor.op, Measure):
                         # replace measure node with a new one, where qargs is set with the "other"
                         # swap qarg.
