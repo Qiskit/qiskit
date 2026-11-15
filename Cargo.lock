@@ -815,9 +815,9 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "fixedbitset"
-version = "0.5.7"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
+checksum = "5905ec755cc8386d7928353e4d356d2be3e89e81e5ca01fe630a1ca4d08dc175"
 
 [[package]]
 name = "foldhash"
@@ -2093,7 +2093,7 @@ version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8701b58ea97060d5e5b155d383a69952a60943f0e6dfe30b04c287beb0b27455"
 dependencies = [
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "hashbrown 0.15.5",
  "indexmap",
  "serde",
@@ -2604,7 +2604,7 @@ version = "2.7.0-dev"
 dependencies = [
  "approx",
  "bytemuck",
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "foldhash 0.2.0",
  "hashbrown 0.17.1",
  "itertools 0.15.0",
@@ -2632,7 +2632,7 @@ dependencies = [
  "binrw",
  "bytemuck",
  "faer",
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "hashbrown 0.17.1",
  "itertools 0.15.0",
  "nalgebra 0.35.0",
@@ -2664,7 +2664,7 @@ dependencies = [
  "anyhow",
  "approx",
  "bytemuck",
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "foldhash 0.2.0",
  "hashbrown 0.17.1",
  "indexmap",
@@ -3033,7 +3033,7 @@ version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54299df1d95fb17c25f9ae7f4169db76de708c231a19e29a50b7d74e87853246"
 dependencies = [
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "foldhash 0.1.5",
  "hashbrown 0.17.1",
  "indexmap",
@@ -3558,9 +3558,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.29.1"
+version = "1.29.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a06f08a856b009bc7bbaf7d3e79808595d032dd19074c0c2ef26e49e03e6bdc"
+checksum = "bed99139f7dac9b5cfe5f17be4d66dc7079a34dee1d74bcc77217119240e267c"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
