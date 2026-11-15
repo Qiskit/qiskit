@@ -20,7 +20,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use qiskit_circuit::operations::DelayUnit;
 
-use crate::formats::{
+use crate::formats::v18::{
     AnnotationHeaderStaticPack, CircuitInstructionV2Pack, CustomCircuitInstructionsPack,
     DurationPack, ExpressionVarDeclarationPack, InstructionsAnnotationPack, LayoutV2Pack,
     ModifierPack, PackedExpression, ParameterExpressionPack, ParameterSymbolPack,

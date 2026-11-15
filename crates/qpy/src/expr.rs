@@ -12,7 +12,7 @@
 
 // methods for serialization/deserialization of Expression
 use crate::error::{QpyError, to_binrw_error};
-use crate::formats::{
+use crate::formats::v18::{
     ExpressionElementPack, ExpressionTypePack, ExpressionValueElementPack,
     ExpressionVarElementPack, ExpressionVarRegisterPack,
 };
