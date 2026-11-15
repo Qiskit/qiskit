@@ -85,7 +85,7 @@ pub fn iqp(
 ///
 /// # Args:
 ///  - `num_qubits`: The number of qubits to generate the circuit for
-///  - `seed`: A random seed for generating the interactions matrix.
+///  - `seed`: An optional random seed for generating the interactions matrix.
 ///
 /// # Returns
 ///
