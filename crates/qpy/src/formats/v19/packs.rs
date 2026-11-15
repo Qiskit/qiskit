@@ -12,10 +12,9 @@
 
 #![allow(dead_code)] // These definitions are used when QPY 19 support is enabled.
 
+use super::values::{Complex64MatrixPack, Complex64Pack, StringU16Pack};
 use crate::bytes::Bytes;
-use crate::value::{
-    Complex64MatrixPack, Complex64Pack, StringU16Pack, pack_biguint, unpack_biguint,
-};
+use crate::value::{pack_biguint, unpack_biguint};
 use binrw::binrw;
 use num_bigint::BigUint;
 use num_complex::Complex64;

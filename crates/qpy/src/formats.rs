@@ -23,6 +23,8 @@ use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
+pub(crate) mod v19;
+
 /// The QPY file header
 /// This is up-to-date with all the header data found in QPY13.
 /// Earlier versions were missing the `symbolic_encoding` and `type_key` fields
