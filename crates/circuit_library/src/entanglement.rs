@@ -101,18 +101,19 @@ fn shift_circular_alternating(
 }
 
 #[derive(Error, Debug)]
-pub struct InvalidEntanglement(String);
-
-impl std::fmt::Display for InvalidEntanglement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
+pub enum InvalidEntanglement {
+    #[error("block_size ({0}) cannot be larger than number of qubits ({1})")]
+    BlockLargerThanQubits(u32, u32),
+    #[error("block_size ({0}) can be at most 2 for pairwise entanglement")]
+    InvalidBlockForPairwise(u32),
+    #[error("Unsupported entanglement: {0}")]
+    UnsupportedEntanglement(String),
 }
 
 #[cfg(feature = "py")]
 impl From<InvalidEntanglement> for PyErr {
     fn from(value: InvalidEntanglement) -> PyErr {
-        QiskitError::new_err(value.0)
+        QiskitError::new_err(value.to_string())
     }
 }
 
@@ -139,9 +140,9 @@ pub fn get_entanglement_from_str(
     }
 
     if block_size > num_qubits {
-        return Err(InvalidEntanglement(format!(
-            "block_size ({block_size}) cannot be larger than number of qubits ({num_qubits})"
-        )));
+        return Err(InvalidEntanglement::BlockLargerThanQubits(
+            block_size, num_qubits,
+        ));
     }
 
     match (entanglement, block_size) {
@@ -152,12 +153,10 @@ pub fn get_entanglement_from_str(
         ("circular", _) => Ok(circular(num_qubits, block_size)),
         ("pairwise", 1) => Ok(Box::new(linear(num_qubits, 1))),
         ("pairwise", 2) => Ok(Box::new(pairwise(num_qubits))),
-        ("pairwise", _) => Err(InvalidEntanglement(format!(
-            "block_size ({block_size}) can be at most 2 for pairwise entanglement"
-        ))),
-        _ => Err(InvalidEntanglement(format!(
-            "Unsupported entanglement: {entanglement}"
-        ))),
+        ("pairwise", _) => Err(InvalidEntanglement::InvalidBlockForPairwise(block_size)),
+        _ => Err(InvalidEntanglement::UnsupportedEntanglement(
+            entanglement.to_string(),
+        )),
     }
 }
 
