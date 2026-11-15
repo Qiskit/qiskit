@@ -14,7 +14,7 @@
 use hashbrown::HashMap;
 use qiskit_mir::{
     mir::Mir,
-    qid::{BitLayout, Qid, QidSpace, ResourceTable},
+    qid::{Qid, QidSpace, ResourceTable},
 };
 use qiskit_passmanager::{PassContext, StaticPass};
 
@@ -48,19 +48,15 @@ pub fn trivial_mir_layout(
     Ok(())
 }
 
-/// Check that every qid of `table` is in `space` and is a base qid of width 1.
+/// Check that `table` is in the given `space` and that all qids are base qids of width 1.
 fn verify_single_bit_base_qids(table: &ResourceTable, space: QidSpace) -> anyhow::Result<()> {
-    for (qid, info) in table.iter_qids() {
-        anyhow::ensure!(
-            qid.space() == space,
-            "expected a {space:?} resource table, found {qid}"
-        );
-        anyhow::ensure!(
-            matches!(info.layout(), BitLayout::Base(1)),
-            "{qid} must be a base qid of width 1, found layout {:?}",
-            info.layout()
-        );
-    }
+    anyhow::ensure!(
+        table.space() == space,
+        "expected a {space:?} resource table, found {:?}",
+        table.space()
+    );
+
+    table.verify_single_bit_base_qids()?;
     Ok(())
 }
 
@@ -115,7 +111,7 @@ mod test {
             MirOp,
             pbc::{AngleType, Pauli, PauliRotation, PauliString},
         },
-        qid::{QidBit, QidInfo, QidList},
+        qid::{BitLayout, QidBit, QidInfo, QidList},
         symbol_table::SymbolIdList,
     };
 
