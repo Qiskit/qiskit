@@ -416,7 +416,7 @@ QPY 19 format
 QPY 19 overhauls the high level format of QPY files, although many of the low level data structures remain unchanged.
 
 All integer and floating-point fields in QPY 19 use network byte order [#f1]_ (big endian), and
-all structures are packed without padding.  Strings are UTF-8.  Unless stated otherwise, a string
+all structures are packed without padding.  Strings are non-null terminated UTF-8.  Unless stated otherwise, a string
 is encoded as a ``uint16_t`` byte length followed immediately by that many bytes.
 
 File layout
@@ -453,8 +453,8 @@ Each circuit payload has the following sections, in order:
     ANNOTATION_HEADER
     PARAMETER_VECTOR_TABLE
     CUSTOM_DEFINITIONS
-    INSTRUCTIONS
     LAYOUT
+    INSTRUCTIONS
 
 The counts in the circuit header and the individual section headers determine the sizes of these
 sections.  ``STANDALONE_VARS``, ``ANNOTATION_HEADER``, ``PARAMETER_VECTOR_TABLE``,

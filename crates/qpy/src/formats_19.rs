@@ -22,10 +22,51 @@ use num_complex::Complex64;
 use qiskit_circuit::operations::DelayUnit;
 
 use crate::formats::{
-    DurationPack, InstructionsAnnotationPack, ModifierPack, PackedExpression,
-    ParameterExpressionPack, ParameterSymbolPack, ParameterVectorElementPack, PauliDataPack,
-    QPYCircuit, RegisterPack,
+    AnnotationHeaderStaticPack, CircuitInstructionV2Pack, CustomCircuitInstructionsPack,
+    DurationPack, ExpressionVarDeclarationPack, InstructionsAnnotationPack, LayoutV2Pack,
+    ModifierPack, PackedExpression, ParameterExpressionPack, ParameterSymbolPack,
+    ParameterVectorElementPack, ParameterVectorTablePack, PauliDataPack, RegisterPack,
 };
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct QPYV19FileHeader {
+    #[brw(magic = b"QISKIT")]
+    pub qpy_version: u8,
+    pub qiskit_version: (u8, u8, u8),
+    pub num_programs: u64,
+    pub offset_table: u8,
+}
+
+// the main circuit data structure:
+// 1) Header: Contains the global data such as name, number of qubits etc.
+// 2) Standalone vars: Contains the qiskit_circuit::Var elements used in expressions
+// 3) Annotation Headers: The annotation-related global data.
+// 4) Parameter vectors: the `ParameterVector`s that elements in this circuit belong to.
+// 5) Custom instructions: List of custom gates used in the circuits, e.g. gate with nonstandard control
+// 6) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
+// 7) Instruction: The sequential list of gates in the circuit.
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[bw(import (version: u8))]
+#[br(import (version: u8, max_depth: usize))]
+pub struct QPYV19Circuit {
+    #[bw(args(version))]
+    #[br(args(version, max_depth))]
+    pub header: CircuitHeaderV19Pack,
+    #[br(count = header.num_vars)]
+    pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
+    pub annotation_headers: Option<AnnotationHeaderStaticPack>,
+    pub parameter_vectors: Option<ParameterVectorTablePack>,
+    pub custom_instructions: CustomCircuitInstructionsPack,
+    #[brw(args(version,))]
+    pub layout: LayoutV2Pack,
+    #[br(count = header.num_instructions, args { inner: (true,) })]
+    pub instructions: Vec<CircuitInstructionV2Pack>,
+}
 
 #[binrw]
 #[brw(big)]
@@ -76,8 +117,11 @@ pub struct CircuitInstructionV19Pack {
     pub operation: CircuitOperationType,
     // Interner index
     pub qargs: u32,
-    // Interner index
-    pub cargs: u32,
+    // Interner index. Standard gates never have classical arguments, so their
+    // wire representation omits this field.
+    #[br(if(operation != CircuitOperationType::StandardGate))]
+    #[bw(if(*operation != CircuitOperationType::StandardGate))]
+    pub cargs: Option<u32>,
 
     #[br(args(operation, version, max_depth))]
     #[bw(args(version))]
@@ -356,7 +400,7 @@ pub enum ParamDataPack {
     Circuit(
         #[bw(args(version))]
         #[br(args(version, max_depth))]
-        Box<QPYCircuit>,
+        Box<QPYV19Circuit>,
     ),
 }
 
@@ -615,7 +659,7 @@ pub struct ExpressionPack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use binrw::{BinWrite, Endian};
+    use binrw::{BinRead, BinWrite, Endian};
     use std::io::Cursor;
 
     const VERSION: u8 = 19;
@@ -669,7 +713,10 @@ mod tests {
         expected.extend_from_slice(&0u32.to_be_bytes()); // num_registers
         expected.extend_from_slice(&1u32.to_be_bytes()); // qubit_interner_size
         expected.extend_from_slice(&1u32.to_be_bytes()); // clbit_interner_size
-        expected.extend_from_slice(b"s\0\0\0\x07d\0\0\0\x08\0\0\0\x09");
+        // qubit interner contents: "s" + 7_u32
+        expected.extend_from_slice(b"s\0\0\0\x07");
+        // clbit interer contents: "d" + 8_u32 + 9_u32
+        expected.extend_from_slice(b"d\0\0\0\x08\0\0\0\x09");
         expected.extend_from_slice(b"\0\x03foo");
         expected.extend_from_slice(&2u64.to_be_bytes()); // metadata_size
         expected.extend_from_slice(b"{}");
@@ -681,16 +728,50 @@ mod tests {
         let instruction = CircuitInstructionV19Pack {
             operation: CircuitOperationType::StandardGate,
             qargs: 0x0102_0304,
-            cargs: 5,
+            cargs: None,
             operation_data: OperationData::StandardGate(17),
             params: vec![ParamDataPack::Bool(1), ParamDataPack::Int64(-2)],
             annotations: None,
             label: Some(string("x")),
         };
-        let mut expected = vec![0, 1, 2, 3, 4, 0, 0, 0, 5, 17, 0, 2, b'b', 1, b'i'];
+        let mut expected = vec![0, 1, 2, 3, 4, 17, 0, 2, b'b', 1, b'i'];
         expected.extend_from_slice(&(-2i64).to_be_bytes());
         expected.extend_from_slice(&[extra_fields_flag_parts::LABEL, 0, 1, b'x']);
         assert_eq!(encoded(&instruction, (VERSION,)), expected);
+    }
+
+    #[test]
+    fn circuit_instruction_with_classical_args_layout() {
+        let instruction = CircuitInstructionV19Pack {
+            operation: CircuitOperationType::StandardInstruction,
+            qargs: 1,
+            cargs: Some(2),
+            operation_data: OperationData::StandardInstruction(StandardInstructionData {
+                discriminant: 3,
+                delay_unit: None,
+            }),
+            params: vec![],
+            annotations: None,
+            label: None,
+        };
+
+        let expected = [1, 0, 0, 0, 1, 0, 0, 0, 2, 3, 0, 0, 0];
+        assert_eq!(encoded(&instruction, (VERSION,)), expected);
+    }
+
+    #[test]
+    fn circuit_instruction_rejects_invalid_operation_type() {
+        let mut data = vec![255];
+        // The rest would start with qargs if the operation type were valid.
+        data.extend_from_slice(&[0; 8]);
+
+        let result = CircuitInstructionV19Pack::read_options(
+            &mut Cursor::new(data),
+            Endian::Big,
+            (VERSION, usize::MAX),
+        );
+
+        assert!(result.is_err(), "255 is not a valid circuit operation type");
     }
 
     #[test]
