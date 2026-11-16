@@ -60,7 +60,7 @@ pub extern "C" fn qk_dag_new() -> *mut DAGCircuit {
 }
 
 /// @ingroup QkDag
-/// Add a quantum register to the DAG. No-op if `reg` is invalid.
+/// Add a quantum register to the DAG. No-op if the register qubit index is taken.
 ///
 /// @param dag A pointer to the DAG.
 /// @param reg A pointer to the quantum register.
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn qk_dag_add_quantum_register(
 }
 
 /// @ingroup QkDag
-/// Add a classical register to the DAG. No-op if `reg` is invalid.
+/// Add a classical register to the DAG. No-op if the register bit index is taken.
 ///
 /// @param dag A pointer to the DAG.
 /// @param reg A pointer to the classical register.

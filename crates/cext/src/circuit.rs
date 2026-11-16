@@ -2966,7 +2966,8 @@ pub unsafe extern "C" fn qk_circuit_copy_empty_like(
 
     let copied_circuit = circuit
         .copy_empty_like(vars_mode, blocks_mode)
-        .expect("Failed to copy the circuit.");
+        .expect("should be infallible");
+
     Box::into_raw(Box::new(copied_circuit))
 }
 
