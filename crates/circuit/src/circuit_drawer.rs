@@ -110,14 +110,17 @@ pub fn draw_circuit(
     output
 }
 
-/// Return a list of layers such that each layer contains a list of op node indices, representing instructions
-/// whose qubits/clbits indices do not overlap. The instruction are packed into each layer as long as there
-/// is no qubit/clbit overlap.
-fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
+/// Return a list of layers containing instructions whose visual wire ranges do not overlap.
+/// Instructions are packed into each layer according to the mapped display order, including any
+/// intermediate wires needed to draw their vertical connections.
+fn build_layers<'a>(
+    circ: &'a CircuitData,
+    qubit_map: &[Option<usize>],
+    clbit_map: &[Option<usize>],
+    num_wires: usize,
+) -> Vec<Vec<&'a PackedInstruction>> {
     let mut layers: Vec<Vec<&PackedInstruction>> = Vec::new();
-    let num_qubits = circ.num_qubits();
-    let num_clbits = circ.num_clbits();
-    let mut layers_frontier = vec![0usize; num_qubits + num_clbits];
+    let mut layers_frontier = vec![0usize; num_wires];
 
     for inst in circ.data() {
         if matches!(
@@ -130,10 +133,11 @@ fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
             layers.last_mut().unwrap().push(inst);
             continue;
         }
-        let (node_min, node_max) = get_instruction_range(
+        let (node_min, node_max) = get_instruction_wire_range(
             circ.get_qargs(inst.qubits),
+            qubit_map,
             circ.get_cargs(inst.clbits),
-            num_qubits,
+            clbit_map,
         );
 
         let layer_idx = *layers_frontier[node_min..=node_max]
@@ -150,45 +154,17 @@ fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
 }
 
 /// Calculate the range (inclusive) of the given instruction qubits/clbits over the wire indices.
-/// The assumption is that clbits always appear after the qubits in the visualization, hence the clbit indices
-/// are offset by the number of instruction qubits when calculating the range.
-fn get_instruction_range(
-    node_qubits: &[Qubit],
-    node_clbits: &[Clbit],
-    num_qubits: usize,
-) -> (usize, usize) {
-    let indices = node_qubits
-        .iter()
-        .map(|q| q.index())
-        .chain(node_clbits.iter().max().map(|c| c.index() + num_qubits));
-
-    match indices.minmax() {
-        MinMaxResult::MinMax(min, max) => (min, max),
-        MinMaxResult::OneElement(idx) => (idx, idx),
-        MinMaxResult::NoElements => panic!("Encountered an instruction without qubits and clbits"),
-    }
-}
-
-/// Calculate the range (inclusive) of the given instruction qubits/clbits over the wire indices.
-/// The assumption is that clbits always appear after the qubits in the visualization, hence the clbit indices
-/// are offset by the number of qubit wires when calculating the range.
 fn get_instruction_wire_range(
     node_qubits: &[Qubit],
     qubit_map: &[Option<usize>],
     node_clbits: &[Clbit],
     clbit_map: &[Option<usize>],
-    num_qubits_wires: usize,
 ) -> (usize, usize) {
     // We can unwrap since all the qubits/clbits part of instructions can not be idle
     let indices = node_qubits
         .iter()
         .map(|q| qubit_map[q.index()].unwrap())
-        .chain(
-            node_clbits
-                .iter()
-                .max()
-                .map(|c| clbit_map[c.index()].unwrap() + num_qubits_wires),
-        );
+        .chain(node_clbits.iter().map(|c| clbit_map[c.index()].unwrap()));
 
     match indices.minmax() {
         MinMaxResult::MinMax(min, max) => (min, max),
@@ -310,23 +286,16 @@ impl<'a> VisualizationLayer<'a> {
         exclude_qargs: &[Qubit],
         inst: &'a PackedInstruction,
         qubit_map: &[Option<usize>],
-        clbit_map: &[Option<usize>],
     ) {
-        let excluded: HashSet<usize> = exclude_qargs.iter().map(|q| q.index()).collect();
-        let num_qubits = qubit_map.len();
-        for idx in minima..=maxima {
-            if excluded.contains(&idx) {
+        let excluded: HashSet<usize> = exclude_qargs
+            .iter()
+            .map(|q| qubit_map[q.index()].unwrap())
+            .collect();
+        for wire_idx in minima..=maxima {
+            if excluded.contains(&wire_idx) {
                 continue;
             }
-            let mapped_wire = if idx < num_qubits {
-                qubit_map[idx]
-            } else {
-                clbit_map[idx - num_qubits]
-            };
-
-            if let Some(wire_idx) = mapped_wire {
-                self.0[wire_idx] = VisualizationElement::VerticalLine(inst);
-            }
+            self.0[wire_idx] = VisualizationElement::VerticalLine(inst);
         }
     }
 
@@ -382,7 +351,7 @@ impl<'a> VisualizationLayer<'a> {
         }
 
         let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+        let (minima, maxima) = get_instruction_wire_range(qargs, qubit_map, &[], &[]);
         match gate {
             StandardGate::ISwap
             | StandardGate::DCX
@@ -395,8 +364,8 @@ impl<'a> VisualizationLayer<'a> {
             | StandardGate::XXPlusYY
             | StandardGate::RCCX
             | StandardGate::RC3X => {
-                for q in qubit_map.iter().take(maxima + 1).skip(minima).flatten() {
-                    self.0[*q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
+                for wire_idx in minima..=maxima {
+                    self.0[wire_idx] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
                 }
             }
             StandardGate::H
@@ -452,14 +421,14 @@ impl<'a> VisualizationLayer<'a> {
                     );
                 }
 
-                self.add_vertical_lines(minima, maxima, qargs, inst, qubit_map, &[]);
+                self.add_vertical_lines(minima, maxima, qargs, inst, qubit_map);
             }
             StandardGate::CPhase => {
                 for q in qargs {
                     self.0[qubit_map[q.index()].unwrap()] =
                         VisualizationElement::DirectOnWire(OnWireElement::CPhaseEndpoint(inst));
                 }
-                self.add_vertical_lines(minima, maxima, qargs, inst, qubit_map, &[]);
+                self.add_vertical_lines(minima, maxima, qargs, inst, qubit_map);
             }
             StandardGate::GlobalPhase => {}
             StandardGate::Swap | StandardGate::CSwap => {
@@ -477,7 +446,7 @@ impl<'a> VisualizationLayer<'a> {
                     self.0[qubit] = VisualizationElement::DirectOnWire(OnWireElement::Swap(inst));
                 }
 
-                self.add_vertical_lines(minima, maxima, qargs, inst, qubit_map, &[]);
+                self.add_vertical_lines(minima, maxima, qargs, inst, qubit_map);
             }
         }
     }
@@ -492,7 +461,7 @@ impl<'a> VisualizationLayer<'a> {
     ) {
         let qargs = circuit.get_qargs(inst.qubits);
         let (minima, maxima) =
-            get_instruction_range(qargs, circuit.get_cargs(inst.clbits), circuit.num_qubits());
+            get_instruction_wire_range(qargs, qubit_map, circuit.get_cargs(inst.clbits), clbit_map);
 
         match std_inst {
             StandardInstruction::Barrier(_) => {
@@ -511,7 +480,7 @@ impl<'a> VisualizationLayer<'a> {
                 self.0[qubit_map[qargs.last().unwrap().index()].unwrap()] =
                     VisualizationElement::Boxed(BoxedElement::Single(inst));
 
-                self.add_vertical_lines(minima + 1, maxima, &[], inst, qubit_map, clbit_map);
+                self.add_vertical_lines(minima + 1, maxima, &[], inst, qubit_map);
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
@@ -533,9 +502,9 @@ impl<'a> VisualizationLayer<'a> {
             self.0[qubit_map[qargs.first().unwrap().index()].unwrap()] =
                 VisualizationElement::Boxed(BoxedElement::Single(inst));
         } else {
-            let (minima, maxima) = get_instruction_range(qargs, &[], 0);
-            for &idx in qubit_map[minima..=maxima].iter().flatten() {
-                self.0[idx] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
+            let (minima, maxima) = get_instruction_wire_range(qargs, qubit_map, &[], &[]);
+            for wire_idx in minima..=maxima {
+                self.0[wire_idx] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
             }
         }
     }
@@ -567,15 +536,18 @@ impl<'a> VisualizationLayer<'a> {
     ) {
         self.add_multi_wire_box(inst, circuit, qubit_map);
 
-        let minima = circuit
-            .get_qargs(inst.qubits)
-            .iter()
-            .map(|q| q.index())
-            .max()
-            .unwrap();
-        let maxima = circuit.get_cargs(inst.clbits).first().unwrap().index() + circuit.num_qubits();
+        let (_, bottom_qubit_wire) =
+            get_instruction_wire_range(circuit.get_qargs(inst.qubits), qubit_map, &[], clbit_map);
+        let (_, bottom_clbit_wire) =
+            get_instruction_wire_range(&[], qubit_map, circuit.get_cargs(inst.clbits), clbit_map);
 
-        self.add_vertical_lines(minima + 1, maxima, &[], inst, qubit_map, clbit_map);
+        self.add_vertical_lines(
+            bottom_qubit_wire + 1,
+            bottom_clbit_wire,
+            &[],
+            inst,
+            qubit_map,
+        );
     }
 }
 
@@ -622,7 +594,6 @@ impl<'a> VisualizationMatrix<'a> {
             clbit_map: Vec::new(),
             num_clbit_wires: 0,
         };
-        let inst_layers = build_layers(circuit);
         let is_idle = vis_matrix.get_idle_wires(circuit);
 
         (vis_matrix.qubit_map, vis_matrix.num_qubit_wires) =
@@ -637,6 +608,12 @@ impl<'a> VisualizationMatrix<'a> {
         );
 
         let num_wires = vis_matrix.num_qubit_wires + vis_matrix.num_clbit_wires;
+        let inst_layers = build_layers(
+            circuit,
+            &vis_matrix.qubit_map,
+            &vis_matrix.clbit_map,
+            num_wires,
+        );
 
         vis_matrix.layers =
             vec![
@@ -1228,11 +1205,14 @@ impl TextDrawer {
                         if let Some(gate) = inst.op.try_standard_gate() {
                             if gate.is_controlled_gate() {
                                 let qargs = circuit.get_qargs(inst.qubits);
-                                let (minima, maxima) = get_instruction_range(qargs, &[], 0);
-                                if qargs.last().unwrap().index() > minima {
+                                let (minima, maxima) =
+                                    get_instruction_wire_range(qargs, &vis_mat.qubit_map, &[], &[]);
+                                let target_wire =
+                                    vis_mat.qubit_map[qargs.last().unwrap().index()].unwrap();
+                                if target_wire > minima {
                                     top_con = TOP_CON;
                                 }
-                                if qargs.last().unwrap().index() < maxima {
+                                if target_wire < maxima {
                                     bot_con = BOT_CON;
                                 }
                                 // This ensures the top_con/bot_con connectors are properly aligned with the control
@@ -1277,7 +1257,6 @@ impl TextDrawer {
                             &vis_mat.qubit_map,
                             &[],
                             &vis_mat.clbit_map,
-                            0,
                         );
                         let mid_idx = (minima + maxima) / 2;
                         let total_wire = maxima - minima + 1;
@@ -1366,7 +1345,6 @@ impl TextDrawer {
                             &vis_mat.qubit_map,
                             &[],
                             &[],
-                            0,
                         );
                         (
                             format!(
@@ -1394,7 +1372,6 @@ impl TextDrawer {
                             &vis_mat.qubit_map,
                             &[],
                             &[],
-                            0,
                         );
                         (
                             format!(
@@ -1420,8 +1397,12 @@ impl TextDrawer {
                         // A barrier label is only drawn above the top-most wire of the barrier,
                         // truncated to `barrier_label_len` characters, matching the Python
                         // text drawer.
-                        let (minima, _) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                        let (minima, _) = get_instruction_wire_range(
+                            circuit.get_qargs(inst.qubits),
+                            &vis_mat.qubit_map,
+                            &[],
+                            &[],
+                        );
                         let label = if wire_idx == minima {
                             inst.label.as_deref().filter(|label| !label.is_empty())
                         } else {
@@ -1459,7 +1440,6 @@ impl TextDrawer {
                             &vis_mat.qubit_map,
                             &[],
                             &[],
-                            0,
                         );
 
                         // q_0: ─■───────
@@ -3374,18 +3354,18 @@ c2: 3/════════════════════════�
 
         let result = draw_circuit(&circuit, false, false, Some(80), 0, true, true);
         let expected = "
-          ┌─┴─┐┌─┐
+          ┌───┐┌─┐
 q_2: ─────┤ X ├┤M├
-          └───┘└╥┘
-            │
-q_1: ───────┼─────
-            │
-     ┌───┐  │
-q_0: ┤ H ├──■─────
-     └───┘
-
-c_1: ═════════════
-
+          └─┬─┘└╥┘
+            │   ║
+q_1: ───────┼───╫─
+            │   ║
+     ┌───┐  │   ║
+q_0: ┤ H ├──■───╫─
+     └───┘      ║
+                ║
+c_1: ═══════════╬═
+                ║
                 ║
 c_0: ═══════════╩═
 ";
@@ -3416,14 +3396,14 @@ c_0: ═══════════╩═
 
         let result = draw_circuit(&circuit, false, false, Some(80), 0, false, true);
         let expected = "
-      ┌─┐
-q_3: ─┤M├─
-      └╥┘
-     ┌───┐
-q_1: ┤ H ├
-     └───┘
-       ║
-c_1: ══╩══
+          ┌─┐
+q_3: ─────┤M├
+          └╥┘
+     ┌───┐ ║
+q_1: ┤ H ├─╫─
+     └───┘ ║
+           ║
+c_1: ══════╩═
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -3459,12 +3439,12 @@ c_1: ══╩══
       ┌───┐┌─┐┌─┐
    q: ┤ H ├┤M├┤M├
       └───┘└╥┘└╥┘
-               ║
-c1: 2/═════════╩═
-               0
             ║  ║
-c0: 2/══════╩══╬═
-            0  ║
+c1: 2/══════╬══╩═
+            ║  0
+            ║
+c0: 2/══════╩════
+            0
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
