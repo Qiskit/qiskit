@@ -873,8 +873,7 @@ static int test_unitary_gate_1q(void) {
         goto cleanup;
     }
     memset(out, 0, sizeof(QkComplex64) * 4);
-    const QkCircuit *read_only = qc;
-    qk_circuit_inst_unitary(read_only, num_inst - 1, out);
+    qk_circuit_inst_unitary(qc, num_inst - 1, out);
     if (memcmp(out, matrix, sizeof(QkComplex64) * 4) != 0) {
         result = EqualityError;
         fprintf(stderr, "Unitary matrix does not match expected\n");
