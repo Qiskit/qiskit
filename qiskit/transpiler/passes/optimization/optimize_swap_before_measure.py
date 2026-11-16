@@ -17,7 +17,7 @@ from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
-from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
+from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 
 
 class OptimizeSwapBeforeMeasure(TransformationPass):
@@ -37,53 +37,55 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+        tail = self._collect_tail(dag)
+        if not any(isinstance(node.op, SwapGate) for node in tail):
+            return dag
 
-        swaps = dag.op_nodes(SwapGate)
-        for swap in swaps[::-1]:
-            if getattr(swap.op, "_condition", None) is not None:
-                continue
-            descendants = dag.descendants(swap)
-            final_successor = []
-            for successor in descendants:
-                final_successor.append(
-                    isinstance(successor, DAGOutNode)
-                    or (isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure))
+        for node in tail:
+            dag.remove_op_node(node)
+
+        # ``tail`` is topologically ordered, so a single forward pass suffices. ``wire_of[q]``
+        # is the qubit whose original contents currently sit at position ``q``, given the swaps
+        # seen so far. Measurements are re-created on that qubit, in their original order.
+        wire_of = {qubit: qubit for qubit in dag.qubits}
+        for node in tail:
+            if isinstance(node.op, SwapGate):
+                a, b = node.qargs
+                wire_of[a], wire_of[b] = wire_of[b], wire_of[a]
+            else:
+                dag.apply_operation_back(
+                    Measure(), (wire_of[node.qargs[0]],), node.cargs, check=False
                 )
-            if all(final_successor):
-                # the node swap needs to be removed and, if a measure follows, needs to be adapted
-                swap_qargs = swap.qargs
-                measure_layer = DAGCircuit()
-                measure_layer.add_qubits(dag.qubits)
-                measure_layer.add_clbits(dag.clbits)
-                for qreg in dag.qregs.values():
-                    measure_layer.add_qreg(qreg)
-                for creg in dag.cregs.values():
-                    measure_layer.add_creg(creg)
-
-                # ``descendants`` is unordered. Measurements only depend on each other through
-                # shared wires; if some wire is shared, the original order must be restored since
-                # the last measurement writing to a clbit determines its final value. The
-                # topological sort is only needed in that (rare) case.
-                measures = [n for n in descendants if isinstance(n, DAGOpNode)]
-                seen_wires = set()
-                needs_order = False
-                for node in measures:
-                    for wire in (*node.qargs, *node.cargs):
-                        if wire in seen_wires:
-                            needs_order = True
-                        seen_wires.add(wire)
-                if needs_order:
-                    measures = [n for n in dag.topological_op_nodes() if n in descendants]
-                for successor in measures:
-                    if isinstance(successor.op, Measure):
-                        # replace measure node with a new one, where qargs is set with the "other"
-                        # swap qarg.
-                        dag.remove_op_node(successor)
-                        old_measure_qarg = successor.qargs[0]
-                        new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
-                        measure_layer.apply_operation_back(
-                            Measure(), (new_measure_qarg,), (successor.cargs[0],), check=False
-                        )
-                dag.compose(measure_layer)
-                dag.remove_op_node(swap)
         return dag
+
+    @staticmethod
+    def _collect_tail(dag):
+        """Return the topologically ordered "tail" of ``dag``: the unconditional swaps and
+        measurements all of whose successors are output nodes or themselves part of the tail."""
+        tail = set()
+        reverse_order = []
+        worklist = [
+            pred
+            for out_node in dag.output_map.values()
+            for pred in dag.predecessors(out_node)
+        ]
+        while worklist:
+            node = worklist.pop()
+            if node in tail or not isinstance(node, DAGOpNode):
+                continue
+            if not (
+                isinstance(node.op, Measure)
+                or (
+                    isinstance(node.op, SwapGate)
+                    and getattr(node.op, "_condition", None) is None
+                )
+            ):
+                continue
+            if all(
+                isinstance(succ, DAGOutNode) or succ in tail for succ in dag.successors(node)
+            ):
+                tail.add(node)
+                reverse_order.append(node)
+                worklist.extend(dag.predecessors(node))
+        reverse_order.reverse()
+        return reverse_order
