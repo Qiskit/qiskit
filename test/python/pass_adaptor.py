@@ -38,7 +38,7 @@ class CircuitToDag(Pass[QuantumCircuit, DAGCircuit]):
 
 
 class DagToCircuit(Pass[DAGCircuit, QuantumCircuit]):
-    """A lowering pass from quantum circuit to DAG circuit.
+    """A lowering pass from DAG circuit to quantum circuit.
 
     This does *not* copy the operations.
     """
