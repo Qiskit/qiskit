@@ -1241,9 +1241,10 @@ class QASM3Builder:
             )
             if isinstance(indexset, range):
                 # OpenQASM 3 uses inclusive ranges on both ends, unlike Python.
+                end = indexset.stop - 1 if indexset.step > 0 else indexset.stop + 1
                 indexset_ast = ast.Range(
                     start=self.build_integer(indexset.start),
-                    end=self.build_integer(indexset.stop - 1),
+                    end=self.build_integer(end),
                     step=self.build_integer(indexset.step) if indexset.step != 1 else None,
                 )
             else:
@@ -1389,7 +1390,7 @@ class QASM3Builder:
         if ident is None:
             ident = self.define_gate(operation)
         qubits = [self._lookup_bit(qubit) for qubit in instruction.qubits]
-        parameters = self._build_quantum_call_parameters(instruction.params)
+        parameters = self._build_quantum_call_parameters(operation.params)
         return ast.QuantumGateCall(ident, qubits, parameters=parameters)
 
 
