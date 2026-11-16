@@ -311,6 +311,22 @@ pub fn dec_ucg(
     up_to_diagonal: bool,
     mux_simp: bool,
 ) -> PyResult<(Py<PyAny>, Vec<Complex64>)> {
+    if num_qubits == 0 {
+        return Err(PyValueError::new_err("num_qubits must be at least 1"));
+    }
+    let expected = 1_usize.checked_shl(num_qubits - 1).ok_or_else(|| {
+        PyValueError::new_err(format!(
+            "num_qubits={num_qubits} is too large(2^(num_qubits - 1) overflows usize)"
+        ))
+    })?;
+
+    let got = single_qubit_gates.len();
+    if got != expected {
+        return Err(PyValueError::new_err(format!(
+            "expected 2^(num_qubits - 1) = {expected} single-qubit gates \
+         for num_qubits={num_qubits}, got {got}"
+        )));
+    }
     let gates: Vec<Matrix2<Complex64>> = single_qubit_gates
         .into_iter()
         .map(|x| {
