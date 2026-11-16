@@ -122,7 +122,7 @@ class BackendSamplerV2(BaseSamplerV2):
         *,
         backend: BackendV2,
         options: dict | None = None,
-        memory_format: str | None = None,
+        memory_format: Literal["hex", "bitstring"] = "hex",
     ):
         """
         Args:
