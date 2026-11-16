@@ -33,14 +33,20 @@ pub(super) type ObjectTree = DataTree<Py<PyAny>>;
 /// name or a position came from.
 ///
 /// A child is addressed by its name or by its position, and any value below it by a dotted path of
-/// the two. Reading a child gives the value of a leaf, or a `DataTree` over a subtree::
+/// the two, so `tree["counts"][1]` and `tree["counts.1"]` read the same value. Reading a child
+/// gives the value of a leaf, or a `DataTree` over a subtree:
 ///
-///     tree = DataTree({"counts": [3, 4], "ev": 0.1})
-///     tree["ev"]         # 0.1
-///     tree["counts"]     # DataTree([3, 4])
-///     tree["counts"][1]  # 4
-///     tree["counts.1"]   # 4, the same value by one path
-///     tree[-1]           # 0.1
+/// >>> tree = DataTree({"counts": [3, 4], "ev": 0.1})
+/// >>> tree["ev"]
+/// 0.1
+/// >>> tree["counts"]
+/// DataTree([3, 4])
+/// >>> tree["counts"][1]
+/// 4
+/// >>> tree["counts.1"]
+/// 4
+/// >>> tree[-1]
+/// 0.1
 ///
 /// Length, iteration and `in` cover the children of a branch, of which a leaf has none: its value
 /// is read through `leaf`, with `is_leaf` to ask first. A branch names all of its children or none
@@ -295,7 +301,7 @@ fn branch_is_mapping(children: &[(Option<&str>, &ObjectTree)]) -> PyResult<bool>
 fn parse(object: &Bound<'_, PyAny>) -> PyResult<ObjectTree> {
     let py = object.py();
     if let Ok(tree) = object.cast::<PyDataTree>() {
-        return Ok(tree.get().0.clone());
+        return Ok(clone_ref(py, &tree.get().0));
     }
     // Look up the hook on the type, just like a special method. This avoids invoking
     // an object's `__getattr__`, so objects with a permissive `__getattr__` are still
@@ -309,7 +315,7 @@ fn parse(object: &Bound<'_, PyAny>) -> PyResult<ObjectTree> {
                     decomposed.get_type().name()?
                 )));
             };
-            return Ok(tree.get().0.clone());
+            return Ok(clone_ref(py, &tree.get().0));
         }
         Err(err) if !err.is_instance_of::<PyAttributeError>(py) => return Err(err),
         Err(_) => {}
@@ -360,11 +366,18 @@ fn parse(object: &Bound<'_, PyAny>) -> PyResult<ObjectTree> {
     Ok(DataTree::new_leaf(object.clone().unbind()))
 }
 
+/// Copy a tree, taking a new reference to each leaf.
+fn clone_ref(py: Python<'_>, tree: &ObjectTree) -> ObjectTree {
+    tree.map_leaves(|value| value.clone_ref(py))
+}
+
 /// Return a child as Python sees it: the value of a leaf, or a data tree over a subtree.
 fn child_object(py: Python<'_>, child: &ObjectTree) -> PyResult<Py<PyAny>> {
     match child {
         DataTree::Leaf(value) => Ok(value.clone_ref(py)),
-        branch @ DataTree::Branch(_) => Ok(Py::new(py, PyDataTree(branch.clone()))?.into_any()),
+        branch @ DataTree::Branch(_) => {
+            Ok(Py::new(py, PyDataTree(clone_ref(py, branch)))?.into_any())
+        }
     }
 }
 

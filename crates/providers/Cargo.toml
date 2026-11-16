@@ -38,7 +38,6 @@ features = ["rayon", "approx"]
 [dependencies.pyo3]
 workspace = true
 optional = true
-features = ["py-clone"]
 
 [features]
-python = ["dep:pyo3"]
+py = ["dep:pyo3"]
