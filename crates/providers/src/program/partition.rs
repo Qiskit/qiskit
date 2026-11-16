@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Partition a quantum program into functions, one per unit of dispatchable work.
+//! Partition a quantum program into functions per unit of dispatchable work.
 
 use hashbrown::HashMap;
 use thiserror::Error;
@@ -45,9 +45,9 @@ pub enum PartitionError {
     },
 }
 
-/// One unit of dispatchable work: the instructions that become one function of the new program.
+/// A unit of dispatchable work.
 struct Unit {
-    /// The execution resource that handles this unit's ops.
+    /// The index of the execution resource that handles this unit's ops.
     resource: usize,
     /// Dependency layer used to order this unit relative to other units.
     layer: usize,
@@ -55,32 +55,30 @@ struct Unit {
     instructions: Vec<InstructionId>,
 }
 
-/// Rewrite `program` to put the work of each execution resource in a function of its own, and
-/// report the resource each of those functions belongs to.
+/// Return a new program where each unit of the program that is implementable by the resources is
+/// replaced by a call to a function.
 ///
-/// `resources` declares, per execution resource, the op names that resource handles, as
-/// [`ProgramOp::full_name`](crate::ProgramOp::full_name) renders them. An op no resource declares
-/// stays in the entry point, where Qiskit evaluates it in process. Boundary instructions are matched
-/// by role, not by name: a parameter stays in the entry point that declares it. One input may fan
-/// out to several units.
+/// `resources` specifies which operations each resource handles. Operation names are matched
+/// exactly against [`ProgramOp::full_name`]. Operations that are not assigned to a resource
+/// remain in the entry point and must have a built-in evaluation.
 ///
-/// The rewritten program holds one function per unit of dispatchable work, ordered with no unit
-/// depending on a later one, and then an entry point that declares the same inputs and outputs as
-/// `program`'s, calls each unit once, and performs the rest itself. Each unit can be run as a whole,
-/// because no path leaving a unit leads back into it. Every other function `program` holds is
-/// dropped; a partitionable entry point calls none of them.
+/// The resulting program contains one function per unit, followed by a rebuilt entry point.
+/// The functions are ordered so that a unit never depends on a later one. The entry point
+/// has the same inputs and outputs as `program`. Any other function in `program` are dropped.
 ///
-/// The table gives each unit's resource, indexed by [`FunctionId::index`], and so holds one entry
-/// fewer than the program has functions: the entry point is the last function and belongs to no
-/// resource. It is not grouped by resource. A dependency may run from one unit of a resource to
-/// another, so one resource's functions cannot be run as a batch.
+/// A resource can have multiple units when dependencies require its operations to be split
+/// across different layers. For this reason, the functions must be processed in their
+/// generated order, not grouped by resource.
 ///
-/// This is a helper for a `BackendV3` implementation, not part of the interface one must satisfy.
+/// The returned vector maps each generated function to its resource. Its indices correspond
+/// to [`FunctionId::index`]. The entry point is the last function and is not included in
+/// this mapping.
 ///
 /// # Errors
 ///
-/// Returns an error if `program`'s entry point already contains a call instruction, if two resources
-/// declare the same op, or if an op no resource declares is one Qiskit cannot evaluate in process.
+/// Returns an error if the entry point already contains a call, if two different resources
+/// declare the same operation, or if an operation is not assigned to a resource and has
+/// no built-in evaluation.
 pub fn partition<R, N>(
     program: &QuantumProgram,
     resources: R,
@@ -112,8 +110,6 @@ where
         .iter_instructions()
         .find(|instruction| instruction.role() == InstructionRole::Call)
     {
-        // We disallow partitioning programs that already have multiple functions to simplify the
-        // implementation. This slightly more complicated case could be implemented, if needed.
         return Err(PartitionError::EntryPointCall {
             instruction: instruction.id(),
         });
