@@ -680,7 +680,7 @@ class TestControlledGate(QiskitTestCase):
         qc.mcx([], 0)
         self.assertEqual(Operator(qc), Operator(XGate()))
 
-    @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
+    @combine(num_controls=[1, 2, 3, 4, 5], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
         """Test the multi controlled Y rotation using the mode 'basic'.
 
