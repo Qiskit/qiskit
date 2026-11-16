@@ -404,6 +404,38 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
+    def test_measurement_on_other_qubit_sharing_clbit(self):
+        """A trailing measurement on a qubit outside the swap must not break the pass."""
+        circuit = QuantumCircuit(3, 1)
+        circuit.swap(0, 1)
+        circuit.measure(0, 0)
+        circuit.measure(2, 0)
+
+        expected = QuantumCircuit(3, 1)
+        expected.measure(1, 0)
+        expected.measure(2, 0)
+
+        after = PassManager([OptimizeSwapBeforeMeasure()]).run(circuit)
+
+        self.assertEqual(expected, after)
+
+    def test_repeated_swaps_and_measurements(self):
+        """All swaps in a trailing swap/measure sequence are removed, and a trailing gate
+        on a measured qubit blocks the optimization."""
+        circuit = QuantumCircuit(2, 1)
+        for _ in range(3):
+            circuit.swap(0, 1)
+            circuit.measure(0, 0)
+            circuit.measure(1, 0)
+
+        after = PassManager([OptimizeSwapBeforeMeasure()]).run(circuit)
+        self.assertNotIn("swap", after.count_ops())
+        self.assertEqual(after.count_ops()["measure"], 6)
+
+        circuit.x(1)
+        after = PassManager([OptimizeSwapBeforeMeasure()]).run(circuit)
+        self.assertEqual(circuit, after)
+
 
 if __name__ == "__main__":
     unittest.main()
