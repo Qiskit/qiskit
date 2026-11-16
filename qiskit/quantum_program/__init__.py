@@ -24,9 +24,69 @@ performing one.
 A program's inputs and outputs travel in a data tree, arranged by the structures the program
 declares, which is where all naming lives.
 
-.. autoclass:: DataTree
+Dtypes
+======
+
+A dtype is a member of :class:`DType`. Each has a lower-case alias, and indexing one
+with a shape gives the :class:`TensorType` of a value::
+
+    f64[3]                        # a vector of three 64-bit floats
+    bit[4000, 2]                  # a 4000x2 array of bits
+    f64[()]                       # a scalar
+    bit[1024, bounded(64)]        # an axis whose size is known only at run time
+
+The current aliases are ``bit``, ``u8``, ``u16``, ``u32``, ``u64``, ``i8``, ``i16``, ``i32``,
+``i64``, ``f32``, ``f64``, ``c64`` and ``c128``.
+
+Classes
+=======
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DataTree
+   DType
+   TensorType
+   bounded
 """
 
-from qiskit._accelerate.quantum_program import DataTree
+from qiskit._accelerate.quantum_program import (
+    DataTree,
+    DType,
+    TensorType,
+    bounded,
+)
 
-__all__ = ["DataTree"]
+bit = DType.Bit
+u8 = DType.U8
+u16 = DType.U16
+u32 = DType.U32
+u64 = DType.U64
+i8 = DType.I8
+i16 = DType.I16
+i32 = DType.I32
+i64 = DType.I64
+f32 = DType.F32
+f64 = DType.F64
+c64 = DType.C64
+c128 = DType.C128
+
+__all__ = [
+    "DType",
+    "DataTree",
+    "TensorType",
+    "bit",
+    "bounded",
+    "c64",
+    "c128",
+    "f32",
+    "f64",
+    "i8",
+    "i16",
+    "i32",
+    "i64",
+    "u8",
+    "u16",
+    "u32",
+    "u64",
+]

@@ -20,7 +20,7 @@ from collections import OrderedDict, namedtuple
 import numpy as np
 
 import qiskit.quantum_program
-from qiskit.quantum_program import DataTree
+from qiskit.quantum_program import DataTree, DType, TensorType, bit, bounded, f32, f64
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -28,33 +28,48 @@ class TestTypeStub(QiskitTestCase):
     """Tests that pyi stubs don't drift from reality."""
 
     @staticmethod
-    def declarations() -> dict[str, type]:
-        """The members the stub declares."""
+    def stub() -> ast.Module:
+        """The parsed stub of the module."""
         source = pathlib.Path(inspect.getfile(qiskit.quantum_program)).with_suffix(".pyi")
-        classes = (
-            node for node in ast.parse(source.read_text()).body if isinstance(node, ast.ClassDef)
-        )
+        return ast.parse(source.read_text())
+
+    @classmethod
+    def declarations(cls) -> dict[str, set[str]]:
+        """The members the stub declares, for each class it declares."""
         return {
-            cls.name: {
+            declaration.name: {
                 node.name if isinstance(node, ast.FunctionDef) else node.target.id
-                for node in cls.body
+                for node in declaration.body
                 if isinstance(node, (ast.FunctionDef, ast.AnnAssign))
             }
-            for cls in classes
+            for declaration in cls.stub().body
+            if isinstance(declaration, ast.ClassDef)
+        }
+
+    @classmethod
+    def exports(cls) -> set[str]:
+        """Every name the stub gives the module: its classes and its annotated aliases."""
+        return {
+            node.name if isinstance(node, ast.ClassDef) else node.target.id
+            for node in cls.stub().body
+            if isinstance(node, (ast.ClassDef, ast.AnnAssign))
         }
 
     def test_stub_covers_public_module(self):
         """Test that everything the module exports is declared in the stub."""
-        self.assertEqual(set(self.declarations()), set(qiskit.quantum_program.__all__))
+        self.assertEqual(self.exports(), set(qiskit.quantum_program.__all__))
 
     def test_stub_declares_class_members(self):
-        """Test that the stub declares exactly the members the class has."""
+        """Test that the stub declares exactly the members each class has."""
         # Written out rather than filtered, so that a new member is a deliberate edit here. These
         # are the names pyo3 adds of its own accord, alongside those the class declares.
         generated = {"__doc__", "__ge__", "__gt__", "__le__", "__lt__", "__module__", "__ne__"}
-        # A stub spells the constructor `__init__` where a pyclass exposes `__new__`.
-        declared = self.declarations()["DataTree"] - {"__init__"} | {"__new__"}
-        self.assertEqual(declared, set(vars(DataTree)) - generated)
+        for name, declared in self.declarations().items():
+            with self.subTest(name):
+                # A stub spells the constructor `__init__` where a pyclass exposes `__new__`.
+                declared = {"__new__" if member == "__init__" else member for member in declared}
+                members = set(vars(getattr(qiskit.quantum_program, name)))
+                self.assertEqual(declared, members - generated)
 
 
 class TestDataTree(QiskitTestCase):
@@ -297,3 +312,58 @@ class TestDataTree(QiskitTestCase):
             repr(DataTree({"counts": [3, 4], "shots": 100})),
             "DataTree([counts: [3, 4], shots: 100])",
         )
+
+
+class TestTensorTypes(QiskitTestCase):
+    """Tests for dtypes and the tensor types they build."""
+
+    def test_lowercase_alias_is_the_dtype(self):
+        """Test that a lower-case alias is the dtype it spells."""
+        self.assertEqual(f64, DType.F64)
+        self.assertEqual(bit, DType.Bit)
+
+    def test_dtype_repr_names_the_member(self):
+        """Test that a dtype renders as the class attribute it is read from."""
+        self.assertEqual(repr(DType.F64), "DType.F64")
+        self.assertEqual(repr(bit), "DType.Bit")
+
+    def test_dtypes_are_hashable_and_distinct(self):
+        """Test that equal dtypes hash alike and different ones differ."""
+        self.assertEqual({DType.F64, f64, DType.F32}, {f64, f32})
+        self.assertNotEqual(f64, f32)
+
+    def test_indexing_a_dtype_builds_a_type(self):
+        """Test that indexing a dtype with a shape gives that type."""
+        self.assertEqual(f64[3], TensorType(DType.F64, (3,)))
+        self.assertEqual(f64[3, 4].shape, (3, 4))
+        self.assertEqual(f64[()].shape, ())
+
+    def test_type_carries_dtype_and_shape(self):
+        """Test that a type reports what it was built from."""
+        self.assertEqual(f64[3, 4].dtype, DType.F64)
+        self.assertEqual(TensorType(DType.Bit, [2]).shape, (2,))
+
+    def test_bounded_axis(self):
+        """Test that a bounded axis has its maximum and renders as one."""
+        self.assertEqual(bit[1024, bounded(64)].shape, (1024, bounded(64)))
+        self.assertEqual(str(bit[1024, bounded(64)]), "Bit[1024, <=64]")
+        self.assertEqual(bounded(64).max, 64)
+        self.assertEqual(repr(bounded(64)), "bounded(64)")
+
+    def test_equal_types_are_one_key(self):
+        """Test that types of equal dtype and shape are equal and hash alike."""
+        self.assertEqual({f64[3], TensorType(DType.F64, [3])}, {f64[3]})
+        self.assertNotEqual(f64[3], f32[3])
+        self.assertNotEqual(f64[3], f64[3, 1])
+
+    def test_type_renders_dtype_and_shape(self):
+        """Test that a type renders as its dtype over its shape."""
+        self.assertEqual(repr(f64[3]), "TensorType(F64[3])")
+        self.assertEqual(str(f64[3]), "F64[3]")
+
+    def test_unusable_axis_refused(self):
+        """Test that an axis sized by anything but an integer or a bound raises."""
+        with self.assertRaisesRegex(TypeError, "not by float"):
+            _ = f64[1.5]
+        with self.assertRaisesRegex(ValueError, "cannot have size -1"):
+            _ = f64[-1]

@@ -13,11 +13,14 @@
 //! Bindings for the `qiskit.quantum_program` Python package.
 
 mod data_tree;
+mod tensor;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
+use crate::tensor::TensorType;
 pub use data_tree::PyDataTree;
+pub use tensor::{PyBounded, PyDType};
 
 /// Return `error` and everything that caused it, as one message.
 ///
@@ -40,6 +43,9 @@ fn value_error(error: &dyn std::error::Error) -> PyErr {
 
 /// Register the `quantum_program` submodule.
 pub fn quantum_program(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<PyBounded>()?;
     m.add_class::<PyDataTree>()?;
+    m.add_class::<PyDType>()?;
+    m.add_class::<TensorType>()?;
     Ok(())
 }
