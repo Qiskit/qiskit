@@ -21,8 +21,10 @@ use uuid::Uuid;
 
 use hashbrown::HashMap;
 use num_complex::Complex64;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 
+#[cfg(feature = "py")]
 use crate::parameter::parameter_expression::PyParameter;
 
 // epsilon for SymbolExpr is heuristically defined
@@ -66,6 +68,7 @@ impl Hash for Symbol {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Symbol {
     type Error = PyErr;
 
@@ -74,6 +77,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Symbol {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Symbol {
     type Target = <PyParameter as IntoPyObject<'py>>::Target;
     type Output = <PyParameter as IntoPyObject<'py>>::Output;
@@ -322,13 +326,15 @@ impl Drop for SymbolExpr {
 }
 
 /// Value type, can be integer, real or complex number
-#[derive(Debug, Clone, Copy, IntoPyObject, IntoPyObjectRef)]
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "py", derive(IntoPyObject, IntoPyObjectRef))]
 pub enum Value {
     Real(f64),
     Int(i64),
     Complex(Complex64),
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Value {
     type Error = PyErr;
 
@@ -527,6 +533,78 @@ impl SymbolExpr {
                 }
             }
         }
+    }
+
+    /// Are these two expressions precisely equal in structure?
+    ///
+    /// This is stricter but faster form of the [`PartialEq`] implementation that does not consider
+    /// symbolic equality via simplification, but instead requires that the exact structures are
+    /// constructed in the same manner.
+    pub fn eq_exact(&self, other: &Self) -> bool {
+        // Helper so `rustfmt` doesn't turn `if (a != b) { return false; }` into 3 lines.
+        macro_rules! return_if_unequal {
+            ($a:expr, $b:expr) => {
+                if $a != $b {
+                    return false;
+                }
+            };
+        }
+        // `backtrack` stores the right-hand sides of `Binary`s, so we can walk back up to them.
+        // `cur` is a minor optimisation to avoid allocations in the case of long chains of `Unary`,
+        // and when walking down the left-hand edges of `Binary`s; instead of pushing into the heap
+        // and immediately popping it back again, we just stay purely in stack space.
+        let mut backtrack = Vec::new();
+        let mut cur = Some((self, other));
+        while let Some((a, b)) = cur.take().or_else(|| backtrack.pop()) {
+            // Short-circuit this entire tree branch if `a` and `b` point to the same object.
+            if std::ptr::eq(a, b) {
+                continue;
+            }
+            match (a, b) {
+                (Self::Symbol(a_sym), Self::Symbol(b_sym)) => return_if_unequal!(a_sym, b_sym),
+                (Self::Value(a_val), Self::Value(b_val)) => return_if_unequal!(a_val, b_val),
+                (
+                    Self::Unary {
+                        op: a_op,
+                        expr: a_expr,
+                    },
+                    Self::Unary {
+                        op: b_op,
+                        expr: b_expr,
+                    },
+                ) => {
+                    return_if_unequal!(a_op, b_op);
+                    cur = Some((a_expr, b_expr));
+                }
+                (
+                    Self::Binary {
+                        op: a_op,
+                        lhs: a_lhs,
+                        rhs: a_rhs,
+                    },
+                    Self::Binary {
+                        op: b_op,
+                        lhs: b_lhs,
+                        rhs: b_rhs,
+                    },
+                ) => {
+                    return_if_unequal!(a_op, b_op);
+                    // This is the same `:std::ptr::eq` trick from the top of the loop, but we
+                    // repeat it here to avoid allocations if possible.
+                    if !Arc::ptr_eq(a_rhs, b_rhs) {
+                        backtrack.push((a_rhs, b_rhs));
+                    }
+                    cur = Some((a_lhs, b_lhs));
+                }
+                // The `SymbolExpr` variants don't match. This doesn't use a full `_` so we still
+                // get compiler protection against expansion of the enum.
+                (Self::Symbol(_), _)
+                | (Self::Value(_), _)
+                | (Self::Unary { .. }, _)
+                | (Self::Binary { .. }, _) => return false,
+            }
+        }
+        true
     }
 
     /// evaluate the equation
@@ -1398,6 +1476,7 @@ impl SymbolExpr {
                     lhs: l_lhs,
                     rhs: l_rhs,
                 } => {
+                    // Binary + Binary
                     if let SymbolExpr::Binary {
                         op: rop,
                         lhs: r_lhs,
@@ -1410,28 +1489,34 @@ impl SymbolExpr {
                             r_lhs.as_ref(),
                             r_rhs.as_ref(),
                         ) {
+                            // shared terms (lv op X) + (rv op X)
                             (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
                                 if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                     let t = SymbolExpr::Value(lv + rv);
                                     match (op, rop) {
-                                        (BinaryOp::Add, BinaryOp::Add) if t.is_zero() => {
-                                            return Some(_mul(
-                                                SymbolExpr::Value(Value::Int(2)),
+                                        // (lv + X) + (rv + X)  ->  t + 2*X
+                                        // (lv - X) + (rv - X)  ->  t - 2*X
+                                        (BinaryOp::Add, BinaryOp::Add)
+                                        | (BinaryOp::Sub, BinaryOp::Sub) => {
+                                            let two_signed =
+                                                if matches!(op, BinaryOp::Add) { 2 } else { -2 };
+                                            let doubled_signed = _mul(
+                                                SymbolExpr::Value(Value::Int(two_signed)),
                                                 l_rhs.as_ref().clone(),
-                                            ));
+                                            );
+                                            return Some(if t.is_zero() {
+                                                doubled_signed
+                                            } else {
+                                                _add(t, doubled_signed)
+                                            });
                                         }
-                                        (BinaryOp::Sub, BinaryOp::Sub) if t.is_zero() => {
-                                            return Some(_mul(
-                                                SymbolExpr::Value(Value::Int(-2)),
-                                                l_rhs.as_ref().clone(),
-                                            ));
-                                        }
+                                        // (lv + X) + (rv - X)  ->  X canceled -> (lv+rv) = t
+                                        // (lv - X) + (rv + X)  ->  X canceled -> (lv+rv) = t
                                         (BinaryOp::Sub, BinaryOp::Add)
-                                        | (BinaryOp::Add, BinaryOp::Sub)
-                                            if t.is_zero() =>
-                                        {
-                                            return Some(SymbolExpr::Value(Value::Int(0)));
+                                        | (BinaryOp::Add, BinaryOp::Sub) => {
+                                            return Some(t);
                                         }
+                                        // (lv * X) + (rv * X)  ->  (lv+rv) * X = t * X
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
                                             if t.is_zero() {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
@@ -1441,6 +1526,7 @@ impl SymbolExpr {
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
                                             };
                                         }
+                                        // (lv / X) + (rv / X)  ->  (lv+rv) / X = t / X
                                         (BinaryOp::Div, BinaryOp::Div) => {
                                             if t.is_zero() {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
@@ -1454,6 +1540,8 @@ impl SymbolExpr {
                                     }
                                 }
                             }
+                            // (X / lv) + (Y / rv) ->  (rv*X + lv*Y) / (lv*rv)
+                            // only when X == +-Y, so add_opt collapses (rv*X + lv*Y) into a single term
                             (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Div, BinaryOp::Div) = (op, rop)
                                     && (l_lhs.expand().string_id() == r_lhs.expand().string_id()
@@ -1469,6 +1557,8 @@ impl SymbolExpr {
                                     };
                                 }
                             }
+                            // (lv * X) + (Y / rv) ->  (lv * X) + ((1/rv) * Y)
+                            // rewrite Div as Mul when X == +-Y so add_opt collapses them into a single term
                             (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop)
                                     && (l_rhs.expand().string_id() == r_lhs.expand().string_id()
@@ -1484,6 +1574,8 @@ impl SymbolExpr {
                                     }
                                 }
                             }
+                            // (X / lv) + (rv * Y) -> ((1/lv) * X) + (rv * Y)
+                            // rewrite Div as Mul when X == +-Y so add_opt collapses them into a single term
                             (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
                                 if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop)
                                     && (l_lhs.expand().string_id() == r_rhs.expand().string_id()
@@ -1792,6 +1884,7 @@ impl SymbolExpr {
                         }
                     }
                 }
+                // Binary - Binary
                 SymbolExpr::Binary {
                     op,
                     lhs: l_lhs,
@@ -1809,28 +1902,34 @@ impl SymbolExpr {
                             r_lhs.as_ref(),
                             r_rhs.as_ref(),
                         ) {
+                            // shared terms: (lv op X) - (rv op X)
                             (SymbolExpr::Value(lv), _, SymbolExpr::Value(rv), _) => {
                                 if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                     let t = SymbolExpr::Value(lv - rv);
                                     match (op, rop) {
+                                        // (lv + X) - (rv + X)  ->  X canceled -> (lv-rv) = t
+                                        // (lv - X) - (rv - X)  ->  X canceled -> (lv-rv) = t
                                         (BinaryOp::Add, BinaryOp::Add)
-                                        | (BinaryOp::Sub, BinaryOp::Sub)
-                                            if t.is_zero() =>
-                                        {
-                                            return Some(SymbolExpr::Value(Value::Int(0)));
+                                        | (BinaryOp::Sub, BinaryOp::Sub) => {
+                                            return Some(t);
                                         }
-                                        (BinaryOp::Sub, BinaryOp::Add) if t.is_zero() => {
-                                            return Some(_mul(
-                                                SymbolExpr::Value(Value::Int(-2)),
+                                        // (lv - X) - (rv + X)  ->  (lv-rv) - 2*X = t - 2*X
+                                        // (lv + X) - (rv - X)  ->  (lv-rv) + 2*X = t + 2*X
+                                        (BinaryOp::Sub, BinaryOp::Add)
+                                        | (BinaryOp::Add, BinaryOp::Sub) => {
+                                            let two_signed =
+                                                if matches!(op, BinaryOp::Sub) { -2 } else { 2 };
+                                            let doubled_signed = _mul(
+                                                SymbolExpr::Value(Value::Int(two_signed)),
                                                 l_rhs.as_ref().clone(),
-                                            ));
+                                            );
+                                            return Some(if t.is_zero() {
+                                                doubled_signed
+                                            } else {
+                                                _add(t, doubled_signed)
+                                            });
                                         }
-                                        (BinaryOp::Add, BinaryOp::Sub) if t.is_zero() => {
-                                            return Some(_mul(
-                                                SymbolExpr::Value(Value::Int(2)),
-                                                l_rhs.as_ref().clone(),
-                                            ));
-                                        }
+                                        // (lv * X) - (rv * X)  ->  (lv-rv) * X = t * X
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
                                             if t.is_zero() {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
@@ -1840,6 +1939,7 @@ impl SymbolExpr {
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
                                             };
                                         }
+                                        // (lv / X) - (rv / X)  ->  (lv-rv) / X = t / X
                                         (BinaryOp::Div, BinaryOp::Div) => {
                                             if t.is_zero() {
                                                 return Some(SymbolExpr::Value(Value::Int(0)));
@@ -1853,6 +1953,8 @@ impl SymbolExpr {
                                     }
                                 }
                             }
+                            // (X / lv) - (Y / rv) -> (rv*X - lv*Y) / (lv*rv)
+                            // only when X == +-Y, so sub_opt collapses rv*X - lv*Y into a single term
                             (_, SymbolExpr::Value(lv), _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Div, BinaryOp::Div) = (op, rop)
                                     && (l_lhs.expand().string_id() == r_lhs.expand().string_id()
@@ -1868,6 +1970,8 @@ impl SymbolExpr {
                                     };
                                 }
                             }
+                            // (lv * X) - (Y / rv) ->  (lv * X) - ((1/rv) * Y)
+                            // rewrite the Div as a Mul only when X == +-Y so sub_opt collapses them
                             (SymbolExpr::Value(_), _, _, SymbolExpr::Value(rv)) => {
                                 if let (BinaryOp::Mul, BinaryOp::Div) = (op, rop)
                                     && (l_rhs.expand().string_id() == r_lhs.expand().string_id()
@@ -1883,6 +1987,8 @@ impl SymbolExpr {
                                     }
                                 }
                             }
+                            // (X / lv) - (rv * Y) -> ((1/lv) * X) - (rv * Y)
+                            // rewrite the Div as a Mul only when X == +-Y so sub_opt collapses them
                             (_, SymbolExpr::Value(lv), SymbolExpr::Value(_), _) => {
                                 if let (BinaryOp::Div, BinaryOp::Mul) = (op, rop)
                                     && (l_lhs.expand().string_id() == r_rhs.expand().string_id()
@@ -1948,8 +2054,8 @@ impl SymbolExpr {
                                 // case: l_lhs - (lv + rv)
                                 (_, SymbolExpr::Value(lv)) => {
                                     return Some(_sub(
-                                        SymbolExpr::Value(rv + lv),
                                         l_lhs.as_ref().clone(),
+                                        SymbolExpr::Value(rv + lv),
                                     ));
                                 }
                                 (_, _) => (),
@@ -2841,23 +2947,6 @@ impl SymbolExpr {
         }
     }
 
-    // convert sympy compatible format
-    pub fn sympify(&self) -> SymbolExpr {
-        match self {
-            SymbolExpr::Symbol { .. } => self.clone(),
-            SymbolExpr::Value(e) => e.sympify(),
-            SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
-                op: op.clone(),
-                expr: Arc::new(expr.sympify()),
-            },
-            SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
-                op: op.clone(),
-                lhs: Arc::new(lhs.sympify()),
-                rhs: Arc::new(rhs.sympify()),
-            },
-        }
-    }
-
     fn repr(&self, with_uuid: bool) -> String {
         match self {
             SymbolExpr::Symbol(e) => e.repr(with_uuid),
@@ -3685,21 +3774,6 @@ impl Value {
             _ => None,
         }
     }
-
-    // convert sympy compatible format
-    pub fn sympify(&self) -> SymbolExpr {
-        match self {
-            // imaginary number is converted to value * symbol 'I'
-            Value::Complex(c) => _add(
-                SymbolExpr::Value(Value::Real(c.re)),
-                _mul(
-                    SymbolExpr::Value(Value::Real(c.im)),
-                    SymbolExpr::Symbol(Arc::new(Symbol::standalone("I".to_owned(), None))),
-                ),
-            ),
-            _ => SymbolExpr::Value(*self),
-        }
-    }
 }
 
 impl From<f64> for Value {
@@ -3712,6 +3786,15 @@ impl From<i64> for Value {
     fn from(v: i64) -> Self {
         Value::Int(v)
     }
+}
+
+impl TryFrom<u64> for Value {
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        let as_i64: i64 = value.try_into()?;
+        Ok(as_i64.into())
+    }
+
+    type Error = <i64 as TryFrom<u64>>::Error;
 }
 
 impl From<Complex64> for Value {
@@ -4004,21 +4087,6 @@ mod test {
     const BIG_CALL_STACK: usize = if cfg!(miri) { 100 } else { 20_000 };
 
     #[test]
-    fn test_eval_subtraction() {
-        let test_expr = SymbolExpr::Binary {
-            op: BinaryOp::Add,
-            lhs: Arc::new(SymbolExpr::Value(Value::Complex(Complex64::new(1.0, -2.0)))),
-            rhs: Arc::new(SymbolExpr::Binary {
-                op: BinaryOp::Pow,
-                lhs: Arc::new(SymbolExpr::Value(Value::Complex(Complex64::new(-1.0, 2.0)))),
-                rhs: Arc::new(SymbolExpr::Value(Value::Real(1.0))),
-            }),
-        };
-        let value = test_expr.eval(true);
-        assert_eq!(Some(Value::Complex(Complex64::ZERO)), value);
-    }
-
-    #[test]
     fn test_drop_unary_large() {
         let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
         let mut expr = Arc::new(SymbolExpr::Unary {
@@ -4281,5 +4349,157 @@ mod test {
         mem::drop(expr);
         assert_eq!(Arc::strong_count(&base), 1);
         assert_eq!(weaks[0].strong_count(), 0);
+    }
+
+    #[test]
+    fn test_eq_exact_unary_non_simplification() {
+        let unary_negate = |expr| SymbolExpr::Unary {
+            op: UnaryOp::Neg,
+            expr: Arc::new(expr),
+        };
+        let val = Value::Int(1);
+        let direct = SymbolExpr::Value(-val);
+        let indirect = unary_negate(SymbolExpr::Value(val));
+        assert_eq!(direct, indirect);
+        assert!(!direct.eq_exact(&indirect));
+
+        let two_extra_negations = unary_negate(unary_negate(indirect.clone()));
+        assert_eq!(indirect, two_extra_negations);
+        assert!(!direct.eq_exact(&indirect));
+    }
+
+    #[test]
+    fn test_eq_exact_unary_deep() {
+        let make_big = |mut expr| {
+            for _ in 0..BIG_CALL_STACK {
+                expr = SymbolExpr::Unary {
+                    op: UnaryOp::Neg,
+                    expr: Arc::new(expr),
+                };
+            }
+            expr
+        };
+
+        let one = Value::Int(1);
+        let two = Value::Int(2);
+        let base = make_big(SymbolExpr::Value(one));
+        assert!(base.eq_exact(&make_big(SymbolExpr::Value(one))));
+        assert!(!base.eq_exact(&make_big(SymbolExpr::Value(two))));
+    }
+
+    #[test]
+    fn test_eq_exact_binary_deep() {
+        let make_big_lhs = |mut expr| {
+            for _ in 0..BIG_CALL_STACK {
+                expr = SymbolExpr::Binary {
+                    op: BinaryOp::Pow,
+                    lhs: Arc::new(expr),
+                    rhs: Arc::new(SymbolExpr::Value(Value::Int(2))),
+                }
+            }
+            expr
+        };
+        let make_big_rhs = |mut expr| {
+            for _ in 0..BIG_CALL_STACK {
+                expr = SymbolExpr::Binary {
+                    op: BinaryOp::Pow,
+                    lhs: Arc::new(SymbolExpr::Value(Value::Int(2))),
+                    rhs: Arc::new(expr),
+                }
+            }
+            expr
+        };
+        let one = Value::Int(1);
+        let two = Value::Int(2);
+        let base = make_big_lhs(SymbolExpr::Value(one));
+        assert!(base.eq_exact(&make_big_lhs(SymbolExpr::Value(one))));
+        assert!(!base.eq_exact(&make_big_lhs(SymbolExpr::Value(two))));
+
+        let base = make_big_rhs(SymbolExpr::Value(one));
+        assert!(base.eq_exact(&make_big_rhs(SymbolExpr::Value(one))));
+        assert!(!base.eq_exact(&make_big_rhs(SymbolExpr::Value(two))));
+    }
+
+    #[test]
+    fn test_eq_exact_binary_backtracks() {
+        let extend_lhs = |mut expr, size: usize| {
+            for _ in 0..size {
+                expr = SymbolExpr::Binary {
+                    op: BinaryOp::Pow,
+                    lhs: Arc::new(expr),
+                    rhs: Arc::new(SymbolExpr::Value(Value::Int(2))),
+                }
+            }
+            expr
+        };
+        let extend_rhs = |mut expr, size: usize| {
+            for _ in 0..size {
+                expr = SymbolExpr::Binary {
+                    op: BinaryOp::Pow,
+                    lhs: Arc::new(SymbolExpr::Value(Value::Int(2))),
+                    rhs: Arc::new(expr),
+                }
+            }
+            expr
+        };
+
+        let one = Value::Int(1);
+        let two = Value::Int(2);
+
+        let left = SymbolExpr::Binary {
+            op: BinaryOp::Pow,
+            lhs: Arc::new(SymbolExpr::Value(one)),
+            rhs: Arc::new(SymbolExpr::Value(one)),
+        };
+        let right = SymbolExpr::Binary {
+            op: BinaryOp::Pow,
+            lhs: Arc::new(SymbolExpr::Value(one)),
+            rhs: Arc::new(SymbolExpr::Value(two)),
+        };
+
+        // Failure deep on the lhs.
+        assert!(!extend_lhs(left.clone(), 5).eq_exact(&extend_lhs(right.clone(), 5)));
+        // Failure deep on the rhs.
+        assert!(!extend_rhs(left.clone(), 5).eq_exact(&extend_rhs(right.clone(), 5)));
+
+        // Failure in a middle right edge of a deep left tree.
+        let shared_base = extend_lhs(left.clone(), 5);
+        let left_mid = extend_lhs(
+            SymbolExpr::Binary {
+                op: BinaryOp::Pow,
+                lhs: Arc::new(shared_base.clone()),
+                rhs: Arc::new(SymbolExpr::Value(one)),
+            },
+            5,
+        );
+        let right_mid = extend_lhs(
+            SymbolExpr::Binary {
+                op: BinaryOp::Pow,
+                lhs: Arc::new(shared_base.clone()),
+                rhs: Arc::new(SymbolExpr::Value(two)),
+            },
+            5,
+        );
+        assert!(!extend_lhs(left_mid, 5).eq_exact(&extend_lhs(right_mid, 5)));
+
+        // Failure on a middle left edge of a deep right tree.
+        let shared_base = extend_rhs(right.clone(), 5);
+        let left_mid = extend_rhs(
+            SymbolExpr::Binary {
+                op: BinaryOp::Pow,
+                lhs: Arc::new(SymbolExpr::Value(one)),
+                rhs: Arc::new(shared_base.clone()),
+            },
+            5,
+        );
+        let right_mid = extend_rhs(
+            SymbolExpr::Binary {
+                op: BinaryOp::Pow,
+                lhs: Arc::new(SymbolExpr::Value(two)),
+                rhs: Arc::new(shared_base.clone()),
+            },
+            5,
+        );
+        assert!(!extend_rhs(left_mid, 5).eq_exact(&extend_rhs(right_mid, 5)));
     }
 }

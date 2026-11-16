@@ -25,7 +25,7 @@ use rustworkx_core::petgraph::prelude::*;
 use pyo3::prelude::*;
 use pyo3::{IntoPyObjectExt, create_exception, wrap_pyfunction};
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::interner::{Interned, Interner};
 use qiskit_circuit::operations::{ControlFlowView, Operation};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -36,7 +36,7 @@ use crate::target::{Qargs, QargsRef, Target, TargetOperation};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
-#[pyclass(name = "VF2PassConfiguration", skip_from_py_object)]
+#[pyclass(name = "VF2PassConfiguration")]
 #[derive(Clone, Debug)]
 pub struct Vf2PassConfiguration {
     /// The maximum numbers of times VF2 is allowed to extend the mapping (before, after) the first
@@ -746,8 +746,24 @@ where
     Some(score)
 }
 
-#[pyfunction]
+#[pyfunction(name = "vf2_layout_pass_average")]
 #[pyo3(signature = (dag, target, config, *, strict_direction=false, avg_error_map=None))]
+pub fn py_vf2_layout_pass_average(
+    dag: &PyDAGCircuit,
+    target: &Target,
+    config: &Vf2PassConfiguration,
+    strict_direction: bool,
+    avg_error_map: Option<&ErrorMap>,
+) -> PyResult<Vf2PassReturn> {
+    vf2_layout_pass_average(
+        dag.try_read()?,
+        target,
+        config,
+        strict_direction,
+        avg_error_map,
+    )
+}
+
 pub fn vf2_layout_pass_average(
     dag: &DAGCircuit,
     target: &Target,
@@ -814,8 +830,16 @@ pub fn vf2_layout_pass_average(
     }
 }
 
-#[pyfunction]
+#[pyfunction(name = "vf2_layout_pass_exact")]
 #[pyo3(signature = (dag, target, config))]
+pub fn py_vf2_layout_pass_exact(
+    dag: &PyDAGCircuit,
+    target: &Target,
+    config: &Vf2PassConfiguration,
+) -> PyResult<Vf2PassReturn> {
+    vf2_layout_pass_exact(dag.try_read()?, target, config)
+}
+
 pub fn vf2_layout_pass_exact(
     dag: &DAGCircuit,
     target: &Target,
@@ -909,8 +933,8 @@ pub fn vf2_layout_pass_exact(
 }
 
 pub fn vf2_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(vf2_layout_pass_average))?;
-    m.add_wrapped(wrap_pyfunction!(vf2_layout_pass_exact))?;
+    m.add_wrapped(wrap_pyfunction!(py_vf2_layout_pass_average))?;
+    m.add_wrapped(wrap_pyfunction!(py_vf2_layout_pass_exact))?;
     m.add("MultiQEncountered", m.py().get_type::<MultiQEncountered>())?;
     m.add(
         "VF2PassConfiguration",
