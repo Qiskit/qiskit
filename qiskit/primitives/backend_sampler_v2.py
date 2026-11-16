@@ -17,7 +17,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 from collections.abc import Iterable
 
 import numpy as np
@@ -122,7 +122,7 @@ class BackendSamplerV2(BaseSamplerV2):
         *,
         backend: BackendV2,
         options: dict | None = None,
-        memory_format: str | None = None,
+        memory_format: Literal["hex", "bitstring"] = "hex",
     ):
         """
         Args:
@@ -134,7 +134,7 @@ class BackendSamplerV2(BaseSamplerV2):
         """
         self._backend = backend
         self._options = Options(**options) if options else Options()
-        self.memory_format = memory_format.lower() if memory_format else "hex"
+        self.memory_format = memory_format
 
     @property
     def backend(self) -> BackendV2:
