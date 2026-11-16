@@ -104,16 +104,9 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.rz(0.1, 1)
 
         qct = LitinskiTransformation(use_ppr=use_ppr, combine_paulis=combine_paulis)(qc)
-
-        expected_ops = {"cx": 2, "h": 1, "s": 1}
-        if use_ppr:
-            expected_ops["pauli_product_rotation"] = 2 if combine_paulis else 3
-        elif combine_paulis:
-            expected_ops["pauli_product_rotation"] = 1
-            expected_ops["PauliEvolution"] = 1
-        else:
-            expected_ops["PauliEvolution"] = 3
-
+        ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
+        num_pprs = 2 if combine_paulis else 3
+        expected_ops = {ppr_name: num_pprs, "cx": 2, "h": 1, "s": 1}
         self.assertEqual(qct.count_ops(), expected_ops)
         self.assertEqual(Operator(qct), Operator(qc))
 
@@ -134,15 +127,9 @@ class TestLitinskiTransformation(QiskitTestCase):
             fix_clifford=False, use_ppr=use_ppr, combine_paulis=combine_paulis
         )(qc)
 
-        expected_ops = {}
-        if use_ppr:
-            expected_ops["pauli_product_rotation"] = 2 if combine_paulis else 3
-        elif combine_paulis:
-            expected_ops["pauli_product_rotation"] = 1
-            expected_ops["PauliEvolution"] = 1
-        else:
-            expected_ops["PauliEvolution"] = 3
-
+        ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
+        num_pprs = 2 if combine_paulis else 3
+        expected_ops = {ppr_name: num_pprs}
         self.assertEqual(qct.count_ops(), expected_ops)
 
     @data((False, False), (False, True), (True, False), (True, True))
@@ -172,7 +159,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         self.assertEqual(Operator(qct_bound), Operator(qc_bound))
 
     def test_parametric_ppr_gates(self):
-        """Test circuit with parameterized PPR rotation gates."""
+        """Test circuit with parameterized PPR gates."""
         alpha = Parameter("alpha")
         beta = Parameter("beta")
 
@@ -187,6 +174,133 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         qct = LitinskiTransformation(use_ppr=True)(qc)
         self.assertEqual(qct.count_ops(), {"pauli_product_rotation": 3, "cx": 2, "h": 1, "s": 1})
+
+        qc_bound = qc.assign_parameters([0.123, -1.567])
+        qct_bound = qct.assign_parameters([0.123, -1.567])
+        self.assertEqual(Operator(qct_bound), Operator(qc_bound))
+
+    def test_combine_ppr_gates(self):
+        """Test `combine_paulis` on circuits with PPR gates."""
+        qc = QuantumCircuit(4)
+        qc.append(PauliProductRotationGate(Pauli("XYZ"), 0.1), [0, 1, 3])
+        qc.append(PauliProductRotationGate(Pauli("XXX"), 0.2), [0, 1, 3])
+        qc.append(PauliProductRotationGate(Pauli("XZY"), 0.3), [1, 0, 3])
+        qct = LitinskiTransformation(use_ppr=True, combine_paulis=True)(qc)
+
+        # The first and the third gates can be combined and commute with the second gate.
+        expected = QuantumCircuit(4)
+        expected.append(PauliProductRotationGate(Pauli("XYZ"), 0.4), [0, 1, 3])
+        expected.append(PauliProductRotationGate(Pauli("XXX"), 0.2), [0, 1, 3])
+        self.assertEqual(qct, expected)
+
+    def test_combine_parametric_ppr_gates(self):
+        """Test `combine_paulis` on circuits with PPR gates."""
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+        gamma = Parameter("gamma")
+
+        qc = QuantumCircuit(4)
+        qc.append(PauliProductRotationGate(Pauli("XYZ"), alpha), [0, 1, 3])
+        qc.append(PauliProductRotationGate(Pauli("XXX"), beta), [0, 1, 3])
+        qc.append(PauliProductRotationGate(Pauli("XZY"), gamma), [1, 0, 3])
+        qct = LitinskiTransformation(use_ppr=True, combine_paulis=True)(qc)
+
+        # The first and the third gates can be combined and commute with the second gate.
+        expected = QuantumCircuit(4)
+        expected.append(PauliProductRotationGate(Pauli("XYZ"), alpha + gamma), [0, 1, 3])
+        expected.append(PauliProductRotationGate(Pauli("XXX"), beta), [0, 1, 3])
+        self.assertEqual(qct, expected)
+
+    def test_combine_with_ppr_ppm(self):
+        """Test `combine_paulis` on circuits with commuting PPRs and PPMs."""
+        qc = QuantumCircuit(4, 1)
+        qc.append(PauliProductRotationGate(Pauli("XYZ"), 0.1), [0, 1, 3])
+        qc.append(PauliProductMeasurement(Pauli("XXX")), [0, 1, 3], [0])
+        qc.append(PauliProductRotationGate(Pauli("XZY"), 0.3), [1, 0, 3])
+        qc.append(PauliProductMeasurement(Pauli("XXX")), [0, 1, 3], [0])
+
+        qct = LitinskiTransformation(use_ppr=True, combine_paulis=True)(qc)
+
+        expected = QuantumCircuit(4, 1)
+        expected.append(PauliProductRotationGate(Pauli("XYZ"), 0.4), [0, 1, 3])
+        expected.append(PauliProductMeasurement(Pauli("XXX")), [0, 1, 3], [0])
+        expected.append(PauliProductMeasurement(Pauli("XXX")), [0, 1, 3], [0])
+        self.assertEqual(qct, expected)
+
+    @data(True, False)
+    def test_combine_pprs_to_clifford(self, fix_clifford):
+        """Test `combine_paulis` on circuits with PPRs that combine to Clifford."""
+        qc = QuantumCircuit(4)
+        qc.append(PauliProductRotationGate(Pauli("XYZ"), 0.1), [0, 1, 3])
+        qc.append(PauliProductRotationGate(Pauli("XYZ"), np.pi / 2 - 0.1), [0, 1, 3])
+
+        expected = QuantumCircuit(4)
+        if fix_clifford:
+            expected.append(PauliProductRotationGate(Pauli("XYZ"), np.pi / 2), [0, 1, 3])
+
+        qct = LitinskiTransformation(use_ppr=True, combine_paulis=True, fix_clifford=fix_clifford)(
+            qc
+        )
+        self.assertEqual(qct, expected)
+
+    @data(True, False)
+    def test_use_ppr_applies_to_input_pprs(self, use_ppr):
+        """Test that ``use_ppr`` controls the representation of the non-Clifford PPRs of the
+        input circuit, while Clifford PPRs are kept as in the original circuit."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.append(PauliProductRotationGate(Pauli("XY"), 0.3), [0, 1])
+        qc.append(PauliProductRotationGate(Pauli("ZZ"), np.pi / 2), [0, 1])
+        qc.t(1)
+
+        qct = LitinskiTransformation(use_ppr=use_ppr)(qc)
+
+        if use_ppr:
+            expected_ops = {"pauli_product_rotation": 3, "h": 1}
+        else:
+            # The non-Clifford rotations (from the XY-PPR and from the T-gate) are represented
+            # as PauliEvolutionGates, while the Clifford ZZ-PPR is kept as a PPR.
+            expected_ops = {"PauliEvolution": 2, "pauli_product_rotation": 1, "h": 1}
+        self.assertEqual(qct.count_ops(), expected_ops)
+        self.assertEqual(Operator(qct), Operator(qc))
+
+    def test_parametric_all_identity_ppr(self):
+        """Test that a parameterized all-identity PPR only contributes to the global phase."""
+        alpha = Parameter("alpha")
+
+        qc = QuantumCircuit(2)
+        qc.append(PauliProductRotationGate(Pauli("II"), alpha), [0, 1])
+        qc.t(0)
+
+        qct = LitinskiTransformation(use_ppr=True)(qc)
+
+        expected = QuantumCircuit(2, global_phase=np.pi / 8 - alpha / 2)
+        expected.append(PauliProductRotationGate(Pauli("Z"), np.pi / 4), [0])
+        self.assertEqual(qct, expected)
+
+    @data((False, False), (False, True), (True, False), (True, True))
+    @unpack
+    def test_parametric_all_identity_ppr_with_cliffords(self, use_ppr, combine_paulis):
+        """Test a parameterized all-identity PPR between Clifford and non-Clifford gates."""
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.append(PauliProductRotationGate(Pauli("IIZ"), alpha), [0, 1, 2])
+        qc.append(PauliProductRotationGate(Pauli("III"), beta), [2, 0, 1])
+        qc.s(2)
+        qc.cx(1, 2)
+        qc.rz(0.1, 2)
+
+        qct = LitinskiTransformation(use_ppr=use_ppr, combine_paulis=combine_paulis)(qc)
+
+        # The all-identity PPR is removed (and not replaced by a rotation on zero qubits).
+        ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
+        self.assertEqual(qct.count_ops(), {ppr_name: 3, "cx": 2, "h": 1, "s": 1})
+        self.assertTrue(all(len(inst.qubits) > 0 for inst in qct.data))
 
         qc_bound = qc.assign_parameters([0.123, -1.567])
         qct_bound = qct.assign_parameters([0.123, -1.567])

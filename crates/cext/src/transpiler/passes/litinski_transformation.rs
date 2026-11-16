@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
-use qiskit_transpiler::passes::run_litinski_transformation;
+use qiskit_transpiler::passes::{LitinskiTransformationOptions, run_litinski_transformation};
 
 /// @ingroup QkTranspilerPassesStandalone
 /// Run the ``LitinskiTransformation`` pass in-place on a circuit.
@@ -41,8 +41,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_litinski_transformation(
 
     // For now, run Litinski transformation with no approximation and without the optimization
     // to merge/cancel PPRs (to avoid C API change).
-    let maybe_out = run_litinski_transformation(&dag, fix_clifford, false, true, false, 1.0)
-        .expect("Failed running Litinski transformation");
+    let opts = LitinskiTransformationOptions::default(fix_clifford);
+    let maybe_out =
+        run_litinski_transformation(&dag, &opts).expect("Failed running Litinski transformation");
     // If a DAG is returned, the circuit has been modified. Else just leave it as is.
     if let Some(out) = maybe_out {
         *circuit =

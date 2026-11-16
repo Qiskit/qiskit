@@ -5,3 +5,19 @@ features_transpiler:
     When set to ``True`` (non-default), the pass additionally attempts to merge or cancel
     :class:`.PauliProductRotationGate` objects that share the same rotation axis, leveraging
     commutativity between Pauli product rotations.
+    Note that enabling this option may significantly increase the running time of the pass,
+    which in the worst case is quadratic in the number of non-Clifford rotations (for example,
+    for circuits consisting of only :class:`.CXGate` and :class:`.TGate` gates, where all of
+    the rotations commute with each other).
+upgrade_transpiler:
+  - |
+    When the :class:`.LitinskiTransformation` pass is run with ``use_ppr=False`` (the default),
+    the non-Clifford :class:`.PauliProductRotationGate` objects of the input circuit are now
+    represented as :class:`.PauliEvolutionGate` objects in the output circuit, consistently
+    with the rotations obtained from single-qubit rotation gates such as :class:`.TGate` and
+    :class:`.RZGate`. Previously, these rotations were kept as
+    :class:`.PauliProductRotationGate` objects, so the output circuit could contain a mix of
+    both representations. To represent all of the rotations as
+    :class:`.PauliProductRotationGate` objects, set ``use_ppr=True``. The final Clifford
+    gates (including :class:`.PauliProductRotationGate` objects with angles that are multiples
+    of :math:`\pi/2`) and the Pauli product measurements are not affected by this change.

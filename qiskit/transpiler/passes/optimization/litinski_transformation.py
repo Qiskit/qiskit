@@ -30,6 +30,10 @@ class LitinskiTransformation(TransformationPass):
     In the process, it transforms :math:`R_Z`-rotations,
     :math:`R_X`-rotation and :math:`R_Y`-rotation gates to
     Pauli product rotations, and :math:`Z`-measurements to Pauli product measurements.
+    The Pauli product rotations in the output circuit are represented either as
+    :class:`.PauliProductRotationGate` or as :class:`.PauliEvolutionGate` objects,
+    depending on the ``use_ppr`` argument; this applies uniformly to all of the
+    non-Clifford rotations, including the Pauli product rotations of the input circuit.
 
     The pass supports all of the Clifford gates in the list returned by
     :func:`.get_clifford_gate_names`:
@@ -87,23 +91,38 @@ class LitinskiTransformation(TransformationPass):
         approximation_degree: float = 1.0,
         combine_paulis: bool = False,
     ):
-        """
+        r"""
         Args:
             fix_clifford: If ``False`` (non-default), the returned circuit contains
-                only :class:`.PauliEvolution` gates, with the final Clifford gates omitted.
-                Note that in this case the operators of the original and synthesized
-                circuits will generally not be equivalent.
+                only the Pauli rotations and Pauli product measurements, with the final Clifford
+                gates omitted. Note that in this case the operators of the original and
+                synthesized circuits will generally not be equivalent.
             insert_barrier: If ``True`` and ``fix_clifford=True``, insert a barrier between the
                 circuit and the final cliffords. This argument has no effect if
                 ``fix_clifford=False``.
-            use_ppr: If ``True``, use :class:`.PauliProductRotationGate` to represent
-                the Pauli rotation gates. This is encouraged to improve performance using a fully
-                Rust-backed path. If ``False`` or ``None``, use :class:`.PauliEvolutionGate`.
+            use_ppr: Controls how the non-Clifford Pauli rotations are represented in the output
+                circuit. This applies to all such rotations: those obtained from the single-qubit
+                rotation gates (including :math:`T` and :math:`T^\dagger`), the non-Clifford
+                :class:`.PauliProductRotationGate` objects of the input circuit, and (with
+                ``combine_paulis=True``) the merged rotations. If ``True``, the rotations are
+                represented as :class:`.PauliProductRotationGate` objects. This is encouraged
+                to improve performance using a fully Rust-backed path. If ``False`` or ``None``,
+                the rotations are represented as :class:`.PauliEvolutionGate` objects, including
+                those that were :class:`.PauliProductRotationGate` objects in the input circuit.
+                This option does not affect the final Clifford gates, which are kept as in the
+                original circuit (and may include :class:`.PauliProductRotationGate` objects with
+                angles that are multiples of :math:`\pi/2`), nor the Pauli product measurements.
             approximation_degree: Used in the tolerance computations,
                 to check how much a PPR or a rotation gate is close to a Clifford.
                 This gives the threshold for the average gate fidelity.
             combine_paulis: If ``True``, attempts to combine Pauli rotation gates while
                 exploiting commutativity between Pauli product rotations.
+                Note that this option may significantly increase the running time of the pass:
+                each new rotation is compared against the previously collected rotations and
+                measurements that commute with it, so in the worst case the running time is
+                quadratic in the number of non-Clifford rotations. This happens, for instance,
+                for circuits consisting of :math:`CX` and :math:`T` gates only, where all of the
+                rotations commute with each other.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
