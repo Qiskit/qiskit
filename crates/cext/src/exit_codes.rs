@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_circuit::parameter::parameter_expression::ParameterError;
+use qiskit_circuit::{circuit_data::CircuitDataError, parameter_table::ParameterTableError};
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
@@ -127,8 +127,20 @@ impl From<TargetError> for ExitCode {
     }
 }
 
-impl From<ParameterError> for ExitCode {
-    fn from(_value: ParameterError) -> Self {
-        ExitCode::ArithmeticError
+impl From<CircuitDataError> for ExitCode {
+    fn from(error: CircuitDataError) -> Self {
+        match error {
+            CircuitDataError::ParameterTableError(error) => error.into(),
+            _ => ExitCode::ParameterError,
+        }
+    }
+}
+
+impl From<ParameterTableError> for ExitCode {
+    fn from(error: ParameterTableError) -> Self {
+        match error {
+            ParameterTableError::NameConflict(_) => ExitCode::ParameterNameConflict,
+            _ => ExitCode::ParameterError,
+        }
     }
 }
