@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :c:func:`qk_circuit_inst_unitary` now accepts a ``const QkCircuit *``, allowing
+    matrix inspection through read-only circuit and control-flow block pointers.
