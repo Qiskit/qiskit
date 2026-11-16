@@ -17,18 +17,17 @@ use ndarray::{ArcArrayD, IxDyn, Zip};
 use super::TensorError;
 
 /// Pair up the axes of two shapes, right-aligned, padding the shorter one with `pad`.
-pub(super) fn align_axes<'a, T: Copy>(
-    a: &'a [T],
-    b: &'a [T],
+pub(super) fn align_axes<T: Copy>(
+    a: &[T],
+    b: &[T],
     pad: T,
-) -> impl Iterator<Item = (T, T)> + 'a {
+) -> impl ExactSizeIterator<Item = (T, T)> {
     let ndim = a.len().max(b.len());
+    let (a_offset, b_offset) = (ndim - a.len(), ndim - b.len());
     (0..ndim).map(move |i| {
-        let axis = |shape: &[T]| {
-            let offset = ndim - shape.len();
-            if i >= offset { shape[i - offset] } else { pad }
-        };
-        (axis(a), axis(b))
+        let a_axis = i.checked_sub(a_offset).map_or(pad, |j| a[j]);
+        let b_axis = i.checked_sub(b_offset).map_or(pad, |j| b[j]);
+        (a_axis, b_axis)
     })
 }
 

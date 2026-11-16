@@ -290,26 +290,35 @@ pub fn instruction_values_to_params(
     // treat `values` as a vector of blocks
     // Null values represent missing else blocks in if-else statements and should be filtered out
 
-    // Filter out Null values and check if remaining values are all circuits
-    let non_null_values: Vec<&GenericValue> = values
+    // Check that all non-null values are all circuits and there is at least one
+    let mut non_empty: bool = false;
+    let all_circuit_values: bool = values
         .iter()
         .filter(|val| !matches!(val, GenericValue::Null))
-        .collect();
-
-    if !non_null_values.is_empty()
-        && non_null_values
-            .iter()
-            .all(|val| matches!(val, GenericValue::CircuitData(_)))
-    {
+        .all(|val| {
+            if matches!(val, GenericValue::CircuitData(_)) {
+                non_empty = true;
+                true
+            } else {
+                false
+            }
+        });
+    if all_circuit_values && non_empty {
         // blocks
-        let inst_blocks: Vec<CircuitData> = values
-            .iter()
-            .filter_map(|value| value.as_circuit_data())
+        let out: Vec<Block> = values
+            .into_iter()
+            .filter_map(|value| match value {
+                GenericValue::CircuitData(block_circuit) => {
+                    Some(qpy_data.circuit_data.add_block(*block_circuit))
+                }
+                _ => None,
+            })
             .collect();
-        let params = Parameters::Blocks(inst_blocks);
-        Ok(qpy_data
-            .circuit_data
-            .extract_blocks_from_circuit_parameters(Some(&params)))
+        if out.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(Box::new(Parameters::Blocks(out))))
+        }
     } else {
         // params
         let inst_params: Vec<Param> = values
@@ -328,7 +337,11 @@ pub fn instruction_values_to_params(
                     _ => qpy_data.caller.attach(
                         "convert arbitrary parameter value to python representation",
                         |py| -> Result<_, QpyError> {
-                            Ok(Param::Obj(py_convert_from_generic_value(py, &value)?))
+                            Ok(Param::Obj(py_convert_from_generic_value(
+                                py,
+                                &value,
+                                qpy_data.remaining_depth,
+                            )?))
                         },
                     ),
                 }
@@ -367,6 +380,10 @@ pub fn unpack_instruction(
     custom_instructions: &HashMap<String, CustomCircuitInstructionData>,
     qpy_data: &mut QPYReadData,
 ) -> Result<PackedInstruction, QpyError> {
+    qpy_data.remaining_depth = qpy_data
+        .remaining_depth
+        .checked_sub(1)
+        .ok_or_else(|| QpyError::RecursionError)?;
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
     let instruction_type = recognize_instruction_type(instruction, custom_instructions)?;
     let (op, parameter_values) = match instruction_type {
@@ -408,7 +425,7 @@ pub fn unpack_instruction(
         }
         _ => (op, params),
     };
-
+    qpy_data.remaining_depth += 1;
     Ok(PackedInstruction {
         op,
         qubits,
@@ -981,15 +998,16 @@ fn read_custom_instructions(
                     })
             } else {
                 let circuit: PyCircuitData = unpack_circuit(
-                    &deserialize_with_args::<formats::QPYCircuit, (u8,)>(
+                    &deserialize_with_args::<formats::QPYCircuit, (u8, usize)>(
                         &operation.data,
-                        (qpy_data.version,),
+                        (qpy_data.version, qpy_data.remaining_depth),
                     )?
                     .0,
                     qpy_data.version,
                     qpy_data.use_symengine,
                     qpy_data.annotation_handler.child()?,
                     qpy_data.caller,
+                    qpy_data.remaining_depth,
                 )?
                 .into();
                 let py_circuit = qpy_data.caller.attach(
@@ -1399,7 +1417,11 @@ pub(crate) fn unpack_circuit(
     use_symengine: bool,
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,
+    remaining_depth: usize,
 ) -> Result<CircuitData, QpyError> {
+    let remaining_depth = remaining_depth
+        .checked_sub(1)
+        .ok_or_else(|| QpyError::RecursionError)?;
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut qpy_data = QPYReadData {
@@ -1434,6 +1456,7 @@ pub(crate) fn unpack_circuit(
             })
             .unwrap_or_default(),
         annotation_handler,
+        remaining_depth,
     };
     if let Some(annotation_headers) = &packed_circuit.annotation_headers {
         let annotation_deserializers_data: Vec<(String, Bytes)> = annotation_headers

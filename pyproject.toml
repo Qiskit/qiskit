@@ -10,7 +10,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "qiskit"
+version = "2.7.0.dev0"
 description = "An open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives."
+readme = { file = "README.md", content-type = "text/markdown; variant=GFM" }
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = [
@@ -18,6 +20,17 @@ license-files = [
 ]
 authors = [
     { name = "Qiskit Development Team", email = "qiskit@us.ibm.com" },
+]
+dependencies = [
+    # SPEC 0: you're free to raise the lower bound if needed, provided it's at least two years old.
+    "numpy>=2.0,<3",
+    "scipy>=1.14",
+
+    # Unrestricted, but don't bump unless you have to.
+    "rustworkx>=0.15.0",
+    "dill>=0.3",
+    "stevedore>=3.0.0",
+    "typing-extensions",
 ]
 keywords = [
     "qiskit",
@@ -41,8 +54,6 @@ classifiers = [
     "Topic :: Software Development :: Compilers",
     "Development Status :: 5 - Production/Stable",
 ]
-# These are configured in the `tool.setuptools.dynamic` table.
-dynamic = ["version", "readme", "dependencies"]
 
 # The optional dependencies of a project are part of the interface presented through
 #   pip install qiskit[extra1,extra2,...]
@@ -71,7 +82,6 @@ csp-layout-pass = [
 ]
 qpy-compat = [
     "symengine>=0.11,<0.14",
-    "sympy>1.3"
 ]
 # This will make the resolution work for installers from PyPI, but `pip install .[all]` will be
 # unreliable because `qiskit` will resolve to the PyPI version, so local changes in the
@@ -273,11 +283,6 @@ dev = [
 [tool.setuptools]
 include-package-data = true
 
-[tool.setuptools.dynamic]
-version = { file = "qiskit/VERSION.txt" }
-readme = { file = "README.md", content-type = "text/markdown" }
-dependencies = {file = "requirements.txt" }
-
 [tool.setuptools.packages.find]
 include = ["qiskit", "qiskit.*"]
 
@@ -292,7 +297,11 @@ manylinux-ppc64le-image = "manylinux_2_28"
 manylinux-s390x-image = "manylinux_2_28"
 build = ["cp3??-*"]
 skip = ["*-win32", "*_i686", "*_universal2", "*-musllinux_*"]
-test-command = "cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate"
+test-command = [
+    "cp -r {project}/test .",
+    "stestr --test-path test/python run --abbreviate",
+]
+test-environment = { QISKIT_PARALLEL = "FALSE" }
 test-groups = ["test"]
 test-skip = ["*ppc64le", "*s390x"]
 # We need to use pre-built versions of Numpy and Scipy in the tests; we don't configure
@@ -303,20 +312,33 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy -c constraints.
 # specific job override is needed. For example tier 1 platforms locally override
 # the before-build and environment configuration to enable PGO,
 # see: .github/workflows/wheels.yml for the jobs where this is done
-environment = 'RUSTUP_TOOLCHAIN="stable" QISKIT_BUILD_WITH_MIMALLOC=1'
+environment = { RUSTUP_TOOLCHAIN = "stable", QISKIT_BUILD_WITH_MIMALLOC = 1 }
 
 [tool.cibuildwheel.linux]
-before-all = "dnf install -y wget && {package}/tools/install_rust.sh"
-environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable" QISKIT_BUILD_WITH_MIMALLOC=1'
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
+before-all = [
+    "dnf install -y wget",
+    "{package}/tools/install_rust.sh",
+]
+inherit.environment = "prepend"
+environment = { PATH = "$PATH:$HOME/.cargo/bin",  CARGO_NET_GIT_FETCH_WITH_CLI = "true" }
+repair-wheel-command =  [
+    "auditwheel repair -w {dest_dir} {wheel}",
+    "pipx run abi3audit --strict --report {wheel}",
+]
 
 [tool.cibuildwheel.macos]
-repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
-environment = "MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable QISKIT_BUILD_WITH_MIMALLOC=1"
+repair-wheel-command = [
+    "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}",
+    "pipx run abi3audit --strict --report {wheel}",
+]
+inherit.environment = "prepend"
+environment = { MACOSX_DEPLOYMENT_TARGET = '10.12' }
 
 [tool.cibuildwheel.windows]
-test-command = "cp -r {project}/test . && stestr --test-path test/python run --abbreviate"
-repair-wheel-command = "cp {wheel} {dest_dir}/. && pipx run abi3audit --strict --report {wheel}"
+repair-wheel-command =  [
+    "cp {wheel} {dest_dir}/.",
+    "pipx run abi3audit --strict --report {wheel}",
+]
 
 [tool.ruff]
 line-length = 110

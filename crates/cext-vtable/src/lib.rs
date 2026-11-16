@@ -235,6 +235,10 @@ mod dag {
             export_fn!(qk_dag_set_global_phase),
             export_fn!(qk_dag_view_instruction),
             export_fn!(qk_dag_apply_custom_operation),
+            export_fn!(qk_dag_apply_pauli_product_rotation),
+            export_fn!(qk_dag_apply_pauli_product_measurement),
+            export_fn!(qk_dag_op_node_pauli_product_rotation),
+            export_fn!(qk_dag_op_node_pauli_product_measurement),
         ]
     });
 }
@@ -580,6 +584,15 @@ mod classical_expr {
             export_fn!(qk_stretch_name),
             export_fn!(qk_value_biguint),
             export_fn!(qk_biguint_clear),
+            export_fn!(qk_var_new),
+            export_fn!(qk_var_free),
+            export_fn!(qk_stretch_new),
+            export_fn!(qk_stretch_free),
+            export_fn!(qk_value_new_duration),
+            export_fn!(qk_value_new_float),
+            export_fn!(qk_value_new_uint),
+            export_fn!(qk_value_new_biguint),
+            export_fn!(qk_value_free),
         ]
     });
 }

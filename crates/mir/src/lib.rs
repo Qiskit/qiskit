@@ -27,3 +27,6 @@ pub mod mir;
 pub mod ops;
 pub mod qid;
 pub mod symbol_table;
+
+#[cfg(feature = "py")]
+pub mod py;
