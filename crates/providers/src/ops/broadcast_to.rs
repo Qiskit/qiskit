@@ -15,10 +15,10 @@
 use super::error::MathOpError;
 use super::inference::broadcast_to;
 use super::{ProgramOp, QISKIT};
-use crate::tensor::{Dim, Tensor, TensorError, TensorType};
+use crate::tensor::{Dim, Tensor, TensorError, TensorType, dim_shape, fmt_shape};
 
 /// Broadcast a tensor to a target shape, right-aligning the two.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BroadcastTo {
     target: Vec<Dim>,
 }
@@ -29,6 +29,11 @@ impl BroadcastTo {
         Self { target }
     }
 
+    /// Return the shape this op broadcasts to.
+    pub fn target(&self) -> &[Dim] {
+        &self.target
+    }
+
     /// Return the shape an operand of shape `shape` is broadcast to.
     ///
     /// A fixed target axis gives its own size. A bounded one takes the operand's size along the axis
@@ -36,7 +41,7 @@ impl BroadcastTo {
     fn concrete_target(&self, shape: &[usize]) -> Result<Vec<usize>, MathOpError> {
         let Some(offset) = self.target.len().checked_sub(shape.len()) else {
             return Err(TensorError::DimShapeMismatch {
-                lhs: shape.iter().copied().map(Dim::Fixed).collect(),
+                lhs: dim_shape(shape),
                 rhs: self.target.clone(),
             }
             .into());
@@ -64,6 +69,9 @@ impl ProgramOp for BroadcastTo {
     }
     fn namespace(&self) -> &str {
         QISKIT
+    }
+    fn describe(&self) -> Option<String> {
+        Some(format!("target={}", fmt_shape(&self.target)))
     }
     fn arity(&self) -> usize {
         1
@@ -97,7 +105,7 @@ mod test {
 
     /// Return a shape of fixed axes.
     fn fixed(sizes: &[usize]) -> Vec<Dim> {
-        sizes.iter().copied().map(Dim::Fixed).collect()
+        dim_shape(sizes)
     }
 
     #[test]
@@ -105,6 +113,7 @@ mod test {
         let op = BroadcastTo::new(fixed(&[3]));
         assert_eq!(op.full_name(), "qiskit.broadcast_to");
         assert_eq!(op.arity(), 1);
+        assert_eq!(op.target(), fixed(&[3]));
         assert!(op.has_builtin_eval());
     }
 

@@ -736,7 +736,7 @@ version: `tox -epy313` (or replace py313 with the python version you want to use
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy310 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy311 -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -746,25 +746,25 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler
+tox -epy311 -- -n test.python.compiler.test_transpiler
 ```
 or to run the same module by path:
 
 ```
-tox -epy310 -- -n test/python/compiler/test_transpiler.py
+tox -epy311 -- -n test/python/compiler/test_transpiler.py
 ```
 to run a class:
 
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
+tox -epy311 -- -n test.python.compiler.test_transpiler.TestTranspile
 ```
 to run a method:
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
+tox -epy311 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
 ```
 
 If you want to run the test suite in your local environment without using `tox` as a runner, you can
-either use the `tox devenv -e py310` command to have `tox` construct you a new development environment,
+either use the `tox devenv -e py311` command to have `tox` construct you a new development environment,
 or you can install the `test` dependency group using your package manager, such as
 ```
 pip install --group test
@@ -934,22 +934,27 @@ tests, in addition to the more complete Python test suite.  In CI, we run the
 Rust test suite under [Miri](https://github.com/rust-lang/miri) as an
 undefined-behavior sanitizer.
 
-Miri is currently only available on `nightly` Rust channels, so to run it
-locally you will need to ensure you have that channel available, such as by
+Miri is only available on `nightly` Rust channels, and our CI pins to one
+specific nightly channel to avoid breakage.  You can interact with Miri in the
+same ways as CI by using the `tools/miri.bash` script.
+
+You will need to arrange for a suitable `rustup` toolchain to be installed with
+the Miri component, prior to running the script in "test" mode.  You might do
+this as:
+
 ```bash
-rustup install nightly --components miri
+rustup install "$(tools/miri.bash -t)" --components miri
 ```
 
-After this, you can run the Miri test suite with
+After the toolchain is installed, run
+
 ```bash
-MIRIFLAGS="<flags go here>" cargo +nightly miri test
+tools/miri.bash
 ```
 
-For the current set of `MIRIFLAGS` used by Qiskit's CI, see the
-[`miri.yml`](https://github.com/Qiskit/qiskit/blob/main/.github/workflows/miri.yml)
-GitHub Action file.  This same file may also include patches to dependencies to
-make them compatible with Miri, which you would need to temporarily apply as
-well.
+You can force a different toolchain by setting the `RUSTUP_TOOLCHAIN`
+environment variable in the script.  The default set of `MIRIFLAGS` are the same
+as in CI, but you can set that environment variable to add to them.
 
 ### Testing the C API
 
@@ -1201,12 +1206,12 @@ Rust dependencies are not constrained, other than by the platform support requir
 Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit supports.
 It also cannot impose many version restrictions on other packages.
 Users often install qiskit into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
-When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) following the [version-support policy](#version-support-policy).
+When adding a new requirement, you must add it to [`pyproject.toml`](pyproject.toml) in the `project.dependencies` key, following the [version-support policy](#version-support-policy).
 
 ### Adding an optional dependency
 
 New features can also use optional dependencies, which might be used only in very limited parts of qiskit.
-These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
+These are not required to use the rest of the package, and so should not be added to the `project.dependencies` key.
 Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
 To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
 You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.

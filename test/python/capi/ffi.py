@@ -107,7 +107,7 @@ def transpile_from_c(
     ]
     options = capi.QkTranspileOptions(*args)
     result = capi.QkTranspileResult(None, None)
-    error = ctypes.POINTER(ctypes.c_char)()
+    error = ctypes.pointer(ctypes.c_char())
     res = capi.qk_transpile(
         capi.qk_circuit_borrow_from_python(circuit._data),
         target,
@@ -117,7 +117,7 @@ def transpile_from_c(
     )
     if res != 0:
         raise qiskit.transpiler.exceptions.TranspilerError(
-            f"Transpilation failed: {ctypes.cast(error, ctypes.c_char_p).value.decode('utf8')}"
+            f"Transpilation failed: {error.contents.value.decode('utf8')}"
         )
     layout = capi.qk_transpile_layout_to_python(result.layout, result.circuit)
     capi.qk_transpile_layout_free(result.layout)
