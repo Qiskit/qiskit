@@ -1328,7 +1328,7 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 /// if `out` is not valid for `4**num_qubits` writes of `QkComplex64`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_inst_unitary(
-    circuit: *mut CircuitData,
+    circuit: *const CircuitData,
     index: usize,
     out: *mut Complex64,
 ) {
@@ -3262,7 +3262,7 @@ mod test {
             // Any byte that doesn't appear in 1.0, 0.0, or the implementation-detail poison.
             const SENTINEL: AlignedU8 = AlignedU8(0b1010_1010);
             let mut buf = vec![SENTINEL; 16 * 4096];
-            unsafe { qk_circuit_inst_unitary(&mut qc, 0, buf.as_mut_ptr().cast()) };
+            unsafe { qk_circuit_inst_unitary(&qc, 0, buf.as_mut_ptr().cast()) };
             if buf[16 * valid_size..].iter().all(|&v| v == SENTINEL) {
                 Ok(())
             } else {
