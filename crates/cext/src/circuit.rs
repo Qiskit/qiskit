@@ -2821,7 +2821,7 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
     clbits: *const u32,
     duration: *const CDurationInfo,
 ) -> ExitCode {
-    // SAFETY: Per documentation, duration is a valid, non null, aligned pointer to a QkDurationInfo.
+    // SAFETY: Per documentation, duration is a valid, non-null, aligned pointer to a QkDurationInfo.
     let info = unsafe { *duration };
     let duration = Some(BoxDuration::Duration(info.into()));
 
@@ -2834,8 +2834,8 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
 ///
 /// This is ``qk_circuit_box`` with the duration of the box given as a ``QkExprNode``.
 ///
-/// This function takes ownership of ``body``. The caller must not use or free ``body`` afterwards.
-/// The ``duration`` expression is copied, so the caller keeps ownership of it.
+/// This function takes ownership of ``body`` and ``duration``. The caller must not use or free
+/// either afterwards.
 ///
 /// @param circuit A pointer to the circuit to append the box to.
 /// @param body A pointer to the circuit to use as the body of the box.
@@ -2852,8 +2852,7 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
 ///
 /// # Example
 /// ```c
-/// // Assuming cf_inst is a Box instruction with an expression duration
-/// const QkExprNode *duration = qk_control_flow_box_duration_expr(cf_inst);
+/// QkExprNode *duration = ...; // Assume an owned expression of duration type
 ///
 /// QkCircuit *qc = qk_circuit_new(2, 0);
 ///
@@ -2876,7 +2875,7 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
 /// ``qk_circuit_num_qubits(body)`` and ``qk_circuit_num_clbits(body)`` respectively, containing
 /// valid qubit/clbit indices into ``circuit``. Behavior is undefined otherwise.
 ///
-/// ``duration`` must be a valid, non-null pointer to a ``QkExprNode``.
+/// ``duration`` must be a valid, non-null pointer to a ``QkExprNode`` owned by the caller.
 /// Behavior is undefined otherwise.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_box_duration_expr(
@@ -2884,11 +2883,11 @@ pub unsafe extern "C" fn qk_circuit_box_duration_expr(
     body: *mut CircuitData,
     qubits: *const u32,
     clbits: *const u32,
-    duration: *const Expr,
+    duration: *mut Expr,
 ) -> ExitCode {
-    // SAFETY: Per documentation, duration is a valid, non null, aligned pointer to a QkExprNode.
-    let info = unsafe { &*duration };
-    let duration = Some(BoxDuration::Expr(info.clone()));
+    // SAFETY: Per documentation, duration is non-null, aligned, and owned by the caller.
+    let duration = unsafe { Box::from_raw(duration) };
+    let duration = Some(BoxDuration::Expr(*duration));
 
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     unsafe { append_box(circuit, body, qubits, clbits, duration) }
@@ -3411,6 +3410,8 @@ mod test {
     use qiskit_circuit::{
         bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit},
         circuit_data::CircuitData,
+        classical::expr::Value,
+        duration::Duration,
         operations::Param,
     };
     use std::mem::MaybeUninit;
@@ -3462,13 +3463,17 @@ mod test {
         unsafe { qk_control_flow_instruction_free(std::ptr::null_mut()) };
     }
 
+    // Goes through `append_box`, so this also covers the unsafe code shared by all box constructors.
     #[test]
-    fn test_append_box() {
+    fn test_box_duration_expr() {
         let circuit = qk_circuit_new(1, 0);
         let body = qk_circuit_new(1, 0);
         let qubits = [0_u32];
+        let duration = Box::into_raw(Box::new(Expr::Value(Value::Duration(Duration::ns(100.0)))));
 
-        let exit_code = unsafe { append_box(circuit, body, qubits.as_ptr(), ptr::null(), None) };
+        let exit_code = unsafe {
+            qk_circuit_box_duration_expr(circuit, body, qubits.as_ptr(), ptr::null(), duration)
+        };
         assert_eq!(exit_code, ExitCode::Success);
 
         unsafe {

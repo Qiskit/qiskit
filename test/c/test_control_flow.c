@@ -25,7 +25,6 @@
 // These are used for generating classical expressions for testing. They are non-public C API
 // functions which should be removed once we have C API for generating classical expressions.
 QkExprNode *inner_test_value(QkExprType, bool, QkDurationInfo, double, uint64_t);
-void inner_expr_free(QkExprNode *);
 
 // TODO: remove this forward declaration
 // This is used to generate a circuit with control flow instructions. This a non-public C API
@@ -216,12 +215,12 @@ cleanup:
 }
 
 // Build a circuit with a single box. Returns NULL if appending the box fails.
-static QkCircuit *build_box_circuit_expr(const QkExprNode *duration_expr) {
+static QkCircuit *build_box_circuit_expr(QkExprNode *duration_expr) {
     QkCircuit *circuit = qk_circuit_new(3, 3);
     uint32_t box_qubits[2] = {2, 0};
     uint32_t box_clbits[1] = {1};
 
-    // The box takes ownership of the body.
+    // The box takes ownership of the body and duration.
     QkExitCode result = qk_circuit_box_duration_expr(circuit, build_box_body(), box_qubits,
                                                      box_clbits, duration_expr);
     if (result != QkExitCode_Success) {
@@ -279,7 +278,6 @@ static int test_box_with_duration_expr(void) {
     QkControlFlowInstruction *cf_inst = NULL;
 
     if (circuit == NULL) {
-        inner_expr_free(duration_expr);
         return RuntimeError;
     }
 
@@ -308,11 +306,10 @@ static int test_box_with_duration_expr(void) {
 cleanup:
     qk_control_flow_instruction_free(cf_inst);
     qk_circuit_free(circuit);
-    inner_expr_free(duration_expr);
     return result;
 }
 
-// Test that a Box with a duration in ``dt`` units reads back correctly, i.e. the C equivalent of:
+// Test that a Box with a duration in `dt` units reads back correctly, i.e. the C equivalent of:
 // qc.box(body, [2, 0], [1], duration=100, unit="dt")
 static int test_box_duration_dt(void) {
     int result = Ok;
