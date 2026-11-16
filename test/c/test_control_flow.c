@@ -64,8 +64,8 @@ static QkCircuit *build_box_circuit_duration_info(const QkDurationInfo *duration
     uint32_t box_clbits[1] = {1};
 
     // The box takes ownership of the body.
-    QkExitCode result = qk_circuit_box_duration_info(circuit, build_box_body(), box_qubits,
-                                                     box_clbits, duration, NULL);
+    QkExitCode result =
+        qk_circuit_box_duration_info(circuit, build_box_body(), box_qubits, box_clbits, duration);
     if (result != QkExitCode_Success) {
         fprintf(stderr, "qk_circuit_box_duration_info failed with exit code %d\n", result);
         qk_circuit_free(circuit);
@@ -223,7 +223,7 @@ static QkCircuit *build_box_circuit_expr(const QkExprNode *duration_expr) {
 
     // The box takes ownership of the body.
     QkExitCode result = qk_circuit_box_duration_expr(circuit, build_box_body(), box_qubits,
-                                                     box_clbits, duration_expr, NULL);
+                                                     box_clbits, duration_expr);
     if (result != QkExitCode_Success) {
         fprintf(stderr, "qk_circuit_box_duration_expr failed with exit code %d\n", result);
         qk_circuit_free(circuit);
@@ -241,7 +241,7 @@ static int test_box_without_duration(void) {
     uint32_t box_clbits[1] = {1};
 
     // The box takes ownership of the body.
-    QkExitCode exit_code = qk_circuit_box(circuit, build_box_body(), box_qubits, box_clbits, NULL);
+    QkExitCode exit_code = qk_circuit_box(circuit, build_box_body(), box_qubits, box_clbits);
     if (exit_code != QkExitCode_Success) {
         fprintf(stderr, "qk_circuit_box failed with exit code %d\n", exit_code);
         result = RuntimeError;
@@ -343,7 +343,7 @@ cleanup:
     return result;
 }
 
-// Test that `qk_circuit_box` accepts NULL clbits and returns the index of the appended box.
+// Test that `qk_circuit_box` accepts NULL clbits and adds the instruction to the end.
 static int test_box_index(void) {
     int result = Ok;
     QkCircuit *circuit = qk_circuit_new(2, 0);
@@ -352,13 +352,22 @@ static int test_box_index(void) {
 
     QkCircuit *body = qk_circuit_new(1, 0);
     uint32_t box_qubits[1] = {1};
-    size_t idx = SIZE_MAX;
-    QkExitCode code = qk_circuit_box(circuit, body, box_qubits, NULL, &idx);
-    if (code != QkExitCode_Success || idx != 1) {
-        fprintf(stderr, "Expected the box at index 1, got exit code %d and index %zu\n", code, idx);
+    QkExitCode code = qk_circuit_box(circuit, body, box_qubits, NULL);
+    if (code != QkExitCode_Success) {
+        fprintf(stderr, "qk_circuit_box failed with exit code %d\n", code);
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    size_t box_idx = qk_circuit_num_instructions(circuit) - 1;
+    QkOperationKind kind = qk_circuit_instruction_kind(circuit, box_idx);
+    if (kind != QkOperationKind_ControlFlow) {
+        fprintf(stderr, "Expected a control-flow instruction at index %zu, got kind %d\n", box_idx,
+                kind);
         result = EqualityError;
     }
 
+cleanup:
     qk_circuit_free(circuit);
     return result;
 }
@@ -379,7 +388,7 @@ static int test_box_errors(void) {
     const QkParam *inner_params[1] = {inner_a};
     qk_circuit_parameterized_gate(body, QkGate_RX, qubits, inner_params);
 
-    QkExitCode code = qk_circuit_box(circuit, body, qubits, NULL, NULL);
+    QkExitCode code = qk_circuit_box(circuit, body, qubits, NULL);
     if (code != QkExitCode_ParameterNameConflict) {
         fprintf(stderr, "Expected QkExitCode_ParameterNameConflict, got %d\n", code);
         result = EqualityError;

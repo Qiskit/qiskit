@@ -2719,6 +2719,9 @@ pub unsafe extern "C" fn qk_circuit_delay_unit(
 ///
 /// This function takes ownership of ``body``. The caller must not use or free ``body`` afterwards.
 ///
+/// If the instruction index of the box is needed later, it is
+/// ``qk_circuit_num_instructions(circuit) - 1`` right after this call.
+///
 /// @param circuit A pointer to the circuit to append the box to.
 /// @param body A pointer to the circuit to use as the body of the box.
 /// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
@@ -2726,8 +2729,6 @@ pub unsafe extern "C" fn qk_circuit_delay_unit(
 /// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
 ///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
 ///     can be a null pointer if ``body`` has no clbits.
-/// @param out_inst_idx A pointer to a ``size_t`` to write the index of the box in ``circuit`` to,
-///     or ``NULL`` if it is not needed.
 ///
 /// @return ``QkExitCode_Success`` if the box was appended or
 ///     ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
@@ -2742,7 +2743,7 @@ pub unsafe extern "C" fn qk_circuit_delay_unit(
 /// qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
 ///
 /// uint32_t qubits[2] = {1, 0};
-/// qk_circuit_box(qc, body, qubits, NULL, NULL);
+/// qk_circuit_box(qc, body, qubits, NULL);
 ///
 /// qk_circuit_free(qc);
 /// ```
@@ -2755,18 +2756,15 @@ pub unsafe extern "C" fn qk_circuit_delay_unit(
 /// ``qubits`` and ``clbits`` must be arrays of ``uint32_t`` of length
 /// ``qk_circuit_num_qubits(body)`` and ``qk_circuit_num_clbits(body)`` respectively, containing
 /// valid qubit/clbit indices into ``circuit``. Behavior is undefined otherwise.
-///
-/// If not null, ``out_inst_idx`` must be a valid, aligned pointer to a ``size_t``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_box(
     circuit: *mut CircuitData,
     body: *mut CircuitData,
     qubits: *const u32,
     clbits: *const u32,
-    out_inst_idx: *mut usize,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
-    unsafe { append_box(circuit, body, qubits, clbits, None, out_inst_idx) }
+    unsafe { append_box(circuit, body, qubits, clbits, None) }
 }
 
 /// @ingroup QkCircuit
@@ -2784,8 +2782,6 @@ pub unsafe extern "C" fn qk_circuit_box(
 ///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
 ///     can be a null pointer if ``body`` has no clbits.
 /// @param duration A pointer to the ``QkDurationInfo`` describing the duration of the box.
-/// @param out_inst_idx A pointer to a ``size_t`` to write the index of the box in ``circuit`` to,
-///     or ``NULL`` if it is not needed.
 ///
 /// @return ``QkExitCode_Success`` if the box was appended or
 ///     ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
@@ -2801,7 +2797,7 @@ pub unsafe extern "C" fn qk_circuit_box(
 ///
 /// uint32_t qubits[2] = {1, 0};
 /// QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
-/// qk_circuit_box_duration_info(qc, body, qubits, NULL, &duration, NULL);
+/// qk_circuit_box_duration_info(qc, body, qubits, NULL, &duration);
 ///
 /// qk_circuit_free(qc);
 /// ```
@@ -2817,8 +2813,6 @@ pub unsafe extern "C" fn qk_circuit_box(
 ///
 /// ``duration`` must be a valid, non-null pointer to a ``QkDurationInfo``.
 /// Behavior is undefined otherwise.
-///
-/// If not null, ``out_inst_idx`` must be a valid, aligned pointer to a ``size_t``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_box_duration_info(
     circuit: *mut CircuitData,
@@ -2826,14 +2820,13 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
     qubits: *const u32,
     clbits: *const u32,
     duration: *const CDurationInfo,
-    out_inst_idx: *mut usize,
 ) -> ExitCode {
     // SAFETY: Per documentation, duration is a valid, non null, aligned pointer to a QkDurationInfo.
     let info = unsafe { *duration };
     let duration = Some(BoxDuration::Duration(info.into()));
 
     // SAFETY: Per documentation, the pointers are non-null and aligned.
-    unsafe { append_box(circuit, body, qubits, clbits, duration, out_inst_idx) }
+    unsafe { append_box(circuit, body, qubits, clbits, duration) }
 }
 
 /// @ingroup QkCircuit
@@ -2852,8 +2845,6 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
 ///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
 ///     can be a null pointer if ``body`` has no clbits.
 /// @param duration A pointer to the ``QkExprNode`` defining the duration of the box.
-/// @param out_inst_idx A pointer to a ``size_t`` to write the index of the box in ``circuit`` to,
-///     or ``NULL`` if it is not needed.
 ///
 /// @return ``QkExitCode_Success`` if the box was appended or
 ///     ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
@@ -2871,7 +2862,7 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
 /// qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
 ///
 /// uint32_t qubits[2] = {1, 0};
-/// qk_circuit_box_duration_expr(qc, body, qubits, NULL, duration, NULL);
+/// qk_circuit_box_duration_expr(qc, body, qubits, NULL, duration);
 ///
 /// qk_circuit_free(qc);
 /// ```
@@ -2887,8 +2878,6 @@ pub unsafe extern "C" fn qk_circuit_box_duration_info(
 ///
 /// ``duration`` must be a valid, non-null pointer to a ``QkExprNode``.
 /// Behavior is undefined otherwise.
-///
-/// If not null, ``out_inst_idx`` must be a valid, aligned pointer to a ``size_t``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_box_duration_expr(
     circuit: *mut CircuitData,
@@ -2896,14 +2885,13 @@ pub unsafe extern "C" fn qk_circuit_box_duration_expr(
     qubits: *const u32,
     clbits: *const u32,
     duration: *const Expr,
-    out_inst_idx: *mut usize,
 ) -> ExitCode {
     // SAFETY: Per documentation, duration is a valid, non null, aligned pointer to a QkExprNode.
     let info = unsafe { &*duration };
     let duration = Some(BoxDuration::Expr(info.clone()));
 
     // SAFETY: Per documentation, the pointers are non-null and aligned.
-    unsafe { append_box(circuit, body, qubits, clbits, duration, out_inst_idx) }
+    unsafe { append_box(circuit, body, qubits, clbits, duration) }
 }
 
 unsafe fn append_box(
@@ -2912,7 +2900,6 @@ unsafe fn append_box(
     qubits: *const u32,
     clbits: *const u32,
     duration: Option<BoxDuration>,
-    out_inst_idx: *mut usize,
 ) -> ExitCode {
     // SAFETY: Per documentation, circuit is non-null and aligned.
     let circuit = unsafe { &mut *circuit };
@@ -2952,12 +2939,6 @@ unsafe fn append_box(
         Err(_) => return ExitCode::ParameterError,
     }
 
-    if !out_inst_idx.is_null() {
-        // SAFETY: Per documentation, if non-null, out_inst_idx is a valid, aligned pointer to a size_t.
-        unsafe {
-            *out_inst_idx = circuit.data().len() - 1;
-        }
-    }
     ExitCode::Success
 }
 
@@ -3487,19 +3468,8 @@ mod test {
         let body = qk_circuit_new(1, 0);
         let qubits = [0_u32];
 
-        let mut box_index = usize::MAX;
-        let exit_code = unsafe {
-            append_box(
-                circuit,
-                body,
-                qubits.as_ptr(),
-                ptr::null(),
-                None,
-                &mut box_index,
-            )
-        };
+        let exit_code = unsafe { append_box(circuit, body, qubits.as_ptr(), ptr::null(), None) };
         assert_eq!(exit_code, ExitCode::Success);
-        assert_eq!(box_index, 0);
 
         unsafe {
             qk_circuit_free(circuit);
