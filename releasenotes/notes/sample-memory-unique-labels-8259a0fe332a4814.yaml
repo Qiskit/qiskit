@@ -1,0 +1,4 @@
+---
+performance:
+  - |
+    Improved the efficiency of :meth:`qiskit.quantum_info.QuantumState.sample_memory` by only instantiating label strings that are returned.
