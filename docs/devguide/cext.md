@@ -30,7 +30,7 @@ struct.
 completely different meaning.*
 
 Use opaque structs when runtime invariants need enforcement, complex behavior
-needs encapsulation, fields are likely to change.
+needs encapsulation, or fields are likely to change.
 
 ```rust
 pub struct Qubit {
