@@ -23,7 +23,8 @@ use std::{f64, fmt};
 /// properties, and maybe some conversion functions to/from string). That said,
 /// I have not yet looked at the existing implementation pwdin Qiskit to know
 /// whether the same could be done with them.
-#[derive(Debug, Copy, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
     derive(mem_dbg::MemSize, mem_dbg::MemDbg),
@@ -60,7 +61,8 @@ impl fmt::Display for Pauli {
 /// implementation is meant to be quick and dirty to add the necessary
 /// functionality. This will be optimized in future work (see [Issue
 /// 17326](https://github.com/Qiskit/qiskit/issues/17326)).
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct PauliString(Vec<Pauli>);
 
@@ -101,7 +103,8 @@ impl fmt::Display for PauliString {
 /// answer.  Together, these mean that the Clifford rotations (and T rotations) are stored exactly,
 /// and simple arithmetic on them is exact.  This is not the case with raw radians, which incur
 /// round-off error due to the irrational `pi`.
-#[derive(Debug, Copy, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
     derive(mem_dbg::MemSize, mem_dbg::MemDbg),
@@ -168,7 +171,8 @@ impl fmt::Display for AngleType {
 ///
 /// This uses the convention `exp(-i P angle / 2)`, where `P` is the Pauli string and `angle` is the
 /// value (in radians) of [`angle`](Self::angle).
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct PauliRotation {
     paulis: PauliString,
@@ -203,7 +207,8 @@ impl fmt::Display for PauliRotation {
 /// When used in a `MirInstruction`, the instruction `qids` must have the same
 /// length as `paulis` (one qid per Pauli), `args` must be empty, and `returns`
 /// must contain exactly one `SymbolId` for the boolean result.
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct PauliMeasure {
     paulis: PauliString,

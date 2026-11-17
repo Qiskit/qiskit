@@ -9,15 +9,12 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
 use std::ops;
 
 use hashbrown::HashSet;
-use rustworkx_core::petgraph::{
-    algo::has_path_connecting,
-    prelude::*,
-    visit::{self, IntoNodeReferences},
-};
+#[cfg(feature = "serde")]
+use rustworkx_core::petgraph::visit::IntoNodeReferences;
+use rustworkx_core::petgraph::{algo::has_path_connecting, prelude::*, visit};
 
 use super::*;
 use qiskit_util::IndexMap;
@@ -320,6 +317,7 @@ impl ops::Index<Qid> for ResourceTable {
 
 /// Serializes `ResourceTable` as a plain list of nodes and a list of edges, discarding the
 /// `Graph` wrapper's internal bookkeeping.
+#[cfg(feature = "serde")]
 #[derive(serde::Serialize, serde::Deserialize)]
 struct ResourceTableData {
     space: QidSpace,
@@ -327,6 +325,7 @@ struct ResourceTableData {
     edges: Vec<(u32, u32)>,
 }
 
+#[cfg(feature = "serde")]
 impl serde::Serialize for ResourceTable {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let nodes: Vec<QidInfo> = self
@@ -348,6 +347,7 @@ impl serde::Serialize for ResourceTable {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for ResourceTable {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let data = ResourceTableData::deserialize(deserializer)?;
@@ -663,6 +663,7 @@ mod tests {
         ));
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn verify_single_bit_base_qids() {
         // empty

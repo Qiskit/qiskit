@@ -33,7 +33,8 @@ use thiserror::Error;
 /// `returns` field should be an empty vector. Similarly, a branch operation
 /// does not operate on, or effect any QuantumIDs and thus the `qids` list
 /// should be empty.
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct MirInstruction {
     op: MirOp,
@@ -599,6 +600,7 @@ mod tests {
         ));
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn test_replace_whole_qids_list() {
         let mut instr = MirInstruction {

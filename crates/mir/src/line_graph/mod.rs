@@ -427,6 +427,7 @@ impl<T> ops::IndexMut<Index> for LineGraph<T> {
 /// Serializes as the main sequence content only, in order as a list.
 /// It discards internal bookkeeping, since these are implementation details.
 /// KNOWN ISSUE: orphan sequences are silently dropped.
+#[cfg(feature = "serde")]
 impl<T: serde::Serialize> serde::Serialize for LineGraph<T> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeSeq;
@@ -438,6 +439,7 @@ impl<T: serde::Serialize> serde::Serialize for LineGraph<T> {
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de, T: serde::Deserialize<'de>> serde::Deserialize<'de> for LineGraph<T> {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let items: Vec<T> = Vec::deserialize(deserializer)?;
@@ -1155,12 +1157,8 @@ mod tests {
         indices_main_rev.reverse();
         assert_eq!(indices.as_slice(), indices_main_rev.as_slice());
     }
-}
 
-#[cfg(test)]
-mod serde_tests {
-    use super::*;
-
+    #[cfg(feature = "serde")]
     #[test]
     fn sequence_round_trip() {
         let mut g = LineGraph::<u8>::new();

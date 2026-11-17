@@ -64,7 +64,8 @@ impl SymbolTableErrorKind {
 
 /// The kind of classical value a symbol holds.
 /// This classifies the data a symbol represents, independent to its id or its name.
-#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
     derive(mem_dbg::MemSize, mem_dbg::MemDbg),
@@ -76,7 +77,8 @@ pub enum SymbolType {
 
 /// Symbol represents various types of classical information. This will start
 /// with variables, but likely grow to include other things over time.
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct Symbol {
     /// Symbol ID used in the IR. This field should be set when adding to the
@@ -128,7 +130,8 @@ impl fmt::Display for Symbol {
 
 /// An opaque, cheap reference to a symbol in the SymbolTable.
 /// Instructions and other constructs refer to symbols by SymbolId.
-#[derive(Copy, Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
     derive(mem_dbg::MemSize, mem_dbg::MemDbg),
@@ -142,7 +145,8 @@ impl fmt::Display for SymbolId {
     }
 }
 
-#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct SymbolTable {
     sym_table: Vec<Symbol>,
@@ -193,7 +197,8 @@ impl SymbolTable {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct SymbolIdList(Vec<SymbolId>);
 
@@ -272,6 +277,7 @@ mod tests {
         assert!(sym_table.get(SymbolId(1)).is_none());
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn symbol_serde_round_trips() {
         for sym_id in [None, Some(SymbolId(202))] {
@@ -285,6 +291,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn symbol_table_serde_round_trip() {
         let mut table = SymbolTable::default();
