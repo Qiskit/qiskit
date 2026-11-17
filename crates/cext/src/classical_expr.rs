@@ -808,8 +808,8 @@ pub unsafe extern "C" fn qk_value_float(value: *const Value) -> f64 {
 ///
 /// @param value A pointer to a uint value.
 ///
-/// @return The integer value converted to ``uint64_t``. Returns `UINT64_MAX` if the underlying
-/// value exceeds it. The returned value is invalid if `value` isn't an integer.
+/// @return The integer value converted to ``uint64_t``. The returned value is invalid 
+/// if `value` isn't an integer that fits in a `uint64_t`.
 ///
 /// # Example
 /// ```c
