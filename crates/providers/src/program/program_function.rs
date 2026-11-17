@@ -59,6 +59,14 @@ impl Value {
     pub fn slot(self) -> usize {
         self.slot as usize
     }
+
+    // For serialization
+    pub(crate) fn new(inst: u32, slot: u16) -> Self {
+        Self {
+            instruction: InstructionId(inst),
+            slot,
+        }
+    }
 }
 
 impl fmt::Display for Value {
@@ -503,6 +511,25 @@ impl ProgramFunction {
             InstructionBody::Call(callee),
             operands.to_vec(),
             signature.outputs.clone(),
+        );
+        Ok(self
+            .instruction(id)
+            .expect("the instruction was just pushed")
+            .outputs()
+            .collect())
+    }
+
+    /// For serialization this will not check the inputs based on the call signature
+    pub(crate) fn add_call_unchecked(
+        &mut self,
+        callee: FunctionId,
+        outputs: &[TensorType],
+        operands: &[Value],
+    ) -> Result<Vec<Value>, FunctionError> {
+        let id = self.push(
+            InstructionBody::Call(callee),
+            operands.to_vec(),
+            outputs.to_vec(),
         );
         Ok(self
             .instruction(id)

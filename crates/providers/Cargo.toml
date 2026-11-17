@@ -14,6 +14,8 @@ rand.workspace = true
 rand_philox.workspace = true
 thiserror.workspace = true
 qiskit-circuit.workspace = true
+binrw.workspace = true
+qiskit-qpy.workspace = true
 
 [dev-dependencies]
 num-traits.workspace = true
