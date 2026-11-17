@@ -1997,6 +1997,21 @@ fn apply_rotation(
 }
 
 /// Helper function for MCRX / MCRY / MCRZ synthesis with no auxiliary qubits
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - rot_gate: the single-qubit rotation gate (RX, RY, or RZ)
+/// - phase: the phase angle for the multi-controlled rotation gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled rotation gate.
+///
+/// # References
+///
+/// 1. R. Vale et al. Decomposition of Multi-controlled Special Unitary Single-Qubit Gates
+/// `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
 pub fn synth_mc_rot_noaux(
     num_ctrl_qubits: usize,
     rot_gate: StandardGate,
@@ -2058,6 +2073,15 @@ pub fn synth_mc_rot_noaux(
 }
 
 /// MCRX synthesis with no auxiliary qubits
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled RX gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled RX gate.
 pub fn synth_mcrx_noaux(
     num_ctrl_qubits: usize,
     phase: Param,
@@ -2076,6 +2100,15 @@ pub fn synth_mcrx_noaux(
 }
 
 /// MCRY synthesis with no auxiliary qubits
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled RY gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled RY gate.
 pub fn synth_mcry_noaux(
     num_ctrl_qubits: usize,
     phase: Param,
@@ -2094,6 +2127,15 @@ pub fn synth_mcry_noaux(
 }
 
 /// MCRZ synthesis with no auxiliary qubits
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled RZ gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled RZ gate.
 pub fn synth_mcrz_noaux(
     num_ctrl_qubits: usize,
     phase: Param,
