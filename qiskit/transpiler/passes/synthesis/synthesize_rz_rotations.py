@@ -83,6 +83,9 @@ class SynthesizeRZRotations(TransformationPass):
             cache_error: Maximum allowed error when reusing a cached synthesis
                 result for angles close to :math:`\theta`. If specified, must be in the
                 range ``[0, 1]``.
+
+        Raises:
+            ValueError: If ``synthesis_error`` is not in ``(0, 2]``.
         """
         super().__init__()
         self.approximation_degree = approximation_degree
@@ -91,16 +94,7 @@ class SynthesizeRZRotations(TransformationPass):
 
     @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the SynthesizeRZRotations pass on `dag`.
-
-        Raises:
-            ValueError: If ``synthesis_error`` is not positive. A non-positive
-                value is invalid and used to panic inside the Rust routine.
-        """
-        if self.synthesis_error is not None and self.synthesis_error <= 0:
-            raise ValueError(
-                f"synthesis_error must be positive, got {self.synthesis_error}"
-            )
+        """Run the SynthesizeRZRotations pass on `dag`."""
         synthesize_rz_rotations(
             dag, self.approximation_degree, self.synthesis_error, self.cache_error
         )

@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
@@ -112,9 +113,9 @@ pub fn py_run_synthesize_rz_rotations(
     cache_error: Option<f64>,
 ) -> PyResult<()> {
     if let Some(error) = synthesis_error {
-        if !(error.is_finite() && error > 0.0) {
-            return Err(QiskitError::new_err(format!(
-                "synthesis_error must be positive, got {error}"
+        if !error.is_finite() || error <= 0.0 || error > 2.0 {
+            return Err(PyValueError::new_err(format!(
+                "synthesis_error must be in (0, 2], got {error}"
             )));
         }
     }
