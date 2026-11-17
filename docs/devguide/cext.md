@@ -61,7 +61,8 @@ C enums are named integer constants. Qiskit uses fixed-width enums with
 `repr(u*)` for consistency across compilers. Since
 `sizeof(enum t) == sizeof(int)` on most modern platforms, `repr(u32)` is a solid
 default. Use `repr(u8)` for space-critical enums within tightly packed
-structures. Explicit integer values discourage accidental breaking changes.
+structures. Include explicit integer values to discourage accidental
+breaking changes.
 
 ```rust
 #[repr(u32)]
@@ -165,7 +166,7 @@ for the new copy's lifecycle.
 
 Choose a sentinel value when functions fail trivially. Sentinels must fall
 outside of the return value's domain. `-1` and `0` are poor sentinels if either
-value has additional meaning. `-1` is suitable for index-returning functioons
+value has additional meaning. `-1` is suitable for index-returning functions
 because indicies are non-negative. `0` only works when the domain excludes zero.
 `NAN` is problematic because `NAN != NAN`. Constants like `u64::MAX` require
 callers to cast `-1` or include `limits.h` to handle errors without compiler
@@ -247,7 +248,7 @@ incrementing the major version number.
 
 **Non-breaking Changes**
 
-- Creating public functions, types, macros, constants, and headers.
+- Creating new public functions, types, macros, constants, and headers.
 - Adding enum variant(s) without changing integer values.
 - Adding bit flags without changing the previous meanings.
 - Changing the size and layout of opaque structs.
