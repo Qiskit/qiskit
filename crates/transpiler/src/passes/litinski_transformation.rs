@@ -84,13 +84,28 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
     "pauli_product_measurement",
 ];
 
-// A Pauli product rotation or a Pauli product measurement produced by the pass,
-// together with its qubit indices and its (interned) clbits. Qubit indices are
-// assumed to be sorted.
-struct PauliBasedEntry {
-    op: PackedOperation,
-    qubits: Vec<u32>,
-    clbits: Interned<[Clbit]>,
+/// A Pauli product rotation or a Pauli product measurement produced by the pass, together with
+/// its qubit indices (which are sorted) and, for a measurement, its (interned) clbits.
+enum PauliBasedEntry {
+    Rotation {
+        ppr: PauliProductRotation,
+        qubits: Vec<u32>,
+    },
+    Measurement {
+        ppm: PauliProductMeasurement,
+        qubits: Vec<u32>,
+        clbits: Interned<[Clbit]>,
+    },
+}
+
+impl PauliBasedEntry {
+    /// The Pauli of the entry in the sparse ZX format `(z, x, qubits)`.
+    fn sparse_pauli(&self) -> (&[bool], &[bool], &[u32]) {
+        match self {
+            Self::Rotation { ppr, qubits } => (&ppr.z, &ppr.x, qubits),
+            Self::Measurement { ppm, qubits, .. } => (&ppm.z, &ppm.x, qubits),
+        }
+    }
 }
 
 #[pyfunction(name = "run_litinski_transformation")]
@@ -166,11 +181,8 @@ impl LitinskiTransformationState {
     /// Add a Pauli product rotation (with the given key) to `pauli_based_ops`.
     fn push_ppr(&mut self, ppr: PauliProductRotation, qubits: Vec<u32>, key: u64) {
         *self.ppr_counts.entry(key).or_insert(0) += 1;
-        self.pauli_based_ops.push(Some(PauliBasedEntry {
-            op: PauliBased::PauliProductRotation(ppr).into(),
-            qubits,
-            clbits: Interned::default(),
-        }));
+        self.pauli_based_ops
+            .push(Some(PauliBasedEntry::Rotation { ppr, qubits }));
     }
 
     /// Record that a rotation with the given key was removed from `pauli_based_ops`.
@@ -538,11 +550,13 @@ pub fn run_litinski_transformation(
                         dag.get_qargs(inst.qubits)[0].index(),
                     );
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
-                    state.pauli_based_ops.push(Some(PauliBasedEntry {
-                        op: PauliBased::PauliProductMeasurement(ppm).into(),
-                        qubits: indices,
-                        clbits: inst.clbits,
-                    }));
+                    state
+                        .pauli_based_ops
+                        .push(Some(PauliBasedEntry::Measurement {
+                            ppm,
+                            qubits: indices,
+                            clbits: inst.clbits,
+                        }));
                 }
                 OperationRef::PauliProductMeasurement(pp_meas) => {
                     // Evolve PPM by the clifford
@@ -558,11 +572,13 @@ pub fn run_litinski_transformation(
                         neg: pp_meas.neg ^ sign,
                     };
 
-                    state.pauli_based_ops.push(Some(PauliBasedEntry {
-                        op: PauliBased::PauliProductMeasurement(ppm).into(),
-                        qubits: indices,
-                        clbits: inst.clbits,
-                    }));
+                    state
+                        .pauli_based_ops
+                        .push(Some(PauliBasedEntry::Measurement {
+                            ppm,
+                            qubits: indices,
+                            clbits: inst.clbits,
+                        }));
                 }
                 _ => unreachable!(
                     "We cannot have unsupported names at this step of Litinski Transformation: {}",
@@ -586,35 +602,36 @@ pub fn run_litinski_transformation(
     // they originate from single-qubit rotation gates or from Pauli product rotations in the
     // input circuit. When `use_ppr` is `false`, each of them is converted to a
     // PauliEvolutionGate here.
-    for PauliBasedEntry {
-        op: packed_op,
-        qubits,
-        clbits,
-    } in state.pauli_based_ops.into_iter().flatten()
-    {
-        let (new_op, params) = match packed_op.view() {
-            OperationRef::PauliProductRotation(ppr) => {
-                if !opts.use_ppr {
+    for entry in state.pauli_based_ops.into_iter().flatten() {
+        let (op, qubits, clbits, param): (PackedOperation, _, &[Clbit], _) = match entry {
+            PauliBasedEntry::Rotation { ppr, qubits } => {
+                if opts.use_ppr {
+                    let angle = ppr.angle.clone();
+                    let op = PauliBased::PauliProductRotation(ppr).into();
+                    (op, qubits, &[], Some(angle))
+                } else {
                     // Legacy path: implement the rotation as a PauliEvolutionGate,
                     // using exp(-i angle/2 P) = PauliEvolutionGate(P, time=angle/2).
                     let time = multiply_param(&ppr.angle, 0.5);
                     let py_gate = pauli_evolution_gate(&ppr.z, &ppr.x, &time)?;
-                    (Some(py_gate.into()), Some(time))
-                } else {
-                    (None, Some(ppr.angle.clone()))
+                    (py_gate.into(), qubits, &[], Some(time))
                 }
             }
-            OperationRef::PauliProductMeasurement(_) => (None, None),
-            _ => unreachable!(
-                "Only PPRs and PPMs are collected by the Litinski transformation pass."
-            ),
+            PauliBasedEntry::Measurement {
+                ppm,
+                qubits,
+                clbits,
+            } => {
+                let op = PauliBased::PauliProductMeasurement(ppm).into();
+                (op, qubits, dag.get_cargs(clbits), None)
+            }
         };
 
         new_dag.apply_operation_back(
-            new_op.unwrap_or(packed_op),
+            op,
             bytemuck::cast_slice(&qubits),
-            dag.get_cargs(clbits),
-            params.map(|param| Parameters::Params(smallvec![param])),
+            clbits,
+            param.map(|param| Parameters::Params(smallvec![param])),
             None,
             #[cfg(feature = "cache_pygates")]
             None,
@@ -699,11 +716,9 @@ fn add_ppr(
     orig_qubits: Interned<[Qubit]>,
 ) {
     if !opts.combine_paulis {
-        state.pauli_based_ops.push(Some(PauliBasedEntry {
-            op: PauliBased::PauliProductRotation(ppr).into(),
-            qubits,
-            clbits: Interned::default(),
-        }));
+        state
+            .pauli_based_ops
+            .push(Some(PauliBasedEntry::Rotation { ppr, qubits }));
         return;
     }
 
@@ -716,29 +731,18 @@ fn add_ppr(
     }
 
     for entry in state.pauli_based_ops.iter_mut().rev() {
-        let Some(PauliBasedEntry {
-            op: packed_op,
-            qubits: entry_qubits,
-            ..
-        }) = entry.as_ref()
-        else {
+        let Some(existing) = entry.as_ref() else {
             // The entry has already been removed.
             continue;
         };
 
-        let (entry_z, entry_x, merged) = match packed_op.view() {
-            OperationRef::PauliProductRotation(entry_ppr) => {
-                let merged = if *entry_qubits == qubits {
-                    entry_ppr.merge_with(&ppr)
-                } else {
-                    None
-                };
-                (&entry_ppr.z, &entry_ppr.x, merged)
-            }
-            OperationRef::PauliProductMeasurement(entry_ppm) => (&entry_ppm.z, &entry_ppm.x, None),
-            _ => unreachable!(
-                "Only PPRs and PPMs are collected by the Litinski transformation pass."
-            ),
+        // Only a rotation on the same qubits (and with the same Pauli) can be merged.
+        let merged = match existing {
+            PauliBasedEntry::Rotation {
+                ppr: entry_ppr,
+                qubits: entry_qubits,
+            } if *entry_qubits == qubits => entry_ppr.merge_with(&ppr),
+            _ => None,
         };
 
         if let Some(merged) = merged {
@@ -788,14 +792,14 @@ fn add_ppr(
                 }
                 return;
             }
-            *entry = Some(PauliBasedEntry {
-                op: PauliBased::PauliProductRotation(merged).into(),
+            *entry = Some(PauliBasedEntry::Rotation {
+                ppr: merged,
                 qubits,
-                clbits: Interned::default(),
             });
             return;
         }
 
+        let (entry_z, entry_x, entry_qubits) = existing.sparse_pauli();
         if !sparse_paulis_commute(&ppr.z, &ppr.x, &qubits, entry_z, entry_x, entry_qubits) {
             break;
         }
