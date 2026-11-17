@@ -21,7 +21,7 @@ use crate::util;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::StandardInstruction;
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -1412,17 +1412,22 @@ pub unsafe extern "C" fn qk_target_op_get(
     match operation {
         TargetOperation::Normal(operation) => {
             let kind = match operation.operation.view() {
-                qiskit_circuit::operations::OperationRef::StandardGate(_) => COperationKind::Gate,
-                qiskit_circuit::operations::OperationRef::StandardInstruction(
-                    standard_instruction,
-                ) => match standard_instruction {
-                    StandardInstruction::Barrier(_) => COperationKind::Barrier,
-                    StandardInstruction::Delay(_) => COperationKind::Delay,
-                    StandardInstruction::Measure => COperationKind::Measure,
-                    StandardInstruction::Reset => COperationKind::Reset,
-                },
-                qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
-                _ => COperationKind::Unknown,
+                OperationRef::StandardGate(_) => COperationKind::Gate,
+                OperationRef::StandardInstruction(standard_instruction) => {
+                    match standard_instruction {
+                        StandardInstruction::Barrier(_) => COperationKind::Barrier,
+                        StandardInstruction::Delay(_) => COperationKind::Delay,
+                        StandardInstruction::Measure => COperationKind::Measure,
+                        StandardInstruction::Reset => COperationKind::Reset,
+                    }
+                }
+                OperationRef::Unitary(_) => COperationKind::Unitary,
+                OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
+                OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
+                OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
+                OperationRef::PyCustom(_)
+                | OperationRef::CustomOperation(_)
+                | OperationRef::Store(_) => COperationKind::Unknown,
             };
             let name = util::cstring_from_utf8_lossy(
                 target_borrowed
@@ -1431,7 +1436,7 @@ pub unsafe extern "C" fn qk_target_op_get(
                     .0,
             )
             .into_raw();
-            let num_params = operation.operation.num_params();
+            let num_params = operation.params_view().len() as u32;
             let mut params: Option<Box<[*const Param]>> = (num_params > 0).then_some(
                 operation
                     .params_view()
