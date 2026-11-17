@@ -93,8 +93,8 @@ fn synthesize_rz_gate_via_gridsynth(
 ///
 /// - `dag`: The DAG circuit in which the RZ gates will be synthesized.
 /// - `approximation_degree`: Controls the overall degree of approximation.
-/// - `synthesis_error`: Maximum allowed error for the approximate synthesis of
-///   :math:`RZ(\theta)`.
+/// - `synthesis_error`: Maximum allowed spectral-norm error for the approximate
+///   synthesis of :math:`RZ(\theta)`. If specified, must be in `(0, 2]`.
 /// - `cache_error`: Maximum allowed error when reusing a cached synthesis
 ///   result for angles close to :math:`\theta`.
 ///
@@ -111,6 +111,14 @@ pub fn py_run_synthesize_rz_rotations(
     synthesis_error: Option<f64>,
     cache_error: Option<f64>,
 ) -> PyResult<()> {
+    if let Some(error) = synthesis_error {
+        if !(error.is_finite() && error > 0.0) {
+            return Err(QiskitError::new_err(format!(
+                "synthesis_error must be positive, got {error}"
+            )));
+        }
+    }
+
     let dag = dag.try_write()?;
     // Skip the pass if there are no RZ rotation gates.
     if dag.get_op_counts().keys().all(|k| k != "rz") {
