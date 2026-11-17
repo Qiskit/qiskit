@@ -39,7 +39,6 @@ from qiskit.circuit.library import (
     PauliProductMeasurement,
     PauliProductRotationGate,
     U1Gate,
-    UnitaryGate,
 )
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
