@@ -92,8 +92,6 @@ fn py_synth_mcx_noaux_sp22(num_controls: usize) -> PyResult<PyCircuitData> {
 #[pyfunction]
 #[pyo3(name = "synth_mcrx_noaux")]
 fn py_synth_mcrx_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
-    // Reject unsupported types early: PyO3 silently maps unrecognised Python objects to
-    // ``Param::Obj``, which would later panic.
     if matches!(phase, Param::Obj(_)) {
         return Err(PyTypeError::new_err(
             "synth_mcrx_noaux requires phase to be a float or a ParameterExpression.",
@@ -105,8 +103,6 @@ fn py_synth_mcrx_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitD
 #[pyfunction]
 #[pyo3(name = "synth_mcry_noaux")]
 fn py_synth_mcry_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
-    // Reject unsupported types early: PyO3 silently maps unrecognised Python objects to
-    // ``Param::Obj``, which would later panic.
     if matches!(phase, Param::Obj(_)) {
         return Err(PyTypeError::new_err(
             "synth_mcry_noaux requires phase to be a float or a ParameterExpression.",
@@ -118,8 +114,6 @@ fn py_synth_mcry_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitD
 #[pyfunction]
 #[pyo3(name = "synth_mcrz_noaux")]
 fn py_synth_mcrz_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
-    // Reject unsupported types early: PyO3 silently maps unrecognised Python objects to
-    // ``Param::Obj``, which would later panic.
     if matches!(phase, Param::Obj(_)) {
         return Err(PyTypeError::new_err(
             "synth_mcrz_noaux requires phase to be a float or a ParameterExpression.",
