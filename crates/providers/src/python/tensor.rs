@@ -10,15 +10,21 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! The Python binding of the tensor type vocabulary: dtypes, axes and tensor types.
+//! The Python binding of the tensor domain: dtypes, axes, tensor types and tensor values.
+//!
+//! A tensor value is read from anything `numpy.asarray` accepts, copying the buffer, and a `Bit`
+//! tensor is read from a NumPy array of `bool`.
 //! A tensor crosses the boundary as a NumPy array. Both directions copy the buffer, and a `Bit`
 //! tensor is a NumPy array of `bool`.
 
+use ndarray::ArrayD;
+use num_complex::{Complex32, Complex64};
+use numpy::{PyArrayDyn, PyArrayMethods};
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyInt, PyTuple};
 
-use crate::tensor::{DType, Dim, TensorType};
+use crate::tensor::{DType, Dim, Tensor, TensorType};
 
 /// The element type of a tensor.
 #[pyclass(
@@ -174,4 +180,50 @@ fn dim_object(py: Python<'_>, dim: Dim) -> PyResult<Py<PyAny>> {
         Dim::Fixed(size) => Ok(size.into_pyobject(py)?.into_any().unbind()),
         Dim::Bounded { max } => Ok(Py::new(py, PyBounded { max })?.into_any()),
     }
+}
+
+/// Read `object` as a tensor, converting it with `numpy.asarray` first.
+///
+/// The dtype of the resulting array is the dtype of the tensor: nothing is converted to a dtype a
+/// caller has not asked for.
+pub(super) fn tensor(object: &Bound<'_, PyAny>) -> PyResult<Tensor> {
+    let py = object.py();
+    let array = py
+        .import("numpy")?
+        .call_method1("asarray", (object,))?
+        .into_any();
+
+    // A `Bit` tensor is stored as `u8`, which numpy spells `bool`.
+    if let Ok(bits) = array.cast::<PyArrayDyn<bool>>() {
+        let bits = bits.readonly().as_array().mapv(u8::from);
+        return Ok(Tensor::Bit(bits.into_shared()));
+    }
+    macro_rules! read {
+        ($($variant:ident($element:ty)),* $(,)?) => {
+            $(
+                if let Ok(array) = array.cast::<PyArrayDyn<$element>>() {
+                    let array: ArrayD<$element> = array.readonly().as_array().to_owned();
+                    return Ok(Tensor::$variant(array.into_shared()));
+                }
+            )*
+        };
+    }
+    read!(
+        C64(Complex32),
+        C128(Complex64),
+        F32(f32),
+        F64(f64),
+        I8(i8),
+        I16(i16),
+        I32(i32),
+        I64(i64),
+        U8(u8),
+        U16(u16),
+        U32(u32),
+        U64(u64),
+    );
+    Err(PyTypeError::new_err(format!(
+        "a tensor cannot hold numpy dtype {}",
+        array.getattr("dtype")?
+    )))
 }

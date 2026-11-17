@@ -2518,6 +2518,7 @@ dependencies = [
  "ndarray",
  "num-complex",
  "num-traits",
+ "numpy",
  "pyo3",
  "qiskit-circuit",
  "rand 0.10.3",

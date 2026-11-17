@@ -39,5 +39,9 @@ features = ["rayon", "approx"]
 workspace = true
 optional = true
 
+[dependencies.numpy]
+workspace = true
+optional = true
+
 [features]
-py = ["dep:pyo3"]
+py = ["dep:numpy", "dep:pyo3"]

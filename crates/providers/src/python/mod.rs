@@ -13,6 +13,7 @@
 //! Bindings for the `qiskit.quantum_program` Python package.
 
 mod data_tree;
+mod ops;
 mod tensor;
 
 use pyo3::exceptions::PyValueError;
@@ -20,6 +21,11 @@ use pyo3::prelude::*;
 
 use crate::tensor::TensorType;
 pub use data_tree::PyDataTree;
+use ops::{
+    PyAdd, PyBitwiseAnd, PyBitwiseNot, PyBitwiseOr, PyBitwiseXor, PyBroadcastTo, PyCast,
+    PyConstant, PyDivide, PyMean, PyMultiply, PyParity, PyPower, PyProgramOp, PyRemainder, PyStd,
+    PySubtract, PyVariance,
+};
 pub use tensor::{PyBounded, PyDType};
 
 /// Return `error` and everything that caused it, as one message.
@@ -47,5 +53,24 @@ pub fn quantum_program(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyDataTree>()?;
     m.add_class::<PyDType>()?;
     m.add_class::<TensorType>()?;
+    // The op catalogue, whose base class must be registered before the classes extending it.
+    m.add_class::<PyProgramOp>()?;
+    m.add_class::<PyAdd>()?;
+    m.add_class::<PyBitwiseAnd>()?;
+    m.add_class::<PyBitwiseNot>()?;
+    m.add_class::<PyBitwiseOr>()?;
+    m.add_class::<PyBitwiseXor>()?;
+    m.add_class::<PyBroadcastTo>()?;
+    m.add_class::<PyCast>()?;
+    m.add_class::<PyConstant>()?;
+    m.add_class::<PyDivide>()?;
+    m.add_class::<PyMean>()?;
+    m.add_class::<PyMultiply>()?;
+    m.add_class::<PyParity>()?;
+    m.add_class::<PyPower>()?;
+    m.add_class::<PyRemainder>()?;
+    m.add_class::<PyStd>()?;
+    m.add_class::<PySubtract>()?;
+    m.add_class::<PyVariance>()?;
     Ok(())
 }

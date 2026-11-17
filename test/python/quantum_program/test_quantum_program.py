@@ -20,21 +20,23 @@ from collections import OrderedDict, namedtuple
 import numpy as np
 
 import qiskit.quantum_program
-from qiskit.quantum_program import DataTree, DType, TensorType, bit, bounded, f32, f64
+from qiskit.quantum_program import DataTree, DType, TensorType, bit, bounded, f32, f64, i64, ops
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestTypeStub(QiskitTestCase):
     """Tests that pyi stubs don't drift from reality."""
 
+    MODULES = (qiskit.quantum_program, qiskit.quantum_program.ops)
+
     @staticmethod
-    def stub() -> ast.Module:
-        """The parsed stub of the module."""
-        source = pathlib.Path(inspect.getfile(qiskit.quantum_program)).with_suffix(".pyi")
+    def stub(module) -> ast.Module:
+        """The parsed stub of `module`."""
+        source = pathlib.Path(inspect.getfile(module)).with_suffix(".pyi")
         return ast.parse(source.read_text())
 
     @classmethod
-    def declarations(cls) -> dict[str, set[str]]:
+    def declarations(cls, module) -> dict[str, set[str]]:
         """The members the stub declares, for each class it declares."""
         return {
             declaration.name: {
@@ -42,34 +44,50 @@ class TestTypeStub(QiskitTestCase):
                 for node in declaration.body
                 if isinstance(node, (ast.FunctionDef, ast.AnnAssign))
             }
-            for declaration in cls.stub().body
+            for declaration in cls.stub(module).body
             if isinstance(declaration, ast.ClassDef)
         }
 
     @classmethod
-    def exports(cls) -> set[str]:
-        """Every name the stub gives the module: its classes and its annotated aliases."""
-        return {
-            node.name if isinstance(node, ast.ClassDef) else node.target.id
-            for node in cls.stub().body
-            if isinstance(node, (ast.ClassDef, ast.AnnAssign))
-        }
+    def exports(cls, module) -> set[str]:
+        """Every name the stub gives the module, declared here or imported from a sibling."""
+        names = set()
+        for node in cls.stub(module).body:
+            if isinstance(node, ast.ClassDef):
+                names.add(node.name)
+            elif isinstance(node, ast.AnnAssign):
+                names.add(node.target.id)
+            # A name written in Python is imported from the module defining it, so that a type
+            # checker reads its real signature. Anything else imported here is a type used below.
+            elif isinstance(node, ast.ImportFrom) and node.level:
+                names.update(alias.asname or alias.name for alias in node.names)
+        return names
 
     def test_stub_covers_public_module(self):
-        """Test that everything the module exports is declared in the stub."""
-        self.assertEqual(self.exports(), set(qiskit.quantum_program.__all__))
+        """Test that everything a module exports is declared in its stub."""
+        for module in self.MODULES:
+            with self.subTest(module.__name__):
+                self.assertEqual(self.exports(module), set(module.__all__))
 
     def test_stub_declares_class_members(self):
         """Test that the stub declares exactly the members each class has."""
         # Written out rather than filtered, so that a new member is a deliberate edit here. These
         # are the names pyo3 adds of its own accord, alongside those the class declares.
         generated = {"__doc__", "__ge__", "__gt__", "__le__", "__lt__", "__module__", "__ne__"}
-        for name, declared in self.declarations().items():
-            with self.subTest(name):
-                # A stub spells the constructor `__init__` where a pyclass exposes `__new__`.
-                declared = {"__new__" if member == "__init__" else member for member in declared}
-                members = set(vars(getattr(qiskit.quantum_program, name)))
-                self.assertEqual(declared, members - generated)
+        for module in self.MODULES:
+            for name, declared in self.declarations(module).items():
+                with self.subTest(f"{module.__name__}.{name}"):
+                    # A stub spells the constructor `__init__` where a pyclass exposes `__new__`.
+                    declared = {
+                        "__new__" if member == "__init__" else member for member in declared
+                    }
+                    members = {
+                        member
+                        for member in vars(getattr(module, name))
+                        # A stub declares no private member.
+                        if member.startswith("__") or not member.startswith("_")
+                    }
+                    self.assertEqual(declared, members - generated)
 
 
 class TestDataTree(QiskitTestCase):
@@ -367,3 +385,70 @@ class TestTensorTypes(QiskitTestCase):
             _ = f64[1.5]
         with self.assertRaisesRegex(ValueError, "cannot have size -1"):
             _ = f64[-1]
+
+
+class TestOps(QiskitTestCase):
+    """Tests for the classes of the op catalogue, one per operation."""
+
+    def test_every_operation_has_a_class(self):
+        """Test that each class builds its own operation and reports its name."""
+        for op, name in (
+            (ops.Add(), "add"),
+            (ops.Subtract(), "subtract"),
+            (ops.Multiply(), "multiply"),
+            (ops.Divide(), "divide"),
+            (ops.Remainder(), "remainder"),
+            (ops.Power(), "power"),
+            (ops.BitwiseAnd(), "bitwise_and"),
+            (ops.BitwiseOr(), "bitwise_or"),
+            (ops.BitwiseXor(), "bitwise_xor"),
+            (ops.BitwiseNot(), "bitwise_not"),
+            (ops.Parity(0), "parity"),
+            (ops.Mean(0), "mean"),
+            (ops.Variance(0), "variance"),
+            (ops.Std(0), "std"),
+            (ops.Cast(i64), "cast"),
+            (ops.BroadcastTo([2, 2]), "broadcast_to"),
+            (ops.Constant([1.0]), "constant"),
+        ):
+            with self.subTest(name):
+                self.assertEqual(op.full_name, f"qiskit.{name}")
+                self.assertIsInstance(op, ops.ProgramOp)
+
+    def test_the_base_class_cannot_be_built(self):
+        """Test that the base class is a base rather than an operation."""
+        with self.assertRaises(TypeError):
+            ops.ProgramOp()
+
+    def test_output_types_reports_one_type_per_result(self):
+        """Test that an operation reports the type of every value it produces."""
+        self.assertEqual(ops.Mean(0).output_types([f64[4, 2]]), [f64[2]])
+
+    def test_output_types_needs_one_type_per_operand(self):
+        """Test that giving the wrong number of operand types says how many are wanted."""
+        with self.assertRaisesRegex(ValueError, "qiskit.mean takes 1 operands, got 2"):
+            ops.Mean(0).output_types([f64[2], f64[2]])
+
+    def test_output_types_reports_a_refusal(self):
+        """Test that types an operation does not accept raise with the operation named."""
+        with self.assertRaisesRegex(ValueError, "qiskit.bitwise_and"):
+            ops.BitwiseAnd().output_types([f64[2], f64[2]])
+
+    def test_constant_keeps_the_dtype_it_is_given(self):
+        """Test that a constant holds the dtype and shape numpy reads its value as."""
+        for value, type_ in (
+            ([True, False], bit[2]),
+            (np.array([[1, 2]], dtype=np.int64), i64[1, 2]),
+            ([1.0], f64[1]),
+            (np.float32(2.0), f32[()]),
+            ([1j], DType.C128[1]),
+            (np.array([3], dtype=np.uint16), DType.U16[1]),
+        ):
+            with self.subTest(type_=str(type_)):
+                self.assertEqual(ops.Constant(value).output_types([]), [type_])
+
+    def test_constant_refuses_a_dtype_no_tensor_holds(self):
+        """Test that a value numpy reads as a dtype outside the tensor domain raises."""
+        for value in (["a"], np.array([1.0], dtype=np.float16), None):
+            with self.subTest(value=value), self.assertRaisesRegex(TypeError, "cannot hold"):
+                ops.Constant(value)

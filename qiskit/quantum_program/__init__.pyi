@@ -18,6 +18,8 @@
 from collections.abc import Iterator, Sequence
 from typing import Any, ClassVar
 
+from . import ops
+
 __all__ = [
     "DType",
     "DataTree",
@@ -32,6 +34,7 @@ __all__ = [
     "i16",
     "i32",
     "i64",
+    "ops",
     "u8",
     "u16",
     "u32",

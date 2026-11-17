@@ -48,6 +48,14 @@ Classes
    DType
    TensorType
    bounded
+
+Submodules
+==========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ops
 """
 
 from qiskit._accelerate.quantum_program import (
@@ -56,6 +64,8 @@ from qiskit._accelerate.quantum_program import (
     TensorType,
     bounded,
 )
+
+from . import ops
 
 bit = DType.Bit
 u8 = DType.U8
@@ -85,6 +95,7 @@ __all__ = [
     "i16",
     "i32",
     "i64",
+    "ops",
     "u8",
     "u16",
     "u32",
