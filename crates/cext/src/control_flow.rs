@@ -667,7 +667,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg(
 ///     an IfElse or While instruction with a classical register condition.
 ///
 /// @return The condition value. The returned value is invalid if `cf_inst` isn't an IfElse or
-///     While instruction with a register condition.
+///     While instruction with a register condition value that fits in a `uint64_t`.
 ///
 /// # Example
 /// ```c
