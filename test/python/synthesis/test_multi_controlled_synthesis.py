@@ -415,7 +415,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The bound from the documentation of synth_mcp_noaux_v24
-        self.assertEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits - 60)
+        self.assertEqual(cx_count, 8 * num_ctrl_qubits**2 - 40 * num_ctrl_qubits + 96)
 
     @data(10, 15, 20)
     def test_synth_mcp_noaux_sp22(self, num_ctrl_qubits: int):
@@ -567,7 +567,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         self.assertEqual(cx_count, 36)
 
     @combine(
-        num_ctrl_qubits=[5, 10, 15],
+        num_ctrl_qubits=[10, 15, 20],
         base_gate=[RXGate(0.123), RYGate(0.456), RZGate(0.789)],
         annotated=[False, True],
     )
@@ -581,11 +581,10 @@ class TestMCSynthesisCounts(QiskitTestCase):
         )
         transpiled_circuit = self.pm.run(qc)
         cx_count = transpiled_circuit.count_ops()["cx"]
-        # The synthesis of mcrx/mcry/mcrz gates uses _mcsu2_real_diagonal.
-        # The bounds are given in arXiv:2302.06377, Theorem 3.
-        # In practice, we actually get better bounds for small values of num_ctrl_qubits.
-        expected_cx_count = 16 * (num_ctrl_qubits + 1) - 40
-        self.assertLessEqual(cx_count, expected_cx_count)
+        # The synthesis of mcrx/mcry/mcrz gates calls synth_mcx_n_dirty_m15
+        # four time, each time on half the qubits
+        expected_cx_count = 16 * num_ctrl_qubits - 48
+        self.assertEqual(cx_count, expected_cx_count)
 
     @data(10, 15, 20)
     def test_synth_mcx_noaux_sp22(self, num_ctrl_qubits: int):
@@ -603,7 +602,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         transpiled_circuit = self.pm.run(synthesized_circuit)
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The bound from the documentation of synth_mcp_noaux_v24
-        self.assertEqual(cx_count, 8 * num_ctrl_qubits**2 - 16 * num_ctrl_qubits - 60)
+        self.assertEqual(cx_count, 8 * num_ctrl_qubits**2 - 40 * num_ctrl_qubits + 96)
 
     @data(25, 30, 35, 40, 45, 50, 55, 60)
     def test_mcx_noaux_hp24_cx_count(self, num_ctrl_qubits: int):
@@ -715,11 +714,11 @@ class TestMCSynthesisCounts(QiskitTestCase):
             # MCPhase gate and other locally equivalent multi-controlled gates
             expected = {1: 2, 2: 6, 3: 20, 4: 44, 5: 82, 6: 122, 7: 170, 8: 226}
         elif isinstance(base_gate, RZGate):
-            expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
+            expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 68, 8: 80}
         elif isinstance(base_gate, (RXGate, RYGate)):
-            expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
+            expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 68, 8: 80}
         elif isinstance(base_gate, (UGate, U2Gate, U3Gate)):
-            expected = {1: 2, 2: 22, 3: 48, 4: 92, 5: 164, 6: 250, 7: 362, 8: 482}
+            expected = {1: 2, 2: 22, 3: 48, 4: 92, 5: 164, 6: 250, 7: 326, 8: 410}
         elif isinstance(base_gate, CZGate):
             expected = {1: 6, 2: 14, 3: 36, 4: 82, 5: 122, 6: 170, 7: 226, 8: 290}
         else:
