@@ -825,12 +825,10 @@ pub unsafe extern "C" fn qk_circuit_set_global_phase(
     let circuit = unsafe { &mut *circuit };
     let phase = unsafe { &*phase };
 
-    match circuit.set_global_phase_param(phase.clone()) {
-        Ok(()) => ExitCode::Success,
-        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
-            ExitCode::ParameterNameConflict
-        }
-        Err(_) => ExitCode::ParameterError,
+    if let Err(error) = circuit.set_global_phase_param(phase.clone()) {
+        error.into()
+    } else {
+        ExitCode::Success
     }
 }
 
@@ -988,12 +986,10 @@ pub unsafe extern "C" fn qk_circuit_parameterized_gate(
             .map(|&ptr| unsafe { &*ptr }.clone())
             .collect();
 
-    match circuit.push_standard_gate(gate, &params, qargs) {
-        Ok(()) => ExitCode::Success,
-        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
-            ExitCode::ParameterNameConflict
-        }
-        Err(_) => ExitCode::ParameterError,
+    if let Err(error) = circuit.push_standard_gate(gate, &params, qargs) {
+        error.into()
+    } else {
+        ExitCode::Success
     }
 }
 
@@ -2923,22 +2919,18 @@ unsafe fn append_box(
         num_clbits: num_clbits as u32,
     });
 
-    let ret = circuit.push_packed_operation(
+    let result = circuit.push_packed_operation(
         box_op,
         Some(Parameters::Blocks(vec![box_block])),
         qargs,
         cargs,
     );
-    // The body's parameters may clash by name with the outer circuit's, so this can fail.
-    match ret {
-        Ok(()) => {}
-        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
-            return ExitCode::ParameterNameConflict;
-        }
-        Err(_) => return ExitCode::ParameterError,
-    }
 
-    ExitCode::Success
+    if let Err(error) = result {
+        error.into()
+    } else {
+        ExitCode::Success
+    }
 }
 
 /// The configuration options for the ``qk_circuit_draw`` function.
