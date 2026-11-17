@@ -10,10 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#include "bigint.h"
 #include "common.h"
 #include <complex.h>
 #include <inttypes.h>
-#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -29,8 +29,10 @@ QkExprNode *inner_test_unary_expr_ops(QkUnaryOpType);
 QkExprNode *inner_test_binary_expr_ops(QkBinaryOpType);
 QkExprNode *inner_test_expr_kinds_and_types(QkExprNodeKind, QkExprTypeInfo);
 QkExprNode *inner_test_value(QkExprType, bool, QkDurationInfo, double, uint64_t);
+QkValue *inner_test_value_biguint(const uint8_t *, size_t, bool, uint32_t);
 void inned_test_old_style_vars(QkExprNode **);
 void *inner_expr_free(QkExprNode *);
+void *inner_value_free(QkValue *);
 
 /*
  * Test that expression tree structure is captured correctly via the information structs
@@ -440,6 +442,7 @@ static int test_expr_value(void) {
     int result = Ok;
     QkDurationInfo duration_info = {QkDurationType_Dt, {.dt = 12345}};
     QkExprNode *expr = NULL;
+    QkBigUint biguint_val = {0};
 
     for (uint8_t ty = QkExprType_Bool; ty <= QkExprType_Uint; ty++) {
         expr = inner_test_value((QkExprType)ty, true, duration_info, 3.14, 12345);
@@ -530,6 +533,21 @@ static int test_expr_value(void) {
                 result = EqualityError;
                 goto cleanup;
             }
+
+            biguint_val = qk_value_biguint(value);
+
+            if (biguint_val.num_limbs != 1) {
+                fprintf(stderr, "Expected biguint value length 1 (one limb), got %zu\n",
+                        biguint_val.num_limbs);
+                result = EqualityError;
+                goto cleanup;
+            }
+            if (biguint_val.limbs[0] != 12345) {
+                fprintf(stderr, "Expected biguint value 12345, got %" PRIu64 "\n",
+                        biguint_val.limbs[0]);
+                result = EqualityError;
+                goto cleanup;
+            }
         }
 
         inner_expr_free(expr);
@@ -540,6 +558,397 @@ static int test_expr_value(void) {
 cleanup:
     if (expr)
         inner_expr_free(expr);
+
+    if (biguint_val.limbs)
+        qk_biguint_clear(&biguint_val);
+
+    return result;
+}
+
+typedef struct {
+    const char *label;
+
+    const uint8_t *bytes;
+    size_t bytes_len;
+    bool bit_width_auto;
+    uint32_t bit_width;
+
+    QkBigUint expected;
+} BigUint_TestCase;
+
+static enum TestResult check_biguint_value(const BigUint_TestCase *tc) {
+    enum TestResult result = Ok;
+
+    QkValue *value =
+        inner_test_value_biguint(tc->bytes, tc->bytes_len, tc->bit_width_auto, tc->bit_width);
+
+    // Extract QkBigUint from QkValue (copy):
+    QkBigUint actual = qk_value_biguint(value);
+
+    if (!biguint_eq(actual, tc->expected)) {
+        fprintf(stderr, "Unexpected QkBigUint value for '%s'\n", tc->label);
+        biguint_debug_print(&tc->expected, "expected");
+        biguint_debug_print(&actual, "actual");
+        result = EqualityError;
+    }
+
+    qk_biguint_clear(&actual);
+    if (!(actual.num_limbs == 0 && actual.limbs == NULL)) {
+        fprintf(stderr, "Expected zeroed memory after calling 'qk_biguint_clear'\n");
+        result = RuntimeError;
+    }
+
+    inner_value_free(value);
+
+    return result;
+}
+
+/*
+ * Test construction of `QkBigUint` from `QkValue`.
+ */
+static int test_expr_value_biguint(void) {
+    enum TestResult result = Ok;
+
+    // Data for constructing a testing QkValue.
+    const uint8_t testdata[] = {
+        /*  0.. 8 */ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        /*  8..16 */ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        /* 16..24 */ 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77,
+    };
+    // Expected output data. Type is `uint64_t[]` so that comparison is endian-independent.
+    const uint64_t expected_limbs[] = {
+        0x0807060504030201,
+        0xFFFFFFFFFFFFFFFF,
+        0x778899AABBCCDDEE,
+    };
+
+    const BigUint_TestCase zero = {
+        .label = "zero",
+        .bytes = NULL,
+        .bytes_len = 0,
+        .bit_width_auto = true,
+        .bit_width = 0,
+        .expected = {.limbs = NULL, .num_limbs = 0},
+    };
+    result = check_biguint_value(&zero);
+    if (result != Ok)
+        return result;
+
+    const BigUint_TestCase one_limb = {
+        .label = "one_limb",
+        .bytes = testdata,
+        .bytes_len = 1 * sizeof(uint64_t),
+        .bit_width_auto = true,
+        .bit_width = 0,
+        .expected = {.limbs = (uint64_t *)expected_limbs, .num_limbs = 1},
+    };
+    result = check_biguint_value(&one_limb);
+    if (result != Ok)
+        return result;
+
+    const BigUint_TestCase two_limbs = {
+        .label = "two_limbs",
+        .bytes = testdata,
+        .bytes_len = 2 * sizeof(uint64_t),
+        .bit_width_auto = true,
+        .bit_width = 0,
+        .expected = {.limbs = (uint64_t *)expected_limbs, .num_limbs = 2},
+    };
+    result = check_biguint_value(&two_limbs);
+    if (result != Ok)
+        return result;
+
+    const BigUint_TestCase three_limbs = {
+        .label = "three_limbs",
+        .bytes = testdata,
+        .bytes_len = 3 * sizeof(uint64_t),
+        .bit_width_auto = true,
+        .bit_width = 0,
+        .expected = {.limbs = (uint64_t *)expected_limbs, .num_limbs = 3},
+    };
+    result = check_biguint_value(&three_limbs);
+    if (result != Ok)
+        return result;
+
+    // `bit_width` should be ignored.
+    {
+        const BigUint_TestCase zero_bitwidth = {
+            .label = "zero_bitwidth",
+            .bytes = testdata + (2 * sizeof(uint64_t)),
+            .bytes_len = 1 * sizeof(uint64_t),
+            .bit_width_auto = false, // <- notice: `bit_width` not auto-calculated.
+            .bit_width = 0,
+            .expected = {.limbs = (uint64_t *)&expected_limbs[2], .num_limbs = 1},
+        };
+        result = check_biguint_value(&zero_bitwidth);
+        if (result != Ok)
+            return result;
+
+        BigUint_TestCase big_bitwidth = zero_bitwidth;
+        big_bitwidth.label = "big_bitwidth";
+        big_bitwidth.bit_width = 1000;
+        result = check_biguint_value(&big_bitwidth);
+        if (result != Ok)
+            return result;
+    }
+
+    // Bigger BigUint
+    {
+        enum { BIG_LIMB_LEN = 2000 };
+        static uint8_t big_bytes[BIG_LIMB_LEN * sizeof(uint64_t)];
+        for (size_t i = 0; i < sizeof(big_bytes); i++)
+            big_bytes[i] = (uint8_t)i;
+
+        static uint64_t big_expected[BIG_LIMB_LEN];
+        for (size_t limb_idx = 0; limb_idx < BIG_LIMB_LEN; limb_idx++) {
+            for (size_t i = 0; i < sizeof(uint64_t); i++) {
+                big_expected[limb_idx] |= (uint64_t)big_bytes[limb_idx * sizeof(uint64_t) + i]
+                                          << (8 * i);
+            }
+        }
+
+        const BigUint_TestCase big = {
+            .label = "big",
+            .bytes = big_bytes,
+            .bytes_len = BIG_LIMB_LEN * sizeof(uint64_t),
+            .bit_width_auto = true,
+            .bit_width = 0,
+            .expected = {.limbs = big_expected, .num_limbs = BIG_LIMB_LEN},
+        };
+        result = check_biguint_value(&big);
+        if (result != Ok)
+            return result;
+    }
+
+    return Ok;
+}
+
+/*
+ * Test constructing standalone variables.
+ */
+static int test_var_new(void) {
+    enum TestResult result = Ok;
+    char *name = NULL;
+
+    QkExprTypeInfo uint_ty = {QkExprType_Uint, 8};
+    QkVar *var = qk_var_new("a", uint_ty);
+    if (var == NULL) {
+        fprintf(stderr, "Expected a var from qk_var_new, got NULL\n");
+        result = NullptrError;
+        goto cleanup;
+    }
+
+    name = qk_var_name(var);
+    if (!(name != NULL && strcmp(name, "a") == 0)) {
+        fprintf(stderr, "Expected var name 'a', got '%s'\n", name ? name : "(null)");
+        result = EqualityError;
+        goto cleanup;
+    }
+    QkExprTypeInfo type_info = qk_var_type_info(var);
+    if (!(type_info.ty == QkExprType_Uint && type_info.width == 8)) {
+        fprintf(stderr, "Expected var type uint[8], got ty=%d width=%u\n", type_info.ty,
+                type_info.width);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // A NULL name is rejected.
+    QkVar *rejected = qk_var_new(NULL, uint_ty);
+    if (rejected != NULL) {
+        fprintf(stderr, "Expected NULL from qk_var_new with a NULL name, got a var\n");
+        qk_var_free(rejected);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // A uint[0] var is not rejected.
+    QkExprTypeInfo uint0_ty = {QkExprType_Uint, 0};
+    QkVar *uint0_var = qk_var_new("b", uint0_ty);
+    if (uint0_var == NULL) {
+        fprintf(stderr, "Expected a uint[0] var from qk_var_new, got NULL\n");
+        result = NullptrError;
+        goto cleanup;
+    }
+    type_info = qk_var_type_info(uint0_var);
+    qk_var_free(uint0_var);
+    if (!(type_info.ty == QkExprType_Uint && type_info.width == 0)) {
+        fprintf(stderr, "Expected var type uint[0], got ty=%d width=%u\n", type_info.ty,
+                type_info.width);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_str_free(name);
+    qk_var_free(var);
+    return result;
+}
+
+/*
+ * Test constructing standalone stretches.
+ */
+static int test_stretch_new(void) {
+    enum TestResult result = Ok;
+    char *name = NULL;
+
+    QkStretch *stretch = qk_stretch_new("s");
+    if (stretch == NULL) {
+        fprintf(stderr, "Expected a stretch from qk_stretch_new, got NULL\n");
+        result = NullptrError;
+        goto cleanup;
+    }
+
+    name = qk_stretch_name(stretch);
+    if (!(name != NULL && strcmp(name, "s") == 0)) {
+        fprintf(stderr, "Expected stretch name 's', got '%s'\n", name ? name : "(null)");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // A NULL name is rejected.
+    QkStretch *rejected = qk_stretch_new(NULL);
+    if (rejected != NULL) {
+        fprintf(stderr, "Expected NULL from qk_stretch_new with a NULL name, got a stretch\n");
+        qk_stretch_free(rejected);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_str_free(name);
+    qk_stretch_free(stretch);
+    return result;
+}
+
+/*
+ * Test constructing values, and reading them back through the accessors.
+ */
+static int test_value_new(void) {
+    enum TestResult result = Ok;
+    QkValue *value = NULL;
+
+    // Duration, in both arms of the `QkDurationValue` union:
+    value = qk_value_new_duration((QkDurationInfo){QkDurationType_Ns, {.time = 100.0}});
+    QkExprTypeInfo type_info = qk_value_type_info(value);
+    QkDurationInfo duration = qk_value_duration_info(value);
+    if (!(type_info.ty == QkExprType_Duration && duration.ty == QkDurationType_Ns &&
+          duration.value.time == 100.0)) {
+        fprintf(stderr, "Expected duration value 100ns, got ty=%d duration_ty=%d time=%f\n",
+                type_info.ty, duration.ty, duration.value.time);
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_value_free(value);
+    value = qk_value_new_duration((QkDurationInfo){QkDurationType_Dt, {.dt = 42}});
+    duration = qk_value_duration_info(value);
+    if (!(duration.ty == QkDurationType_Dt && duration.value.dt == 42)) {
+        fprintf(stderr, "Expected duration value 42 dt, got duration_ty=%d dt=%" PRId64 "\n",
+                duration.ty, duration.value.dt);
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_value_free(value);
+
+    // Float:
+    value = qk_value_new_float(1.5);
+    type_info = qk_value_type_info(value);
+    if (!(type_info.ty == QkExprType_Float && qk_value_float(value) == 1.5)) {
+        fprintf(stderr, "Expected float value 1.5, got ty=%d value=%f\n", type_info.ty,
+                qk_value_float(value));
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_value_free(value);
+
+    // Uint:
+    value = qk_value_new_uint(5, 8);
+    type_info = qk_value_type_info(value);
+    if (!(type_info.ty == QkExprType_Uint && type_info.width == 8 && qk_value_uint(value) == 5)) {
+        fprintf(stderr, "Expected uint[8] value 5, got ty=%d width=%u value=%" PRIu64 "\n",
+                type_info.ty, type_info.width, qk_value_uint(value));
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_value_free(value);
+
+    // Uint with bit width of zero is allowed.
+    value = qk_value_new_uint(256, 0);
+    type_info = qk_value_type_info(value);
+    if (!(type_info.ty == QkExprType_Uint && type_info.width == 0 && qk_value_uint(value) == 256)) {
+        fprintf(stderr, "Expected uint[0] value 256, got ty=%d width=%u value=%" PRIu64 "\n",
+                type_info.ty, type_info.width, qk_value_uint(value));
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_value_free(value);
+    return result;
+}
+
+/*
+ * Test that a `QkBigUint` roundtrips through `qk_value_new_biguint` and `qk_value_biguint`.
+ */
+static int check_value_new_biguint(const char *label, QkBigUint uint, uint32_t bit_width) {
+    enum TestResult result = Ok;
+
+    QkValue *value = qk_value_new_biguint(uint, bit_width);
+    QkExprTypeInfo type_info = qk_value_type_info(value);
+    QkBigUint roundtrip = qk_value_biguint(value);
+
+    if (!(type_info.ty == QkExprType_Uint && type_info.width == bit_width)) {
+        fprintf(stderr, "[%s] Expected type uint[%u], got ty=%d width=%u\n", label, bit_width,
+                type_info.ty, type_info.width);
+        result = EqualityError;
+    } else if (!biguint_eq(uint, roundtrip)) {
+        fprintf(stderr, "[%s] Expected the BigUint to roundtrip unchanged, got:\n", label);
+        biguint_debug_print(&uint, "expected");
+        biguint_debug_print(&roundtrip, "actual");
+        result = EqualityError;
+    }
+
+    qk_biguint_clear(&roundtrip);
+    qk_value_free(value);
+    return result;
+}
+
+static int test_value_new_biguint(void) {
+    enum TestResult result = Ok;
+    uint64_t limbs[3] = {0x0807060504030201, 0xFFFFFFFFFFFFFFFF, 0x778899AABBCCDDEE};
+
+    // Zero, in the same form `qk_value_biguint` returns it.
+    result = check_value_new_biguint("zero", (QkBigUint){NULL, 0}, 64);
+    if (result != Ok)
+        return result;
+    result = check_value_new_biguint("one_limb", (QkBigUint){limbs, 1}, 64);
+    if (result != Ok)
+        return result;
+    result = check_value_new_biguint("three_limbs", (QkBigUint){limbs, 3}, 192);
+    if (result != Ok)
+        return result;
+    result = check_value_new_biguint("wider_than_limbs", (QkBigUint){limbs, 2}, 200);
+    if (result != Ok)
+        return result;
+
+    // The bit width is not validated: a zero width, and an integer that does not fit, are both
+    // stored as given.
+    result = check_value_new_biguint("zero_width", (QkBigUint){limbs, 3}, 0);
+    if (result != Ok)
+        return result;
+    result = check_value_new_biguint("too_narrow", (QkBigUint){limbs, 3}, 8);
+    if (result != Ok)
+        return result;
+
+    // The limbs are copied, so the input can be modified afterwards.
+    QkValue *value = qk_value_new_biguint((QkBigUint){limbs, 1}, 64);
+    limbs[0] = 0;
+    if (qk_value_uint(value) != 0x0807060504030201) {
+        fprintf(stderr,
+                "Expected 0x0807060504030201 after editing the input, got 0x%016" PRIx64 "\n",
+                qk_value_uint(value));
+        result = EqualityError;
+    }
+    qk_value_free(value);
 
     return result;
 }
@@ -553,6 +962,11 @@ int test_classical_expr(void) {
     num_failed += RUN_TEST(test_expr_var);
     num_failed += RUN_TEST(test_expr_stretch);
     num_failed += RUN_TEST(test_expr_value);
+    num_failed += RUN_TEST(test_expr_value_biguint);
+    num_failed += RUN_TEST(test_var_new);
+    num_failed += RUN_TEST(test_stretch_new);
+    num_failed += RUN_TEST(test_value_new);
+    num_failed += RUN_TEST(test_value_new_biguint);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
