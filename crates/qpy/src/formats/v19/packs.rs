@@ -659,6 +659,7 @@ pub struct ExpressionPack {
 mod tests {
     use super::*;
     use binrw::{BinRead, BinWrite, Endian};
+    use qiskit_circuit::standard_gate::StandardGate;
     use std::io::Cursor;
 
     const VERSION: u8 = 19;
@@ -723,12 +724,26 @@ mod tests {
     }
 
     #[test]
+    fn basic_circuit_instruction() {
+        let instruction = CircuitInstructionV19Pack {
+            operation: CircuitOperationType::StandardGate,
+            qargs: 0,
+            cargs: None,
+            operation_data: OperationData::StandardGate(StandardGate::X as u8), // X is 3
+            params: vec![],
+            annotations: None,
+            label: None,
+        };
+        let expected = vec![0, 0, 0, 0, 0, 3, 0, 0, 0];
+        assert_eq!(encoded(&instruction, (VERSION,)), expected);
+    }
+    #[test]
     fn circuit_instruction_layout_and_extra_field_flags() {
         let instruction = CircuitInstructionV19Pack {
             operation: CircuitOperationType::StandardGate,
             qargs: 0x0102_0304,
             cargs: None,
-            operation_data: OperationData::StandardGate(17),
+            operation_data: OperationData::StandardGate(StandardGate::U as u8), // U is 17
             params: vec![ParamDataPack::Bool(1), ParamDataPack::Int64(-2)],
             annotations: None,
             label: Some(string("x")),
