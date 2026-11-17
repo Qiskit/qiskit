@@ -13,13 +13,13 @@
 //! A whole computation: the dataflow graphs it is made of, and the entry point a caller reaches it
 //! through.
 
-mod partition;
 mod program_function;
 mod quantum_program;
+mod resolve;
 
-pub use partition::{PartitionError, partition};
 pub use program_function::{
     FunctionError, FunctionEvalError, InstructionId, InstructionRef, InstructionRole,
     InstructionView, ProgramFunction, Signature, Value,
 };
 pub use quantum_program::{FunctionId, ProgramError, ProgramEvalError, QuantumProgram};
+pub use resolve::{ResolveError, resolve};

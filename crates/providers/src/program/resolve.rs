@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Partition a quantum program into functions per unit of dispatchable work.
+//! Resolve a quantum program into functions per unit of dispatchable work.
 
 use hashbrown::HashMap;
 use thiserror::Error;
@@ -20,9 +20,9 @@ use super::program_function::{
 };
 use super::quantum_program::{FunctionId, QuantumProgram};
 
-/// An error encountered while partitioning a quantum program.
+/// An error encountered while resolving a quantum program.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
-pub enum PartitionError {
+pub enum ResolveError {
     /// The entry point already calls another function.
     #[error("the entry point calls another function at instruction {instruction}")]
     EntryPointCall { instruction: InstructionId },
@@ -59,12 +59,12 @@ struct Unit {
 /// replaced by a call to a function.
 ///
 /// `resources` specifies which operations each resource handles. Operation names are matched
-/// exactly against [`ProgramOp::full_name`]. Operations that are not assigned to a resource
-/// remain in the entry point and must have a built-in evaluation.
+/// exactly against [`ProgramOp::full_name`](crate::ProgramOp::full_name). Operations that are not
+/// assigned to a resource remain in the entry point and must have a built-in evaluation.
 ///
 /// The resulting program contains one function per unit, followed by a rebuilt entry point.
 /// The functions are ordered so that a unit never depends on a later one. The entry point
-/// has the same inputs and outputs as `program`. Any other function in `program` are dropped.
+/// has the same inputs and outputs as `program`. Any other function in `program` is dropped.
 ///
 /// A resource can have multiple units when dependencies require its operations to be split
 /// across different layers. For this reason, the functions must be processed in their
@@ -79,10 +79,10 @@ struct Unit {
 /// Returns an error if the entry point already contains a call, if two different resources
 /// declare the same operation, or if an operation is not assigned to a resource and has
 /// no built-in evaluation.
-pub fn partition<R, N>(
+pub fn resolve<R, N>(
     program: &QuantumProgram,
     resources: R,
-) -> Result<(QuantumProgram, Vec<usize>), PartitionError>
+) -> Result<(QuantumProgram, Vec<usize>), ResolveError>
 where
     R: IntoIterator,
     R::Item: IntoIterator<Item = N>,
@@ -96,7 +96,7 @@ where
             if let Some(first) = categories.insert(name.as_ref().to_string(), resource)
                 && first != resource
             {
-                return Err(PartitionError::RepeatedOpType {
+                return Err(ResolveError::RepeatedOpType {
                     name: name.as_ref().to_string(),
                     first,
                     second: resource,
@@ -110,7 +110,7 @@ where
         .iter_instructions()
         .find(|instruction| instruction.role() == InstructionRole::Call)
     {
-        return Err(PartitionError::EntryPointCall {
+        return Err(ResolveError::EntryPointCall {
             instruction: instruction.id(),
         });
     }
@@ -134,7 +134,7 @@ where
         };
         let resource = categories.get(&op.full_name()).copied();
         if resource.is_none() && !instruction.has_builtin_eval() {
-            return Err(PartitionError::NoResource {
+            return Err(ResolveError::NoResource {
                 name: op.full_name(),
                 instruction: instruction.id(),
             });
@@ -211,7 +211,7 @@ where
     let type_of = |value| {
         entry
             .type_of(value)
-            .expect("a value of the function being partitioned always exists")
+            .expect("a value of the function being resolved always exists")
             .clone()
     };
 
@@ -258,7 +258,7 @@ where
         }
     }
 
-    // Rebuild the entry point, declaring what the function being partitioned declared. It gets
+    // Rebuild the entry point, declaring what the function being resolved declared. It gets
     // one call instruction per unit, plus the ops no resource handles, carried in to be performed
     // in process. Both are emitted in layer order, so every value is available before it is used.
     // The closing `None` emits the kept ops that follow the last unit.
@@ -274,7 +274,7 @@ where
             next_kept += 1;
             let instruction = entry
                 .instruction(id)
-                .expect("a kept op belongs to the function being partitioned");
+                .expect("a kept op belongs to the function being resolved");
             let InstructionView::Op(op) = instruction.view() else {
                 unreachable!("only an op is kept")
             };
@@ -302,18 +302,18 @@ where
     for value in entry.result_values() {
         new_entry
             .add_result(lifted[&value])
-            .expect("a result of the function being partitioned is a value the entry point holds");
+            .expect("a result of the function being resolved is a value the entry point holds");
     }
 
     let table: Vec<usize> = units.iter().map(|unit| unit.resource).collect();
     functions.push(new_entry);
-    let partitioned = QuantumProgram::new(
+    let resolved = QuantumProgram::new(
         functions,
         program.input_structure().clone(),
         program.output_structure().clone(),
     )
     .expect("the entry point keeps its slots, and each call is built from its callee's signature");
-    Ok((partitioned, table))
+    Ok((resolved, table))
 }
 
 #[cfg(test)]
@@ -389,16 +389,16 @@ mod test {
         // A boundary instruction reports a type name like any other instruction, and declaring
         // those names changes nothing: a boundary instruction is matched by its role.
         let resources = [vec!["qiskit.add", "qiskit.parameter", "qiskit.result"]];
-        let (partitioned, table) = partition(&original, resources).unwrap();
+        let (resolved, table) = resolve(&original, resources).unwrap();
 
         assert_eq!(table, [0], "one unit, of the one resource");
         assert_eq!(
             table.len() + 1,
-            partitioned.functions().len(),
+            resolved.functions().len(),
             "the table describes every function but the entry point"
         );
         assert_eq!(
-            names(partitioned.entry_function()),
+            names(resolved.entry_function()),
             [
                 "qiskit.parameter",
                 "qiskit.parameter",
@@ -408,7 +408,7 @@ mod test {
             "the entry point holds its own boundary and one call, and no arithmetic"
         );
         assert_eq!(
-            names(partitioned.function(FunctionId::from_index(0)).unwrap()),
+            names(resolved.function(FunctionId::from_index(0)).unwrap()),
             [
                 "qiskit.parameter",
                 "qiskit.parameter",
@@ -420,7 +420,7 @@ mod test {
 
         let arguments = [Tensor::from([1.5_f64]), Tensor::from([2.5_f64])];
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
@@ -436,20 +436,20 @@ mod test {
         function.add_result(second).unwrap();
         let original = program(vec![function]);
 
-        let (partitioned, table) = partition(&original, [["qiskit.add"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"]]).unwrap();
 
         assert_eq!(
             table,
             [0],
             "independent work of one category is one unit, and so one submission"
         );
-        let unit = partitioned.function(FunctionId::from_index(0)).unwrap();
+        let unit = resolved.function(FunctionId::from_index(0)).unwrap();
         assert_eq!(unit.parameters().len(), 4);
         assert_eq!(unit.results().len(), 2);
 
         let arguments = [1.0, 2.0, 30.0, 40.0].map(|x| Tensor::from([x]));
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
@@ -467,7 +467,7 @@ mod test {
         function.add_result(doubled).unwrap();
         let original = program(vec![function]);
 
-        let (partitioned, table) = partition(&original, [["qiskit.add"], ["qiskit.mean"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"], ["qiskit.mean"]]).unwrap();
 
         assert_eq!(
             table,
@@ -476,7 +476,7 @@ mod test {
         );
         let arguments = [Tensor::from([1.0_f64, 2.0]), Tensor::from([10.0_f64, 20.0])];
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
@@ -496,11 +496,11 @@ mod test {
         function.add_result(mean).unwrap();
         let original = program(vec![function]);
 
-        let (partitioned, table) = partition(&original, [["qiskit.add"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"]]).unwrap();
 
         assert_eq!(table, [0], "only the declared op is handed anywhere");
         assert_eq!(
-            names(partitioned.entry_function()),
+            names(resolved.entry_function()),
             [
                 "qiskit.parameter",
                 "qiskit.parameter",
@@ -516,7 +516,7 @@ mod test {
 
         let arguments = [Tensor::from([1.0_f64, 2.0]), Tensor::from([10.0_f64, 20.0])];
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
@@ -532,13 +532,12 @@ mod test {
         function.add_result(product).unwrap();
         let original = program(vec![function]);
 
-        let (partitioned, table) =
-            partition(&original, [["qiskit.add"], ["qiskit.multiply"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"], ["qiskit.multiply"]]).unwrap();
 
         assert_eq!(table, [0, 1]);
         for unit in 0..2 {
             assert_eq!(
-                partitioned
+                resolved
                     .function(FunctionId::from_index(unit))
                     .unwrap()
                     .parameters()
@@ -548,7 +547,7 @@ mod test {
             );
         }
         assert_eq!(
-            partitioned
+            resolved
                 .entry_function()
                 .iter_instructions()
                 .filter(|instruction| instruction.role() == InstructionRole::Call)
@@ -559,7 +558,7 @@ mod test {
 
         let arguments = [Tensor::from([3.0_f64, 4.0])];
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
@@ -578,11 +577,11 @@ mod test {
         function.add_result(total).unwrap();
         let original = program(vec![function]);
 
-        let (partitioned, table) = partition(&original, [["qiskit.add"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"]]).unwrap();
 
         assert_eq!(table, [0], "the two sums share one unit");
         assert_eq!(
-            names(partitioned.entry_function()),
+            names(resolved.entry_function()),
             [
                 "qiskit.parameter",
                 "qiskit.mean",
@@ -595,13 +594,13 @@ mod test {
 
         let arguments = [Tensor::from([3.0_f64, 4.0])];
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
 
     // ---------------------------------------------------------------------------
-    // What the partition guarantees
+    // What resolving guarantees
     // ---------------------------------------------------------------------------
 
     #[test]
@@ -624,8 +623,7 @@ mod test {
         function.add_result(scaled).unwrap();
         let original = program(vec![function]);
 
-        let (partitioned, table) =
-            partition(&original, [["qiskit.add"], ["qiskit.multiply"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"], ["qiskit.multiply"]]).unwrap();
 
         assert_eq!(
             table,
@@ -633,7 +631,7 @@ mod test {
             "each category runs three times and twice, alternating"
         );
         assert_eq!(
-            unit_ops(&partitioned),
+            unit_ops(&resolved),
             [
                 ["qiskit.add"],
                 ["qiskit.multiply"],
@@ -644,7 +642,7 @@ mod test {
             "each unit holds ops of its own resource, and none is lost or repeated"
         );
 
-        let first = partitioned.function(FunctionId::from_index(0)).unwrap();
+        let first = resolved.function(FunctionId::from_index(0)).unwrap();
         assert_eq!(
             first.parameters().len(),
             2,
@@ -658,7 +656,7 @@ mod test {
 
         let arguments = [Tensor::from([1.0_f64, 2.0]), Tensor::from([10.0_f64, 20.0])];
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
@@ -679,8 +677,7 @@ mod test {
         function.add_result(value).unwrap();
         let original = program(vec![function]);
 
-        let (partitioned, table) =
-            partition(&original, [["qiskit.add"], ["qiskit.multiply"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"], ["qiskit.multiply"]]).unwrap();
 
         assert_eq!(
             table,
@@ -688,7 +685,7 @@ mod test {
             "no two steps of the chain can share a unit"
         );
         assert_eq!(
-            unit_ops(&partitioned),
+            unit_ops(&resolved),
             [
                 ["qiskit.add"],
                 ["qiskit.multiply"],
@@ -702,7 +699,7 @@ mod test {
 
         let arguments = [Tensor::from([1.0_f64, 2.0])];
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
@@ -736,46 +733,46 @@ mod test {
             QuantumProgram::new(vec![function], DataTree::Leaf(()), names.clone()).unwrap();
 
         let resources = [vec!["qiskit.multiply"], vec!["qiskit.constant"]];
-        let (partitioned, table) = partition(&original, resources).unwrap();
+        let (resolved, table) = resolve(&original, resources).unwrap();
 
         assert_eq!(
             table,
             [1, 0],
             "the constant, and then the product, with the undeclared mean left where it was"
         );
-        let constant = partitioned.function(FunctionId::from_index(0)).unwrap();
+        let constant = resolved.function(FunctionId::from_index(0)).unwrap();
         assert!(
             constant.parameters().is_empty(),
             "a unit that reads nothing is called with no operands"
         );
         assert_eq!(
-            partitioned.entry_function().signature(),
+            resolved.entry_function().signature(),
             original.entry_function().signature(),
             "the entry point declares what it declared, in the order it declared it"
         );
-        assert_eq!(partitioned.input_structure(), &DataTree::Leaf(()));
-        assert_eq!(partitioned.output_structure(), &names);
+        assert_eq!(resolved.input_structure(), &DataTree::Leaf(()));
+        assert_eq!(resolved.output_structure(), &names);
 
         let input = || DataTree::Leaf(Tensor::from([3.0_f64, 4.0]));
         assert_eq!(
-            partitioned.eval(input()).unwrap(),
+            resolved.eval(input()).unwrap(),
             original.eval(input()).unwrap()
         );
     }
 
     #[test]
-    fn a_program_with_nothing_to_partition_keeps_only_its_entry_point() {
+    fn a_program_with_nothing_to_resolve_keeps_only_its_entry_point() {
         let mut function = ProgramFunction::new();
         let x = function.add_parameter(f64_1d(1));
         function.add_result(x).unwrap();
         let original = program(vec![function]);
 
-        let (partitioned, table) = partition(&original, [["qiskit.add"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"]]).unwrap();
 
         assert!(table.is_empty(), "there is no unit to describe");
-        assert_eq!(partitioned.functions().len(), 1);
+        assert_eq!(resolved.functions().len(), 1);
         assert_eq!(
-            eval(&partitioned, [Tensor::from([1.0_f64])]),
+            eval(&resolved, [Tensor::from([1.0_f64])]),
             [Tensor::from([1.0_f64])]
         );
     }
@@ -785,11 +782,11 @@ mod test {
         let original = program(vec![add_function(4), add_function(1)]);
         assert_eq!(original.functions().len(), 2);
 
-        let (partitioned, table) = partition(&original, [["qiskit.add"]]).unwrap();
+        let (resolved, table) = resolve(&original, [["qiskit.add"]]).unwrap();
 
         assert_eq!(table, [0], "the one unit");
         assert_eq!(
-            partitioned
+            resolved
                 .function(FunctionId::from_index(0))
                 .unwrap()
                 .signature(),
@@ -843,17 +840,17 @@ mod test {
         let original = program(vec![function]);
 
         let resources = [vec!["vendor.sum_and_difference"], vec!["qiskit.multiply"]];
-        let (partitioned, table) = partition(&original, resources).unwrap();
+        let (resolved, table) = resolve(&original, resources).unwrap();
 
         assert_eq!(table, [0, 1]);
-        let first = partitioned.function(FunctionId::from_index(0)).unwrap();
+        let first = resolved.function(FunctionId::from_index(0)).unwrap();
         assert_eq!(
             first.results().len(),
             2,
             "the sum is returned for the entry point and the difference for the second unit"
         );
         assert_eq!(
-            partitioned
+            resolved
                 .function(FunctionId::from_index(1))
                 .unwrap()
                 .signature()
@@ -865,7 +862,7 @@ mod test {
 
         let arguments = [Tensor::from([10.0_f64, 20.0]), Tensor::from([1.0_f64, 2.0])];
         assert_eq!(
-            eval(&partitioned, arguments.clone()),
+            eval(&resolved, arguments.clone()),
             eval(&original, arguments)
         );
     }
@@ -876,7 +873,7 @@ mod test {
 
     #[test]
     fn an_entry_point_that_already_calls_a_function_is_rejected() {
-        // Partitioning twice would put calls into units, so the second attempt is refused rather
+        // Resolving twice would put calls into units, so the second attempt is refused rather
         // than returning a program whose units call units.
         let callee = add_function(1);
         let signature = callee.signature();
@@ -889,8 +886,8 @@ mod test {
         entry.add_result(called).unwrap();
         let original = program(vec![callee, entry]);
 
-        let Err(err) = partition(&original, [["qiskit.add"]]) else {
-            panic!("a program holding a call is already partitioned")
+        let Err(err) = resolve(&original, [["qiskit.add"]]) else {
+            panic!("a program holding a call is already resolved")
         };
         let call = original
             .entry_function()
@@ -898,7 +895,7 @@ mod test {
             .find(|instruction| instruction.role() == InstructionRole::Call)
             .expect("the entry point holds a call")
             .id();
-        assert_eq!(err, PartitionError::EntryPointCall { instruction: call });
+        assert_eq!(err, ResolveError::EntryPointCall { instruction: call });
         assert_eq!(
             err.to_string(),
             "the entry point calls another function at instruction 2"
@@ -910,12 +907,12 @@ mod test {
         let original = program(vec![add_function(1)]);
 
         let resources = [vec!["qiskit.add"], vec!["qiskit.mean", "qiskit.add"]];
-        let Err(err) = partition(&original, resources) else {
+        let Err(err) = resolve(&original, resources) else {
             panic!("an op belongs to one resource")
         };
         assert_eq!(
             err,
-            PartitionError::RepeatedOpType {
+            ResolveError::RepeatedOpType {
                 name: "qiskit.add".to_string(),
                 first: 0,
                 second: 1,
@@ -927,7 +924,7 @@ mod test {
         );
 
         assert!(
-            partition(&original, [["qiskit.add", "qiskit.add"]]).is_ok(),
+            resolve(&original, [["qiskit.add", "qiskit.add"]]).is_ok(),
             "one resource may name an op twice"
         );
     }
@@ -970,7 +967,7 @@ mod test {
         function.add_result(sampled).unwrap();
         let original = program(vec![function]);
 
-        let Err(err) = partition(&original, [["qiskit.add"]]) else {
+        let Err(err) = resolve(&original, [["qiskit.add"]]) else {
             panic!("nothing declared can run this op, and neither can Qiskit")
         };
         let offending = original
@@ -981,7 +978,7 @@ mod test {
             .id();
         assert_eq!(
             err,
-            PartitionError::NoResource {
+            ResolveError::NoResource {
                 name: "vendor.needs_hardware".to_string(),
                 instruction: offending,
             }
@@ -993,8 +990,8 @@ mod test {
         );
 
         assert!(
-            partition(&original, [["vendor.needs_hardware"]]).is_ok(),
-            "a resource declaring it is what makes the program partitionable"
+            resolve(&original, [["vendor.needs_hardware"]]).is_ok(),
+            "a resource declaring it is what makes the program resolvable"
         );
     }
 }

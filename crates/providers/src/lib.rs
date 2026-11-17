@@ -36,6 +36,6 @@ pub use data_tree::{ArityMismatch, DataTree, InvalidName, PathEntry, TreeMatchEr
 pub use ops::{BoxedOpError, BoxedProgramOp, Constant, ErasedProgramOp, ProgramOp};
 pub use program::{
     FunctionError, FunctionEvalError, FunctionId, InstructionId, InstructionRef, InstructionRole,
-    InstructionView, PartitionError, ProgramError, ProgramEvalError, ProgramFunction,
-    QuantumProgram, Signature, Value, partition,
+    InstructionView, ProgramError, ProgramEvalError, ProgramFunction, QuantumProgram, ResolveError,
+    Signature, Value, resolve,
 };
