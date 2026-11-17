@@ -14,7 +14,6 @@
 
 import unittest
 import os
-from contextlib import contextmanager
 from pathlib import Path
 
 from qiskit import QuantumCircuit
@@ -44,17 +43,6 @@ RESULT_DIR = Path(BASE_DIR) / "graph_results"
 TEST_REFERENCE_DIR = Path(BASE_DIR) / "references"
 FAILURE_DIFF_DIR = Path(BASE_DIR).parent / "visual_test_failures"
 FAILURE_PREFIX = "graph_failure_"
-
-
-@contextmanager
-def cwd(path):
-    """A context manager to run in a particular path"""
-    oldpwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(oldpwd)
 
 
 class TestGraphMatplotlibDrawer(QiskitTestCase):

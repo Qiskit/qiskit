@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 
+import contextlib
 import io
 import math
-import os
 import pathlib
 import pickle
 import shutil
@@ -1196,14 +1196,10 @@ class TestInclude(QiskitTestCase):
             OPENQASM 2.0;
             include "include.qasm";
         """
-        prevdir = os.getcwd()
-        os.chdir(self.tmp_dir)
-        try:
+        with contextlib.chdir(self.tmp_dir):
             parsed = qiskit.qasm2.loads(program)
-            qc = QuantumCircuit(QuantumRegister(2, "q"))
-            self.assertEqual(parsed, qc)
-        finally:
-            os.chdir(prevdir)
+        qc = QuantumCircuit(QuantumRegister(2, "q"))
+        self.assertEqual(parsed, qc)
 
     def test_load_searches_source_directory(self):
         with open(self.tmp_dir / "include.qasm", "w") as fp:
