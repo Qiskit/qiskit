@@ -35,6 +35,12 @@ class LitinskiTransformation(TransformationPass):
     depending on the ``use_ppr`` argument; this applies uniformly to all of the
     non-Clifford rotations, including the Pauli product rotations of the input circuit.
 
+    Optionally, when ``combine_paulis=True``, the pass additionally reduces the number of
+    non-Clifford rotations by merging rotations with the same Pauli (after moving the Clifford
+    gates to the end of the circuit) that are separated only by commuting rotations and
+    measurements. Merged rotations that are equivalent to the identity are removed, and merged
+    rotations that are Clifford are absorbed into the final Clifford.
+
     The pass supports all of the Clifford gates in the list returned by
     :func:`.get_clifford_gate_names`:
 
@@ -109,14 +115,30 @@ class LitinskiTransformation(TransformationPass):
                 to improve performance using a fully Rust-backed path. If ``False`` or ``None``,
                 the rotations are represented as :class:`.PauliEvolutionGate` objects, including
                 those that were :class:`.PauliProductRotationGate` objects in the input circuit.
-                This option does not affect the final Clifford gates, which are kept as in the
-                original circuit (and may include :class:`.PauliProductRotationGate` objects with
-                angles that are multiples of :math:`\pi/2`), nor the Pauli product measurements.
+                This option does not affect the final Clifford gates, which are the Clifford
+                gates of the original circuit (possibly including
+                :class:`.PauliProductRotationGate` objects with angles that are multiples of
+                :math:`\pi/2`), followed, when ``combine_paulis=True``, by the merged rotations
+                that are Clifford, which are always represented as
+                :class:`.PauliProductRotationGate` objects. This option also does not affect the
+                Pauli product measurements.
             approximation_degree: Used in the tolerance computations,
                 to check how much a PPR or a rotation gate is close to a Clifford.
                 This gives the threshold for the average gate fidelity.
-            combine_paulis: If ``True``, attempts to combine Pauli rotation gates while
-                exploiting commutativity between Pauli product rotations.
+            combine_paulis: If ``True``, additionally combines the non-Clifford Pauli rotations
+                produced by the transform, exploiting commutativity between Pauli product
+                rotations and Pauli product measurements. Specifically, each new rotation
+                (after being moved past the Clifford gates) is merged with an earlier rotation
+                with the same Pauli, provided that it commutes with all of the rotations and
+                measurements in between, by summing the two angles. This applies to all of the
+                rotations, whether they originate from single-qubit rotation gates or from
+                :class:`.PauliProductRotationGate` objects in the input circuit. If the merged
+                rotation is equivalent to the identity (up to a global phase), it is removed
+                and the global phase is updated accordingly. If the merged rotation is a
+                Clifford (that is, its angle is a multiple of :math:`\pi/2`), it is removed
+                and absorbed into the final Clifford; when ``fix_clifford=True``, it is added
+                to the final Clifford gates as a :class:`.PauliProductRotationGate` (regardless
+                of the value of ``use_ppr``).
                 Note that this option may increase the running time of the pass: when an
                 earlier rotation with the same Pauli exists, each new rotation is compared
                 against the previously collected rotations and measurements that commute with

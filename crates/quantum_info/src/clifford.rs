@@ -990,9 +990,11 @@ impl Clifford {
     /// The evolution is in the Heisenberg frame: if `C` is the unitary of the Clifford
     /// and `P` is the input Pauli, the output is `C^dagger P C`.
     ///
-    /// The Pauli gate is given in the sparse ZX format, however may include I-terms.
-    /// This is done by appending the initial and final parts of the PPR (PPM) to the
-    /// Clifford tableau in-place, and evolving the internal RZ gate.
+    /// The Pauli gate is given in the sparse ZX format, but may include I-terms.
+    /// This is done by appending the initial part of the PPR (PPM) to the Clifford tableau
+    /// in-place, evolving the internal RZ gate, and appending the final part of the PPR (PPM),
+    /// which restores the Clifford. Hence, although this method takes `&mut self`, the Clifford
+    /// is left unchanged when the method returns.
     ///
     /// # Arguments
     ///

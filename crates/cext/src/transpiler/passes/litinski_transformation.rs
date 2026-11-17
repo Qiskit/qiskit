@@ -41,7 +41,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_litinski_transformation(
 
     // For now, run Litinski transformation with no approximation and without the optimization
     // to merge/cancel PPRs (to avoid C API change).
-    let opts = LitinskiTransformationOptions::default(fix_clifford);
+    let opts = LitinskiTransformationOptions::new(fix_clifford);
     let maybe_out =
         run_litinski_transformation(&dag, &opts).expect("Failed running Litinski transformation");
     // If a DAG is returned, the circuit has been modified. Else just leave it as is.

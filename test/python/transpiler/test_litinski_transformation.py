@@ -39,6 +39,7 @@ from qiskit.circuit.library import (
     PauliProductMeasurement,
     PauliProductRotationGate,
     U1Gate,
+    UnitaryGate,
 )
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
@@ -194,7 +195,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         self.assertEqual(qct, expected)
 
     def test_combine_parametric_ppr_gates(self):
-        """Test `combine_paulis` on circuits with PPR gates."""
+        """Test `combine_paulis` on circuits with parameterized PPR gates."""
         alpha = Parameter("alpha")
         beta = Parameter("beta")
         gamma = Parameter("gamma")
@@ -226,6 +227,89 @@ class TestLitinskiTransformation(QiskitTestCase):
         expected.append(PauliProductMeasurement(Pauli("XXX")), [0, 1, 3], [0])
         expected.append(PauliProductMeasurement(Pauli("XXX")), [0, 1, 3], [0])
         self.assertEqual(qct, expected)
+
+    def test_combine_blocked_by_anticommuting_ppr(self):
+        """Test that `combine_paulis` does not merge rotations separated by an anti-commuting
+        PPR."""
+        qc = QuantumCircuit(2)
+        qc.append(PauliProductRotationGate(Pauli("XZ"), 0.1), [0, 1])
+        qc.append(PauliProductRotationGate(Pauli("ZZ"), 0.2), [0, 1])  # anti-commutes with XZ
+        qc.append(PauliProductRotationGate(Pauli("XZ"), 0.3), [0, 1])
+
+        qct = LitinskiTransformation(use_ppr=True, combine_paulis=True)(qc)
+
+        # Nothing is merged.
+        self.assertEqual(qct, qc)
+
+    def test_combine_blocked_by_anticommuting_ppm(self):
+        """Test that `combine_paulis` does not merge rotations separated by an anti-commuting
+        PPM."""
+        qc = QuantumCircuit(2, 1)
+        qc.append(PauliProductRotationGate(Pauli("XZ"), 0.1), [0, 1])
+        qc.append(PauliProductMeasurement(Pauli("ZZ")), [0, 1], [0])  # anti-commutes with XZ
+        qc.append(PauliProductRotationGate(Pauli("XZ"), 0.3), [0, 1])
+
+        qct = LitinskiTransformation(use_ppr=True, combine_paulis=True)(qc)
+
+        # Nothing is merged.
+        self.assertEqual(qct, qc)
+
+    def test_combine_to_clifford_with_negative_sign(self):
+        """Test `combine_paulis` when rotations, whose Paulis acquire a negative sign when
+        moved past the Clifford gates, merge into a Clifford rotation followed by more gates."""
+        qc = QuantumCircuit(1)
+        qc.x(0)  # X Z X = -Z, so the evolved rotations below have a negative sign
+        qc.rz(0.3, 0)
+        qc.rz(np.pi / 2 - 0.3, 0)  # merges with the previous rotation into an S-gate
+        qc.t(0)  # moved past the absorbed S-gate and the X-gate
+        qc.h(0)
+
+        qct = LitinskiTransformation(use_ppr=True, combine_paulis=True)(qc)
+
+        # The absorbed rotation is added (with its original sign) to the Clifford gates.
+        expected = QuantumCircuit(1, global_phase=np.pi / 8)
+        expected.append(PauliProductRotationGate(Pauli("Z"), -np.pi / 4), [0])
+        expected.x(0)
+        expected.append(PauliProductRotationGate(Pauli("Z"), np.pi / 2), [0])
+        expected.h(0)
+        self.assertEqual(Operator(qct), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    @data(True, False)
+    def test_combine_to_clifford_is_always_ppr(self, use_ppr):
+        """Test that, with `combine_paulis`, a merged rotation that is Clifford is added to the
+        final Clifford gates as a PPR, regardless of the value of `use_ppr`."""
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        qc.t(0)  # merges with the previous rotation into an S-gate
+        qc.t(0)  # a new rotation
+
+        qct = LitinskiTransformation(use_ppr=use_ppr, combine_paulis=True)(qc)
+
+        # The non-Clifford rotation (from the third T-gate) is represented according to
+        # `use_ppr`, while the merged Clifford rotation in the final Clifford gates is a PPR.
+        ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
+        self.assertEqual([inst.name for inst in qct.data], [ppr_name, "pauli_product_rotation"])
+        clifford_ppr = qct.data[1].operation
+        self.assertEqual(clifford_ppr.pauli(), Pauli("Z"))
+        self.assertAlmostEqual(float(clifford_ppr.params[0]), np.pi / 2)
+        self.assertEqual(Operator(qct), Operator(qc))
+
+    @data(True, False)
+    def test_combine_to_minus_identity(self, use_ppr):
+        """Test `combine_paulis` when rotations merge into a rotation equal to minus the
+        identity, which only contributes to the global phase."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.rz(0.3, 1)
+        qc.rz(2 * np.pi - 0.3, 1)  # RZ(2 pi) = -I
+
+        qct = LitinskiTransformation(use_ppr=use_ppr, combine_paulis=True)(qc)
+
+        self.assertEqual(qct.count_ops(), {"h": 1, "cx": 1})
+        self.assertAlmostEqual(np.mod(qct.global_phase, 2 * np.pi), np.pi)
+        self.assertEqual(Operator(qct), Operator(qc))
 
     @data(True, False)
     def test_combine_pprs_to_clifford(self, fix_clifford):

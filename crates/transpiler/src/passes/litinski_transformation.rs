@@ -196,8 +196,11 @@ pub struct LitinskiTransformationOptions {
     /// RY), the non-Clifford Pauli product rotations of the input circuit, and (when
     /// `combine_paulis` is `true`) the merged rotations. If `true`, all of them are represented
     /// as Pauli product rotations. If `false`, all of them are represented as (Python-space)
-    /// `PauliEvolutionGate`s. This option does not affect the Clifford operations (which are
-    /// kept as in the original circuit) or the Pauli product measurements.
+    /// `PauliEvolutionGate`s. This option does not affect the Clifford operations, which are
+    /// the Clifford operations of the original circuit (possibly including Pauli product
+    /// rotations with angles that are multiples of pi/2), followed (when `combine_paulis` is
+    /// `true`) by the merged rotations that are Clifford, which are always represented as Pauli
+    /// product rotations. This option also does not affect the Pauli product measurements.
     use_ppr: bool,
     /// If `true`, merge (or cancel) rotations with the same Pauli, exploiting commutativity
     /// between Pauli product rotations and measurements.
@@ -214,10 +217,10 @@ pub struct LitinskiTransformationOptions {
 }
 
 impl LitinskiTransformationOptions {
-    /// Default options for the given value of `fix_clifford`: no barrier, all non-Clifford
-    /// rotations represented as Pauli product rotations, no combining of rotations, and
-    /// the minimum tolerance.
-    pub fn default(fix_clifford: bool) -> Self {
+    /// Create options for the given value of `fix_clifford`, with the remaining options set to:
+    /// no barrier, all non-Clifford rotations represented as Pauli product rotations, no
+    /// combining of rotations, and the minimum tolerance.
+    pub fn new(fix_clifford: bool) -> Self {
         Self {
             fix_clifford,
             insert_barrier: false,
@@ -265,10 +268,6 @@ pub fn run_litinski_transformation(
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 
-    // TODO: move to the end -- construction part
-    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep);
-    let mut new_dag = new_dag.into_builder();
-
     let num_qubits = dag.num_qubits();
     let mut state =
         LitinskiTransformationState::new(num_qubits, non_clifford_handled_count, clifford_count);
@@ -276,7 +275,8 @@ pub fn run_litinski_transformation(
     // Apply the Litinski transformation: that is, express a given circuit as a sequence of Pauli
     // product rotations and Pauli product measurements, followed by a final Clifford operator.
     for node_index in dag.topological_op_nodes(false) {
-        // Convert T and Tdg gates to RZ rotations.
+        // Clifford gates are appended to the Clifford, while the non-Clifford rotations and the
+        // measurements are evolved by the current Clifford and collected in `state`.
         if let NodeType::Operation(inst) = &dag[node_index] {
             let name = inst.op.name();
             let mut is_clifford = false; // indicates if it is a pi/2 rotation gate which is a clifford
@@ -489,10 +489,7 @@ pub fn run_litinski_transformation(
                     let in_z = &rotation.z;
                     let in_x = &rotation.x;
                     let angle = &rotation.angle;
-                    let qargs_in = dag.get_qargs(inst.qubits);
-                    let indices_in: Vec<u32> = (0..qargs_in.len())
-                        .map(|i| qargs_in[i].index() as u32)
-                        .collect();
+                    let indices_in: &[u32] = bytemuck::cast_slice(dag.get_qargs(inst.qubits));
 
                     if let Param::Float(angle) = angle {
                         // PPR has pi/2 angle, and so is a clifford
@@ -500,14 +497,14 @@ pub fn run_litinski_transformation(
                             is_ppr_angle_close_to_multiple_of_pi2(in_z, in_x, *angle, opts.tol)
                         {
                             is_clifford = true;
-                            state.clifford.append_ppr(in_z, in_x, &indices_in, multiple)
+                            state.clifford.append_ppr(in_z, in_x, indices_in, multiple)
                         }
                     }
                     if !is_clifford {
                         // PPR is not clifford
                         // Evolve PPR by the clifford
                         let (sign, z, x, indices) =
-                            state.clifford.evolve_pauli(in_z, in_x, &indices_in);
+                            state.clifford.evolve_pauli(in_z, in_x, indices_in);
 
                         if indices.is_empty() {
                             // An all-identity PPR (with a parameterized angle, as otherwise it is
@@ -526,7 +523,7 @@ pub fn run_litinski_transformation(
                                 ppr,
                                 indices,
                                 sign,
-                                (in_z, in_x, &indices_in),
+                                (in_z, in_x, indices_in),
                                 inst.qubits,
                             );
                         }
@@ -552,13 +549,9 @@ pub fn run_litinski_transformation(
                     let in_z = &pp_meas.z;
                     let in_x = &pp_meas.x;
 
-                    let qargs_in = dag.get_qargs(inst.qubits);
-                    let indices_in: Vec<u32> = (0..qargs_in.len())
-                        .map(|i| qargs_in[i].index() as u32)
-                        .collect();
+                    let indices_in: &[u32] = bytemuck::cast_slice(dag.get_qargs(inst.qubits));
 
-                    let (sign, z, x, indices) =
-                        state.clifford.evolve_pauli(in_z, in_x, &indices_in);
+                    let (sign, z, x, indices) = state.clifford.evolve_pauli(in_z, in_x, indices_in);
                     let ppm = PauliProductMeasurement {
                         z,
                         x,
@@ -582,6 +575,10 @@ pub fn run_litinski_transformation(
         }
     }
 
+    // Construct the output circuit.
+    let mut new_dag = dag
+        .copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)
+        .into_builder();
     new_dag.add_global_phase(&state.global_phase_update)?;
 
     // Add the collected Pauli product rotations and measurements to the output circuit.
@@ -676,23 +673,22 @@ pub fn run_litinski_transformation(
 ///
 /// # Arguments
 ///
-/// * `pauli_based_ops`: The collected Pauli-based operations.
-/// * `clifford_ops`: The Clifford operations, or `None` if these are not added to the output
-///   circuit.
-/// * `clifford`: The current Clifford.
-/// * `global_phase_update`: The update to the global phase, which is modified in-place when
-///   the two rotations cancel out.
-/// * `ppr`: The new Pauli product rotation, without I-terms.
+/// * `state`: The current state of the transformation. This function may modify the collected
+///   Pauli-based operations, the global phase update (when the merged rotation is equivalent to
+///   the identity), and the Clifford and the Clifford operations (when the merged rotation is a
+///   Clifford).
+/// * `opts`: The options to the pass. The new rotation is merged with earlier rotations only if
+///   `combine_paulis` is set; `tol` is used to check whether the merged rotation is equivalent to
+///   the identity or is a Clifford; and the Clifford operations are only updated if
+///   `fix_clifford` is set.
+/// * `ppr`: The new Pauli product rotation, already evolved by the current Clifford, and without
+///   I-terms.
 /// * `qubits`: The sorted qubit indices of the new rotation.
-/// * `sign`: The sign obtained when evolving the original Pauli of the new rotation.
+/// * `sign`: Whether evolving the original Pauli of the new rotation by the current Clifford
+///   produced a negative sign (already accounted for in the angle of `ppr`).
 /// * `orig_pauli`: The original Pauli `(z, x, indices)` of the new rotation, before evolving it
-///   by the Clifford.
+///   by the Clifford (may include I-terms).
 /// * `orig_qubits`: The interned qubits of the original instruction.
-/// * `use_pauli_evo`: Whether the new rotation should be implemented as a PauliEvolutionGate.
-///   A merged rotation is always implemented as a PauliProductRotation.
-/// * `tol`: The tolerance to check whether the merged rotation is equivalent to the identity
-///   or is a Clifford.
-#[allow(clippy::too_many_arguments)]
 fn add_ppr(
     state: &mut LitinskiTransformationState,
     opts: &LitinskiTransformationOptions,
