@@ -2011,7 +2011,7 @@ fn apply_rotation(
 /// # References
 ///
 /// 1. R. Vale et al. Decomposition of Multi-controlled Special Unitary Single-Qubit Gates
-/// `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
+///    arXiv:2302.06377 (2023) https://arxiv.org/abs/2302.06377
 pub fn synth_mc_rot_noaux(
     num_ctrl_qubits: usize,
     rot_gate: StandardGate,
