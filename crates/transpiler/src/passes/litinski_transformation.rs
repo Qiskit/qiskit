@@ -12,6 +12,9 @@
 
 use pyo3::prelude::*;
 
+use hashbrown::{DefaultHashBuilder, HashMap};
+use std::hash::BuildHasher;
+
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
@@ -131,6 +134,11 @@ struct LitinskiTransformationState {
 
     // Clifford operator corresponding to `clifford_ops`.
     clifford: Clifford,
+
+    // Used when combining rotations: for each (hashed) Pauli and qubits, we store the number of
+    // non-removed Pauli product rotations in `pauli_based_ops` with this Pauli and qubits.
+    ppr_counts: HashMap<u64, usize>,
+    ppr_hasher: DefaultHashBuilder,
 }
 
 impl LitinskiTransformationState {
@@ -144,6 +152,34 @@ impl LitinskiTransformationState {
             pauli_based_ops: Vec::with_capacity(non_clifford_handled_count),
             clifford_ops: Vec::with_capacity(clifford_count),
             clifford: Clifford::identity(num_qubits),
+            ppr_counts: HashMap::new(),
+            ppr_hasher: DefaultHashBuilder::default(),
+        }
+    }
+
+    /// The key of a Pauli product rotation in `ppr_counts`.
+    fn ppr_key(&self, ppr: &PauliProductRotation, qubits: &[u32]) -> u64 {
+        self.ppr_hasher
+            .hash_one((ppr.z.as_slice(), ppr.x.as_slice(), qubits))
+    }
+
+    /// Add a Pauli product rotation (with the given key) to `pauli_based_ops`.
+    fn push_ppr(&mut self, ppr: PauliProductRotation, qubits: Vec<u32>, key: u64) {
+        *self.ppr_counts.entry(key).or_insert(0) += 1;
+        self.pauli_based_ops.push(Some(PauliBasedEntry {
+            op: PauliBased::PauliProductRotation(ppr).into(),
+            qubits,
+            clbits: Interned::default(),
+        }));
+    }
+
+    /// Record that a rotation with the given key was removed from `pauli_based_ops`.
+    fn remove_ppr_key(&mut self, key: u64) {
+        if let hashbrown::hash_map::Entry::Occupied(mut count) = self.ppr_counts.entry(key) {
+            *count.get_mut() -= 1;
+            if *count.get() == 0 {
+                count.remove();
+            }
         }
     }
 }
@@ -166,11 +202,12 @@ pub struct LitinskiTransformationOptions {
     /// If `true`, merge (or cancel) rotations with the same Pauli, exploiting commutativity
     /// between Pauli product rotations and measurements.
     ///
-    /// Note that this may significantly increase the running time of the pass: each new
-    /// rotation is compared against the previously collected operations, until reaching
-    /// an operation it does not commute with (see `add_ppr`). In the worst case, e.g. for
-    /// circuits consisting only of CX and T gates where all of the rotations commute, the
-    /// running time is quadratic in the number of non-Clifford rotations.
+    /// Note that this may increase the running time of the pass: when an earlier rotation with
+    /// the same Pauli exists, the new rotation is compared against the previously collected
+    /// operations, until reaching either that rotation or an operation it does not commute
+    /// with (see `add_ppr`). In the worst case, where rotations with the same Pauli repeatedly
+    /// appear far apart, separated by many commuting rotations, the running time is quadratic
+    /// in the number of non-Clifford rotations.
     combine_paulis: bool,
     /// The tolerance used to check whether a rotation is a Clifford or the identity.
     tol: f64,
@@ -621,9 +658,11 @@ pub fn run_litinski_transformation(
 /// stops at the first operation that does not commute with the new rotation, and the new rotation
 /// is appended to the collected operations.
 ///
-/// The scan is linear in the number of collected operations that commute with the new rotation,
-/// so adding all of the rotations of a circuit takes quadratic time in the worst case (e.g. for
-/// circuits where all of the rotations commute).
+/// The scan is skipped altogether when no collected rotation has the same Pauli and qubits as the
+/// new rotation (as tracked by `ppr_counts`), which is the common case. Otherwise, the scan is
+/// linear in the number of collected operations that commute with the new rotation, so adding
+/// all of the rotations of a circuit takes quadratic time in the worst case (when rotations with
+/// the same Pauli repeatedly appear far apart, separated by many commuting rotations).
 ///
 /// If the merged rotation is equivalent to the identity (up to a global phase), the entry is
 /// removed altogether.
@@ -672,6 +711,14 @@ fn add_ppr(
         return;
     }
 
+    // Only scan the collected operations if there is a rotation that may be merged with the
+    // new one (that is, a rotation with the same Pauli and qubits).
+    let key = state.ppr_key(&ppr, &qubits);
+    if !state.ppr_counts.contains_key(&key) {
+        state.push_ppr(ppr, qubits, key);
+        return;
+    }
+
     for entry in state.pauli_based_ops.iter_mut().rev() {
         let Some(PauliBasedEntry {
             op: packed_op,
@@ -708,6 +755,7 @@ fn add_ppr(
                     })
             {
                 *entry = None;
+                state.remove_ppr_key(key);
                 let old_phase = std::mem::replace(&mut state.global_phase_update, Param::Float(0.));
                 state.global_phase_update = radd_param(old_phase, Param::Float(phase_update));
                 return;
@@ -719,6 +767,7 @@ fn add_ppr(
                     is_ppr_angle_close_to_multiple_of_pi2(&merged.z, &merged.x, angle, opts.tol)
             {
                 *entry = None;
+                state.remove_ppr_key(key);
                 let (orig_z, orig_x, orig_indices) = orig_pauli;
                 let orig_multiple = if sign { (4 - multiple) % 4 } else { multiple };
                 state
@@ -756,11 +805,7 @@ fn add_ppr(
         }
     }
 
-    state.pauli_based_ops.push(Some(PauliBasedEntry {
-        op: PauliBased::PauliProductRotation(ppr).into(),
-        qubits,
-        clbits: Interned::default(),
-    }));
+    state.push_ppr(ppr, qubits, key);
 }
 
 /// Create a PauliEvolutionGate for the Pauli given in the sparse ZX format (without I-terms),

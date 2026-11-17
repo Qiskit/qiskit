@@ -243,6 +243,33 @@ class TestLitinskiTransformation(QiskitTestCase):
         )
         self.assertEqual(qct, expected)
 
+    def test_combine_after_removed_rotations(self):
+        """Test `combine_paulis` when rotations with the same Pauli are repeatedly merged,
+        cancelled and absorbed into the Clifford."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rz(0.1, 1)
+        qc.rz(0.2, 1)  # merges with the previous rotation
+        qc.rz(-0.3, 1)  # cancels the merged rotation
+        qc.rz(0.4, 1)  # a new rotation
+        qc.rz(np.pi / 2 - 0.4, 1)  # merges into a Clifford rotation, absorbed into the Clifford
+        qc.h(0)
+        qc.t(1)  # a new rotation (with a different evolved Pauli)
+        qc.rz(0.5, 1)  # merges with the previous rotation
+        qc.rz(0.6, 1)  # merges again
+
+        qct = LitinskiTransformation(use_ppr=True, combine_paulis=True)(qc)
+
+        pprs = [
+            inst.operation for inst in qct.data if inst.operation.name == "pauli_product_rotation"
+        ]
+        non_clifford_pprs = [
+            op for op in pprs if not np.isclose(np.mod(float(op.params[0]), np.pi / 2), 0)
+        ]
+        self.assertEqual(len(non_clifford_pprs), 1)
+        self.assertAlmostEqual(float(non_clifford_pprs[0].params[0]), np.pi / 4 + 1.1)
+        self.assertEqual(Operator(qct), Operator(qc))
+
     @data(True, False)
     def test_use_ppr_applies_to_input_pprs(self, use_ppr):
         """Test that ``use_ppr`` controls the representation of the non-Clifford PPRs of the

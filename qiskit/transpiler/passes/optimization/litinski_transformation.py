@@ -117,12 +117,12 @@ class LitinskiTransformation(TransformationPass):
                 This gives the threshold for the average gate fidelity.
             combine_paulis: If ``True``, attempts to combine Pauli rotation gates while
                 exploiting commutativity between Pauli product rotations.
-                Note that this option may significantly increase the running time of the pass:
-                each new rotation is compared against the previously collected rotations and
-                measurements that commute with it, so in the worst case the running time is
-                quadratic in the number of non-Clifford rotations. This happens, for instance,
-                for circuits consisting of :math:`CX` and :math:`T` gates only, where all of the
-                rotations commute with each other.
+                Note that this option may increase the running time of the pass: when an
+                earlier rotation with the same Pauli exists, each new rotation is compared
+                against the previously collected rotations and measurements that commute with
+                it. In the worst case, where rotations with the same Pauli repeatedly appear far
+                apart in the circuit, separated by many commuting rotations, the running time is
+                quadratic in the number of non-Clifford rotations.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
