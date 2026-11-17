@@ -258,11 +258,13 @@ class QuantumState:
         # Get measurement probabilities for measured qubits
         probs = self.probabilities(qargs)
 
-        # Sample only the required indices
+        # Sample the required indices
         inds = self._rng.choice(len(probs), p=probs, size=shots)
 
-        # Convert sampled indices into outcome labels
-        return self._index_to_ket_array(inds, self.dims(qargs), string_labels=True)
+        # Convert only unique sampled indices into outcome labels
+        unique_inds, inverse = np.unique(inds, return_inverse=True)
+        unique_labels = self._index_to_ket_array(unique_inds, self.dims(qargs), string_labels=True)
+        return unique_labels[inverse]
 
     def sample_counts(self, shots: int, qargs: None | list = None) -> Counts:
         """Sample a dict of qubit measurement outcomes in the computational basis.
