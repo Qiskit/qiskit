@@ -741,7 +741,7 @@ pub unsafe extern "C" fn qk_dag_apply_measure(
 /// @ingroup QkDag
 /// Apply a reset to the DAG.
 ///
-/// `dag` is left unchanged if `qubit` `is out of bounds.
+/// `dag` is left unchanged if `qubit` is out of bounds.
 ///
 /// @param dag The circuit to apply to.
 /// @param qubit The qubit index to reset.
