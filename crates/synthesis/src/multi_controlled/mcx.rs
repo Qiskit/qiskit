@@ -1979,24 +1979,17 @@ mod sp22 {
     }
 }
 
-/// Apply a single qubit rotation gate RX / RY / RZ or its inverse
+/// Apply a single qubit rotation gate RX / RY / RZ
 fn apply_rotation(
     circuit: &mut CircuitData,
     rot_gate: StandardGate,
-    is_inv: bool,
     theta: Param,
     target: u32,
 ) -> Result<(), CircuitDataError> {
-    match (rot_gate, is_inv) {
-        (StandardGate::RX, false) => circuit.rx(theta, target)?,
-        (StandardGate::RX, true) => circuit.rx(multiply_param(&theta, -1.0), target)?,
-
-        (StandardGate::RY, false) => circuit.ry(theta, target)?,
-        (StandardGate::RY, true) => circuit.ry(multiply_param(&theta, -1.0), target)?,
-
-        (StandardGate::RZ, false) => circuit.rz(theta, target)?,
-        (StandardGate::RZ, true) => circuit.rz(multiply_param(&theta, -1.0), target)?,
-
+    match rot_gate {
+        StandardGate::RX => circuit.rx(theta, target)?,
+        StandardGate::RY => circuit.ry(theta, target)?,
+        StandardGate::RZ => circuit.rz(theta, target)?,
         _ => unreachable!("This is only called for 1-qubit rotation gates."),
     }
 
@@ -2047,14 +2040,15 @@ pub fn synth_mc_rot_noaux(
         circuit.h(target)?;
     }
 
+    let inverse_theta = multiply_param(&theta, -1.0);
     circuit.compose(&mcx1, &mcx1_qubits, &[])?;
-    apply_rotation(&mut circuit, s_gate, false, theta.clone(), target)?;
+    apply_rotation(&mut circuit, s_gate, theta.clone(), target)?;
     circuit.compose(&mcx2, &mcx2_qubits, &[])?;
-    apply_rotation(&mut circuit, s_gate, true, theta.clone(), target)?;
+    apply_rotation(&mut circuit, s_gate, inverse_theta.clone(), target)?;
     circuit.compose(&mcx1, &mcx1_qubits, &[])?;
-    apply_rotation(&mut circuit, s_gate, false, theta.clone(), target)?;
+    apply_rotation(&mut circuit, s_gate, theta.clone(), target)?;
     circuit.compose(&mcx2, &mcx2_qubits, &[])?;
-    apply_rotation(&mut circuit, s_gate, true, theta.clone(), target)?;
+    apply_rotation(&mut circuit, s_gate, inverse_theta.clone(), target)?;
 
     if !is_secondary_diag_real {
         circuit.h(target)?;
