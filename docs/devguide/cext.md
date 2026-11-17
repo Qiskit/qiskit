@@ -23,7 +23,8 @@ C structs are either transparent or opaque. A transparent struct is fully
 defined in the header file, allowing callers to access members and allocate
 instances themselves. An opaque struct is only forward-declared; callers cannot
 access members or allocate instances. `cbindgen` generates transparent structs
-when the layout is `repr(C)`, otherwise opaque.
+when the layout is `repr(C)`, otherwise it will generate an opaque
+struct.
 
 *Don't conflate transparency with Rust's `repr(transparent)`, which has a
 completely different meaning.*
