@@ -2,47 +2,14 @@
 features_transpiler:
   - |
     Added a new ``combine_paulis`` option to the :class:`.LitinskiTransformation` pass.
-    When set to ``True`` (non-default), the pass additionally reduces the number of
-    non-Clifford Pauli rotations in the output circuit, leveraging commutativity between Pauli
-    product rotations and Pauli product measurements. After moving the Clifford gates to the
-    end of the circuit, rotations with the same Pauli that are separated only by commuting
-    rotations and measurements are merged into a single rotation. This applies to all of the
-    rotations, whether they originate from single-qubit rotation gates such as
-    :class:`.TGate` and :class:`.RZGate`, or from :class:`.PauliProductRotationGate` objects
-    in the input circuit, and regardless of whether the rotations in the output circuit are
-    represented as :class:`.PauliProductRotationGate` or :class:`.PauliEvolutionGate` objects
-    (as controlled by the ``use_ppr`` argument). Merged rotations that are equivalent to the
-    identity are removed (updating the global phase), and merged rotations that are Clifford
-    are absorbed into the final Clifford. For example::
-
-        from qiskit.circuit import QuantumCircuit
-        from qiskit.transpiler.passes import LitinskiTransformation
-
-        qc = QuantumCircuit(2)
-        qc.cx(0, 1)
-        qc.t(1)
-        qc.h(0)
-        qc.t(1)  # commutes with the first T-gate after moving the Clifford gates to the end
-
-        # The two T-gates are merged into a single pi/2-rotation, which is a Clifford, and
-        # is added to the final Clifford gates. So the output circuit contains no non-Clifford
-        # rotations: {'cx': 1, 'h': 1, 'pauli_product_rotation': 1}.
-        litinski = LitinskiTransformation(use_ppr=True, combine_paulis=True)
-        print(litinski(qc).count_ops())
-
-    Note that enabling this option may increase the running time of the pass, which in the
-    worst case is quadratic in the number of non-Clifford rotations. This happens when
-    rotations with the same Pauli repeatedly appear far apart in the circuit, separated by
-    many rotations that commute with them.
+    When ``True`` (non-default), the pass merges Pauli rotations with the same Pauli that
+    are separated only by commuting rotations and measurements, removing the merged rotations
+    that are equivalent to the identity and absorbing those that are Clifford into the final
+    Clifford. Note that this option may increase the running time of the pass.
 upgrade_transpiler:
   - |
     When the :class:`.LitinskiTransformation` pass is run with ``use_ppr=False`` (the default),
     the non-Clifford :class:`.PauliProductRotationGate` objects of the input circuit are now
     represented as :class:`.PauliEvolutionGate` objects in the output circuit, consistently
-    with the rotations obtained from single-qubit rotation gates such as :class:`.TGate` and
-    :class:`.RZGate`. Previously, these rotations were kept as
-    :class:`.PauliProductRotationGate` objects, so the output circuit could contain a mix of
-    both representations. To represent all of the rotations as
-    :class:`.PauliProductRotationGate` objects, set ``use_ppr=True``. The final Clifford
-    gates (including :class:`.PauliProductRotationGate` objects with angles that are multiples
-    of :math:`\pi/2`) and the Pauli product measurements are not affected by this change.
+    with the other rotations. Set ``use_ppr=True`` to represent all of the rotations as
+    :class:`.PauliProductRotationGate` objects.

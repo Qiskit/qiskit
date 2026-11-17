@@ -82,6 +82,29 @@ class LitinskiTransformation(TransformationPass):
 
         pbc = pm.run(qc)
 
+    The following example illustrates the ``combine_paulis`` option. After moving the Clifford
+    gates to the end of the circuit, the two :math:`T`-gates become rotations with the same
+    Pauli, and are merged into a single :math:`\pi/2`-rotation. This rotation is a Clifford,
+    and is hence added to the final Clifford gates, so that the output circuit contains no
+    non-Clifford rotations.
+
+    .. plot::
+        :include-source:
+        :nofigs:
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler.passes import LitinskiTransformation
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.h(0)
+        qc.t(1)
+
+        litinski = LitinskiTransformation(use_ppr=True, combine_paulis=True)
+        qct = litinski(qc)
+        print(qct.count_ops())  # {'cx': 1, 'h': 1, 'pauli_product_rotation': 1}
+
     References:
 
     [1] Litinski. A Game of Surface Codes.
