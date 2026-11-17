@@ -152,6 +152,7 @@ fn construct_bell_mir() {
     mir.verify().unwrap();
 }
 
+#[cfg(feature = "serde")]
 #[test]
 fn bell_mir_serde_roundtrip() {
     let mir = build_bell_mir();
