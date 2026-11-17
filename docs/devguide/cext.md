@@ -8,7 +8,7 @@ the C API.
 
 **Use Cases**
 
-- Wrappers like [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
+- Wrappers such as [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
   [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
 - Projects with high-performance computing (HPC) requirements.
 - Python extension modules.
