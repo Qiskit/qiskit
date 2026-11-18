@@ -99,6 +99,10 @@ class TestPiCheck(QiskitTestCase):
         expected_string = "(π/2) + x"
         result = pi_check(input_number)
         self.assertEqual(result, expected_string)
+        self.assertEqual(pi_check(input_number, output="latex"), r"(\frac{\pi}{2}) + x")
+        self.assertEqual(pi_check(input_number, output="mpl"), r"($\pi$/2) + x")
+        self.assertEqual(pi_check(x + pi, output="latex"), r"\pi + x")
+        self.assertEqual(pi_check(x + pi, output="mpl"), r"$\pi$ + x")
 
     def test_near_pi_over_k_no_redundant_coefficient(self):
         """Floats near π/k format like π/k, not 1π/k — #16170"""
