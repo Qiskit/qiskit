@@ -16,6 +16,8 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
 from qiskit._accelerate.synthesis.multi_controlled import (
     synth_mcp_noaux_sp22 as synth_mcp_noaux_sp22_rs,
+    synth_mcp_noaux_v24 as synth_mcp_noaux_v24_rs,
+    synth_mcp_noaux_default as synth_mcp_noaux_default_rs,
 )
 
 
@@ -101,27 +103,11 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> Quan
         IEEE TCAD 43(3) (2024), `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`__.
 
     """
-    qc = QuantumCircuit(num_ctrl_qubits + 1)
-
     if num_ctrl_qubits < 0:
         raise QiskitError(
             "synth_mcp_noaux_v24 cannot be called with a negative number of control qubits."
         )
-    elif num_ctrl_qubits == 0:
-        qc.p(phase, 0)
-    elif num_ctrl_qubits == 1:
-        qc.cp(phase, 0, 1)
-    else:
-        q_controls = list(range(num_ctrl_qubits))
-        q_target = num_ctrl_qubits
-        new_target = q_target
-        for k in range(num_ctrl_qubits):
-            # Note: it's better *not* to run transpile recursively
-            qc.mcrz(phase / (2**k), q_controls, new_target, use_basis_gates=False)
-            new_target = q_controls.pop()
-        qc.p(phase / (2**num_ctrl_qubits), new_target)
-
-    return qc
+    return QuantumCircuit._from_circuit_data(synth_mcp_noaux_v24_rs(num_ctrl_qubits, phase))
 
 
 def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: ParameterValueType) -> QuantumCircuit:
@@ -194,19 +180,8 @@ def synth_mcp_noaux_default(num_ctrl_qubits: int, phase: ParameterValueType) -> 
     Raises:
         QiskitError: If the number of control qubits is negative.
     """
-    qc = QuantumCircuit(num_ctrl_qubits + 1)
-
     if num_ctrl_qubits < 0:
         raise QiskitError(
             "synth_mcp_noaux_default cannot be called with a negative number of control qubits."
         )
-    elif num_ctrl_qubits == 0:
-        qc.p(phase, 0)
-    elif num_ctrl_qubits == 1:
-        qc.cp(phase, 0, 1)
-    elif num_ctrl_qubits <= 4:
-        qc = synth_mcp_noaux_v24(num_ctrl_qubits, phase)
-    else:
-        qc = synth_mcp_noaux_sp22(num_ctrl_qubits, phase)
-
-    return qc
+    return QuantumCircuit._from_circuit_data(synth_mcp_noaux_default_rs(num_ctrl_qubits, phase))
