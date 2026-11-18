@@ -24,7 +24,7 @@ use crate::commutation_checker::{
     CommutationChecker, CommutationError, try_matrix_with_definition,
 };
 use crate::passes::common::{MINIMUM_TOL, average_gate_fidelity_below_tol};
-use crate::passes::remove_identity_equiv::{RemoveIdentityEquivError, is_identity_equiv};
+use crate::passes::remove_identity_equiv::is_identity_equiv;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, PyDAGCircuit};
 use qiskit_circuit::operations::{
@@ -42,15 +42,13 @@ pub enum CommutativeOptimizationError {
     #[error(transparent)]
     DAGCircuit(#[from] DAGError),
     #[error(transparent)]
-    RemoveIdentityEq(#[from] RemoveIdentityEquivError),
-    #[error(transparent)]
     CommutationAnalysis(#[from] CommutationError),
     // TODO: Replace with Param rust native error.
     #[error(transparent)]
     PyParamError(PyErr),
     // TODO: Replace when Pauli Evolution is in Rust.
     #[error(transparent)]
-    PyMergeTwoPauliEvolutions(PyErr),
+    PyPauliEvolution(PyErr),
 }
 
 impl From<CommutativeOptimizationError> for PyErr {
@@ -59,11 +57,8 @@ impl From<CommutativeOptimizationError> for PyErr {
             CommutativeOptimizationError::DAGCircuit(dagcircuit_inner_error) => {
                 dagcircuit_inner_error.into()
             }
-            CommutativeOptimizationError::RemoveIdentityEq(remove_identity_equiv_error) => {
-                remove_identity_equiv_error.into()
-            }
             CommutativeOptimizationError::PyParamError(py_err)
-            | CommutativeOptimizationError::PyMergeTwoPauliEvolutions(py_err) => py_err,
+            | CommutativeOptimizationError::PyPauliEvolution(py_err) => py_err,
             CommutativeOptimizationError::CommutationAnalysis(commutation_analysis_error) => {
                 commutation_analysis_error.into()
             }
@@ -508,7 +503,9 @@ fn try_merge(
                 true,
                 Some(matrix_max_num_qubits),
                 error_cutoff_fn,
-            )? {
+            )
+            .map_err(CommutativeOptimizationError::PyPauliEvolution)?
+            {
                 return Ok((true, None, phase_update));
             } else {
                 return Ok((true, Some(merged_instruction), 0.));
@@ -536,7 +533,10 @@ fn try_merge(
                 py_op: std::sync::OnceLock::new(),
             };
 
-            if let Some(phase_update) = is_identity_equiv(&packed, false, None, error_cutoff_fn)? {
+            // This would only fail if the PauliEvolution Python Path happens to fail.
+            if let Some(phase_update) = is_identity_equiv(&packed, false, None, error_cutoff_fn)
+                .map_err(CommutativeOptimizationError::PyPauliEvolution)?
+            {
                 return Ok((true, None, phase_update));
             } else {
                 return Ok((true, Some(packed), 0.));
@@ -578,7 +578,7 @@ fn try_merge(
                 }))
             }
         })
-        .map_err(CommutativeOptimizationError::PyMergeTwoPauliEvolutions)?;
+        .map_err(CommutativeOptimizationError::PyPauliEvolution)?;
 
         if let Some(merged_instruction) = merged_instruction {
             if let Some(phase_update) = is_identity_equiv(
@@ -586,7 +586,9 @@ fn try_merge(
                 true,
                 Some(matrix_max_num_qubits),
                 error_cutoff_fn,
-            )? {
+            )
+            .map_err(CommutativeOptimizationError::PyPauliEvolution)?
+            {
                 return Ok((true, None, phase_update));
             } else {
                 return Ok((true, Some(merged_instruction), 0.));
