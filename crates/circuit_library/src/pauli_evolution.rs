@@ -20,7 +20,35 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_synthesis::pauli_evolution::{CXStructure, sparse_term_evolution};
 use smallvec::smallvec;
 
-use crate::QiskitError;
+/// Specifies how to implement CX propagation.
+#[pyclass(
+    module = "qiskit._accelerate.circuit_library",
+    name = "CXStructure",
+    frozen,
+    eq,
+    from_py_object
+)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PyCXStructure {
+    /// Implement the CX propagation using a chain of neighboring qubits.
+    Chain,
+
+    /// Implement the CX propagation as "fountain" shape, where each CX uses the top qubit as target.
+    Fountain,
+
+    /// Implement the CX propagation as a balanced binary tree, resulting in log-depth CX-circuits.
+    Cascade,
+}
+
+impl From<PyCXStructure> for CXStructure {
+    fn from(value: PyCXStructure) -> Self {
+        match value {
+            PyCXStructure::Chain => CXStructure::Chain,
+            PyCXStructure::Fountain => CXStructure::Fountain,
+            PyCXStructure::Cascade => CXStructure::Cascade,
+        }
+    }
+}
 
 /// Implement a Pauli evolution circuit.
 ///
@@ -46,25 +74,17 @@ use crate::QiskitError;
 ///         X_q0 I_q1 Y_q2 Z_q3 and will use a RZ rotation angle of 2.
 ///     insert_barriers: If ``true``, insert a barrier in between the evolution of individual
 ///         Pauli terms.
-///     do_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
-///         CX uses the top qubit as target.
-///     do_cascade: If ``true``, implement the CX propagation as a balanced binary tree, resulting
-///         in log-depth CX-circuits.
-///
-/// By default, both ``do_fountain`` and ``do_cascade`` are ``false`` and CX propagation uses the
-/// "chain" shape, with CX gates between between neighboring qubits. It is an error for both
-/// ``do_fountain`` and ``do_cascade`` to be true simultaneously.
+///     cx_structure: Specifies how to implement CX propagation.
 ///
 /// Returns:
 ///     Circuit data for to implement the evolution.
 #[pyfunction]
-#[pyo3(name = "pauli_evolution", signature = (num_qubits, sparse_paulis, insert_barriers=false, do_fountain=false, do_cascade=false))]
+#[pyo3(name = "pauli_evolution", signature = (num_qubits, sparse_paulis, insert_barriers=false, cx_structure=PyCXStructure::Chain))]
 pub fn py_pauli_evolution(
     num_qubits: i64,
     sparse_paulis: &Bound<PyList>,
     insert_barriers: bool,
-    do_fountain: bool,
-    do_cascade: bool,
+    cx_structure: PyCXStructure,
 ) -> PyResult<PyCircuitData> {
     let num_paulis = sparse_paulis.len();
     let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
@@ -98,16 +118,7 @@ pub fn py_pauli_evolution(
         vec![],
     );
 
-    let cx_structure = match (do_fountain, do_cascade) {
-        (false, false) => CXStructure::Chain,
-        (true, false) => CXStructure::Fountain,
-        (false, true) => CXStructure::Cascade,
-        (true, true) => {
-            return Err(QiskitError::new_err(
-                "Cannot set both do_fountain and do_cascade to true.".to_string(),
-            ));
-        }
-    };
+    let cx_structure = cx_structure.into();
 
     let evos = paulis.iter().enumerate().zip(indices).zip(times).flat_map(
         |(((i, pauli), qubits), time)| {

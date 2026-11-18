@@ -27,6 +27,7 @@ import_exception!(qiskit.exceptions, QiskitError);
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 pub fn circuit_library(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_class::<pauli_evolution::PyCXStructure>()?;
     m.add_wrapped(wrap_pyfunction!(pauli_evolution::py_pauli_evolution))?;
     m.add_wrapped(wrap_pyfunction!(pauli_feature_map::pauli_feature_map))?;
     m.add_wrapped(wrap_pyfunction!(entanglement::get_entangler_map))?;

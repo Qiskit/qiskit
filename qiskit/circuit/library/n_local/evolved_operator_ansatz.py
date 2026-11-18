@@ -149,7 +149,7 @@ def evolved_operator_ansatz(
                     for pauli, indices, coeff in term
                 ]
 
-        data = pauli_evolution(num_qubits, expanded_paulis, insert_barriers, False)
+        data = pauli_evolution(num_qubits, expanded_paulis, insert_barriers)
         circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
         circuit.name = name
 
