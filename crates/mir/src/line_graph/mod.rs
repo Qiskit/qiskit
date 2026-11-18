@@ -36,7 +36,8 @@ use std::{mem, num, ops};
 ///
 /// The various iteration methods typically have an [`indexed`](iter::Iter::indexed) method, which
 /// attaches the [`Index`] of each node, similar to [`Iterator::enumerate`].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct LineGraph<T> {
     /// The individual slots that make up the graph.
@@ -424,35 +425,9 @@ impl<T> ops::IndexMut<Index> for LineGraph<T> {
     }
 }
 
-/// Serializes as the main sequence content only, in order as a list.
-/// It discards internal bookkeeping, since these are implementation details.
-/// KNOWN ISSUE: orphan sequences are silently dropped.
-#[cfg(feature = "serde")]
-impl<T: serde::Serialize> serde::Serialize for LineGraph<T> {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        use serde::ser::SerializeSeq;
-        let mut seq = serializer.serialize_seq(None)?;
-        for node in self.iter_main() {
-            seq.serialize_element(node.weight())?;
-        }
-        seq.end()
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de, T: serde::Deserialize<'de>> serde::Deserialize<'de> for LineGraph<T> {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let items: Vec<T> = Vec::deserialize(deserializer)?;
-        let mut graph = Self::with_capacity(items.len());
-        for item in items {
-            graph.push_back(item);
-        }
-        Ok(graph)
-    }
-}
-
 /// A slot in the graph.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 enum Slot<T> {
     /// Actual data.
@@ -472,6 +447,7 @@ enum Slot<T> {
 #[derive(
     Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash, bytemuck::TransparentWrapper,
 )]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(transparent)]
 // The use of `NonZeroU32` is not intended to be API exposed or binding.  It would be better to use
 // `u32::MAX` as the sentinel "bad" value, but it's hard to spell that _and_ permit the `Option<T>`
@@ -524,7 +500,8 @@ unsafe impl bytemuck::PodInOption for Index {}
 /// A node in a line graph.
 ///
 /// This includes references to the node weight and its predecessor and successor edges (if any).
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct Node<T> {
     weight: T,
@@ -1172,5 +1149,28 @@ mod tests {
         let round_tripped: Vec<u8> = restored.iter_main().map(|n| *n.weight()).collect();
         assert_eq!(original, round_tripped);
         assert_eq!(round_tripped, vec![1, 2, 3]);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn orphans_and_holes_round_trip() {
+        let mut g = LineGraph::<u8>::new();
+        g.push_back(1);
+        let removed = g.push_back(2);
+        g.push_back(3);
+        let orphan = g.push_orphan(4);
+        g.insert_after(orphan, 5);
+        g.remove(removed);
+
+        let json_dump = serde_json::to_string(&g).unwrap();
+        let restored: LineGraph<u8> = serde_json::from_str(&json_dump).unwrap();
+
+        let main_vec: Vec<u8> = restored.iter_main().map(|n| *n.weight()).collect();
+        assert_eq!(main_vec, vec![1, 3]);
+
+        let orpan_vec: Vec<u8> = restored.iter_from(orphan).map(|n| *n.weight()).collect();
+        assert_eq!(orpan_vec, vec![4, 5]);
+
+        assert_eq!(g, restored);
     }
 }

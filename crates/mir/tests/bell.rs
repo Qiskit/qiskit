@@ -159,19 +159,17 @@ fn bell_mir_serde_roundtrip() {
     let json_dump = serde_json::to_string(&mir).unwrap();
     let restored: Mir = serde_json::from_str(&json_dump).unwrap();
 
-    // Validate that it contains the same instructions.
-    let orig_instrs: Vec<&MirInstruction> =
-        mir.instructions().iter_main().map(|n| n.weight()).collect();
-    let restored_instrs: Vec<&MirInstruction> = restored
-        .instructions()
-        .iter_main()
-        .map(|n| n.weight())
-        .collect();
-    assert_eq!(orig_instrs, restored_instrs);
-    // Same qids
+    restored.verify().unwrap();
+
+    // Same qids (since ResourceTable is using petgraph, it can't derive PartialEq, so we do it manually).
+    assert_eq!(
+        mir.resource_table().iter_qids().len(),
+        restored.resource_table().iter_qids().len()
+    );
     for (qid, info) in mir.resource_table().iter_qids() {
         assert_eq!(restored.resource_table().info(qid), Some(info));
     }
 
-    restored.verify().unwrap();
+    assert_eq!(mir.symbol_table(), restored.symbol_table());
+    assert_eq!(mir.instructions(), restored.instructions());
 }
