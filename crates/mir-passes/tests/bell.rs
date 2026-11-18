@@ -49,6 +49,7 @@ use qiskit_circuit::{
     operations::{Param, PauliBased, PauliProductMeasurement, PauliProductRotation},
     packed_instruction::PackedOperation,
 };
+use qiskit_mir::mir::MirDisplayOptions;
 use qiskit_mir_passes::dag_to_mir::lower_dag;
 use std::{f64::consts::PI, vec};
 
@@ -132,6 +133,25 @@ fn build_bell_pbc_dag() -> DAGCircuit {
     DAGCircuit::from_circuit_data(&circuit, false, None, None).unwrap()
 }
 
+const BELL_HEADER: &str = "mir, @bell_circuit\n";
+const BELL_RESOURCE_TABLE: &str = concat!("v0, Base(1)\n", "v1, Base(1)\n");
+const BELL_SYMBOL_TABLE: &str = concat!("%0, c0, Bool\n", "%1, c1, Bool\n");
+const BELL_INSTRUCTIONS: &str = concat!(
+    "[] = PauliRotation, [Z], 0.5, [v0]\n",
+    "[] = PauliRotation, [X], 1.0, [v0]\n",
+    "[] = PauliRotation, [X,Z], 0.5, [v0,v1]\n",
+    "[] = PauliRotation, [Z], -0.5, [v0]\n",
+    "[] = PauliRotation, [X], -0.5, [v1]\n",
+    "[%0] = PauliMeasure, [Z], [v0]\n",
+    "[%1] = PauliMeasure, [Z], [v1]\n",
+);
+
+fn dump_debug(file_name: &str, text: &str) {
+    if let Some(dir) = std::env::var_os("MIR_DEBUG_DIR") {
+        std::fs::write(std::path::Path::new(&dir).join(file_name), text).unwrap();
+    }
+}
+
 #[test]
 fn lower_bell_pbc() {
     let dag = build_bell_pbc_dag();
@@ -139,4 +159,38 @@ fn lower_bell_pbc() {
 
     assert_eq!(mir.instructions().node_count(), 7);
     assert_eq!(mir.resource_table().iter_qids().len(), 2);
+}
+
+#[test]
+fn lower_bell_pbc_display_full() {
+    let dag = build_bell_pbc_dag();
+    let mir = lower_dag(&dag).unwrap();
+
+    // A custom header, with every section enabled.
+    let options = MirDisplayOptions {
+        header: Some("mir, @bell_circuit".to_string()),
+        ..Default::default()
+    };
+    let output = mir.display_with(options).to_string();
+    dump_debug("bell_full_log.txt", &output);
+    let expected =
+        format!("{BELL_HEADER}{BELL_RESOURCE_TABLE}{BELL_SYMBOL_TABLE}{BELL_INSTRUCTIONS}");
+    assert_eq!(output, expected);
+}
+
+#[test]
+fn lower_bell_pbc_display_instructions() {
+    let dag = build_bell_pbc_dag();
+    let mir = lower_dag(&dag).unwrap();
+
+    // Only the instructions are printed.
+    let options = MirDisplayOptions {
+        header: None,
+        resource_table: false,
+        symbol_table: false,
+        instructions: true,
+    };
+    let output = mir.display_with(options).to_string();
+    dump_debug("bell_instructions_log.txt", &output);
+    assert_eq!(output, BELL_INSTRUCTIONS);
 }
