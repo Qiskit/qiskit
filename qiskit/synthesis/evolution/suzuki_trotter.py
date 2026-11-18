@@ -80,7 +80,7 @@ class SuzukiTrotter(ProductFormula):
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
                 ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
-                where all qubits are connected to one, or ``cascade``, where log-depth
+                where all qubits are connected to one, or ``"cascade"``, where log-depth
                 implementation is used. This only takes effect when ``atomic_evolution is None``.
             atomic_evolution: A function to apply the evolution of a single
                 :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,

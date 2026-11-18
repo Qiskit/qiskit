@@ -184,7 +184,7 @@ fn two_qubit_evolution<'a>(
             qubits,
             vec![],
         ))),
-        // Note:all CX structures give the same circuit for a 2-qubit Pauli, so we just
+        // Note: all CX structures give the same circuit for a 2-qubit Pauli, so we just
         // use the default here.
         _ => Box::new(multi_qubit_evolution(
             pauli,

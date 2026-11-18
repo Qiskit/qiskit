@@ -2271,8 +2271,8 @@ class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
 
     * preserve_order: If ``False``, allow re-ordering the Pauli terms in the Hamiltonian to
       reduce the circuit depth of the decomposition.
-    * cx_structure: Specifies how to implement CX propagation. Supported options are "chain",
-      "fountain" and "cascade".
+    * cx_structure: Specifies how to implement CX propagation. Supported options are ``"chain"``,
+      ``"fountain"`` and ``"cascade"``.
 
     """
 
@@ -2283,7 +2283,7 @@ class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
             return None
         algo = high_level_object.synthesis
 
-        # For product formulas we allow overwriting the `preserve_order` state
+        # For product formulas we allow overwriting `preserve_order` and `_cx_structure`
         if isinstance(algo, ProductFormula):
             original_preserve_order = algo.preserve_order
             original_cx_structure = algo._cx_structure
