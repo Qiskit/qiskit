@@ -3318,46 +3318,6 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             qct = hls_pass(qc)
             self.assertEqual(qct.depth(), 4)
 
-    @data("chain", "fountain", "cascade")
-    def test_option_cx_structure_for_basic(self, cx_structure):
-        """Test that option ``cx_structure`` for the basic plugin has an effect on the
-        CX depth of the circuit and does not modify the gate's synthesis object.
-        """
-        num_qubits = 8
-        op = SparsePauliOp(["Z" * num_qubits])
-        evo = PauliEvolutionGate(op, synthesis=LieTrotter(cx_structure="chain"))
-        qc = QuantumCircuit(num_qubits)
-        qc.append(evo, qc.qubits)
-
-        hls_config = HLSConfig(PauliEvolution=[("basic", {"cx_structure": cx_structure})])
-        hls_pass = HighLevelSynthesis(hls_config=hls_config)
-        qct = hls_pass(qc)
-
-        self.assertEqual(Operator(qc), Operator(qct))
-        self.assertEqual(qct.count_ops()["cx"], 2 * (num_qubits - 1))
-        cx_depth = qct.depth(lambda instruction: instruction.operation.name == "cx")
-        expected_depth = 6 if cx_structure == "cascade" else 2 * (num_qubits - 1)
-        self.assertEqual(cx_depth, expected_depth)
-
-        # the original synthesis method is restored
-        self.assertEqual(evo.synthesis.settings["cx_structure"], "chain")
-
-    def test_option_cx_structure_for_basic_invalid(self):
-        """Test that an invalid option ``cx_structure`` for the basic plugin raises an error
-        and does not modify the gate's synthesis object.
-        """
-        op = SparsePauliOp(["ZZZZ"])
-        evo = PauliEvolutionGate(op, synthesis=LieTrotter(cx_structure="fountain"))
-        qc = QuantumCircuit(4)
-        qc.append(evo, qc.qubits)
-
-        hls_config = HLSConfig(PauliEvolution=[("basic", {"cx_structure": "unsupported"})])
-        hls_pass = HighLevelSynthesis(hls_config=hls_config)
-        with self.assertRaisesRegex(ValueError, "Unsupported CX structure"):
-            _ = hls_pass(qc)
-
-        self.assertEqual(evo.synthesis.settings["cx_structure"], "fountain")
-
     @data("rustiq", "mcts")
     def test_option_preserve_order_for_rustiq_mcts(self, plugin_name):
         """

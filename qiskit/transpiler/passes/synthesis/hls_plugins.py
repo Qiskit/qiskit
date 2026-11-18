@@ -631,7 +631,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
 from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.circuit.library.pauli_evolution import _contains_projectors
-from qiskit.synthesis.evolution.product_formula import _CX_STRUCTURES
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
@@ -2272,8 +2271,6 @@ class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
 
     * preserve_order: If ``False``, allow re-ordering the Pauli terms in the Hamiltonian to
       reduce the circuit depth of the decomposition.
-    * cx_structure: Specifies how to implement CX propagation. Supported options are ``"chain"``,
-      ``"fountain"`` and ``"cascade"``.
 
     """
 
@@ -2284,22 +2281,14 @@ class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
             return None
         algo = high_level_object.synthesis
 
-        # For product formulas we allow overwriting `preserve_order` and `_cx_structure`
+        # For product formulas we allow overwriting the `preserve_order` state
         if isinstance(algo, ProductFormula):
             original_preserve_order = algo.preserve_order
-            original_cx_structure = algo._cx_structure
-
             if "preserve_order" in options:
                 algo.preserve_order = options["preserve_order"]
-            if "cx_structure" in options:
-                cx_structure = options["cx_structure"]
-                if cx_structure not in _CX_STRUCTURES:
-                    raise ValueError(f"Unsupported CX structure: {cx_structure}")
-                algo._cx_structure = cx_structure
 
             synth_object = algo.synthesize(high_level_object)
             algo.preserve_order = original_preserve_order
-            algo._cx_structure = original_cx_structure
 
         # ... for any others, just run the synthesis
         else:
