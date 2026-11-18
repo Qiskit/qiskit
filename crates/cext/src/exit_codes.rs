@@ -10,10 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_circuit::{
-    circuit_data::CircuitDataError, parameter::parameter_expression::ParameterError,
-    parameter_table::ParameterTableError,
-};
+use qiskit_circuit::{circuit_data::CircuitDataError, parameter_table::ParameterTableError};
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
@@ -91,59 +88,71 @@ pub enum ExitCode {
     CustomOperationRepeatedSlot = 901,
 }
 
-impl From<ArithmeticError> for ExitCode {
-    fn from(value: ArithmeticError) -> Self {
-        match value {
-            ArithmeticError::MismatchedQubits { left: _, right: _ } => ExitCode::MismatchedQubits,
-            ArithmeticError::InvalidOperation(_) => ExitCode::ArithmeticError,
-            ArithmeticError::DuplicatedIndex => ExitCode::DuplicateIndexError,
-            ArithmeticError::OutOfBounds(_) => ExitCode::IndexError,
+impl ExitCode {
+    pub fn from_error<E: Exit>(error: &E) -> ExitCode {
+        error.exit_code()
+    }
+
+    pub fn from_result<T, E: Exit>(result: &Result<T, E>) -> ExitCode {
+        if let Err(error) = result {
+            error.exit_code()
+        } else {
+            ExitCode::Success
         }
     }
 }
 
-impl From<CInputError> for ExitCode {
-    fn from(value: CInputError) -> Self {
-        match value {
-            CInputError::AlignmentError => ExitCode::AlignmentError,
-            CInputError::NullPointerError => ExitCode::NullPointerError,
-            CInputError::IndexError => ExitCode::IndexError,
+pub trait Exit {
+    fn exit_code(&self) -> ExitCode;
+}
+
+impl Exit for ArithmeticError {
+    fn exit_code(&self) -> ExitCode {
+        match self {
+            Self::MismatchedQubits { .. } => ExitCode::MismatchedQubits,
+            Self::InvalidOperation(_) => ExitCode::ArithmeticError,
+            Self::DuplicatedIndex => ExitCode::DuplicateIndexError,
+            Self::OutOfBounds(_) => ExitCode::IndexError,
         }
     }
 }
 
-impl From<TargetError> for ExitCode {
-    fn from(value: TargetError) -> Self {
-        match value {
+impl Exit for CircuitDataError {
+    fn exit_code(&self) -> ExitCode {
+        match self {
+            Self::ParameterTableError(error) => error.exit_code(),
+            _ => ExitCode::ParameterError,
+        }
+    }
+}
+
+impl Exit for ParameterTableError {
+    fn exit_code(&self) -> ExitCode {
+        match self {
+            Self::NameConflict(_) => ExitCode::ParameterNameConflict,
+            _ => ExitCode::ParameterError,
+        }
+    }
+}
+
+impl Exit for CInputError {
+    fn exit_code(&self) -> ExitCode {
+        match self {
+            Self::NullPointerError => ExitCode::AlignmentError,
+            Self::AlignmentError => ExitCode::NullPointerError,
+            Self::IndexError => ExitCode::IndexError,
+        }
+    }
+}
+
+impl Exit for TargetError {
+    fn exit_code(&self) -> ExitCode {
+        match self {
             TargetError::InvalidKey(_) => ExitCode::TargetInvalidInstKey,
             TargetError::AlreadyExists(_) => ExitCode::TargetInstAlreadyExists,
-            TargetError::QargsMismatch {
-                instruction: _,
-                arguments: _,
-            } => ExitCode::TargetQargMismatch,
-            TargetError::InvalidQargsKey {
-                instruction: _,
-                arguments: _,
-            } => ExitCode::TargetInvalidQargsKey,
+            TargetError::QargsMismatch { .. } => ExitCode::TargetQargMismatch,
+            TargetError::InvalidQargsKey { .. } => ExitCode::TargetInvalidQargsKey,
             _ => ExitCode::TargetError,
-        }
-    }
-}
-
-impl From<CircuitDataError> for ExitCode {
-    fn from(error: CircuitDataError) -> Self {
-        match error {
-            CircuitDataError::ParameterTableError(error) => error.into(),
-            _ => ExitCode::ParameterError,
-        }
-    }
-}
-
-impl From<ParameterTableError> for ExitCode {
-    fn from(error: ParameterTableError) -> Self {
-        match error {
-            ParameterTableError::NameConflict(_) => ExitCode::ParameterNameConflict,
-            _ => ExitCode::ParameterError,
         }
     }
 }

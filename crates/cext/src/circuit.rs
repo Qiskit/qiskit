@@ -30,7 +30,7 @@ use num_complex::{Complex64, ComplexFloat};
 
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::circuit_drawer::draw_circuit;
 use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -42,7 +42,6 @@ use qiskit_circuit::operations::{
     StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::parameter_table::ParameterTableError;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 use qiskit_transpiler::target::{Target, estimate_fidelity};
 use smallvec::smallvec;
@@ -825,11 +824,8 @@ pub unsafe extern "C" fn qk_circuit_set_global_phase(
     let circuit = unsafe { &mut *circuit };
     let phase = unsafe { &*phase };
 
-    if let Err(error) = circuit.set_global_phase_param(phase.clone()) {
-        error.into()
-    } else {
-        ExitCode::Success
-    }
+    let result = circuit.set_global_phase_param(phase.clone());
+    ExitCode::from_result(&result)
 }
 
 /// @ingroup QkCircuit
@@ -986,11 +982,8 @@ pub unsafe extern "C" fn qk_circuit_parameterized_gate(
             .map(|&ptr| unsafe { &*ptr }.clone())
             .collect();
 
-    if let Err(error) = circuit.push_standard_gate(gate, &params, qargs) {
-        error.into()
-    } else {
-        ExitCode::Success
-    }
+    let result = circuit.push_standard_gate(gate, &params, qargs);
+    ExitCode::from_result(&result)
 }
 
 /// @ingroup QkCircuit
@@ -2926,11 +2919,7 @@ unsafe fn append_box(
         cargs,
     );
 
-    if let Err(error) = result {
-        error.into()
-    } else {
-        ExitCode::Success
-    }
+    ExitCode::from_result(&result)
 }
 
 /// The configuration options for the ``qk_circuit_draw`` function.
@@ -3354,14 +3343,8 @@ pub unsafe extern "C" fn qk_circuit_custom_operation(
     // SAFETY: The pointer is either null or non-null and alligned.
     let params = unsafe { ptr_to_params_owned(params, op.num_params() as usize) };
 
-    let ret = circ.push_packed_operation(op, params, qargs, cargs);
-    match ret {
-        Ok(()) => ExitCode::Success,
-        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
-            ExitCode::ParameterNameConflict
-        }
-        Err(_) => ExitCode::ParameterError,
-    }
+    let result = circ.push_packed_operation(op, params, qargs, cargs);
+    ExitCode::from_result(&result)
 }
 
 /// Casts a pointer of u32s to a slace of circuit bits.
