@@ -12,8 +12,6 @@
 use std::ops;
 
 use hashbrown::HashSet;
-#[cfg(feature = "serde")]
-use rustworkx_core::petgraph::visit::IntoNodeReferences;
 use rustworkx_core::petgraph::{algo::has_path_connecting, prelude::*, visit};
 
 use super::*;
@@ -91,7 +89,13 @@ pub struct NotSingleBitBaseError(pub Qid);
 ///
 /// Generally, one can consider a [`Qid`] to be a key into an instance of this table.  The table is
 /// associated with exactly one [`QidSpace`].  All qids stored in the table must match this space.
+///
+/// Derives `Serialize`/`Deserialize` using petgraph `serde-1` support directly.
+/// `rustworkx-core` re-exports petgraph, but without serde-1. So qiskit-mir depends on petgraph
+/// directly.
+/// If rustworkx-core forwards serde-1 in the future, we can remove this dependency.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ResourceTable {
     space: QidSpace,
     /// Mapping containing the per-qid info (nodes), with the direct "contains" relations pointing
@@ -312,63 +316,6 @@ impl ops::Index<Qid> for ResourceTable {
         &self.qids[self
             .index_from_qid(index)
             .expect("caller enforces qid should be present")]
-    }
-}
-
-/// Serializes `ResourceTable` as a plain list of nodes and a list of edges, discarding the
-/// `Graph` wrapper's internal bookkeeping.
-#[cfg(feature = "serde")]
-#[derive(serde::Serialize, serde::Deserialize)]
-struct ResourceTableData {
-    space: QidSpace,
-    nodes: Vec<QidInfo>,
-    edges: Vec<(u32, u32)>,
-}
-
-#[cfg(feature = "serde")]
-impl serde::Serialize for ResourceTable {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let nodes: Vec<QidInfo> = self
-            .qids
-            .node_references()
-            .map(|(_, info)| info.clone())
-            .collect();
-        let edges: Vec<(u32, u32)> = self
-            .qids
-            .edge_references()
-            .map(|edge| (edge.source().index() as u32, edge.target().index() as u32))
-            .collect();
-        ResourceTableData {
-            space: self.space,
-            nodes,
-            edges,
-        }
-        .serialize(serializer)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for ResourceTable {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let data = ResourceTableData::deserialize(deserializer)?;
-        let mut qids = Graph::with_capacity(data.nodes.len(), data.edges.len());
-        for node in data.nodes {
-            qids.add_node(node);
-        }
-        for (from, to) in data.edges {
-            qids.try_add_edge(
-                NodeIndex::new(from as usize),
-                NodeIndex::new(to as usize),
-                (),
-            )
-            .map_err(|e| {
-                serde::de::Error::custom(format!("invalid edge in serialized ResourceTable: {e}"))
-            })?;
-        }
-        Ok(ResourceTable {
-            space: data.space,
-            qids,
-        })
     }
 }
 

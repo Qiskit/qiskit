@@ -16,12 +16,13 @@ workspace = true
 mem_dbg = ["dep:mem_dbg"]
 py = ["dep:pyo3"]
 passmanager = ["dep:qiskit-passmanager"]
-serde = ["dep:serde"]
+serde = ["dep:serde", "dep:petgraph", "petgraph/serde-1"]
 
 [dependencies]
 bytemuck.workspace = true
 hashbrown.workspace = true
 mem_dbg = { workspace = true, optional = true }
+petgraph = { version = "0.8", optional = true }
 pyo3 = { workspace = true, optional = true }
 qiskit-passmanager = {workspace = true, optional = true }
 qiskit-util.workspace = true
