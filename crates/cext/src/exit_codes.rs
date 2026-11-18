@@ -90,12 +90,12 @@ pub enum ExitCode {
 
 impl ExitCode {
     pub fn from_error<E: Exit>(error: &E) -> ExitCode {
-        error.exit_code()
+        error.to_exit_code()
     }
 
     pub fn from_result<T, E: Exit>(result: &Result<T, E>) -> ExitCode {
         if let Err(error) = result {
-            error.exit_code()
+            error.to_exit_code()
         } else {
             ExitCode::Success
         }
@@ -103,11 +103,11 @@ impl ExitCode {
 }
 
 pub trait Exit {
-    fn exit_code(&self) -> ExitCode;
+    fn to_exit_code(&self) -> ExitCode;
 }
 
 impl Exit for ArithmeticError {
-    fn exit_code(&self) -> ExitCode {
+    fn to_exit_code(&self) -> ExitCode {
         match self {
             Self::MismatchedQubits { .. } => ExitCode::MismatchedQubits,
             Self::InvalidOperation(_) => ExitCode::ArithmeticError,
@@ -118,16 +118,16 @@ impl Exit for ArithmeticError {
 }
 
 impl Exit for CircuitDataError {
-    fn exit_code(&self) -> ExitCode {
+    fn to_exit_code(&self) -> ExitCode {
         match self {
-            Self::ParameterTableError(error) => error.exit_code(),
+            Self::ParameterTableError(error) => error.to_exit_code(),
             _ => ExitCode::ParameterError,
         }
     }
 }
 
 impl Exit for ParameterTableError {
-    fn exit_code(&self) -> ExitCode {
+    fn to_exit_code(&self) -> ExitCode {
         match self {
             Self::NameConflict(_) => ExitCode::ParameterNameConflict,
             _ => ExitCode::ParameterError,
@@ -136,7 +136,7 @@ impl Exit for ParameterTableError {
 }
 
 impl Exit for CInputError {
-    fn exit_code(&self) -> ExitCode {
+    fn to_exit_code(&self) -> ExitCode {
         match self {
             Self::NullPointerError => ExitCode::NullPointerError,
             Self::AlignmentError => ExitCode::AlignmentError,
@@ -146,7 +146,7 @@ impl Exit for CInputError {
 }
 
 impl Exit for TargetError {
-    fn exit_code(&self) -> ExitCode {
+    fn to_exit_code(&self) -> ExitCode {
         match self {
             TargetError::InvalidKey(_) => ExitCode::TargetInvalidInstKey,
             TargetError::AlreadyExists(_) => ExitCode::TargetInstAlreadyExists,
