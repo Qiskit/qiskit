@@ -60,6 +60,10 @@ impl MirInstruction {
         &self.qids
     }
 
+    pub fn qids_mut(&mut self) -> &mut QidList {
+        &mut self.qids
+    }
+
     pub fn args(&self) -> &SymbolIdList {
         &self.args
     }
@@ -590,5 +594,19 @@ mod tests {
             instr_with_qids.verify(&resource_table, &symbol_table),
             Err(InstructionVerificationError::QidWidthMismatch { len1: 1, len2: 0 })
         ));
+    }
+
+    #[test]
+    fn test_replace_whole_qids_list() {
+        let mut instr = MirInstruction {
+            op: create_pauli_rotation_op(Pauli::I, 2, 0.5),
+            qids: QidList::new(vec![Qid::virt(0), Qid::virt(1)]),
+            args: SymbolIdList::default(),
+            returns: SymbolIdList::default(),
+        };
+        let qids_list2 = QidList::new(vec![Qid::virt(1), Qid::virt(0)]);
+
+        *instr.qids_mut() = qids_list2.clone();
+        assert_eq!(*instr.qids(), qids_list2);
     }
 }
