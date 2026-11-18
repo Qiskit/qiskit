@@ -248,7 +248,7 @@ cleanup:
     return result;
 }
 
-int test_init_stage_empty(void) {
+static int test_init_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -273,7 +273,7 @@ int test_init_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 1024) {
         result = EqualityError;
-        fprintf(stderr, "Number of dag qubits %u does not match expected result 1024",
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 1024\n",
                 num_dag_qubits);
     }
 cleanup:
@@ -285,7 +285,7 @@ cleanup:
     return result;
 }
 
-int test_layout_stage_empty(void) {
+static int test_layout_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -310,7 +310,7 @@ int test_layout_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 2048) {
         result = EqualityError;
-        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048",
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048\n",
                 num_dag_qubits);
     }
     QkTranspileLayout *layout = qk_transpile_state_layout(*state);
@@ -329,7 +329,7 @@ cleanup:
     return result;
 }
 
-int test_routing_stage_empty(void) {
+static int test_routing_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -362,7 +362,7 @@ int test_routing_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 2048) {
         result = EqualityError;
-        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048",
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048\n",
                 num_dag_qubits);
     }
     QkTranspileLayout *layout = qk_transpile_state_layout(*state);
@@ -381,7 +381,7 @@ cleanup:
     return result;
 }
 
-int test_translation_stage_empty(void) {
+static int test_translation_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -404,7 +404,7 @@ int test_translation_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 2048) {
         result = EqualityError;
-        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048",
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048\n",
                 num_dag_qubits);
     }
 cleanup:
@@ -414,7 +414,7 @@ cleanup:
     return result;
 }
 
-int test_optimization_stage_empty(void) {
+static int test_optimization_stage_empty(void) {
     int result = Ok;
     uint32_t num_qubits = 2048;
     QkTarget *target = qk_target_new(num_qubits);
@@ -447,7 +447,7 @@ int test_optimization_stage_empty(void) {
     uint32_t num_dag_qubits = qk_dag_num_qubits(dag);
     if (num_dag_qubits != 2048) {
         result = EqualityError;
-        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048",
+        fprintf(stderr, "Number of dag qubits %u does not match expected result 2048\n",
                 num_dag_qubits);
     }
 cleanup:
@@ -460,7 +460,7 @@ cleanup:
     return result;
 }
 
-int test_transpile_state_layout_unset(void) {
+static int test_transpile_state_layout_unset(void) {
     int result = RuntimeError;
 
     uint32_t num_qubits = 2048;
@@ -486,7 +486,7 @@ int test_transpile_state_layout_unset(void) {
     QkTranspileLayout *current = qk_transpile_state_layout(state);
     if (current == NULL) {
         result = EqualityError;
-        printf("state layout not set");
+        fprintf(stderr, "state layout not set\n");
         goto cleanup;
     }
 
@@ -495,7 +495,7 @@ int test_transpile_state_layout_unset(void) {
 
     if (current != NULL) {
         result = EqualityError;
-        printf("state layout exists after unset");
+        fprintf(stderr, "state layout exists after unset\n");
     } else {
         result = Ok;
     }

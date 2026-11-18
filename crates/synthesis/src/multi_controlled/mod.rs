@@ -11,7 +11,8 @@
 // that they have been altered from the originals.
 
 use mcx::{
-    c3x, c4x, synth_mcp_noaux_sp22, synth_mcx_1_clean_b95, synth_mcx_1_kg24, synth_mcx_2_kg24,
+    c3x, c4x, synth_mcp_noaux_sp22, synth_mcrx_noaux, synth_mcry_noaux, synth_mcrz_noaux,
+    synth_mcx_1_clean_b95, synth_mcx_1_kg24, synth_mcx_2_kg24, synth_mcx_explicit,
     synth_mcx_n_clean_m15, synth_mcx_n_dirty_i15, synth_mcx_n_dirty_m15, synth_mcx_noaux_hp24,
     synth_mcx_noaux_sp22,
 };
@@ -88,9 +89,61 @@ fn py_synth_mcx_noaux_sp22(num_controls: usize) -> PyResult<PyCircuitData> {
     Ok(synth_mcx_noaux_sp22(num_controls)?.into())
 }
 
+#[pyfunction]
+#[pyo3(name = "synth_mcrx_noaux")]
+fn py_synth_mcrx_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
+    if matches!(phase, Param::Obj(_)) {
+        return Err(PyTypeError::new_err(
+            "synth_mcrx_noaux requires phase to be a float or a ParameterExpression.",
+        ));
+    }
+    Ok(synth_mcrx_noaux(num_controls, phase)?.into())
+}
+
+#[pyfunction]
+#[pyo3(name = "synth_mcry_noaux")]
+fn py_synth_mcry_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
+    if matches!(phase, Param::Obj(_)) {
+        return Err(PyTypeError::new_err(
+            "synth_mcry_noaux requires phase to be a float or a ParameterExpression.",
+        ));
+    }
+    Ok(synth_mcry_noaux(num_controls, phase)?.into())
+}
+
+#[pyfunction]
+#[pyo3(name = "synth_mcrz_noaux")]
+fn py_synth_mcrz_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
+    if matches!(phase, Param::Obj(_)) {
+        return Err(PyTypeError::new_err(
+            "synth_mcrz_noaux requires phase to be a float or a ParameterExpression.",
+        ));
+    }
+    Ok(synth_mcrz_noaux(num_controls, phase)?.into())
+}
+
+#[pyfunction]
+#[pyo3(name = "c3x")]
+fn py_c3x() -> PyResult<PyCircuitData> {
+    Ok(c3x().into())
+}
+
+#[pyfunction]
+#[pyo3(name = "c4x")]
+fn py_c4x() -> PyResult<PyCircuitData> {
+    Ok(c4x().into())
+}
+
+#[pyfunction]
+#[pyo3(name = "synth_mcx_explicit")]
+fn py_synth_mcx_explicit(num_controls: usize) -> PyResult<PyCircuitData> {
+    Ok(synth_mcx_explicit(num_controls)?.into())
+}
+
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(c3x, m)?)?;
-    m.add_function(wrap_pyfunction!(c4x, m)?)?;
+    m.add_function(wrap_pyfunction!(py_c3x, m)?)?;
+    m.add_function(wrap_pyfunction!(py_c4x, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcx_explicit, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_i15, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_m15, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_hp24, m)?)?;
@@ -99,6 +152,9 @@ pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_synth_mcx_2_kg24, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_sp22, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_sp22, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcrx_noaux, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcry_noaux, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcrz_noaux, m)?)?;
     m.add_function(wrap_pyfunction!(mcmt::mcmt_v_chain, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_clean_m15, m)?)?;
     Ok(())
