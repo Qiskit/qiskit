@@ -38,12 +38,13 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, PermutationGate
 from qiskit.qasm3 import (
     Exporter,
     dumps,
     dump,
     dumps_experimental,
+    loads,
     QASM3ExporterError,
     ExperimentalFeatures,
     DefcalInstruction,
@@ -53,6 +54,7 @@ from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm3.exceptions import QASM3ImporterError
 from qiskit import qpy
 from qiskit.quantum_info import Pauli
+from qiskit.utils import optionals
 from test import QiskitTestCase
 
 
@@ -247,6 +249,27 @@ class TestCircuitQASM3(QiskitTestCase):
             ]
         )
         self.assertEqual(Exporter().dumps(qc), expected_qasm)
+
+    def test_gate_with_qasm_decomposition_uses_decomposed_params(self):
+        """Test custom QASM decompositions with non-scalar original params."""
+        circuit = QuantumCircuit(2)
+        circuit.append(PermutationGate([1, 0]), [0, 1])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "gate permutation__1_0_ _gate_q_0, _gate_q_1 {",
+                "  swap _gate_q_0, _gate_q_1;",
+                "}",
+                "qubit[2] q;",
+                "permutation__1_0_ q[0], q[1];",
+                "",
+            ]
+        )
+
+        self.assertEqual(Exporter().dumps(circuit), expected_qasm)
+        self.assertEqual(Exporter(disable_constants=True).dumps(circuit), expected_qasm)
 
     def test_same_composite_circuits(self):
         """Test when a composite circuit is added to the circuit multiple times."""
@@ -1019,6 +1042,27 @@ c[1] = measure q[1];
         )
         self.assertEqual(dumps(qc), expected_qasm)
 
+    def test_for_loop_range_negative_step(self):
+        """Test that a ``range`` with a negative step exports with the correct inclusive end."""
+        parameter = Parameter("i")
+        qc = QuantumCircuit(1)
+        with qc.for_loop(range(5, -1, -2), parameter):
+            qc.rz(parameter, 0)
+
+        qr_name = qc.qregs[0].name
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                f"qubit[1] {qr_name};",
+                f"for int {parameter.name} in [5:-2:0] {{",
+                f"  rz({parameter.name}) {qr_name}[0];",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
     def test_regular_parameter_in_nested_for_loop(self):
         """Test that a for loop nested inside another outputs the expected result, including
         defining parameters that are used in nested loop scopes."""
@@ -1597,6 +1641,42 @@ box[a] {
             parameter_name = self.scalar_parameter_regex.search(out_qasm)
             self.assertTrue(parameter_name, msg=f"Observed OQ3:\n{out_qasm}")
             self.assertNotEqual(keyword, parameter_name["name"])
+
+    @data("pi", "tau", "euler", "π", "τ")
+    def test_builtin_constants_as_names_are_escaped(self, builtin):
+        """Test that names colliding with OpenQASM 3 built-in constants (``pi``, ``tau``,
+        ``euler`` and their Unicode letter aliases) are escaped on export so they do not
+        collide with the predefined symbols in the global scope, and that the exported
+        program can be re-parsed with :func:`qasm3.loads`.  Regression test for #16169."""
+        with self.subTest("register"):
+            qreg = QuantumRegister(1, builtin)
+            qc = QuantumCircuit(qreg)
+            qc.x(0)
+            out_qasm = dumps(qc)
+            register_name = self.register_regex.search(out_qasm)
+            self.assertTrue(register_name, msg=f"Observed OQ3:\n{out_qasm}")
+            self.assertNotEqual(builtin, register_name["name"])
+            if optionals.HAS_QASM3_IMPORT:
+                loads(out_qasm)
+        with self.subTest("parameter"):
+            qc = QuantumCircuit(1)
+            param = Parameter(builtin)
+            qc.u(param, 0, 0, 0)
+            out_qasm = dumps(qc)
+            parameter_name = self.scalar_parameter_regex.search(out_qasm)
+            self.assertTrue(parameter_name, msg=f"Observed OQ3:\n{out_qasm}")
+            self.assertNotEqual(builtin, parameter_name["name"])
+            if optionals.HAS_QASM3_IMPORT:
+                loads(out_qasm)
+        with self.subTest("gate"):
+            named_circuit = QuantumCircuit(1, name=builtin)
+            named_circuit.h(0)
+            named_gate = named_circuit.to_gate()
+            qc = QuantumCircuit(1)
+            qc.append(named_gate, [0])
+            out_qasm = dumps(qc)
+            if optionals.HAS_QASM3_IMPORT:
+                loads(out_qasm)
 
     def test_expr_condition(self):
         """Simple test that the conditions of `if`s and `while`s can be `Expr` nodes."""

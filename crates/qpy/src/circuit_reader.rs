@@ -290,26 +290,35 @@ pub fn instruction_values_to_params(
     // treat `values` as a vector of blocks
     // Null values represent missing else blocks in if-else statements and should be filtered out
 
-    // Filter out Null values and check if remaining values are all circuits
-    let non_null_values: Vec<&GenericValue> = values
+    // Check that all non-null values are all circuits and there is at least one
+    let mut non_empty: bool = false;
+    let all_circuit_values: bool = values
         .iter()
         .filter(|val| !matches!(val, GenericValue::Null))
-        .collect();
-
-    if !non_null_values.is_empty()
-        && non_null_values
-            .iter()
-            .all(|val| matches!(val, GenericValue::CircuitData(_)))
-    {
+        .all(|val| {
+            if matches!(val, GenericValue::CircuitData(_)) {
+                non_empty = true;
+                true
+            } else {
+                false
+            }
+        });
+    if all_circuit_values && non_empty {
         // blocks
-        let inst_blocks: Vec<CircuitData> = values
-            .iter()
-            .filter_map(|value| value.as_circuit_data())
+        let out: Vec<Block> = values
+            .into_iter()
+            .filter_map(|value| match value {
+                GenericValue::CircuitData(block_circuit) => {
+                    Some(qpy_data.circuit_data.add_block(*block_circuit))
+                }
+                _ => None,
+            })
             .collect();
-        let params = Parameters::Blocks(inst_blocks);
-        Ok(qpy_data
-            .circuit_data
-            .extract_blocks_from_circuit_parameters(Some(&params)))
+        if out.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(Box::new(Parameters::Blocks(out))))
+        }
     } else {
         // params
         let inst_params: Vec<Param> = values
@@ -328,7 +337,11 @@ pub fn instruction_values_to_params(
                     _ => qpy_data.caller.attach(
                         "convert arbitrary parameter value to python representation",
                         |py| -> Result<_, QpyError> {
-                            Ok(Param::Obj(py_convert_from_generic_value(py, &value)?))
+                            Ok(Param::Obj(py_convert_from_generic_value(
+                                py,
+                                &value,
+                                qpy_data.remaining_depth,
+                            )?))
                         },
                     ),
                 }
@@ -367,6 +380,10 @@ pub fn unpack_instruction(
     custom_instructions: &HashMap<String, CustomCircuitInstructionData>,
     qpy_data: &mut QPYReadData,
 ) -> Result<PackedInstruction, QpyError> {
+    qpy_data.remaining_depth = qpy_data
+        .remaining_depth
+        .checked_sub(1)
+        .ok_or_else(|| QpyError::RecursionError)?;
     let label = (!instruction.label.is_empty()).then(|| Box::new(instruction.label.clone()));
     let instruction_type = recognize_instruction_type(instruction, custom_instructions)?;
     let (op, parameter_values) = match instruction_type {
@@ -381,19 +398,18 @@ pub fn unpack_instruction(
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
         InstructionType::Store => unpack_store(instruction, qpy_data)?,
-        InstructionType::Custom => {
-            QpyCaller::Python.attach("Python custom instruction unpacking", |py| {
-                unpack_custom_instruction(
-                    py,
-                    instruction,
-                    label.as_deref(),
-                    qpy_data,
-                    custom_instructions,
-                )
-            })?
-        }
-        InstructionType::Python => QpyCaller::Python
-            .attach("Python instruction unpacking", |py| {
+        InstructionType::Custom => qpy_data.caller.attach("Custom instructions", |py| {
+            unpack_custom_instruction(
+                py,
+                instruction,
+                label.as_deref(),
+                qpy_data,
+                custom_instructions,
+            )
+        })?,
+        InstructionType::Python => qpy_data
+            .caller
+            .attach("Python defined instructions", |py| {
                 unpack_py_instruction(py, instruction, label.as_deref(), qpy_data)
             })?,
     };
@@ -409,7 +425,7 @@ pub fn unpack_instruction(
         }
         _ => (op, params),
     };
-
+    qpy_data.remaining_depth += 1;
     Ok(PackedInstruction {
         op,
         qubits,
@@ -562,7 +578,7 @@ fn unpack_pauli_product_rotation(
         qpy_data,
         ValueEndian::LittleForV17AndBelow,
     )?;
-    let angle = generic_value_to_param(&angle_value)?;
+    let angle = generic_value_to_param(&angle_value, qpy_data)?;
     let rotation = PauliProductRotation { z, x, angle };
     let pbc = Box::new(PauliBased::PauliProductRotation(rotation));
     let op = PackedOperation::from_pauli_based(pbc);
@@ -868,10 +884,17 @@ fn unpack_transpile_layout<'py>(
                 &packed_register.register_type,
             ),
         };
-        if *register_type == RegisterType::Qreg {
-            let register = QuantumRegister::new_owning(name.clone(), bit_indices_len as u32);
-            extra_register_map.insert(name.as_str(), register);
-        }
+        match register_type {
+            RegisterType::Qreg => extra_register_map.insert(
+                name.as_str(),
+                QuantumRegister::new_owning(name.clone(), bit_indices_len as u32),
+            ),
+            RegisterType::Areg => extra_register_map.insert(
+                name.as_str(),
+                QuantumRegister::new_ancilla_owning(name.clone(), bit_indices_len as u32),
+            ),
+            _ => None,
+        };
     }
     // add the registers from the circuit, to streamline the search phase
     for qreg in circuit_data.qregs() {
@@ -975,15 +998,16 @@ fn read_custom_instructions(
                     })
             } else {
                 let circuit: PyCircuitData = unpack_circuit(
-                    &deserialize_with_args::<formats::QPYCircuit, (u8,)>(
+                    &deserialize_with_args::<formats::QPYCircuit, (u8, usize)>(
                         &operation.data,
-                        (qpy_data.version,),
+                        (qpy_data.version, qpy_data.remaining_depth),
                     )?
                     .0,
                     qpy_data.version,
                     qpy_data.use_symengine,
                     qpy_data.annotation_handler.child()?,
                     qpy_data.caller,
+                    qpy_data.remaining_depth,
                 )?
                 .into();
                 let py_circuit = qpy_data.caller.attach(
@@ -1114,11 +1138,18 @@ fn add_registers_and_bits(
                     non_standalone_registers.push(raw_register);
                 } else {
                     match packed_register.register_type {
-                        RegisterType::Qreg => {
-                            let qreg = QuantumRegister::new_owning(
-                                &packed_register.name,
-                                packed_register.bit_indices.len() as u32,
-                            );
+                        RegisterType::Qreg | RegisterType::Areg => {
+                            let qreg = match packed_register.register_type {
+                                RegisterType::Qreg => QuantumRegister::new_owning(
+                                    &packed_register.name,
+                                    packed_register.bit_indices.len() as u32,
+                                ),
+                                RegisterType::Areg => QuantumRegister::new_ancilla_owning(
+                                    packed_register.name.clone(),
+                                    packed_register.bit_indices.len() as u32,
+                                ),
+                                _ => unreachable!(),
+                            };
                             for (qubit, &index) in
                                 qreg.bits().zip(packed_register.bit_indices.iter())
                             {
@@ -1160,11 +1191,19 @@ fn add_registers_and_bits(
                     non_standalone_registers.push(raw_register);
                 } else {
                     match packed_register.register_type {
-                        RegisterType::Qreg => {
-                            let qreg = QuantumRegister::new_owning(
-                                &packed_register.name,
-                                packed_register.size,
-                            );
+                        RegisterType::Qreg | RegisterType::Areg => {
+                            let qreg = match packed_register.register_type {
+                                RegisterType::Qreg => QuantumRegister::new_owning(
+                                    &packed_register.name,
+                                    packed_register.size,
+                                ),
+                                RegisterType::Areg => QuantumRegister::new_ancilla_owning(
+                                    packed_register.name.clone(),
+                                    packed_register.size,
+                                ),
+                                _ => unreachable!(),
+                            };
+
                             if packed_register.register_attachment == 1 {
                                 let start = packed_register.start_index;
                                 for i in 0..packed_register.size {
@@ -1249,7 +1288,7 @@ fn add_registers_and_bits(
     for raw_register in non_standalone_registers {
         match raw_register {
             formats::RegisterPack::V4(packed_register) => match packed_register.register_type {
-                RegisterType::Qreg => {
+                RegisterType::Qreg | RegisterType::Areg => {
                     let bits: Vec<ShareableQubit> = packed_register
                         .bit_indices
                         .iter()
@@ -1262,7 +1301,20 @@ fn add_registers_and_bits(
                             }
                         })
                         .collect::<Result<_, QpyError>>()?;
-                    let qreg = QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
+                    let qreg = match packed_register.register_type {
+                        RegisterType::Qreg => {
+                            QuantumRegister::new_alias(Some(packed_register.name.clone()), bits)
+                        }
+                        RegisterType::Areg => {
+                            QuantumRegister::new_ancilla_alias(packed_register.name.clone(), bits)
+                                .ok_or_else(|| {
+                                QpyError::InvalidRegister(
+                                    "all bits from an ancilla register must be ancillas".to_owned(),
+                                )
+                            })?
+                        }
+                        _ => unreachable!(),
+                    };
                     qregs.push(qreg);
                 }
                 RegisterType::Creg => {
@@ -1290,7 +1342,7 @@ fn add_registers_and_bits(
                     ));
                 }
                 match packed_register.register_type {
-                    RegisterType::Qreg => {
+                    RegisterType::Qreg | RegisterType::Areg => {
                         let bits: Vec<ShareableQubit> = packed_register
                             .bit_indices
                             .iter()
@@ -1303,8 +1355,21 @@ fn add_registers_and_bits(
                                 }
                             })
                             .collect::<Result<_, QpyError>>()?;
-                        let qreg =
-                            QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
+                        let qreg = match packed_register.register_type {
+                            RegisterType::Qreg => {
+                                QuantumRegister::new_alias(Some(packed_register.name.clone()), bits)
+                            }
+                            RegisterType::Areg => QuantumRegister::new_ancilla_alias(
+                                packed_register.name.clone(),
+                                bits,
+                            )
+                            .ok_or_else(|| {
+                                QpyError::InvalidRegister(
+                                    "all bits from an ancilla register must be ancillas".to_owned(),
+                                )
+                            })?,
+                            _ => unreachable!(),
+                        };
                         qregs.push(qreg);
                     }
                     RegisterType::Creg => {
@@ -1352,7 +1417,11 @@ pub(crate) fn unpack_circuit(
     use_symengine: bool,
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,
+    remaining_depth: usize,
 ) -> Result<CircuitData, QpyError> {
+    let remaining_depth = remaining_depth
+        .checked_sub(1)
+        .ok_or_else(|| QpyError::RecursionError)?;
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut qpy_data = QPYReadData {
@@ -1387,6 +1456,7 @@ pub(crate) fn unpack_circuit(
             })
             .unwrap_or_default(),
         annotation_handler,
+        remaining_depth,
     };
     if let Some(annotation_headers) = &packed_circuit.annotation_headers {
         let annotation_deserializers_data: Vec<(String, Bytes)> = annotation_headers
@@ -1399,12 +1469,15 @@ pub(crate) fn unpack_circuit(
             .annotation_handler
             .load_deserializers(annotation_deserializers_data)?;
     }
-    let global_phase = generic_value_to_param(&load_value(
-        packed_circuit.header.global_phase_type,
-        &packed_circuit.header.global_phase_data,
-        &mut qpy_data,
-        ValueEndian::Big,
-    )?)?;
+    let global_phase = generic_value_to_param(
+        &load_value(
+            packed_circuit.header.global_phase_type,
+            &packed_circuit.header.global_phase_data,
+            &mut qpy_data,
+            ValueEndian::Big,
+        )?,
+        &qpy_data,
+    )?;
     qpy_data.circuit_data.set_global_phase_param(global_phase)?;
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;
