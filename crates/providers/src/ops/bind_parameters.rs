@@ -15,7 +15,7 @@
 use hashbrown::{HashMap, HashSet};
 use ndarray::{ArrayD, IxDyn};
 use num_complex::Complex64;
-use qiskit_circuit::parameter::parameter_expression::{ParameterError, ParameterExpression};
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::{Symbol, Value};
 use thiserror::Error;
 
@@ -30,10 +30,8 @@ use crate::tensor::{DType, Dim, Tensor, TensorType};
 /// `F64` or `C128`. When an expression evaluates to a complex number, an `F64` result keeps just
 /// the real part.
 ///
-/// ## Warning
-///
-/// This operation raises errors in [`Self::evaluation`] at runtime when a parameter
-/// expression cannot be evaluated, including situations like divide-by-zero.
+/// An expression that does not evaluate to a finite number, for example by dividing by zero,
+/// is set to NaN. In a `C128` result, both the real and imaginary parts are set to NaN.
 #[derive(Clone, Debug)]
 pub struct BindParameters {
     expressions: Vec<ParameterExpression>,
@@ -83,33 +81,26 @@ impl BindParameters {
 
     /// Evaluate every expression over each of `rows` consecutive sets of values from `values`,
     /// returning one tensor of `shape` in this op's dtype.
-    fn bind_all(
-        &self,
-        values: impl Iterator<Item = f64>,
-        rows: usize,
-        shape: &[usize],
-    ) -> Result<Tensor, BindParametersError> {
+    fn bind_all(&self, values: impl Iterator<Item = f64>, rows: usize, shape: &[usize]) -> Tensor {
         match self.dtype {
-            DType::C128 => Ok(Tensor::from(reshape(
-                self.evaluate(values, rows, complex)?,
+            DType::C128 => Tensor::from(reshape(
+                self.evaluate(values, rows, complex, Complex64::new(f64::NAN, f64::NAN)),
                 shape,
-            ))),
-            DType::F64 => Ok(Tensor::from(reshape(
-                self.evaluate(values, rows, real)?,
-                shape,
-            ))),
+            )),
+            DType::F64 => Tensor::from(reshape(self.evaluate(values, rows, real, f64::NAN), shape)),
             other => panic!("{} cannot produce {}", self.full_name(), other),
         }
     }
 
     /// Evaluate every expression over each of `rows` consecutive sets of values from `values`,
     /// mapping each result through `convert`.
-    fn evaluate<T>(
+    fn evaluate<T: Copy>(
         &self,
         mut values: impl Iterator<Item = f64>,
         rows: usize,
         convert: fn(Value) -> T,
-    ) -> Result<Vec<T>, BindParametersError> {
+        nan: T,
+    ) -> Vec<T> {
         let mut results = Vec::with_capacity(rows * self.expressions.len());
         for _ in 0..rows {
             let bindings: HashMap<&Symbol, Value> = self
@@ -118,25 +109,14 @@ impl BindParameters {
                 .zip(values.by_ref())
                 .map(|(parameter, value)| (parameter, Value::Real(value)))
                 .collect();
-            for (index, expression) in self.expressions.iter().enumerate() {
-                let bound = match expression.bind(&bindings, true) {
-                    Ok(bound) => bound,
-                    Err(ParameterError::BindingInf | ParameterError::BindingNaN) => {
-                        return Err(BindParametersError::NonFinite { expression: index });
-                    }
-                    Err(other) => panic!("{} cannot bind a value: {other}", self.full_name()),
-                };
-                let value = match bound.try_to_value(true) {
-                    Ok(value) => value,
-                    Err(ParameterError::UnboundParameters(_)) => {
-                        return Err(BindParametersError::UnboundParameter { expression: index });
-                    }
-                    Err(other) => panic!("{} cannot read a value: {other}", self.full_name()),
-                };
-                results.push(convert(value));
+            for expression in &self.expressions {
+                let value = expression
+                    .bind(&bindings, true)
+                    .and_then(|bound| bound.try_to_value(true));
+                results.push(value.map_or(nan, convert));
             }
         }
-        Ok(results)
+        results
     }
 }
 
@@ -197,7 +177,7 @@ impl ProgramOp for BindParameters {
                 self.full_name(),
                 other.dtype()
             ),
-        }?;
+        };
         Ok(vec![results])
     }
 }
@@ -261,12 +241,6 @@ pub enum BindParametersError {
     /// The result dtype is neither `F64` nor `C128`.
     #[error("expected a result dtype of F64 or C128, got {dtype}")]
     ResultDType { dtype: DType },
-    /// An expression did not evaluate to a finite number.
-    #[error("expression {expression} did not evaluate to a finite number")]
-    NonFinite { expression: usize },
-    /// An expression has an unbound parameter.
-    #[error("expression {expression} has an unbound parameter")]
-    UnboundParameter { expression: usize },
 }
 
 #[cfg(test)]
@@ -481,7 +455,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "qiskit.bind_parameters expects one value per parameter")]
+    #[should_panic]
     fn test_eval_of_the_wrong_number_of_values_per_set_panics() {
         // Unreachable through a program function, which type-checks the operand while adding the
         // op, but reading the values as sets of the wrong size would be silently wrong.
@@ -491,24 +465,37 @@ mod test {
     }
 
     #[test]
-    fn test_a_non_finite_result_is_reported() {
+    fn test_a_non_finite_result_is_nan() {
         let x = symbol("x");
-        let op = real_op(
-            vec![
-                expr(&x),
-                ParameterExpression::from_f64(1.0).div(&expr(&x)).unwrap(),
-            ],
-            vec![x],
-        );
-        assert_eq!(
-            op.eval(&[tensor(&[1], &[2.0])]).unwrap(),
-            vec![tensor(&[2], &[2.0, 0.5])]
-        );
-        let err = op.eval(&[tensor(&[1], &[0.0])]).unwrap_err();
+        let expressions = vec![
+            expr(&x),
+            ParameterExpression::from_f64(1.0).div(&expr(&x)).unwrap(),
+        ];
+        let values = tensor(&[2, 1], &[2.0, 0.0]);
+
+        let op = real_op(expressions.clone(), vec![x.clone()]);
+        let results = op.eval(std::slice::from_ref(&values)).unwrap();
+        let Tensor::F64(results) = &results[0] else {
+            panic!("the result is F64")
+        };
+        assert_eq!(results.shape(), [2, 2]);
+        let results: Vec<Option<f64>> = results
+            .iter()
+            .map(|&value| (!value.is_nan()).then_some(value))
+            .collect();
+        assert_eq!(results, [Some(2.0), Some(0.5), Some(0.0), None]);
+
+        let op = BindParameters::new(expressions, vec![x], DType::C128).unwrap();
+        let results = op.eval(std::slice::from_ref(&values)).unwrap();
+        let Tensor::C128(results) = &results[0] else {
+            panic!("the result is C128")
+        };
+        let nan = results[[1, 1]];
         assert!(
-            matches!(err, BindParametersError::NonFinite { expression: 1 }),
-            "the expression that has no value is named: {err}"
+            nan.re.is_nan() && nan.im.is_nan(),
+            "{nan} is NaN in both parts"
         );
+        assert_eq!(results[[1, 0]], Complex64::new(0.0, 0.0));
     }
 
     #[test]
@@ -530,7 +517,7 @@ mod test {
     #[test]
     fn test_every_expression_kind_evaluates_to_a_value() {
         // Binding every declared parameter leaves nothing symbolic, whatever the expression is
-        // built from, which is why an unbound parameter cannot reach the result.
+        // built from, so no result is NaN.
         let x = symbol("x");
         let expressions = vec![
             expr(&x).sin(),
@@ -547,7 +534,11 @@ mod test {
         let count = expressions.len();
         let op = real_op(expressions, vec![x]);
         let results = op.eval(&[tensor(&[1], &[0.5])]).unwrap();
-        assert_eq!(results[0].shape(), [count]);
+        let Tensor::F64(results) = &results[0] else {
+            panic!("the result is F64")
+        };
+        assert_eq!(results.shape(), [count]);
+        assert!(results.iter().all(|value| !value.is_nan()), "{results}");
     }
 
     #[test]
