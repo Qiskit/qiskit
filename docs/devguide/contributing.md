@@ -1212,7 +1212,7 @@ When adding a new requirement, you must add it to [`pyproject.toml`](pyproject.t
 
 A new feature can also use an "optional dependency", if the feature is not critical to all Qiskit
 users, and the dependency cannot be made a requirement.  These optional dependencies can have
-stricter requirements than requirements, such as needing a more recent version of Python, or only
+stricter constraints than requirements, such as needing a more recent version of Python, or only
 being supported on tier-1 platforms.
 
 To add an optional dependency, you should:
