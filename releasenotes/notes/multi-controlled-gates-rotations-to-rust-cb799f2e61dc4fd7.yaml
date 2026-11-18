@@ -3,7 +3,7 @@ features_circuits:
   - Port the synthesis methods of :meth:`qiskit.circuit.QuantumCircuit.mcrx`, 
     :meth:`qiskit.circuit.QuantumCircuit.mcry` and :meth:`qiskit.circuit.QuantumCircuit.mcrz` to rust.
     Improve the default CX count in their synthesis methods.
-  - Improve the CX count in the synthesis of the multi-contolled
+  - Improve the CX count in the synthesis of the multi-controlled
     :class:`.RXGate`, :class:`.RYGate`, :class:`.RZGate` and :class:`.UGate`.
 features_synthesis:
   - Improve the CX count in :func:`.synth_mcp_noaux_v24` and :func:`.synth_mcx_noaux_v24`.
