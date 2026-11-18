@@ -73,6 +73,15 @@ trait CircuitDataForSynthesis {
     #[allow(dead_code)]
     fn p(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError>;
 
+    /// Appends RX to the circuit.
+    fn rx(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError>;
+
+    /// Appends RY to the circuit.
+    fn ry(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError>;
+
+    /// Appends RZ to the circuit.
+    fn rz(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError>;
+
     /// Appends CX to the circuit.
     fn cx(&mut self, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
 
@@ -89,7 +98,13 @@ trait CircuitDataForSynthesis {
     fn rccx(&mut self, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitDataError>;
 
     /// Appends CRX to the circuit.
-    fn crx(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
+    fn crx(&mut self, theta: impl Into<Param>, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
+
+    /// Appends CRY to the circuit.
+    fn cry(&mut self, theta: impl Into<Param>, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
+
+    /// Appends CRZ to the circuit.
+    fn crz(&mut self, theta: impl Into<Param>, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
 
     /// Compose ``other`` into ``self``, while remapping the qubits
     /// over which ``other`` is defined. The operations are added in-place.
@@ -135,6 +150,24 @@ impl CircuitDataForSynthesis for CircuitData {
         self.push_standard_gate(StandardGate::Phase, &[theta.into()], &[Qubit(q)])
     }
 
+    /// Appends RX to the circuit.
+    #[inline]
+    fn rx(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError> {
+        self.push_standard_gate(StandardGate::RX, &[theta.into()], &[Qubit(q)])
+    }
+
+    /// Appends RY to the circuit.
+    #[inline]
+    fn ry(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError> {
+        self.push_standard_gate(StandardGate::RY, &[theta.into()], &[Qubit(q)])
+    }
+
+    /// Appends RZ to the circuit.
+    #[inline]
+    fn rz(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError> {
+        self.push_standard_gate(StandardGate::RZ, &[theta.into()], &[Qubit(q)])
+    }
+
     /// Appends CX to the circuit.
     #[inline]
     fn cx(&mut self, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
@@ -153,12 +186,20 @@ impl CircuitDataForSynthesis for CircuitData {
 
     /// Appends CRX to the circuit.
     #[inline]
-    fn crx(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
-        self.push_standard_gate(
-            StandardGate::CRX,
-            &[Param::Float(theta)],
-            &[Qubit(q1), Qubit(q2)],
-        )
+    fn crx(&mut self, theta: impl Into<Param>, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
+        self.push_standard_gate(StandardGate::CRX, &[theta.into()], &[Qubit(q1), Qubit(q2)])
+    }
+
+    /// Appends CRY to the circuit.
+    #[inline]
+    fn cry(&mut self, theta: impl Into<Param>, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
+        self.push_standard_gate(StandardGate::CRY, &[theta.into()], &[Qubit(q1), Qubit(q2)])
+    }
+
+    /// Appends CRX to the circuit.
+    #[inline]
+    fn crz(&mut self, theta: impl Into<Param>, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
+        self.push_standard_gate(StandardGate::CRZ, &[theta.into()], &[Qubit(q1), Qubit(q2)])
     }
 
     fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitDataError> {
@@ -1936,6 +1977,180 @@ mod sp22 {
         }
         Ok(())
     }
+}
+
+/// Apply a single qubit rotation gate RX / RY / RZ
+fn apply_rotation(
+    circuit: &mut CircuitData,
+    rot_gate: StandardGate,
+    theta: Param,
+    target: u32,
+) -> Result<(), CircuitDataError> {
+    match rot_gate {
+        StandardGate::RX => circuit.rx(theta, target)?,
+        StandardGate::RY => circuit.ry(theta, target)?,
+        StandardGate::RZ => circuit.rz(theta, target)?,
+        _ => unreachable!("This is only called for 1-qubit rotation gates."),
+    }
+
+    Ok(())
+}
+
+/// Helper function for MCRX / MCRY / MCRZ synthesis with no auxiliary qubits
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - rot_gate: the single-qubit rotation gate (RX, RY, or RZ)
+/// - phase: the phase angle for the multi-controlled rotation gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled rotation gate.
+///
+/// # References
+///
+/// 1. R. Vale et al. Decomposition of Multi-controlled Special Unitary Single-Qubit Gates
+///    arXiv:2302.06377 (2023) https://arxiv.org/abs/2302.06377
+pub fn synth_mc_rot_noaux(
+    num_ctrl_qubits: usize,
+    rot_gate: StandardGate,
+    phase: Param,
+) -> Result<CircuitData, CircuitDataError> {
+    let (is_secondary_diag_real, s_gate): (bool, StandardGate) = match rot_gate {
+        StandardGate::RY => (true, StandardGate::RY),
+        StandardGate::RZ => (true, StandardGate::RZ),
+        StandardGate::RX => (false, StandardGate::RZ),
+        _ => unreachable!("This is only called for 1-qubit rotation gates."),
+    };
+    let theta = multiply_param(&phase, -0.25);
+
+    let k_1 = (num_ctrl_qubits as f64 / 2.0).ceil() as usize;
+    let k_2 = (num_ctrl_qubits as f64 / 2.0).floor() as usize;
+
+    let mcx1 = synth_mcx_n_dirty_i15(k_1, false, false)?;
+    let num_qubits_mcx1 = if k_1 < 4 { k_1 + 1 } else { 2 * k_1 - 1 };
+    let mcx1_num_ancillas = num_qubits_mcx1 - k_1 - 1;
+    let mcx1_qubits: Vec<Qubit> = (0..k_1)
+        .chain([num_ctrl_qubits])
+        .chain(k_1..k_1 + mcx1_num_ancillas)
+        .map(|q| Qubit(q as u32))
+        .collect();
+
+    let mcx2 = synth_mcx_n_dirty_i15(k_2, false, false)?;
+    let num_qubits_mcx2 = if k_2 < 4 { k_2 + 1 } else { 2 * k_2 - 1 };
+    let mcx2_num_ancillas = num_qubits_mcx2 - k_2 - 1;
+    let mcx2_qubits: Vec<Qubit> = (k_1..num_ctrl_qubits)
+        .chain([num_ctrl_qubits])
+        .chain(k_1 - mcx2_num_ancillas..k_1)
+        .map(|q| Qubit(q as u32))
+        .collect();
+
+    let target = num_ctrl_qubits as u32;
+
+    let mut circuit =
+        CircuitData::with_capacity((num_ctrl_qubits + 1) as u32, 0, 0, Param::Float(0.0))?;
+
+    if !is_secondary_diag_real {
+        circuit.h(target)?;
+    }
+
+    let inverse_theta = multiply_param(&theta, -1.0);
+    circuit.compose(&mcx1, &mcx1_qubits, &[])?;
+    apply_rotation(&mut circuit, s_gate, theta.clone(), target)?;
+    circuit.compose(&mcx2, &mcx2_qubits, &[])?;
+    apply_rotation(&mut circuit, s_gate, inverse_theta.clone(), target)?;
+    circuit.compose(&mcx1, &mcx1_qubits, &[])?;
+    apply_rotation(&mut circuit, s_gate, theta.clone(), target)?;
+    circuit.compose(&mcx2, &mcx2_qubits, &[])?;
+    apply_rotation(&mut circuit, s_gate, inverse_theta.clone(), target)?;
+
+    if !is_secondary_diag_real {
+        circuit.h(target)?;
+    }
+
+    Ok(circuit)
+}
+
+/// MCRX synthesis with no auxiliary qubits
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled RX gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled RX gate.
+pub fn synth_mcrx_noaux(
+    num_ctrl_qubits: usize,
+    phase: Param,
+) -> Result<CircuitData, CircuitDataError> {
+    let mut circuit =
+        CircuitData::with_capacity((num_ctrl_qubits + 1) as u32, 0, 0, Param::Float(0.0))?;
+
+    if num_ctrl_qubits == 0 {
+        circuit.rx(phase, 0)?;
+    } else if num_ctrl_qubits == 1 {
+        circuit.crx(phase, 0, 1)?;
+    } else {
+        circuit = synth_mc_rot_noaux(num_ctrl_qubits, StandardGate::RX, phase)?;
+    }
+    Ok(circuit)
+}
+
+/// MCRY synthesis with no auxiliary qubits
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled RY gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled RY gate.
+pub fn synth_mcry_noaux(
+    num_ctrl_qubits: usize,
+    phase: Param,
+) -> Result<CircuitData, CircuitDataError> {
+    let mut circuit =
+        CircuitData::with_capacity((num_ctrl_qubits + 1) as u32, 0, 0, Param::Float(0.0))?;
+
+    if num_ctrl_qubits == 0 {
+        circuit.ry(phase, 0)?;
+    } else if num_ctrl_qubits == 1 {
+        circuit.cry(phase, 0, 1)?;
+    } else {
+        circuit = synth_mc_rot_noaux(num_ctrl_qubits, StandardGate::RY, phase)?;
+    }
+    Ok(circuit)
+}
+
+/// MCRZ synthesis with no auxiliary qubits
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled RZ gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled RZ gate.
+pub fn synth_mcrz_noaux(
+    num_ctrl_qubits: usize,
+    phase: Param,
+) -> Result<CircuitData, CircuitDataError> {
+    let mut circuit =
+        CircuitData::with_capacity((num_ctrl_qubits + 1) as u32, 0, 0, Param::Float(0.0))?;
+
+    if num_ctrl_qubits == 0 {
+        circuit.rz(phase, 0)?;
+    } else if num_ctrl_qubits == 1 {
+        circuit.crz(phase, 0, 1)?;
+    } else {
+        circuit = synth_mc_rot_noaux(num_ctrl_qubits, StandardGate::RZ, phase)?;
+    }
+    Ok(circuit)
 }
 
 #[cfg(all(test, not(miri)))]

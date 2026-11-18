@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use super::error::{MathOpError, check_axis};
-use super::inference::{any, reduce};
+use super::inference::{promotable, reduce};
 use super::{ProgramOp, QISKIT};
 use crate::tensor::{DType, Tensor, TensorType};
 use ndarray::{ArrayBase, ArrayD, Axis, Data, IxDyn, NdFloat, Zip};
@@ -141,7 +141,7 @@ macro_rules! reduction_op {
                 inputs: &[TensorType],
             ) -> Result<Vec<TensorType>, Self::Error> {
                 crate::unpack_operands!(self, inputs, [x]);
-                Ok(vec![reduce(x, self.axis, any, $result_dtype)?])
+                Ok(vec![reduce(x, self.axis, promotable, $result_dtype)?])
             }
             fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
                 crate::unpack_operands!(self, args, [x]);
@@ -165,6 +165,11 @@ impl Mean {
     /// Construct a `Mean` op that reduces along `axis`.
     pub fn new(axis: usize) -> Self {
         Self { axis }
+    }
+
+    /// Return the axis this op reduces along.
+    pub fn axis(&self) -> usize {
+        self.axis
     }
 
     /// Compute the mean of `x` along `self.axis`, which must be in bounds for `x`.
@@ -211,6 +216,16 @@ impl Variance {
     /// correction `ddof`.
     pub fn new(axis: usize, ddof: f64) -> Self {
         Self { axis, ddof }
+    }
+
+    /// Return the axis this op reduces along.
+    pub fn axis(&self) -> usize {
+        self.axis
+    }
+
+    /// Return the degrees-of-freedom correction subtracted from the divisor.
+    pub fn ddof(&self) -> f64 {
+        self.ddof
     }
 
     /// Compute the variance of `x` along `self.axis`.
@@ -263,6 +278,16 @@ impl Std {
         Self { axis, ddof }
     }
 
+    /// Return the axis this op reduces along.
+    pub fn axis(&self) -> usize {
+        self.axis
+    }
+
+    /// Return the degrees-of-freedom correction subtracted from the divisor.
+    pub fn ddof(&self) -> f64 {
+        self.ddof
+    }
+
     /// Compute the standard deviation of `x` along `self.axis`.
     fn reduce_axis(&self, x: &Tensor) -> Tensor {
         match Variance::new(self.axis, self.ddof).reduce_axis(x) {
@@ -301,6 +326,17 @@ mod tests {
             dtype,
             shape: vec![rows, cols],
         }
+    }
+
+    #[test]
+    fn test_a_reduction_reports_what_it_was_built_with() {
+        assert_eq!(Mean::new(1).axis(), 1);
+
+        let variance = Variance::new(2, 1.0);
+        assert_eq!((variance.axis(), variance.ddof()), (2, 1.0));
+
+        let std = Std::new(0, 0.5);
+        assert_eq!((std.axis(), std.ddof()), (0, 0.5));
     }
 
     // --- Mean tests ---
@@ -893,5 +929,30 @@ mod tests {
             Std::new(1, 0.0).eval(&[x]).unwrap_err(),
             MathOpError::InvalidAxis { axis: 1, ndim: 1 }
         ));
+    }
+
+    #[test]
+    fn test_reducing_a_key_is_refused_at_inference() {
+        // Without this, the result dtype map's catch-all arm would claim a key reduces to F64 and
+        // eval would be reached with a tensor it cannot average.
+        let key = DType::Key(crate::tensor::PrngKind::Philox4x32);
+        let key_type = TensorType {
+            dtype: key,
+            shape: vec![crate::tensor::Dim::Fixed(3)],
+        };
+        for op in [
+            &Mean::new(0) as &dyn ProgramOp<Error = MathOpError>,
+            &Variance::new(0, 0.0),
+            &Std::new(0, 0.0),
+        ] {
+            assert!(
+                matches!(
+                    op.infer_output_types(std::slice::from_ref(&key_type)).unwrap_err(),
+                    MathOpError::UnsupportedDType { operand: 0, dtype } if dtype == key
+                ),
+                "for {}",
+                op.full_name()
+            );
+        }
     }
 }

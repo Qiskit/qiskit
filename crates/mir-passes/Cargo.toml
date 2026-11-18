@@ -1,0 +1,24 @@
+[package]
+name = "qiskit-mir-passes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_mir_passes"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+hashbrown.workspace = true
+qiskit-circuit = {workspace = true, features = ["passmanager"]}
+pyo3 = { workspace = true, optional = true }
+qiskit-mir = {workspace = true, features = ["passmanager"] }
+qiskit-passmanager.workspace = true
+
+[features]
+py = ["dep:pyo3", "qiskit-mir/py"]

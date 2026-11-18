@@ -736,7 +736,7 @@ version: `tox -epy313` (or replace py313 with the python version you want to use
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy310 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy311 -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -746,25 +746,25 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler
+tox -epy311 -- -n test.python.compiler.test_transpiler
 ```
 or to run the same module by path:
 
 ```
-tox -epy310 -- -n test/python/compiler/test_transpiler.py
+tox -epy311 -- -n test/python/compiler/test_transpiler.py
 ```
 to run a class:
 
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
+tox -epy311 -- -n test.python.compiler.test_transpiler.TestTranspile
 ```
 to run a method:
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
+tox -epy311 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
 ```
 
 If you want to run the test suite in your local environment without using `tox` as a runner, you can
-either use the `tox devenv -e py310` command to have `tox` construct you a new development environment,
+either use the `tox devenv -e py311` command to have `tox` construct you a new development environment,
 or you can install the `test` dependency group using your package manager, such as
 ```
 pip install --group test
@@ -921,7 +921,7 @@ Rust tests are run separately from the Python and C tests. To run the tests you 
 `cargo test`.
 
 ```bash
-cargo test
+cargo test --all-features
 ```
 
 If you want to run the tests for a single [crate](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)
@@ -1052,7 +1052,10 @@ After this, `ruff` and `black` will be available and can be run from the command
 For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
 code formatting. You can simply run `cargo fmt` (if you installed Rust with the
 default settings using `rustup`), and it will update the code formatting automatically to
-conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`.
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. To ensure optional features are linted as well, run clippy with the `--all-targets` and `--all-features` flags:
+```bash
+cargo clippy --all-targets --all-features -- -D warnings
+```
 
 Rust lint and formatting checks are included in the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
@@ -1206,22 +1209,33 @@ Rust dependencies are not constrained, other than by the platform support requir
 Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit supports.
 It also cannot impose many version restrictions on other packages.
 Users often install qiskit into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
-When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) following the [version-support policy](#version-support-policy).
+When adding a new requirement, you must add it to [`pyproject.toml`](pyproject.toml) in the `project.dependencies` key, following the [version-support policy](#version-support-policy).
 
 ### Adding an optional dependency
 
-New features can also use optional dependencies, which might be used only in very limited parts of qiskit.
-These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
-Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
-To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
-You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
+A new feature can also use an "optional dependency", if the feature is not critical to all Qiskit
+users, and the dependency cannot be made a requirement.  These optional dependencies can have
+stricter constraints than requirements, such as needing a more recent version of Python, or only
+being supported on tier-1 platforms.
 
-### Checking for optionals
+To add an optional dependency, you should:
 
-You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit will be unusable.
-We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
-Instead, you should use [one of the "lazy testers" for optional dependencies](https://quantum.cloud.ibm.com/docs/api/qiskit/utils#optional-dependency-checkers), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
-Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
+- Add [a "lazy dependency tester"](https://quantum.cloud.ibm.com/docs/api/qiskit/utils#optional-dependency-checkers)
+  for the new optional dependency.
+
+- Make sure that all `import`s of the dependency are inside functions whose use is protected by the
+  lazy tester above.
+
+- Consider adding the dependency to one of the `optional-*` groups in the `dependency-groups` table
+  in `pyproject.toml` (or a new group), so it will be pulled in during testing and documentation
+  builds.
+
+- Consider making _groups_ of new dependencies an extra in the `qiskit` package by adding a group to
+  the `project.optional-dependencies` table of `pyproject.toml`.
+
+You must not have a top-level `import` of an optional dependency, even with `try`/`except` idiom for
+attempting imports; these tend to make `import qiskit` sluggish.
+
 
 
 ## Dealing with the git blame ignore list
