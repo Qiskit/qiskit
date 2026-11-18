@@ -631,6 +631,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit._add_control import EFFICIENTLY_CONTROLLED_GATES
 from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.circuit.library.pauli_evolution import _contains_projectors
+from qiskit.synthesis.evolution.product_formula import _CX_STRUCTURES
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
@@ -2291,7 +2292,10 @@ class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
             if "preserve_order" in options:
                 algo.preserve_order = options["preserve_order"]
             if "cx_structure" in options:
-                algo._cx_structure = options["cx_structure"]
+                cx_structure = options["cx_structure"]
+                if cx_structure not in _CX_STRUCTURES:
+                    raise ValueError(f"Unsupported CX structure: {cx_structure}")
+                algo._cx_structure = cx_structure
 
             synth_object = algo.synthesize(high_level_object)
             algo.preserve_order = original_preserve_order

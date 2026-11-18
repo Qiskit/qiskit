@@ -417,6 +417,35 @@ class TestEvolutionGate(QiskitTestCase):
         self.assertEqual(expected, evo.definition)
         self.assertSuzukiTrotterIsCorrect(evo)
 
+    @combine(option=["chain", "fountain", "cascade"], num_qubits=[3, 4, 5, 7, 8, 9, 16, 17])
+    def test_cnot_chain_count_and_depth(self, option, num_qubits):
+        """Test the number of CX gates and the CX depth for the different kinds of CNOT chains.
+
+        All structures use the same number of CX gates. In addition, he "cascade" structure
+        has a logarithmic CX depth.
+        """
+        op = SparsePauliOp(["Z" * num_qubits])
+        synthesis = LieTrotter(reps=1, cx_structure=option)
+        evo = PauliEvolutionGate(op, synthesis=synthesis)
+        circuit = evo.definition
+
+        cx_count_actual = circuit.count_ops().get("cx", 0)
+        cx_count_expected = 2 * (num_qubits - 1)
+        self.assertEqual(cx_count_actual, cx_count_expected)
+
+        cx_depth_actual = circuit.depth(lambda instruction: instruction.operation.name == "cx")
+        if option == "cascade":
+            cx_depth_expected = 2 * (num_qubits - 1).bit_length()
+        else:
+            cx_depth_expected = 2 * (num_qubits - 1)
+        self.assertEqual(cx_depth_actual, cx_depth_expected)
+
+    @data(LieTrotter, SuzukiTrotter, QDrift)
+    def test_invalid_cx_structure_raises(self, product_formula):
+        """Test that an unsupported CX structure raises an error."""
+        with self.assertRaisesRegex(ValueError, "Unsupported CX structure"):
+            _ = product_formula(cx_structure="unsupported")
+
     @data(
         Pauli("XI"),
         SparsePauliOp(Pauli("XI")),
