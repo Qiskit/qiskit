@@ -2154,7 +2154,7 @@ pub fn synth_mcrz_noaux(
 }
 
 /// Synthesize a multi-controlled phase gate with :math:`n` controls based on the
-/// synthesis of multi-controlled rz gate, using O(n^2) CX gates.
+/// synthesis of multi-controlled rz gate, using :math:`O(n^2)` CX gates.
 ///
 /// # Arguments
 ///
@@ -2177,16 +2177,15 @@ pub fn synth_mcp_noaux_v24(
     } else if num_ctrl_qubits == 1 {
         circuit.cp(phase, 0, 1)?;
     } else {
-        let mut new_controls = num_ctrl_qubits;
         for k in 0..num_ctrl_qubits {
+            let new_controls = num_ctrl_qubits - k;
             let phase_factor = 1.0 / 2f64.powi(k as i32);
             let mcrz = synth_mcrz_noaux(new_controls, multiply_param(&phase, phase_factor))?;
             let mcrz_qubits: Vec<Qubit> = (0..(new_controls + 1) as u32).map(Qubit).collect();
             circuit.compose(&mcrz, &mcrz_qubits, &[])?;
-            new_controls -= 1;
         }
         let phase_factor = 1.0 / 2.0_f64.powi(num_ctrl_qubits as i32);
-        circuit.p(multiply_param(&phase, phase_factor), new_controls as u32)?;
+        circuit.p(multiply_param(&phase, phase_factor), 0)?;
     }
     Ok(circuit)
 }
