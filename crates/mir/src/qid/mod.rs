@@ -161,7 +161,7 @@ impl fmt::Display for Qid {
             QidSpace::Virtual => "v",
             QidSpace::Physical => "p",
         };
-        write!(f, "Qid({}{})", key, self.value())
+        write!(f, "{}{}", key, self.value())
     }
 }
 
@@ -268,6 +268,11 @@ impl Ord for QidBit {
         self.cmp_key().cmp(&other.cmp_key())
     }
 }
+impl fmt::Display for QidBit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {})", self.qid(), self.bit())
+    }
+}
 
 /// A layout for the internal bits of a [`Qid`].
 ///
@@ -308,6 +313,24 @@ impl BitLayout {
             Self::Abstract => None,
             Self::Base(width) => Some(*width),
             Self::Alias(layout) => Some(layout.len() as u32),
+        }
+    }
+}
+impl fmt::Display for BitLayout {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BitLayout::Abstract => write!(f, "Abstract"),
+            BitLayout::Base(w) => write!(f, "Base({w})"),
+            BitLayout::Alias(bits) => {
+                let items: Vec<String> = bits
+                    .iter()
+                    .map(|b| match b {
+                        Some(bit) => bit.to_string(),
+                        None => "_".to_string(),
+                    })
+                    .collect();
+                write!(f, "Alias([{}])", items.join(", "))
+            }
         }
     }
 }
@@ -360,6 +383,12 @@ impl QidList {
     }
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+}
+impl fmt::Display for QidList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let items: Vec<String> = self.0.iter().map(|q| q.to_string()).collect();
+        write!(f, "[{}]", items.join(","))
     }
 }
 

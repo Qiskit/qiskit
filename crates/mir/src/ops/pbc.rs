@@ -78,6 +78,13 @@ impl PauliString {
     }
 }
 
+impl fmt::Display for PauliString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let items: Vec<String> = self.0.iter().map(|p| p.to_string()).collect();
+        write!(f, "[{}]", items.join(","))
+    }
+}
+
 /// A rotation angle in units of `rad / pi`.
 ///
 /// # Storage
@@ -143,6 +150,17 @@ impl AngleType {
     /// `pi`.
     pub const fn as_rad(&self) -> f64 {
         self.0 * f64::consts::PI
+    }
+}
+
+impl fmt::Display for AngleType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let val = self.0;
+        if val.fract() == 0.0 {
+            write!(f, "{val:.1}")
+        } else {
+            write!(f, "{val}")
+        }
     }
 }
 
