@@ -24,6 +24,7 @@ from collections.abc import Iterable, Mapping
 import struct
 import warnings
 import re
+import sys
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -31,6 +32,7 @@ from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit import user_config
 from qiskit.version import __version__
+from qiskit._accelerate import qpy as _qpy
 
 if TYPE_CHECKING:
     from qiskit.circuit import annotation
@@ -158,21 +160,11 @@ def dump(
                 from the QPY format at that version will persist. This should only be used if
                 compatibility with loading the payload with an older version of Qiskit is necessary.
 
-            .. note::
-
-                If serializing a :class:`.QuantumCircuit` that contains
-                :class:`.ParameterExpression` objects with ``version`` set low with the intent to
-                load the payload using a historical release of Qiskit, it is safest to set the
-                ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
-                QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
-                unless the version of ``symengine`` used between the loading and generating
-                environments matches.
         annotation_factories: Mapping of namespaces to functions that create new instances of
             :class:`.annotation.QPUSerializer`, for handling the dumping of custom
             :class:`.Annotation` objects.  The subsequent call to :func:`load` will need to use
             similar serializer objects, that understand the custom output format of those
             serializers.
-
 
     Raises:
         TypeError: When invalid data type is input.
@@ -196,6 +188,15 @@ def dump(
         )
 
     use_rust = version >= common.QPY_RUST_WRITE_MIN_VERSION
+    if use_rust:
+        _qpy.dump(
+            programs,
+            file_obj,
+            metadata_serializer,
+            version,
+            annotation_factories,
+        )
+        return
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
@@ -274,6 +275,11 @@ def dump(
             _write_circuit(file_obj, program)
 
 
+def _get_recursion_limit() -> int:
+    """Get a recursion limit suitable for the parser."""
+    return sys.getrecursionlimit() // 10
+
+
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: type[JSONDecoder] | None = None,
@@ -304,6 +310,12 @@ def load(
 
     which will read the contents of the qpy and return a list of
     :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
+
+    .. note::
+        Certain aspects of QPY payload deserialization are recursive, and will raise a
+        :exc:`RecursionError` if anything requires excessive depth to evaluate. This maxmimum
+        depth can be adjusted using :func:`sys.setrecursionlimit`; the actual limit is
+        one-tenth of this value.
 
     Args:
         file_obj: A file like object that contains the QPY binary
@@ -342,6 +354,18 @@ def load(
             f"The QPY format version being read, {version}, isn't supported by "
             "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
         )
+    config = user_config.get_config()
+    min_qpy_version = config.get("min_qpy_version")
+    if min_qpy_version is not None and version < min_qpy_version:
+        raise QpyError(
+            f"QPY version {version} is lower than the configured minimum "
+            f"version {min_qpy_version}."
+        )
+    use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
+    if use_rust:
+        return _qpy.load(
+            file_obj, metadata_deserializer, annotation_factories, _get_recursion_limit()
+        )
 
     if version < 10:
         data = formats.FILE_HEADER._make(
@@ -356,15 +380,6 @@ def load(
                 formats.FILE_HEADER_V10_PACK,
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
-        )
-    use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
-
-    config = user_config.get_config()
-    min_qpy_version = config.get("min_qpy_version")
-    if min_qpy_version is not None and data.qpy_version < min_qpy_version:
-        raise QpyError(
-            f"QPY version {data.qpy_version} is lower than the configured minimum "
-            f"version {min_qpy_version}."
         )
 
     if data.preface.decode(common.ENCODE) != "QISKIT":

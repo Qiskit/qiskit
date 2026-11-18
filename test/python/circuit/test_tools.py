@@ -83,7 +83,10 @@ class TestPiCheck(QiskitTestCase):
         x = Parameter("x")
         y = Parameter("y")
         z = Parameter("z")
-        pcase = (pi**3 * x + 3 / (4 * pi) * y - 13 * pi / 2 * z, "π**3*x + 3/4π*y - 13π/2*z")
+        pcase = (
+            pi**3 * x + 3 / (4 * pi) * y - 13 * pi / 2 * z,
+            "(π**3)*x + (3/4π)*y - (13π/2)*z",
+        )
         input_number = pcase[0]
         expected_string = pcase[1]
         result = pi_check(input_number)
@@ -93,9 +96,13 @@ class TestPiCheck(QiskitTestCase):
         """Test pi/2 displays properly in ParameterExpression - #6758"""
         x = Parameter("x")
         input_number = x + pi / 2
-        expected_string = "π/2 + x"
+        expected_string = "(π/2) + x"
         result = pi_check(input_number)
         self.assertEqual(result, expected_string)
+        self.assertEqual(pi_check(input_number, output="latex"), r"(\frac{\pi}{2}) + x")
+        self.assertEqual(pi_check(input_number, output="mpl"), r"($\pi$/2) + x")
+        self.assertEqual(pi_check(x + pi, output="latex"), r"\pi + x")
+        self.assertEqual(pi_check(x + pi, output="mpl"), r"$\pi$ + x")
 
     def test_near_pi_over_k_no_redundant_coefficient(self):
         """Floats near π/k format like π/k, not 1π/k — #16170"""

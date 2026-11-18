@@ -21,7 +21,7 @@ use rand_pcg::Pcg64Mcg;
 use rayon_cond::CondIterator;
 use rustworkx_core::petgraph::graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, PyDAGCircuit};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit};
 use qiskit_util::getenv_use_multiple_threads;
@@ -81,7 +81,7 @@ impl From<SabreLayoutError> for PyErr {
 #[pyfunction(name = "sabre_layout_and_routing")]
 #[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
 pub fn py_sabre_layout_and_routing(
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     target: &Target,
     heuristic: &Heuristic,
     max_iterations: usize,
@@ -90,9 +90,9 @@ pub fn py_sabre_layout_and_routing(
     seed: Option<u64>,
     partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
     skip_routing: bool,
-) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
+) -> PyResult<(PyDAGCircuit, NLayout, NLayout)> {
     sabre_layout_and_routing(
-        dag,
+        dag.try_write()?,
         target,
         heuristic,
         max_iterations,
@@ -102,6 +102,14 @@ pub fn py_sabre_layout_and_routing(
         partial_layouts,
         skip_routing,
     )
+    .map(|(out_dag, init, out)| {
+        // Preserve metadata
+        (
+            PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag),
+            init,
+            out,
+        )
+    })
     .map_err(Into::into)
 }
 

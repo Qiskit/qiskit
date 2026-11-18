@@ -11,16 +11,9 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-pub use qiskit_cext::*;
 
 mod capi;
-
-#[cfg(feature = "mimalloc")]
-use mimalloc::MiMalloc;
-
-#[cfg(feature = "mimalloc")]
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+mod passmanager;
 
 #[inline(always)]
 #[doc(hidden)]
@@ -39,6 +32,9 @@ where
 #[pymodule]
 fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, capi::capi_mod, "capi")?;
+    add_submodule(m, passmanager::passmanager_mod, "passmanager")?;
+    add_submodule(m, ::qiskit_mir::py::mir_mod, "mir")?;
+    add_submodule(m, ::qiskit_mir_passes::py::mir_passes_mod, "mir_passes")?;
     add_submodule(m, ::qiskit_transpiler::passes::alap_schedule_analysis_mod, "alap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::asap_schedule_analysis_mod, "asap_schedule_analysis")?;
     add_submodule(m, ::qiskit_transpiler::passes::apply_layout_mod, "apply_layout")?;
@@ -95,7 +91,6 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_synthesis::two_qubit_decompose::two_qubit_decompose, "two_qubit_decompose")?;
     add_submodule(m, ::qiskit_synthesis::pauli_products::pauli_products_mod, "pauli_products")?;
     add_submodule(m, ::qiskit_transpiler::passes::unitary_synthesis_mod, "unitary_synthesis")?;
-    add_submodule(m, ::qiskit_accelerate::uc_gate::uc_gate, "uc_gate")?;
     add_submodule(m, ::qiskit_transpiler::passes::unroll_3q_or_more_mod, "unroll_3q_or_more")?;
     add_submodule(m, ::qiskit_transpiler::passes::vf2_layout_mod, "vf2_layout")?;
     add_submodule(m, ::qiskit_circuit::circuit, "circuit")?;
