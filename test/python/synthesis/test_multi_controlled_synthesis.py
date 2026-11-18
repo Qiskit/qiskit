@@ -713,18 +713,38 @@ class TestMCSynthesisCounts(QiskitTestCase):
         ):
             # MCPhase gate and other locally equivalent multi-controlled gates
             expected = {1: 2, 2: 6, 3: 20, 4: 44, 5: 82, 6: 122, 7: 170, 8: 226}
-        elif isinstance(base_gate, RZGate):
-            expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 68, 8: 80}
-        elif isinstance(base_gate, (RXGate, RYGate)):
+        elif isinstance(base_gate, (RXGate, RYGate, RZGate)):
             expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 68, 8: 80}
         elif isinstance(base_gate, (UGate, U2Gate, U3Gate)):
-            expected = {1: 2, 2: 22, 3: 48, 4: 92, 5: 164, 6: 250, 7: 326, 8: 410}
+            expected = {1: 2, 2: 14, 3: 48, 4: 92, 5: 164, 6: 250, 7: 326, 8: 410}
         elif isinstance(base_gate, CZGate):
             expected = {1: 6, 2: 14, 3: 36, 4: 82, 5: 122, 6: 170, 7: 226, 8: 290}
         else:
             raise NotImplementedError
 
         self.assertEqual(cx_count, expected[num_ctrl_qubits])
+
+    @data(2, 10, 15, 20)
+    def test_mcry_cx_count(self, num_ctrl_qubits: int):
+        """Test the transpilation of mcry gates with and without ancillas"""
+        qc = QuantumCircuit(2 * num_ctrl_qubits)  # allow clean ancilla
+        qc.mcry(
+            0.123,
+            list(range(num_ctrl_qubits)),
+            num_ctrl_qubits,
+            list(range(num_ctrl_qubits + 1, 2 * num_ctrl_qubits)),
+        )
+        transpiled_circuit = self.pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        expected_cx_count = 4 if num_ctrl_qubits == 2 else 12 * num_ctrl_qubits - 12
+        self.assertEqual(cx_count, expected_cx_count)
+
+        qc = QuantumCircuit(num_ctrl_qubits + 1)  # no clean ancilla
+        qc.mcry(0.456, list(range(num_ctrl_qubits)), num_ctrl_qubits)
+        transpiled_circuit = self.pm.run(qc)
+        cx_count = transpiled_circuit.count_ops()["cx"]
+        expected_cx_count = 4 if num_ctrl_qubits == 2 else 16 * num_ctrl_qubits - 48
+        self.assertEqual(cx_count, expected_cx_count)
 
     @combine(
         gate_class=[XGate, CXGate, CCXGate, C3XGate, C4XGate],
