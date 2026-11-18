@@ -138,8 +138,8 @@ impl Exit for ParameterTableError {
 impl Exit for CInputError {
     fn exit_code(&self) -> ExitCode {
         match self {
-            Self::NullPointerError => ExitCode::AlignmentError,
-            Self::AlignmentError => ExitCode::NullPointerError,
+            Self::NullPointerError => ExitCode::NullPointerError,
+            Self::AlignmentError => ExitCode::AlignmentError,
             Self::IndexError => ExitCode::IndexError,
         }
     }
