@@ -51,6 +51,5 @@ pub extern "C" fn qk_circuit_library_quantum_volume(
     let seed = if seed < 0 { None } else { Some(seed as u64) };
     quantum_volume(num_qubits, depth, seed)
         .unwrap()
-        .inner
         .into_leaked()
 }

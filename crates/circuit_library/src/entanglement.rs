@@ -10,15 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
+use crate::QiskitError;
 use itertools::Itertools;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyDict;
+#[cfg(feature = "py")]
 use pyo3::{
     Bound, PyAny, PyResult,
     types::{PyAnyMethods, PyList, PyListMethods, PyString, PyTuple},
 };
-
-use crate::QiskitError;
+use thiserror::Error;
 
 /// Get all-to-all entanglement. For 4 qubits and block size 2 we have:
 /// [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
@@ -96,6 +100,23 @@ fn shift_circular_alternating(
     }
 }
 
+#[derive(Error, Debug)]
+pub enum InvalidEntanglement {
+    #[error("block_size ({0}) cannot be larger than number of qubits ({1})")]
+    BlockLargerThanQubits(u32, u32),
+    #[error("block_size ({0}) can be at most 2 for pairwise entanglement")]
+    InvalidBlockForPairwise(u32),
+    #[error("Unsupported entanglement: {0}")]
+    UnsupportedEntanglement(String),
+}
+
+#[cfg(feature = "py")]
+impl From<InvalidEntanglement> for PyErr {
+    fn from(value: InvalidEntanglement) -> PyErr {
+        QiskitError::new_err(value.to_string())
+    }
+}
+
 /// Get an entangler map for an arbitrary number of qubits.
 ///
 /// Args:
@@ -113,15 +134,15 @@ pub fn get_entanglement_from_str(
     block_size: u32,
     entanglement: &str,
     offset: usize,
-) -> PyResult<Box<dyn Iterator<Item = Vec<u32>>>> {
+) -> Result<Box<dyn Iterator<Item = Vec<u32>>>, InvalidEntanglement> {
     if num_qubits == 0 || block_size == 0 {
         return Ok(Box::new(std::iter::empty()));
     }
 
     if block_size > num_qubits {
-        return Err(QiskitError::new_err(format!(
-            "block_size ({block_size}) cannot be larger than number of qubits ({num_qubits})"
-        )));
+        return Err(InvalidEntanglement::BlockLargerThanQubits(
+            block_size, num_qubits,
+        ));
     }
 
     match (entanglement, block_size) {
@@ -132,12 +153,10 @@ pub fn get_entanglement_from_str(
         ("circular", _) => Ok(circular(num_qubits, block_size)),
         ("pairwise", 1) => Ok(Box::new(linear(num_qubits, 1))),
         ("pairwise", 2) => Ok(Box::new(pairwise(num_qubits))),
-        ("pairwise", _) => Err(QiskitError::new_err(format!(
-            "block_size ({block_size}) can be at most 2 for pairwise entanglement"
-        ))),
-        _ => Err(QiskitError::new_err(format!(
-            "Unsupported entanglement: {entanglement}"
-        ))),
+        ("pairwise", _) => Err(InvalidEntanglement::InvalidBlockForPairwise(block_size)),
+        _ => Err(InvalidEntanglement::UnsupportedEntanglement(
+            entanglement.to_string(),
+        )),
     }
 }
 
@@ -153,6 +172,7 @@ pub fn get_entanglement_from_str(
 /// Returns:
 ///     The entangler map using mode ``entanglement`` to scatter a block of ``block_size``
 ///     qubits on ``num_qubits`` qubits.
+#[cfg(feature = "py")]
 pub fn get_entanglement<'a>(
     num_qubits: u32,
     block_size: u32,
@@ -186,6 +206,7 @@ pub fn get_entanglement<'a>(
     ))
 }
 
+#[cfg(feature = "py")]
 fn _check_entanglement_list<'a>(
     list: Bound<'a, PyList>,
     block_size: u32,
@@ -227,6 +248,7 @@ fn _check_entanglement_list<'a>(
 ///
 /// Raises:
 ///     QiskitError: In case the entanglement is invalid.
+#[cfg(feature = "py")]
 #[pyfunction]
 #[pyo3(signature = (num_qubits, block_size, entanglement, offset=0))]
 pub fn get_entangler_map<'py>(

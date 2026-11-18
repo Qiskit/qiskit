@@ -13,7 +13,7 @@ doctest = false
 workspace = true
 
 [dependencies]
-qiskit-circuit = { workspace = true, features = [ "py" ] }
+qiskit-circuit.workspace = true
 qiskit-quantum-info.workspace = true
 qiskit-synthesis.workspace = true
 qiskit-util.workspace = true
@@ -29,6 +29,7 @@ thiserror.workspace = true
 
 [dependencies.pyo3]
 workspace = true
+optional = true
 features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
 
 [dependencies.ndarray]
@@ -45,4 +46,8 @@ features = ["union", "const_generics"]
 
 [dependencies.numpy]
 workspace = true
+optional = true
 features = ["nalgebra"]
+
+[features]
+py = ["qiskit-circuit/py", "dep:pyo3", "dep:numpy"]
