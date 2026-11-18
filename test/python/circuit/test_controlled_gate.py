@@ -680,7 +680,7 @@ class TestControlledGate(QiskitTestCase):
         qc.mcx([], 0)
         self.assertEqual(Operator(qc), Operator(XGate()))
 
-    @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
+    @combine(num_controls=[1, 2, 3, 4], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
         """Test the multi controlled Y rotation using the mode 'basic'.
 
@@ -1373,15 +1373,22 @@ class TestControlledGate(QiskitTestCase):
         num_ctrl_qubits = 1
         for gate_class in ControlledGate.__subclasses__():
             with self.subTest(i=repr(gate_class)):
+                if not gate_class.__module__.startswith("qiskit."):
+                    self.skipTest("Ignore non-Qiskit gates.")
                 if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
                     self.skipTest("Singleton class isn't intended to be created directly.")
-                gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
-                num_free_params = len(gate_params)
-                free_params = [0.1 * i for i in range(num_free_params)]
-                # set number of control qubits
-                for i in range(num_free_params):
-                    if gate_params[i] == "num_ctrl_qubits":
-                        free_params[i] = 3
+
+                if gate_class == MCMTGate:
+                    # Special handling for MCMT gates because these also need a target gate.
+                    free_params = [RZGate(0.3), 3, 1]
+                else:
+                    gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+                    num_free_params = len(gate_params)
+                    free_params = [0.1 * i for i in range(num_free_params)]
+                    # set number of control qubits
+                    for i in range(num_free_params):
+                        if gate_params[i] == "num_ctrl_qubits":
+                            free_params[i] = 3
 
                 base_gate = gate_class(*free_params)
                 if base_gate.params:

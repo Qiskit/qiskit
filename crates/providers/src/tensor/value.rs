@@ -16,7 +16,7 @@ use ndarray::{ArcArrayD, ArrayD, IxDyn};
 use num_complex::{Complex32, Complex64};
 
 use super::broadcast::{broadcast_elementwise, broadcast_shape};
-use super::{DType, Dim, KeyTensor, TensorError, TensorType};
+use super::{DType, Dim, KeyTensor, TensorError, TensorType, dim_shape};
 
 /// A tensor of one of the supported dtypes.
 ///
@@ -148,7 +148,7 @@ impl Tensor {
     pub fn tensor_type(&self) -> TensorType {
         TensorType {
             dtype: self.dtype(),
-            shape: self.shape().iter().map(|&n| Dim::Fixed(n)).collect(),
+            shape: dim_shape(self.shape()),
         }
     }
 

@@ -768,7 +768,7 @@ version: `tox -epy313` (or replace py313 with the python version you want to use
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy310 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy311 -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -778,25 +778,25 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler
+tox -epy311 -- -n test.python.compiler.test_transpiler
 ```
 or to run the same module by path:
 
 ```
-tox -epy310 -- -n test/python/compiler/test_transpiler.py
+tox -epy311 -- -n test/python/compiler/test_transpiler.py
 ```
 to run a class:
 
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
+tox -epy311 -- -n test.python.compiler.test_transpiler.TestTranspile
 ```
 to run a method:
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
+tox -epy311 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
 ```
 
 If you want to run the test suite in your local environment without using `tox` as a runner, you can
-either use the `tox devenv -e py310` command to have `tox` construct you a new development environment,
+either use the `tox devenv -e py311` command to have `tox` construct you a new development environment,
 or you can install the `test` dependency group using your package manager, such as
 ```
 pip install --group test
@@ -953,7 +953,7 @@ Rust tests are run separately from the Python and C tests. To run the tests you 
 `cargo test`.
 
 ```bash
-cargo test
+cargo test --all-features
 ```
 
 If you want to run the tests for a single [crate](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)
@@ -1084,7 +1084,10 @@ After this, `ruff` and `black` will be available and can be run from the command
 For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
 code formatting. You can simply run `cargo fmt` (if you installed Rust with the
 default settings using `rustup`), and it will update the code formatting automatically to
-conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`.
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. To ensure optional features are linted as well, run clippy with the `--all-targets` and `--all-features` flags:
+```bash
+cargo clippy --all-targets --all-features -- -D warnings
+```
 
 Rust lint and formatting checks are included in the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 

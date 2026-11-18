@@ -18,18 +18,9 @@ ifeq ($(QISKIT_BUILD_WITH_MIMALLOC), 1)
 	MIMALLOC := --features=global_mimalloc
 endif
 
-.PHONY: default env lint style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+.PHONY: default lint style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
 
 default: style lint test ;
-
-# Dependencies need to be installed on the Anaconda virtual environment.
-env:
-	if test $(findstring qiskitenv, $(shell conda info --envs | tr '[:upper:]' '[:lower:]')); then \
-		bash -c "source activate Qiskitenv;pip install -r requirements.txt"; \
-	else \
-		conda create -y -n Qiskitenv python=3; \
-		bash -c "source activate Qiskitenv;pip install -r requirements.txt"; \
-	fi;
 
 lint:
 	ruff check qiskit test tools build_backend
@@ -38,7 +29,7 @@ lint:
 	tools/find_stray_release_notes.py
 	tools/verify_images.py
 	cargo fmt --check
-	cargo clippy --all-targets -- -D warnings
+	cargo clippy --all-targets --all-features -- -D warnings
 
 style:
 	black --check qiskit test tools build_backend docs/conf.py
