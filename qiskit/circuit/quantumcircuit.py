@@ -31,7 +31,6 @@ from typing import (
 )
 from collections.abc import Sequence, Callable, Mapping, Iterable
 import os
-from math import pi
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
@@ -5493,14 +5492,6 @@ class QuantumCircuit(IR):
             q_target: The qubit targeted by the gate.
             use_basis_gates: use p, u, cx basis gates.
         """
-
-        from .library.standard_gates.rx import RXGate
-        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
-            _apply_cu,
-            _apply_mcu_graycode,
-            _mcsu2_real_diagonal,
-        )
-
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)
         if len(target_qubit) != 1:
@@ -5509,37 +5500,15 @@ class QuantumCircuit(IR):
         target_qubit = target_qubit[0]
         self._check_dups(all_qubits)
 
+        from qiskit._accelerate.synthesis.multi_controlled import synth_mcrx_noaux
+
         n_c = len(control_qubits)
-        if n_c == 0:
-            self.rx(theta, target_qubit)
-        elif n_c == 1:  # cu
-            _apply_cu(
-                self,
-                theta,
-                -pi / 2,
-                pi / 2,
-                control_qubits[0],
-                target_qubit,
-                use_basis_gates=use_basis_gates,
-            )
-        elif n_c < 4:
-            theta_step = theta * (1 / (2 ** (n_c - 1)))
-            _apply_mcu_graycode(
-                self,
-                theta_step,
-                -pi / 2,
-                pi / 2,
-                control_qubits,
-                target_qubit,
-                use_basis_gates=use_basis_gates,
-            )
-        else:
-            cgate = _mcsu2_real_diagonal(
-                RXGate(theta),
-                num_controls=len(control_qubits),
-                use_basis_gates=use_basis_gates,
-            )
-            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+        cgate = QuantumCircuit._from_circuit_data(synth_mcrx_noaux(n_c, theta))
+        if use_basis_gates:
+            from qiskit.compiler import transpile
+
+            cgate = transpile(cgate, basis_gates=["p", "u", "cx"], qubits_initially_zero=False)
+        self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
     def mcry(
         self,
@@ -5561,14 +5530,6 @@ class QuantumCircuit(IR):
             mode: The implementation mode to use.
             use_basis_gates: use p, u, cx basis gates
         """
-
-        from .library.standard_gates.ry import RYGate
-        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
-            _apply_cu,
-            _apply_mcu_graycode,
-            _mcsu2_real_diagonal,
-        )
-
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)
         if len(target_qubit) != 1:
@@ -5577,15 +5538,16 @@ class QuantumCircuit(IR):
         all_qubits = control_qubits + target_qubit + ancillary_qubits
         target_qubit = target_qubit[0]
         self._check_dups(all_qubits)
+        n_c = len(control_qubits)
 
-        if len(control_qubits) == 0:
+        if n_c == 0:
             self.ry(theta, target_qubit)
             return
 
         # auto-select the best mode
         if mode is None:
             # if enough ancillary qubits are provided, use the 'v-chain' method
-            additional_vchain = max(0, (len(control_qubits) - 1) // 2)
+            additional_vchain = max(0, (n_c - 1) // 2)
             if len(ancillary_qubits) >= additional_vchain:
                 mode = "basic"
             else:
@@ -5594,53 +5556,33 @@ class QuantumCircuit(IR):
         if mode == "basic":
             from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
 
-            if len(control_qubits) > 2:
+            if n_c > 2:
                 mcx = synth_mcx_n_clean_m15(len(control_qubits))
                 mcx_qubits = (control_qubits + [target_qubit] + ancillary_qubits)[: mcx.num_qubits]
             self.ry(theta / 2, q_target)
-            if len(control_qubits) == 1:
+            if n_c == 1:
                 self.cx(control_qubits[0], q_target)
-            elif len(control_qubits) == 2:
+            elif n_c == 2:
                 self.ccx(control_qubits[0], control_qubits[1], q_target)
             else:
                 self.compose(mcx, mcx_qubits, inplace=True)
             self.ry(-theta / 2, q_target)
-            if len(control_qubits) == 1:
+            if n_c == 1:
                 self.cx(control_qubits[0], q_target)
-            elif len(control_qubits) == 2:
+            elif n_c == 2:
                 self.ccx(control_qubits[0], control_qubits[1], q_target)
             else:
                 self.compose(mcx, mcx_qubits, inplace=True)
+
         elif mode == "noancilla":
-            n_c = len(control_qubits)
-            if n_c == 1:  # cu
-                _apply_cu(
-                    self,
-                    theta,
-                    0,
-                    0,
-                    control_qubits[0],
-                    target_qubit,
-                    use_basis_gates=use_basis_gates,
-                )
-            elif n_c < 4:
-                theta_step = theta * (1 / (2 ** (n_c - 1)))
-                _apply_mcu_graycode(
-                    self,
-                    theta_step,
-                    0,
-                    0,
-                    control_qubits,
-                    target_qubit,
-                    use_basis_gates=use_basis_gates,
-                )
-            else:
-                cgate = _mcsu2_real_diagonal(
-                    RYGate(theta),
-                    num_controls=len(control_qubits),
-                    use_basis_gates=use_basis_gates,
-                )
-                self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+            from qiskit._accelerate.synthesis.multi_controlled import synth_mcry_noaux
+
+            cgate = QuantumCircuit._from_circuit_data(synth_mcry_noaux(n_c, theta))
+            if use_basis_gates:
+                from qiskit.compiler import transpile
+
+                cgate = transpile(cgate, basis_gates=["p", "u", "cx"], qubits_initially_zero=False)
+            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
         else:
             raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
@@ -5661,11 +5603,6 @@ class QuantumCircuit(IR):
             use_basis_gates: use p, u, cx basis gates.
         """
 
-        from .library.standard_gates.rz import CRZGate, RZGate
-        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
-            _mcsu2_real_diagonal,
-        )
-
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)
         if len(target_qubit) != 1:
@@ -5674,26 +5611,15 @@ class QuantumCircuit(IR):
         target_qubit = target_qubit[0]
         self._check_dups(all_qubits)
 
+        from qiskit._accelerate.synthesis.multi_controlled import synth_mcrz_noaux
+
         n_c = len(control_qubits)
+        cgate = QuantumCircuit._from_circuit_data(synth_mcrz_noaux(n_c, lam))
+        if use_basis_gates:
+            from qiskit.compiler import transpile
 
-        if n_c == 0:
-            self.rz(lam, target_qubit)
-
-        elif n_c == 1:
-            if use_basis_gates:
-                self.u(0, 0, lam / 2, target_qubit)
-                self.cx(control_qubits[0], target_qubit)
-                self.u(0, 0, -lam / 2, target_qubit)
-                self.cx(control_qubits[0], target_qubit)
-            else:
-                self.append(CRZGate(lam), control_qubits + [target_qubit])
-        else:
-            cgate = _mcsu2_real_diagonal(
-                RZGate(lam),
-                num_controls=len(control_qubits),
-                use_basis_gates=use_basis_gates,
-            )
-            self.compose(cgate, control_qubits + [target_qubit], inplace=True)
+            cgate = transpile(cgate, basis_gates=["p", "u", "cx"], qubits_initially_zero=False)
+        self.compose(cgate, control_qubits + [target_qubit], inplace=True)
 
     def r(
         self,
