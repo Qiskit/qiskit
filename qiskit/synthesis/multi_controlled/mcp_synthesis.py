@@ -27,7 +27,8 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> Quan
 
     The circuit depth is :math:`O(n^2)` and the total number of CX gates used
     is :math:`8n^2-40n+96` for :math:`n \ge 7` control qubits,
-    which is worse than :func:`synth_mcp_noaux_sp22`.
+    which is worse than :func:`synth_mcp_noaux_sp22`, for :math:`n \ge 5`,
+    but better for :math:`n = 3, 4`.
 
     The number of CX gates required can be derived as follows:
 
