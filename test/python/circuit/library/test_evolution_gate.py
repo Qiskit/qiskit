@@ -378,19 +378,25 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertEqual(ops, expected_ops)
 
-    @combine(option=["chain", "fountain"], use_sparse_observable=[True, False])
+    @combine(option=["chain", "fountain", "cascade"], use_sparse_observable=[True, False])
     def test_cnot_chain_options(self, option, use_sparse_observable):
         """Test selecting different kinds of CNOT chains."""
-        op = SparseObservable("ZZZ") if use_sparse_observable else SparsePauliOp(["ZZZ"])
+        op = SparseObservable("ZZZZ") if use_sparse_observable else SparsePauliOp(["ZZZZ"])
         synthesis = LieTrotter(reps=1, cx_structure=option)
         evo = PauliEvolutionGate(op, synthesis=synthesis)
 
-        expected = QuantumCircuit(3)
+        expected = QuantumCircuit(4)
         if option == "chain":
+            expected.cx(3, 2)
             expected.cx(2, 1)
             expected.cx(1, 0)
+        elif option == "fountain":
+            expected.cx(1, 0)
+            expected.cx(2, 0)
+            expected.cx(3, 0)
         else:
             expected.cx(1, 0)
+            expected.cx(3, 2)
             expected.cx(2, 0)
 
         expected.rz(2, 0)
@@ -398,8 +404,14 @@ class TestEvolutionGate(QiskitTestCase):
         if option == "chain":
             expected.cx(1, 0)
             expected.cx(2, 1)
+            expected.cx(3, 2)
+        elif option == "fountain":
+            expected.cx(3, 0)
+            expected.cx(2, 0)
+            expected.cx(1, 0)
         else:
             expected.cx(2, 0)
+            expected.cx(3, 2)
             expected.cx(1, 0)
 
         self.assertEqual(expected, evo.definition)
