@@ -54,12 +54,12 @@ class _BasePrimitiveResultV1(ABC):
             if len(value) != num_experiments:
                 raise ValueError("Inconsistent number of experiments across data fields.")
 
-    @property  # TODO: functools.cached_property when py37 is dropped
+    @property
     def _field_names(self) -> tuple[str, ...]:
         """Tuple of field names in any inheriting result dataclass."""
         return tuple(field.name for field in fields(self))
 
-    @property  # TODO: functools.cached_property when py37 is dropped
+    @property
     def _field_values(self) -> tuple:
         """Tuple of field values in any inheriting result dataclass."""
         return tuple(getattr(self, name) for name in self._field_names)

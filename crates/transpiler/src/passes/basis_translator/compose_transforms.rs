@@ -104,7 +104,7 @@ pub(super) fn compose_transforms<'a>(
                 let mut replacement = equiv.clone();
                 replacement.assign_parameters_from_mapping(param_mapping)?;
                 let replace_dag: DAGCircuit =
-                    DAGCircuit::from_circuit_data(&replacement, true, None, None, None, None)?;
+                    DAGCircuit::from_circuit_data(&replacement, true, None, None)?;
                 dag.substitute_node_with_dag(node, &replace_dag, None, None, None, None)?;
             }
         }

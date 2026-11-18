@@ -19,7 +19,6 @@ use nalgebra::{Matrix4, U4};
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use numpy::PyReadonlyArray2;
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use smallvec::smallvec;
 use thiserror::Error;
@@ -34,6 +33,8 @@ use crate::linalg::{
 };
 use crate::matrix::two_qubit;
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
+use crate::ucrz::get_ucrz;
+use crate::utils::append_with_qubit_map;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::interner::Interned;
@@ -41,7 +42,6 @@ use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, U
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
-const EPS: f64 = 1e-10;
 const MINIMUM_TOL: f64 = 1e-12;
 
 /// Errors that might occur during QSD synthesis algorithm
@@ -58,6 +58,10 @@ pub enum QSDError {
     // wraps PyErr, e.g. produced by 2q decomposer
     #[error(transparent)]
     ErrorFromPython(#[from] PyErr),
+
+    // unknown one-qubit decomposer basis name
+    #[error("unknown basis name {0}")]
+    UnknownBasis(String),
 }
 
 impl From<QSDError> for PyErr {
@@ -68,6 +72,8 @@ impl From<QSDError> for PyErr {
             QSDError::ErrorFromCircuitData(err) => err.into(),
 
             QSDError::ErrorFromPython(err) => err,
+
+            QSDError::UnknownBasis(_) => pyo3::exceptions::PyValueError::new_err(error.to_string()),
         }
     }
 }
@@ -142,6 +148,11 @@ fn qsd_inner(
     let dim = mat.shape().0;
     let num_qubits = dim.ilog2() as usize;
     let opt_a1_val = opt_a1.unwrap_or(true);
+    if dim == 1 {
+        // A 1x1 "unitary" is just a global phase acting on zero qubits.
+        let global_phase = mat[(0, 0)].arg();
+        return Ok(CircuitData::new(None, None, Param::Float(global_phase))?);
+    }
     if dim == 2 {
         let array = faer_to_ndarray(mat);
         let sequence =
@@ -308,11 +319,11 @@ fn qsd_inner(
 
     // the output circuit of the block ZXZ decomposition from [2]
     let qr = (0..num_qubits).map(Qubit::new).collect::<Vec<_>>();
-    append(&mut out, left_circuit, &qr)?;
+    append_with_qubit_map(&mut out, left_circuit, &qr)?;
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
-    append(&mut out, middle_circ, &qr)?;
+    append_with_qubit_map(&mut out, middle_circ, &qr)?;
     out.push_standard_gate(StandardGate::H, &[], &[Qubit((num_qubits - 1) as u32)])?;
-    append(&mut out, right_circuit, &qr)?;
+    append_with_qubit_map(&mut out, right_circuit, &qr)?;
     if opt_a2_val && depth == 0 && dim > 4 {
         Ok(apply_a2(&out, two_qubit_decomposer)?)
     } else {
@@ -458,7 +469,7 @@ fn demultiplex(
                 one_qubit_decomposer,
                 depth + 1,
             )?;
-            append(&mut out, left_circuit, &layout[..num_qubits - 1])?;
+            append_with_qubit_map(&mut out, left_circuit, &layout[..num_qubits - 1])?;
         }
         VWType::OnlyV => (),
     }
@@ -474,7 +485,7 @@ fn demultiplex(
         (VWType::OnlyV, true) => get_ucrz(num_qubits, &mut angles, false)?.reverse()?,
         _ => get_ucrz(num_qubits, &mut angles, true)?,
     };
-    append(
+    append_with_qubit_map(
         &mut out,
         ucrz,
         &[
@@ -495,7 +506,7 @@ fn demultiplex(
                 one_qubit_decomposer,
                 depth + 1,
             )?;
-            append(&mut out, right_circuit, &layout[..num_qubits - 1])?;
+            append_with_qubit_map(&mut out, right_circuit, &layout[..num_qubits - 1])?;
         }
         VWType::OnlyW => (),
     }
@@ -520,98 +531,6 @@ fn demultiplex_verify(
     let u_check = &v_block * &d_block * &w_block;
 
     (u_block.as_ref() - u_check.as_ref()).norm_max() < VERIFY_TOL
-}
-
-/// This function synthesizes UCRZ without the final CX gate,
-/// unless _vw_type = ``all``.
-fn get_ucrz(
-    num_qubits: usize,
-    angles: &mut [f64],
-    vw_type_all: bool,
-) -> Result<CircuitData, CircuitDataError> {
-    let out_qubits = (0..num_qubits)
-        .map(|_| ShareableQubit::new_anonymous())
-        .collect::<Vec<_>>();
-    let mut out = CircuitData::new(Some(out_qubits), None, Param::Float(0.))?;
-    let q_target = Qubit(0);
-    let q_controls: Vec<Qubit> = (1..num_qubits).map(|i| Qubit(i as u32)).collect();
-    decompose_uc_rotations(angles, 0, angles.len(), false);
-    for (i, angle) in angles.iter().enumerate() {
-        if angle.abs() > EPS {
-            let _ = out.push_standard_gate(StandardGate::RZ, &[Param::Float(*angle)], &[q_target]);
-        }
-        if i != angles.len() - 1 {
-            let q_ctrl_index = (i + 1).trailing_zeros();
-            let _ = out.push_standard_gate(
-                StandardGate::CX,
-                &[],
-                &[q_controls[q_ctrl_index as usize], q_target],
-            );
-        } else if vw_type_all {
-            let q_ctrl_index = num_qubits - 2;
-            let _ = out.push_standard_gate(
-                StandardGate::CX,
-                &[],
-                &[q_controls[q_ctrl_index], q_target],
-            );
-        };
-    }
-    Ok(out)
-}
-
-/// Calculates rotation angles for a uniformly controlled R_t gate with a C-NOT gate at
-/// the end of the circuit. The rotation angles of the gate R_t are stored in
-/// angles[start_index:end_index]. If reversed_dec == True, it decomposes the gate such that
-/// there is a C-NOT gate at the start of the circuit (in fact, the circuit topology for
-/// the reversed decomposition is the reversed one of the original decomposition)
-fn decompose_uc_rotations(
-    angles: &mut [f64],
-    start_index: usize,
-    end_index: usize,
-    reversed_decomposition: bool,
-) {
-    let interval_len_half = (end_index - start_index) / 2;
-    for i in start_index..start_index + interval_len_half {
-        if !reversed_decomposition {
-            let new_angles = update_angle(angles[i], angles[i + interval_len_half]);
-            angles[i] = new_angles[0];
-            angles[i + interval_len_half] = new_angles[1];
-        } else {
-            let new_angles = update_angle(angles[i], angles[i + interval_len_half]);
-            angles[i + interval_len_half] = new_angles[0];
-            angles[i] = new_angles[1];
-        }
-    }
-    if interval_len_half > 1 {
-        decompose_uc_rotations(angles, start_index, start_index + interval_len_half, false);
-        decompose_uc_rotations(angles, start_index + interval_len_half, end_index, true);
-    }
-}
-
-fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
-    [(angle_1 + angle_2) / 2., (angle_1 - angle_2) / 2.]
-}
-
-fn append(
-    circ: &mut CircuitData,
-    new: CircuitData,
-    qubit_map: &[Qubit],
-) -> Result<(), CircuitDataError> {
-    let new_qubits_map = circ.merge_qargs(new.qargs_interner(), |x| Some(qubit_map[x.index()]));
-    circ.add_global_phase(new.global_phase())?;
-    for inst in new.into_data_iter() {
-        let out_inst = PackedInstruction {
-            op: inst.op,
-            params: inst.params,
-            qubits: new_qubits_map[inst.qubits],
-            clbits: Default::default(),
-            label: inst.label,
-            #[cfg(feature = "cache_pygates")]
-            py_op: inst.py_op,
-        };
-        circ.push(out_inst)?;
-    }
-    Ok(())
 }
 
 /// numpy's move_axis has the effect of pushing back the axis
@@ -884,7 +803,7 @@ pub fn qs_decomposition(
     let one_qubit_decomposer = if let Some(basis_string) = one_qubit_decomposer_basis_string {
         let basis = basis_string
             .parse::<EulerBasis>()
-            .map_err(|_| PyValueError::new_err(format!("Unknown basis name {}", basis_string)))?;
+            .map_err(|_| QSDError::UnknownBasis(basis_string))?;
         one_qubit_decomposer_basis_set.add_basis(basis);
         Some(&one_qubit_decomposer_basis_set)
     } else {
