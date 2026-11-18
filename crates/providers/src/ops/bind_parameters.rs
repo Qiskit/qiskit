@@ -81,20 +81,30 @@ impl BindParameters {
 
     /// Evaluate every expression over each of `rows` consecutive sets of values from `values`,
     /// returning one tensor of `shape` in this op's dtype.
-    fn bind_all(&self, values: impl Iterator<Item = f64>, rows: usize, shape: &[usize]) -> Tensor {
+    fn evaluate_tensor(
+        &self,
+        values: impl Iterator<Item = f64>,
+        rows: usize,
+        shape: &[usize],
+    ) -> Tensor {
         match self.dtype {
             DType::C128 => Tensor::from(reshape(
-                self.evaluate(values, rows, complex, Complex64::new(f64::NAN, f64::NAN)),
+                self.evaluate_flat(values, rows, complex, Complex64::new(f64::NAN, f64::NAN)),
                 shape,
             )),
-            DType::F64 => Tensor::from(reshape(self.evaluate(values, rows, real, f64::NAN), shape)),
+            DType::F64 => Tensor::from(reshape(
+                self.evaluate_flat(values, rows, real, f64::NAN),
+                shape,
+            )),
             other => panic!("{} cannot produce {}", self.full_name(), other),
         }
     }
 
     /// Evaluate every expression over each of `rows` consecutive sets of values from `values`,
     /// mapping each result through `convert`.
-    fn evaluate<T: Copy>(
+    ///
+    /// The results are returned in one flat vector, in row-major order.
+    fn evaluate_flat<T: Copy>(
         &self,
         mut values: impl Iterator<Item = f64>,
         rows: usize,
@@ -170,8 +180,10 @@ impl ProgramOp for BindParameters {
         let mut shape = batch.to_vec();
         shape.push(self.expressions.len());
         let results = match values {
-            Tensor::F32(x) => self.bind_all(x.iter().map(|&value| f64::from(value)), rows, &shape),
-            Tensor::F64(x) => self.bind_all(x.iter().copied(), rows, &shape),
+            Tensor::F32(x) => {
+                self.evaluate_tensor(x.iter().map(|&value| f64::from(value)), rows, &shape)
+            }
+            Tensor::F64(x) => self.evaluate_tensor(x.iter().copied(), rows, &shape),
             other => panic!(
                 "{} expects floating-point parameter values, got {}",
                 self.full_name(),
