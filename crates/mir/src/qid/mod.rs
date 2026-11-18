@@ -43,6 +43,7 @@ pub use table::ResourceTable;
 /// rule is checked by the verification logic; it is an error for a complete MIR transformation to
 /// leave reachable instructions in place that violate the overlap rules.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, bytemuck::Zeroable)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(transparent)]
 #[cfg_attr(
     feature = "mem_dbg",
@@ -169,6 +170,7 @@ impl fmt::Display for Qid {
 ///
 /// The semantics of the [`Qid`] in a complete program varies based on what space it is in.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, bytemuck::Zeroable, bytemuck::Contiguous)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
     derive(mem_dbg::MemSize, mem_dbg::MemDbg),
@@ -207,6 +209,7 @@ impl QidSpace {
 /// Logically this is just a two-tuple of `(Qid, u32)`, but with an internal trick to make
 /// `Option<QidBit>` the same size as `QidBit`.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
     derive(mem_dbg::MemSize, mem_dbg::MemDbg),
@@ -277,6 +280,7 @@ impl Ord for QidBit {
 /// it refers to.  You can construct a [`BitLayout`] that does not follow the rules, but
 /// [`ResourceTable`] methods will reject them.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub enum BitLayout {
     /// A [`Qid`] that has undefined size.
@@ -318,6 +322,7 @@ impl BitLayout {
 /// suitable; the API split between "abstractly described in MIR" and "concretely described by
 /// custom backend target descriptors" is not clear yet.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct QidInfo {
     layout: BitLayout,
@@ -342,6 +347,7 @@ impl QidInfo {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct QidList(Vec<Qid>);
 
@@ -383,5 +389,42 @@ mod tests {
             QidBit::new(Qid::phys(1), 1),
         ];
         assert_eq!(weird, expected);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn qid_serde_round_trips() {
+        for qid in [Qid::virt(3), Qid::phys(4)] {
+            let json_dump = serde_json::to_string(&qid).unwrap();
+            let restored: Qid = serde_json::from_str(&json_dump).unwrap();
+
+            assert_eq!(restored, qid);
+            assert_eq!(restored.space(), qid.space());
+            assert_eq!(restored.value(), qid.value());
+        }
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn qid_bit_serde_round_trips() {
+        let bit = QidBit::new(Qid::phys(5), 12);
+        let json_dump = serde_json::to_string(&bit).unwrap();
+        let restored: QidBit = serde_json::from_str(&json_dump).unwrap();
+
+        assert_eq!(restored, bit);
+        assert_eq!(restored.qid(), bit.qid());
+        assert_eq!(restored.bit(), bit.bit());
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn qid_info_alias_serde_round_trip() {
+        let info = QidInfo::new(BitLayout::Alias(
+            vec![Some(QidBit::new(Qid::virt(0), 0)), None].into_boxed_slice(),
+        ));
+        let json_dump = serde_json::to_string(&info).unwrap();
+        let restored: QidInfo = serde_json::from_str(&json_dump).unwrap();
+
+        assert_eq!(restored, info);
     }
 }

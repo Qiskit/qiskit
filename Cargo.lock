@@ -2097,6 +2097,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "serde",
+ "serde_derive",
 ]
 
 [[package]]
@@ -2477,10 +2478,13 @@ dependencies = [
  "hashbrown 0.17.1",
  "itertools 0.15.0",
  "mem_dbg",
+ "petgraph 0.8.3",
  "pyo3",
  "qiskit-passmanager",
  "qiskit-util",
  "rustworkx-core",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 

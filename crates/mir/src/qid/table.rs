@@ -9,7 +9,6 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-
 use std::ops;
 
 use hashbrown::HashSet;
@@ -85,7 +84,13 @@ pub enum ContainsError {
 ///
 /// Generally, one can consider a [`Qid`] to be a key into an instance of this table.  The table is
 /// associated with exactly one [`QidSpace`].  All qids stored in the table must match this space.
+///
+/// Derives `Serialize`/`Deserialize` using petgraph `serde-1` support directly.
+/// `rustworkx-core` re-exports petgraph, but without serde-1. So qiskit-mir depends on petgraph
+/// directly.
+/// If rustworkx-core forwards serde-1 in the future, we can remove this dependency.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ResourceTable {
     space: QidSpace,
     /// Mapping containing the per-qid info (nodes), with the direct "contains" relations pointing
@@ -581,5 +586,35 @@ mod tests {
             table.mark_contains(Qid::phys(100), qids[0]),
             Err(ContainsError::AbsentQid(q)) if q == Qid::phys(100)
         ));
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn resource_table_serde_round_trip() {
+        let mut table = ResourceTable::new(QidSpace::Virtual);
+        let base_qid_0 = table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+        let base_qid_1 = table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+        let alias_qid = table
+            .add_qid(QidInfo::new(BitLayout::Alias(
+                [
+                    Some(QidBit::new(base_qid_0, 0)),
+                    Some(QidBit::new(base_qid_1, 0)),
+                ]
+                .into(),
+            )))
+            .unwrap();
+        let abstract_qid = table.add_qid(QidInfo::new(BitLayout::Abstract)).unwrap();
+        table.mark_contains(alias_qid, abstract_qid).unwrap();
+
+        let json_dump = serde_json::to_string(&table).unwrap();
+        let restored: ResourceTable = serde_json::from_str(&json_dump).unwrap();
+
+        for &qid in &[base_qid_0, base_qid_1, alias_qid, abstract_qid] {
+            assert_eq!(restored.info(qid), table.info(qid));
+        }
+        assert!(!restored.overlap([base_qid_0, base_qid_1]));
+        assert!(restored.overlap([base_qid_0, alias_qid]));
+        assert!(restored.overlap([base_qid_1, alias_qid]));
+        assert!(restored.overlap([alias_qid, abstract_qid]));
     }
 }
