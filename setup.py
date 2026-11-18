@@ -56,7 +56,7 @@ else:
     features = ["cache_pygates"]
 
 if os.getenv("QISKIT_BUILD_WITH_MIMALLOC") == "1":
-    features.append("mimalloc")
+    features.append("global_mimalloc")
 
 
 setup(

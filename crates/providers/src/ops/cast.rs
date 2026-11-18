@@ -28,6 +28,11 @@ impl Cast {
     pub fn new(target: DType) -> Self {
         Self { target }
     }
+
+    /// Return the dtype this op casts to.
+    pub fn target(&self) -> DType {
+        self.target
+    }
 }
 
 impl ProgramOp for Cast {
@@ -78,6 +83,7 @@ mod test {
         let op = Cast::new(DType::F64);
         assert_eq!(op.full_name(), "qiskit.cast");
         assert_eq!(op.arity(), 1);
+        assert_eq!(op.target(), DType::F64);
         assert!(op.has_builtin_eval());
     }
 

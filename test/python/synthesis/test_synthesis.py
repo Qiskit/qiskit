@@ -797,6 +797,12 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
                         a = Ud(aaa, bbb, ccc)
                         self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
+    def test_circuit_global_phase(self):
+        """Check that circuit() reproduces the unitary including global phase (#17401)."""
+        target = random_unitary(4, seed=5).data
+        circuit = TwoQubitWeylDecomposition(target).circuit()
+        self.assertEqual(Operator(target), Operator(circuit))
+
 
 K1K2SB = [
     [Operator(U3Gate(*xyz)) for xyz in xyzs]

@@ -28,6 +28,23 @@ pub enum MirOp {
     // Quantum operations
     PauliRotation(PauliRotation),
     PauliMeasure(PauliMeasure),
+    // Classical Operations
+    /// Logical NOT of a classical bit.
+    ///
+    /// This instruction has a single arg (a boolean symbol) - the source clbit.
+    /// It has a single return with (a boolean symbol) - the destination bit.
+    /// Semantics: returns[0] = NOT(args[0]).
+    BoolNot,
+}
+
+impl std::fmt::Display for MirOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MirOp::PauliRotation(rotation) => write!(f, "{rotation}"),
+            MirOp::PauliMeasure(measurement) => write!(f, "{measurement}"),
+            MirOp::BoolNot => write!(f, "bool_not"),
+        }
+    }
 }
 
 #[cfg(test)]
