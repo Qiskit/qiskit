@@ -5548,7 +5548,9 @@ class QuantumCircuit(IR):
         if mode is None:
             # if enough ancillary qubits are provided, use the 'v-chain' method
             additional_vchain = max(0, (n_c - 1) // 2)
-            if len(ancillary_qubits) >= additional_vchain:
+            if n_c < 3:
+                mode = "noancilla"
+            elif len(ancillary_qubits) >= additional_vchain:
                 mode = "basic"
             else:
                 mode = "noancilla"
@@ -5556,23 +5558,12 @@ class QuantumCircuit(IR):
         if mode == "basic":
             from qiskit.synthesis.multi_controlled import synth_mcx_n_clean_m15
 
-            if n_c > 2:
-                mcx = synth_mcx_n_clean_m15(len(control_qubits))
-                mcx_qubits = (control_qubits + [target_qubit] + ancillary_qubits)[: mcx.num_qubits]
+            mcx = synth_mcx_n_clean_m15(len(control_qubits))
+            mcx_qubits = (control_qubits + [target_qubit] + ancillary_qubits)[: mcx.num_qubits]
             self.ry(theta / 2, q_target)
-            if n_c == 1:
-                self.cx(control_qubits[0], q_target)
-            elif n_c == 2:
-                self.ccx(control_qubits[0], control_qubits[1], q_target)
-            else:
-                self.compose(mcx, mcx_qubits, inplace=True)
+            self.compose(mcx, mcx_qubits, inplace=True)
             self.ry(-theta / 2, q_target)
-            if n_c == 1:
-                self.cx(control_qubits[0], q_target)
-            elif n_c == 2:
-                self.ccx(control_qubits[0], control_qubits[1], q_target)
-            else:
-                self.compose(mcx, mcx_qubits, inplace=True)
+            self.compose(mcx, mcx_qubits, inplace=True)
 
         elif mode == "noancilla":
             from qiskit._accelerate.synthesis.multi_controlled import synth_mcry_noaux
