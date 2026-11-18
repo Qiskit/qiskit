@@ -36,6 +36,7 @@ use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{Param, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::var_stretch_container::VarType;
 
 /// Represents a control flow instruction in a ``QkCircuit``.
 ///
@@ -249,14 +250,14 @@ pub enum CSymbolType {
 #[repr(C)]
 pub struct CSymbolInfo {
     /// The type of symbol (standalone or element)
-    ty: CSymbolType,
+    pub(crate) ty: CSymbolType,
     /// A null-terminated C string containing the symbol name. For standalone symbols,
     /// this is the variable name. For element symbols, this is the base name of the parameter
     /// vector. The caller is responsible for freeing this string using `qk_str_free`.
-    name: *mut c_char,
+    pub(crate) name: *mut c_char,
     /// For element symbols, this is the index into the parameter vector. For standalone
     /// symbols, this field is unused and should be ignored.
-    index: usize,
+    pub(crate) index: usize,
 }
 
 /// The type of collection used in a ForLoop control flow instruction.
@@ -276,9 +277,18 @@ pub enum CLoopCollectionType {
 #[repr(C)]
 pub struct CLoopElements {
     /// Pointer to the array of loop elements.
-    elements: *const isize,
+    pub(crate) elements: *const isize,
     /// Number of elements in the array.
-    len: usize,
+    pub(crate) len: usize,
+}
+
+/// A union to hold the loop variable of a ForLoop.
+#[repr(C)]
+pub union CLoopParamValue {
+    /// The loop parameter (active when ``kind`` is ``QkLoopParamKind_Parameter``)
+    pub(crate) symbol: *const CSymbolInfo,
+    /// The loop variable (active when ``kind`` is ``QkLoopParamKind_Variable``)
+    pub(crate) variable: *const Var,
 }
 
 /// @ingroup QkControlFlow
@@ -2317,6 +2327,19 @@ fn extract_if_while_condition(instruction: &ControlFlowInstruction) -> Option<&C
         ControlFlow::IfElse { condition } | ControlFlow::While { condition } => Some(condition),
         _ => None,
     }
+}
+
+/// cbindgen:qk-vtable-rules=[no-export]
+/// cbindgen:no-export
+#[allow(clippy::missing_safety_doc)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inner_test_add_input_var(
+    circuit: *mut CircuitData,
+    var: *const Var,
+) -> bool {
+    let circuit = unsafe { &mut *circuit };
+    let var = unsafe { &*var };
+    circuit.add_var(var.clone(), VarType::Input).is_ok()
 }
 
 #[cfg(test)]
