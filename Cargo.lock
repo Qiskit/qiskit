@@ -2514,6 +2514,7 @@ name = "qiskit-providers"
 version = "2.7.0-dev"
 dependencies = [
  "approx",
+ "binrw",
  "hashbrown 0.17.1",
  "ndarray",
  "num-complex",

@@ -9,6 +9,7 @@ license.workspace = true
 name = "qiskit_providers"
 
 [dependencies]
+binrw.workspace = true
 num-complex.workspace = true
 rand.workspace = true
 rand_philox.workspace = true
