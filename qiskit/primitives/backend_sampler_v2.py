@@ -310,7 +310,7 @@ def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
 
 
 def _memory_array(
-    results: list[list[str]], num_bytes: int, memory_format: str
+    results: list[list[str]], num_bytes: int, memory_format: str = "hex"
 ) -> NDArray[np.uint8]:
     """Converts the memory data into an array in an unpacked way."""
     lst = []
