@@ -1054,7 +1054,7 @@ class TestParameterExpression(QiskitTestCase):
         value = 1.234
 
         for terms in [add_sub_terms, pow_terms, rpow_terms, mul_terms, rdiv_terms, div_terms]:
-            for lhs, rhs in itertools.combinations(terms, 2):
+            for lhs, rhs in itertools.permutations(terms, 2):
                 with self.subTest(lhs=lhs, rhs=rhs):
                     reference = getattr(lhs.bind({x: value}), method)(rhs.bind({x: value}))
                     expression = getattr(lhs, method)(rhs)
@@ -1119,3 +1119,44 @@ class TestParameterExpression(QiskitTestCase):
     )
     def test_structurally_equal(self, left, right, expected):
         self.assertStructurallyEqualResult(left, right, expected)
+
+    @ddt.data("__add__", "__sub__")
+    def test_optimization_with_shared_terms(self, method):
+        """Adding or subtracting two expressions with a shared term should fold the constants and
+        either double or cancel the shared term.
+
+        Tests all combinations of ``x+1, x-1, -x+1, -x-1`` with add/sub, comparing against the
+        expected simplified expression.
+        """
+        # (expression, coefficient of x, constant); the coefficient and constant are used to
+        # compute the expected expression.
+        terms = [
+            (param_x + 1, 1, 1),
+            (param_x - 1, 1, -1),
+            (-param_x + 1, -1, 1),
+            (-param_x - 1, -1, -1),
+        ]
+        # all ordered pairs, including an expression paired with itself
+        for (lhs, left_coeff, left_const), (rhs, right_coeff, right_const) in itertools.product(
+            terms, repeat=2
+        ):
+            with self.subTest(lhs=str(lhs), method=method, rhs=str(rhs)):
+                expression = getattr(lhs, method)(rhs)
+
+                # compute expected simplified expression directly
+                coeff = getattr(left_coeff, method)(right_coeff)
+                const = getattr(left_const, method)(right_const)
+                expected = coeff * param_x + const
+
+                self.assertStructurallyEqual(expression, expected)
+
+    def test_deep_parameter_expression(self):
+        a = Parameter("a")
+        param_expr = a
+        for _ in range(10_000):
+            param_expr = param_expr.sin()
+        grad = param_expr.gradient(a)
+        subs = param_expr.subs({a: Parameter("b")})
+        conjugate = param_expr.conjugate()
+        final_expr = grad + subs + subs - conjugate
+        self.assertIsInstance(final_expr, ParameterExpression)
