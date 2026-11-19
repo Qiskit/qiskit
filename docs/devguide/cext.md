@@ -1,15 +1,14 @@
 # Contributing: C API
 
 Qiskit was originally developed as a Python library, yet it has continued to
-evolve over it's development history into a more universal tool. As Qiskit
-transitioned into a Rust library internally it became desirable to access
-the Rust core directly to enable the performance of using it directly. As
-quantum computing steadily expands its user base, the there was also
-a desire for different entry points to use Qiskit in environments where Python
-was not available. This resulted in the development of the C API. The C API is
-intended to enable accessing Qiskit, and by extension quantum computing, from
-any programming environment and provide a stable ABI for accessing Qiskit's
-Rust core directly.
+evolve over it's development history into a Rust library with a Python interface.
+As Qiskit transitioned into a Rust library internally it also became desirable to
+access the Rust core directly for better performance. Additionally, as quantum
+computing steadily expands its user base there was also a desire for different
+to use Qiskit in environments where Python was not available. This resulted in
+the development of the C API. The C API is intended to enable accessing Qiskit,
+and by extension quantum computing, from any programming environment and provide
+a stable ABI for accessing Qiskit's Rust core directly.
 
 **Example Use Cases**
 
