@@ -449,7 +449,11 @@ enum Slot<T> {
 // The use of `NonZeroU32` is not intended to be API exposed or binding.  It would be better to use
 // `u32::MAX` as the sentinel "bad" value, but it's hard to spell that _and_ permit the `Option<T>`
 // niche optimisation that `Node` relies on to avoid being too large.
-#[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
+#[cfg_attr(
+    feature = "mem_dbg",
+    derive(mem_dbg::MemSize, mem_dbg::MemDbg),
+    mem_size(flat)
+)]
 pub struct Index(num::NonZeroU32);
 impl Index {
     /// Construct a new index from a regular numeric value.
