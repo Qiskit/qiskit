@@ -28,7 +28,8 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(205, &param::FUNCTIONS)
         .add_child(255, &circuit_library::FUNCTIONS)
         .add_child(305, &classical_expr::FUNCTIONS)
-        .add_child(380, &operations::FUNCTIONS);
+        .add_child(380, &operations::FUNCTIONS)
+        .add_child(430, &circuit::FUNCTIONS_EXT);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(20, || {
@@ -164,6 +165,16 @@ mod circuit {
             export_fn!(qk_circuit_box),
             export_fn!(qk_circuit_box_duration_info),
             export_fn!(qk_circuit_box_duration_expr),
+        ]
+    });
+
+    // Additional list of circuit functions. Added since the first one is nearly full.
+    // If at some point we allow breaking the ABI, then this could be unified with
+    // the FUNCTIONS list above.
+    pub static FUNCTIONS_EXT: ExportedFunctions = ExportedFunctions::leaves(100, || {
+        vec![
+            export_fn!(qk_circuit_add_var),
+            export_fn!(qk_circuit_add_stretch),
         ]
     });
 }
