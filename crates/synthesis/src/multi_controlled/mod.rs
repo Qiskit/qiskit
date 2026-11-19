@@ -11,10 +11,10 @@
 // that they have been altered from the originals.
 
 use mcx::{
-    c3x, c4x, synth_mcp_noaux_sp22, synth_mcrx_noaux, synth_mcry_noaux, synth_mcrz_noaux,
-    synth_mcx_1_clean_b95, synth_mcx_1_kg24, synth_mcx_2_kg24, synth_mcx_explicit,
-    synth_mcx_n_clean_m15, synth_mcx_n_dirty_i15, synth_mcx_n_dirty_m15, synth_mcx_noaux_hp24,
-    synth_mcx_noaux_sp22,
+    c3x, c4x, synth_mcp_noaux_default, synth_mcp_noaux_sp22, synth_mcp_noaux_v24, synth_mcrx_noaux,
+    synth_mcry_noaux, synth_mcrz_noaux, synth_mcx_1_clean_b95, synth_mcx_1_kg24, synth_mcx_2_kg24,
+    synth_mcx_explicit, synth_mcx_n_clean_m15, synth_mcx_n_dirty_i15, synth_mcx_n_dirty_m15,
+    synth_mcx_noaux_hp24, synth_mcx_noaux_sp22,
 };
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
@@ -90,6 +90,28 @@ fn py_synth_mcx_noaux_sp22(num_controls: usize) -> PyResult<PyCircuitData> {
 }
 
 #[pyfunction]
+#[pyo3(name = "synth_mcp_noaux_v24")]
+fn py_synth_mcp_noaux_v24(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
+    if matches!(phase, Param::Obj(_)) {
+        return Err(PyTypeError::new_err(
+            "synth_mcp_noaux_v24 requires phase to be a float or a ParameterExpression.",
+        ));
+    }
+    Ok(synth_mcp_noaux_v24(num_controls, phase)?.into())
+}
+
+#[pyfunction]
+#[pyo3(name = "synth_mcp_noaux_default")]
+fn py_synth_mcp_noaux_default(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
+    if matches!(phase, Param::Obj(_)) {
+        return Err(PyTypeError::new_err(
+            "synth_mcp_noaux_default requires phase to be a float or a ParameterExpression.",
+        ));
+    }
+    Ok(synth_mcp_noaux_default(num_controls, phase)?.into())
+}
+
+#[pyfunction]
 #[pyo3(name = "synth_mcrx_noaux")]
 fn py_synth_mcrx_noaux(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
     if matches!(phase, Param::Obj(_)) {
@@ -152,7 +174,9 @@ pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_synth_mcx_2_kg24, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_sp22, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_sp22, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_v24, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcrx_noaux, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_default, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcry_noaux, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcrz_noaux, m)?)?;
     m.add_function(wrap_pyfunction!(mcmt::mcmt_v_chain, m)?)?;
