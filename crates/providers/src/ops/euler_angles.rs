@@ -44,7 +44,6 @@ const NUM_ANGLES: usize = 3;
 /// theta ~ 0:   [lambda + phi, 0,  0]
 /// theta ~ pi:  [lambda - phi, pi, 0]
 /// ```
-
 #[derive(Clone, Debug)]
 pub struct EulerAnglesZYZ {
     atol: f64,
@@ -57,7 +56,7 @@ impl Default for EulerAnglesZYZ {
 }
 
 impl EulerAnglesZYZ {
-    /// Construct an `EulerAngles` op resolving degenerate unitaries within `atol`.
+    /// Construct an `EulerAnglesZYZ` op resolving degenerate unitaries within `atol`.
     pub fn new(atol: f64) -> Self {
         Self { atol }
     }
@@ -74,9 +73,9 @@ impl EulerAnglesZYZ {
         S: Data<Elem = Complex<A>>,
     {
         let shape = matrices.shape();
+        // A row-major operand already holds each matrix as four consecutive elements.
         let mut angles = Vec::with_capacity(matrices.len() / 4 * NUM_ANGLES);
         match matrices.as_slice() {
-            // A row-major operand already holds each matrix as four consecutive elements.
             Some(flat) => {
                 for matrix in flat.chunks_exact(4) {
                     angles.extend(
