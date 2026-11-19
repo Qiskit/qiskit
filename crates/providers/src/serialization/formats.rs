@@ -10,7 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
+#![allow(dead_code)] // Currently in progress
+use binrw::binrw;
 
 #[binrw]
 #[brw(big)]
@@ -76,6 +77,58 @@ pub struct DataTreeBranchKeysPack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct ProgramFunctionPack {
+    #[bw(calc = instructions.len() as u64)]
+    pub num_instructions: u64,
+    #[br(count = num_instructions)]
+    pub instructions: Vec<ProgramInstructionPack>,
+
+    #[bw(calc = parameters.len() as u64)]
+    pub num_parameters: u64,
+    #[br(count = num_parameters)]
+    pub parameters: Vec<u32>,
+
+    #[bw(calc = results.len() as u64)]
+    pub num_results: u64,
+    #[br(count = num_results)]
+    pub results: Vec<u32>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ProgramInstructionPack {
+    pub body: InstructionBodyPack,
+
+    #[bw(calc = operands.len() as u64)]
+    pub num_operands: u64,
+    #[br(count = num_operands)]
+    pub operands: Vec<ProgramFunctionValuePack>,
+
+     #[bw(calc = output_types.len() as u64)]
+    pub num_output_types: u64,
+    #[br(count = num_output_types)]
+    pub output_types: Vec<TensorTypePack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ProgramFunctionValuePack {
+    pub instruction_id: u32,
+    pub slot: u16,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct TensorTypePack {
+    // placeholder
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct InstructionBodyPack{
     // placeholder
 }
 
