@@ -265,14 +265,13 @@ incrementing the major version number.
 ## Platform-specific Features
 
 It's best practice to avoid compiler and platform dependent features because
-callers could be targeting multiple platforms. For example, `__int128_t` and
-`_Complex double` are potentially relevant in the quantum domain, but those
-types are only available in GCC. In this case, we would be better off using the
-platform independent complex number utilities defined in `complex.h` since C99,
-however because of the lack of MSVC support on Windows for `complex.h` this
-is also not viable.
+callers are targeting multiple platforms. For example, `_Complex double` and
+`_DComplex` are relevant in the quantum domain, but those types are only
+available for programs compiled with GCC and MSVC respectively. In this case,
+we're better off defining our own, platform agnostic `QkComplex64`. We avoid
+the standard `complex.h` because it's optional in C11.
 
-For reference, Qiskit targets C11 as the minimum C standard.
+*For reference, Qiskit targets C11 as the minimum standard.*
 
 ## Documentation
 
