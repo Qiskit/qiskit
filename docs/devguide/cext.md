@@ -1,15 +1,22 @@
 # Contributing: C API
 
-Qiskit was fundamentally developed as a Python library, yet it has continued to
-evolve into a more universal tool. As quantum computing steadily expands its
-userbase, the need for different entry points to use Qiskit will lead to the
-development of new pipelines, which ultimately resulted in the development of
-the C API. 
+Qiskit was originally developed as a Python library, yet it has continued to
+evolve over it's development history into a more universal tool. As Qiskit
+transitioned into a Rust library internally it became desirable to access
+the Rust core directly to enable the performance of using it directly. As
+quantum computing steadily expands its user base, the there was also
+a desire for different entry points to use Qiskit in environments where Python
+was not available. This resulted in the development of the C API. The C API is
+intended to enable accessing Qiskit, and by extension quantum computing, from
+any programming environment and provide a stable ABI for accessing Qiskit's
+Rust core directly.
 
-**Use Cases**
+**Example Use Cases**
 
-- Wrappers such as [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
-  [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
+- Language binding library that wrap the C API in a ergonomic interface in
+  different programming languages such as
+  [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl)
+  and [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
 - Projects with high-performance computing (HPC) requirements.
 - Python extension modules.
 
@@ -261,7 +268,10 @@ It's best practice to avoid compiler and platform dependent features because
 callers could be targeting multiple platforms. For example, `__int128_t` and
 `_Complex double` are potentially relevant in the quantum domain, but those
 types are only available in GCC. In this case, we would be better off using the
-platform independent complex number utilities defined in `complex.h` since C99.
+platform independent complex number utilities defined in `complex.h` since C99,
+however because of the lack of MSVC support on Windows for `complex.h` this
+also is no viable.
+
 For reference, Qiskit targets C11 as the minimum C standard.
 
 ## Documentation
