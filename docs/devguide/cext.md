@@ -270,7 +270,7 @@ callers could be targeting multiple platforms. For example, `__int128_t` and
 types are only available in GCC. In this case, we would be better off using the
 platform independent complex number utilities defined in `complex.h` since C99,
 however because of the lack of MSVC support on Windows for `complex.h` this
-also is no viable.
+is also not viable.
 
 For reference, Qiskit targets C11 as the minimum C standard.
 
