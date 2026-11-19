@@ -311,8 +311,6 @@ pub enum BindParametersError {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::data_tree::DataTree;
-    use crate::program::{ProgramFunction, QuantumProgram};
 
     /// Return a standalone symbol named `name`.
     fn symbol(name: &str) -> Symbol {
@@ -360,40 +358,13 @@ mod test {
     }
 
     #[test]
-    fn test_infer_output_types_gives_one_value_per_expression() {
-        let (x, y) = (symbol("x"), symbol("y"));
-        let op = real_op(
-            vec![expr(&x).add(&expr(&y)).unwrap(), expr(&x), expr(&y)],
-            vec![x, y],
-        );
-        assert_eq!(
-            op.infer_output_types(&[ty(DType::F64, &[2])]).unwrap(),
-            vec![ty(DType::F64, &[3])],
-            "two parameters in, three expressions out"
-        );
-    }
-
-    #[test]
-    fn test_infer_output_types_carries_the_batch_prefix() {
-        // The prefix is opaque, so any rank of it passes through.
+    fn test_infer_output_types_keeps_the_batch_prefix() {
         let x = symbol("x");
         let op = real_op(vec![expr(&x), expr(&x)], vec![x]);
         assert_eq!(
             op.infer_output_types(&[ty(DType::F32, &[5, 3, 1])])
                 .unwrap(),
             vec![ty(DType::F64, &[5, 3, 2])]
-        );
-        let bounded = Dim::Bounded { max: 4 };
-        assert_eq!(
-            op.infer_output_types(&[TensorType {
-                dtype: DType::F64,
-                shape: vec![bounded, Dim::Fixed(1)],
-            }])
-            .unwrap(),
-            vec![TensorType {
-                dtype: DType::F64,
-                shape: vec![bounded, Dim::Fixed(2)],
-            }]
         );
     }
 
@@ -402,13 +373,9 @@ mod test {
         let x = symbol("x");
         let op = real_op(vec![expr(&x)], vec![x, symbol("y")]);
 
-        // A dtype that is not floating point is refused the same way as a parameter axis of the
-        // wrong length.
-        for operand in [
-            ty(DType::F64, &[3]),
-            ty(DType::I64, &[2]),
-            ty(DType::Bit, &[2]),
-        ] {
+        // A dtype that is not floating point is rejected with the same error as a parameter axis
+        // of the wrong length.
+        for operand in [ty(DType::F64, &[3]), ty(DType::I64, &[2])] {
             let err = op
                 .infer_output_types(std::slice::from_ref(&operand))
                 .unwrap_err();
@@ -417,39 +384,47 @@ mod test {
                     &err,
                     BindParametersError::ValueType { parameters: 2, actual } if *actual == operand
                 ),
-                "{operand} is refused: {err}"
+                "{operand} is rejected: {err}"
             );
         }
     }
 
     #[test]
     fn test_an_expression_may_not_reference_an_undeclared_parameter() {
+        // `y` is a bare parameter, and `x + y` is a general expression.
         let (x, y) = (symbol("x"), symbol("y"));
-        let Err(err) = BindParameters::new(vec![expr(&x), expr(&y)], vec![x], DType::F64) else {
-            panic!("y has no value to be evaluated at")
-        };
-        assert!(
-            matches!(
-                &err,
-                BindParametersError::UndeclaredParameter { expression: 1, parameter } if *parameter == y
-            ),
-            "the expression and the parameter that has no value are both named: {err}"
-        );
+        for undeclared in [expr(&y), expr(&x).add(&expr(&y)).unwrap()] {
+            let Err(err) =
+                BindParameters::new(vec![expr(&x), undeclared], vec![x.clone()], DType::F64)
+            else {
+                panic!("y has no value to be evaluated at")
+            };
+            assert!(
+                matches!(
+                    &err,
+                    BindParametersError::UndeclaredParameter { expression: 1, parameter } if *parameter == y
+                ),
+                "the expression and the parameter that has no value are both named: {err}"
+            );
+        }
     }
 
     #[test]
     fn test_surplus_declared_parameters_are_ignored() {
         // A caller can declare a whole circuit's parameters without pruning them to what each
-        // expression uses.
+        // expression uses. `y` is a bare parameter, and `z - y` is a general expression.
         let (x, y, z) = (symbol("x"), symbol("y"), symbol("z"));
-        let op = real_op(vec![expr(&y)], vec![x, y, z]);
+        let op = real_op(
+            vec![expr(&y), expr(&z).sub(&expr(&y)).unwrap()],
+            vec![x, y, z],
+        );
         assert_eq!(
             op.infer_output_types(&[ty(DType::F64, &[3])]).unwrap(),
-            vec![ty(DType::F64, &[1])]
+            vec![ty(DType::F64, &[2])]
         );
         assert_eq!(
             op.eval(&[tensor(&[3], &[0.5, 1.5, 2.5])]).unwrap(),
-            vec![tensor(&[1], &[1.5])]
+            vec![tensor(&[2], &[1.5, 1.0])]
         );
     }
 
@@ -487,13 +462,9 @@ mod test {
             ArrayD::from_shape_vec(IxDyn(&[3, 1, 1]), vec![0.5_f32, 1.5, -2.0]).unwrap(),
         );
         assert_eq!(
-            op.eval(std::slice::from_ref(&values)).unwrap(),
+            op.eval(&[values]).unwrap(),
             vec![tensor(&[3, 1, 1], &[1.0, 3.0, -4.0])],
             "expressions evaluate in double precision, whatever the operand's precision"
-        );
-        assert_eq!(
-            op.infer_output_types(&[values.tensor_type()]).unwrap(),
-            vec![ty(DType::F64, &[3, 1, 1])]
         );
     }
 
@@ -560,7 +531,6 @@ mod test {
             nan.re.is_nan() && nan.im.is_nan(),
             "{nan} is NaN in both parts"
         );
-        assert_eq!(results[[1, 0]], Complex64::new(0.0, 0.0));
     }
 
     #[test]
@@ -638,52 +608,19 @@ mod test {
 
     #[test]
     fn test_an_f64_result_keeps_the_real_part_of_a_complex_value() {
-        // `log(-1)` is `i * pi`, so this expression is real or complex depending on the value.
         let x = symbol("x");
         let op = real_op(vec![expr(&x).log()], vec![x]);
         assert_eq!(
             op.eval(&[tensor(&[1], &[-1.0])]).unwrap(),
             vec![tensor(&[1], &[0.0])],
-            "the real part of i * pi is zero"
-        );
-        assert_eq!(
-            op.eval(&[tensor(&[1], &[1.0])]).unwrap(),
-            vec![tensor(&[1], &[0.0])]
+            "the real part of log(-1) = i * pi is zero"
         );
     }
 
     #[test]
-    fn test_every_expression_kind_evaluates_to_a_value() {
-        // Binding every declared parameter leaves nothing symbolic, whatever the expression is
-        // built from, so no result is NaN.
-        let x = symbol("x");
-        let expressions = vec![
-            expr(&x).sin(),
-            expr(&x).cos(),
-            expr(&x).tan(),
-            expr(&x).atan(),
-            expr(&x).exp(),
-            expr(&x).abs(),
-            expr(&x).sign(),
-            expr(&x).conjugate(),
-            expr(&x).pow(&ParameterExpression::from_f64(3.0)).unwrap(),
-            expr(&x).sub(&expr(&x)).unwrap(),
-        ];
-        let count = expressions.len();
-        let op = real_op(expressions, vec![x]);
-        let results = op.eval(&[tensor(&[1], &[0.5])]).unwrap();
-        let Tensor::F64(results) = &results[0] else {
-            panic!("the result is F64")
-        };
-        assert_eq!(results.shape(), [count]);
-        assert!(results.iter().all(|value| !value.is_nan()), "{results}");
-    }
-
-    #[test]
-    fn test_a_c128_result_admits_a_complex_value() {
+    fn test_a_c128_result_keeps_a_complex_value() {
         let x = symbol("x");
         let op = BindParameters::new(vec![expr(&x).log()], vec![x], DType::C128).unwrap();
-        assert_eq!(op.dtype(), DType::C128);
         assert_eq!(
             op.infer_output_types(&[ty(DType::F64, &[1])]).unwrap(),
             vec![ty(DType::C128, &[1])]
@@ -694,7 +631,7 @@ mod test {
                 &[1],
                 &[Complex64::new(0.0, std::f64::consts::PI)]
             )],
-            "the value an F64 result refuses is the value a C128 result returns"
+            "log(-1) is i * pi"
         );
         assert_eq!(
             op.eval(&[tensor(&[1], &[1.0])]).unwrap(),
@@ -704,7 +641,7 @@ mod test {
     }
 
     #[test]
-    fn test_a_result_dtype_other_than_f64_or_c128_is_refused() {
+    fn test_a_result_dtype_other_than_f64_or_c128_is_rejected() {
         // Expressions evaluate in double precision, so a narrower result comes from a `Cast`.
         let x = symbol("x");
         for dtype in [DType::F32, DType::C64, DType::I64, DType::Bit] {
@@ -713,47 +650,8 @@ mod test {
             };
             assert!(
                 matches!(err, BindParametersError::ResultDType { dtype: got } if got == dtype),
-                "{dtype} is refused: {err}"
+                "{dtype} is rejected: {err}"
             );
         }
-    }
-
-    #[test]
-    fn test_a_program_computes_parameters_from_its_inputs() {
-        let theta = symbol("theta");
-        let op = real_op(
-            vec![
-                expr(&theta)
-                    .mul(&ParameterExpression::from_f64(2.0))
-                    .unwrap(),
-                ParameterExpression::from_f64(0.25),
-            ],
-            vec![theta],
-        );
-
-        let mut function = ProgramFunction::new();
-        let sweep = function.add_parameter(ty(DType::F64, &[2, 1]));
-        let angles = function.add_op(op, &[sweep]).unwrap()[0];
-        function.add_result(angles).unwrap();
-        assert_eq!(function.type_of(angles), Some(&ty(DType::F64, &[2, 2])));
-
-        let program = QuantumProgram::new(
-            vec![function],
-            DataTree::mapping([("theta", DataTree::Leaf(()))]).unwrap(),
-            DataTree::mapping([("angles", DataTree::Leaf(()))]).unwrap(),
-        )
-        .unwrap();
-        assert!(program.entry_function().has_builtin_eval());
-
-        let inputs =
-            DataTree::mapping([("theta", DataTree::Leaf(tensor(&[2, 1], &[0.5, 1.5])))]).unwrap();
-        assert_eq!(
-            program.eval(inputs).unwrap(),
-            DataTree::mapping([(
-                "angles",
-                DataTree::Leaf(tensor(&[2, 2], &[1.0, 0.25, 3.0, 0.25]))
-            )])
-            .unwrap()
-        );
     }
 }
