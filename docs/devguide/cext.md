@@ -103,8 +103,8 @@ pub extern "C" fn qk_obs_num_qubits(obs: &SparseObservable) -> u32 {
 }
 ```
 
-Use `Option<&T>` and `Option<&mut T>` when passing `NULL` has defined behavior.
-The optional explicitly states the nullable contract. The compiler guarentees
+Use `Option<&T>` and `Option<&mut T>` when `NULL` is an expected input. The
+optional explicitly states the nullable contract. The compiler guarentees
 that `T` cannot be used without checking the `NULL` case.
 
 Use `NonNull<T>` instead of `&mut T` when taking ownership of `T`. The former
@@ -297,6 +297,14 @@ with the `@defgroup` command. The `@ingroup` command assigns items to a group.
 Structs exposed directly from the data model must be manually added to an `.rst`
 file.
 
+```c
+// index.h 
+
+/*
+ * @defgroup QkQubit QkQubit
+ */
+```
+
 ### Ownership
 
 C syntax cannot express ownership semantics, so the ownership contract must be
@@ -343,7 +351,9 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut Circuit) {
 
 ### Release Notes
 
-Link C objects in release notes using Sphinx syntax in the `c` domain.
+Link C objects in release notes using
+[Sphinx syntax](www.sphinx-doc.org/en/master/usage/domains/c.html) in the `c`
+domain.
 
 ```
 :c:struct:`QkFoo`
