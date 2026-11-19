@@ -12,7 +12,7 @@
 
 //! An op that evaluates parameter expressions.
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use ndarray::{ArrayD, IxDyn};
 use num_complex::Complex64;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -22,6 +22,19 @@ use thiserror::Error;
 use super::inference::{float, leading_axes};
 use super::{ProgramOp, QISKIT};
 use crate::tensor::{DType, Dim, Tensor, TensorType};
+
+/// A strategy for evaluating one expression of a [`BindParameters`], allowing us to short-cut the cases
+/// where an expression is just a parameter or a constant.
+#[derive(Clone, Debug)]
+enum Evaluation {
+    /// The expression is the parameter at this index in `parameters`.
+    Parameter(usize),
+    /// The expression has no parameters. The value is `None` if the evaluation fails (e.g. `1 / 0`).
+    Constant(Option<Value>),
+    /// The expression is evaluated with [`ParameterExpression::bind`]. Its parameters are at the
+    /// indices `indices[start..end]` in `parameters`.
+    General { start: usize, end: usize },
+}
 
 /// Evaluate parameter expressions over a batch of parameter values.
 ///
@@ -37,6 +50,10 @@ pub struct BindParameters {
     expressions: Vec<ParameterExpression>,
     parameters: Vec<Symbol>,
     dtype: DType,
+    /// The evaluation strategy for each expression, in the order of `expressions`.
+    evaluations: Vec<Evaluation>,
+    /// The indices in `parameters` of the parameters of each general expression, concatenated.
+    indices: Vec<usize>,
 }
 
 impl BindParameters {
@@ -51,16 +68,46 @@ impl BindParameters {
         if !matches!(dtype, DType::F64 | DType::C128) {
             return Err(BindParametersError::ResultDType { dtype });
         }
-        if let Some((expression, parameter)) = undeclared_parameter(&expressions, &parameters) {
-            return Err(BindParametersError::UndeclaredParameter {
-                expression,
-                parameter,
-            });
+        let mut evaluations = Vec::with_capacity(expressions.len());
+        let mut indices = Vec::new();
+        {
+            let parameter_indices: HashMap<&Symbol, usize> = parameters
+                .iter()
+                .enumerate()
+                .map(|(index, parameter)| (parameter, index))
+                .collect();
+            for (expression_index, expression) in expressions.iter().enumerate() {
+                let index = |symbol: &Symbol| {
+                    parameter_indices.get(symbol).copied().ok_or_else(|| {
+                        BindParametersError::UndeclaredParameter {
+                            expression: expression_index,
+                            parameter: symbol.clone(),
+                        }
+                    })
+                };
+                let evaluation = if let Ok(symbol) = expression.try_to_symbol_ref() {
+                    Evaluation::Parameter(index(symbol)?)
+                } else if expression.num_symbols() == 0 {
+                    Evaluation::Constant(evaluate_expression(expression, &HashMap::new()))
+                } else {
+                    let start = indices.len();
+                    for symbol in expression.iter_symbols() {
+                        indices.push(index(symbol)?);
+                    }
+                    Evaluation::General {
+                        start,
+                        end: indices.len(),
+                    }
+                };
+                evaluations.push(evaluation);
+            }
         }
         Ok(Self {
             expressions,
             parameters,
             dtype,
+            evaluations,
+            indices,
         })
     }
 
@@ -111,18 +158,31 @@ impl BindParameters {
         convert: fn(Value) -> T,
         nan: T,
     ) -> Vec<T> {
+        let mut bindings: HashMap<&Symbol, Value> = HashMap::new();
+        let mut row = Vec::with_capacity(self.parameters.len());
         let mut results = Vec::with_capacity(rows * self.expressions.len());
         for _ in 0..rows {
-            let bindings: HashMap<&Symbol, Value> = self
-                .parameters
-                .iter()
-                .zip(values.by_ref())
-                .map(|(parameter, value)| (parameter, Value::Real(value)))
-                .collect();
-            for expression in &self.expressions {
-                let value = expression
-                    .bind(&bindings, true)
-                    .and_then(|bound| bound.try_to_value(true));
+            row.clear();
+            row.extend(values.by_ref().take(self.parameters.len()));
+            for (expression, evaluation) in self.expressions.iter().zip(&self.evaluations) {
+                let value = match *evaluation {
+                    Evaluation::Parameter(index) => {
+                        let value = row[index];
+                        value.is_finite().then_some(Value::Real(value))
+                    }
+                    Evaluation::Constant(value) => value,
+                    Evaluation::General { start, end } => {
+                        // The map has only this expression's parameters. The cost of
+                        // `ParameterExpression::bind` is linear in the size of the map.
+                        bindings.clear();
+                        bindings.extend(
+                            self.indices[start..end]
+                                .iter()
+                                .map(|&index| (&self.parameters[index], Value::Real(row[index]))),
+                        );
+                        evaluate_expression(expression, &bindings)
+                    }
+                };
                 results.push(value.map_or(nan, convert));
             }
         }
@@ -194,6 +254,17 @@ impl ProgramOp for BindParameters {
     }
 }
 
+/// Return the value of `expression` with `bindings`, or `None` if the evaluation fails.
+fn evaluate_expression(
+    expression: &ParameterExpression,
+    bindings: &HashMap<&Symbol, Value>,
+) -> Option<Value> {
+    expression
+        .bind(bindings, true)
+        .and_then(|bound| bound.try_to_value(true))
+        .ok()
+}
+
 /// Return the real part of `value`.
 fn real(value: Value) -> f64 {
     match value {
@@ -215,24 +286,6 @@ fn complex(value: Value) -> Complex64 {
 /// Return `results` as an array of `shape`.
 fn reshape<T>(results: Vec<T>, shape: &[usize]) -> ArrayD<T> {
     ArrayD::from_shape_vec(IxDyn(shape), results).expect("one value per expression per batch entry")
-}
-
-/// Return a parameter some expression references that `parameters` does not contain, with the index
-/// of that expression.
-fn undeclared_parameter(
-    expressions: &[ParameterExpression],
-    parameters: &[Symbol],
-) -> Option<(usize, Symbol)> {
-    let declared: HashSet<&Symbol> = parameters.iter().collect();
-    expressions
-        .iter()
-        .enumerate()
-        .find_map(|(index, expression)| {
-            expression
-                .iter_symbols()
-                .find(|symbol| !declared.contains(*symbol))
-                .map(|symbol| (index, symbol.clone()))
-        })
 }
 
 /// Errors returned by [`BindParameters`].
@@ -508,6 +561,79 @@ mod test {
             "{nan} is NaN in both parts"
         );
         assert_eq!(results[[1, 0]], Complex64::new(0.0, 0.0));
+    }
+
+    #[test]
+    fn test_bare_parameters_and_constants_match_bind() {
+        // Bare parameters and constants are evaluated without `ParameterExpression::bind`. The
+        // product is bound in the usual way, to check the order of mixed results.
+        let (x, y) = (symbol("x"), symbol("y"));
+        let expressions = vec![
+            expr(&y),
+            expr(&x),
+            ParameterExpression::from_f64(0.25),
+            ParameterExpression::from_f64(f64::INFINITY),
+            ParameterExpression::from_f64(f64::NAN),
+            ParameterExpression::from_f64(0.0).log(),
+            ParameterExpression::from_f64(-1.0).log(),
+            expr(&x).mul(&expr(&y)).unwrap(),
+        ];
+        let values = [
+            1.5,
+            -0.0,
+            f64::INFINITY,
+            f64::NEG_INFINITY,
+            f64::NAN,
+            f64::MIN_POSITIVE / 2.0,
+        ];
+        let sets: Vec<[f64; 2]> = values
+            .iter()
+            .flat_map(|&a| values.iter().map(move |&b| [a, b]))
+            .collect();
+        let expected: Vec<Option<Value>> = sets
+            .iter()
+            .flat_map(|&[a, b]| {
+                let bindings = HashMap::from([(&x, Value::Real(a)), (&y, Value::Real(b))]);
+                expressions
+                    .iter()
+                    .map(|expression| evaluate_expression(expression, &bindings))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        let values = tensor(&[sets.len(), 2], sets.as_flattened());
+        let parameters = vec![x.clone(), y.clone()];
+
+        let op = real_op(expressions.clone(), parameters.clone());
+        let Tensor::F64(results) = &op.eval(std::slice::from_ref(&values)).unwrap()[0] else {
+            panic!("the result is F64")
+        };
+        let results: Vec<Option<f64>> = results
+            .iter()
+            .map(|&value| (!value.is_nan()).then_some(value))
+            .collect();
+        assert_eq!(
+            results,
+            expected
+                .iter()
+                .map(|value| value.map(real))
+                .collect::<Vec<_>>()
+        );
+
+        let op = BindParameters::new(expressions, parameters, DType::C128).unwrap();
+        let Tensor::C128(results) = &op.eval(std::slice::from_ref(&values)).unwrap()[0] else {
+            panic!("the result is C128")
+        };
+        let results: Vec<Option<Complex64>> = results
+            .iter()
+            .map(|&value| (!value.is_nan()).then_some(value))
+            .collect();
+        assert_eq!(
+            results,
+            expected
+                .iter()
+                .map(|value| value.map(complex))
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]
