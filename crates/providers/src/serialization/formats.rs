@@ -104,7 +104,7 @@ pub struct ProgramInstructionPack {
     #[br(count = num_operands)]
     pub operands: Vec<ProgramFunctionValuePack>,
 
-     #[bw(calc = output_types.len() as u64)]
+    #[bw(calc = output_types.len() as u64)]
     pub num_output_types: u64,
     #[br(count = num_output_types)]
     pub output_types: Vec<TensorTypePack>,
@@ -122,13 +122,70 @@ pub struct ProgramFunctionValuePack {
 #[brw(big)]
 #[derive(Debug)]
 pub struct TensorTypePack {
-    // placeholder
+    pub dtype: DTypePack,
+
+    #[bw(calc = shape.len() as u64)]
+    pub rank: u64,
+    #[br(count = rank)]
+    pub shape: Vec<DimPack>,
 }
 
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub struct InstructionBodyPack{
+pub enum DTypePack {
+    #[brw(magic = 0u8)]
+    C128,
+    #[brw(magic = 1u8)]
+    C64,
+    #[brw(magic = 2u8)]
+    F64,
+    #[brw(magic = 3u8)]
+    F32,
+    #[brw(magic = 4u8)]
+    I64,
+    #[brw(magic = 5u8)]
+    I32,
+    #[brw(magic = 6u8)]
+    I16,
+    #[brw(magic = 7u8)]
+    I8,
+    #[brw(magic = 8u8)]
+    U64,
+    #[brw(magic = 9u8)]
+    U32,
+    #[brw(magic = 10u8)]
+    U16,
+    #[brw(magic = 11u8)]
+    U8,
+    #[brw(magic = 12u8)]
+    Bit,
+    #[brw(magic = 13u8)]
+    Key(PrngKindPack),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum PrngKindPack {
+    #[brw(magic = 0u8)]
+    Philox4x32,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum DimPack {
+    #[brw(magic = 0u8)]
+    Fixed(u64),
+    #[brw(magic = 1u8)]
+    Bounded(u64),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct InstructionBodyPack {
     // placeholder
 }
 

@@ -11,3 +11,4 @@
 // that they have been altered from the originals.
 mod data_tree;
 mod formats;
+mod tensor_type;

@@ -10,10 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 // Data tree serialization code
-
+#![allow(dead_code)] // Currently in progress
 use crate::data_tree::*;
 use crate::serialization::formats::*;
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -131,7 +131,7 @@ pub fn unpack_tree(pack: DataTreePack) -> Result<DataTree<()>, UnpackTreeError> 
         .take(pack.nodes.len())
         .collect();
     for node_index in (0..pack.nodes.len()).rev() {
-    unpacked[node_index] = Some(match &pack.nodes[node_index] {
+        unpacked[node_index] = Some(match &pack.nodes[node_index] {
             DataTreeNodePack::Leaf => DataTree::Leaf(()),
             DataTreeNodePack::Branch(branch) => {
                 let child_range = children[node_index].clone().unwrap();
