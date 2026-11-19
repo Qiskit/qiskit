@@ -26,9 +26,6 @@ use crate::tensor::{DType, Dim, Tensor, TensorType, fmt_shape};
 /// This matches `ANGLE_ZERO_EPSILON` in Qiskit's one-qubit decomposer.
 pub const DEFAULT_ATOL: f64 = 1e-12;
 
-/// How many angles describe a single-qubit unitary.
-const NUM_ANGLES: usize = 3;
-
 /// Compute ZYZ Euler angles from 2x2 unitaries.
 ///
 /// This operation transforms `C128[..., 2, 2]` or `C64[..., 2, 2]` into `F64[..., 3]`,
@@ -56,6 +53,9 @@ impl Default for EulerAnglesZYZ {
 }
 
 impl EulerAnglesZYZ {
+    /// How many angles describe a single-qubit unitary.
+    const NUM_ANGLES: usize = 3;
+
     /// Construct an `EulerAnglesZYZ` op resolving degenerate unitaries within `atol`.
     pub fn new(atol: f64) -> Self {
         Self { atol }
@@ -74,7 +74,7 @@ impl EulerAnglesZYZ {
     {
         let shape = matrices.shape();
         // A row-major operand already holds each matrix as four consecutive elements.
-        let mut angles = Vec::with_capacity(matrices.len() / 4 * NUM_ANGLES);
+        let mut angles = Vec::with_capacity(matrices.len() / 4 * Self::NUM_ANGLES);
         match matrices.as_slice() {
             Some(flat) => {
                 for matrix in flat.chunks_exact(4) {
@@ -102,13 +102,16 @@ impl EulerAnglesZYZ {
         }
 
         let mut shape = shape[..shape.len() - 2].to_vec();
-        shape.push(NUM_ANGLES);
+        shape.push(Self::NUM_ANGLES);
         ArrayD::from_shape_vec(IxDyn(&shape), angles)
             .expect("three angles per unitary in the operand")
     }
 
     /// Return the angles of one unitary given its elements in row-major order.
-    fn angles_of_matrix<A: Into<f64> + Copy>(&self, matrix: [Complex<A>; 4]) -> [f64; NUM_ANGLES] {
+    fn angles_of_matrix<A: Into<f64> + Copy>(
+        &self,
+        matrix: [Complex<A>; 4],
+    ) -> [f64; Self::NUM_ANGLES] {
         let [m00, m01, m10, m11] = matrix.map(|z| Complex64::new(z.re.into(), z.im.into()));
         let phase = (m00 * m11 - m01 * m10).sqrt().inv();
         let theta = 2.0 * m10.norm().atan2(m00.norm());
@@ -173,7 +176,7 @@ impl ProgramOp for EulerAnglesZYZ {
             actual: fmt_shape(&x.shape),
         })?;
         let mut shape = batch.to_vec();
-        shape.push(Dim::Fixed(NUM_ANGLES));
+        shape.push(Dim::Fixed(Self::NUM_ANGLES));
         Ok(vec![TensorType {
             dtype: DType::F64,
             shape,
