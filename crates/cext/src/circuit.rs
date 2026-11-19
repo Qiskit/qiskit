@@ -2949,9 +2949,6 @@ unsafe fn append_box(
 /// @ingroup QkCircuit
 /// Append a for loop over a range of values to a circuit.
 ///
-/// The body is executed once for every value in ``range(start, stop, step)``, following Python's
-/// ``range`` semantics.
-///
 /// If ``kind`` is ``QkLoopParamKind_Parameter``, ``loop_param`` names the parameter of ``body`` to
 /// bind to the current value, matched by name and, for a vector element, index.
 ///

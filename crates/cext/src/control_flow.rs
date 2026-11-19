@@ -250,14 +250,14 @@ pub enum CSymbolType {
 #[repr(C)]
 pub struct CSymbolInfo {
     /// The type of symbol (standalone or element)
-    pub(crate) ty: CSymbolType,
+    pub ty: CSymbolType,
     /// A null-terminated C string containing the symbol name. For standalone symbols,
     /// this is the variable name. For element symbols, this is the base name of the parameter
     /// vector. The caller is responsible for freeing this string using `qk_str_free`.
-    pub(crate) name: *mut c_char,
+    pub name: *mut c_char,
     /// For element symbols, this is the index into the parameter vector. For standalone
     /// symbols, this field is unused and should be ignored.
-    pub(crate) index: usize,
+    pub index: usize,
 }
 
 /// The type of collection used in a ForLoop control flow instruction.
@@ -277,18 +277,18 @@ pub enum CLoopCollectionType {
 #[repr(C)]
 pub struct CLoopElements {
     /// Pointer to the array of loop elements.
-    pub(crate) elements: *const isize,
+    pub elements: *const isize,
     /// Number of elements in the array.
-    pub(crate) len: usize,
+    pub len: usize,
 }
 
 /// A union to hold the loop variable of a ForLoop.
 #[repr(C)]
 pub union CLoopParamValue {
     /// The loop parameter (active when ``kind`` is ``QkLoopParamKind_Parameter``)
-    pub(crate) symbol: *const CSymbolInfo,
+    pub symbol: *const CSymbolInfo,
     /// The loop variable (active when ``kind`` is ``QkLoopParamKind_Variable``)
-    pub(crate) variable: *const Var,
+    pub variable: *const Var,
 }
 
 /// @ingroup QkControlFlow
