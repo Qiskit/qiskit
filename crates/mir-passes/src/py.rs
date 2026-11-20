@@ -14,7 +14,7 @@ use crate::dag_to_mir::lower_dag;
 use pyo3::prelude::*;
 use qiskit_mir::py::PyMir;
 
-use pyo3::types::PyType;
+use pyo3::types::{PyNone, PyType};
 use qiskit_circuit::dag_circuit::PyDAGCircuit;
 
 /// PyO3 wrapper that exposes DagToMirPass as a Python pass.
@@ -30,6 +30,12 @@ impl PyDagToMirPass {
     }
 
     // Pass protocol attributes consumed by the pass-manager system.
+    #[classattr]
+    fn _qiskit_pass_builtin_(py: Python) -> Bound<PyNone> {
+        // Marker for the pass-manager system to treat `DagToMirPass` as a natively-handled pass.
+        PyNone::get(py).to_owned()
+    }
+
     #[classattr]
     fn _qiskit_pass_name_() -> &'static str {
         "DagToMirPass"
