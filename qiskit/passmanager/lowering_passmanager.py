@@ -103,6 +103,7 @@ class IR:
         cls._qiskit_ir_base_ = cls._qiskit_ir_base_ or cls
 
 
+@typing.runtime_checkable
 class _BuiltinIR(typing.Protocol):
     _qiskit_ir_builtin_: ClassVar[None]
 

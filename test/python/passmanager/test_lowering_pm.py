@@ -19,7 +19,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from qiskit import capi
-from qiskit._accelerate import mir_passes
+from qiskit._accelerate import mir, mir_passes
 from qiskit.circuit import QuantumCircuit, CircuitData
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import (
@@ -29,7 +29,7 @@ from qiskit.passmanager import (
     PassContextHandle,
     Pass,
 )
-from qiskit.passmanager.lowering_passmanager import AnyPass
+from qiskit.passmanager.lowering_passmanager import AnyIR, AnyPass
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.transpiler import generate_preset_pass_manager, CouplingMap, TranspileLayout, Target
@@ -603,3 +603,19 @@ class TestLoweringPassManager(QiskitTestCase):
     def test_rust_pass_is_not_pass(self):
         """Test that a Rust pass is not an instance of `Pass`."""
         self.assertNotIsInstance(mir_passes.DagToMirPass(), Pass)
+
+    def test_any_ir(self):
+        """Test that Python and Rust IRs are all instances of `AnyIR`."""
+        for ir in [QuantumCircuit(), CountsIR({}), DAGCircuit(), CircuitData(), mir.Mir()]:
+            with self.subTest(ir=type(ir).__name__):
+                self.assertIsInstance(ir, AnyIR)
+
+    def test_non_ir_is_not_any_ir(self):
+        """Test that an object that is not an IR is not an instance of `AnyIR`."""
+        self.assertNotIsInstance(NonIRBase(), AnyIR)
+
+    def test_rust_ir_is_not_ir(self):
+        """Test that a Rust IR is not an instance of `IR`."""
+        for ir in [DAGCircuit(), CircuitData(), mir.Mir()]:
+            with self.subTest(ir=type(ir).__name__):
+                self.assertNotIsInstance(ir, IR)
