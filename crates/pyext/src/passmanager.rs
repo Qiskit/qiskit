@@ -271,7 +271,6 @@ static NATIVE_PASS: ImportOnceCell = ImportOnceCell::new(
     "qiskit.passmanager.lowering_passmanager",
     "_native_pass_from_lowering_pass",
 );
-static PASS: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "Pass");
 static TASK_SEQUENCE: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "TaskSequence");
 static TASK_STAGES: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "TaskStages");
 
@@ -282,8 +281,9 @@ const MAX_TASK_DEPTH: usize = 1000;
 
 /// Build the native task that corresponds to a `qiskit.passmanager` object.
 ///
-/// The set of [`Task`] variants is closed, so the accepted Python types are exactly `Pass`,
-/// `TaskSequence` and `TaskStages`.  This is the inverse of [`task_to_py`].
+/// The set of [`Task`] variants is closed.  The containers are exactly `TaskSequence` and
+/// `TaskStages`, and any other object with a `_qiskit_pass_run_` attribute is a pass.  This is the
+/// inverse of [`task_to_py`].
 fn task_from_py(ob: &Bound<PyAny>) -> PyResult<Task> {
     task_from_py_inner(ob, 0)
 }
@@ -294,13 +294,6 @@ fn task_from_py_inner(ob: &Bound<PyAny>, depth: usize) -> PyResult<Task> {
         return Err(PyValueError::new_err(format!(
             "tasks are nested deeper than the maximum of {MAX_TASK_DEPTH}"
         )));
-    }
-    if ob.is_instance(PASS.get_bound(py))? {
-        // Python owns the interpretation of the `Pass` protocol, including any
-        // calling-convention resolution, and hands back a `PyPass` handle.
-        let handle = NATIVE_PASS.get_bound(py).call1((ob,))?;
-        let pass = PyPass::steal(handle.cast::<PyPass>()?)?;
-        return Ok(Task::Transformation(Box::new(pass)));
     }
     if ob.is_instance(TASK_SEQUENCE.get_bound(py))? {
         let tasks = ob
@@ -323,6 +316,13 @@ fn task_from_py_inner(ob: &Bound<PyAny>, depth: usize) -> PyResult<Task> {
             })
             .collect::<PyResult<Vec<_>>>()?;
         return Ok(Task::Stages(stages));
+    }
+    if ob.hasattr(intern!(py, "_qiskit_pass_run_"))? {
+        // Python owns the interpretation of the `Pass` protocol, including any
+        // calling-convention resolution, and hands back a `PyPass` handle.
+        let handle = NATIVE_PASS.get_bound(py).call1((ob,))?;
+        let pass = PyPass::steal(handle.cast::<PyPass>()?)?;
+        return Ok(Task::Transformation(Box::new(pass)));
     }
     Err(PyTypeError::new_err(format!(
         "expected a Pass, TaskSequence or TaskStages, got {}: {}",
