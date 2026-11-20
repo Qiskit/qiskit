@@ -136,6 +136,22 @@ impl PauliEvolution {
     }
 }
 
+#[derive(Debug, Clone)]
+struct ComparableParam(Param);
+
+impl PartialEq for ComparableParam {
+    fn eq(&self, other: &Self) -> bool {
+        let Self(a) = self;
+        let Self(b) = other;
+
+        match (a, b) {
+            (Param::Float(a), Param::Float(b)) => a == b,
+            (Param::ParameterExpression(a), Param::ParameterExpression(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
 fn format_default_label(operator: &SparseObservable) -> String {
     let mut label = "exp(-it (".to_string();
 
@@ -178,22 +194,6 @@ pub struct PauliEvolutionParts {
     pub label: String,
 }
 
-#[derive(Debug, Clone)]
-struct ComparableParam(Param);
-
-impl PartialEq for ComparableParam {
-    fn eq(&self, other: &Self) -> bool {
-        let Self(a) = self;
-        let Self(b) = other;
-
-        match (a, b) {
-            (Param::Float(a), Param::Float(b)) => a == b,
-            (Param::ParameterExpression(a), Param::ParameterExpression(b)) => a == b,
-            _ => false,
-        }
-    }
-}
-
 fn evolve_matrix(matrix: &Array2<Complex64>, time: f64) -> Array2<Complex64> {
     debug_assert!(matrix.is_square());
 
@@ -220,25 +220,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_label() {
+    fn test_label_xy() {
         let obs = xy();
         let evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
         assert_eq!(evolution.label(), "exp(-it (XY))");
+    }
 
+    #[test]
+    fn test_label_xy_zz() {
         let obs = xy_zz();
         let evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
         assert_eq!(evolution.label(), "exp(-it (XY + ZZ))");
+    }
 
+    #[test]
+    fn test_label_xyi_izz_yix() {
         let obs = xyi_izz_yix();
         let evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
         assert_eq!(evolution.label(), "exp(-it (XYI + IZZ + YIX))")
     }
 
     #[test]
-    fn test_custom_label() {
+    fn test_label_custom() {
         let obs = xy();
-        let evolution = PauliEvolution::with_label(obs, Param::Float(3.0), "my label").unwrap();
-        assert_eq!(evolution.label(), "my label");
+        let evolution = PauliEvolution::with_label(obs, Param::Float(3.0), "custom").unwrap();
+        assert_eq!(evolution.label(), "custom");
     }
 
     #[test]
@@ -263,7 +269,8 @@ mod tests {
         let expected = ParameterExpression::from_f64(-3.0);
         assert!(matches!(
             evolution.time(),
-            Param::ParameterExpression(expr) if expr.as_ref() == &expected));
+            Param::ParameterExpression(expr) if expr.as_ref() == &expected
+        ));
     }
 
     #[test]
