@@ -165,6 +165,7 @@ pub struct Signature {
 }
 
 /// The evaluation content of an instruction.
+#[derive(Debug, Clone)]
 enum InstructionBody {
     Parameter,
     Op(BoxedProgramOp),
@@ -185,6 +186,7 @@ impl InstructionBody {
 }
 
 /// One instruction of a function: what it is, what it reads, and what it produces.
+#[derive(Debug, Clone)]
 struct ProgramInstruction {
     body: InstructionBody,
     /// The values this instruction consumes, in operand order.
@@ -241,6 +243,16 @@ impl<'a> InstructionRef<'a> {
     /// Return what this instruction is, and what it holds.
     pub fn view(&self) -> InstructionView<'a> {
         self.instruction().body.view()
+    }
+
+    /// Return the op this instruction applies, when it is an op of type `O`.
+    ///
+    /// This is `None` for a parameter, a call or a result, and for an op of any other type.
+    pub fn downcast<O: ProgramOp + 'static>(&self) -> Option<&'a O> {
+        match self.view() {
+            InstructionView::Op(op) => op.downcast_ref(),
+            _ => None,
+        }
     }
 
     /// Return the values this instruction consumes, in operand order.
@@ -373,6 +385,7 @@ pub enum FunctionEvalError {
 /// be malformed by construction. A call instruction is the exception: its contract is checked against
 /// the function it names when a [`QuantumProgram`](super::QuantumProgram) is assembled. Because of SSA
 /// discipline, instruction order is a valid execution order.
+#[derive(Debug, Clone)]
 pub struct ProgramFunction {
     /// Every instruction, indexed by [`InstructionId`].
     instructions: Vec<ProgramInstruction>,
@@ -1073,6 +1086,29 @@ mod test {
         );
     }
 
+    #[test]
+    fn an_ops_payload_is_read_back_by_downcasting() {
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(f64_1d(2));
+        let mean = function.add_op(Mean::new(0), &[x]).unwrap()[0];
+        let cast = function.add_op(Cast::new(DType::I64), &[mean]).unwrap()[0];
+        function.add_result(cast).unwrap();
+
+        // A function stores its ops type-erased, so we need to know the type to downcast
+        let mean = function.instruction(mean.instruction()).unwrap();
+        assert_eq!(mean.downcast::<Mean>().map(Mean::axis), Some(0));
+
+        let cast = function.instruction(cast.instruction()).unwrap();
+        assert_eq!(cast.downcast::<Cast>().map(Cast::target), Some(DType::I64));
+
+        // Other op modes, or giving the wrong type, returns None
+        assert!(mean.downcast::<Cast>().is_none());
+        let parameter = function.instruction(function.parameters()[0]).unwrap();
+        assert!(parameter.downcast::<Mean>().is_none());
+        let result = function.instruction(function.results()[0]).unwrap();
+        assert!(result.downcast::<Cast>().is_none());
+    }
+
     // ---------------------------------------------------------------------------
     // Calls
     // ---------------------------------------------------------------------------
@@ -1597,7 +1633,7 @@ mod test {
     // ---------------------------------------------------------------------------
 
     /// An op defined outside the crate, in its own namespace, with no in-process implementation.
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     struct Elsewhere;
 
     /// The error [`Elsewhere`] returns when asked to evaluate itself.
@@ -1684,7 +1720,7 @@ mod test {
     }
 
     /// An op counting how often it has been evaluated.
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     struct Tally(Arc<AtomicUsize>);
 
     impl ProgramOp for Tally {

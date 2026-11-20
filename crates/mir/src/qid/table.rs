@@ -13,7 +13,7 @@
 use std::ops;
 
 use hashbrown::HashSet;
-use rustworkx_core::petgraph::{acyclic::Acyclic, data::Build, prelude::*, visit};
+use rustworkx_core::petgraph::{algo::has_path_connecting, prelude::*, visit};
 
 use super::*;
 use qiskit_util::IndexMap;
@@ -76,6 +76,11 @@ pub enum ContainsError {
     Cycle,
 }
 
+/// The failure mechanism of [`ResourceTable::verify_single_bit_base_qids`].
+#[derive(thiserror::Error, Clone, Copy, Debug, PartialEq, Eq)]
+#[error("{0} is not a base qid of width 1")]
+pub struct NotSingleBitBaseError(pub Qid);
+
 /// The "context" for an entire table of [`Qid`]s.
 ///
 /// This is responsible for:
@@ -92,7 +97,7 @@ pub struct ResourceTable {
     /// from the "bigger" qid to the smaller one.
     ///
     /// The graph is indexed by the table's [`Qid::value`]s.
-    qids: Acyclic<Graph<QidInfo, ()>>,
+    qids: Graph<QidInfo, ()>,
 }
 impl ResourceTable {
     /// Initialize a new resource table with no capacity.
@@ -107,8 +112,7 @@ impl ResourceTable {
     pub fn with_capacity(space: QidSpace, qids: usize, subrelations: usize) -> Self {
         Self {
             space,
-            qids: Acyclic::try_from_graph(Graph::with_capacity(qids, subrelations))
-                .expect("empty graphs cannot have cycles"),
+            qids: Graph::with_capacity(qids, subrelations),
         }
     }
 
@@ -140,6 +144,12 @@ impl ResourceTable {
     pub fn next_qid(&self) -> Option<Qid> {
         (self.qids.node_count() <= Qid::MAX_VALUE as usize)
             .then_some(Qid::from_parts(self.space, self.qids.node_count() as u32))
+    }
+
+    /// Get the space of this table.
+    #[inline]
+    pub fn space(&self) -> QidSpace {
+        self.space
     }
 
     /// Validate a given explicit bit layout, returning an iterator over unique node indices that the
@@ -200,9 +210,9 @@ impl ResourceTable {
         };
         let idx = self.qids.add_node(info);
         for contained in contains {
-            self.qids
-                .try_add_edge(idx, contained, ())
-                .expect("adding an edge to a leaf not should not cause a cycle");
+            // idx was just created, so it has no incoming edges. Therefore it cannot be part of a
+            // cycle. No check is needed here.
+            self.qids.add_edge(idx, contained, ());
         }
         Ok(qid)
     }
@@ -217,9 +227,12 @@ impl ResourceTable {
         let small_idx = self
             .index_from_qid(smaller)
             .ok_or(ContainsError::AbsentQid(smaller))?;
-        self.qids
-            .try_update_edge(big_idx, small_idx, ())
-            .map_err(|_| ContainsError::Cycle)?;
+        // Adding the edge big_index -> small_idx would create a cycle if there is a path
+        // from small_idx to big_idx.
+        if has_path_connecting(&self.qids, small_idx, big_idx, None) {
+            return Err(ContainsError::Cycle);
+        }
+        self.qids.update_edge(big_idx, small_idx, ());
         Ok(())
     }
 
@@ -277,6 +290,17 @@ impl ResourceTable {
         self.qids
             .node_indices()
             .map(|idx| (self.qid_from_index(idx), &self.qids[idx]))
+    }
+
+    /// Check that all qids are base qids of width 1.
+    pub fn verify_single_bit_base_qids(&self) -> Result<(), NotSingleBitBaseError> {
+        match self
+            .iter_qids()
+            .find(|(_, info)| !matches!(info.layout(), BitLayout::Base(1)))
+        {
+            Some((qid, _)) => Err(NotSingleBitBaseError(qid)),
+            None => Ok(()),
+        }
     }
 }
 
@@ -579,5 +603,37 @@ mod tests {
             table.mark_contains(Qid::phys(100), qids[0]),
             Err(ContainsError::AbsentQid(q)) if q == Qid::phys(100)
         ));
+    }
+
+    #[test]
+    fn verify_single_bit_base_qids() {
+        // empty
+        let mut table = ResourceTable::new(QidSpace::Virtual);
+        assert!(table.verify_single_bit_base_qids().is_ok());
+
+        // single base qid with width 1
+        let base = table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+        assert!(table.verify_single_bit_base_qids().is_ok());
+
+        // Abstract
+        let mut with_abstract = table.clone();
+        with_abstract
+            .add_qid(QidInfo::new(BitLayout::Abstract))
+            .unwrap();
+        assert!(with_abstract.verify_single_bit_base_qids().is_err());
+
+        // Alias
+        let mut with_alias = table.clone();
+        with_alias
+            .add_qid(QidInfo::new(BitLayout::Alias(
+                [Some(QidBit::new(base, 0))].into(),
+            )))
+            .unwrap();
+        assert!(with_alias.verify_single_bit_base_qids().is_err());
+
+        // Base with width > 1
+        let mut with_wide = table.clone();
+        with_wide.add_qid(QidInfo::new(BitLayout::Base(2))).unwrap();
+        assert!(with_wide.verify_single_bit_base_qids().is_err());
     }
 }
