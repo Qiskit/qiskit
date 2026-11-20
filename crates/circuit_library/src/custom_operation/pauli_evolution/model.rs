@@ -153,8 +153,7 @@ mod tests {
     use ndarray::ArrayView2;
     use num_complex::c64;
     use qiskit_circuit::{
-        operations::{OperationRef, StandardGate},
-        parameter::parameter_expression::ParameterExpression,
+        operations::StandardGate, parameter::parameter_expression::ParameterExpression,
     };
     use qiskit_quantum_info::sparse_observable::BitTerm;
 
