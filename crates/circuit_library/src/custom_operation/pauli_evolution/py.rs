@@ -27,7 +27,6 @@ use super::model::{PauliEvolution, PauliEvolutionError};
 #[pyclass(
     name = "PauliEvolution",
     module = "qiskit._accelerate.circuit.library",
-    frozen,
     eq
 )]
 pub struct PyPauliEvolution {
@@ -63,6 +62,12 @@ impl PyPauliEvolution {
     #[getter]
     pub fn time(&self) -> Param {
         self.inner.time().clone()
+    }
+
+    #[setter]
+    pub fn set_time(&mut self, time: Param) -> PyResult<()> {
+        self.inner.set_time(time)?;
+        Ok(())
     }
 
     #[getter]
