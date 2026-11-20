@@ -76,85 +76,6 @@ unsafe impl ::bytemuck::CheckedBitPattern for PackedOperationType {
 }
 unsafe impl ::bytemuck::NoUninit for PackedOperationType {}
 
-#[cfg(target_pointer_width = "64")]
-mod inner {
-    use std::ptr;
-
-    #[derive(Clone, Copy, Debug)]
-    #[repr(transparent)]
-    pub struct PackedOperationInner(*mut ());
-    impl PackedOperationInner {
-        #[inline]
-        pub fn as_ptr(self) -> *mut () {
-            self.0
-        }
-        #[inline]
-        pub fn as_u64(self) -> u64 {
-            self.0
-                .addr()
-                .try_into()
-                .expect("usize is 64 bits on this platform")
-        }
-        #[inline]
-        pub fn from_ptr(ptr: *mut ()) -> Self {
-            Self(ptr)
-        }
-        #[inline]
-        pub fn from_u64(val: u64) -> Self {
-            Self(ptr::without_provenance_mut(
-                val.try_into().expect("usize is 64 bits"),
-            ))
-        }
-    }
-}
-#[cfg(target_pointer_width = "32")]
-mod inner {
-    use std::ptr;
-
-    #[derive(Clone, Copy, Debug)]
-    pub struct PackedOperationInner {
-        pad: u32,
-        ptr: *mut (),
-    }
-    impl PackedOperationInner {
-        #[inline]
-        pub fn as_ptr(self) -> *mut () {
-            self.ptr
-        }
-        #[inline]
-        pub fn as_u64(self) -> u64 {
-            (u64::from(self.pad) << 32) | u64::try_from(self.ptr.addr()).expect("usize is 32 bits")
-        }
-        #[inline]
-        pub fn from_ptr(ptr: *mut ()) -> Self {
-            Self { pad: 0, ptr }
-        }
-        #[inline]
-        pub fn from_u64(val: u64) -> Self {
-            Self {
-                pad: (val >> 32) as u32,
-                // Rust numeric casting rules guarantee truncation to the least-significant bits.
-                // https://doc.rust-lang.org/reference/expressions/operator-expr.html#r-expr.as.numeric.int-truncation
-                ptr: ptr::without_provenance_mut(val as usize),
-            }
-        }
-    }
-}
-#[cfg(not(any(target_pointer_width = "32", target_pointer_width = "64")))]
-compile_error! { "Qiskit only supports 32- and 64-bit pointer widths." }
-
-use inner::*;
-impl From<u64> for PackedOperationInner {
-    fn from(val: u64) -> Self {
-        Self::from_u64(val)
-    }
-}
-impl From<*mut ()> for PackedOperationInner {
-    fn from(val: *mut ()) -> Self {
-        Self::from_ptr(val)
-    }
-}
-
 /// A bit-packed `OperationType` enumeration.
 ///
 /// This is logically equivalent to:
@@ -236,7 +157,7 @@ impl From<*mut ()> for PackedOperationInner {
 ///   contained pointer.
 #[derive(Debug)]
 #[repr(transparent)]
-pub struct PackedOperation(PackedOperationInner);
+pub struct PackedOperation(qiskit_util::ptr::Ptr64<()>);
 
 /// SAFETY: `PackedOperation` behaves like either an in-place `T` or `Box<T>` with respect to
 /// mutability and ownership semantics, and we require that everything that can be packed into a
