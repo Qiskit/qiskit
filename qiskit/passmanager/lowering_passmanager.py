@@ -24,7 +24,7 @@ import abc
 import copy as _copy
 import typing
 from collections.abc import Iterable
-from typing import Generic, ClassVar, TypeAlias
+from typing import Any, Generic, ClassVar, TypeAlias
 from typing_extensions import TypeVar
 
 from qiskit._accelerate import passmanager
@@ -255,7 +255,24 @@ class Pass(Generic[IRIn, IROut], abc.ABC):
         """
 
 
-def _native_pass_from_lowering_pass(pass_: Pass) -> passmanager.PyPass:
+@typing.runtime_checkable
+class _BuiltinPass(typing.Protocol):
+    _qiskit_pass_builtin_: ClassVar[None]
+
+    @property
+    def _qiskit_pass_name_(self) -> str: ...
+    @property
+    def _qiskit_pass_ir_in_(self) -> type[AnyIR]: ...
+    @property
+    def _qiskit_pass_ir_out_(self) -> type[AnyIR]: ...
+
+    def _qiskit_pass_run_(self, ir: Any, context: PassContextHandle) -> AnyIR: ...
+
+
+AnyPass: TypeAlias = Pass | _BuiltinPass
+
+
+def _native_pass_from_lowering_pass(pass_: AnyPass) -> passmanager.PyPass:
     """Interpret the given implementation of :class:`Pass`, resolving any version /
     calling-signature conventions, into a Rust-native ``PyPass``."""
     # Right now this is a fairly simple passthrough.
@@ -277,7 +294,7 @@ class LoweringPassManager:
         intend to lift this restriction in the future.
     """
 
-    def __init__(self, tasks: Iterable[Pass] = ()) -> None:
+    def __init__(self, tasks: Iterable[AnyPass] = ()) -> None:
         """
         Args:
             tasks: any tasks with which to initialize the pass manager.  Passing this is equivalent
@@ -287,8 +304,8 @@ class LoweringPassManager:
         for task in tasks:
             self.append(task)
 
-    def append(self, pass_: Pass, /):
-        """Push a Python-native pass to the end of the current pipeline.
+    def append(self, pass_: AnyPass, /):
+        """Push a pass to the end of the current pipeline.
 
         Args:
             pass_: the pass to push.
