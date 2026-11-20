@@ -18,7 +18,8 @@ use super::data_tree::pack_tree;
 use super::format::*;
 use crate::QuantumProgram;
 use crate::ops::{
-    BroadcastTo, Cast, Constant, EulerAnglesZYZ, Mean, Parity, ShotLoop, Std, Variance,
+    BroadcastTo, Cast, Constant, Entropy, EulerAnglesZYZ, Mean, Parity, ShotLoop, Split, Std,
+    Variance,
 };
 use crate::program::{InstructionView, Value};
 use crate::tensor::{DType, Dim, PrngKind, Tensor, TensorType};
@@ -230,6 +231,35 @@ pub fn program_writer(prog: &QuantumProgram) -> Result<ProgramHeader, ProgramWri
                                                 )?;
                                                 ProgramOpPack::EulerAnglesZYZ(op.atol())
                                             }
+                                            "entropy" => {
+                                                let op: &Entropy = op.downcast_ref().ok_or(
+                                                    ProgramWriteError::ShadowingBuiltinOp(
+                                                        "entropy".to_string(),
+                                                    ),
+                                                )?;
+                                                ProgramOpPack::Entropy {
+                                                    shape: op
+                                                        .shape()
+                                                        .iter()
+                                                        .map(|x| *x as u64)
+                                                        .collect(),
+                                                }
+                                            }
+                                            "split" => {
+                                                let op: &Split = op.downcast_ref().ok_or(
+                                                    ProgramWriteError::ShadowingBuiltinOp(
+                                                        "split".to_string(),
+                                                    ),
+                                                )?;
+                                                ProgramOpPack::Split {
+                                                    shape: op
+                                                        .shape()
+                                                        .iter()
+                                                        .map(|x| *x as u64)
+                                                        .collect(),
+                                                }
+                                            }
+
                                             _ => {
                                                 return Err(ProgramWriteError::InvalidOperation(
                                                     op.name().to_string(),

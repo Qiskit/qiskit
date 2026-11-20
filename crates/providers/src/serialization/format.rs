@@ -195,6 +195,20 @@ pub(super) enum ProgramOpPack {
     ShotLoop(ShotLoopPack),
     #[brw(magic = b'E')]
     EulerAnglesZYZ(f64),
+    #[brw(magic = b"e\0")] // 0 here is a future use discriminant if we ever add additional prngs
+    Entropy {
+        #[bw(calc = shape.len() as u64)]
+        shape_size: u64,
+        #[br(count = shape_size)]
+        shape: Vec<u64>,
+    },
+    #[brw(magic = b'P')]
+    Split {
+        #[bw(calc = shape.len() as u64)]
+        shape_size: u64,
+        #[br(count = shape_size)]
+        shape: Vec<u64>,
+    },
 }
 
 #[binrw]

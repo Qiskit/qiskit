@@ -178,6 +178,13 @@ fn build_functions(
                             ProgramOpPack::EulerAnglesZYZ(atol) => {
                                 Box::new(EulerAnglesZYZ::new(atol))
                             }
+                            ProgramOpPack::Entropy { shape } => Box::new(Entropy::new(
+                                PrngKind::Philox4x32,
+                                shape.into_iter().map(|x| x as usize).collect(),
+                            )),
+                            ProgramOpPack::Split { shape } => Box::new(Split::new(
+                                shape.into_iter().map(|x| x as usize).collect(),
+                            )),
                         };
                         out.add_boxed_op(op, &operands)?;
                     }

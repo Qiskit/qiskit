@@ -227,6 +227,11 @@ impl Entropy {
     pub fn kind(&self) -> PrngKind {
         self.kind
     }
+
+    /// Return the shape of the output tensor
+    pub fn shape(&self) -> &[usize] {
+        &self.shape
+    }
 }
 
 impl ProgramOp for Entropy {
@@ -272,6 +277,11 @@ impl Split {
     /// Construct a `Split` op producing `shape` keys per input key.
     pub fn new(shape: Vec<usize>) -> Self {
         Self { shape }
+    }
+
+    /// Return the shape of the keys
+    pub fn shape(&self) -> &[usize] {
+        &self.shape
     }
 }
 
