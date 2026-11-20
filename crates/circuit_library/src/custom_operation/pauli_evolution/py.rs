@@ -36,11 +36,22 @@ pub struct PyPauliEvolution {
 
 #[pymethods]
 impl PyPauliEvolution {
+    #[pyo3(signature = (operator, time, /, label = None))]
     #[new]
-    pub fn new(operator: &Bound<'_, PySparseObservable>, time: Param) -> PyResult<Self> {
+    pub fn new(
+        operator: &Bound<'_, PySparseObservable>,
+        time: Param,
+        label: Option<String>,
+    ) -> PyResult<Self> {
         let operator = operator.borrow().as_inner()?.clone();
-        let inner = PauliEvolution::new(operator, time)?;
-        Ok(Self { inner })
+
+        if let Some(label) = label {
+            let inner = PauliEvolution::with_label(operator, time, label)?;
+            Ok(Self { inner })
+        } else {
+            let inner = PauliEvolution::new(operator, time)?;
+            Ok(Self { inner })
+        }
     }
 
     #[getter]
@@ -52,6 +63,11 @@ impl PyPauliEvolution {
     #[getter]
     pub fn time(&self) -> Param {
         self.inner.time().clone()
+    }
+
+    #[getter]
+    pub fn label(&self) -> &str {
+        self.inner.label()
     }
 
     pub fn inverse(&self) -> Self {
@@ -69,7 +85,6 @@ impl PyPauliEvolution {
 impl From<PauliEvolutionError> for PyErr {
     fn from(error: PauliEvolutionError) -> Self {
         let message = compose_error(&error);
-
         match error {
             PauliEvolutionError::TimeInvalid => PyTypeError::new_err(message),
             PauliEvolutionError::TimeNotEvaluated | PauliEvolutionError::Matrix(_) => {
@@ -86,7 +101,7 @@ fn compose_error(error: &dyn error::Error) -> String {
 
     let next = error;
     while let Some(error) = next.source() {
-        write!(message, ": {error}").expect("should have memory");
+        write!(message, ": {error}").expect("should allocate");
     }
 
     message

@@ -10,14 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::Arc;
+use std::{result, sync::Arc};
 
 use nalgebra::DMatrix;
 use ndarray::Array2;
 use num_complex::Complex64;
 use qiskit_circuit::operations::Param;
-use qiskit_quantum_info::sparse_observable::{MatrixError, SparseObservable};
+use qiskit_quantum_info::sparse_observable::{MatrixError, SparseObservable, SparseTermView};
 use thiserror::Error;
+
+pub type Result<T> = result::Result<T, PauliEvolutionError>;
 
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
@@ -37,19 +39,35 @@ pub enum PauliEvolutionError {
 pub struct PauliEvolution {
     operator: SparseObservable,
     time: ComparableParam,
+    label: String,
 }
 
 impl PauliEvolution {
-    /// Construct a new [`PauliEvolution`] with an `operator` and `time` parameter.
+    /// Construct a new [`PauliEvolution`] with the default label.
     ///
     /// # Errors
     ///
     /// Returns an error if `time` isn't a float or expression.
-    pub fn new(operator: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
+    pub fn new(operator: SparseObservable, time: Param) -> Result<Self> {
+        let label = format_default_label(&operator);
+        Self::with_label(operator, time, label)
+    }
+
+    /// Construct a new [`PauliEvolution`] with a custom label.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `time` isn't a float or expression.
+    pub fn with_label(
+        operator: SparseObservable,
+        time: Param,
+        label: impl Into<String>,
+    ) -> Result<Self> {
         if matches!(time, Param::Float(_) | Param::ParameterExpression(_)) {
             Ok(Self {
                 operator,
                 time: ComparableParam(time),
+                label: label.into(),
             })
         } else {
             Err(PauliEvolutionError::TimeInvalid)
@@ -64,6 +82,11 @@ impl PauliEvolution {
     /// Returns a reference to the `time` parameter.
     pub fn time(&self) -> &Param {
         &self.time.0
+    }
+
+    /// Returns a reference to the `label`.
+    pub fn label(&self) -> &str {
+        &self.label
     }
 
     /// Inverse the evolution by negating `time` parameter.
@@ -89,7 +112,7 @@ impl PauliEvolution {
     ///
     /// Returns an error if `time` isn't evaluated or the `operator`
     /// can't be expanded into its dense matrix form.
-    pub fn to_matrix(&self) -> Result<Array2<Complex64>, PauliEvolutionError> {
+    pub fn to_matrix(&self) -> Result<Array2<Complex64>> {
         if let Param::Float(time) = self.time() {
             let matrix = self
                 .operator()
@@ -108,7 +131,43 @@ impl PauliEvolution {
         PauliEvolutionParts {
             operator: self.operator,
             time: self.time.0,
+            label: self.label,
         }
+    }
+}
+
+fn format_default_label(operator: &SparseObservable) -> String {
+    let mut label = "exp(-it (".to_string();
+
+    for (i, term) in operator.iter().enumerate() {
+        if i != 0 {
+            label.push_str(" + ");
+        }
+
+        push_term(&mut label, &term);
+    }
+
+    label.push_str("))");
+    label
+}
+
+fn push_term(label: &mut String, term: &SparseTermView<'_>) {
+    let mut prev = term.num_qubits;
+
+    for (bit_term, i) in term.bit_terms.iter().zip(term.indices).rev() {
+        let num_identity = prev - *i - 1;
+        push_identity(label, num_identity);
+
+        label.push_str(bit_term.py_label());
+        prev = *i;
+    }
+
+    push_identity(label, prev);
+}
+
+fn push_identity(label: &mut String, count: u32) {
+    for _ in 0..count {
+        label.push('I');
     }
 }
 
@@ -116,6 +175,7 @@ impl PauliEvolution {
 pub struct PauliEvolutionParts {
     pub operator: SparseObservable,
     pub time: Param,
+    pub label: String,
 }
 
 #[derive(Debug, Clone)]
@@ -160,9 +220,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_default_label() {
+        let obs = xy();
+        let evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
+        assert_eq!(evolution.label(), "exp(-it (XY))");
+
+        let obs = xy_zz();
+        let evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
+        assert_eq!(evolution.label(), "exp(-it (XY + ZZ))");
+
+        let obs = xyi_izz_yix();
+        let evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
+        assert_eq!(evolution.label(), "exp(-it (XYI + IZZ + YIX))")
+    }
+
+    #[test]
+    fn test_custom_label() {
+        let obs = xy();
+        let evolution = PauliEvolution::with_label(obs, Param::Float(3.0), "my label").unwrap();
+        assert_eq!(evolution.label(), "my label");
+    }
+
+    #[test]
     fn test_inverse_float() {
         let obs = xy();
-
         let mut evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
         evolution.inverse();
 
@@ -175,7 +256,6 @@ mod tests {
     #[test]
     fn test_inverse_param() {
         let obs = xy();
-
         let time = Arc::new(ParameterExpression::from_f64(3.0));
         let mut evolution = PauliEvolution::new(obs, Param::ParameterExpression(time)).unwrap();
         evolution.inverse();
@@ -189,9 +269,8 @@ mod tests {
     #[test]
     fn test_to_matrix_xy() {
         let obs = xy();
-
-        let gate = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
-        let res = gate.to_matrix().unwrap();
+        let evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
+        let matrix = evolution.to_matrix().unwrap();
 
         let data = &[
             // Row 1
@@ -216,55 +295,52 @@ mod tests {
             c64(f64::cos(3.0), 0.0),
         ];
 
-        let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
-        assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
+        let expected = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
+        assert_abs_diff_eq!(matrix, expected, epsilon = 1e-8);
     }
 
     #[test]
     fn test_to_matrix_ry() {
         let obs = SparseObservable::new(1, vec![1.0.into()], vec![BitTerm::Y], vec![0], vec![0, 1])
-            .expect("is coherent");
+            .expect("should be coherent");
 
         for time in [1.0, 3.0, 5.0] {
-            let gate = StandardGate::RY;
-            let exp = gate.matrix(&[Param::Float(time)]).unwrap();
+            let evolution = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
+            let matrix = evolution.to_matrix().unwrap();
 
-            let gate = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
-            let res = gate.to_matrix().unwrap();
-
-            assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
+            let ry = StandardGate::RY;
+            let expected = ry.matrix(&[Param::Float(time)]).unwrap();
+            assert_abs_diff_eq!(matrix, expected, epsilon = 1e-8);
         }
     }
 
     #[test]
     fn test_to_matrix_rx() {
         let obs = SparseObservable::new(1, vec![1.0.into()], vec![BitTerm::X], vec![0], vec![0, 1])
-            .expect("is coherent");
+            .expect("should be coherent");
 
         for time in [1.0, 3.0, 5.0] {
-            let gate = StandardGate::RX;
-            let exp = gate.matrix(&[Param::Float(time)]).unwrap();
+            let evolution = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
+            let matrix = evolution.to_matrix().unwrap();
 
-            let gate = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
-            let res = gate.to_matrix().unwrap();
-
-            assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
+            let ry = StandardGate::RX;
+            let expected = ry.matrix(&[Param::Float(time)]).unwrap();
+            assert_abs_diff_eq!(matrix, expected, epsilon = 1e-8);
         }
     }
 
     #[test]
     fn test_to_matrix_rz() {
         let obs = SparseObservable::new(1, vec![1.0.into()], vec![BitTerm::Z], vec![0], vec![0, 1])
-            .expect("is coherent");
+            .expect("should be coherent");
 
         for time in [1.0, 3.0, 5.0] {
-            let gate = StandardGate::RZ;
-            let exp = gate.matrix(&[Param::Float(time)]).unwrap();
+            let evolution = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
+            let matrix = evolution.to_matrix().unwrap();
 
-            let gate = PauliEvolution::new(obs.clone(), Param::Float(time * 0.5)).unwrap();
-            let res = gate.to_matrix().unwrap();
-
-            assert_abs_diff_eq!(res, exp, epsilon = 1e-8);
+            let rz = StandardGate::RZ;
+            let expected = rz.matrix(&[Param::Float(time)]).unwrap();
+            assert_abs_diff_eq!(matrix, expected, epsilon = 1e-8);
         }
     }
 
@@ -276,6 +352,35 @@ mod tests {
             vec![0, 1],
             vec![0, 2],
         )
-        .expect("is coherent")
+        .expect("should be coherent")
+    }
+
+    fn xy_zz() -> SparseObservable {
+        SparseObservable::new(
+            2,
+            vec![1.0.into(), 1.0.into()],
+            vec![BitTerm::Y, BitTerm::X, BitTerm::Z, BitTerm::Z],
+            vec![0, 1, 0, 1],
+            vec![0, 2, 4],
+        )
+        .expect("should be coherent")
+    }
+
+    fn xyi_izz_yix() -> SparseObservable {
+        SparseObservable::new(
+            3,
+            vec![1.0.into(), 1.0.into(), 1.0.into()],
+            vec![
+                BitTerm::Y,
+                BitTerm::X,
+                BitTerm::Z,
+                BitTerm::Z,
+                BitTerm::X,
+                BitTerm::Y,
+            ],
+            vec![1, 2, 0, 1, 0, 2],
+            vec![0, 2, 4, 6],
+        )
+        .expect("should be coherent")
     }
 }
