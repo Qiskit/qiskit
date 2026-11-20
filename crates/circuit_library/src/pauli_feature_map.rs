@@ -46,11 +46,12 @@ type Instruction = (
 ///     insert_barriers: Whether to insert barriers in between the Hadamard and evolution layers.
 ///     data_map_func: An accumulation function that takes as input a vector of parameters the
 ///         current gate acts on and returns a scalar.
+///     phase_gate_for_paulis: If true, use Phase gates; if false, use RZ-type rotations.
 ///
 /// Returns:
 ///     The ``CircuitData`` to construct the Pauli feature map.
 #[pyfunction]
-#[pyo3(signature = (feature_dimension, parameters, *, reps=1, entanglement=None, paulis=None, alpha=2.0, insert_barriers=false, data_map_func=None))]
+#[pyo3(signature = (feature_dimension, parameters, *, reps=1, entanglement=None, paulis=None, alpha=2.0, insert_barriers=false, data_map_func=None, phase_gate_for_paulis=true))]
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_feature_map(
     py: Python,
@@ -62,6 +63,7 @@ pub fn pauli_feature_map(
     alpha: f64,
     insert_barriers: bool,
     data_map_func: Option<&Bound<PyAny>>,
+    phase_gate_for_paulis: bool,
 ) -> PyResult<PyCircuitData> {
     // normalize the Pauli strings
     let pauli_strings = _get_paulis(feature_dimension, paulis)?;
@@ -112,6 +114,7 @@ pub fn pauli_feature_map(
             &pauli_strings,
             entanglement,
             data_map_func,
+            phase_gate_for_paulis,
         )?;
         packed_insts.extend(evo_layer);
 
@@ -150,6 +153,7 @@ fn _get_evolution_layer<'a>(
     pauli_strings: &'a [String],
     entanglement: &'a Bound<PyAny>,
     data_map_func: Option<&'a Bound<PyAny>>,
+    phase_gate_for_paulis: bool,
 ) -> PyResult<Vec<Instruction>> {
     let mut insts: Vec<Instruction> = Vec::new();
 
@@ -180,7 +184,7 @@ fn _get_evolution_layer<'a>(
                 pauli,
                 indices.into_iter().rev().collect(),
                 multiply_param(&angle, alpha),
-                true,
+                phase_gate_for_paulis,
                 false,
             );
             insts.extend(evo);
