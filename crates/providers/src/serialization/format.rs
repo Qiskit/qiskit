@@ -10,6 +10,205 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+//! The Binary Serialization format for QuantumPrograms
+//!
+//! This module defines the binary serialization format details. All values in
+//! the payload use network byte order (big endian) and the data is typically
+//! represented in this doc using packed c structs. Except were explicitly noted
+//! there is no padding between fields.
+//!
+//! The payload starts with the following 6 byte UTF8 string: `QKQPROG`
+//! which is immediately followed by following `PAYLOAD_HEADER` struct.
+//!
+//! ## `PAYLOAD_HEADER`
+//! ```c
+//! struct {
+//!   uint8_t payload_version;
+//!   uint8_t qiskit_major_version;
+//!   uint8_t qiskit_minor_version;
+//!   uint8_t qiskit_patch_version;
+//! }
+//!
+//! This is then followed by two `DATA_TREE` structs representing first the input
+//! structure data tree and then the output structure data tree. Following that
+//! is a `uint64_t` representing the number of functions in the program. This is
+//! followed by that value `PROGRAM_FUNCTION` representations.
+//!
+//! ## `DATA_TREE`
+//!
+//! ```c
+//! struct {
+//!   uint64_t num_nodes;
+//! }
+//!
+//! which is immediately followed by an array of `num_nodes` node representations.
+//! Each node representation starts with a discriminant of a single `uint8_t` that
+//! is valued either 0 or 1, where 0 represents a leaf or 1 represents a branch. If
+//! the value is 1 it is immediately followed by a `DATA_TREE_BRANCH` data.
+//!
+//! ### `DATA_TREE_BRANCH
+//!
+//! ```c
+//! struct {
+//!   uint64_t num_children;
+//!   uin32_t num_keys;
+//! }
+//! ```
+//! which is then immediately followed by `num_keys` key representations. Each key
+//! representation starts with a `uint64_t` that representas the string length, that
+//! is then followed by that number of UTF8 bytes for the string of the name. Finally
+//! there is another `uint64_t` representing the index of the key in the branch.
+//!
+//! ## `PROGRAM_FUNCTION`
+//!
+//! Each `PROGRAM_FUNCTION` starts with a `uint32_t` representing howmany instructions
+//! are in the function. This is followed by that number of the following `INSTRUCTION`
+//! structs representing each instruction.
+//!
+//! ### `INSTRUCTION`
+//! Each `INSTRUCTION` starts with a `INSTRUCTION_BODY` and then is immediately followed by the
+//! following struct
+//!
+//! ```c
+//! struct {
+//!   uint32_t num_operands;
+//!   uint32_t num_output_types;
+//! }
+//! ```
+//!
+//! which is then followed by an array `num_operands` `VALUE` structs and `num_output_type`
+//! `TENSOR_TYPE` structs.
+//!
+//! ### `INSTRUCTION_BODY`
+//!
+//! The instruction body data starts with a char discriminant to determine the type of the
+//! instruction
+//!
+//! | Value | Type |
+//! |-------|------|
+//! | p | Parameter |
+//! | o | Operation |
+//! | c | Call |
+//! | r | Result |
+//!
+//! `p` and `r` are followed by no additional data. If the value is a `c` for a call this
+//! includes a `uint32_t` for the index being called. If the value is an `o` the following
+//! data immediately follows it.is another char discriminant indicating the operation and depnding
+//! on the discriminant there might be additional data following it. You can refer to the following
+//! table for the details
+//!
+//! | Value | Type | Subsequent data structure |
+//! |-------|------|---------------------------|
+//! | + | Add | N/A |
+//! | / | Divide | N/A |
+//! | x | Multiply | N/A |
+//! | * | Power | N/A |
+//! | r | Remainder | N/A |
+//! | s | Subtract | N/A |
+//! | & | Bitwise And | N/A |
+//! | ! | Bitwise Not | N/A |
+//! | | | Bitwise Or | N/A |
+//! | ^ | Bitwise Xor | N/A |
+//! | p | Parity | `uint64_t` representing the axis |
+//! | b | Broadcast To | `uint64_t` representing the num of targets followed that number of a char `f` or `b` representing either a fixed or bound dimension and a `uint64_t` representing the dimension |
+//! | c | Cast | char following the values in [DTYPE] |
+//! | C | Constant | Data defined in TENSOR |
+//! | m | Mean | `uint64_t` representing the axis |
+//! | S | Std | `uint64_t` & `double` representing the axis and ddof |
+//! | v | Variance | `uint64_t` & `double` representing the axis and ddof |
+//! | L | Shot Loop | Data defined in SHOT_LOOP |
+//! | E | Euler Angles ZYZ | `double` representing atol |
+//! | e | Entropy | `uint64_t` and then that many `uint64_t` which represent the shape |
+//! | P | Split |  `uint64_t` and then that many `uint64_t` which represent the shape |
+//!
+//! #### `SHOT_LOOP`
+//!
+//! ```c
+//! struct {
+//!    uint64_t shots;
+//!    uint64_t circuits_bytes;
+//! }
+//! ```
+//! which is immediately followed by `circuits_bytes` bytes of QPY data that encodes the circuits
+//! in the shot loop.
+//!
+//! #### `TENSOR`
+//!
+//!```c
+//! struct {
+//!   char dtype;
+//!   u32 shape_len;
+//! }
+//! ```
+//! where dtype follows the values in DTYPE. This struct is immediately followed by `shape_len`
+//! `uint64_t` values which represent the shape of the tensor. This is followed by a `uint64_t`
+//! which is the number of elements (it must always be equal to the product of all the shape
+//! values). This is then followed by `num_elems` values that match the dtype. The following
+//! table contains the value data type for each dtype value.
+//!
+//! | Dtype | Data |
+//! |-------|------|
+//! | c128  | [double, double] (representing real and imaginary |
+//! | c64 | [float, float] (representing real and imaginary |
+//! | f64 | double |
+//! | f32 | float |
+//! | i64 | int64_t |
+//! | i32 | int32_t |
+//! | i16 | int16_t |
+//! | i8 | int8_t |
+//! | u64 | uint64_t |
+//! | u32 | uint32_t |
+//! | u16 | uint16_t |
+//! | u8 | uint8_t |
+//! | Bool | uint8_t |
+//! | Philox 4x32 Key | uint32_t |
+//!
+//! #### `VALUE`
+//!
+//! ```c
+//! struct {
+//!   uint32_t instruction;
+//!   uint16_t slot;
+//! }
+//!
+//! ```
+//!
+//! where slot and instruction represent the index for each.
+//!
+//! #### `TENSOR_TYPE`
+//!
+//! ```c
+//! struct {
+//!   char dtype;
+//!   uint32_t shape_len;
+//! }
+//! ```
+//! This struct is followed immediately by an array of `shape_len` values which are a uint64_t
+//! with a single byte discriminant prior to the value of either 'f' or 'b' representing either a
+//! fixed or bound dimension value. The dtype field defines the dtype of the tensor type.
+//!
+//! #### DTYPE
+//!
+//! The following table maps the value to the dtype
+//!
+//! | Value | Type |
+//! |-------|------|
+//! | C | C128 |
+//! | c | C64 |
+//! | F |f64 |
+//! | f | f32 |
+//! | I | i64 |
+//! | i | i32 |
+//! | l | i16 |
+//! | b | i8 |
+//! | U | u64 |
+//! | u | u32 |
+//! | L | u16 |
+//! | B | u8 |
+//! | n | bool |
+//! | P | Philox 4x32 rng key |
+//!
+
 use std::io::Read;
 
 use binrw::{BinRead, BinResult, BinWrite, binrw};
@@ -19,7 +218,7 @@ use qiskit_qpy::Bytes;
 #[brw(big)]
 #[derive(Debug)]
 pub struct ProgramHeader {
-    #[brw(magic = b"QKPROG")]
+    #[brw(magic = b"QKQPROG")]
     pub(super) serialization_version: u8,
     pub(super) qiskit_version: (u8, u8, u8),
     pub(super) input_structure: DataTreePack,
