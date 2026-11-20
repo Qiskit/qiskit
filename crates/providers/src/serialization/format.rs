@@ -17,7 +17,7 @@
 //! represented in this doc using packed c structs. Except were explicitly noted
 //! there is no padding between fields.
 //!
-//! The payload starts with the following 6 byte UTF8 string: `QKQPROG`
+//! The payload starts with the following 6 byte UTF8 string: `QKPROG`
 //! which is immediately followed by following `PAYLOAD_HEADER` struct.
 //!
 //! ## `PAYLOAD_HEADER`
@@ -218,7 +218,7 @@ use qiskit_qpy::Bytes;
 #[brw(big)]
 #[derive(Debug)]
 pub struct ProgramHeader {
-    #[brw(magic = b"QKQPROG")]
+    #[brw(magic = b"QKPROG")]
     pub(super) serialization_version: u8,
     pub(super) qiskit_version: (u8, u8, u8),
     pub(super) input_structure: DataTreePack,
