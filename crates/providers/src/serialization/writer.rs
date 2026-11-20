@@ -17,7 +17,9 @@ use qiskit_qpy::{Bytes, QISKIT_VERSION, QpyError, native_dump_qpy};
 use super::data_tree::pack_tree;
 use super::format::*;
 use crate::QuantumProgram;
-use crate::ops::{BroadcastTo, Cast, Constant, Mean, Parity, ShotLoop, Std, Variance};
+use crate::ops::{
+    BroadcastTo, Cast, Constant, EulerAnglesZYZ, Mean, Parity, ShotLoop, Std, Variance,
+};
 use crate::program::{InstructionView, Value};
 use crate::tensor::{DType, Dim, PrngKind, Tensor, TensorType};
 
@@ -219,6 +221,14 @@ pub fn program_writer(prog: &QuantumProgram) -> Result<ProgramHeader, ProgramWri
                                                     circuits: Bytes(out_bytes.into_inner()),
                                                 };
                                                 ProgramOpPack::ShotLoop(data)
+                                            }
+                                            "euler_angles_zyz" => {
+                                                let op: &EulerAnglesZYZ = op.downcast_ref().ok_or(
+                                                    ProgramWriteError::ShadowingBuiltinOp(
+                                                        "euler_angles_zyz".to_string(),
+                                                    ),
+                                                )?;
+                                                ProgramOpPack::EulerAnglesZYZ(op.atol())
                                             }
                                             _ => {
                                                 return Err(ProgramWriteError::InvalidOperation(

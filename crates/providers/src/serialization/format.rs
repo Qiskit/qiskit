@@ -193,6 +193,8 @@ pub(super) enum ProgramOpPack {
     Variance(u64, f64),
     #[brw(magic = b'L')]
     ShotLoop(ShotLoopPack),
+    #[brw(magic = b'E')]
+    EulerAnglesZYZ(f64),
 }
 
 #[binrw]

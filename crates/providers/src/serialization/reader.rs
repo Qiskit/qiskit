@@ -175,6 +175,9 @@ fn build_functions(
                                 let circuits = native_load_qpy(&data.circuits.0)?;
                                 Box::new(ShotLoop::new(circuits, data.shots as usize).unwrap())
                             }
+                            ProgramOpPack::EulerAnglesZYZ(atol) => {
+                                Box::new(EulerAnglesZYZ::new(atol))
+                            }
                         };
                         out.add_boxed_op(op, &operands)?;
                     }
