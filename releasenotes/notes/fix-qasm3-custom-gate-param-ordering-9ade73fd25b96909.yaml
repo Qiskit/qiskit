@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue where :func:`.qasm3.dumps` and :func:`.qasm3.dump` emitted
+    formal parameter declarations in custom gate definitions ordered alphabetically
+    by parameter name rather than preserving the gate's positional parameter order.
+    This caused parameters to be transposed at call sites whenever a gate's positional
+    parameter order differed from the lexicographical order of the parameter names.

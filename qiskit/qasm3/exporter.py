@@ -872,9 +872,15 @@ class QASM3Builder:
                         f"parameter mismatch in definition of '{gate.name}':"
                         f" call has {len(gate.params)}, definition has {defn.num_parameters}"
                     )
+                if all(isinstance(param, Parameter) for param in canonical.params) and set(
+                    canonical.params
+                ) == set(defn.parameters):
+                    param_source = canonical.params
+                else:
+                    param_source = defn.parameters
                 params = [
                     self.symbols.register_variable(param.name, param, allow_rename=True)
-                    for param in defn.parameters
+                    for param in param_source
                 ]
             else:
                 # Fill with dummy parameters. The name is unimportant, because they're not actually
