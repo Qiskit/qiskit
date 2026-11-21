@@ -253,13 +253,11 @@ pub unsafe extern "C" fn qk_obs_add_term(
 
     let view = match cterm.try_into() {
         Ok(view) => view,
-        Err(err) => return ExitCode::from(err),
+        Err(err) => return ExitCode::from_error(&err),
     };
 
-    match obs.add_term(view) {
-        Ok(_) => ExitCode::Success,
-        Err(err) => ExitCode::from(err),
-    }
+    let result = obs.add_term(view);
+    ExitCode::from_result(&result)
 }
 
 /// @ingroup QkObs

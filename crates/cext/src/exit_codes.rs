@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_circuit::parameter::parameter_expression::ParameterError;
+use qiskit_circuit::{circuit_data::CircuitDataError, parameter_table::ParameterTableError};
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
@@ -88,47 +88,71 @@ pub enum ExitCode {
     CustomOperationRepeatedSlot = 901,
 }
 
-impl From<ArithmeticError> for ExitCode {
-    fn from(value: ArithmeticError) -> Self {
-        match value {
-            ArithmeticError::MismatchedQubits { left: _, right: _ } => ExitCode::MismatchedQubits,
-            ArithmeticError::InvalidOperation(_) => ExitCode::ArithmeticError,
-            ArithmeticError::DuplicatedIndex => ExitCode::DuplicateIndexError,
-            ArithmeticError::OutOfBounds(_) => ExitCode::IndexError,
+impl ExitCode {
+    pub fn from_error<E: Exit>(error: &E) -> ExitCode {
+        error.to_exit_code()
+    }
+
+    pub fn from_result<T, E: Exit>(result: &Result<T, E>) -> ExitCode {
+        if let Err(error) = result {
+            error.to_exit_code()
+        } else {
+            ExitCode::Success
         }
     }
 }
 
-impl From<CInputError> for ExitCode {
-    fn from(value: CInputError) -> Self {
-        match value {
-            CInputError::AlignmentError => ExitCode::AlignmentError,
-            CInputError::NullPointerError => ExitCode::NullPointerError,
-            CInputError::IndexError => ExitCode::IndexError,
+pub trait Exit {
+    fn to_exit_code(&self) -> ExitCode;
+}
+
+impl Exit for ArithmeticError {
+    fn to_exit_code(&self) -> ExitCode {
+        match self {
+            Self::MismatchedQubits { .. } => ExitCode::MismatchedQubits,
+            Self::InvalidOperation(_) => ExitCode::ArithmeticError,
+            Self::DuplicatedIndex => ExitCode::DuplicateIndexError,
+            Self::OutOfBounds(_) => ExitCode::IndexError,
         }
     }
 }
 
-impl From<TargetError> for ExitCode {
-    fn from(value: TargetError) -> Self {
-        match value {
+impl Exit for CircuitDataError {
+    fn to_exit_code(&self) -> ExitCode {
+        match self {
+            Self::ParameterTableError(error) => error.to_exit_code(),
+            _ => ExitCode::ParameterError,
+        }
+    }
+}
+
+impl Exit for ParameterTableError {
+    fn to_exit_code(&self) -> ExitCode {
+        match self {
+            Self::NameConflict(_) => ExitCode::ParameterNameConflict,
+            _ => ExitCode::ParameterError,
+        }
+    }
+}
+
+impl Exit for CInputError {
+    fn to_exit_code(&self) -> ExitCode {
+        match self {
+            Self::NullPointerError => ExitCode::NullPointerError,
+            Self::AlignmentError => ExitCode::AlignmentError,
+            Self::IndexError => ExitCode::IndexError,
+        }
+    }
+}
+
+impl Exit for TargetError {
+    fn to_exit_code(&self) -> ExitCode {
+        match self {
             TargetError::InvalidKey(_) => ExitCode::TargetInvalidInstKey,
             TargetError::AlreadyExists(_) => ExitCode::TargetInstAlreadyExists,
-            TargetError::QargsMismatch {
-                instruction: _,
-                arguments: _,
-            } => ExitCode::TargetQargMismatch,
-            TargetError::InvalidQargsKey {
-                instruction: _,
-                arguments: _,
-            } => ExitCode::TargetInvalidQargsKey,
+            TargetError::QargsMismatch { .. } => ExitCode::TargetQargMismatch,
+            TargetError::InvalidQargsKey { .. } => ExitCode::TargetInvalidQargsKey,
             _ => ExitCode::TargetError,
         }
-    }
-}
-
-impl From<ParameterError> for ExitCode {
-    fn from(_value: ParameterError) -> Self {
-        ExitCode::ArithmeticError
     }
 }
