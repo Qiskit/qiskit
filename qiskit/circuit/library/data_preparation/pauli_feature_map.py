@@ -55,6 +55,7 @@ def pauli_feature_map(
     parameter_prefix: str = "x",
     insert_barriers: bool = False,
     name: str = "PauliFeatureMap",
+    use_phase_gates: bool = True,
 ) -> QuantumCircuit:
     r"""The Pauli expansion circuit.
 
@@ -119,6 +120,8 @@ def pauli_feature_map(
         insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
             and Hadamard layers.
         name: The name of the circuit.
+        use_phase_gates: If ``True`` use phase rotations, if ``False`` use RZ rotations.
+            The False circuit is equal to the default only up to a global phase.
 
     Returns:
         A quantum circuit implementing the Pauli feature map.
@@ -184,6 +187,7 @@ def pauli_feature_map(
             data_map_func=data_map_func,
             alpha=alpha,
             insert_barriers=insert_barriers,
+            phase_gate_for_paulis=use_phase_gates,
         ),
         name=name,
     )
@@ -202,6 +206,7 @@ def z_feature_map(
     parameter_prefix: str = "x",
     insert_barriers: bool = False,
     name: str = "ZFeatureMap",
+    use_phase_gates: bool = True,
 ) -> QuantumCircuit:
     """The first order Pauli Z-evolution circuit.
 
@@ -234,6 +239,8 @@ def z_feature_map(
         insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
             and Hadamard layers.
         name: The name of the circuit.
+        use_phase_gates: If ``True`` use phase rotations, if ``False`` use RZ rotations.
+            The False circuit is equal to the default only up to a global phase.
 
     Returns:
         A quantum circuit implementing the Z feature map.
@@ -286,6 +293,7 @@ def z_feature_map(
         parameter_prefix=parameter_prefix,
         insert_barriers=insert_barriers,
         name=name,
+        use_phase_gates=use_phase_gates,
     )
 
 
@@ -300,6 +308,7 @@ def zz_feature_map(
     parameter_prefix: str = "x",
     insert_barriers: bool = False,
     name: str = "ZZFeatureMap",
+    use_phase_gates: bool = True,
 ) -> QuantumCircuit:
     r"""Second-order Pauli-Z evolution circuit.
 
@@ -334,6 +343,8 @@ def zz_feature_map(
         insert_barriers: If ``True``, barriers are inserted in between the evolution instructions
             and Hadamard layers.
         name: The name of the circuit.
+        use_phase_gates: If ``True`` use phase rotations, if ``False`` use RZ/RZZ rotations.
+            The False circuit is equal to the default only up to a global phase.
 
     Returns:
         A quantum circuit implementing the ZZ feature map.
@@ -381,6 +392,7 @@ def zz_feature_map(
         parameter_prefix=parameter_prefix,
         insert_barriers=insert_barriers,
         name=name,
+        use_phase_gates=use_phase_gates,
     )
 
 
