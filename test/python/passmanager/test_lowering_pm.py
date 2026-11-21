@@ -19,6 +19,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from qiskit import capi
+from qiskit._accelerate import mir_passes
 from qiskit.circuit import QuantumCircuit, CircuitData
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import (
@@ -588,3 +589,7 @@ class TestLoweringPassManager(QiskitTestCase):
         """Test a subclass that has a non-IR as parent."""
         pm = LoweringPassManager([IRBasePass()])
         self.assertIsInstance(pm.run(IRBase()), IRBase)
+
+    def test_rust_pass_is_pass(self):
+        """Test that a Rust-defined pass is an instance of `Pass`."""
+        self.assertIsInstance(mir_passes.DagToMirPass(), Pass)
