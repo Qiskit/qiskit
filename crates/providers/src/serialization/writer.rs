@@ -119,7 +119,10 @@ fn tensor_to_pack(tensor: &Tensor) -> TensorPack {
 /// - `qpy_version`: The QPY version to use for any circuits contained within shot loops. By
 ///   default this will use the latest qpy version available in Qiskit. This can be any version
 ///   of QPY supported by the native dump function (currently >= 13)
-pub fn program_writer(prog: &QuantumProgram, qpy_verion: Option<u8>) -> Result<ProgramHeader, ProgramWriteError> {
+pub fn program_writer(
+    prog: &QuantumProgram,
+    qpy_verion: Option<u8>,
+) -> Result<ProgramHeader, ProgramWriteError> {
     Ok(ProgramHeader {
         serialization_version: 1,
         qiskit_version: QISKIT_VERSION,
