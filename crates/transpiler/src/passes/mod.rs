@@ -85,7 +85,9 @@ pub use instruction_duration_check::{
     instruction_duration_check_mod, run_instruction_duration_check,
 };
 pub use inverse_cancellation::{inverse_cancellation_mod, run_inverse_cancellation_standard_gates};
-pub use litinski_transformation::{litinski_transformation_mod, run_litinski_transformation};
+pub use litinski_transformation::{
+    LitinskiTransformationOptions, litinski_transformation_mod, run_litinski_transformation,
+};
 pub use optimize_1q_gates_decomposition::{
     Optimize1qGatesDecompositionState, optimize_1q_gates_decomposition_mod,
     run_optimize_1q_gates_decomposition,

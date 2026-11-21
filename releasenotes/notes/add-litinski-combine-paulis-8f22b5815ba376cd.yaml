@@ -1,0 +1,15 @@
+---
+features_transpiler:
+  - |
+    Added a new ``combine_paulis`` option to the :class:`.LitinskiTransformation` pass.
+    When ``True`` (non-default), the pass merges Pauli rotations with the same Pauli that
+    are separated only by commuting rotations and measurements, removing the merged rotations
+    that are equivalent to the identity and absorbing those that are Clifford into the final
+    Clifford. Note that this option may increase the running time of the pass.
+upgrade_transpiler:
+  - |
+    When the :class:`.LitinskiTransformation` pass is run with ``use_ppr=False`` (the default),
+    the non-Clifford :class:`.PauliProductRotationGate` objects of the input circuit are now
+    represented as :class:`.PauliEvolutionGate` objects in the output circuit, consistently
+    with the other rotations. Set ``use_ppr=True`` to represent all of the rotations as
+    :class:`.PauliProductRotationGate` objects.

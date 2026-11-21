@@ -30,6 +30,16 @@ class LitinskiTransformation(TransformationPass):
     In the process, it transforms :math:`R_Z`-rotations,
     :math:`R_X`-rotation and :math:`R_Y`-rotation gates to
     Pauli product rotations, and :math:`Z`-measurements to Pauli product measurements.
+    The Pauli product rotations in the output circuit are represented either as
+    :class:`.PauliProductRotationGate` or as :class:`.PauliEvolutionGate` objects,
+    depending on the ``use_ppr`` argument; this applies uniformly to all of the
+    non-Clifford rotations, including the Pauli product rotations of the input circuit.
+
+    Optionally, when ``combine_paulis=True``, the pass additionally reduces the number of
+    non-Clifford rotations by merging rotations with the same Pauli (after moving the Clifford
+    gates to the end of the circuit) that are separated only by commuting rotations and
+    measurements. Merged rotations that are equivalent to the identity are removed, and merged
+    rotations that are Clifford are absorbed into the final Clifford.
 
     The pass supports all of the Clifford gates in the list returned by
     :func:`.get_clifford_gate_names`:
@@ -72,6 +82,29 @@ class LitinskiTransformation(TransformationPass):
 
         pbc = pm.run(qc)
 
+    The following example illustrates the ``combine_paulis`` option. After moving the Clifford
+    gates to the end of the circuit, the two :math:`T`-gates become rotations with the same
+    Pauli, and are merged into a single :math:`\pi/2`-rotation. This rotation is a Clifford,
+    and is hence added to the final Clifford gates, so that the output circuit contains no
+    non-Clifford rotations.
+
+    .. plot::
+        :include-source:
+        :nofigs:
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler.passes import LitinskiTransformation
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.t(1)
+        qc.h(0)
+        qc.t(1)
+
+        litinski = LitinskiTransformation(use_ppr=True, combine_paulis=True)
+        qct = litinski(qc)
+        print(qct.count_ops())  # {'cx': 1, 'h': 1, 'pauli_product_rotation': 1}
+
     References:
 
     [1] Litinski. A Game of Surface Codes.
@@ -85,27 +118,62 @@ class LitinskiTransformation(TransformationPass):
         insert_barrier: bool = False,
         use_ppr: bool | None = None,
         approximation_degree: float = 1.0,
+        combine_paulis: bool = False,
     ):
-        """
+        r"""
         Args:
             fix_clifford: If ``False`` (non-default), the returned circuit contains
-                only :class:`.PauliEvolution` gates, with the final Clifford gates omitted.
-                Note that in this case the operators of the original and synthesized
-                circuits will generally not be equivalent.
+                only the Pauli rotations and Pauli product measurements, with the final Clifford
+                gates omitted. Note that in this case the operators of the original and
+                synthesized circuits will generally not be equivalent.
             insert_barrier: If ``True`` and ``fix_clifford=True``, insert a barrier between the
                 circuit and the final cliffords. This argument has no effect if
                 ``fix_clifford=False``.
-            use_ppr: If ``True``, use :class:`.PauliProductRotationGate` to represent
-                the Pauli rotation gates. This is encouraged to improve performance using a fully
-                Rust-backed path. If ``False`` or ``None``, use :class:`.PauliEvolutionGate`.
+            use_ppr: Controls how the non-Clifford Pauli rotations are represented in the output
+                circuit. This applies to all such rotations: those obtained from the single-qubit
+                rotation gates (including :math:`T` and :math:`T^\dagger`), the non-Clifford
+                :class:`.PauliProductRotationGate` objects of the input circuit, and (with
+                ``combine_paulis=True``) the merged rotations. If ``True``, the rotations are
+                represented as :class:`.PauliProductRotationGate` objects. This is encouraged
+                to improve performance using a fully Rust-backed path. If ``False`` or ``None``,
+                the rotations are represented as :class:`.PauliEvolutionGate` objects, including
+                those that were :class:`.PauliProductRotationGate` objects in the input circuit.
+                This option does not affect the final Clifford gates, which are the Clifford
+                gates of the original circuit (possibly including
+                :class:`.PauliProductRotationGate` objects with angles that are multiples of
+                :math:`\pi/2`), followed, when ``combine_paulis=True``, by the merged rotations
+                that are Clifford, which are always represented as
+                :class:`.PauliProductRotationGate` objects. This option also does not affect the
+                Pauli product measurements.
             approximation_degree: Used in the tolerance computations,
                 to check how much a PPR or a rotation gate is close to a Clifford.
                 This gives the threshold for the average gate fidelity.
+            combine_paulis: If ``True``, additionally combines the non-Clifford Pauli rotations
+                produced by the transform, exploiting commutativity between Pauli product
+                rotations and Pauli product measurements. Specifically, each new rotation
+                (after being moved past the Clifford gates) is merged with an earlier rotation
+                with the same Pauli, provided that it commutes with all of the rotations and
+                measurements in between, by summing the two angles. This applies to all of the
+                rotations, whether they originate from single-qubit rotation gates or from
+                :class:`.PauliProductRotationGate` objects in the input circuit. If the merged
+                rotation is equivalent to the identity (up to a global phase), it is removed
+                and the global phase is updated accordingly. If the merged rotation is a
+                Clifford (that is, its angle is a multiple of :math:`\pi/2`), it is removed
+                and absorbed into the final Clifford; when ``fix_clifford=True``, it is added
+                to the final Clifford gates as a :class:`.PauliProductRotationGate` (regardless
+                of the value of ``use_ppr``).
+                Note that this option may increase the running time of the pass: when an
+                earlier rotation with the same Pauli exists, each new rotation is compared
+                against the previously collected rotations and measurements that commute with
+                it. In the worst case, where rotations with the same Pauli repeatedly appear far
+                apart in the circuit, separated by many commuting rotations, the running time is
+                quadratic in the number of non-Clifford rotations.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
         self.insert_barrier = insert_barrier
         self.approximation_degree = approximation_degree
+        self.combine_paulis = combine_paulis
 
         # In Qiskit v2.4 the default is to keep using PauliEvolutionGate as rotation gates, but
         # come v2.5 we can start to warn that in v3.0 the default will be changed to PPR gates
@@ -127,7 +195,12 @@ class LitinskiTransformation(TransformationPass):
             TranspilerError: If the circuit contains gates not supported by the pass.
         """
         new_dag = run_litinski_transformation(
-            dag, self.fix_clifford, self.insert_barrier, self.use_ppr, self.approximation_degree
+            dag,
+            self.fix_clifford,
+            self.insert_barrier,
+            self.use_ppr,
+            self.combine_paulis,
+            self.approximation_degree,
         )
 
         # If the pass did not do anything, the result is None
