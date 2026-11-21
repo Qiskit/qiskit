@@ -1,0 +1,69 @@
+name: Compare C ABI
+
+on:
+  pull_request:
+    paths:
+      - "crates/bindgen/**"
+      - "crates/bindgen-cli/**"
+      - "crates/cext/**"
+      - "crates/cext-vtable/**"
+
+jobs:
+  abidiff:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-tags: true
+
+      - name: Cache toolchain
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.rustup/toolchains/
+            ~/.rustup/update-hashes/
+          key: ${{ runner.os }}-rustup-${{ hashFiles('rust-toolchain.toml') }}
+
+      - name: Cache build
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build baseline
+        run: |
+          tag=$(git tag -l | sort -V | tail -1)
+          git checkout "${tag}"
+          make cheader clib-dev
+          mv dist/c/lib/libqiskit.so dist/c/lib/libqiskit.so.base
+
+      - name: Build changes
+        run: |
+          git checkout -
+          make cheader clib-dev
+
+      - name: Install ABI tools
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: abigail-tools
+          version: 1.0
+
+      - name: Compare ABI
+        run: |
+          cd dist/c/lib
+          set +e
+          abidiff libqiskit.so.base libqiskit.so \
+            --headers-dir1 ../include \
+            --drop-private-types
+          code=$?
+          if (( code & 8 )); then
+            exit 1
+          fi
+            exit 0
