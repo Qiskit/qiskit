@@ -79,6 +79,104 @@ pub mod alias {
     pub type GateArray4Q = [[Complex64; 16]; 16];
 }
 
+pub mod ptr {
+    #[cfg(target_pointer_width = "64")]
+    mod impl_ {
+        use std::ptr;
+
+        /// A wrapper around a pointer that guarantees a 64-bit size, even on 32-bit platforms,
+        /// while maintaining the actual `*mut T` type internally for Miri provenance tracking.
+        /// This type does not remember why type was stored; it is equivalent to a `union`, not an
+        /// `enum`.  It is up to the user of this type to track the information, typically by using
+        /// pointer-tagging in the least-significant bits.
+        ///
+        /// On 64-bit platforms, the `u64` form is a simple union with the pointer type.  On 32-bit
+        /// platforms, the internal pointer type is only 32 bits, so there's extra internal padding
+        /// that's only used in the `u64`-storage form.
+        ///
+        /// These are abstracted away for users with the [`as_u64`](Self::as_u64) and
+        /// [`as_ptr`](Self::as_ptr) methods, along with their corresponding `from_*` methods.
+        #[derive(Clone, Copy, Debug)]
+        #[repr(transparent)]
+        pub struct Ptr64<T>(*mut T);
+        impl<T> Ptr64<T> {
+            /// View the data as a pointer.
+            #[inline]
+            pub fn as_ptr(self) -> *mut T {
+                self.0
+            }
+            #[inline]
+            pub fn as_u64(self) -> u64 {
+                self.0
+                    .addr()
+                    .try_into()
+                    .expect("usize is 64 bits on this platform")
+            }
+            #[inline]
+            pub fn from_ptr(ptr: *mut T) -> Self {
+                Self(ptr)
+            }
+            #[inline]
+            pub fn from_u64(val: u64) -> Self {
+                Self(ptr::without_provenance_mut(
+                    val.try_into().expect("usize is 64 bits"),
+                ))
+            }
+        }
+    }
+    #[cfg(target_pointer_width = "32")]
+    mod impl_ {
+        use std::ptr;
+
+        // The documentation isn't duplicated here because, in practice, we'll always be developing
+        // and building documentation on 64-bit platforms.
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct Ptr64<T> {
+            pad: u32,
+            ptr: *mut T,
+        }
+        impl<T> Ptr64<T> {
+            #[inline]
+            pub fn as_ptr(self) -> *mut T {
+                self.ptr
+            }
+            #[inline]
+            pub fn as_u64(self) -> u64 {
+                (u64::from(self.pad) << 32)
+                    | u64::try_from(self.ptr.addr()).expect("usize is 32 bits")
+            }
+            #[inline]
+            pub fn from_ptr(ptr: *mut T) -> Self {
+                Self { pad: 0, ptr }
+            }
+            #[inline]
+            pub fn from_u64(val: u64) -> Self {
+                Self {
+                    pad: (val >> 32) as u32,
+                    // Rust numeric casting rules guarantee truncation to the least-significant bits.
+                    // https://doc.rust-lang.org/reference/expressions/operator-expr.html#r-expr.as.numeric.int-truncation
+                    ptr: ptr::without_provenance_mut(val as usize),
+                }
+            }
+        }
+    }
+    #[cfg(not(any(target_pointer_width = "32", target_pointer_width = "64")))]
+    compile_error! { "Qiskit only supports 32- and 64-bit pointer widths." }
+
+    pub use impl_::*;
+    impl<T> From<u64> for Ptr64<T> {
+        fn from(val: u64) -> Self {
+            Self::from_u64(val)
+        }
+    }
+    impl<T> From<*mut T> for Ptr64<T> {
+        fn from(val: *mut T) -> Self {
+            Self::from_ptr(val)
+        }
+    }
+}
+
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
     let parallel_context = env::var("QISKIT_IN_PARALLEL")
