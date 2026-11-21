@@ -1,0 +1,8 @@
+---
+features_synthesis:
+  - |
+    Added a new option ``"cascade"`` for the ``cx_structure`` argument of the product formula
+    classes :class:`.LieTrotter`, :class:`.SuzukiTrotter` and :class:`.QDrift`.
+    This method computes the parity of the qubits on which each Pauli term acts using a balanced
+    binary tree of CX gates. It uses the same number of CX gates as other methods while achieving
+    logarithmic depth.
