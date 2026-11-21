@@ -109,7 +109,17 @@ fn tensor_to_pack(tensor: &Tensor) -> TensorPack {
     }
 }
 
-pub fn program_writer(prog: &QuantumProgram) -> Result<ProgramHeader, ProgramWriteError> {
+/// Generate a ProgramHeaderPack that can be written out to a Write object
+///
+/// This function will generate a serializable ProgramHeader pack which is used
+///
+/// # Args
+///
+/// - `prog`: the quantum program to generate a serializable object for
+/// - `qpy_version`: The QPY version to use for any circuits contained within shot loops. By
+///   default this will use the latest qpy version available in Qiskit. This can be any version
+///   of QPY supported by the native dump function (currently >= 13)
+pub fn program_writer(prog: &QuantumProgram, qpy_verion: Option<u8>) -> Result<ProgramHeader, ProgramWriteError> {
     Ok(ProgramHeader {
         serialization_version: 1,
         qiskit_version: QISKIT_VERSION,
@@ -215,7 +225,7 @@ pub fn program_writer(prog: &QuantumProgram) -> Result<ProgramHeader, ProgramWri
                                                 native_dump_qpy(
                                                     op.circuits().iter(),
                                                     &mut out_bytes,
-                                                    None,
+                                                    qpy_verion,
                                                 )?;
                                                 let data = ShotLoopPack {
                                                     shots: op.shots() as u64,
@@ -357,7 +367,7 @@ mod test {
             QuantumProgram::new(vec![function], DataTree::Leaf(()), DataTree::Leaf(())).unwrap();
         let buf: Vec<u8> = Vec::new();
         let mut buf = Cursor::new(buf);
-        program_writer(&program)
+        program_writer(&program, None)
             .unwrap()
             .write_be(&mut buf)
             .unwrap();
