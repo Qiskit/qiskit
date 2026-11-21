@@ -2515,11 +2515,13 @@ name = "qiskit-providers"
 version = "2.7.0-dev"
 dependencies = [
  "approx",
+ "binrw",
  "hashbrown 0.17.1",
  "ndarray",
  "num-complex",
  "num-traits",
  "qiskit-circuit",
+ "qiskit-qpy",
  "rand 0.10.3",
  "rand_philox",
  "rustworkx-core",
