@@ -18,14 +18,14 @@ use itertools::Itertools;
 use lookup::conjugate_bitterm;
 use ndarray::Array2;
 use num_complex::Complex64;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use num_traits::Zero;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use numpy::{
     PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use pyo3::{
     IntoPyObjectExt, PyErr,
     exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError},
@@ -34,29 +34,29 @@ use pyo3::{
     sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
 };
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use qiskit_util::IndexSet;
 use qiskit_util::getenv_use_multiple_threads;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use qiskit_util::py::{ImportOnceCell, PySequenceIndex, SequenceIndex};
 use rayon::prelude::*;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 use std::{cmp::Ordering, collections::btree_map};
 use thiserror::Error;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 static PAULI_LIST_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "PauliList");
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 static BIT_TERM_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 
 /// Named handle to the alphabet of single-qubit terms.
@@ -1872,7 +1872,7 @@ impl SparseTerm {
 #[derive(Error, Debug)]
 pub struct InnerReadError;
 
-#[cfg(feature = "python")] // Only currently used by python, remove if needed from rust
+#[cfg(feature = "py")] // Only currently used by python, remove if needed from rust
 #[derive(Error, Debug)]
 struct InnerWriteError;
 
@@ -1882,55 +1882,55 @@ impl ::std::fmt::Display for InnerReadError {
     }
 }
 
-#[cfg(feature = "python")] // Only currently used by python, remove if needed from rust
+#[cfg(feature = "py")] // Only currently used by python, remove if needed from rust
 impl ::std::fmt::Display for InnerWriteError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "Failed acquiring lock for writing.")
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<InnerReadError> for PyErr {
     fn from(value: InnerReadError) -> PyErr {
         PyRuntimeError::new_err(value.to_string())
     }
 }
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<InnerWriteError> for PyErr {
     fn from(value: InnerWriteError) -> PyErr {
         PyRuntimeError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<BitTermFromU8Error> for PyErr {
     fn from(value: BitTermFromU8Error) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<CoherenceError> for PyErr {
     fn from(value: CoherenceError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<LabelError> for PyErr {
     fn from(value: LabelError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<ArithmeticError> for PyErr {
     fn from(value: ArithmeticError) -> PyErr {
         PyValueError::new_err(value.to_string())
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<MatrixError> for PyErr {
     fn from(value: MatrixError) -> Self {
         PyValueError::new_err(value.to_string())
@@ -1940,7 +1940,7 @@ impl From<MatrixError> for PyErr {
 /// The single-character string label used to represent this term in the :class:`SparseObservable`
 /// alphabet.
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyfunction]
 #[pyo3(name = "label")]
 fn bit_term_label(py: Python<'_>, slf: BitTerm) -> &Bound<'_, PyString> {
@@ -1966,7 +1966,7 @@ fn bit_term_label(py: Python<'_>, slf: BitTerm) -> &Bound<'_, PyString> {
 ///
 /// The resulting class is attached to `SparseObservable` as a class attribute, and its
 /// `__qualname__` is set to reflect this.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
     let terms = [
         BitTerm::X,
@@ -2013,7 +2013,7 @@ fn make_py_bit_term(py: Python) -> PyResult<Py<PyType>> {
 // singletons and subclasses of Python `int`.  We only use this for interaction with "high level"
 // Python space; the efficient Numpy-like array paths use `u8` directly so Numpy can act on it
 // efficiently.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for BitTerm {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -2044,7 +2044,7 @@ impl<'py> IntoPyObject<'py> for BitTerm {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
     type Error = PyErr;
 
@@ -2068,14 +2068,14 @@ impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
 /// A single term from a complete :class:`SparseObservable`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`SparseObservable`.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyclass(name = "Term", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
 struct PySparseTerm {
     inner: SparseTerm,
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pymethods]
 impl PySparseTerm {
     // Mark the Python class as being defined "within" the `SparseObservable` class namespace.
@@ -2707,7 +2707,7 @@ impl PySparseTerm {
 /// observable generate only a small number of duplications, and like-term detection has additional
 /// costs.  If this does not fit your use cases, you can either periodically call :meth:`simplify`,
 /// or discuss further APIs with us for better building of observables.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyclass(name = "SparseObservable", module = "qiskit.quantum_info", sequence)]
 #[derive(Debug)]
 pub struct PySparseObservable {
@@ -2715,7 +2715,7 @@ pub struct PySparseObservable {
     pub inner: Arc<RwLock<SparseObservable>>,
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pymethods]
 impl PySparseObservable {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -4313,7 +4313,7 @@ impl PySparseObservable {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl PySparseObservable {
     /// This is an immutable reference as opposed to a `copy`.
     pub fn as_inner(&self) -> Result<RwLockReadGuard<'_, SparseObservable>, InnerReadError> {
@@ -4322,7 +4322,7 @@ impl PySparseObservable {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<SparseObservable> for PySparseObservable {
     fn from(val: SparseObservable) -> PySparseObservable {
         PySparseObservable {
@@ -4331,7 +4331,7 @@ impl From<SparseObservable> for PySparseObservable {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for SparseObservable {
     type Target = PySparseObservable;
     type Output = Bound<'py, Self::Target>;
@@ -4343,7 +4343,7 @@ impl<'py> IntoPyObject<'py> for SparseObservable {
 }
 
 /// Helper class of `ArrayView` that denotes the slot of the `SparseObservable` we're looking at.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ArraySlot {
     Coeffs,
@@ -4356,14 +4356,14 @@ enum ArraySlot {
 /// expose Python-managed wrapped pointers without introducing some form of runtime exclusion on the
 /// ability of `SparseObservable` to re-allocate in place; we can't leave dangling pointers for
 /// Python space.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyclass(frozen, sequence)]
 struct ArrayView {
     base: Arc<RwLock<SparseObservable>>,
     slot: ArraySlot,
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pymethods]
 impl ArrayView {
     fn __repr__(&self, py: Python) -> PyResult<String> {
@@ -4551,7 +4551,7 @@ impl ArrayView {
 
 /// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
 /// if required.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 fn cast_array_type<'py, T: numpy::Element>(
     py: Python<'py>,
     array: Bound<'py, PyArray1<T>>,
@@ -4584,7 +4584,7 @@ fn cast_array_type<'py, T: numpy::Element>(
 ///
 /// The purpose of this is for conversion the arithmetic operations, which should return
 /// [PyNotImplemented] if the type is not valid for coercion.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 fn coerce_to_observable<'py>(
     value: &Bound<'py, PyAny>,
 ) -> PyResult<Option<Bound<'py, PySparseObservable>>> {
@@ -4604,7 +4604,7 @@ fn coerce_to_observable<'py>(
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PySparseObservable>()?;
     Ok(())

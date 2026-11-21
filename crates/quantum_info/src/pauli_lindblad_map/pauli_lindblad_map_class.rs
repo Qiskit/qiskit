@@ -11,9 +11,9 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashSet;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use pyo3::{
     IntoPyObjectExt, PyErr,
     exceptions::{PyTypeError, PyValueError},
@@ -23,7 +23,7 @@ use pyo3::{
 };
 use std::collections::btree_map;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use std::sync::{Arc, RwLock};
 
 use rand::prelude::*;
@@ -31,7 +31,7 @@ use rand::rngs::SysRng;
 use rand_distr::Bernoulli;
 use rand_pcg::Pcg64Mcg;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
@@ -39,7 +39,7 @@ use super::qubit_sparse_pauli::{
     QubitSparsePauliView,
 };
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use super::qubit_sparse_pauli::{
     InnerReadError, InnerWriteError, PyQubitSparsePauli, PyQubitSparsePauliList,
     raw_parts_from_sparse_list,
@@ -615,14 +615,14 @@ impl GeneratorTerm {
 /// A single term from a complete :class:`PauliLindbladMap`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`PauliLindbladMap`.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyclass(name = "GeneratorTerm", frozen, module = "qiskit.quantum_info")]
 #[derive(Clone, Debug)]
 struct PyGeneratorTerm {
     inner: GeneratorTerm,
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyGeneratorTerm {
     // Mark the Python class as being defined "within" the `PauliLindbladMap` class namespace.
@@ -915,7 +915,7 @@ impl PyGeneratorTerm {
 ///   :meth:`to_sparse_list`       Express the map in a sparse list format with elements
 ///                                ``(paulis, indices, rate)``.
 ///   ===========================  =================================================================
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pyclass(name = "PauliLindbladMap", module = "qiskit.quantum_info", sequence)]
 #[derive(Debug)]
 pub struct PyPauliLindbladMap {
@@ -923,7 +923,7 @@ pub struct PyPauliLindbladMap {
     inner: Arc<RwLock<PauliLindbladMap>>,
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyPauliLindbladMap {
     #[pyo3(signature = (data, /, num_qubits=None))]
@@ -1942,7 +1942,7 @@ impl PyPauliLindbladMap {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<PauliLindbladMap> for PyPauliLindbladMap {
     fn from(val: PauliLindbladMap) -> PyPauliLindbladMap {
         PyPauliLindbladMap {
@@ -1951,7 +1951,7 @@ impl From<PauliLindbladMap> for PyPauliLindbladMap {
     }
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for PauliLindbladMap {
     type Target = PyPauliLindbladMap;
     type Output = Bound<'py, Self::Target>;
@@ -1974,7 +1974,7 @@ impl<'py> IntoPyObject<'py> for PauliLindbladMap {
 ///
 /// The purpose of this is for conversion the arithmetic operations, which should return
 /// [PyNotImplemented] if the type is not valid for coercion.
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 fn coerce_to_map<'py>(
     value: &Bound<'py, PyAny>,
 ) -> PyResult<Option<Bound<'py, PyPauliLindbladMap>>> {

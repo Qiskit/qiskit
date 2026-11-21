@@ -68,5 +68,5 @@ optional = true
 
 [features]
 passmanager = ["dep:qiskit-passmanager"]
-py = ["dep:pyo3", "dep:numpy", "qiskit-util/py", "qiskit-quantum-info/python"]
+py = ["dep:pyo3", "dep:numpy", "qiskit-util/py", "qiskit-quantum-info/py"]
 cache_pygates = ["py"]
