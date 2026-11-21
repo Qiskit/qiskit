@@ -1,0 +1,11 @@
+---
+features_misc:
+  - |
+    Qiskit now builds an experimental Pyodide wheel for the `pyemscripten_2026_0` platform.  This is
+    untested, like `other Tier 3 platforms
+    <https://quantum.cloud.ibm.com/docs/qiskit/install-qiskit#operating-system-support>`__.
+build:
+  - |
+    Qiskit tentatively commits to 32-bit platform support owing to experimental support for Pyodide.
+    This support may be withdrawn in the future, when Rust and Pyodide have better support for
+    wasm64-based targets.

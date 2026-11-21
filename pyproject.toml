@@ -327,7 +327,7 @@ test-command = [
 ]
 test-environment = { QISKIT_PARALLEL = "FALSE" }
 test-groups = ["test"]
-test-skip = ["*ppc64le", "*s390x"]
+test-skip = ["*ppc64le", "*s390x", "*pyodide*"]
 # We need to use pre-built versions of Numpy and Scipy in the tests; we don't configure
 # the CI machines to succeed at a source build, but the latest versions of these packages
 # don't support the same range of Python versions as we do.
@@ -363,6 +363,14 @@ repair-wheel-command =  [
     "cp {wheel} {dest_dir}/.",
     "pipx run abi3audit --strict --report {wheel}",
 ]
+
+[tool.cibuildwheel.pyodide]
+# We only attempt a single wheel on Pyodide.  We have to target a specific version of `emscripten`;
+# its ABI isn't stable between versions.  The `cp314` version is `pyemscripten_2026_0`, and matches
+# what Rustworkx outputs at the initial point.  We could add the `cp315` version on top.
+build = ["cp314-pyodide_wasm32"]
+# On Pyodide, we don't use `mimalloc` because that's just an extra C-compilation complication.
+environment = { RUSTUP_TOOLCHAIN = "1.98" }
 
 [tool.ruff]
 line-length = 110

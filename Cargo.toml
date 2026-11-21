@@ -22,7 +22,6 @@ hashbrown.version = "0.17.1"
 num-bigint = "0.4"
 num-complex = { version = "0.4", features = ["bytemuck"] }
 nalgebra = "0.35"
-faer = "0.24"
 numpy = "0.30"
 ndarray = "0.17"
 smallvec = "1.15"
@@ -78,6 +77,12 @@ qiskit-transpiler = { path = "crates/transpiler" }
 qiskit-quantum-info = { path = "crates/quantum_info" }
 qiskit-synthesis = { path = "crates/synthesis" }
 qiskit-util = { path = "crates/util" }
+
+[workspace.dependencies.faer]
+version = "0.24"
+default-features = false
+# This is all the default features except `rayon`, which doesn't work on emscripten/pyodide.
+features = ["std", "sparse-linalg", "rand", "npy"]
 
 [workspace.lints.clippy]
 # The lint forbids things like `if a < b {} else if a == b {}`, and suggests matching on `a.cmp(&b)`
