@@ -409,6 +409,41 @@ class TestCircuitQASM3(QiskitTestCase):
         )
         self.assertEqual(Exporter().dumps(circuit), expected_qasm)
 
+    def test_custom_gate_parameters_positional_ordering(self):
+        """Test that custom gate parameters preserve positional ordering in the gate definition."""
+
+        class MyGate(Gate):
+            def __init__(self, beta, alpha):
+                super().__init__("my_gate", 1, [beta, alpha])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.rx(self.params[0], 0)
+                qc.rz(self.params[1], 0)
+                self.definition = qc
+
+        b = Parameter("b")
+        a = Parameter("a")
+        circuit = QuantumCircuit(1)
+        circuit.append(MyGate(b, a), [0])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "input float[64] a;",
+                "input float[64] b;",
+                "gate my_gate(b, a) _gate_q_0 {",
+                "  rx(b) _gate_q_0;",
+                "  rz(a) _gate_q_0;",
+                "}",
+                "qubit[1] q;",
+                "my_gate(b, a) q[0];",
+                "",
+            ]
+        )
+        self.assertEqual(Exporter().dumps(circuit), expected_qasm)
+
     def test_custom_gate_with_bound_parameter(self):
         """Test custom gate with bound parameter."""
         parameter_a = Parameter("a")
