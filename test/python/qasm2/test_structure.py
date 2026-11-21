@@ -1162,6 +1162,36 @@ class TestInclude(QiskitTestCase):
         qc = QuantumCircuit(QuantumRegister(2, "q"), ClassicalRegister(2, "c"))
         self.assertEqual(parsed, qc)
 
+    def test_expression_in_include(self):
+        with open(self.tmp_dir / "include.qasm", "w") as fp:
+            fp.write("qreg q[1]; U(0.5, 0, 0) q[0];")
+        program = """
+            OPENQASM 2.0;
+            include "include.qasm";
+        """
+        parsed = qiskit.qasm2.loads(program, include_path=(self.tmp_dir,))
+        qc = QuantumCircuit(QuantumRegister(1, "q"))
+        qc.u(0.5, 0, 0, 0)
+        self.assertEqual(parsed, qc)
+
+    def test_parametrised_gate_definition_in_include(self):
+        with open(self.tmp_dir / "include.qasm", "w") as fp:
+            fp.write("gate my_rz(t) a { U(0, 0, t) a; }")
+        program = """
+            OPENQASM 2.0;
+            include "include.qasm";
+            qreg q[1];
+            my_rz(0.5) q[0];
+        """
+        parsed = qiskit.qasm2.loads(program, include_path=(self.tmp_dir,))
+        t = Parameter("t")
+        my_rz_def = QuantumCircuit([Qubit()])
+        my_rz_def.u(0, 0, t, 0)
+        my_rz = gate_builder("my_rz", [t], my_rz_def)
+        qc = QuantumCircuit(QuantumRegister(1, "q"))
+        qc.append(my_rz(0.5), [0])
+        self.assertEqual(parsed, qc)
+
     def test_first_hit_is_used(self):
         empty = self.tmp_dir / "empty"
         empty.mkdir()

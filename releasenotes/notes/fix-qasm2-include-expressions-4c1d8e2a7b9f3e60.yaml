@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed :func:`.qasm2.load` and :func:`.qasm2.loads` failing to parse expressions inside a file
+    loaded with ``include``.  The expression parser read tokens from the top-level file instead
+    of the included one.  See `#16918 <https://github.com/Qiskit/qiskit/issues/16918>`__.
