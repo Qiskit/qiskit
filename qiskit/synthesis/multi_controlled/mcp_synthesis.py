@@ -28,7 +28,7 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> Quan
     using multi-controlled RZ gates.
 
     The circuit depth is :math:`O(n^2)` and the total number of CX gates used
-    is :math:`8n^2-16n-60` for :math:`n \ge 7` control qubits,
+    is :math:`8n^2-40n+96` for :math:`n \ge 7` control qubits,
     which is worse than :func:`synth_mcp_noaux_sp22` for :math:`n \ge 5`,
     but better for :math:`n \le 4`.
 
@@ -52,10 +52,10 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> Quan
         1 & (k = 1) \\
         6 & (k = 2) \\
         14 & (k = 3) \\
-        8k - 6 & (k \ge 4)
+        8k - 12 & (k \ge 4)
         \end{cases}
 
-      CX gates, which can be derived from the implementation of :func:`synth_mcx_n_dirty_i15`.
+      CX gates, which can be derived from the implementation of :func:`synth_mcx_n_dirty_m15`.
     - Thus, for :math:`1 \le m \le 7`,
 
       .. math::
@@ -67,15 +67,15 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> Quan
         24 & (m = 4) \\
         40 & (m = 5) \\
         56 & (m = 6) \\
-        80 & (m = 7)
+        68 & (m = 7)
         \end{cases}
 
       and for :math:`m \ge 8`,
 
       .. math::
 
-        N(m) = 2 \left( 8 \left\lceil \frac{m}{2} \right\rceil - 6 \right)
-        + 2 \left( 8 \left\lfloor \frac{m}{2} \right\rfloor - 6 \right) = 16m-24
+        N(m) = 2 \left( 8 \left\lceil \frac{m}{2} \right\rceil - 12 \right)
+        + 2 \left( 8 \left\lfloor \frac{m}{2} \right\rfloor - 12 \right) = 16m-48
 
     - Multi-controlled phase gates can be synthesized by applying :math:`m`-controlled RZ gates for
       :math:`m = 1, 2, \ldots, n`, where :math:`n` is the number of control qubits [1].
@@ -84,8 +84,8 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> Quan
 
       .. math::
 
-        \sum_{m=1}^{n} N(m) = 2 + 4 + 14 + 24 + 40 + 56 + 80 + \sum_{m=8}^{n} (16m-24)
-        = 8n^2 - 16n - 60.
+        \sum_{m=1}^{n} N(m) = 2 + 4 + 14 + 24 + 40 + 56 + 68 + \sum_{m=8}^{n} (16m-48)
+        = 8n^2 - 40n + 96.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
