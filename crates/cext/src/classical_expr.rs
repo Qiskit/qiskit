@@ -116,8 +116,8 @@ impl From<CExprTypeInfo> for Type {
     }
 }
 
-impl From<&Type> for CExprTypeInfo {
-    fn from(ty: &Type) -> Self {
+impl From<Type> for CExprTypeInfo {
+    fn from(ty: Type) -> Self {
         match ty {
             Type::Bool => CExprTypeInfo {
                 ty: CExprType::Bool,
@@ -133,7 +133,7 @@ impl From<&Type> for CExprTypeInfo {
             },
             Type::Uint(w) => CExprTypeInfo {
                 ty: CExprType::Uint,
-                width: *w,
+                width: w,
             },
         }
     }
@@ -684,10 +684,8 @@ pub unsafe extern "C" fn qk_expr_kind(expr: *const Expr) -> CExprNodeKind {
 ///
 /// @param expr A pointer to a binary expression node.
 ///
-/// @return A `QkBinaryExprInfo` struct describing the operator, operands,
-/// result type, and whether the expression is constant.
-///
-/// Panics if ``expr`` does not point to a binary expression node.
+/// @return A `QkBinaryExprInfo` struct describing the operator, operands, result type, and whether
+/// the expression is constant. The returned values are invalid if `expr` isn't binary.
 ///
 /// # Example
 /// ```c
@@ -704,16 +702,25 @@ pub unsafe extern "C" fn qk_expr_binary_info(expr: *const Expr) -> CBinaryExprIn
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { &*expr };
 
-    let Expr::Binary(binary) = expr else {
-        panic!("qk_expr_binary_info called on non-binary expression")
-    };
-
-    CBinaryExprInfo {
-        op: CBinaryOpType::from(binary.op),
-        left: ptr::from_ref(&binary.left),
-        right: ptr::from_ref(&binary.right),
-        ty: CExprTypeInfo::from(&binary.ty),
-        constant: binary.constant,
+    if let Expr::Binary(expr) = expr {
+        CBinaryExprInfo {
+            op: expr.op.into(),
+            left: &expr.left,
+            right: &expr.right,
+            ty: expr.ty.into(),
+            constant: expr.constant,
+        }
+    } else {
+        CBinaryExprInfo {
+            op: CBinaryOpType::BitAnd,
+            left: ptr::null(),
+            right: ptr::null(),
+            ty: CExprTypeInfo {
+                ty: CExprType::Bool,
+                width: 0,
+            },
+            constant: false,
+        }
     }
 }
 
@@ -722,10 +729,8 @@ pub unsafe extern "C" fn qk_expr_binary_info(expr: *const Expr) -> CBinaryExprIn
 ///
 /// @param expr A pointer to a unary expression node.
 ///
-/// @return A `QkUnaryExprInfo` struct describing the operator, operand,
-/// result type, and whether the expression is constant.
-///
-/// Panics if ``expr`` does not point to a unary expression node.
+/// @return A `QkUnaryExprInfo` struct describing the operator, operand, result type, and whether
+/// the expression is constant. The returned values are invalid if `expr` isn't unary.
 ///
 /// # Example
 /// ```c
@@ -741,15 +746,23 @@ pub unsafe extern "C" fn qk_expr_unary_info(expr: *const Expr) -> CUnaryExprInfo
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { &*expr };
 
-    let Expr::Unary(unary) = expr else {
-        panic!("qk_expr_unary_info called on non-unary expression")
-    };
-
-    CUnaryExprInfo {
-        op: CUnaryOpType::from(unary.op),
-        operand: ptr::from_ref(&unary.operand),
-        ty: CExprTypeInfo::from(&unary.ty),
-        constant: unary.constant,
+    if let Expr::Unary(unary) = expr {
+        CUnaryExprInfo {
+            op: unary.op.into(),
+            operand: &unary.operand,
+            ty: unary.ty.into(),
+            constant: unary.constant,
+        }
+    } else {
+        CUnaryExprInfo {
+            op: CUnaryOpType::BitNot,
+            operand: ptr::null(),
+            ty: CExprTypeInfo {
+                ty: CExprType::Bool,
+                width: 0,
+            },
+            constant: false,
+        }
     }
 }
 
@@ -758,10 +771,9 @@ pub unsafe extern "C" fn qk_expr_unary_info(expr: *const Expr) -> CUnaryExprInfo
 ///
 /// @param expr A pointer to a cast expression node.
 ///
-/// @return A `QkCastExprInfo` struct describing the operand, destination
-/// type, whether the cast is implicit, and whether the expression is constant.
-///
-/// Panics if ``expr`` does not point to a cast expression node.
+/// @return A `QkCastExprInfo` struct describing the operand, destination type, whether the cast is
+/// implicit, and whether the expression is constant. The returned values are invalid if `expr`
+/// isn't a cast.
 ///
 /// # Example
 /// ```c
@@ -777,15 +789,23 @@ pub unsafe extern "C" fn qk_expr_cast_info(expr: *const Expr) -> CCastExprInfo {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { &*expr };
 
-    let Expr::Cast(cast) = expr else {
-        panic!("qk_expr_cast_info called on non-cast expression")
-    };
-
-    CCastExprInfo {
-        operand: ptr::from_ref(&cast.operand),
-        ty: CExprTypeInfo::from(&cast.ty),
-        implicit: cast.implicit,
-        constant: cast.constant,
+    if let Expr::Cast(cast) = expr {
+        CCastExprInfo {
+            operand: &cast.operand,
+            ty: cast.ty.into(),
+            implicit: cast.implicit,
+            constant: cast.constant,
+        }
+    } else {
+        CCastExprInfo {
+            operand: ptr::null(),
+            ty: CExprTypeInfo {
+                ty: CExprType::Bool,
+                width: 0,
+            },
+            implicit: false,
+            constant: false,
+        }
     }
 }
 
@@ -794,10 +814,9 @@ pub unsafe extern "C" fn qk_expr_cast_info(expr: *const Expr) -> CCastExprInfo {
 ///
 /// @param expr A pointer to an index expression node.
 ///
-/// @return A `QkIndexExprInfo` struct describing the indexed target,
-/// index expression, result type, and whether the expression is constant.
-///
-/// Panics if ``expr`` does not point to an index expression node.
+/// @return A `QkIndexExprInfo` struct describing the indexed target, index expression, result
+/// type, and whether the expression is constant. The returned values are invalid if `expr` isn't
+/// an index.
 ///
 /// # Example
 /// ```c
@@ -814,15 +833,23 @@ pub unsafe extern "C" fn qk_expr_index_info(expr: *const Expr) -> CIndexExprInfo
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { &*expr };
 
-    let Expr::Index(index) = expr else {
-        panic!("qk_expr_index_info called on non-index expression")
-    };
-
-    CIndexExprInfo {
-        target: ptr::from_ref(&index.target),
-        index: ptr::from_ref(&index.index),
-        ty: CExprTypeInfo::from(&index.ty),
-        constant: index.constant,
+    if let Expr::Index(index) = expr {
+        CIndexExprInfo {
+            target: &index.target,
+            index: &index.index,
+            ty: index.ty.into(),
+            constant: index.constant,
+        }
+    } else {
+        CIndexExprInfo {
+            target: ptr::null(),
+            index: ptr::null(),
+            ty: CExprTypeInfo {
+                ty: CExprType::Bool,
+                width: 0,
+            },
+            constant: false,
+        }
     }
 }
 
@@ -831,9 +858,8 @@ pub unsafe extern "C" fn qk_expr_index_info(expr: *const Expr) -> CIndexExprInfo
 ///
 /// @param expr A pointer to a value expression node.
 ///
-/// @return A pointer to the ``QkValue`` stored inside ``expr``.
-///
-/// Panics if ``expr`` does not point to a value expression node.
+/// @return A pointer to the ``QkValue`` stored inside ``expr``. Returns `NULL` if `expr` isn't a
+/// value.
 ///
 /// # Example
 /// ```c
@@ -848,11 +874,11 @@ pub unsafe extern "C" fn qk_expr_as_value(expr: *const Expr) -> *const Value {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { &*expr };
 
-    let Expr::Value(val) = expr else {
-        panic!("qk_expr_as_value called on non-value expression")
-    };
-
-    ptr::from_ref(val)
+    if let Expr::Value(val) = expr {
+        val
+    } else {
+        ptr::null()
+    }
 }
 
 /// @ingroup QkClassicalExpressions
@@ -860,9 +886,8 @@ pub unsafe extern "C" fn qk_expr_as_value(expr: *const Expr) -> *const Value {
 ///
 /// @param expr A pointer to a variable expression node.
 ///
-/// @return A pointer to the ``QkVar`` stored inside ``expr``.
-///
-/// Panics if ``expr`` does not point to a variable expression node.
+/// @return A pointer to the ``QkVar`` stored inside ``expr``. Returns `NULL` if `expr` isn't a
+/// variable.
 ///
 /// # Example
 /// ```c
@@ -877,11 +902,11 @@ pub unsafe extern "C" fn qk_expr_as_var(expr: *const Expr) -> *const Var {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { &*expr };
 
-    let Expr::Var(var) = expr else {
-        panic!("qk_expr_as_var called on non-variable expression")
-    };
-
-    ptr::from_ref(var)
+    if let Expr::Var(var) = expr {
+        var
+    } else {
+        ptr::null()
+    }
 }
 
 /// @ingroup QkClassicalExpressions
@@ -889,9 +914,8 @@ pub unsafe extern "C" fn qk_expr_as_var(expr: *const Expr) -> *const Var {
 ///
 /// @param expr A pointer to a stretch expression node.
 ///
-/// @return A pointer to the ``QkStretch`` stored inside ``expr``.
-///
-/// Panics if ``expr`` does not point to a stretch expression node.
+/// @return A pointer to the ``QkStretch`` stored inside ``expr``. Returns `NULL` if `expr` isn't a
+/// stretch.
 ///
 /// # Example
 /// ```c
@@ -906,11 +930,11 @@ pub unsafe extern "C" fn qk_expr_as_stretch(expr: *const Expr) -> *const Stretch
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { &*expr };
 
-    let Expr::Stretch(stretch) = expr else {
-        panic!("qk_expr_as_stretch called on non-stretch expression")
-    };
-
-    ptr::from_ref(stretch)
+    if let Expr::Stretch(stretch) = expr {
+        stretch
+    } else {
+        ptr::null()
+    }
 }
 
 /// @ingroup QkClassicalExpressions
@@ -938,7 +962,7 @@ pub unsafe extern "C" fn qk_value_type_info(value: *const Value) -> CExprTypeInf
             ty: CExprType::Duration,
             width: 0,
         },
-        Value::Float { ty, .. } | Value::Uint { ty, .. } => CExprTypeInfo::from(ty),
+        Value::Float { ty, .. } | Value::Uint { ty, .. } => (*ty).into(),
     }
 }
 
@@ -947,9 +971,8 @@ pub unsafe extern "C" fn qk_value_type_info(value: *const Value) -> CExprTypeInf
 ///
 /// @param value A pointer to a duration value.
 ///
-/// @return A `QkDurationInfo` struct containing the duration unit and raw value.
-///
-/// Panics if ``value`` does not point to a duration value.
+/// @return A `QkDurationInfo` struct containing the duration unit and raw value. The returned
+/// values are invalid if `value` isn't a duration.
 ///
 /// # Example
 /// ```c
@@ -964,11 +987,14 @@ pub unsafe extern "C" fn qk_value_duration_info(value: *const Value) -> CDuratio
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let value = unsafe { &*value };
 
-    let Value::Duration(duration) = value else {
-        panic!("qk_value_duration_info called on non-duration value")
-    };
-
-    CDurationInfo::from(duration)
+    if let Value::Duration(duration) = value {
+        duration.into()
+    } else {
+        CDurationInfo {
+            ty: CDurationType::Dt,
+            value: CDurationValue { dt: 0 },
+        }
+    }
 }
 
 /// @ingroup QkClassicalExpressions
@@ -976,9 +1002,8 @@ pub unsafe extern "C" fn qk_value_duration_info(value: *const Value) -> CDuratio
 ///
 /// @param value A pointer to a float value.
 ///
-/// @return The ``double`` value stored in ``value``.
-///
-/// Panics if ``value`` does not point to a float value.
+/// @return The ``double`` value stored in ``value``. The returned value is invalid if `value`
+/// isn't a float.
 ///
 /// # Example
 /// ```c
@@ -993,15 +1018,15 @@ pub unsafe extern "C" fn qk_value_float(value: *const Value) -> f64 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let value = unsafe { &*value };
 
-    let Value::Float {
+    if let Value::Float {
         raw,
         ty: Type::Float,
     } = value
-    else {
-        panic!("qk_value_float called on non-float value")
-    };
-
-    *raw
+    {
+        *raw
+    } else {
+        0.0
+    }
 }
 
 /// @ingroup QkClassicalExpressions
@@ -1012,10 +1037,8 @@ pub unsafe extern "C" fn qk_value_float(value: *const Value) -> f64 {
 ///
 /// @param value A pointer to a uint value.
 ///
-/// @return The integer value converted to ``uint64_t``.
-///
-/// Panics if ``value`` does not point to a ``QkExprType_Uint`` value or if the
-/// stored integer does not fit in ``uint64_t``.
+/// @return The integer value converted to ``uint64_t``. The returned value is invalid 
+/// if `value` isn't an integer that fits in a `uint64_t`.
 ///
 /// # Example
 /// ```c
@@ -1030,16 +1053,15 @@ pub unsafe extern "C" fn qk_value_uint(value: *const Value) -> u64 {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let value = unsafe { &*value };
 
-    let Value::Uint {
+    if let Value::Uint {
         raw,
         ty: Type::Uint(_),
     } = value
-    else {
-        panic!("qk_value_uint called on non-uint value")
-    };
-
-    raw.to_u64()
-        .expect("Integer value too large to fit in uint64_t")
+    {
+        raw.to_u64().unwrap_or(u64::MAX)
+    } else {
+        0
+    }
 }
 
 /// Representation of big-integer data.
@@ -1200,9 +1222,8 @@ pub unsafe extern "C" fn qk_biguint_clear(biguint: *mut CBigUint) {
 ///
 /// @param value A pointer to a bool value.
 ///
-/// @return ``true`` if the stored integer representation is nonzero, otherwise ``false``.
-///
-/// Panics if ``value`` does not point to a bool value.
+/// @return ``true`` if the stored integer representation is nonzero, otherwise ``false``. The
+/// returned value is invalid if `value` is not a boolean.
 ///
 /// # Example
 /// ```c
@@ -1217,15 +1238,15 @@ pub unsafe extern "C" fn qk_value_bool(value: *const Value) -> bool {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let value = unsafe { &*value };
 
-    let Value::Uint {
+    if let Value::Uint {
         raw,
         ty: Type::Bool,
     } = value
-    else {
-        panic!("qk_value_bool called on non-bool value")
-    };
-
-    !raw.is_zero()
+    {
+        !raw.is_zero()
+    } else {
+        false
+    }
 }
 
 /// @ingroup QkClassicalExpressions
@@ -1265,8 +1286,6 @@ pub unsafe extern "C" fn qk_var_name(var: *const Var) -> *mut c_char {
 /// @param var A pointer to the variable to inspect.
 ///
 /// @return A `QkExprTypeInfo` struct containing the variable type information.
-///
-/// Panics if ``var`` is a bit variable, which is not yet supported by this API.
 ///
 /// # Example
 /// ```c
