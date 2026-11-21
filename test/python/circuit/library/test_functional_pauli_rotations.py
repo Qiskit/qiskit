@@ -355,6 +355,9 @@ class TestFunctionalPauliRotations(QiskitTestCase):
                     return x
                 elif x < 6:
                     return x**2
+                elif x >= 6:
+                    # outside the breakpoints the function is the identity, arcsin(1)
+                    return np.arcsin(1)
 
                 return x**3
 
@@ -380,7 +383,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         as_lambda = lambda x: x**3 if x <= 1 else x
         with self.assertRaises(TypeError):
-            _ = PiecewiseChebyshevGate(as_lambda, 2, 1, breakpoints=[1])
+            _ = PiecewiseChebyshevGate(as_lambda, 2, 1, breakpoints=[0, 1])
 
 
 if __name__ == "__main__":
