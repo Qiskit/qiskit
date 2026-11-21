@@ -1121,6 +1121,11 @@ impl CircuitData {
         self.param_table.iter_symbols()
     }
 
+    /// Look up the parameter object by name.
+    pub fn parameter_by_name(&self, name: &str) -> Option<&Symbol> {
+        self.param_table.parameter_by_name(name)
+    }
+
     /// Assigns parameters to circuit data based on a mapping of `ParameterUuid` : `Param`.
     /// This mapping assumes that the provided `ParameterUuid` keys are instances
     /// of `ParameterExpression`.
