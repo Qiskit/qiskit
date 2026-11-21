@@ -81,6 +81,10 @@ pub mod alias {
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
+    let no_threads = env::var("QISKIT_NO_THREADS")
+        .unwrap_or_else(|_| "FALSE".to_string())
+        .to_uppercase()
+        == "TRUE";
     let parallel_context = env::var("QISKIT_IN_PARALLEL")
         .unwrap_or_else(|_| "FALSE".to_string())
         .to_uppercase()
@@ -89,5 +93,5 @@ pub fn getenv_use_multiple_threads() -> bool {
         .unwrap_or_else(|_| "FALSE".to_string())
         .to_uppercase()
         == "TRUE";
-    !parallel_context || force_threads
+    !parallel_context || !no_threads || (force_threads && !no_threads)
 }

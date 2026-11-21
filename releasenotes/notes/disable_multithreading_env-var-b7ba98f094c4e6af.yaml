@@ -1,0 +1,5 @@
+---
+features_misc:
+  - Added a new environment variable to disable multithreading in Qiskit's rust code. Setting
+    ``QISKIT_NO_THREADS=TRUE`` will disable any use of multithreading. This option will take
+    precedence over `QISKIT_FORCE_THREADS`, so if both are specified no threads will be spawned.
