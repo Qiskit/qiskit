@@ -7667,9 +7667,21 @@ impl DAGCircuit {
     }
 
     pub fn add_global_phase(&mut self, value: &Param) -> Result<(), DAGError> {
-        match value {
+        match (&mut self.global_phase, value) {
             #[cfg(feature = "py")]
-            Param::Obj(_) => Err(DAGError::ObjGlobalPhase),
+            (_, Param::Obj(_)) => Err(DAGError::ObjGlobalPhase),
+            (Param::ParameterExpression(phase), Param::ParameterExpression(other)) => {
+                Arc::make_mut(phase)
+                    .add_assign(other)
+                    .expect("Name conflict in add.");
+                Ok(())
+            }
+            (Param::ParameterExpression(phase), Param::Float(other)) => {
+                Arc::make_mut(phase)
+                    .add_assign(&ParameterExpression::from_f64(*other))
+                    .expect("No name conflicts adding a float.");
+                Ok(())
+            }
             _ => self
                 .set_global_phase_param(add_global_phase(&self.global_phase, value))
                 .map(|_| ()),
