@@ -13,6 +13,7 @@ num-complex.workspace = true
 rand.workspace = true
 rand_philox.workspace = true
 thiserror.workspace = true
+uuid.workspace = true
 qiskit-circuit.workspace = true
 
 [dev-dependencies]

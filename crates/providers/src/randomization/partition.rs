@@ -35,7 +35,7 @@ pub enum PartitionError {
 /// While a partition can have no parts, each part must have an element.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Partition<T> {
-    /// The elements, in part order then slot order.
+    /// The elements, in part order then factor order.
     elements: Box<[T]>,
     /// Where each part after the first begins.
     splits: Box<[u32]>,
@@ -99,6 +99,13 @@ impl<T: Copy + Ord> Partition<T> {
     /// The elements.
     pub fn elements(&self) -> &[T] {
         &self.elements
+    }
+
+    /// The part at index `index` or `None` if there is no such part.
+    pub fn part(&self, index: usize) -> Option<&[T]> {
+        let start = *self.splits.get(index)? as usize;
+        let end = *self.splits.get(index + 1)? as usize;
+        Some(&self.elements[start..end])
     }
 
     /// Get an iterator over the individual parts.

@@ -2524,6 +2524,7 @@ dependencies = [
  "rand_philox",
  "rustworkx-core",
  "thiserror 2.0.21",
+ "uuid",
 ]
 
 [[package]]
