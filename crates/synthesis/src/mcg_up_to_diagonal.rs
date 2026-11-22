@@ -110,7 +110,6 @@ pub fn mcg_up_to_diagonal(m: &Bound<PyModule>) -> PyResult<()> {
 mod tests {
     use super::mcg_up_to_diagonal_inner;
     use crate::matrix::sim::sim_unitary_circuit;
-    use crate::uc_gate::dec_ucg_inner;
     use approx::abs_diff_eq;
     use nalgebra::Matrix2;
     use ndarray::Array2;
@@ -151,13 +150,11 @@ mod tests {
         assert_eq!(diag, vec![Complex64::ONE; 2]);
 
         let unitary = sim_unitary_circuit(&circuit).unwrap();
-        let mut expected = Array2::zeros((2, 2));
-        for i in 0..2 {
-            for j in 0..2 {
-                expected[[i, j]] = gate[(i, j)];
-            }
-        }
-        assert!(abs_diff_eq!(unitary, expected, epsilon = 1e-12));
+        assert!(abs_diff_eq!(
+            unitary,
+            expected_mcg(gate, 0),
+            epsilon = 1e-12
+        ));
     }
 
     #[test]
@@ -172,44 +169,53 @@ mod tests {
         }
     }
 
-    // A multi-controlled gate is a uniformly controlled gate where every basis
-    // state except the all-ones one gets the identity. Folding the diagonal
-    // `mcg_up_to_diagonal_inner` returns back onto its circuit must therefore
-    // reproduce exactly what `dec_ucg_inner` computes when asked to fold the
-    // diagonal in itself (`up_to_diagonal = false`) on that same gate list.
-    fn check_matches_full_ucg_decomposition(gate: Matrix2<Complex64>, num_ctrls: u32) {
-        let (up_to_diag_circuit, diag) = mcg_up_to_diagonal_inner(gate, num_ctrls).unwrap();
-        let up_to_diag_unitary = sim_unitary_circuit(&up_to_diag_circuit).unwrap();
-        let reconstructed = diag_matrix(&diag).dot(&up_to_diag_unitary);
+    /// Unitary of the multi-controlled `gate`: identity except for the last 2x2 block.
+    fn expected_mcg(gate: Matrix2<Complex64>, num_ctrls: u32) -> Array2<Complex64> {
+        let dim = 1usize << (num_ctrls + 1);
+        let mut expected = Array2::<Complex64>::eye(dim);
+        for i in 0..2 {
+            for j in 0..2 {
+                expected[[dim - 2 + i, dim - 2 + j]] = gate[(i, j)];
+            }
+        }
+        expected
+    }
 
-        let num_qubits = num_ctrls + 1;
-        let mut gates = vec![Matrix2::identity(); 2usize.pow(num_ctrls)];
-        let last = gates.len() - 1;
-        gates[last] = gate;
-        let (full_circuit, _) = dec_ucg_inner(gates, num_qubits, false, true).unwrap();
-        let full_unitary = sim_unitary_circuit(&full_circuit).unwrap();
+    // The synthesized circuit U' and its diagonal D must satisfy D * U' = U (the MCG unitary).
+    fn check_matches_mcg(gate: Matrix2<Complex64>, num_ctrls: u32) {
+        let (circuit, diag) = mcg_up_to_diagonal_inner(gate, num_ctrls).unwrap();
+        let up_to_diag = sim_unitary_circuit(&circuit).unwrap();
+        let reconstructed = diag_matrix(&diag).dot(&up_to_diag);
+        assert!(abs_diff_eq!(
+            reconstructed,
+            expected_mcg(gate, num_ctrls),
+            epsilon = 1e-10
+        ));
+    }
 
-        assert!(abs_diff_eq!(reconstructed, full_unitary, epsilon = 1e-10));
+    #[test]
+    fn test_mcg_up_to_diagonal_inner_zero_controls() {
+        check_matches_mcg(su2(0.7, 0.2, -0.5), 0);
     }
 
     #[test]
     fn test_mcg_up_to_diagonal_inner_one_control() {
-        check_matches_full_ucg_decomposition(ry(0.9), 1);
+        check_matches_mcg(ry(0.9), 1);
     }
 
     #[test]
     fn test_mcg_up_to_diagonal_inner_two_controls() {
-        check_matches_full_ucg_decomposition(ry(1.3), 2);
+        check_matches_mcg(ry(1.3), 2);
     }
 
     #[test]
     fn test_mcg_up_to_diagonal_inner_three_controls() {
-        check_matches_full_ucg_decomposition(ry(-0.4), 3);
+        check_matches_mcg(ry(-0.4), 3);
     }
 
     #[test]
     fn test_mcg_up_to_diagonal_inner_complex_gate() {
-        check_matches_full_ucg_decomposition(su2(0.7, 0.2, -0.5), 2);
+        check_matches_mcg(su2(0.7, 0.2, -0.5), 2);
     }
     #[test]
     fn test_mcg_up_to_diagonal_inner_too_many_controls() {
