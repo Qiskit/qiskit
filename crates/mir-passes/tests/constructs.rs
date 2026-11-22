@@ -16,8 +16,7 @@
 //! # Running the tests and writing the output to files
 //!
 //! ```text
-//! mkdir -p /tmp/mir_debug
-//! MIR_DEBUG_DIR=/tmp/mir_debug cargo test -p qiskit-mir-passes --test constructs
+//! QISKIT_DEBUG_DIR=/tmp/mir_debug cargo test -p qiskit-mir-passes --test constructs
 //! ```
 
 use qiskit_mir::instruction::MirInstruction;
@@ -151,13 +150,13 @@ const ALL_INSTRUCTIONS: &str = concat!(
     "[%1] = BoolNot, [%0]\n",
 );
 
-/// Write `text` to `file_name` inside the directory named by the `MIR_DEBUG_DIR` environment
-/// variable.  Does nothing if the variable is not set.
-///
-/// Panics if the directory does not exist.
+/// Write `text` to `file_name` inside the directory named by the `QISKIT_DEBUG_DIR` environment
+/// variable. Creates the directory if it does not exist.
 fn dump_debug(file_name: &str, text: &str) {
-    if let Some(dir) = std::env::var_os("MIR_DEBUG_DIR") {
-        std::fs::write(std::path::Path::new(&dir).join(file_name), text).unwrap();
+    if let Some(dir) = std::env::var_os("QISKIT_DEBUG_DIR") {
+        let dir = std::path::Path::new(&dir);
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join(file_name), text).unwrap();
     }
 }
 

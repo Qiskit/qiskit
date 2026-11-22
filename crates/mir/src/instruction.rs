@@ -200,30 +200,14 @@ impl MirInstruction {
 
 impl fmt::Display for MirInstruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.op {
-            MirOp::PauliRotation(rot) => {
-                write!(
-                    f,
-                    "{} = PauliRotation, {}, {}, {}",
-                    self.returns,
-                    rot.paulis(),
-                    rot.angle(),
-                    self.qids
-                )
-            }
-            MirOp::PauliMeasure(meas) => {
-                write!(
-                    f,
-                    "{} = PauliMeasure, {}, {}",
-                    self.returns,
-                    meas.paulis(),
-                    self.qids
-                )
-            }
-            MirOp::BoolNot => {
-                write!(f, "{} = BoolNot, {}", self.returns, self.args)
-            }
+        write!(f, "{} = {}", self.returns, self.op)?;
+        if !self.qids.is_empty() {
+            write!(f, ", {}", self.qids)?;
         }
+        if !self.args.is_empty() {
+            write!(f, ", {}", self.args)?;
+        }
+        Ok(())
     }
 }
 

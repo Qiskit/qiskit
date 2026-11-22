@@ -49,8 +49,8 @@ use qiskit_circuit::{
     operations::{Param, PauliBased, PauliProductMeasurement, PauliProductRotation},
     packed_instruction::PackedOperation,
 };
-use qiskit_mir::qid::{BitLayout, QidInfo, QidSpace, ResourceTable};
 use qiskit_mir::mir::MirDisplayOptions;
+use qiskit_mir::qid::{BitLayout, QidInfo, QidSpace, ResourceTable};
 use qiskit_mir_passes::dag_to_mir::lower_dag;
 use qiskit_mir_passes::trivial_mir_layout::trivial_mir_layout;
 
@@ -150,8 +150,10 @@ const BELL_INSTRUCTIONS: &str = concat!(
 );
 
 fn dump_debug(file_name: &str, text: &str) {
-    if let Some(dir) = std::env::var_os("MIR_DEBUG_DIR") {
-        std::fs::write(std::path::Path::new(&dir).join(file_name), text).unwrap();
+    if let Some(dir) = std::env::var_os("QISKIT_DEBUG_DIR") {
+        let dir = std::path::Path::new(&dir);
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join(file_name), text).unwrap();
     }
 }
 
