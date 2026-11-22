@@ -18,7 +18,6 @@
 //! where all slots are identity except the last (all controls active) which receives the target gate.
 
 use numpy::PyReadonlyArray2;
-use pyo3::Python;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -28,7 +27,7 @@ use crate::ucrz::get_ucrz;
 
 use nalgebra::{Matrix2, MatrixView2};
 use num_complex::Complex64;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 
 /// Synthesizes a multi-controlled single-qubit gate up to a diagonal gate.
 ///
@@ -44,7 +43,7 @@ use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 /// # Returns
 ///
 /// A tuple `(circuit, diag)` where `circuit` is the `CircuitData` implementing the gate
-/// up to diagonal, and `diag` is the diagonal phases vector of length `2^(num_ctrls + 1)`.
+/// up to diagonal, and `diag` holds the `2^(num_ctrls + 1)` complex diagonal entries.
 pub(crate) fn mcg_up_to_diagonal_inner(
     gate: Matrix2<Complex64>,
     num_ctrls: u32,
@@ -67,7 +66,7 @@ pub(crate) fn mcg_up_to_diagonal_inner(
 /// Python-exposed entry point for decomposing a multi-controlled single-qubit gate up to diagonal.
 ///
 /// See [`mcg_up_to_diagonal_inner`] for the core synthesis logic. This wrapper converts the
-/// input 2x2 NumPy matrix to Rust and the resulting `CircuitData` to a Python `QuantumCircuit`.
+/// input 2x2 NumPy matrix to Rust; the caller builds the `QuantumCircuit` from the returned data.
 ///
 /// # Arguments
 ///
@@ -76,29 +75,19 @@ pub(crate) fn mcg_up_to_diagonal_inner(
 ///
 /// # Returns
 ///
-/// A tuple `(circuit, diag)` containing the `QuantumCircuit` and the list of complex diagonal elements.
+/// A tuple `(circuit, diag)` containing the circuit data and the list of complex diagonal elements.
 #[pyfunction]
 pub fn mcg_up_to_diagonal_synth(
-    py: Python,
     gate: PyReadonlyArray2<Complex64>,
     num_ctrls: u32,
-) -> PyResult<(Py<PyAny>, Vec<Complex64>)> {
-    // The diagonal has 2^(num_ctrls + 1) entries; reject sizes that overflow `usize`.
-    1usize
-        .checked_shl(num_ctrls.saturating_add(1))
-        .ok_or_else(|| PyValueError::new_err(format!("num_ctrls={num_ctrls} is too large")))?;
-
+) -> PyResult<(PyCircuitData, Vec<Complex64>)> {
     let gate_rs: Matrix2<Complex64> = gate
         .try_as_matrix()
         .map(|m: MatrixView2<Complex64>| m.into_owned())
-        .ok_or_else(|| {
-            PyValueError::new_err("expected a 2x2 unitary matrix for each single-qubit gate")
-        })?;
+        .ok_or_else(|| PyValueError::new_err("expected a 2x2 unitary matrix"))?;
 
     let (circuit, diag) = mcg_up_to_diagonal_inner(gate_rs, num_ctrls).map_err(PyErr::from)?;
-    let qc = circuit.into_py_quantum_circuit(py)?;
-    qc.setattr("name", "mcg")?;
-    Ok((qc.unbind(), diag))
+    Ok((circuit.into(), diag))
 }
 
 #[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
