@@ -985,16 +985,10 @@ impl Clifford {
         self.tableau.append_ppr(pauli_z, pauli_x, indices, multiple);
     }
 
-    /// Evolve a Pauli gate by the Clifford.
-    ///
-    /// The evolution is in the Heisenberg frame: if `C` is the unitary of the Clifford
-    /// and `P` is the input Pauli, the output is `C^dagger P C`.
+    /// Evolve a sparse Pauli gate by the Clifford in the Heisenberg frame,
+    /// returning `C^dagger P C`.
     ///
     /// The Pauli gate is given in the sparse ZX format, but may include I-terms.
-    /// This is done by appending the initial part of the PPR (PPM) to the Clifford tableau
-    /// in-place, evolving the internal RZ gate, and appending the final part of the PPR (PPM),
-    /// which restores the Clifford. Hence, although this method takes `&mut self`, the Clifford
-    /// is left unchanged when the method returns.
     ///
     /// # Arguments
     ///
@@ -1023,11 +1017,13 @@ impl Clifford {
             .filter_map(|(i, (&z, &x))| (z || x).then_some(i))
             .collect();
 
+        // Pauli evolution is implemented by by appending the initial part of the PPR (PPM) to the
+        // Clifford tableau in-place, evolving the internal RZ gate, and appending the final part of
+        // the PPR (PPM), which restores the Clifford.
         if let Some(&idx) = active_indices.first() {
             self.tableau
                 ._append_initial_part_ppr(in_z, in_x, indices_in, &active_indices);
 
-            // Evolving RZ by the Clifford.
             let (sign, z, x, indices) =
                 self.evolve_single_qubit_pauli(Pauli1q::Z, indices_in[idx] as usize);
 
@@ -1041,10 +1037,8 @@ impl Clifford {
         (false, vec![], vec![], vec![])
     }
 
-    /// Evolve a single-qubit X, Y or Z Pauli by the Clifford.
-    ///
-    /// The evolution is in the Heisenberg frame: if `C` is the unitary of the Clifford
-    /// and `P` is the input Pauli, the output is `C^dagger P C`.
+    /// Evolve a single-qubit X, Y or Z Pauli by the Clifford in the Heisenberg frame,
+    /// returning `C^dagger P C`.
     ///
     /// # Arguments
     ///

@@ -664,48 +664,22 @@ pub fn run_litinski_transformation(
     Ok(Some(new_dag.build()))
 }
 
-/// Add a Pauli product rotation to the collected Pauli-based operations, merging it with an
-/// earlier Pauli product rotation when possible.
+/// Add a Pauli product rotation to the collected operations.
 ///
-/// The collected operations are scanned backwards. If an earlier rotation acts on the same qubits
-/// with the same Pauli, the two rotations are merged into the earlier entry. Otherwise, the scan
-/// stops at the first operation that does not commute with the new rotation, and the new rotation
-/// is appended to the collected operations.
-///
-/// The scan is skipped altogether when no collected rotation has the same Pauli and qubits as the
-/// new rotation (as tracked by `ppr_counts`), which is the common case. Otherwise, the scan is
-/// linear in the number of collected operations that commute with the new rotation, so adding
-/// all of the rotations of a circuit takes quadratic time in the worst case (when rotations with
-/// the same Pauli repeatedly appear far apart, separated by many commuting rotations).
-///
-/// If the merged rotation is equivalent to the identity (up to a global phase), the entry is
-/// removed altogether.
-///
-/// If the merged rotation `M` is a Clifford, the entry is removed and `M` is absorbed into the
-/// Clifford. The rotation `M` has the same Pauli as the new rotation, which commutes with all
-/// the later collected operations, so `M` can be moved to the end of the collected operations.
-/// If `C` is the current Clifford, the circuit is now of the form `(rotations) -- M -- C`.
-/// However, instead of prepending `M` to the list of Clifford gates and the current Clifford C,
-/// we can append the original Pauli rotation (with the summed angle).
+/// If `combine_paulis` is enabled, the rotation is merged with an earlier rotation with
+/// the same Pauli rotation axis, provided it exists and all intervening operations
+/// commute with it. Identity rotations are removed, and Clifford rotations are absorbed
+/// into the running Clifford.
 ///
 /// # Arguments
 ///
-/// * `state`: The current state of the transformation. This function may modify the collected
-///   Pauli-based operations, the global phase update (when the merged rotation is equivalent to
-///   the identity), and the Clifford and the Clifford operations (when the merged rotation is a
-///   Clifford).
-/// * `opts`: The options to the pass. The new rotation is merged with earlier rotations only if
-///   `combine_paulis` is set; `tol` is used to check whether the merged rotation is equivalent to
-///   the identity or is a Clifford; and the Clifford operations are only updated if
-///   `fix_clifford` is set.
-/// * `ppr`: The new Pauli product rotation, already evolved by the current Clifford, and without
-///   I-terms.
-/// * `qubits`: The sorted qubit indices of the new rotation.
-/// * `sign`: Whether evolving the original Pauli of the new rotation by the current Clifford
-///   produced a negative sign (already accounted for in the angle of `ppr`).
-/// * `orig_pauli`: The original Pauli `(z, x, indices)` of the new rotation, before evolving it
-///   by the Clifford (may include I-terms).
-/// * `orig_qubits`: The interned qubits of the original instruction.
+/// * `state`: The current state of the transformation.
+/// * `opts`: The options to the pass.
+/// * `ppr`: The new Pauli product rotation, already evolved by the current Clifford.
+/// * `qubits`: The sorted qubit indices of the evolved rotation.
+/// * `sign`: Whether the evolved Pauli has a negative sign.
+/// * `orig_pauli`: The original Pauli `(z, x, indices)`, before Clifford evolution.
+/// * `orig_qubits`: The qubits of the original instruction.
 fn add_ppr(
     state: &mut LitinskiTransformationState,
     opts: &LitinskiTransformationOptions,
