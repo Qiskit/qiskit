@@ -100,6 +100,7 @@ mod tests {
 
     use crate::matrix::sim::sim_unitary_circuit;
 
+    #[cfg(not(miri))]
     #[test]
     fn test_get_ucrz_all_synthesizes_controlled_rz() {
         let angles = [0.2, 0.6];
