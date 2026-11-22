@@ -1,11 +1,15 @@
 ---
 performance:
   - |
-    Improved the runtime performance of :class:`.MCGupDiag` by migrating its
-    decomposition to Rust, reusing the same :class:`.UCGate` kernel ported in
-    `#16908 <https://github.com/Qiskit/qiskit/pull/16908>`__ instead of building
-    an intermediate Python :class:`.UCGate` object. Benchmarks of
-    ``MCGupDiag._get_diagonal()`` show an average speedup of **~55x**, growing
-    from **~5x** with a single control qubit to **~90x** at seven control
-    qubits. There are no API or circuit-equivalence changes.
+    Building the definition of :class:`.MCGupDiag` is now faster, because its decomposition is
+    implemented in Rust and calls the :class:`.UCGate` decomposition directly, instead of creating an
+    intermediate Python :class:`.UCGate` object. Benchmarks show speedups from about 2x with one
+    control qubit to about 12x with eight control qubits.
     See `#17086 <https://github.com/Qiskit/qiskit/pull/17086>`__ for more details.
+upgrade:
+  - |
+    The ``definition`` of :class:`.MCGupDiag` now contains the synthesized single-qubit and ``cx``
+    gates directly, instead of a nested :class:`.UCGate`, so :meth:`~.QuantumCircuit.decompose`
+    shows a different circuit. When ancilla qubits are present, the synthesized instruction acts only
+    on the target and control qubits. The implemented unitary and the number of ``cx`` gates are
+    unchanged.

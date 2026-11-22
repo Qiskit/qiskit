@@ -63,14 +63,17 @@ class MCGupDiag(Gate):
         num_qubits = 1 + num_controls + num_ancillas_zero + num_ancillas_dirty
         super().__init__("MCGupDiag", num_qubits, [gate])
 
+    def _matrix(self):
+        return np.asarray(self.params[0], dtype=complex, order="f")
+
     def _define(self):
-        unitary = np.asarray(self.params[0], dtype=complex, order="f")
-        mcg_up_diag_circuit, _ = mcg_up_to_diagonal_synth(unitary, self.num_controls)
-        gate = mcg_up_diag_circuit.to_instruction()
+        circuit_data, _ = mcg_up_to_diagonal_synth(self._matrix(), self.num_controls)
+        synthesized = QuantumCircuit._from_circuit_data(circuit_data)
+        synthesized.name = "mcg_up_to_diagonal"
         q = QuantumRegister(self.num_qubits, "q")
-        mcg_up_diag_circuit = QuantumCircuit(q, name="mcg_up_to_diagonal")
-        mcg_up_diag_circuit.append(gate, q[: self.num_controls + 1])
-        self.definition = mcg_up_diag_circuit
+        definition = QuantumCircuit(q, name="mcg_up_to_diagonal")
+        definition.append(synthesized.to_instruction(), q[: self.num_controls + 1])
+        self.definition = definition
 
     def inverse(self, annotated: bool = False) -> Gate:
         """Return the inverse.
@@ -97,8 +100,7 @@ class MCGupDiag(Gate):
         # Important: for a control list q_controls = [q[0],...,q_[k-1]] the diagonal gate is
         # provided in the computational basis of the qubits q[k-1],...,q[0],q_target, decreasingly
         # ordered with respect to the significance of the qubit in the computational basis
-        gate = np.asarray(self.params[0], dtype=complex, order="f")
-        _, diag = mcg_up_to_diagonal_synth(gate, self.num_controls)
+        _, diag = mcg_up_to_diagonal_synth(self._matrix(), self.num_controls)
         return diag
 
     def validate_parameter(self, parameter):

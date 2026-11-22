@@ -87,6 +87,21 @@ class TestMCGupDiag(QiskitTestCase):
     # Synthesis correctness: U = D * U'
     # ------------------------------------------------------------------
 
+    def _assert_up_to_diagonal(self, mat, num_ctrls, label):
+        """Check U = D U' for the synthesized circuit U' and the diagonal D of ``_get_diagonal``."""
+        gate = MCGupDiag(mat, num_controls=num_ctrls, num_ancillas_zero=0, num_ancillas_dirty=0)
+        expected = np.eye(2 ** (num_ctrls + 1), dtype=complex)
+        expected[-2:, -2:] = mat
+
+        qc = QuantumCircuit(gate.num_qubits)
+        qc.append(gate, range(gate.num_qubits))
+        circuit_op = Operator(transpile(qc, basis_gates=["u", "cx"], optimization_level=0)).data
+        diag = np.diag(np.asarray(gate._get_diagonal(), dtype=complex))
+        self.assertTrue(
+            np.allclose(diag @ circuit_op, expected, atol=1e-10),
+            msg=f"[{label}] D U' is not the multi-controlled gate",
+        )
+
     @data(
         (_I, 0, "identity, 0 controls"),
         (_X, 0, "X, 0 controls"),
@@ -96,55 +111,12 @@ class TestMCGupDiag(QiskitTestCase):
         (_T, 1, "T, 1 control"),
         (_X, 2, "X, 2 controls"),
         (_H, 2, "H, 2 controls"),
+        (_random_su2(seed=42), 1, "random SU(2), 1 control"),
     )
     @unpack
     def test_synthesis_up_to_diagonal(self, mat, num_ctrls, label):
-        """Synthesised circuit times diagonal equals the original MCG unitary."""
-        gate = MCGupDiag(mat, num_controls=num_ctrls, num_ancillas_zero=0, num_ancillas_dirty=0)
-
-        # Full MCG unitary: only the last column block is `mat`, rest is identity
-        num_qubits = 1 + num_ctrls
-        dim = 2**num_qubits
-        expected = np.eye(dim, dtype=complex)
-        expected[-2:, -2:] = mat
-
-        # Decompose definition down to basis gates and get its unitary
-        qc = QuantumCircuit(gate.num_qubits)
-        qc.append(gate, range(gate.num_qubits))
-        basis_circ = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
-        actual = Operator(basis_circ).data
-
-        # actual = D @ expected  =>  D = actual @ expected†  =>  D must be diagonal
-        d_mat = actual @ expected.conj().T
-        # Check D is diagonal (off-diagonal entries are zero)
-        off_diag = d_mat - np.diag(np.diag(d_mat))
-        self.assertTrue(
-            np.allclose(off_diag, 0, atol=1e-10),
-            msg=f"[{label}] synthesised circuit is not equal to MCG up to a diagonal",
-        )
-        # Check diagonal entries have magnitude 1
-        self.assertTrue(
-            np.allclose(np.abs(np.diag(d_mat)), 1, atol=1e-10),
-            msg=f"[{label}] diagonal entries do not have unit magnitude",
-        )
-
-    def test_random_su2_one_control(self):
-        """Random SU(2) with 1 control synthesises correctly up to diagonal."""
-        mat = _random_su2(seed=42)
-        gate = MCGupDiag(mat, num_controls=1, num_ancillas_zero=0, num_ancillas_dirty=0)
-
-        expected = np.eye(4, dtype=complex)
-        expected[-2:, -2:] = mat
-
-        qc = QuantumCircuit(gate.num_qubits)
-        qc.append(gate, range(gate.num_qubits))
-        basis_circ = transpile(qc, basis_gates=["u", "cx"], optimization_level=0)
-        actual = Operator(basis_circ).data
-
-        d_mat = actual @ expected.conj().T
-        off_diag = d_mat - np.diag(np.diag(d_mat))
-        self.assertTrue(np.allclose(off_diag, 0, atol=1e-10))
-        self.assertTrue(np.allclose(np.abs(np.diag(d_mat)), 1, atol=1e-10))
+        """The diagonal times the synthesized circuit equals the multi-controlled gate."""
+        self._assert_up_to_diagonal(mat, num_ctrls, label)
 
     # ------------------------------------------------------------------
     # Synthesis correctness with ancilla qubits
