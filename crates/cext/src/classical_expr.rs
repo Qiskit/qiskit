@@ -70,22 +70,15 @@ impl From<&Expr> for CExprNodeKind {
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum CVarKind {
+    /// No variable kind. ``qk_var_kind`` never returns this. It is the value a fallible function
+    /// reports when it has no variable to describe.
+    Unknown = 0,
     /// A new-style variable that owns its own backing storage and has a name.
-    Standalone = 0,
+    Standalone = 1,
     /// A legacy variable that wraps a single classical bit of a circuit.
-    Bit = 1,
+    Bit = 2,
     /// A legacy variable that wraps a classical register of a circuit.
-    Register = 2,
-}
-
-impl From<&Var> for CVarKind {
-    fn from(value: &Var) -> Self {
-        match value {
-            Var::Standalone { .. } => Self::Standalone,
-            Var::Bit { .. } => Self::Bit,
-            Var::Register { .. } => Self::Register,
-        }
-    }
+    Register = 3,
 }
 
 /// The data types that can be used in classical expressions.
@@ -1282,6 +1275,8 @@ pub unsafe extern "C" fn qk_value_bool(value: *const Value) -> bool {
 ///     // Use the register...
 ///     break;
 /// }
+/// default:
+///     break;
 /// }
 /// ```
 ///
@@ -1293,7 +1288,11 @@ pub unsafe extern "C" fn qk_var_kind(var: *const Var) -> CVarKind {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let var = unsafe { &*var };
 
-    CVarKind::from(var)
+    match var {
+        Var::Standalone { .. } => CVarKind::Standalone,
+        Var::Bit { .. } => CVarKind::Bit,
+        Var::Register { .. } => CVarKind::Register,
+    }
 }
 
 /// @ingroup QkClassicalExpressions
