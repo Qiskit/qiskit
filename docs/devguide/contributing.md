@@ -975,7 +975,7 @@ the Miri component, prior to running the script in "test" mode.  You might do
 this as:
 
 ```bash
-rustup install "$(tools/miri.bash -t)" --components miri
+rustup install "$(tools/miri.bash -t)" --component miri
 ```
 
 After the toolchain is installed, run
