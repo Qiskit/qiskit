@@ -48,9 +48,16 @@ pub(crate) fn mcg_up_to_diagonal_inner(
     gate: Matrix2<Complex64>,
     num_ctrls: u32,
 ) -> Result<(CircuitData, Vec<Complex64>), CircuitDataError> {
-    let num_qubits = num_ctrls + 1;
+    let too_large = || {
+        CircuitDataError::ErrorFromPython(PyValueError::new_err(format!(
+            "num_ctrls={num_ctrls} is too large"
+        )))
+    };
+    // The diagonal has 2^(num_ctrls + 1) entries; reject sizes that overflow `usize`.
+    let num_qubits = num_ctrls.checked_add(1).ok_or_else(too_large)?;
+    1usize.checked_shl(num_qubits).ok_or_else(too_large)?;
 
-    let mut gates = vec![Matrix2::identity(); 2usize.pow(num_ctrls)];
+    let mut gates = vec![Matrix2::identity(); 1usize << num_ctrls];
     let last = gates.len() - 1;
     gates[last] = gate;
     dec_ucg_inner(gates, num_qubits, true, true)
@@ -75,6 +82,11 @@ pub fn mcg_up_to_diagonal_synth(
     gate: PyReadonlyArray2<Complex64>,
     num_ctrls: u32,
 ) -> PyResult<(Py<PyAny>, Vec<Complex64>)> {
+    // The diagonal has 2^(num_ctrls + 1) entries; reject sizes that overflow `usize`.
+    1usize
+        .checked_shl(num_ctrls.saturating_add(1))
+        .ok_or_else(|| PyValueError::new_err(format!("num_ctrls={num_ctrls} is too large")))?;
+
     let gate_rs: Matrix2<Complex64> = gate
         .try_as_matrix()
         .map(|m: MatrixView2<Complex64>| m.into_owned())
@@ -198,5 +210,10 @@ mod tests {
     #[test]
     fn test_mcg_up_to_diagonal_inner_complex_gate() {
         check_matches_full_ucg_decomposition(su2(0.7, 0.2, -0.5), 2);
+    }
+    #[test]
+    fn test_mcg_up_to_diagonal_inner_too_many_controls() {
+        assert!(mcg_up_to_diagonal_inner(ry(0.5), 64).is_err());
+        assert!(mcg_up_to_diagonal_inner(ry(0.5), u32::MAX).is_err());
     }
 }
