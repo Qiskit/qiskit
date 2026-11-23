@@ -49,18 +49,6 @@ pub struct DotDims {
 }
 
 impl DotDims {
-    /// The batched matrix product of two operands of `rank` axes each: all but the last two axes are
-    /// batch axes, and the last axis of the left operand is contracted with the second-to-last axis
-    /// of the right one.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `rank < 2`.
-    pub fn batched_matmul(rank: usize) -> Self {
-        let _ = rank;
-        todo!()
-    }
-
     /// Return the shape of the result for operands of shapes `lhs` and `rhs`, or an error if the axis
     /// lists do not fit them. Paired axes must be fixed and of equal size, and nothing is broadcast.
     pub(crate) fn output_shape(&self, lhs: &[Dim], rhs: &[Dim]) -> Result<Vec<Dim>, MathOpError> {

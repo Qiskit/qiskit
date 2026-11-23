@@ -12,7 +12,6 @@
 
 //! The `ProgramOp` trait and its Qiskit implementations.
 
-mod add_matmul;
 mod binary;
 mod bitwise;
 mod broadcast_to;
@@ -26,7 +25,6 @@ mod random;
 mod reduction;
 mod shot_loop;
 
-pub use add_matmul::{AddMatMulError, add_matmul};
 pub use binary::{Add, Divide, Multiply, Power, Remainder, Subtract};
 pub use bitwise::{BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Parity};
 pub use broadcast_to::BroadcastTo;

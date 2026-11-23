@@ -69,13 +69,7 @@ pub enum MathOpError {
         lhs: Dim,
         rhs: Dim,
     },
-    /// An operand has fewer axes than the op requires.
-    #[error("operand {operand}: needs at least {required} axes, got {actual}")]
-    RankTooLow {
-        operand: usize,
-        required: usize,
-        actual: usize,
-    },
+
     /// The op has no in-process implementation yet.
     #[error("this op has no in-process implementation yet")]
     NoBuiltinEval,
