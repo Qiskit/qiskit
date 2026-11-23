@@ -46,3 +46,6 @@ features = ["union", "const_generics"]
 [dependencies.numpy]
 workspace = true
 features = ["nalgebra"]
+
+[dev-dependencies]
+approx = { workspace = true, features = ["num-complex"] }
