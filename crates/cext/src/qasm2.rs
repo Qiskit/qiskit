@@ -16,7 +16,7 @@ use std::path::PathBuf;
 use qiskit_circuit::circuit_data::CircuitData;
 
 use crate::exit_codes::ExitCode;
-use crate::pointers::{ExposesOwnedPointers, check_ptr};
+use crate::pointers::{ExposesOwnedPointers, check_ptr, expose_by_box};
 use crate::util;
 
 /// Options for the OpenQASM 2 importer.
@@ -34,6 +34,9 @@ pub struct OpenQasm2Options {
     /// Whether to run the parser in strict mode.
     strict: bool,
 }
+
+// SAFETY: all owned `OpenQasm2Options` objects are exposed and freed using `Box`.
+const _: () = unsafe { expose_by_box!(OpenQasm2Options) };
 
 /// Write an owned copy of `message` through `error`, if the caller asked for one, and return
 /// `code`.
@@ -57,7 +60,7 @@ unsafe fn return_error(error: *mut *mut c_char, code: ExitCode, message: &str) -
 /// @return A handle, never null, to be released with ``qk_openqasm2_options_free``.
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_openqasm2_options_new() -> *mut OpenQasm2Options {
-    Box::into_raw(Box::new(OpenQasm2Options::default()))
+    OpenQasm2Options::default().into_leaked()
 }
 
 /// @ingroup QkOpenQasm2
@@ -71,11 +74,7 @@ pub extern "C" fn qk_openqasm2_options_new() -> *mut OpenQasm2Options {
 /// ``options`` must not have been released already.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_openqasm2_options_free(options: *mut OpenQasm2Options) {
-    if options.is_null() {
-        return;
-    }
-    // SAFETY: per documentation, `options` is a live handle from `qk_openqasm2_options_new`.
-    drop(unsafe { Box::from_raw(options) });
+    _ = (!options.is_null()).then(|| unsafe { OpenQasm2Options::steal(options) });
 }
 
 /// @ingroup QkOpenQasm2
