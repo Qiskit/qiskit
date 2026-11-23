@@ -557,6 +557,7 @@ class Instruction(Operation):
                     return False
         return True
 
+
 class InstructionFromRust(Instruction):
     """Opaque non-unitary operation implemented in Rust"""
 
@@ -574,4 +575,4 @@ class InstructionFromRust(Instruction):
         )
 
     def _define(self):
-        return self._rust_operation.definition
+        self._definition = self._rust_operation.definition

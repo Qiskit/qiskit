@@ -278,6 +278,7 @@ class Gate(Instruction):
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")
 
+
 class GateFromRust(Gate):
     """Opaque unitary gate implemented in Rust"""
 
@@ -294,7 +295,7 @@ class GateFromRust(Gate):
         )
 
     def _define(self):
-        return self._rust_operation.definition
+        self._definition = self._rust_operation.definition
 
     def __array__(self, dtype=complex, copy=None):
         return self._rust_operation.__array__(dtype, copy)

@@ -10,9 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_quantum_info::sparse_observable::cast_array_type;
 use approx::relative_eq;
 use qiskit_quantum_info::matrix_compressed_pauli::MatrixCompressedPaulis;
+#[cfg(feature = "py")]
+use qiskit_quantum_info::sparse_observable::cast_array_type;
 use std::any::Any;
 #[cfg(not(feature = "py"))]
 use std::convert::Infallible;
@@ -39,16 +40,16 @@ use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
 #[cfg(feature = "py")]
 use crate::imports;
-#[cfg(feature = "py")]
-use qiskit_quantum_info::QiskitError;
-#[cfg(feature = "py")]
-use numpy::IntoPyArray;
 use crate::operations::custom_traits::{ClonableOp, ComparableOp, ConvertibleOperation};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
 #[cfg(feature = "py")]
 use crate::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 use crate::parameter::symbol_expr::{Symbol, Value};
+#[cfg(feature = "py")]
+use numpy::IntoPyArray;
+#[cfg(feature = "py")]
+use qiskit_quantum_info::QiskitError;
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array1, Array2, ArrayView2, Dim, ShapeBuilder, array};
@@ -2224,15 +2225,15 @@ impl Operation for Store {
 /// of non dyn-compatible traits for [`CustomOperation`]. Namely [`PartialEq`]
 /// and [`Clone`].
 mod custom_traits {
+    use crate::operations::CustomOperation;
+    #[cfg(feature = "py")]
+    use crate::operations::Param;
+    #[cfg(feature = "py")]
+    use crate::operations::ToPythonOperation;
     #[cfg(feature = "py")]
     use pyo3::prelude::*;
     #[cfg(feature = "py")]
     use smallvec::SmallVec;
-    use crate::operations::CustomOperation;
-    #[cfg(feature = "py")]
-    use crate::operations::ToPythonOperation;
-    #[cfg(feature = "py")]
-    use crate::operations::Param;
 
     /// A trait which implements comparisons between [`CustomOperation`] instances.
     /// If the operation implements [`PartialEq`], this trait will be automatically implemented.
@@ -2280,15 +2281,23 @@ mod custom_traits {
     )]
     pub trait ConvertibleOperation {
         #[cfg(feature = "py")]
-        fn create_py_op<'py>(&self, py: Python<'py>, params: Option<SmallVec<[Param; 3]>>) -> PyResult<Py<PyAny>>;
+        fn create_py_op<'py>(
+            &self,
+            py: Python<'py>,
+            params: Option<SmallVec<[Param; 3]>>,
+        ) -> PyResult<Py<PyAny>>;
     }
 
     #[cfg(not(feature = "py"))]
     impl<Op: CustomOperation> ConvertibleOperation for Op {}
-    
+
     #[cfg(feature = "py")]
     impl<Op: CustomOperation + ToPythonOperation> ConvertibleOperation for Op {
-        fn create_py_op<'py>(&self, py: Python<'py>, params: Option<SmallVec<[Param; 3]>>) -> PyResult<Py<PyAny>> {
+        fn create_py_op<'py>(
+            &self,
+            py: Python<'py>,
+            params: Option<SmallVec<[Param; 3]>>,
+        ) -> PyResult<Py<PyAny>> {
             ToPythonOperation::create_py_op(self, py, params)
         }
     }
@@ -2430,10 +2439,11 @@ impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
 }
 
 #[cfg(feature = "py")]
-#[pyclass(name = "GenericRustOperation", weakref, subclass)]
+#[pyclass(name = "GenericRustOperation", weakref, subclass, from_py_object)]
+#[derive(Debug, Clone)]
 pub struct PyCustomOperation {
-    inner: Box<dyn CustomOperation>,
-    params: Option<SmallVec<[Param; 3]>>,
+    pub inner: Box<dyn CustomOperation>,
+    pub params: Option<SmallVec<[Param; 3]>>,
 }
 
 #[cfg(feature = "py")]
@@ -2456,9 +2466,7 @@ impl PyCustomOperation {
         } else {
             imports::INSTRUCTION_FROM_RUST.get_bound(py)
         };
-        Ok(class.call1((
-            self,
-        ))?.unbind())
+        Ok(class.call1((self,))?.unbind())
     }
 }
 
@@ -2502,7 +2510,10 @@ impl PyCustomOperation {
 
     #[getter]
     fn definition<'py>(&'py self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
-        self.inner.definition(self.params_view()).map(|circ| circ.into_py_quantum_circuit(py)).transpose()
+        self.inner
+            .definition(self.params_view())
+            .map(|circ| circ.into_py_quantum_circuit(py))
+            .transpose()
     }
 
     #[pyo3(signature = (dtype, copy = true))]
@@ -2514,11 +2525,9 @@ impl PyCustomOperation {
     ) -> PyResult<Bound<'py, PyAny>> {
         // It is not possible for us to compute the matrix without copying currently
         let _copy = copy.unwrap_or_default();
-        
+
         match self.inner.matrix(self.params_view()) {
-            Ok(Some(mat)) => {
-                cast_array_type(py, mat.into_pyarray(py), dtype)
-            },
+            Ok(Some(mat)) => cast_array_type(py, mat.into_pyarray(py), dtype),
             Ok(None) => py.None().into_bound_py_any(py),
             // Is this the best way to handle errors??
             Err(e) => Err(QiskitError::new_err(e.to_string())),
@@ -2547,15 +2556,19 @@ impl PyCustomOperation {
             Ok(true)
         };
 
-       compare_params(self.params_view(), as_borrowed.params_view())
+        compare_params(self.params_view(), as_borrowed.params_view())
     }
 }
 
 #[cfg(feature = "py")]
 pub trait ToPythonOperation: CustomOperation {
-    fn create_py_op<'py>(&self, py: Python<'py>, params: Option<SmallVec<[Param; 3]>>) -> PyResult<Py<PyAny>> {
+    fn create_py_op<'py>(
+        &self,
+        py: Python<'py>,
+        params: Option<SmallVec<[Param; 3]>>,
+    ) -> PyResult<Py<PyAny>> {
         PyCustomOperation::new(self.clone_dyn(), params).into_py_op(py)
-    } 
+    }
 }
 
 #[cfg(test)]
@@ -2610,6 +2623,8 @@ mod test_custom_operations {
     use crate::packed_instruction::PackedOperation;
     use crate::{Clbit, Qubit};
     use ndarray::aview2;
+    #[cfg(all(not(miri), feature = "py"))]
+    use numpy::PyArrayMethods;
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
@@ -2634,7 +2649,7 @@ mod test_custom_operations {
                     $directive
                 }
             }
-            
+
             #[cfg(feature = "py")]
             impl ToPythonOperation for $ty {}
         };
@@ -2644,7 +2659,6 @@ mod test_custom_operations {
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
     struct CustomH;
     impl_static_operation!(CustomH; "h", 1, 0, 0, false);
-
 
     impl CustomOperation for CustomH {
         fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
@@ -3060,16 +3074,18 @@ mod test_custom_operations {
     }
 
     #[test]
-    #[cfg(not(miri))]
+    #[cfg(all(not(miri), feature = "py"))]
     fn try_python_custom_gate() {
-        let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
-            .expect("Circuit with small capacity should be built.");
+        let mut circuit: PyCircuitData = CircuitData::with_capacity(1, 0, 1, 0.0.into())
+            .expect("Circuit with small capacity should be built.")
+            .into();
 
         let gate: Box<dyn CustomOperation> =
             Box::new(ParametrizedAndLabeled::new(Some("custom_rz")));
 
         // Try downcasting
         circuit
+            .inner
             .push_packed_operation(
                 PackedOperation::from_custom_operation(gate.clone()),
                 Some(crate::instruction::Parameters::Params(smallvec![PI.into()])),
@@ -3078,6 +3094,7 @@ mod test_custom_operations {
             )
             .expect("Instruction should be added to the circuit.");
         circuit
+            .inner
             .push_packed_operation(
                 PackedOperation::from_custom_operation(Box::new(CustomH)),
                 None,
@@ -3109,10 +3126,11 @@ mod test_custom_operations {
         let gates: [&dyn CustomOperation; 2] = [gate_as_rx, gate_as_h];
 
         // Try Python:
+        Python::initialize();
         Python::attach(|py| -> PyResult<()> {
             for (idx, inst) in circuit.data().iter().enumerate() {
-                use numpy::PyArray2;
                 use crate::circuit_instruction::OperationFromPython;
+                use numpy::PyArray2;
 
                 let unpacked_operation = circuit.unpack_py_op(py, inst)?.into_bound(py);
 

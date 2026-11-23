@@ -194,7 +194,9 @@ pub fn create_py_op(
         }
         OperationRef::PyCustom(inst) => Ok(inst.ob.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
-        OperationRef::CustomOperation(op) => op.create_py_op(py, params.map(|params| params.unwrap_params())),
+        OperationRef::CustomOperation(op) => {
+            op.create_py_op(py, params.map(|params| params.unwrap_params()))
+        }
         OperationRef::Store(store) => store.create_py_op(py, label),
     }
 }

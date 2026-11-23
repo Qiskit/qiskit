@@ -32,8 +32,9 @@ use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, UnitaryGate,
+    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    PyCustomOperation, PyInstruction, PyOpKind, StandardGate, StandardInstruction,
+    StandardInstructionType, Store, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -830,6 +831,26 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                 operation,
                 params,
                 label: extract_label()?,
+            });
+        }
+
+        'custom_op: {
+            // Custom operation extraction has to check a hidden attribute from
+            // the main Operation instance, namely `_rust_operation`, and
+            // then use that to extract the inner dyn CustomOperation instance
+            // and its parameters.
+            let Ok(PyCustomOperation { inner, params, .. }) = ob
+                .getattr(intern!(py, "_rust_operation"))
+                .and_then(|op| Ok(op.extract::<PyCustomOperation>()?))
+            else {
+                break 'custom_op;
+            };
+
+            let label = inner.label().map(|label| Box::new(label.to_string()));
+            return Ok(OperationFromPython {
+                operation: PackedOperation::from_custom_operation(inner),
+                params: params.map(Parameters::Params),
+                label,
             });
         }
 

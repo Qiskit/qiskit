@@ -16,7 +16,8 @@ use nalgebra::DMatrix;
 use ndarray::Array2;
 use num_complex::Complex64;
 use qiskit_circuit::{
-    operations::{CustomOperation, Operation, Param, ToPythonOperation}, packed_instruction::PackedOperation,
+    operations::{CustomOperation, Operation, Param, ToPythonOperation},
+    packed_instruction::PackedOperation,
 };
 use qiskit_quantum_info::sparse_observable::{MatrixError, SparseObservable};
 use smallvec::SmallVec;

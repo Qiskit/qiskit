@@ -22,7 +22,8 @@ use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, Register};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    Condition, ControlFlow, ControlFlowInstruction, CustomOperation, Operation, Param, StandardInstruction, ToPythonOperation,
+    Condition, ControlFlow, ControlFlowInstruction, CustomOperation, Operation, Param,
+    StandardInstruction, ToPythonOperation,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::standard_gate::StandardGate;
