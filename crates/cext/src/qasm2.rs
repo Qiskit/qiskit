@@ -105,7 +105,8 @@ pub unsafe extern "C" fn qk_openqasm2_options_set_strict(
 /// the search path.
 ///
 /// @param options A handle to the options to modify.
-/// @param path A nul-terminated string giving the directory to search.
+/// @param path A nul-terminated string giving the directory to search.  The string is copied,
+///     not stored.
 ///
 /// @return ``QkExitCode_Success`` if the directory was appended,
 ///     ``QkExitCode_NullPointerError`` if ``path`` is null, or ``QkExitCode_CInputError`` if
@@ -114,7 +115,7 @@ pub unsafe extern "C" fn qk_openqasm2_options_set_strict(
 /// # Safety
 ///
 /// ``options`` must be a valid handle, and ``path`` null or a valid pointer to a nul-terminated
-/// string.
+/// string for the duration of this call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_openqasm2_options_append_include_path(
     options: *mut OpenQasm2Options,
@@ -142,7 +143,8 @@ pub unsafe extern "C" fn qk_openqasm2_options_append_include_path(
 /// classical functions or custom instructions that ``qiskit.qasm2.loads`` accepts, so a program
 /// relying on those extensions will fail to parse.
 ///
-/// @param program A nul-terminated string containing the OpenQASM 2 program.
+/// @param program A nul-terminated string containing the OpenQASM 2 program.  The string is
+///     copied, not stored.
 /// @param options A handle to the importer options, which is borrowed only for the duration of the
 ///     call.  If this is a null pointer, the default options are used.
 /// @param circuit On success, receives a newly built circuit, to be released with
@@ -174,10 +176,10 @@ pub unsafe extern "C" fn qk_openqasm2_options_append_include_path(
 ///
 /// # Safety
 ///
-/// ``program`` must be null or a valid pointer to a nul-terminated string, ``options`` null or a
-/// valid handle, and ``error`` null or valid for a pointer write; any value ``error`` already
-/// points to is overwritten without being released.  ``circuit`` must point to a writable
-/// ``QkCircuit *`` slot.
+/// ``program`` must be null or a valid pointer to a nul-terminated string for the duration of this
+/// call, ``options`` null or a valid handle, and ``error`` null or valid for a pointer write; any
+/// value ``error`` already points to is overwritten without being released.  ``circuit`` must
+/// point to a writable ``QkCircuit *`` slot.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_openqasm2_load(
     program: *const c_char,
