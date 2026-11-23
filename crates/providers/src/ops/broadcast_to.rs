@@ -29,6 +29,11 @@ impl BroadcastTo {
         Self { target }
     }
 
+    /// Return the shape this op broadcasts to.
+    pub fn target(&self) -> &[Dim] {
+        &self.target
+    }
+
     /// Return the shape an operand of shape `shape` is broadcast to.
     ///
     /// A fixed target axis gives its own size. A bounded one takes the operand's size along the axis
@@ -108,6 +113,7 @@ mod test {
         let op = BroadcastTo::new(fixed(&[3]));
         assert_eq!(op.full_name(), "qiskit.broadcast_to");
         assert_eq!(op.arity(), 1);
+        assert_eq!(op.target(), fixed(&[3]));
         assert!(op.has_builtin_eval());
     }
 
