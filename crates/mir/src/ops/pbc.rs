@@ -81,7 +81,7 @@ impl PauliString {
 impl fmt::Display for PauliString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let items: Vec<String> = self.0.iter().map(|p| p.to_string()).collect();
-        write!(f, "[{}]", items.join(","))
+        write!(f, "{}", items.join(""))
     }
 }
 
@@ -191,7 +191,7 @@ impl PauliRotation {
 
 impl fmt::Display for PauliRotation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PauliRotation, {}, {}", self.paulis, self.angle)
+        write!(f, "PauliRotation({}, {})", self.paulis, self.angle)
     }
 }
 
@@ -221,7 +221,7 @@ impl PauliMeasure {
 
 impl fmt::Display for PauliMeasure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PauliMeasure, {}", self.paulis)
+        write!(f, "PauliMeasure({})", self.paulis)
     }
 }
 

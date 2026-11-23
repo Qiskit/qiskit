@@ -138,16 +138,16 @@ const ALL_RESOURCE_TABLE: &str = concat!(
 );
 const ALL_SYMBOL_TABLE: &str = concat!("%0, c0, Bool\n", "%1, c_not, Bool\n");
 const ALL_INSTRUCTIONS: &str = concat!(
-    "[] = PauliRotation, [I], 1.0, [v0]\n",
-    "[] = PauliRotation, [X], -0.5, [v1]\n",
-    "[] = PauliRotation, [Z,X], 0.5, [v0,v1]\n",
-    "[] = PauliRotation, [X,X], 0.5, [v2]\n",
-    "[] = PauliRotation, [X,Y,Z,X], 0.25, [v0,v1,v2]\n",
-    "[] = PauliRotation, [Z,Z], 0.5, [v4]\n",
-    "[] = PauliRotation, [X,Y], 0.25, [v5]\n",
-    "[%0] = PauliMeasure, [Z], [v0]\n",
-    "[%0] = PauliMeasure, [Z,Z], [v0,v1]\n",
-    "[%1] = BoolNot, [%0]\n",
+    "[] = PauliRotation(I, 1.0), [v0]\n",
+    "[] = PauliRotation(X, -0.5), [v1]\n",
+    "[] = PauliRotation(ZX, 0.5), [v0,v1]\n",
+    "[] = PauliRotation(XX, 0.5), [v2]\n",
+    "[] = PauliRotation(XYZX, 0.25), [v0,v1,v2]\n",
+    "[] = PauliRotation(ZZ, 0.5), [v4]\n",
+    "[] = PauliRotation(XY, 0.25), [v5]\n",
+    "[%0] = PauliMeasure(Z), [v0]\n",
+    "[%0] = PauliMeasure(ZZ), [v0,v1]\n",
+    "[%1] = BoolNot(), [%0]\n",
 );
 
 /// Write `text` to `file_name` inside the directory named by the `QISKIT_DEBUG_DIR` environment

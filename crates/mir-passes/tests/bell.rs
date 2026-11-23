@@ -140,22 +140,14 @@ const BELL_HEADER: &str = "mir, @bell_circuit\n";
 const BELL_RESOURCE_TABLE: &str = concat!("v0, Base(1)\n", "v1, Base(1)\n");
 const BELL_SYMBOL_TABLE: &str = concat!("%0, c0, Bool\n", "%1, c1, Bool\n");
 const BELL_INSTRUCTIONS: &str = concat!(
-    "[] = PauliRotation, [Z], 0.5, [v0]\n",
-    "[] = PauliRotation, [X], 1.0, [v0]\n",
-    "[] = PauliRotation, [X,Z], 0.5, [v0,v1]\n",
-    "[] = PauliRotation, [Z], -0.5, [v0]\n",
-    "[] = PauliRotation, [X], -0.5, [v1]\n",
-    "[%0] = PauliMeasure, [Z], [v0]\n",
-    "[%1] = PauliMeasure, [Z], [v1]\n",
+    "[] = PauliRotation(Z, 0.5), [v0]\n",
+    "[] = PauliRotation(X, 1.0), [v0]\n",
+    "[] = PauliRotation(XZ, 0.5), [v0,v1]\n",
+    "[] = PauliRotation(Z, -0.5), [v0]\n",
+    "[] = PauliRotation(X, -0.5), [v1]\n",
+    "[%0] = PauliMeasure(Z), [v0]\n",
+    "[%1] = PauliMeasure(Z), [v1]\n",
 );
-
-fn dump_debug(file_name: &str, text: &str) {
-    if let Some(dir) = std::env::var_os("QISKIT_DEBUG_DIR") {
-        let dir = std::path::Path::new(&dir);
-        std::fs::create_dir_all(dir).unwrap();
-        std::fs::write(dir.join(file_name), text).unwrap();
-    }
-}
 
 #[test]
 fn lower_bell_pbc() {
@@ -218,7 +210,6 @@ fn lower_bell_pbc_display_full() {
         ..Default::default()
     };
     let output = mir.display_with(options).to_string();
-    dump_debug("bell_full_log.txt", &output);
     let expected =
         format!("{BELL_HEADER}{BELL_RESOURCE_TABLE}{BELL_SYMBOL_TABLE}{BELL_INSTRUCTIONS}");
     assert_eq!(output, expected);
@@ -237,6 +228,5 @@ fn lower_bell_pbc_display_instructions() {
         instructions: true,
     };
     let output = mir.display_with(options).to_string();
-    dump_debug("bell_instructions_log.txt", &output);
     assert_eq!(output, BELL_INSTRUCTIONS);
 }

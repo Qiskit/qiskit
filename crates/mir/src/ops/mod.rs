@@ -42,7 +42,7 @@ impl std::fmt::Display for MirOp {
         match self {
             MirOp::PauliRotation(rotation) => write!(f, "{rotation}"),
             MirOp::PauliMeasure(measurement) => write!(f, "{measurement}"),
-            MirOp::BoolNot => write!(f, "BoolNot"),
+            MirOp::BoolNot => write!(f, "BoolNot()"),
         }
     }
 }
