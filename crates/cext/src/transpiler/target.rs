@@ -21,7 +21,7 @@ use crate::util;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::StandardInstruction;
-use qiskit_circuit::operations::{Operation, Param, StandardGate};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -1348,7 +1348,8 @@ pub struct CInstructionProperties {
 /// free this struct, users should call ``qk_target_op_clear`` instead.
 #[repr(C)]
 pub struct CTargetOp {
-    /// The identifier for the current operation.
+    /// The identifier for the current operation. Operations without a C API
+    /// representation have kind `QkOperationKind_Unknown`.
     pub op_type: COperationKind,
     /// The name of the operation.
     pub name: *mut c_char,
@@ -1357,7 +1358,8 @@ pub struct CTargetOp {
     pub num_qubits: u32,
     /// The parameters tied to this operation, as `QkParam`.
     /// If there are no parameters then this value will be represented
-    /// with a `NULL` pointer.
+    /// with a `NULL` pointer. Opaque Python parameters have kind
+    /// `QkParamKind_Unknown`.
     pub params: *mut *const Param,
     /// The number of parameters supported by this operation. Will default to
     /// `(uint32_t)-1` in the case of a variadic.
@@ -1410,20 +1412,22 @@ pub unsafe extern "C" fn qk_target_op_get(
     match operation {
         TargetOperation::Normal(operation) => {
             let kind = match operation.operation.view() {
-                qiskit_circuit::operations::OperationRef::StandardGate(_) => COperationKind::Gate,
-                qiskit_circuit::operations::OperationRef::StandardInstruction(
-                    standard_instruction,
-                ) => match standard_instruction {
-                    StandardInstruction::Barrier(_) => COperationKind::Barrier,
-                    StandardInstruction::Delay(_) => COperationKind::Delay,
-                    StandardInstruction::Measure => COperationKind::Measure,
-                    StandardInstruction::Reset => COperationKind::Reset,
-                },
-                qiskit_circuit::operations::OperationRef::Unitary(_) => COperationKind::Unitary,
-                _ => panic!(
-                    "Unsupported operation type found: {}",
-                    stringify!(normal_operation.view())
-                ),
+                OperationRef::StandardGate(_) => COperationKind::Gate,
+                OperationRef::StandardInstruction(standard_instruction) => {
+                    match standard_instruction {
+                        StandardInstruction::Barrier(_) => COperationKind::Barrier,
+                        StandardInstruction::Delay(_) => COperationKind::Delay,
+                        StandardInstruction::Measure => COperationKind::Measure,
+                        StandardInstruction::Reset => COperationKind::Reset,
+                    }
+                }
+                OperationRef::Unitary(_) => COperationKind::Unitary,
+                OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
+                OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
+                OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
+                OperationRef::PyCustom(_)
+                | OperationRef::CustomOperation(_)
+                | OperationRef::Store(_) => COperationKind::Unknown,
             };
             let name = util::cstring_from_utf8_lossy(
                 target_borrowed
@@ -1432,17 +1436,12 @@ pub unsafe extern "C" fn qk_target_op_get(
                     .0,
             )
             .into_raw();
-            let num_params = operation.operation.num_params();
+            let num_params = operation.params_view().len() as u32;
             let mut params: Option<Box<[*const Param]>> = (num_params > 0).then_some(
                 operation
                     .params_view()
                     .iter()
-                    .map(|param| match param {
-                        Param::Float(_) | Param::ParameterExpression(_) | Param::Int(_) => {
-                            std::ptr::from_ref(param)
-                        }
-                        Param::Obj(_) => panic!("Objects are not supported in the C API."),
-                    })
+                    .map(std::ptr::from_ref)
                     .collect(),
             );
             // SAFETY: As per documentation, `out_op` is a pointer to a sufficient allocation.
