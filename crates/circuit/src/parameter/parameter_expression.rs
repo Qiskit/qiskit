@@ -106,7 +106,7 @@ impl Hash for ParameterExpression {
 
 impl PartialEq for ParameterExpression {
     fn eq(&self, other: &Self) -> bool {
-        self.expr.eq(&other.expr)
+        self.expr == other.expr && self.name_map == other.name_map
     }
 }
 
@@ -1050,7 +1050,7 @@ impl PyParameterExpression {
     ///     The derivative as either a constant numeric value or a symbolic
     ///     :class:`.ParameterExpression`.
     pub fn gradient(&self, py: Python, param: &PyParameter) -> PyResult<Py<PyAny>> {
-        let d_expr = self.inner.derivative(&param.0)?;
+        let d_expr = ParameterExpression::from_symbol_expr(self.inner.derivative(&param.0)?.expr);
 
         // try converting to value and return as built-in numeric type
         match d_expr.try_to_value(false) {
@@ -1227,16 +1227,21 @@ impl PyParameterExpression {
     }
 
     pub fn __eq__(&self, rhs: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            match rhs.inner.expr {
-                SymbolExpr::Value(v) => match self.inner.try_to_value(false) {
-                    Ok(e) => Ok(e == v),
-                    Err(_) => Ok(false),
-                },
-                _ => Ok(self.inner.expr == rhs.inner.expr),
-            }
-        } else {
-            Ok(false)
+        let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) else {
+            return Ok(false);
+        };
+
+        // We must compare name maps explicitly since we won't perform this check for two values.
+        if self.inner.name_map != rhs.inner.name_map {
+            return Ok(false);
+        }
+
+        match rhs.inner.expr {
+            SymbolExpr::Value(v) => match self.inner.try_to_value(false) {
+                Ok(e) => Ok(e == v),
+                Err(_) => Ok(false),
+            },
+            _ => Ok(self.inner == rhs.inner),
         }
     }
 
