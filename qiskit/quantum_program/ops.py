@@ -17,9 +17,9 @@ Program ops (:mod:`qiskit.quantum_program.ops`)
 
 .. currentmodule:: qiskit.quantum_program.ops
 
-An op is one of the operations an instruction of a quantum program can perform. It holds whatever
-the operation needs beyond its operands, such as the axis a reduction folds along, and it reports
-the types it produces from the types it is given::
+An op is one of the operations an instruction of a :class:`~qiskit.quantum_program.QuantumProgram`
+can perform. It holds whatever the operation needs beyond its operands, such as the axis a reduction
+folds along, and it reports the types it produces from the types it is given::
 
     from qiskit.quantum_program import f64, ops
 
@@ -28,6 +28,10 @@ the types it produces from the types it is given::
     op.output_types([f64[4, 2]])  # [TensorType(F64[2])]
 
 Each operation Qiskit defines has a class here, and each class extends :class:`ProgramOp`.
+
+The functions in :mod:`qiskit.quantum_program`, such as :func:`~qiskit.quantum_program.mean`, are
+what writes a program, and they apply these operations for you. A class here tells you what an 
+operation is called and what types it produces.
 
 Classes
 =======

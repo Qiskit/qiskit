@@ -12,14 +12,14 @@
 
 //! The Python binding of the tensor domain: dtypes, axes, tensor types and tensor values.
 //!
-//! A tensor value is read from anything `numpy.asarray` accepts, copying the buffer, and a `Bit`
-//! tensor is read from a NumPy array of `bool`.
+//! A tensor crosses the boundary as a NumPy array. Reading one copies the buffer, and writing one
+//! hands the buffer over where it can. A `Bit` tensor is a NumPy array of `bool`.
 //! A tensor crosses the boundary as a NumPy array. Both directions copy the buffer, and a `Bit`
 //! tensor is a NumPy array of `bool`.
 
 use ndarray::ArrayD;
 use num_complex::{Complex32, Complex64};
-use numpy::{PyArrayDyn, PyArrayMethods};
+use numpy::{IntoPyArray, PyArrayDyn, PyArrayMethods, ToPyArray};
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyInt, PyTuple};
@@ -226,4 +226,29 @@ pub(super) fn tensor(object: &Bound<'_, PyAny>) -> PyResult<Tensor> {
         "a tensor cannot hold numpy dtype {}",
         array.getattr("dtype")?
     )))
+}
+
+/// Convert `tensor` to a NumPy array.
+///
+/// NumPy takes the buffer where the tensor is the only holder of it, and a copy of it otherwise.
+/// A key tensor has no NumPy form, because the layout of its words is private to its generator.
+pub(super) fn tensor_object(py: Python<'_>, tensor: Tensor) -> PyResult<Py<PyAny>> {
+    macro_rules! write {
+        ($($variant:ident),* $(,)?) => {
+            match tensor {
+                /// A bit is stored as a u8, but NumPy wants bool, so this arm converts the values 
+                /// instead of handing the buffer over.
+                Tensor::Bit(bits) => Ok(bits.mapv(|bit| bit != 0).to_pyarray(py).into_any().unbind()),
+                Tensor::Key(keys) => Err(PyTypeError::new_err(format!(
+                    "a tensor of dtype {} has no NumPy form",
+                    DType::Key(keys.kind())
+                ))),
+                $(Tensor::$variant(array) => Ok(match array.try_into_owned_nocopy() {
+                    Ok(owned) => owned.into_pyarray(py).into_any().unbind(),
+                    Err(shared) => shared.to_pyarray(py).into_any().unbind(),
+                }),)*
+            }
+        };
+    }
+    write!(C64, C128, F32, F64, I8, I16, I32, I64, U8, U16, U32, U64)
 }

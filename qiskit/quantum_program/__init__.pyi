@@ -13,32 +13,77 @@
 # The classes here are declared by hand because they come from the compiled extension module,
 # which has no signatures of its own. Each member's summary line is repeated so that a hover
 # keeps showing one; the full documentation lives on the Rust type. Nothing may be declared here
-# that the class does not have, which test_quantum_program.py checks.
+# that the class does not have, which test_quantum_program.py checks. Everything written in Python
+# is imported from the module that defines it, so its types are read from there.
 
 from collections.abc import Iterator, Sequence
 from typing import Any, ClassVar
 
 from . import ops
+from ._tracer import (
+    Tracer,
+    add,
+    bitwise_and,
+    bitwise_not,
+    bitwise_or,
+    bitwise_xor,
+    broadcast_to,
+    build,
+    cast,
+    constant,
+    divide,
+    mean,
+    multiply,
+    parity,
+    power,
+    qp_input,
+    remainder,
+    std,
+    subtract,
+    var,
+)
 
 __all__ = [
     "DType",
     "DataTree",
+    "QuantumProgram",
     "TensorType",
+    "Tracer",
+    "Value",
+    "add",
     "bit",
+    "bitwise_and",
+    "bitwise_not",
+    "bitwise_or",
+    "bitwise_xor",
     "bounded",
+    "broadcast_to",
+    "build",
     "c64",
     "c128",
+    "cast",
+    "constant",
+    "divide",
     "f32",
     "f64",
     "i8",
     "i16",
     "i32",
     "i64",
+    "mean",
+    "multiply",
     "ops",
+    "parity",
+    "power",
+    "qp_input",
+    "remainder",
+    "std",
+    "subtract",
     "u8",
     "u16",
     "u32",
     "u64",
+    "var",
 ]
 
 class DataTree:
@@ -129,6 +174,35 @@ class TensorType:
     def __hash__(self) -> int: ...
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
+
+class QuantumProgram:
+    """A hybrid quantum-classical computation, described rather than performed."""
+
+    def input_types(self) -> DataTree:
+        """The declared type of every input, arranged as the program's input structure."""
+
+    def output_types(self) -> DataTree:
+        """The type of every output, arranged as the program's output structure."""
+
+    def __call__(self, **inputs: Any) -> DataTree:
+        """Evaluate the program on one keyword argument per declared input."""
+
+    def __repr__(self) -> str: ...
+
+class Value:
+    """One tensor value: an output slot of the instruction that produces it."""
+
+    @property
+    def instruction(self) -> int:
+        """The instruction producing this value, by its position in the function holding it."""
+
+    @property
+    def slot(self) -> int:
+        """Which of that instruction's results this value is."""
+
+    def __eq__(self, other: object) -> bool: ...
+    def __hash__(self) -> int: ...
+    def __repr__(self) -> str: ...
 
 bit: DType
 u8: DType

@@ -14,6 +14,7 @@
 
 mod data_tree;
 mod ops;
+mod program;
 mod tensor;
 
 use pyo3::exceptions::PyValueError;
@@ -26,6 +27,7 @@ use ops::{
     PyConstant, PyDivide, PyMean, PyMultiply, PyParity, PyPower, PyProgramOp, PyRemainder, PyStd,
     PySubtract, PyVariance,
 };
+use program::{PyFunctionBuilder, PyQuantumProgram, PyValue};
 pub use tensor::{PyBounded, PyDType};
 
 /// Return `error` and everything that caused it, as one message.
@@ -52,6 +54,9 @@ pub fn quantum_program(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyBounded>()?;
     m.add_class::<PyDataTree>()?;
     m.add_class::<PyDType>()?;
+    m.add_class::<PyFunctionBuilder>()?;
+    m.add_class::<PyQuantumProgram>()?;
+    m.add_class::<PyValue>()?;
     m.add_class::<TensorType>()?;
     // The op catalogue, whose base class must be registered before the classes extending it.
     m.add_class::<PyProgramOp>()?;
