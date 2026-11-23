@@ -64,7 +64,7 @@ jobs:
             --headers-dir1 ../include \
             --drop-private-types
           code=$?
-          if (( code & 8 )); then
+          if (( code & 12 )); then
             exit 1
           fi
             exit 0
