@@ -16,8 +16,7 @@ use nalgebra::DMatrix;
 use ndarray::Array2;
 use num_complex::Complex64;
 use qiskit_circuit::{
-    operations::{CustomOperation, Operation, Param},
-    packed_instruction::PackedOperation,
+    operations::{CustomOperation, Operation, Param, ToPythonOperation}, packed_instruction::PackedOperation,
 };
 use qiskit_quantum_info::sparse_observable::{MatrixError, SparseObservable};
 use smallvec::SmallVec;
@@ -154,6 +153,8 @@ impl CustomOperation for PauliEvolution {
         self.to_matrix().map(Some).map_err(Box::from)
     }
 }
+
+impl ToPythonOperation for PauliEvolution {}
 
 #[derive(Debug, Clone)]
 pub struct PauliEvolutionParts {

@@ -25,7 +25,11 @@ pub use qiskit_util::py::imports::*;
 pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
 pub static INSTRUCTION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");
+pub static INSTRUCTION_FROM_RUST: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.instruction", "InstructionFromRust");
 pub static GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.gate", "Gate");
+pub static GATE_FROM_RUST: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.gate", "GateFromRust");
 pub static CONTROL_FLOW_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.controlflow", "ControlFlowOp");
 pub static PARAMETER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.parameter", "Parameter");

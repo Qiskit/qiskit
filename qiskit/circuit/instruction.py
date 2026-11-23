@@ -556,3 +556,22 @@ class Instruction(Operation):
                 if x != y:
                     return False
         return True
+
+class InstructionFromRust(Instruction):
+    """Opaque non-unitary operation implemented in Rust"""
+
+    # Native instance of the instruction originating from Rust
+    _rust_operation = None
+
+    def __init__(self, native_inst):
+        self._rust_operation = native_inst
+        super().__init__(
+            self._rust_operation.name,
+            self._rust_operation.num_qubits,
+            self._rust_operation.num_clbits,
+            self._rust_operation.params,
+            self._rust_operation.label,
+        )
+
+    def _define(self):
+        return self._rust_operation.definition

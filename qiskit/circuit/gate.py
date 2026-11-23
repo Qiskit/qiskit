@@ -277,3 +277,24 @@ class Gate(Instruction):
             return parameter.item()
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")
+
+class GateFromRust(Gate):
+    """Opaque unitary gate implemented in Rust"""
+
+    # Native instance of the gate originating from Rust
+    _rust_operation = None
+
+    def __init__(self, native_gate):
+        self._rust_operation = native_gate
+        super().__init__(
+            self._rust_operation.name,
+            self._rust_operation.num_qubits,
+            self._rust_operation.params,
+            self._rust_operation.label,
+        )
+
+    def _define(self):
+        return self._rust_operation.definition
+
+    def __array__(self, dtype=complex, copy=None):
+        return self._rust_operation.__array__(dtype, copy)

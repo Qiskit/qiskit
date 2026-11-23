@@ -17,6 +17,8 @@ use std::{
     sync::Arc,
 };
 
+#[cfg(feature = "python_binding")]
+use qiskit_circuit::operations::ToPythonOperation;
 use qiskit_circuit::{
     circuit_data::CircuitData,
     operations::{BoxedCustomOperation, CustomOperation, Operation, Param},
@@ -228,6 +230,9 @@ impl CustomOperation for CustomOp {
         }
     }
 }
+
+#[cfg(feature = "python_binding")]
+impl ToPythonOperation for CustomOp {}
 
 /// Represents a vtable containing all the function pointers
 /// pertaining to the methods associated with the instance of
