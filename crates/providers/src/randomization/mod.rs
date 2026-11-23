@@ -13,6 +13,7 @@
 //! Generate randomizations of quantum circuits and programs.
 
 pub mod annotations;
+pub mod flags;
 pub mod partition;
 pub mod virtual_type;
 
