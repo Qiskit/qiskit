@@ -19,7 +19,7 @@ import ddt
 import rustworkx as rx
 
 from qiskit import capi
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Gate
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler import CouplingMap
 from qiskit.quantum_info import Operator
@@ -212,6 +212,45 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(2, 4)
         circuit.cx(3, 4)
         coupling_map = CouplingMap([(0, 1), (1, 2), (2, 3), (3, 4)])
+        target = ffi.build_homogenous_target(coupling_map, basis, seed=24)
+        self.addCleanup(capi.qk_target_free, target)
+        result = ffi.transpile_from_c(circuit, target, level, 1.0, 123)
+        self.assertIsInstance(result, QuantumCircuit)
+        self.assertEqual(Operator.from_circuit(result), Operator(circuit))
+
+    @ddt.data(0, 1, 2, 3)
+    def test_transpile_custom_1q_gate(self, level):
+        """Test transpiling a circuit with a custom 1-qubit gate with definition."""
+        qc_def = QuantumCircuit(1)
+        qc_def.h(0)
+        custom_gate = Gate("my_h", 1, [])
+        custom_gate.definition = qc_def
+
+        circuit = QuantumCircuit(2)
+        circuit.append(custom_gate, [0])
+        circuit.cx(0, 1)
+
+        basis = ["u", "cx"]
+        coupling_map = CouplingMap([(0, 1), (1, 0)])
+        target = ffi.build_homogenous_target(coupling_map, basis, seed=24)
+        self.addCleanup(capi.qk_target_free, target)
+        result = ffi.transpile_from_c(circuit, target, level, 1.0, 123)
+        self.assertIsInstance(result, QuantumCircuit)
+        self.assertEqual(Operator.from_circuit(result), Operator(circuit))
+
+    @ddt.data(0, 1, 2, 3)
+    def test_transpile_custom_2q_gate(self, level):
+        """Test transpiling a circuit with a custom 2-qubit gate with definition."""
+        qc_def = QuantumCircuit(2)
+        qc_def.cx(0, 1)
+        custom_gate = Gate("my_cx", 2, [])
+        custom_gate.definition = qc_def
+
+        circuit = QuantumCircuit(2)
+        circuit.append(custom_gate, [0, 1])
+
+        basis = ["u", "cx"]
+        coupling_map = CouplingMap([(0, 1), (1, 0)])
         target = ffi.build_homogenous_target(coupling_map, basis, seed=24)
         self.addCleanup(capi.qk_target_free, target)
         result = ffi.transpile_from_c(circuit, target, level, 1.0, 123)

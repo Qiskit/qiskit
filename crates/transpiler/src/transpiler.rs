@@ -321,6 +321,7 @@ pub fn translation_stage(
     )? {
         *dag = out;
     }
+    run_unroll_custom_definitions(dag, Some(target), Some(equiv_lib), 0)?;
     if let Some(out_dag) = run_basis_translator(dag, equiv_lib, 0, Some(target), None)? {
         *dag = out_dag;
     }

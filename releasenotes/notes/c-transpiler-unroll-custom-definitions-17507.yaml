@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue where transpiling a circuit via the C API (:func:`.qk_transpile`)
+    with custom 1-qubit or 2-qubit gates that have definitions failed during basis
+    translation because they were not decomposed before basis translation.
+    Custom gate definitions are now recursively unrolled before basis translation
+    if the gate is not in the target or equivalence library.
+    Fixed `#17507 <https://github.com/Qiskit/qiskit/issues/17507>`__.
