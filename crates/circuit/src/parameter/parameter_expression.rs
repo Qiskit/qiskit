@@ -1075,7 +1075,7 @@ impl PyParameterExpression {
     ///     The derivative as either a constant numeric value or a symbolic
     ///     :class:`.ParameterExpression`.
     pub fn gradient(&self, py: Python, param: &PyParameter) -> PyResult<Py<PyAny>> {
-        let d_expr = self.inner.derivative(&param.0)?;
+        let d_expr = ParameterExpression::from_symbol_expr(self.inner.derivative(&param.0)?.expr);
 
         // try converting to value and return as built-in numeric type
         match d_expr.try_to_value(false) {
