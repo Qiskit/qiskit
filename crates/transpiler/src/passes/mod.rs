@@ -112,6 +112,8 @@ pub use two_qubit_peephole::{
 pub use unitary_synthesis::{
     UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis, unitary_synthesis_mod,
 };
-pub use unroll_3q_or_more::{run_unroll_3q_or_more, unroll_3q_or_more_mod};
+pub use unroll_3q_or_more::{
+    run_unroll_3q_or_more, run_unroll_custom_definitions, unroll_3q_or_more_mod,
+};
 pub use vf2::{error_map_mod, vf2_layout_mod, vf2_layout_pass_average, vf2_layout_pass_exact};
 pub use wrap_angles::{run_wrap_angles, wrap_angles_mod};
