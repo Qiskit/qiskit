@@ -2329,9 +2329,9 @@ class TestParameterView(QiskitTestCase):
         # should fail since one expression has "theta" and the other has none
         self.assertNotEqual(theta * 0, 0)
         # should invoke non-value comparision (which should also fail)
-        self.assertNotEqual(theta, theta + phi *0)
+        self.assertNotEqual(theta, theta + phi * 0)
         # should succeed since they are both 0 with parameter theta
-        self.assertEqual(theta * 0, theta-theta)
+        self.assertEqual(theta * 0, theta - theta)
 
 
 if __name__ == "__main__":
