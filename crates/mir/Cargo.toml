@@ -28,8 +28,9 @@ rustworkx-core.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-itertools.workspace = true
 fixedbitset.workspace = true
+itertools.workspace = true
+rayon.workspace = true
 
 [[example]]
 name = "memory_report"
