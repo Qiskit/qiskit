@@ -282,6 +282,31 @@ impl VarStretchContainer {
         }
     }
 
+    /// Returns the scope type of the specified [expr::Var], or None if the variable does not exist in the container.
+    pub fn var_type(&self, var: &expr::Var) -> Option<VarType> {
+        let expr::Var::Standalone { name, .. } = var else {
+            return None;
+        };
+        match self.identifier_info.get(name) {
+            Some(IdentifierInfo::Var(info)) if self.vars.get(info.var) == Some(var) => {
+                Some(info.type_)
+            }
+            _ => None,
+        }
+    }
+
+    /// Returns the scope type of the specified [expr::Stretch], or None if the stretch does not exist in the container.
+    pub fn stretch_type(&self, stretch: &expr::Stretch) -> Option<StretchType> {
+        match self.identifier_info.get(&stretch.name) {
+            Some(IdentifierInfo::Stretch(info))
+                if self.stretches.get(info.stretch) == Some(stretch) =>
+            {
+                Some(info.type_)
+            }
+            _ => None,
+        }
+    }
+
     /// Returns an iterator over the contained [expr::Var] objects of the specified variable type.
     pub fn iter_vars(&self, var_type: VarType) -> impl ExactSizeIterator<Item = &expr::Var> {
         self.var_indices[var_type as usize].iter().map(|idx| {
@@ -729,6 +754,38 @@ mod test {
                 .is_err()
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_var_type() -> Result<(), VarStretchContainerError> {
+        let mut container = VarStretchContainer::new();
+        let a = new_var("a");
+        container.add_var(a.clone(), VarType::Input)?;
+        container.add_stretch(new_stretch("s"), StretchType::Declare)?;
+
+        assert_eq!(container.var_type(&a), Some(VarType::Input));
+        // Not in the container: same name, a stretch's name, and a clbit var
+        assert_eq!(container.var_type(&new_var("a")), None);
+        assert_eq!(container.var_type(&new_var("s")), None);
+        let bit = expr::Var::Bit {
+            bit: ShareableClbit::new_anonymous(),
+        };
+        assert_eq!(container.var_type(&bit), None);
+        Ok(())
+    }
+
+    #[test]
+    fn test_stretch_type() -> Result<(), VarStretchContainerError> {
+        let mut container = VarStretchContainer::new();
+        let s = new_stretch("s");
+        container.add_stretch(s.clone(), StretchType::Declare)?;
+        container.add_var(new_var("a"), VarType::Input)?;
+
+        assert_eq!(container.stretch_type(&s), Some(StretchType::Declare));
+        // Not in the container: same name, and a var's name
+        assert_eq!(container.stretch_type(&new_stretch("s")), None);
+        assert_eq!(container.stretch_type(&new_stretch("a")), None);
         Ok(())
     }
 
