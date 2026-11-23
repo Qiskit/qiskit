@@ -271,30 +271,13 @@ fn multi_qubit_evolution(
 
             let circuit = add_control(num_ctrl_qubits, base_gate, &params);
             let insts = circuit_to_instructions(circuit, &control_qubits);
-
-            let x_gates: Vec<Instruction> = (0..num_ctrl_qubits)
-                .filter(|&i| {
-                    let original_idx = num_ctrl_qubits - 1 - i;
-                    control_states[original_idx]
-                })
-                .map(|i| {
-                    (
-                        StandardGate::X.into(),
-                        smallvec![],
-                        vec![control_qubits[i]],
-                        empty_clbits.clone(),
-                    )
-                })
-                .collect();
-
-            if x_gates.is_empty() {
-                insts
-            } else {
-                let mut sandwiched = x_gates.clone();
-                sandwiched.extend(insts);
-                sandwiched.extend(x_gates);
-                sandwiched
-            }
+            apply_x_sandwich(
+                insts,
+                &control_qubits,
+                &control_states,
+                num_ctrl_qubits,
+                &empty_clbits,
+            )
         }
     } else {
         // Here we purely have projectors, meaning the target rotation is a phase gate.
@@ -331,30 +314,13 @@ fn multi_qubit_evolution(
             control_qubits.reverse();
             let circuit = add_control(num_ctrl_qubits - 1, StandardGate::Phase, &params);
             let insts = circuit_to_instructions(circuit, &control_qubits);
-
-            let x_gates: Vec<Instruction> = (0..num_ctrl_qubits)
-                .filter(|&i| {
-                    let original_idx = num_ctrl_qubits - 1 - i;
-                    control_states[original_idx]
-                })
-                .map(|i| {
-                    (
-                        StandardGate::X.into(),
-                        smallvec![],
-                        vec![control_qubits[i]],
-                        empty_clbits.clone(),
-                    )
-                })
-                .collect();
-
-            if x_gates.is_empty() {
-                insts
-            } else {
-                let mut sandwiched = x_gates.clone();
-                sandwiched.extend(insts);
-                sandwiched.extend(x_gates);
-                sandwiched
-            }
+            apply_x_sandwich(
+                insts,
+                &control_qubits,
+                &control_states,
+                num_ctrl_qubits,
+                &empty_clbits,
+            )
         }
     };
 
@@ -460,4 +426,37 @@ fn circuit_to_instructions(circuit: CircuitData, global_qubits: &[Qubit]) -> Vec
             (op, params, qubits, vec![])
         })
         .collect()
+}
+
+/// Apply X-sandwich for open multi-controlled Phase or RZ gates
+fn apply_x_sandwich(
+    insts: Vec<Instruction>,
+    qubits: &[Qubit],
+    control_states: &[bool],
+    num_sandwich_qubits: usize,
+    empty_clbits: &Vec<Clbit>,
+) -> Vec<Instruction> {
+    let x_gates: Vec<Instruction> = (0..num_sandwich_qubits)
+        .filter(|&i| {
+            let original_idx = num_sandwich_qubits - 1 - i;
+            control_states[original_idx]
+        })
+        .map(|i| {
+            (
+                StandardGate::X.into(),
+                smallvec![],
+                vec![qubits[i]],
+                empty_clbits.clone(),
+            )
+        })
+        .collect();
+
+    if x_gates.is_empty() {
+        insts
+    } else {
+        let mut sandwiched = x_gates.clone();
+        sandwiched.extend(insts);
+        sandwiched.extend(x_gates);
+        sandwiched
+    }
 }
