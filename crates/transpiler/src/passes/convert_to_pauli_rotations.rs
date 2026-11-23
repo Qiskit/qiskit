@@ -554,8 +554,10 @@ pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
                             None,
                         )?;
                     }
-                    global_phase =
-                        radd_param(multiply_param(&angle, global_phase_update), global_phase);
+                    if global_phase_update != 0.0 {
+                        global_phase =
+                            radd_param(multiply_param(&angle, global_phase_update), global_phase);
+                    }
                 } else if matches!(gate, StandardGate::GlobalPhase) {
                     let global_phase_update = inst.params_view()[0].clone();
                     global_phase = radd_param(global_phase, global_phase_update);
