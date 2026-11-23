@@ -722,7 +722,7 @@ class TestEvolutionGate(QiskitTestCase):
         reference.sxdg([2, 3])
         reference.h([4, 5])
 
-        self.assertEqual(reference, evo)
+        self.assertEqual(Operator(reference), Operator(evo))
 
     def test_projector_and_pauli(self):
         """Test a mix of Paulis and projectors."""
@@ -848,7 +848,7 @@ class TestEvolutionGate(QiskitTestCase):
         reference.append(RZGate(2).control(3, ctrl_state="011", annotated=False), [2, 1, 0, 3])
         reference.cx(4, 3)
         with self.subTest("check decomp"):
-            self.assertEqual(reference, qc)
+            self.assertEqual(Operator(reference), Operator(qc))
 
         zz_mat = np.diag([1, -1, -1, 1])
         rzz_mat = scipy.linalg.expm(-1j * zz_mat)
