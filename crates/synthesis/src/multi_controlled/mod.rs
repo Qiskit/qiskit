@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use mcx::{
+pub use mcx::{
     c3x, c4x, synth_mcp_noaux_default, synth_mcp_noaux_sp22, synth_mcp_noaux_v24, synth_mcrx_noaux,
     synth_mcry_noaux, synth_mcrz_noaux, synth_mcx_1_clean_b95, synth_mcx_1_kg24, synth_mcx_2_kg24,
     synth_mcx_explicit, synth_mcx_n_clean_m15, synth_mcx_n_dirty_i15, synth_mcx_n_dirty_m15,
