@@ -6,3 +6,6 @@ fixes:
     by parameter name rather than preserving the gate's positional parameter order.
     This caused parameters to be transposed at call sites whenever a gate's positional
     parameter order differed from the lexicographical order of the parameter names.
+    Additionally, custom gates instantiated with parameter expressions or literals now
+    correctly emit parametric gate definitions rather than baking call-site argument
+    expressions or concrete values into the gate definition body.
