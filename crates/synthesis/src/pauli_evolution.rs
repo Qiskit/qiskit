@@ -434,7 +434,7 @@ fn apply_x_sandwich(
     qubits: &[Qubit],
     control_states: &[bool],
     num_sandwich_qubits: usize,
-    empty_clbits: &Vec<Clbit>,
+    empty_clbits: &[Clbit],
 ) -> Vec<Instruction> {
     let x_gates: Vec<Instruction> = (0..num_sandwich_qubits)
         .filter(|&i| {
@@ -446,7 +446,7 @@ fn apply_x_sandwich(
                 StandardGate::X.into(),
                 smallvec![],
                 vec![qubits[i]],
-                empty_clbits.clone(),
+                empty_clbits.to_owned(),
             )
         })
         .collect();
