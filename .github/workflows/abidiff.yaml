@@ -2,6 +2,7 @@ name: Compare C ABI
 
 on:
   pull_request:
+    branches: [main]
     paths:
       - "crates/bindgen/**"
       - "crates/bindgen-cli/**"
@@ -39,7 +40,7 @@ jobs:
 
       - name: Build baseline
         run: |
-          tag=$(git tag -l | sort -V | tail -1)
+          tag=$(git tag -l | tail -1)
           git checkout "${tag}"
           make cheader clib-dev
           mv dist/c/lib/libqiskit.so dist/c/lib/libqiskit.so.base
