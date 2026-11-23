@@ -51,7 +51,6 @@ use qiskit_mir::{
     qid::{BitLayout, QidInfo, QidList},
     symbol_table::SymbolIdList,
 };
-
 #[test]
 fn construct_bell_mir() {
     let mut mir = Mir::new();

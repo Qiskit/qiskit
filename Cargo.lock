@@ -230,7 +230,7 @@ checksum = "6a1f896587b6f2c069c73d2f0913e2d590c3990285cd2f0b6aa02b786b4c679c"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.9",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -287,9 +287,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.6.7"
+version = "4.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa8876b300ab35ba921adea3dfd70157a46249b33f95c9084ae5709785478946"
+checksum = "ac230478587d0269d8d6998b82ae69ea51509d55df66d9e92edd1f986904cd4a"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -309,14 +309,14 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.6.7"
+version = "4.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9c751b79415d4e559e3d1fcf128e09e720eb673a06d26cf6f392d37d75b66e0"
+checksum = "895c9d8d2ac2dd8b8a29f3724a14e72aaaa6debcf8c38c82f97305c6a172767a"
 dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 3.0.9",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -575,7 +575,7 @@ dependencies = [
  "defmt-parser",
  "proc-macro2",
  "quote",
- "syn 3.0.9",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -815,9 +815,9 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "fixedbitset"
-version = "0.5.7"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
+checksum = "5905ec755cc8386d7928353e4d356d2be3e89e81e5ca01fe630a1ca4d08dc175"
 
 [[package]]
 name = "foldhash"
@@ -1217,9 +1217,9 @@ dependencies = [
 
 [[package]]
 name = "heapless"
-version = "0.8.0"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bfb9eb618601c89945a70e254898da93b13be0388091d42117462b265bb3fad"
+checksum = "25ba4bd83f9415b58b4ed8dc5714c76e626a105be4646c02630ad730ad3b5aa4"
 dependencies = [
  "hash32",
  "stable_deref_trait",
@@ -1502,19 +1502,20 @@ dependencies = [
 
 [[package]]
 name = "mem_dbg"
-version = "0.2.5"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83623b4167d3fbfb0f60eaa0cfd0f303a44e50f35a41b8d6bce87ad9d3e81410"
+checksum = "b48a1086c746f4ee6ca5cb0acf856a14709bc4d2d20e03db150a12ddf2269e6d"
 dependencies = [
  "bitflags 2.13.2",
+ "hashbrown 0.16.1",
  "mem_dbg-derive",
 ]
 
 [[package]]
 name = "mem_dbg-derive"
-version = "0.1.7"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1ac4642a5a1615ce3cdd3479f8d03c05068aab5a285a0722a24d5080d3f3e22"
+checksum = "eb910efe8da52f13da727170e352e50a1764579a6fb1065d00d9556da19c79ac"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1985,6 +1986,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordered-float"
+version = "5.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f59006ce1e204c30956638535b74d317bca99477b9356dfaec54c37f6f600ab"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "owo-colors"
 version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2083,7 +2093,7 @@ version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8701b58ea97060d5e5b155d383a69952a60943f0e6dfe30b04c287beb0b27455"
 dependencies = [
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "hashbrown 0.15.5",
  "indexmap",
  "serde",
@@ -2285,7 +2295,7 @@ dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
  "quote",
- "syn 3.0.9",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -2297,7 +2307,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 3.0.9",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -2330,7 +2340,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2370,7 +2380,6 @@ dependencies = [
  "bytemuck",
  "derive_more",
  "hashbrown 0.17.1",
- "mimalloc",
  "nalgebra 0.35.0",
  "ndarray",
  "num-bigint",
@@ -2384,7 +2393,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_pcg",
  "smallvec",
  "thiserror 2.0.21",
@@ -2440,6 +2449,7 @@ dependencies = [
 name = "qiskit-circuit-library"
 version = "2.7.0-dev"
 dependencies = [
+ "approx",
  "hashbrown 0.17.1",
  "itertools 0.15.0",
  "nalgebra 0.35.0",
@@ -2451,7 +2461,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2468,9 +2478,23 @@ dependencies = [
  "hashbrown 0.17.1",
  "itertools 0.15.0",
  "mem_dbg",
+ "pyo3",
+ "qiskit-passmanager",
  "qiskit-util",
  "rustworkx-core",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "qiskit-mir-passes"
+version = "2.7.0-dev"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.17.1",
+ "pyo3",
+ "qiskit-circuit",
+ "qiskit-mir",
+ "qiskit-passmanager",
 ]
 
 [[package]]
@@ -2496,6 +2520,8 @@ dependencies = [
  "num-complex",
  "num-traits",
  "qiskit-circuit",
+ "rand 0.10.4",
+ "rand_philox",
  "rustworkx-core",
  "thiserror 2.0.21",
 ]
@@ -2506,7 +2532,6 @@ version = "2.7.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
- "mimalloc",
  "pyo3",
  "qiskit-accelerate",
  "qiskit-bindgen",
@@ -2514,6 +2539,8 @@ dependencies = [
  "qiskit-cext-vtable",
  "qiskit-circuit",
  "qiskit-circuit-library",
+ "qiskit-mir",
+ "qiskit-mir-passes",
  "qiskit-passmanager",
  "qiskit-qasm2",
  "qiskit-qasm3",
@@ -2567,6 +2594,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-util",
+ "rayon",
  "smallvec",
  "thiserror 2.0.21",
  "uuid",
@@ -2578,7 +2606,7 @@ version = "2.7.0-dev"
 dependencies = [
  "approx",
  "bytemuck",
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "foldhash 0.2.0",
  "hashbrown 0.17.1",
  "itertools 0.15.0",
@@ -2591,7 +2619,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-util",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2606,7 +2634,7 @@ dependencies = [
  "binrw",
  "bytemuck",
  "faer",
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "hashbrown 0.17.1",
  "itertools 0.15.0",
  "nalgebra 0.35.0",
@@ -2618,7 +2646,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-util",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2638,7 +2666,7 @@ dependencies = [
  "anyhow",
  "approx",
  "bytemuck",
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "foldhash 0.2.0",
  "hashbrown 0.17.1",
  "indexmap",
@@ -2652,7 +2680,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_pcg",
  "rayon",
  "rayon-cond",
@@ -2669,6 +2697,7 @@ version = "2.7.0-dev"
 dependencies = [
  "foldhash 0.2.0",
  "indexmap",
+ "mimalloc",
  "num-complex",
  "pyo3",
  "thiserror 2.0.21",
@@ -2724,9 +2753,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af"
+checksum = "8f6fa277c67e6ea590466f04c3fe82cb509f0864fe470643e5570de9514a9b11"
 dependencies = [
  "chacha20",
  "getrandom 0.4.3",
@@ -2794,7 +2823,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
 dependencies = [
  "num-traits",
- "rand 0.10.3",
+ "rand 0.10.4",
 ]
 
 [[package]]
@@ -2802,6 +2831,15 @@ name = "rand_pcg"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "caa0f4137e1c0a72f4c651489402276c8e8e1cf081f3b0ba156d2cbeef09e86a"
+dependencies = [
+ "rand_core 0.10.1",
+]
+
+[[package]]
+name = "rand_philox"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58bdd129512111be1936edc001113ba844f0fd1aa58b34b2752af62454788805"
 dependencies = [
  "rand_core 0.10.1",
 ]
@@ -2869,9 +2907,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.13.1"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
+checksum = "9807af0e638c12e753aa1b4e601791bf2a8f71274023c8bbeec12fc149950857"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2881,9 +2919,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.4.18"
+version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad8553b9b26413251cbf30e620595c7a41b3887f03da04579c0e6b0d6a06b4b2"
+checksum = "41d60ef07df457506a0a1a2073112eb4aae5733dbd2813c3da77d1b0fd441158"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2892,9 +2930,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.8.11"
+version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+checksum = "d902046e6a28a1e4c3cab97258a0ce11e994903f01c2d97a9447a0b3df85f4f6"
 
 [[package]]
 name = "rowan"
@@ -2930,12 +2968,13 @@ dependencies = [
 
 [[package]]
 name = "rstar"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5912b862fa5ffb462607bfd1e35036c458c537921f508c8235a83d5f3987edfe"
+checksum = "d95c33d01e9acee7be3363f99e9ef88b1a587186e81e03843fbe39d77d9a0c1f"
 dependencies = [
  "heapless",
  "num-traits",
+ "ordered-float",
  "smallvec",
 ]
 
@@ -2996,7 +3035,7 @@ version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54299df1d95fb17c25f9ae7f4169db76de708c231a19e29a50b7d74e87853246"
 dependencies = [
- "fixedbitset 0.5.7",
+ "fixedbitset 0.5.9",
  "foldhash 0.1.5",
  "hashbrown 0.17.1",
  "indexmap",
@@ -3004,7 +3043,7 @@ dependencies = [
  "num-traits",
  "petgraph 0.8.3",
  "priority-queue",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -3089,7 +3128,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.9",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -3193,9 +3232,9 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "smallvec"
-version = "1.16.4"
+version = "1.16.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8"
+checksum = "3244542535d5de959d90ec55d1b5ff0fd2bb7b1310223907d5f11932847f7b59"
 
 [[package]]
 name = "smol_str"
@@ -3274,9 +3313,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.9"
+version = "3.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b"
+checksum = "4ae9ccbea3a7b0b09443036490c8f34a8b1b760fd345e5c0dae0aac718faea79"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3359,7 +3398,7 @@ checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.9",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -3521,13 +3560,13 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.29.0"
+version = "1.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a0e2d11620c50695fe12bbbfde96b3477fe606e7284c22d505c12ce51214514"
+checksum = "3c14b15dffa2f4bd712103e857140aa04a4f2ff6e955c77d7eb8e53ee02a3b64"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
- "rand 0.10.3",
+ "rand 0.10.4",
  "wasm-bindgen",
 ]
 
@@ -3600,7 +3639,7 @@ dependencies = [
  "bumpalo",
  "proc-macro2",
  "quote",
- "syn 3.0.9",
+ "syn 3.0.10",
  "wasm-bindgen-shared",
 ]
 

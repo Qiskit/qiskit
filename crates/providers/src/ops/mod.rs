@@ -13,23 +13,29 @@
 //! The `ProgramOp` trait and its Qiskit implementations.
 
 mod binary;
+mod bind_parameters;
 mod bitwise;
 mod broadcast_to;
 mod cast;
 mod constant;
 mod error;
+mod euler_angles;
 mod inference;
 mod program_op;
+mod random;
 mod reduction;
 mod shot_loop;
 
 pub use binary::{Add, Divide, Multiply, Power, Remainder, Subtract};
+pub use bind_parameters::{BindParameters, BindParametersError};
 pub use bitwise::{BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Parity};
 pub use broadcast_to::BroadcastTo;
 pub use cast::Cast;
 pub use constant::Constant;
 pub use error::MathOpError;
+pub use euler_angles::EulerAnglesZYZ;
 pub use program_op::{BoxedOpError, BoxedProgramOp, ErasedProgramOp, ProgramOp, QISKIT};
+pub use random::{CounterUnit, Entropy, RandomOpError, Split};
 
 pub use reduction::{Mean, Std, Variance};
 pub use shot_loop::{ShotLoop, ShotLoopError};

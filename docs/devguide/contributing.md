@@ -125,50 +125,38 @@ pip install -e .
 
 ## Installing Qiskit from source
 
-Qiskit is primarily written in Python but there are some core routines
-that are written in the [Rust](https://www.rust-lang.org/) programming
-language to improve the runtime performance. For the released versions of
-Qiskit we publish precompiled binaries on the
-[Python Package Index](https://pypi.org/) for all the supported platforms
-which only requires a functional Python environment to install. However, when
-building and installing from source you will need a Rust compiler installed. You can do this very easily
-using rustup: https://rustup.rs/ which provides a single tool to install and
-configure the latest version of the rust compiler.
-[Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
-exist too. For Windows users, besides rustup, you will also need to install
-the Visual C++ build tools so that Rust can link against the system c/c++
-libraries. You can see more details on this in the
-[rustup documentation](https://rust-lang.github.io/rustup/installation/windows-msvc.html).
+The Python-space `qiskit` package contains a compiled extension module, written in
+[Rust](https://www.rust-lang.org/).  To install from source, you will need supported versions of:
 
-If you use Rustup, it will automatically install the correct Rust version
-currently used by the project.
+- Python, including a [PEP-517-compatible front-end](https://peps.python.org/pep-0517/)
+- the Rust compiler (we recommend using [`rustup`](https://rustup.rs) to install)
+- *Windows only:* the Visual C++ build tools (`rustup` will do this automatically, or see the [Rust
+  language documentation on Windows MSVC](https://rust-lang.github.io/rustup/installation/windows-msvc.html)).
+- *optional:* a C compiler, if using `QISKIT_BUILD_WITH_MIMALLOC=1` or running the C tests
 
-Once you have a Rust compiler installed, you can rely on the normal Python
-build/install steps to install Qiskit. This means you run `pip install .` or
-`pip install -e .` in your local git clone to build and install Qiskit.
-Note that changes to Rust files will not be reflected in an editable install
-until you recompile.
+You can build and install the Python-space Qiskit package from source using any PEP-517-compatible
+build front-end, such as `pip`, `uv` or `python -m build`.  This can be done either from a check out
+of the entire repository, or from an extracted Python `sdist`.  The standard commands, such as
 
-You can recompile the Rust components of an editable
-install by running
-```
-python setup.py build_rust --inplace [--release | --debug]
-```
-Modifications to Rust files will not take effect until the Rust extension module
-is recompiled with the above command.  You must have the "build" dependencies
-installed in your environment for this command to work.  Do this by running
-```
-pip install --group build
+```bash
+pip install [-e] .
 ```
 
-By default, `pip install .` will build the Rust components in "release" mode
-and `pip install -e .` (or `python setup.py build_rust --inplace`) will build
-them in "debug" mode, without optimizations.  Debug mode will have poor
-runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE`
-to `release` or `debug` to control the default.  The `--release`/`--debug` flag
-to `build_rust` overrides this default.
+will work.
 
-### Python and Rust versions
+> [!NOTE]
+> Changes to the Rust files will *not* be picked up automatically, even in an editable installation.
+> You must recompile the extension module, either with the full `pip install -e .` (or equivalent)
+> or using one of the [advanced build-system interaction commands](#advanced-build-system-interaction)
+> described below.
+
+See the subsections below for more detail on
+
+- [the version requirements of various build components](#programming-language-versions),
+- the [available compile-time options](#compile-time-options) to configure the build, and
+- [advanced build-system interaction commands](#advanced-build-system-interaction).
+
+### Programming-language versions
 
 > [!NOTE]
 > More detail on OS support can be found in the [Qiskit installation guide](https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support).
@@ -184,30 +172,74 @@ The MSRV may increase on any major or minor version, but not on a patch release 
 The MSRV must always be at least one year old at the time of any major or minor release, but may be older.
 The source of truth for the current MSRV is the `rust-version` key in the root `Cargo.toml` file.
 
+Qiskit's C API requires a C11-compatible compiler.  `mimalloc` builds may have stricter
+requirements; you may need to consult [the project's repository
+documentation](https://github.com/microsoft/mimalloc).
 
-### Compile time options
 
-When building Qiskit from source there are options available to control how
-Qiskit is built. These options are set with the following environment variables:
+### Compile-time options
 
-* `QISKIT_BUILD_WITH_MIMALLOC=1`: this will enable using
-  [mimalloc](https://github.com/microsoft/mimalloc) as the global allocator for
-  Qiskit instead of the default system allocator. This improves the runtime and
-  memory performance of Qiskit but will require having a C compiler installed
-  when building Qiskit.
-* `QISKIT_NO_CACHE_GATES=1`: this will disable runtime caching of
-  Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
-  This makes a tradeoff between runtime performance for Python access and memory
-  overhead. Caching gates will result in better runtime for users of Python at
-  the cost of increased memory consumption. If you're working with any custom
-  transpiler passes written in Python or are otherwise using a workflow that
-  repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
-  attribute of `DAGOpNode` enabling caching is recommended.
+Qiskit reads some configuration environment variables during its build process.  These are only read
+when using a PEP 517 build front-end (such as `pip`, `uv`, or `python -m build`).  They are *not*
+guaranteed to be read when invoking any [advanced build-system
+interaction](#advanced-build-system-interaction).
 
-These environment variables are only valid when building Qiskit the Python package
-with a PEP 517 compatible build tool or calling `setup.py` directly.
-Or as a standalone C library with `make c` (`QISKIT_NO_CACHE_GATES` has no effect
-when building a standalone C library).
+* `QISKIT_BUILD_PROFILE`: which "profile" to use during the build.  Available values are `release`
+  and `debug`.  By default, regular build commands will use `release`, while in-place or "developer"
+  builds will use `debug`.
+
+  Corresponds to the Cargo `--profile` (where Qiskit's `debug` sets Cargo's `dev`).
+
+* `QISKIT_BUILD_WITH_MIMALLOC`: if set to `1`, use
+  [mimalloc](https://github.com/microsoft/mimalloc) as the global allocator in the library, rather
+  than the system default.  This is generally more performant and uses less memory.  Requires a C
+  compiler during the build.  This is also read by `make c`.
+
+  Corresponds to the Rust feature `global_mimalloc`.
+
+* `QISKIT_NO_CACHE_GATES`: if set to `1`, disable runtime caching of Python gate objects in the Rust
+  components of `QuantumCircuit` and `DAGCircuit`.  Having the cache generally makes Python-space
+  operations faster, but uses more memory.  You typically should not set this unless your workflows
+  only very rarely need to access the `CircuitInstruction.operation` or `DAGOpNode.op` attributes.
+  This has no effect in stand-alone C builds without Python bindings.
+
+  Corresponds to the negation of the Rust feature `cache_pygates`.
+
+* `QISKIT_ALLOW_AUTOMATIC_RUST_INSTALLATION`: if set to `1`, this permits (but does not force) the
+  underlying build system to install a Rust toolchain if necessary.  Qiskit's build backend
+  suppresses this automatic behavior by default so that it is opt in rather than opt out.  This will
+  have no effect if the build backend does not attempt or is otherwise not configured to attempt
+  automatic installation.
+
+### Advanced build-system interaction
+
+Most people building the Qiskit Python package from source should use the PEP 517 interfaces.  This
+will interpret all the convenient environment variables, and ensure the complete set up of the
+Python package in as standardized manner.  However, developers may also interact directly with the
+underlying build system.
+
+The current build system is [`maturin`](https://github.com/PyO3/maturin).  This may change without
+warning between Qiskit versions.  The PEP-517 interface should be considered more stable.
+
+To interact with the underlying build system, you should install the dependencies in the `build`
+"dependency group", such as with
+
+```bash
+pip install --group build
+```
+
+> [!NOTE]
+> When interacting with `maturin` directly, you may see warnings that the project's `build-backend`
+> is not set to `maturin`.  This is expected; Qiskit's advertised `build-backend` is an in-tree
+> wrapper that parses configuration environment variables to pass on to `maturin`.
+
+The following `maturin` commands may be useful:
+
+- `maturin develop [--release] --skip-install`: rebuild _only_ the Rust extension module, without
+  otherwise modifying the Python environment.
+
+  You can use the `-F`/`--features` option to change the features passed to `pyext`.  Note that
+  setting this overrides the defaults set in `pyproject.toml`'s `tool.maturin.features`.
 
 ## Issues and pull requests
 
@@ -736,7 +768,7 @@ version: `tox -epy313` (or replace py313 with the python version you want to use
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy310 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy311 -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -746,25 +778,25 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler
+tox -epy311 -- -n test.python.compiler.test_transpiler
 ```
 or to run the same module by path:
 
 ```
-tox -epy310 -- -n test/python/compiler/test_transpiler.py
+tox -epy311 -- -n test/python/compiler/test_transpiler.py
 ```
 to run a class:
 
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
+tox -epy311 -- -n test.python.compiler.test_transpiler.TestTranspile
 ```
 to run a method:
 ```
-tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
+tox -epy311 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
 ```
 
 If you want to run the test suite in your local environment without using `tox` as a runner, you can
-either use the `tox devenv -e py310` command to have `tox` construct you a new development environment,
+either use the `tox devenv -e py311` command to have `tox` construct you a new development environment,
 or you can install the `test` dependency group using your package manager, such as
 ```
 pip install --group test
@@ -921,7 +953,7 @@ Rust tests are run separately from the Python and C tests. To run the tests you 
 `cargo test`.
 
 ```bash
-cargo test
+cargo test --all-features
 ```
 
 If you want to run the tests for a single [crate](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)
@@ -943,7 +975,7 @@ the Miri component, prior to running the script in "test" mode.  You might do
 this as:
 
 ```bash
-rustup install "$(tools/miri.bash -t)" --components miri
+rustup install "$(tools/miri.bash -t)" --component miri
 ```
 
 After the toolchain is installed, run
@@ -1052,7 +1084,10 @@ After this, `ruff` and `black` will be available and can be run from the command
 For formatting and lint checking Rust code, you'll need to use different tools than you would for Python. Qiskit uses [rustfmt](https://github.com/rust-lang/rustfmt) for
 code formatting. You can simply run `cargo fmt` (if you installed Rust with the
 default settings using `rustup`), and it will update the code formatting automatically to
-conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`.
+conform to the style guidelines. This is very similar to running `tox -eblack` for Python code. For lint checking, Qiskit uses [clippy](https://github.com/rust-lang/rust-clippy) which can be invoked via `cargo clippy`. To ensure optional features are linted as well, run clippy with the `--all-targets` and `--all-features` flags:
+```bash
+cargo clippy --all-targets --all-features -- -D warnings
+```
 
 Rust lint and formatting checks are included in the `tox -elint` command. For CI to pass you will need both checks to pass without any warnings or errors. Note that this command checks the code but won't apply any modifications, if you need to update formatting, you'll need to run `cargo fmt`.
 
@@ -1206,22 +1241,33 @@ Rust dependencies are not constrained, other than by the platform support requir
 Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit supports.
 It also cannot impose many version restrictions on other packages.
 Users often install qiskit into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
-When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) following the [version-support policy](#version-support-policy).
+When adding a new requirement, you must add it to [`pyproject.toml`](pyproject.toml) in the `project.dependencies` key, following the [version-support policy](#version-support-policy).
 
 ### Adding an optional dependency
 
-New features can also use optional dependencies, which might be used only in very limited parts of qiskit.
-These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
-Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
-To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
-You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
+A new feature can also use an "optional dependency", if the feature is not critical to all Qiskit
+users, and the dependency cannot be made a requirement.  These optional dependencies can have
+stricter constraints than requirements, such as needing a more recent version of Python, or only
+being supported on tier-1 platforms.
 
-### Checking for optionals
+To add an optional dependency, you should:
 
-You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit will be unusable.
-We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
-Instead, you should use [one of the "lazy testers" for optional dependencies](https://quantum.cloud.ibm.com/docs/api/qiskit/utils#optional-dependency-checkers), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
-Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
+- Add [a "lazy dependency tester"](https://quantum.cloud.ibm.com/docs/api/qiskit/utils#optional-dependency-checkers)
+  for the new optional dependency.
+
+- Make sure that all `import`s of the dependency are inside functions whose use is protected by the
+  lazy tester above.
+
+- Consider adding the dependency to one of the `optional-*` groups in the `dependency-groups` table
+  in `pyproject.toml` (or a new group), so it will be pulled in during testing and documentation
+  builds.
+
+- Consider making _groups_ of new dependencies an extra in the `qiskit` package by adding a group to
+  the `project.optional-dependencies` table of `pyproject.toml`.
+
+You must not have a top-level `import` of an optional dependency, even with `try`/`except` idiom for
+attempting imports; these tend to make `import qiskit` sluggish.
+
 
 
 ## Dealing with the git blame ignore list

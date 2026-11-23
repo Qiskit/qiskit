@@ -576,6 +576,26 @@ PauliEvolution_1(_t_2_) q[0], q[1];
         )
         self.assertEqual(Exporter().dumps(qc), expected_qasm)
 
+    def test_pi_check(self):
+        """Test pi replacement preserves numeric boundaries and operator precedence."""
+        qc = QuantumCircuit(1)
+        th = Parameter("th")
+        qc.rz(th * pi + 23.141592653589793, 0)
+        qc.rz(th ** (pi / 2), 0)
+        qc.rz((pi / 2) ** th, 0)
+        qc.rz(th / (pi / 2), 0)
+        qc.rz(th ** (3 * pi / 4), 0)
+        qc.rz((1 / (2 * pi)) ** th, 0)
+
+        out_qasm = dumps(qc)
+
+        self.assertIn("rz(23.141592653589793 + pi*th) q[0];", out_qasm)
+        self.assertIn("rz(th**(pi/2)) q[0];", out_qasm)
+        self.assertIn("rz((pi/2)**th) q[0];", out_qasm)
+        self.assertIn("rz((2/(1*pi))*th) q[0];", out_qasm)
+        self.assertIn("rz(th**(3*pi/4)) q[0];", out_qasm)
+        self.assertIn("rz((1/(2*pi))**th) q[0];", out_qasm)
+
     def test_standard_parameterized_gate_called_multiple_times(self):
         """Test that a parameterized gate is called correctly if the first instance of it is
         generic."""
@@ -1037,6 +1057,27 @@ c[1] = measure q[1];
                 "  continue;",
                 "}",
                 f"x {qr_name}[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_for_loop_range_negative_step(self):
+        """Test that a ``range`` with a negative step exports with the correct inclusive end."""
+        parameter = Parameter("i")
+        qc = QuantumCircuit(1)
+        with qc.for_loop(range(5, -1, -2), parameter):
+            qc.rz(parameter, 0)
+
+        qr_name = qc.qregs[0].name
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                f"qubit[1] {qr_name};",
+                f"for int {parameter.name} in [5:-2:0] {{",
+                f"  rz({parameter.name}) {qr_name}[0];",
+                "}",
                 "",
             ]
         )

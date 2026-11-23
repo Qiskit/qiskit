@@ -112,6 +112,11 @@ impl Parity {
     pub fn new(axis: usize) -> Self {
         Self { axis }
     }
+
+    /// Return the axis this op reduces along.
+    pub fn axis(&self) -> usize {
+        self.axis
+    }
 }
 
 impl ProgramOp for Parity {
@@ -205,8 +210,9 @@ mod tests {
                 .into_dyn()
                 .into_shared(),
         );
-        let result = Parity::new(0).eval(&[x]).unwrap();
-        assert_eq!(result, vec![bit(&[1, 1, 0])]);
+        let op = Parity::new(0);
+        assert_eq!(op.axis(), 0);
+        assert_eq!(op.eval(&[x]).unwrap(), vec![bit(&[1, 1, 0])]);
     }
 
     #[test]
