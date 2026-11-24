@@ -1,0 +1,8 @@
+---
+features_circuits:
+  - :meth:`.QuantumCircuit.decompose` now accepts ``reps=None`` which will decompose gates
+    into their definitions recursively until reaching a fixed point.
+features_transpiler:
+  - The :class:`.Decompose` transpiler pass now accepts the new keyword argument ``recursive=True``
+    (``False`` by default) which will decompose gates into their definitions recursively until
+    reaching a fixed point.

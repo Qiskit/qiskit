@@ -385,3 +385,111 @@ class TestDecompose(QiskitTestCase):
             expect.cx(0, 1)
 
         self.assertEqual(expect, qc.decompose())
+
+    def _decompose_until_unchanged(self, circuit, gates_to_decompose=None):
+        """Reference for ``reps=None``: repeat ``decompose`` until the circuit stops changing."""
+        for _ in range(100):
+            decomposed = circuit.decompose(gates_to_decompose)
+            if decomposed == circuit:
+                return circuit
+            circuit = decomposed
+        self.fail("decompose did not reach a fixed point")
+
+    def test_decompose_reps_none(self):
+        """Test that reps=None decomposes until only operations without a definition remain."""
+        decomposed = self.complex_circuit.decompose(reps=None)
+
+        self.assertEqual(decomposed, self._decompose_until_unchanged(self.complex_circuit))
+        self.assertEqual(set(decomposed.count_ops()), {"u", "cx"})
+        self.assertEqual(Operator(decomposed), Operator(self.complex_circuit))
+
+    def test_decompose_recursive_pass(self):
+        """Test the Decompose pass with recursive=True."""
+        circuit = QuantumCircuit(3)
+        circuit.ccx(0, 1, 2)
+        circuit.h(0)
+
+        after_dag = Decompose(recursive=True).run(circuit_to_dag(circuit))
+
+        self.assertEqual({node.name for node in after_dag.op_nodes()}, {"u", "cx"})
+        self.assertEqual(after_dag, circuit_to_dag(circuit.decompose(reps=3)))
+
+    def test_decompose_reps_none_global_phase(self):
+        """Test that reps=None keeps the global phase of nested definitions."""
+        inner = QuantumCircuit(1, global_phase=pi / 3)
+        inner.rz(0.1, 0)
+        outer = QuantumCircuit(2, global_phase=pi / 5)
+        outer.append(inner.to_gate(), [0])
+        outer.rxx(0.2, 0, 1)
+        circuit = QuantumCircuit(2)
+        circuit.append(outer.to_gate(), [0, 1])
+
+        decomposed = circuit.decompose(reps=None)
+
+        self.assertEqual(decomposed, self._decompose_until_unchanged(circuit))
+        self.assertEqual(Operator(decomposed), Operator(circuit))
+
+    def test_decompose_reps_none_only_given_gates(self):
+        """Test that reps=None only recurses into operations selected by gates_to_decompose."""
+        inner = QuantumCircuit(1)
+        inner.h(0)
+        outer = QuantumCircuit(2)
+        outer.append(inner.to_gate(label="inner"), [0])
+        outer.cx(0, 1)
+        circuit = QuantumCircuit(2)
+        circuit.append(outer.to_gate(label="outer"), [0, 1])
+
+        decomposed = circuit.decompose(["outer", "inner"], reps=None)
+
+        expected = QuantumCircuit(2)
+        expected.h(0)
+        expected.cx(0, 1)
+        self.assertEqual(decomposed, expected)
+        self.assertEqual(decomposed, self._decompose_until_unchanged(circuit, ["outer", "inner"]))
+
+    def test_decompose_reps_none_synthesis(self):
+        """Test that reps=None also expands the output of synthesizing an operation."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        circuit = QuantumCircuit(2)
+        circuit.append(Clifford(qc), [0, 1])
+
+        decomposed = circuit.decompose(reps=None)
+
+        self.assertEqual(decomposed, self._decompose_until_unchanged(circuit))
+        self.assertEqual(set(decomposed.count_ops()), {"u", "cx"})
+
+    def test_decompose_reps_none_control_flow(self):
+        """Test that reps=None fully decomposes the blocks of control-flow operations."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(0, 0)
+        with circuit.if_test((cr[0], 0)) as else_:
+            circuit.cry(0.5, 0, 1)
+        with else_:
+            circuit.crz(0.5, 0, 1)
+
+        decomposed = circuit.decompose(reps=None)
+
+        self.assertEqual(decomposed, self._decompose_until_unchanged(circuit))
+        for block in decomposed.data[1].operation.blocks:
+            self.assertEqual(set(block.count_ops()), {"u", "cx"})
+
+    def test_decompose_reps_none_deep_nesting(self):
+        """Test that reps=None handles deeply nested (but valid) definitions."""
+        # Far deeper than any realistic definition, but shallow enough that copying the nested
+        # definitions (which ``to_gate`` and ``decompose`` both do) stays well within the default
+        # recursion limit on all supported Python versions.
+        gate = HGate()
+        for _ in range(50):
+            level = QuantumCircuit(1)
+            level.append(gate, [0])
+            gate = level.to_gate()
+        circuit = QuantumCircuit(1)
+        circuit.append(gate, [0])
+
+        expected = QuantumCircuit(1)
+        expected.u(pi / 2, 0, pi, 0)
+        self.assertEqual(circuit.decompose(reps=None), expected)
