@@ -60,7 +60,7 @@ pub extern "C" fn qk_dag_new() -> *mut DAGCircuit {
 }
 
 /// @ingroup QkDag
-/// Add a quantum register to the DAG. No-op if the register qubit index is taken.
+/// Add a quantum register to the DAG. No-op if the register already exists in the DAG.
 ///
 /// @param dag A pointer to the DAG.
 /// @param reg A pointer to the quantum register.
@@ -92,7 +92,7 @@ pub unsafe extern "C" fn qk_dag_add_quantum_register(
 }
 
 /// @ingroup QkDag
-/// Add a classical register to the DAG. No-op if the register bit index is taken.
+/// Add a classical register to the DAG. No-op if the register already exists in the DAG.
 ///
 /// @param dag A pointer to the DAG.
 /// @param reg A pointer to the classical register.
@@ -520,7 +520,7 @@ pub unsafe extern "C" fn qk_dag_op_node_num_clbits(dag: *const DAGCircuit, node:
 /// @param node The operation node to get the number of params of.
 ///
 /// @return The number of params of the operation. The returned number is invalid if `node` is out
-///     of bounds isn't an operation.
+///     of bounds or isn't an operation.
 ///
 /// # Safety
 ///
@@ -545,7 +545,7 @@ pub unsafe extern "C" fn qk_dag_op_node_num_params(dag: *const DAGCircuit, node:
 /// @param node The operation node to get the qubits of.
 ///
 /// @return A pointer to the qubits. Use ``qk_dag_op_node_num_qubits`` to determine the number of
-///     elements. Returns `NULL` if `node` is out of bounds isn't an operation.
+///     elements. Returns `NULL` if `node` is out of bounds or isn't an operation.
 ///
 /// # Safety
 ///

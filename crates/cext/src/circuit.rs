@@ -526,7 +526,7 @@ pub unsafe extern "C" fn qk_circuit_num_quantum_registers(circuit: *const Circui
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``,
-/// or if ``qreg_idx`` is out of bounds (>= the number of quantum registers in the circuit).
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_get_quantum_register(
     circuit: *const CircuitData,
@@ -638,7 +638,7 @@ pub unsafe extern "C" fn qk_circuit_num_classical_registers(circuit: *const Circ
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``,
-/// or if ``creg_idx`` is out of bounds (>= the number of classical registers in the circuit).
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_get_classical_register(
     circuit: *const CircuitData,
