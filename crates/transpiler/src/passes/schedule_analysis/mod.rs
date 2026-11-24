@@ -435,7 +435,8 @@ impl From<IndexMap<NodeIndex<u32>, f64>> for NodeDurations {
     }
 }
 
-pub fn scheduling_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PyNodeDurations>()?;
-    Ok(())
+#[pymodule(submodule, name = "scheduling")]
+pub mod scheduling_mod {
+    #[pymodule_export]
+    use super::PyNodeDurations;
 }

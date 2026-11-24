@@ -159,7 +159,8 @@ impl Default for PyWrapAngleRegistry {
     }
 }
 
-pub fn angle_bound_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PyWrapAngleRegistry>()?;
-    Ok(())
+#[pymodule(submodule, name = "angle_bound_registry")]
+pub mod angle_bound_mod {
+    #[pymodule_export]
+    use super::PyWrapAngleRegistry;
 }

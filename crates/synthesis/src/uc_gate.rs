@@ -14,7 +14,6 @@ use approx::abs_diff_eq;
 use num_complex::{Complex64, ComplexFloat};
 use pyo3::Python;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use std::collections::BTreeSet;
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
@@ -513,10 +512,10 @@ fn dec_ucg_help(single_qubit_gates: &mut [Matrix2<Complex64>], num_qubits: u32) 
     diag
 }
 
-/// Register this module's Python-exposed functions (`dec_ucg`).
-pub fn uc_gate(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(dec_ucg, m)?)?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod uc_gate {
+    #[pymodule_export]
+    use super::dec_ucg;
 }
 
 #[cfg(test)]

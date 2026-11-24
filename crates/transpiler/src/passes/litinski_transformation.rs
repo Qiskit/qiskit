@@ -580,7 +580,8 @@ fn is_ppr_angle_close_to_multiple_of_pi2(
     }
 }
 
-pub fn litinski_transformation_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_litinski_transformation))?;
-    Ok(())
+#[pymodule(submodule, name = "litinski_transformation")]
+pub mod litinski_transformation_mod {
+    #[pymodule_export]
+    use super::py_run_litinski_transformation;
 }

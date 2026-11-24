@@ -14,7 +14,6 @@ use pyo3::Python;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::wrap_pyfunction;
 
 use numpy::prelude::*;
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
@@ -1080,13 +1079,10 @@ impl_to_matrix_sparse!(
     u64
 );
 
-pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(unordered_unique))?;
-    m.add_wrapped(wrap_pyfunction!(decompose_dense))?;
-    m.add_wrapped(wrap_pyfunction!(to_matrix_dense))?;
-    m.add_wrapped(wrap_pyfunction!(to_matrix_sparse))?;
-    m.add_class::<ZXPaulis>()?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod sparse_pauli_op {
+    #[pymodule_export]
+    use super::{ZXPaulis, decompose_dense, to_matrix_dense, to_matrix_sparse, unordered_unique};
 }
 
 #[cfg(test)]

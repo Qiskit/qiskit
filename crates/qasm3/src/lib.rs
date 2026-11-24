@@ -282,11 +282,8 @@ pub fn dump(
 
 /// Internal module supplying the OpenQASM 3 import capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
-pub fn qasm3(module: &Bound<PyModule>) -> PyResult<()> {
-    module.add_function(wrap_pyfunction!(loads, module)?)?;
-    module.add_function(wrap_pyfunction!(load, module)?)?;
-    module.add_function(wrap_pyfunction!(dumps, module)?)?;
-    module.add_function(wrap_pyfunction!(dump, module)?)?;
-    module.add_class::<circuit::PyGate>()?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod qasm3 {
+    #[pymodule_export]
+    use super::{circuit::PyGate, dump, dumps, load, loads};
 }

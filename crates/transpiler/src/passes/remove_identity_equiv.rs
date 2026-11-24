@@ -316,7 +316,8 @@ pub fn run_remove_identity_equiv(
     Ok(())
 }
 
-pub fn remove_identity_equiv_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_remove_identity_equiv))?;
-    Ok(())
+#[pymodule(submodule, name = "remove_identity_equiv")]
+pub mod remove_identity_equiv_mod {
+    #[pymodule_export]
+    use super::py_remove_identity_equiv;
 }

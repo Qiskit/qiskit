@@ -23,22 +23,16 @@ pub use controlled_u_decomposer::{RXXEquivalent, TwoQubitControlledUDecomposer};
 pub use gate_sequence::TwoQubitGateSequence;
 pub use weyl_decomposition::{Specialization, TwoQubitWeylDecomposition};
 
-pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(weyl_decomposition::_num_basis_gates))?;
-    m.add_wrapped(wrap_pyfunction!(
-        weyl_decomposition::py_decompose_two_qubit_product_gate
-    ))?;
-    m.add_wrapped(wrap_pyfunction!(
-        basis_decomposer::py_two_qubit_decompose_up_to_diagonal
-    ))?;
-    m.add_wrapped(wrap_pyfunction!(common::two_qubit_local_invariants))?;
-    m.add_wrapped(wrap_pyfunction!(common::local_equivalence))?;
-    m.add_wrapped(wrap_pyfunction!(common::py_trace_to_fid))?;
-    m.add_wrapped(wrap_pyfunction!(common::py_ud))?;
-    m.add_wrapped(wrap_pyfunction!(weyl_decomposition::weyl_coordinates))?;
-    m.add_class::<weyl_decomposition::TwoQubitWeylDecomposition>()?;
-    m.add_class::<weyl_decomposition::Specialization>()?;
-    m.add_class::<basis_decomposer::TwoQubitBasisDecomposer>()?;
-    m.add_class::<controlled_u_decomposer::TwoQubitControlledUDecomposer>()?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod two_qubit_decompose {
+    #[pymodule_export]
+    use super::{
+        basis_decomposer::{TwoQubitBasisDecomposer, py_two_qubit_decompose_up_to_diagonal},
+        common::{local_equivalence, py_trace_to_fid, py_ud, two_qubit_local_invariants},
+        controlled_u_decomposer::TwoQubitControlledUDecomposer,
+        weyl_decomposition::{
+            _num_basis_gates, Specialization, TwoQubitWeylDecomposition,
+            py_decompose_two_qubit_product_gate, weyl_coordinates,
+        },
+    };
 }

@@ -865,12 +865,11 @@ fn py_get_standard_equivalence_library() -> EquivalenceLibrary {
     generate_standard_equivalence_library()
 }
 
-pub fn equivalence(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<EquivalenceLibrary>()?;
-    m.add_class::<NodeData>()?;
-    m.add_class::<EdgeData>()?;
-    m.add_class::<Equivalence>()?;
-    m.add_class::<Key>()?;
-    m.add_wrapped(wrap_pyfunction!(py_get_standard_equivalence_library))?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod equivalence {
+    #[pymodule_export]
+    use super::{
+        EdgeData, Equivalence, EquivalenceLibrary, Key, NodeData,
+        py_get_standard_equivalence_library,
+    };
 }

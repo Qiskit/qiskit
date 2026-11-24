@@ -13,7 +13,6 @@
 use crate::TranspilerError;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use qiskit_circuit::dag_circuit::PyDAGCircuit;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
@@ -79,7 +78,8 @@ pub fn run_instruction_duration_check(
     Ok(false)
 }
 
-pub fn instruction_duration_check_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_instruction_duration_check))?;
-    Ok(())
+#[pymodule(submodule, name = "instruction_duration_check")]
+pub mod instruction_duration_check_mod {
+    #[pymodule_export]
+    use super::run_instruction_duration_check;
 }

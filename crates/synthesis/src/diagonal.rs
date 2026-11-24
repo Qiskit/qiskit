@@ -12,7 +12,6 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use crate::ucrz::get_ucrz;
 use crate::utils::append_with_qubit_map;
@@ -74,9 +73,10 @@ pub fn synth_diagonal(diag_phases: Vec<f64>, num_qubits: u32) -> PyResult<PyCirc
     Ok(circuit.into())
 }
 
-pub fn diagonal(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(synth_diagonal, m)?)?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod diagonal {
+    #[pymodule_export]
+    use super::synth_diagonal;
 }
 
 #[cfg(test)]

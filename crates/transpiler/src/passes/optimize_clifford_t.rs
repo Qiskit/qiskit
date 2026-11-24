@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use std::f64::consts::PI;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
@@ -387,9 +386,10 @@ pub fn run_optimize_clifford_t(
     Ok(())
 }
 
-pub fn optimize_clifford_t_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_optimize_clifford_t))?;
-    Ok(())
+#[pymodule(submodule, name = "optimize_clifford_t")]
+pub mod optimize_clifford_t_mod {
+    #[pymodule_export]
+    use super::py_run_optimize_clifford_t;
 }
 
 // Precomputed tables used in the algorithm.

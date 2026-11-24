@@ -16,7 +16,6 @@ use hashbrown::HashMap;
 use numpy::PyReadonlyArray1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use crate::pauli_exp_val::fast_sum;
 use qiskit_quantum_info::sparse_observable::BitTerm;
@@ -149,9 +148,8 @@ pub fn sampled_expval_sparse_observable(
     result
 }
 
-pub fn sampled_exp_val(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(sampled_expval_float))?;
-    m.add_wrapped(wrap_pyfunction!(sampled_expval_complex))?;
-    m.add_wrapped(wrap_pyfunction!(sampled_expval_sparse_observable))?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod sampled_exp_val {
+    #[pymodule_export]
+    use super::{sampled_expval_complex, sampled_expval_float, sampled_expval_sparse_observable};
 }

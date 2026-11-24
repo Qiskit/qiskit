@@ -353,8 +353,11 @@ pub fn py_run_inverse_cancellation(
     Ok(())
 }
 
-pub fn inverse_cancellation_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_inverse_cancellation))?;
-    m.add_wrapped(wrap_pyfunction!(py_run_inverse_cancellation_standard_gates))?;
-    Ok(())
+#[pymodule(submodule, name = "inverse_cancellation")]
+pub mod inverse_cancellation_mod {
+    #[pymodule_export]
+    use super::py_run_inverse_cancellation;
+
+    #[pymodule_export]
+    use super::py_run_inverse_cancellation_standard_gates;
 }

@@ -83,9 +83,10 @@ pub fn py_sim_unitary_circuit(py: Python, circuit: &PyCircuitData) -> PyResult<P
     Ok(product_mat.into_pyarray(py).into_any().unbind())
 }
 
-pub fn unitary_sim(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_sim_unitary_circuit))?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod unitary_sim {
+    #[pymodule_export]
+    use super::py_sim_unitary_circuit;
 }
 
 #[cfg(all(test, not(miri)))]

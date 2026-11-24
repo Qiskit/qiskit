@@ -374,7 +374,8 @@ fn two_qubit_unitary_peephole_optimize_apply(
     Ok(Some(out_dag_builder.build()))
 }
 
-pub fn two_qubit_peephole_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_two_qubit_unitary_peephole_optimize))?;
-    Ok(())
+#[pymodule(submodule, name = "two_qubit_peephole")]
+pub mod two_qubit_peephole_mod {
+    #[pymodule_export]
+    use super::py_two_qubit_unitary_peephole_optimize;
 }

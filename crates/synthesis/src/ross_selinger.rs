@@ -147,8 +147,8 @@ pub fn py_gridsynth_unitary(
     gridsynth_unitary(unitary.as_array(), epsilon).map(Into::into)
 }
 
-pub fn ross_selinger_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(py_gridsynth_rz, m)?)?;
-    m.add_function(wrap_pyfunction!(py_gridsynth_unitary, m)?)?;
-    Ok(())
+#[pymodule(submodule, name = "ross_selinger")]
+pub mod ross_selinger_mod {
+    #[pymodule_export]
+    use super::{py_gridsynth_rz, py_gridsynth_unitary};
 }

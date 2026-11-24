@@ -704,7 +704,8 @@ fn param_assignment_expr(
     }
 }
 
-pub fn basis_translator_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_basis_translator))?;
-    Ok(())
+#[pymodule(submodule, name = "basis_translator")]
+pub mod basis_translator_mod {
+    #[pymodule_export]
+    use super::py_run_basis_translator;
 }

@@ -54,9 +54,8 @@ impl PyDagToMirPass {
     }
 }
 
-/// Registers the qiskit._accelerate.mir_passes Python submodule.
-#[pymodule(name = "mir_passes")]
-pub fn mir_passes_mod(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<PyDagToMirPass>()?;
-    Ok(())
+#[pymodule(submodule, name = "mir_passes")]
+pub mod mir_passes_mod {
+    #[pymodule_export]
+    use super::PyDagToMirPass;
 }

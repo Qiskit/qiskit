@@ -281,11 +281,20 @@ impl PyUint {
 }
 
 #[cfg(feature = "py")]
-pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PyType>()?;
-    m.add_class::<PyBool>()?;
-    m.add_class::<PyDuration>()?;
-    m.add_class::<PyFloat>()?;
-    m.add_class::<PyUint>()?;
-    Ok(())
+#[pymodule(submodule, name = "types")]
+pub(crate) mod types_mod {
+    #[pymodule_export]
+    use super::PyType;
+
+    #[pymodule_export]
+    use super::PyBool;
+
+    #[pymodule_export]
+    use super::PyDuration;
+
+    #[pymodule_export]
+    use super::PyFloat;
+
+    #[pymodule_export]
+    use super::PyUint;
 }

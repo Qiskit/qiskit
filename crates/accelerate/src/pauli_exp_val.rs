@@ -15,7 +15,6 @@ use numpy::PyReadonlyArray1;
 use pulp::Simd;
 use pyo3::exceptions::PyOverflowError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use rayon::prelude::*;
 
 use qiskit_util::complex::c64;
@@ -193,10 +192,11 @@ pub fn density_expval_pauli_with_x(
     }
 }
 
-pub fn pauli_expval(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(expval_pauli_no_x))?;
-    m.add_wrapped(wrap_pyfunction!(expval_pauli_with_x))?;
-    m.add_wrapped(wrap_pyfunction!(density_expval_pauli_with_x))?;
-    m.add_wrapped(wrap_pyfunction!(density_expval_pauli_no_x))?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod pauli_expval {
+    #[pymodule_export]
+    use super::{
+        density_expval_pauli_no_x, density_expval_pauli_with_x, expval_pauli_no_x,
+        expval_pauli_with_x,
+    };
 }

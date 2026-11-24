@@ -199,7 +199,8 @@ pub fn cossin<'py>(py: Python<'py>, u: PyReadonlyArray2<Complex64>) -> PyResult<
         .into_any())
 }
 
-pub fn cos_sin_decomp(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(cossin))?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod cos_sin_decomp {
+    #[pymodule_export]
+    use super::cossin;
 }

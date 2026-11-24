@@ -14,7 +14,6 @@ use numpy::PyArrayLike1;
 use smallvec::smallvec;
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
@@ -195,12 +194,11 @@ fn synth_permutation_reverse_lnn_kms(num_qubits: usize) -> PyResult<PyCircuitDat
     Ok(CircuitData::from_standard_gates(num_qubits as u32, gates, Param::Float(0.0))?.into())
 }
 
-pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(_validate_permutation, m)?)?;
-    m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
-    m.add_function(wrap_pyfunction!(_synth_permutation_basic, m)?)?;
-    m.add_function(wrap_pyfunction!(_synth_permutation_acg, m)?)?;
-    m.add_function(wrap_pyfunction!(_synth_permutation_depth_lnn_kms, m)?)?;
-    m.add_function(wrap_pyfunction!(synth_permutation_reverse_lnn_kms, m)?)?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod permutation {
+    #[pymodule_export]
+    use super::{
+        _inverse_pattern, _synth_permutation_acg, _synth_permutation_basic,
+        _synth_permutation_depth_lnn_kms, _validate_permutation, synth_permutation_reverse_lnn_kms,
+    };
 }

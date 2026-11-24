@@ -17,13 +17,8 @@ pub mod types;
 use pyo3::prelude::*;
 
 #[cfg(feature = "py")]
-pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    let expr_mod = PyModule::new(m.py(), "expr")?;
-    expr::register_python(&expr_mod)?;
-    m.add_submodule(&expr_mod)?;
-
-    let types_mod = PyModule::new(m.py(), "types")?;
-    types::register_python(&types_mod)?;
-    m.add_submodule(&types_mod)?;
-    Ok(())
+#[pymodule(submodule, name = "classical")]
+pub(crate) mod classical_mod {
+    #[pymodule_export]
+    use super::{expr::expr_mod, types::types_mod};
 }

@@ -819,7 +819,8 @@ pub fn qs_decomposition(
     Ok(res.into())
 }
 
-pub fn qsd_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(qs_decomposition, m)?)?;
-    Ok(())
+#[pymodule(submodule, name = "qsd")]
+pub mod qsd_mod {
+    #[pymodule_export]
+    use super::qs_decomposition;
 }

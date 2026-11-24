@@ -16,7 +16,7 @@ use std::f64::consts::PI;
 
 use num_complex::Complex64;
 use pyo3::prelude::*;
-use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
+use pyo3::{PyResult, pyfunction};
 use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
@@ -738,7 +738,8 @@ pub fn run_commutative_optimization(
     )))
 }
 
-pub fn commutative_optimization_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_commutative_optimization))?;
-    Ok(())
+#[pymodule(submodule, name = "commutative_optimization")]
+pub mod commutative_optimization_mod {
+    #[pymodule_export]
+    use super::run_commutative_optimization;
 }

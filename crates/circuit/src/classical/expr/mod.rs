@@ -55,14 +55,29 @@ use crate::classical::expr::value::PyValue;
 use crate::classical::expr::var::PyVar;
 
 #[cfg(feature = "py")]
-pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PyExpr>()?;
-    m.add_class::<PyUnary>()?;
-    m.add_class::<PyBinary>()?;
-    m.add_class::<PyCast>()?;
-    m.add_class::<PyValue>()?;
-    m.add_class::<PyVar>()?;
-    m.add_class::<PyStretch>()?;
-    m.add_class::<PyIndex>()?;
-    Ok(())
+#[pymodule(submodule, name = "expr")]
+pub(crate) mod expr_mod {
+    #[pymodule_export]
+    use super::PyExpr;
+
+    #[pymodule_export]
+    use super::PyUnary;
+
+    #[pymodule_export]
+    use super::PyBinary;
+
+    #[pymodule_export]
+    use super::PyCast;
+
+    #[pymodule_export]
+    use super::PyValue;
+
+    #[pymodule_export]
+    use super::PyVar;
+
+    #[pymodule_export]
+    use super::PyStretch;
+
+    #[pymodule_export]
+    use super::PyIndex;
 }

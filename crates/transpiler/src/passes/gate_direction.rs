@@ -538,10 +538,11 @@ fn rzx_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
     Ok(new_dag)
 }
 
-pub fn gate_direction_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_check_direction_coupling_map))?;
-    m.add_wrapped(wrap_pyfunction!(py_check_direction_target))?;
-    m.add_wrapped(wrap_pyfunction!(py_fix_direction_coupling_map))?;
-    m.add_wrapped(wrap_pyfunction!(py_fix_direction_target))?;
-    Ok(())
+#[pymodule(submodule, name = "gate_direction")]
+pub mod gate_direction_mod {
+    #[pymodule_export]
+    use super::{
+        py_check_direction_coupling_map, py_check_direction_target, py_fix_direction_coupling_map,
+        py_fix_direction_target,
+    };
 }

@@ -12,7 +12,6 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use hashbrown::HashSet;
 
@@ -261,8 +260,8 @@ fn py_update_layout<'py>(
     cur_layout.to_py_native(py_layout.py(), dag_mut.qubits().objects())
 }
 
-pub fn apply_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_apply_layout))?;
-    m.add_wrapped(wrap_pyfunction!(py_update_layout))?;
-    Ok(())
+#[pymodule(submodule, name = "apply_layout")]
+pub mod apply_layout_mod {
+    #[pymodule_export]
+    use super::{py_apply_layout, py_update_layout};
 }

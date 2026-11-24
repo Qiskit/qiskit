@@ -162,24 +162,14 @@ fn py_synth_mcx_explicit(num_controls: usize) -> PyResult<PyCircuitData> {
     Ok(synth_mcx_explicit(num_controls)?.into())
 }
 
-pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(py_c3x, m)?)?;
-    m.add_function(wrap_pyfunction!(py_c4x, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_explicit, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_i15, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_m15, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_hp24, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_1_clean_b95, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_1_kg24, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_2_kg24, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_sp22, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_sp22, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_v24, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcrx_noaux, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcp_noaux_default, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcry_noaux, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcrz_noaux, m)?)?;
-    m.add_function(wrap_pyfunction!(mcmt::mcmt_v_chain, m)?)?;
-    m.add_function(wrap_pyfunction!(py_synth_mcx_n_clean_m15, m)?)?;
-    Ok(())
+#[pymodule(submodule)]
+pub mod multi_controlled {
+    #[pymodule_export]
+    use super::{
+        mcmt::mcmt_v_chain, py_c3x, py_c4x, py_synth_mcp_noaux_default, py_synth_mcp_noaux_sp22,
+        py_synth_mcp_noaux_v24, py_synth_mcrx_noaux, py_synth_mcry_noaux, py_synth_mcrz_noaux,
+        py_synth_mcx_1_clean_b95, py_synth_mcx_1_kg24, py_synth_mcx_2_kg24, py_synth_mcx_explicit,
+        py_synth_mcx_n_clean_m15, py_synth_mcx_n_dirty_i15, py_synth_mcx_n_dirty_m15,
+        py_synth_mcx_noaux_hp24, py_synth_mcx_noaux_sp22,
+    };
 }

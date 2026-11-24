@@ -20,7 +20,6 @@ use rayon::prelude::*;
 
 use pyo3::Python;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use qiskit_util::getenv_use_multiple_threads;
 
@@ -248,7 +247,8 @@ pub fn best_subset(
     [rows, cols, best_map]
 }
 
-pub fn dense_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_best_subset))?;
-    Ok(())
+#[pymodule(submodule, name = "dense_layout")]
+pub mod dense_layout_mod {
+    #[pymodule_export]
+    use super::py_best_subset;
 }

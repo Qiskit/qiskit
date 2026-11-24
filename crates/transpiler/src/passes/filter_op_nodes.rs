@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -68,8 +67,8 @@ pub fn filter_labeled_op(dag: &mut DAGCircuit, label: String) {
     dag.filter_op_nodes(predicate);
 }
 
-pub fn filter_op_nodes_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_filter_op_nodes))?;
-    m.add_wrapped(wrap_pyfunction!(py_filter_labeled_op))?;
-    Ok(())
+#[pymodule(submodule, name = "filter_op_nodes")]
+pub mod filter_op_nodes_mod {
+    #[pymodule_export]
+    use super::{py_filter_labeled_op, py_filter_op_nodes};
 }

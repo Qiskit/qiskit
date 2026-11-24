@@ -118,7 +118,8 @@ impl ErrorMap {
     }
 }
 
-pub fn error_map_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<ErrorMap>()?;
-    Ok(())
+#[pymodule(submodule, name = "error_map")]
+pub mod error_map_mod {
+    #[pymodule_export]
+    use super::ErrorMap;
 }

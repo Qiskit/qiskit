@@ -101,7 +101,8 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
     }
 }
 
-pub fn remove_diagonal_gates_before_measure_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_remove_diagonal_before_measure))?;
-    Ok(())
+#[pymodule(submodule, name = "remove_diagonal_gates_before_measure")]
+pub mod remove_diagonal_gates_before_measure_mod {
+    #[pymodule_export]
+    use super::py_run_remove_diagonal_before_measure;
 }

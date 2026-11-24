@@ -732,9 +732,10 @@ pub fn run_consolidate_blocks(
     Ok(())
 }
 
-pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_consolidate_blocks))?;
-    Ok(())
+#[pymodule(submodule, name = "consolidate_blocks")]
+pub mod consolidate_blocks_mod {
+    #[pymodule_export]
+    use super::py_run_consolidate_blocks;
 }
 
 #[cfg(all(test, not(miri)))]
