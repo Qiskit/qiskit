@@ -75,11 +75,13 @@ static FFI_MIR: LazyLock<VTable> =
 pub mod capi_mod {
     use super::*;
 
+    #[pymodule_export]
+    const API_VERSION: u32 = qiskit_cext::qk_api_version();
+
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         static MODNAME: &str = "qiskit._accelerate.capi";
 
-        m.add("API_VERSION", qiskit_cext::qk_api_version())?;
         FFI_TRANSPILE.attach_pycapsule(m, MODNAME)?;
         FFI_CIRCUIT.attach_pycapsule(m, MODNAME)?;
         FFI_QI.attach_pycapsule(m, MODNAME)?;

@@ -45,7 +45,7 @@ pub use exit_codes::ExitCode;
 /// @return The version of the compiled Qiskit C API library, in the same format as the
 ///     `QISKIT_VERSION_HEX` header-file macro.
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_api_version() -> u32 {
+pub const extern "C" fn qk_api_version() -> u32 {
     const VERSION: u32 = {
         const fn parse_int(s: &[u8]) -> u32 {
             let mut i = 0;
