@@ -39,12 +39,8 @@ impl VTable {
         // mutable pointer, though - it's only UB to attempt to mutate through that.
         let ptr = NonNull::new(self.table.as_ptr().cast_mut().cast::<c_void>())
             .expect("slices should be backed by non-null pointers");
-        let last_modname = modname
-            .rsplit_once(".")
-            .map(|(_, last)| last)
-            .unwrap_or(modname);
         let base_modname = m.name()?;
-        if base_modname != last_modname {
+        if base_modname != modname {
             return Err(PyValueError::new_err(format!(
                 "internal error: mismatched names between module ('{base_modname}') and requested submodule ('{modname}')"
             )));
@@ -75,7 +71,7 @@ static FFI_QI: LazyLock<VTable> =
 static FFI_MIR: LazyLock<VTable> =
     LazyLock::new(|| VTable::new("QK_FFI_MIR", &qiskit_cext_vtable::FUNCTIONS_MIR));
 
-#[pymodule(submodule, name = "capi")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "capi")]
 pub mod capi_mod {
     use super::*;
 
