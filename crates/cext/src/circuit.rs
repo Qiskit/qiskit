@@ -3125,14 +3125,14 @@ impl From<CBlocksMode> for BlocksMode {
 /// The scope type of a classical variable within a circuit.
 #[repr(u8)]
 pub enum CVariableType {
-    /// An input variable, whose value is provided when the circuit is run.
-    Input = 0,
-    /// A variable captured from an enclosing scope.
-    Capture = 1,
-    /// A variable declared locally within the circuit.
-    Declare = 2,
     /// An unknown variable scope type.
-    Unknown = 0xFF,
+    Unknown = 0,
+    /// An input variable, whose value is provided when the circuit is run.
+    Input = 1,
+    /// A variable captured from an enclosing scope.
+    Capture = 2,
+    /// A variable declared locally within the circuit.
+    Declare = 3,
 }
 
 impl TryFrom<CVariableType> for VarType {
@@ -3152,12 +3152,12 @@ impl TryFrom<CVariableType> for VarType {
 /// The scope type of a stretch within a circuit.
 #[repr(u8)]
 pub enum CStretchType {
-    /// A stretch captured from an enclosing scope.
-    Capture = 0,
-    /// A stretch declared locally within the circuit.
-    Declare = 1,
     /// An unknown stretch scope type.
-    Unknown = 0xFF,
+    Unknown = 0,
+    /// A stretch captured from an enclosing scope.
+    Capture = 1,
+    /// A stretch declared locally within the circuit.
+    Declare = 2,
 }
 
 impl TryFrom<CStretchType> for StretchType {
