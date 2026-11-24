@@ -616,8 +616,5 @@ pub fn matmul_1q_with_slice(operator: &mut [[Complex64; 2]; 2], other: &[[Comple
 )]
 pub mod optimize_1q_gates_decomposition_mod {
     #[pymodule_export]
-    use super::py_run_optimize_1q_gates_decomposition;
-
-    #[pymodule_export]
-    use super::Optimize1qGatesDecompositionState;
+    use super::{Optimize1qGatesDecompositionState, py_run_optimize_1q_gates_decomposition};
 }

@@ -62,26 +62,5 @@ use crate::classical::expr::var::PyVar;
 )]
 pub(crate) mod expr_mod {
     #[pymodule_export]
-    use super::PyExpr;
-
-    #[pymodule_export]
-    use super::PyUnary;
-
-    #[pymodule_export]
-    use super::PyBinary;
-
-    #[pymodule_export]
-    use super::PyCast;
-
-    #[pymodule_export]
-    use super::PyValue;
-
-    #[pymodule_export]
-    use super::PyVar;
-
-    #[pymodule_export]
-    use super::PyStretch;
-
-    #[pymodule_export]
-    use super::PyIndex;
+    use super::{PyBinary, PyCast, PyExpr, PyIndex, PyStretch, PyUnary, PyValue, PyVar};
 }

@@ -1119,17 +1119,8 @@ pub fn run_high_level_synthesis(
 )]
 pub mod high_level_synthesis_mod {
     #[pymodule_export]
-    use super::run_high_level_synthesis;
-
-    #[pymodule_export]
-    use super::py_synthesize_operation;
-
-    #[pymodule_export]
-    use super::py_synthesize_circuit;
-
-    #[pymodule_export]
-    use super::QubitTracker;
-
-    #[pymodule_export]
-    use super::HighLevelSynthesisData;
+    use super::{
+        HighLevelSynthesisData, QubitTracker, py_synthesize_circuit, py_synthesize_operation,
+        run_high_level_synthesis,
+    };
 }

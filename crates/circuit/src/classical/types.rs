@@ -288,17 +288,5 @@ impl PyUint {
 )]
 pub(crate) mod types_mod {
     #[pymodule_export]
-    use super::PyType;
-
-    #[pymodule_export]
-    use super::PyBool;
-
-    #[pymodule_export]
-    use super::PyDuration;
-
-    #[pymodule_export]
-    use super::PyFloat;
-
-    #[pymodule_export]
-    use super::PyUint;
+    use super::{PyBool, PyDuration, PyFloat, PyType, PyUint};
 }
