@@ -40,6 +40,8 @@ use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
 #[cfg(feature = "py")]
 use crate::imports;
+#[cfg(feature = "py")]
+use crate::instruction::{Parameters, create_py_op};
 use crate::operations::custom_traits::{ClonableOp, ComparableOp, ConvertibleOperation};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -2225,9 +2227,11 @@ impl Operation for Store {
 /// of non dyn-compatible traits for [`CustomOperation`]. Namely [`PartialEq`]
 /// and [`Clone`].
 mod custom_traits {
+    use crate::operations::CustomOperation;
     #[cfg(feature = "py")]
     use crate::operations::Param;
-    use crate::operations::{CustomOperation, ToPythonOperation};
+    #[cfg(feature = "py")]
+    use crate::operations::ToPythonOperation;
     #[cfg(feature = "py")]
     use pyo3::prelude::*;
     #[cfg(feature = "py")]
@@ -2275,8 +2279,9 @@ mod custom_traits {
     /// A dyn-compatible bridge to [`ToPythonOperation`], which allows a
     /// `dyn CustomOperation` to dispatch to the implementor's conversion.
     ///
-    /// The requirement to implement [`ToPythonOperation`] is the same regardless
-    /// of which features are enabled; only the conversion method is feature-gated.
+    /// With the `py` feature enabled, this is only implemented for types that also implement
+    /// [`ToPythonOperation`]. Without it, this is implemented for every [`CustomOperation`].
+    /// See [`ToPythonOperation`] for how implementors should gate their implementations.
     #[diagnostic::on_unimplemented(
         message = "ToPythonOperation is required to correctly implement CustomOperation on {Self}.",
         label = "This type needs an implementation of ToPythonOperation",
@@ -2292,8 +2297,11 @@ mod custom_traits {
         ) -> PyResult<Py<PyAny>>;
     }
 
+    #[cfg(not(feature = "py"))]
+    impl<Op: CustomOperation> ConvertibleOperation for Op {}
+
+    #[cfg(feature = "py")]
     impl<Op: CustomOperation + ToPythonOperation> ConvertibleOperation for Op {
-        #[cfg(feature = "py")]
         fn create_py_op<'py>(
             &self,
             py: Python<'py>,
@@ -2533,10 +2541,10 @@ impl PyCustomOperation {
     fn to_matrix<'py>(
         &self,
         py: Python<'py>,
-        params: SmallVec<[Param; 3]>,
+        params: Option<SmallVec<[Param; 3]>>,
         dtype: Option<&Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyAny>> {
-        match self.inner.matrix(&params) {
+        match self.inner.matrix(params.as_deref().unwrap_or_default()) {
             Ok(Some(mat)) => cast_array_type(py, mat.into_pyarray(py), dtype),
             Ok(None) => py.None().into_bound_py_any(py),
             // Is this the best way to handle errors??
@@ -2575,17 +2583,39 @@ impl PyCustomOperation {
 
 /// Controls how a [`CustomOperation`] is exposed to Python.
 ///
-/// Every [`CustomOperation`] must implement this trait. To use the default conversion, which
-/// wraps the operation in a `GateFromRust` (if [`CustomOperation::is_unitary`]) or an
-/// `InstructionFromRust`, an empty implementation is enough:
+/// When this crate's `py` feature is enabled, every [`CustomOperation`] must implement this
+/// trait. To use the default conversion, which wraps the operation in a `GateFromRust` (if
+/// [`CustomOperation::is_unitary`]) or an `InstructionFromRust`, an empty implementation is
+/// enough.
+///
+/// # Feature gating
+///
+/// This trait only exists when the `py` feature of `qiskit-circuit` is enabled, so
+/// implementations in other crates must be gated as well. A crate's `#[cfg(feature = ...)]`
+/// can only refer to that crate's own features, so gate the implementation on your crate's
+/// `py` feature and make that feature enable `qiskit-circuit/py`:
+///
+/// ```toml
+/// [features]
+/// py = ["dep:pyo3", "qiskit-circuit/py"]
+/// ```
 ///
 /// ```ignore
+/// #[cfg(feature = "py")]
+/// use qiskit_circuit::operations::ToPythonOperation;
+///
+/// #[cfg(feature = "py")]
 /// impl ToPythonOperation for MyOperation {}
 /// ```
 ///
-/// The trait exists regardless of whether the `py` feature is enabled, so implementations do
-/// not need to be feature-gated. Only implementors that override
-/// [`ToPythonOperation::create_py_op`] need to gate that override on `py`.
+/// Forwarding the feature means the trait is always available whenever your implementation
+/// is compiled. The opposite case still has to be avoided: Cargo unifies features across the
+/// whole build, so `qiskit-circuit/py` can be enabled by another crate while your crate's `py`
+/// feature is off. Your [`CustomOperation`] implementation would then be missing its required
+/// `ToPythonOperation` implementation and fail to compile. Qiskit's crates only combine
+/// `py`-gated code across crates when both crates' `py` features are enabled, so this does not
+/// happen within the workspace. A crate that doesn't follow that rule can't feature-gate its
+/// implementation.
 #[cfg(feature = "py")]
 pub trait ToPythonOperation {
     /// Build the Python representation of this operation.
