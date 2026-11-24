@@ -59,6 +59,14 @@ impl PyPauliEvolution {
         PySparseObservable::from(operator)
     }
 
+    #[setter]
+    pub fn set_operator(&mut self, operator: &Bound<'_, PySparseObservable>) -> PyResult<()> {
+        let operator = operator.borrow().as_inner()?.clone();
+        let inner = PauliEvolution::new(operator, self.time())?;
+        *self = Self { inner };
+        Ok(())
+    }
+
     #[getter]
     pub fn time(&self) -> Param {
         self.inner.time().clone()
