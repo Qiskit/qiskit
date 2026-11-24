@@ -2153,6 +2153,74 @@ pub fn synth_mcrz_noaux(
     Ok(circuit)
 }
 
+/// Synthesize a multi-controlled phase gate with :math:`n` controls based on the
+/// synthesis of multi-controlled rz gate, using :math:`O(n^2)` CX gates.
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled phase gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled phase gate with O(n^2) CX gates.
+///
+pub fn synth_mcp_noaux_v24(
+    num_ctrl_qubits: usize,
+    phase: Param,
+) -> Result<CircuitData, CircuitDataError> {
+    let mut circuit =
+        CircuitData::with_capacity((num_ctrl_qubits + 1) as u32, 0, 0, Param::Float(0.0))?;
+
+    if num_ctrl_qubits == 0 {
+        circuit.p(phase, 0)?;
+    } else if num_ctrl_qubits == 1 {
+        circuit.cp(phase, 0, 1)?;
+    } else {
+        for k in 0..num_ctrl_qubits {
+            let new_controls = num_ctrl_qubits - k;
+            let phase_factor = 1.0 / 2f64.powi(k as i32);
+            let mcrz = synth_mcrz_noaux(new_controls, multiply_param(&phase, phase_factor))?;
+            let mcrz_qubits: Vec<Qubit> = (0..(new_controls + 1) as u32).map(Qubit).collect();
+            circuit.compose(&mcrz, &mcrz_qubits, &[])?;
+        }
+        let phase_factor = 1.0 / 2.0_f64.powi(num_ctrl_qubits as i32);
+        circuit.p(multiply_param(&phase, phase_factor), 0)?;
+    }
+    Ok(circuit)
+}
+
+/// Choose the best synthesis code for multi-controlled phase gate
+/// according to the number of control qubits.
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled phase gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled phase gate with O(n^2) CX gates.
+///
+pub fn synth_mcp_noaux_default(
+    num_ctrl_qubits: usize,
+    phase: Param,
+) -> Result<CircuitData, CircuitDataError> {
+    let mut circuit =
+        CircuitData::with_capacity((num_ctrl_qubits + 1) as u32, 0, 0, Param::Float(0.0))?;
+
+    if num_ctrl_qubits == 0 {
+        circuit.p(phase, 0)?;
+    } else if num_ctrl_qubits == 1 {
+        circuit.cp(phase, 0, 1)?;
+    } else if num_ctrl_qubits <= 4 {
+        circuit = synth_mcp_noaux_v24(num_ctrl_qubits, phase)?;
+    } else {
+        circuit = synth_mcp_noaux_sp22(num_ctrl_qubits, phase)?;
+    }
+    Ok(circuit)
+}
+
 #[cfg(all(test, not(miri)))]
 mod test {
     use crate::matrix::sim::sim_unitary_circuit;
