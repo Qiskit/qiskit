@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :class:`.InstructionDurationCheck` not setting ``reschedule_required`` if a delay's duration was
+    a multiple of only one of ``acquire_alignment`` and ``pulse_alignment``. This only occurs on targets where the alignments differ.
+
+    See `#17436 <https://github.com/Qiskit/qiskit/issues/17436>`__.
