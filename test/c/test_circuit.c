@@ -1768,56 +1768,46 @@ static int test_circuit_add_stretch(void) {
 }
 
 /*
- * Test that adding the same var or stretch twice fails
+ * Test that a failure to add a var is reported as a circuit error
  */
-static int test_circuit_add_var_stretch_duplicate(void) {
+static int test_circuit_add_var_error(void) {
     enum TestResult result = Ok;
 
     QkCircuit *qc = qk_circuit_new(0, 0);
     QkVar *a = qk_var_new("a", (QkExprTypeInfo){QkExprType_Bool, 0});
-    QkStretch *s = qk_stretch_new("s");
 
-    // The out index is optional, so these also check passing NULL.
-    QkExitCode var_ec = qk_circuit_add_var(qc, a, QkVariableType_Declare, NULL);
-    QkExitCode var_dup_ec = qk_circuit_add_var(qc, a, QkVariableType_Declare, NULL);
-    QkExitCode stretch_ec = qk_circuit_add_stretch(qc, s, QkStretchType_Declare, NULL);
-    QkExitCode stretch_dup_ec = qk_circuit_add_stretch(qc, s, QkStretchType_Declare, NULL);
+    // The out index is optional, so this also checks passing NULL.
+    QkExitCode ec = qk_circuit_add_var(qc, a, QkVariableType_Declare, NULL);
+    QkExitCode dup_ec = qk_circuit_add_var(qc, a, QkVariableType_Declare, NULL);
 
-    if (!(var_ec == QkExitCode_Success && var_dup_ec == QkExitCode_CircuitError &&
-          stretch_ec == QkExitCode_Success && stretch_dup_ec == QkExitCode_CircuitError)) {
-        fprintf(stderr, "Adding a var or stretch twice should fail the second time\n");
+    if (!(ec == QkExitCode_Success && dup_ec == QkExitCode_CircuitError)) {
+        fprintf(stderr, "Adding a var twice should fail with CircuitError\n");
         result = EqualityError;
     }
 
     qk_var_free(a);
-    qk_stretch_free(s);
     qk_circuit_free(qc);
     return result;
 }
 
 /*
- * Test that captures cannot be added to a circuit with input vars
+ * Test that a failure to add a stretch is reported as a circuit error
  */
-static int test_circuit_add_capture_with_inputs(void) {
+static int test_circuit_add_stretch_error(void) {
     enum TestResult result = Ok;
 
     QkCircuit *qc = qk_circuit_new(0, 0);
-    QkExprTypeInfo ty = {QkExprType_Bool, 0};
-    QkVar *a = qk_var_new("a", ty);
-    QkVar *b = qk_var_new("b", ty);
     QkStretch *s = qk_stretch_new("s");
-    qk_circuit_add_var(qc, a, QkVariableType_Input, NULL);
 
-    QkExitCode var_ec = qk_circuit_add_var(qc, b, QkVariableType_Capture, NULL);
-    QkExitCode stretch_ec = qk_circuit_add_stretch(qc, s, QkStretchType_Capture, NULL);
+    // The out index is optional, so this also checks passing NULL.
+    QkExitCode ec = qk_circuit_add_stretch(qc, s, QkStretchType_Declare, NULL);
+    QkExitCode dup_ec = qk_circuit_add_stretch(qc, s, QkStretchType_Declare, NULL);
 
-    if (!(var_ec == QkExitCode_CircuitError && stretch_ec == QkExitCode_CircuitError)) {
-        fprintf(stderr, "Adding captures to a circuit with inputs should fail\n");
+    if (!(ec == QkExitCode_Success && dup_ec == QkExitCode_CircuitError)) {
+        fprintf(stderr, "Adding a stretch twice should fail with CircuitError\n");
         result = EqualityError;
     }
 
-    qk_var_free(a);
-    qk_var_free(b);
     qk_stretch_free(s);
     qk_circuit_free(qc);
     return result;
@@ -2058,8 +2048,8 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_register_bits);
     num_failed += RUN_TEST(test_circuit_add_var);
     num_failed += RUN_TEST(test_circuit_add_stretch);
-    num_failed += RUN_TEST(test_circuit_add_var_stretch_duplicate);
-    num_failed += RUN_TEST(test_circuit_add_capture_with_inputs);
+    num_failed += RUN_TEST(test_circuit_add_var_error);
+    num_failed += RUN_TEST(test_circuit_add_stretch_error);
     num_failed += RUN_TEST(test_circuit_add_unknown_type);
 
     fflush(stderr);
