@@ -18,7 +18,8 @@ use thiserror::Error;
 
 use qiskit_circuit::annotation::Annotation;
 
-use super::{DistributionKind, SynthesizerKind};
+use super::DistributionKind;
+use super::synths::SynthName;
 
 /// The namespace for randomization annotations.
 pub(crate) const NAMESPACE: &str = "randomization";
@@ -73,7 +74,7 @@ pub enum RandomizationAnnotation<'a> {
 pub struct Twirl {
     pub distribution: DistributionKind,
     pub dressing: Dressing,
-    pub decomposition: SynthesizerKind,
+    pub decomposition: SynthName,
 }
 
 impl Annotation for Twirl {
@@ -136,8 +137,8 @@ impl<'a> RandomizationAnnotations<'a> {
     }
 
     /// How this box synthesizes virtual gates.
-    pub fn synthesizer(&self) -> Option<SynthesizerKind> {
-        self.twirl.map(|twirl| twirl.decomposition)
+    pub fn synth(&self) -> Option<&'a SynthName> {
+        self.twirl.map(|twirl| &twirl.decomposition)
     }
 }
 
@@ -153,7 +154,7 @@ mod tests {
         erased(Twirl {
             distribution,
             dressing: Dressing::Left,
-            decomposition: SynthesizerKind::RzSx,
+            decomposition: SynthName::new("rzsx"),
         })
     }
 
@@ -190,7 +191,7 @@ mod tests {
         let resolved = RandomizationAnnotations::new(&annotations).unwrap();
         assert!(resolved.emits());
         assert_eq!(resolved.dressing(), Some(Dressing::Left));
-        assert_eq!(resolved.synthesizer(), Some(SynthesizerKind::RzSx));
+        assert_eq!(resolved.synth(), Some(&SynthName::new("rzsx")));
         assert!(resolved.inject_noise.is_none());
     }
 
@@ -200,7 +201,7 @@ mod tests {
         let resolved = RandomizationAnnotations::new(&annotations).unwrap();
         assert!(!resolved.emits());
         assert_eq!(resolved.dressing(), None);
-        assert_eq!(resolved.synthesizer(), None);
+        assert_eq!(resolved.synth(), None);
         assert_eq!(resolved, RandomizationAnnotations::default());
     }
 

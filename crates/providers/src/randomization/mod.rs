@@ -13,24 +13,10 @@
 //! Generate randomizations of quantum circuits and programs.
 
 pub mod annotations;
+pub mod flags;
 pub mod partition;
+pub mod synths;
 pub mod virtual_type;
-
-/// The synthesizer to use for virtual gates.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SynthesizerKind {
-    RzSx,
-    RzRx,
-}
-
-impl SynthesizerKind {
-    /// The number of qubits the synthesized gate acts on.
-    pub fn num_qubits(&self) -> u32 {
-        match self {
-            Self::RzSx | Self::RzRx => 1,
-        }
-    }
-}
 
 /// The distribution to sample virtual gates from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
