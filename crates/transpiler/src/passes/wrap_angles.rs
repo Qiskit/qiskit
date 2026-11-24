@@ -76,7 +76,7 @@ pub fn run_wrap_angles(
     Ok(())
 }
 
-#[pymodule(submodule, name = "wrap_angles")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "wrap_angles")]
 pub mod wrap_angles_mod {
     #[pymodule_export]
     use super::py_run_wrap_angles;

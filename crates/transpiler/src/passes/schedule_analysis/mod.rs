@@ -435,7 +435,7 @@ impl From<IndexMap<NodeIndex<u32>, f64>> for NodeDurations {
     }
 }
 
-#[pymodule(submodule, name = "scheduling")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "scheduling")]
 pub mod scheduling_mod {
     #[pymodule_export]
     use super::PyNodeDurations;

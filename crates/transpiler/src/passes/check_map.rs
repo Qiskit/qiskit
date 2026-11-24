@@ -106,7 +106,7 @@ pub fn run_check_map<'a>(
         })
 }
 
-#[pymodule(submodule, name = "check_map")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "check_map")]
 pub mod check_map_mod {
     #[pymodule_export]
     use super::py_run_check_map;

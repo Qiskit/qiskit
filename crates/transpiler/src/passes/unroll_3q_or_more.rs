@@ -81,7 +81,7 @@ pub fn run_unroll_3q_or_more(
     Ok(())
 }
 
-#[pymodule(submodule, name = "unroll_3q_or_more")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "unroll_3q_or_more")]
 pub mod unroll_3q_or_more_mod {
     #[pymodule_export]
     use super::py_unroll_3q_or_more;

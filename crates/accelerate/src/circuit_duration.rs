@@ -97,7 +97,7 @@ pub(crate) fn compute_estimated_duration(dag: &PyDAGCircuit, target: &Target) ->
     }
 }
 
-#[pymodule(submodule, name = "circuit_duration")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "circuit_duration")]
 pub mod compute_duration {
     #[pymodule_export]
     use super::compute_estimated_duration;

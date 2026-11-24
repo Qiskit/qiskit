@@ -1141,7 +1141,11 @@ pub fn run_substitute_pi4_rotations(
     Ok(())
 }
 
-#[pymodule(submodule, name = "substitute_pi4_rotations")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "substitute_pi4_rotations"
+)]
 pub mod substitute_pi4_rotations_mod {
     #[pymodule_export]
     use super::py_run_substitute_pi4_rotations;

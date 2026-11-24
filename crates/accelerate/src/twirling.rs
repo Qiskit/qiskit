@@ -403,7 +403,7 @@ pub(crate) fn twirl_circuit(
         .collect()
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod twirling {
     #[pymodule_export]
     use super::twirl_circuit;

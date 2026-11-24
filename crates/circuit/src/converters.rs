@@ -123,7 +123,7 @@ pub fn py_dag_to_circuit(
     .map(PyCircuitData::from)
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod converters {
     #[pymodule_export]
     use super::{py_circuit_to_dag, py_dag_to_circuit};

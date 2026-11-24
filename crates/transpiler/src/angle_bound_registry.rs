@@ -159,7 +159,11 @@ impl Default for PyWrapAngleRegistry {
     }
 }
 
-#[pymodule(submodule, name = "angle_bound_registry")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "angle_bound_registry"
+)]
 pub mod angle_bound_mod {
     #[pymodule_export]
     use super::PyWrapAngleRegistry;

@@ -54,7 +54,7 @@ impl PyDagToMirPass {
     }
 }
 
-#[pymodule(submodule, name = "mir_passes")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "mir_passes")]
 pub mod mir_passes_mod {
     #[pymodule_export]
     use super::PyDagToMirPass;

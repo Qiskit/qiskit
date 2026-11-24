@@ -112,7 +112,7 @@ fn bytecode_from_file(
 /// output.  The principal entry points for Python are :func:`bytecode_from_string` and
 /// :func:`bytecode_from_file`, which produce iterables of :class:`Bytecode` objects.
 #[cfg(feature = "py")]
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod qasm2 {
     #[pymodule_export]
     use super::{

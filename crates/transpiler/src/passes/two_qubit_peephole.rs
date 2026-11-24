@@ -374,7 +374,7 @@ fn two_qubit_unitary_peephole_optimize_apply(
     Ok(Some(out_dag_builder.build()))
 }
 
-#[pymodule(submodule, name = "two_qubit_peephole")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "two_qubit_peephole")]
 pub mod two_qubit_peephole_mod {
     #[pymodule_export]
     use super::py_two_qubit_unitary_peephole_optimize;

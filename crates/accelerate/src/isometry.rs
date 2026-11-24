@@ -338,7 +338,7 @@ fn b(k: usize, s: usize) -> usize {
     k - (a(k, s) * 2_usize.pow(s as u32))
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod isometry {
     #[pymodule_export]
     use super::{

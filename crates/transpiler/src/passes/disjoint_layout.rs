@@ -615,7 +615,7 @@ fn split_barriers(dag: &DAGCircuit) -> PyResult<()> {
     Ok(())
 }
 
-#[pymodule(submodule, name = "disjoint_utils")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "disjoint_utils")]
 pub mod disjoint_utils_mod {
     #[pymodule_export]
     use super::{py_combine_barriers, py_run_pass_over_connected_components};

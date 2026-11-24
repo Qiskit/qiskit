@@ -24,7 +24,7 @@ use pyo3::prelude::*;
 use qubit_sparse_pauli::{PyQubitSparsePauli, PyQubitSparsePauliList};
 
 #[cfg(feature = "python")]
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod pauli_lindblad_map {
     #[pymodule_export]
     use super::{

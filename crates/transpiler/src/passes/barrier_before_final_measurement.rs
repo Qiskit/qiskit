@@ -163,7 +163,11 @@ pub fn run_barrier_before_final_measurements(
     Ok(())
 }
 
-#[pymodule(submodule, name = "barrier_before_final_measurement")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "barrier_before_final_measurement"
+)]
 pub mod barrier_before_final_measurements_mod {
     #[pymodule_export]
     use super::py_run_barrier_before_final_measurements;

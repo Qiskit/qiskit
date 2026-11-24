@@ -257,7 +257,7 @@ impl From<CapacityError> for PyErr {
 }
 
 #[cfg(feature = "py")]
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod circuit {
     #[pymodule_export]
     use super::{

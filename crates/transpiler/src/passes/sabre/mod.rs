@@ -24,7 +24,7 @@ pub(crate) use heuristic::SetScaling;
 pub use layout::sabre_layout_and_routing;
 pub(crate) use route::sabre_routing;
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod sabre {
     #[pymodule_export]
     use super::{

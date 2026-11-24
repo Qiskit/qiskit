@@ -1112,7 +1112,11 @@ pub fn run_high_level_synthesis(
     }
 }
 
-#[pymodule(submodule, name = "high_level_synthesis")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "high_level_synthesis"
+)]
 pub mod high_level_synthesis_mod {
     #[pymodule_export]
     use super::run_high_level_synthesis;

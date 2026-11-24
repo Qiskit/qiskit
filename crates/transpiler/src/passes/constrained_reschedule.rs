@@ -301,7 +301,11 @@ pub fn run_constrained_reschedule(
     Ok(())
 }
 
-#[pymodule(submodule, name = "constrained_reschedule")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "constrained_reschedule"
+)]
 pub mod constrained_reschedule_mod {
     #[pymodule_export]
     use super::py_run_constrained_reschedule;

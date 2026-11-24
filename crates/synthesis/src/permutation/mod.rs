@@ -194,7 +194,7 @@ fn synth_permutation_reverse_lnn_kms(num_qubits: usize) -> PyResult<PyCircuitDat
     Ok(CircuitData::from_standard_gates(num_qubits as u32, gates, Param::Float(0.0))?.into())
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
 pub mod permutation {
     #[pymodule_export]
     use super::{

@@ -83,7 +83,7 @@ pub fn py_sim_unitary_circuit(py: Python, circuit: &PyCircuitData) -> PyResult<P
     Ok(product_mat.into_pyarray(py).into_any().unbind())
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod unitary_sim {
     #[pymodule_export]
     use super::py_sim_unitary_circuit;

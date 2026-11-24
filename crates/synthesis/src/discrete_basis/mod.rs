@@ -16,7 +16,7 @@ pub mod solovay_kitaev;
 
 use pyo3::prelude::*;
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
 pub mod discrete_basis {
     #[pymodule_export]
     use super::{basic_approximations::GateSequence, solovay_kitaev::SolovayKitaevSynthesis};

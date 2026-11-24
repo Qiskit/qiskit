@@ -609,7 +609,11 @@ pub fn matmul_1q_with_slice(operator: &mut [[Complex64; 2]; 2], other: &[[Comple
     ];
 }
 
-#[pymodule(submodule, name = "optimize_1q_gates_decomposition")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "optimize_1q_gates_decomposition"
+)]
 pub mod optimize_1q_gates_decomposition_mod {
     #[pymodule_export]
     use super::py_run_optimize_1q_gates_decomposition;

@@ -28,7 +28,7 @@ pub mod custom_operation;
 import_exception!(qiskit.exceptions, QiskitError);
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod circuit_library {
     #[pymodule_export]
     use super::{

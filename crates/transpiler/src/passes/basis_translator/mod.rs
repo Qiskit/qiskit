@@ -704,7 +704,7 @@ fn param_assignment_expr(
     }
 }
 
-#[pymodule(submodule, name = "basis_translator")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "basis_translator")]
 pub mod basis_translator_mod {
     #[pymodule_export]
     use super::py_run_basis_translator;

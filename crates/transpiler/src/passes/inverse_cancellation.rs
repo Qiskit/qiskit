@@ -353,7 +353,11 @@ pub fn py_run_inverse_cancellation(
     Ok(())
 }
 
-#[pymodule(submodule, name = "inverse_cancellation")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "inverse_cancellation"
+)]
 pub mod inverse_cancellation_mod {
     #[pymodule_export]
     use super::py_run_inverse_cancellation;

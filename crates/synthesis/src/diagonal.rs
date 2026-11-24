@@ -73,7 +73,7 @@ pub fn synth_diagonal(diag_phases: Vec<f64>, num_qubits: u32) -> PyResult<PyCirc
     Ok(circuit.into())
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
 pub mod diagonal {
     #[pymodule_export]
     use super::synth_diagonal;

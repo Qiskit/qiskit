@@ -617,7 +617,11 @@ pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
     Ok(new_dag)
 }
 
-#[pymodule(submodule, name = "convert_to_pauli_rotations")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "convert_to_pauli_rotations"
+)]
 pub mod convert_to_pauli_rotations_mod {
     #[pymodule_export]
     use super::py_convert_to_pauli_rotations;

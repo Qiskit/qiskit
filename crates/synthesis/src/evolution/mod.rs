@@ -175,7 +175,7 @@ pub fn pauli_network_mcts(
     .map_err(Into::into)
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
 pub mod evolution {
     #[pymodule_export]
     use super::{pauli_network_mcts, pauli_network_synthesis};

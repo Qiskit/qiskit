@@ -118,7 +118,7 @@ impl ErrorMap {
     }
 }
 
-#[pymodule(submodule, name = "error_map")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "error_map")]
 pub mod error_map_mod {
     #[pymodule_export]
     use super::ErrorMap;

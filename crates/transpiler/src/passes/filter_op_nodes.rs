@@ -67,7 +67,7 @@ pub fn filter_labeled_op(dag: &mut DAGCircuit, label: String) {
     dag.filter_op_nodes(predicate);
 }
 
-#[pymodule(submodule, name = "filter_op_nodes")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "filter_op_nodes")]
 pub mod filter_op_nodes_mod {
     #[pymodule_export]
     use super::{py_filter_labeled_op, py_filter_op_nodes};

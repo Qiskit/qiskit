@@ -36,7 +36,7 @@ use pyo3::prelude::*;
 
 import_exception!(qiskit.exceptions, QiskitError);
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod synthesis {
     #[pymodule_export]
     use super::{

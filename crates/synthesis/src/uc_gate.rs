@@ -512,7 +512,7 @@ fn dec_ucg_help(single_qubit_gates: &mut [Matrix2<Complex64>], num_qubits: u32) 
     diag
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
 pub mod uc_gate {
     #[pymodule_export]
     use super::dec_ucg;

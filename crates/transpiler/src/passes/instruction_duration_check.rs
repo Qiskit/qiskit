@@ -78,7 +78,11 @@ pub fn run_instruction_duration_check(
     Ok(false)
 }
 
-#[pymodule(submodule, name = "instruction_duration_check")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "instruction_duration_check"
+)]
 pub mod instruction_duration_check_mod {
     #[pymodule_export]
     use super::run_instruction_duration_check;

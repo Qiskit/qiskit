@@ -56,7 +56,7 @@ impl Default for PyMir {
     }
 }
 
-#[pymodule(submodule, name = "mir")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "mir")]
 pub mod mir_mod {
     #[pymodule_export]
     use super::PyMir;

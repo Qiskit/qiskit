@@ -219,7 +219,11 @@ pub fn py_analyze_commutations(
     Ok(out_dict.unbind())
 }
 
-#[pymodule(submodule, name = "commutation_analysis")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "commutation_analysis"
+)]
 pub mod commutation_analysis_mod {
     #[pymodule_export]
     use super::py_analyze_commutations;

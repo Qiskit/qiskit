@@ -336,7 +336,7 @@ pub fn py_standard_gate_exponent(
 }
 
 #[cfg(feature = "py")]
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod standard_generators {
     #[pymodule_export]
     use super::py_standard_gate_exponent;

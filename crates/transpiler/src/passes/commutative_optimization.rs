@@ -738,7 +738,11 @@ pub fn run_commutative_optimization(
     )))
 }
 
-#[pymodule(submodule, name = "commutative_optimization")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "commutative_optimization"
+)]
 pub mod commutative_optimization_mod {
     #[pymodule_export]
     use super::run_commutative_optimization;

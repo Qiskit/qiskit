@@ -176,7 +176,7 @@ fn check_invertible_binary_matrix(mat: PyReadonlyArray2<bool>) -> bool {
     utils::check_invertible_binary_matrix_inner(view)
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
 pub mod linear {
     #[pymodule_export]
     use super::{

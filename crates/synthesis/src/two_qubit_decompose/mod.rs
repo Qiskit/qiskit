@@ -23,7 +23,7 @@ pub use controlled_u_decomposer::{RXXEquivalent, TwoQubitControlledUDecomposer};
 pub use gate_sequence::TwoQubitGateSequence;
 pub use weyl_decomposition::{Specialization, TwoQubitWeylDecomposition};
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod two_qubit_decompose {
     #[pymodule_export]
     use super::{

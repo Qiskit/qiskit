@@ -101,7 +101,11 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
     }
 }
 
-#[pymodule(submodule, name = "remove_diagonal_gates_before_measure")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "remove_diagonal_gates_before_measure"
+)]
 pub mod remove_diagonal_gates_before_measure_mod {
     #[pymodule_export]
     use super::py_run_remove_diagonal_before_measure;

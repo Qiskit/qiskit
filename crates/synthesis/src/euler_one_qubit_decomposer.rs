@@ -1072,7 +1072,7 @@ pub fn params_zxz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     params_zxz_inner(mat)
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod euler_one_qubit_decomposer {
     #[pymodule_export]
     use super::{

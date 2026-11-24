@@ -865,7 +865,7 @@ fn py_get_standard_equivalence_library() -> EquivalenceLibrary {
     generate_standard_equivalence_library()
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod equivalence {
     #[pymodule_export]
     use super::{

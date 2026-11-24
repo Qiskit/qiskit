@@ -129,7 +129,7 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
     Ok(Some((new_dag, mapping)))
 }
 
-#[pymodule(submodule, name = "elide_permutations")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "elide_permutations")]
 pub mod elide_permutations_mod {
     #[pymodule_export]
     use super::py_run_elide_permutations;

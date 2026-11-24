@@ -1772,7 +1772,7 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
         .product()
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod target {
     #[pymodule_export]
     use super::{InstructionProperties, QubitProperties, Target, py_estimate_fidelity};

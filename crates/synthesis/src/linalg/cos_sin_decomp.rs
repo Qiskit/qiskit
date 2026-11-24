@@ -199,7 +199,7 @@ pub fn cossin<'py>(py: Python<'py>, u: PyReadonlyArray2<Complex64>) -> PyResult<
         .into_any())
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod cos_sin_decomp {
     #[pymodule_export]
     use super::cossin;

@@ -281,7 +281,11 @@ impl PyUint {
 }
 
 #[cfg(feature = "py")]
-#[pymodule(submodule, name = "types")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate.circuit.classical",
+    name = "types"
+)]
 pub(crate) mod types_mod {
     #[pymodule_export]
     use super::PyType;

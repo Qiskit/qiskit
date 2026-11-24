@@ -932,7 +932,7 @@ pub fn vf2_layout_pass_exact(
     Ok(Vf2PassReturn::Solution(mapping))
 }
 
-#[pymodule(submodule, name = "vf2_layout")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "vf2_layout")]
 pub mod vf2_layout_mod {
     #[pymodule_export]
     use super::{

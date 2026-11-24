@@ -17,7 +17,7 @@ pub mod types;
 use pyo3::prelude::*;
 
 #[cfg(feature = "py")]
-#[pymodule(submodule, name = "classical")]
+#[pymodule(submodule, module = "qiskit._accelerate.circuit", name = "classical")]
 pub(crate) mod classical_mod {
     #[pymodule_export]
     use super::{expr::expr_mod, types::types_mod};

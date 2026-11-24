@@ -89,7 +89,7 @@ pub fn compose_u3_rust(
     out_angles
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod optimize_1q_gates {
     #[pymodule_export]
     use super::compose_u3_rust;

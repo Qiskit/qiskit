@@ -148,7 +148,7 @@ pub fn sampled_expval_sparse_observable(
     result
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod sampled_exp_val {
     #[pymodule_export]
     use super::{sampled_expval_complex, sampled_expval_float, sampled_expval_sparse_observable};

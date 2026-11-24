@@ -180,7 +180,11 @@ pub fn py_run_asap_schedule_analysis(
     Ok(node_durations)
 }
 
-#[pymodule(submodule, name = "asap_schedule_analysis")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "asap_schedule_analysis"
+)]
 pub mod asap_schedule_analysis_mod {
     #[pymodule_export]
     use super::py_run_asap_schedule_analysis;

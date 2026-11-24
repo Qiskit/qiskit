@@ -165,7 +165,11 @@ fn synth_pauli_product_rotation(operation: &Bound<PyAny>) -> PyResult<PyCircuitD
     }
 }
 
-#[pymodule(submodule, name = "pauli_products")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate.synthesis",
+    name = "pauli_products"
+)]
 pub mod pauli_products_mod {
     #[pymodule_export]
     use super::synth_pauli_product_measurement;

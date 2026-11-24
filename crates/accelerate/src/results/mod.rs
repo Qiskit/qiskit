@@ -15,7 +15,7 @@ pub mod marginalization;
 
 use pyo3::prelude::*;
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod results {
     #[pymodule_export]
     use super::marginalization::{

@@ -1253,7 +1253,7 @@ pub fn py_synthesize_unitary_matrix(
     Ok(out_dag.build().into())
 }
 
-#[pymodule(submodule, name = "unitary_synthesis")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "unitary_synthesis")]
 pub mod unitary_synthesis_mod {
     #[pymodule_export]
     use super::{py_synthesize_unitary_matrix, py_unitary_synthesis};

@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 use qft_decompose_full::synth_qft_full;
 use qft_decompose_lnn::synth_qft_line;
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
 pub mod qft {
     #[pymodule_export]
     use super::{synth_qft_full, synth_qft_line};

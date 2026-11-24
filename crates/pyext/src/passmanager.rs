@@ -525,7 +525,7 @@ impl PyPassManager {
     }
 }
 
-#[pymodule(submodule, name = "passmanager")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "passmanager")]
 pub mod passmanager_mod {
     #[pymodule_export]
     use super::{PassContextHandle, PyPass, PyPassManager};

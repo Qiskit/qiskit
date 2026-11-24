@@ -386,7 +386,7 @@ pub fn run_optimize_clifford_t(
     Ok(())
 }
 
-#[pymodule(submodule, name = "optimize_clifford_t")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "optimize_clifford_t")]
 pub mod optimize_clifford_t_mod {
     #[pymodule_export]
     use super::py_run_optimize_clifford_t;

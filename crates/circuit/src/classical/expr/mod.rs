@@ -55,7 +55,11 @@ use crate::classical::expr::value::PyValue;
 use crate::classical::expr::var::PyVar;
 
 #[cfg(feature = "py")]
-#[pymodule(submodule, name = "expr")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate.circuit.classical",
+    name = "expr"
+)]
 pub(crate) mod expr_mod {
     #[pymodule_export]
     use super::PyExpr;

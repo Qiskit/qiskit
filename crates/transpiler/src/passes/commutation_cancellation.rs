@@ -375,7 +375,11 @@ pub fn cancel_commutations(
     Ok(())
 }
 
-#[pymodule(submodule, name = "commutation_cancellation")]
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "commutation_cancellation"
+)]
 pub mod commutation_cancellation_mod {
     #[pymodule_export]
     use super::py_cancel_commutations;

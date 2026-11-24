@@ -819,7 +819,7 @@ pub fn qs_decomposition(
     Ok(res.into())
 }
 
-#[pymodule(submodule, name = "qsd")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "qsd")]
 pub mod qsd_mod {
     #[pymodule_export]
     use super::qs_decomposition;

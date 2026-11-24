@@ -732,7 +732,7 @@ pub fn run_consolidate_blocks(
     Ok(())
 }
 
-#[pymodule(submodule, name = "consolidate_blocks")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "consolidate_blocks")]
 pub mod consolidate_blocks_mod {
     #[pymodule_export]
     use super::py_run_consolidate_blocks;

@@ -260,7 +260,7 @@ fn py_update_layout<'py>(
     cur_layout.to_py_native(py_layout.py(), dag_mut.qubits().objects())
 }
 
-#[pymodule(submodule, name = "apply_layout")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "apply_layout")]
 pub mod apply_layout_mod {
     #[pymodule_export]
     use super::{py_apply_layout, py_update_layout};

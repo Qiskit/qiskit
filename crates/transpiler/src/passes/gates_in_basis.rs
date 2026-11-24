@@ -120,7 +120,7 @@ pub fn gates_missing_from_basis(dag: &DAGCircuit, basis: HashSet<String>) -> PyR
     Ok(false)
 }
 
-#[pymodule(submodule, name = "gates_in_basis")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "gates_in_basis")]
 pub mod gates_in_basis_mod {
     #[pymodule_export]
     use super::{py_gates_missing_from_basis, py_gates_missing_from_target};

@@ -247,7 +247,7 @@ pub fn best_subset(
     [rows, cols, best_map]
 }
 
-#[pymodule(submodule, name = "dense_layout")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "dense_layout")]
 pub mod dense_layout_mod {
     #[pymodule_export]
     use super::py_best_subset;

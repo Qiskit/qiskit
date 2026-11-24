@@ -282,7 +282,7 @@ pub fn dump(
 
 /// Internal module supplying the OpenQASM 3 import capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod qasm3 {
     #[pymodule_export]
     use super::{circuit::PyGate, dump, dumps, load, loads};

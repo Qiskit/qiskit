@@ -538,7 +538,7 @@ fn rzx_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
     Ok(new_dag)
 }
 
-#[pymodule(submodule, name = "gate_direction")]
+#[pymodule(submodule, module = "qiskit._accelerate", name = "gate_direction")]
 pub mod gate_direction_mod {
     #[pymodule_export]
     use super::{

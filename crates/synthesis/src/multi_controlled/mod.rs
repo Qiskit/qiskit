@@ -162,7 +162,7 @@ fn py_synth_mcx_explicit(num_controls: usize) -> PyResult<PyCircuitData> {
     Ok(synth_mcx_explicit(num_controls)?.into())
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
 pub mod multi_controlled {
     #[pymodule_export]
     use super::{

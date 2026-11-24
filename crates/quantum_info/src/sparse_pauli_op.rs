@@ -1079,7 +1079,7 @@ impl_to_matrix_sparse!(
     u64
 );
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod sparse_pauli_op {
     #[pymodule_export]
     use super::{ZXPaulis, decompose_dense, to_matrix_dense, to_matrix_sparse, unordered_unique};

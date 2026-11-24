@@ -192,7 +192,7 @@ pub fn density_expval_pauli_with_x(
     }
 }
 
-#[pymodule(submodule)]
+#[pymodule(submodule, module = "qiskit._accelerate")]
 pub mod pauli_expval {
     #[pymodule_export]
     use super::{
