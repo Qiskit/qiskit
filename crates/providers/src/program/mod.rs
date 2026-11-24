@@ -15,9 +15,11 @@
 
 mod program_function;
 mod quantum_program;
+mod resolve;
 
 pub use program_function::{
     FunctionError, FunctionEvalError, InstructionId, InstructionRef, InstructionRole,
     InstructionView, ProgramFunction, Signature, Value,
 };
 pub use quantum_program::{FunctionId, ProgramError, ProgramEvalError, QuantumProgram};
+pub use resolve::{ResolveError, resolve};
