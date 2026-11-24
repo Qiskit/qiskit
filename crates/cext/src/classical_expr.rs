@@ -70,8 +70,7 @@ impl From<&Expr> for CExprNodeKind {
 #[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum CVarKind {
-    /// No variable kind. ``qk_var_kind`` never returns this. It is the value a fallible function
-    /// reports when it has no variable to describe.
+    /// the variable kind is unknown
     Unknown = 0,
     /// A new-style variable that owns its own backing storage and has a name.
     Standalone = 1,
@@ -1376,8 +1375,7 @@ pub unsafe extern "C" fn qk_var_type_info(var: *const Var) -> CExprTypeInfo {
 /// @param circuit A pointer to the circuit to resolve the classical bit against.
 ///
 /// @return The index of the classical bit in ``circuit``, or ``UINT32_MAX`` if ``var`` is not of
-/// kind ``QkVarKind_Bit``, or if the bit is not part of ``circuit``. Call ``qk_var_kind`` to
-/// distinguish the two cases.
+/// kind ``QkVarKind_Bit``, or if the bit is not part of ``circuit``.
 ///
 /// # Example
 /// ```c
@@ -1667,12 +1665,6 @@ pub unsafe extern "C" fn inner_test_value(
     Box::into_raw(Box::new(Expr::Value(value)))
 }
 
-/// Build the two legacy variable expressions used in the C tests.
-///
-/// The bit variable wraps the clbit of ``circuit`` at index ``clbit``, and the register variable
-/// wraps a register equal to one named ``c1`` with two bits, so both can be resolved back against
-/// ``circuit`` by the public API.
-///
 /// cbindgen:qk-vtable-rules=[no-export]
 /// cbindgen:no-export
 ///
@@ -1714,6 +1706,12 @@ pub unsafe extern "C" fn inner_test_value_biguint(
     Box::into_raw(Box::new(value))
 }
 
+/// Build the two legacy variable expressions used in the C tests.
+///
+/// The bit variable wraps the clbit of ``circuit`` at index ``clbit``, and the register variable
+/// wraps a register equal to one named ``c1`` with two bits, so both can be resolved back against
+/// ``circuit`` by the public API.
+///
 /// cbindgen:qk-vtable-rules=[no-export]
 /// cbindgen:no-export
 #[allow(clippy::missing_safety_doc)]
