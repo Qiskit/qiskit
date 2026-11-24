@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed :c:func:`qk_target_op_get` aborting on Python-defined custom operations
+    and opaque parameters. These now report the existing ``Unknown`` kinds.
