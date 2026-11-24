@@ -18,6 +18,7 @@ from qiskit.transpiler.passes import InstructionDurationCheck
 from test import QiskitTestCase
 from ddt import ddt, data, unpack
 
+
 @ddt
 class TestInstructionDurationCheck(QiskitTestCase):
     """Test InstructionDurationCheck class"""
@@ -27,7 +28,9 @@ class TestInstructionDurationCheck(QiskitTestCase):
         (16, 1, 112, False),
     )
     @unpack
-    def test_instruction_duration_check_alignment(self, acquire_alignment, pulse_alignment, delay, expected):
+    def test_instruction_duration_check_alignment(
+        self, acquire_alignment, pulse_alignment, delay, expected
+    ):
         """Test alignment check in InstructionDurationCheck"""
         qc = QuantumCircuit(1, 1)
         qc.delay(delay, 0)
