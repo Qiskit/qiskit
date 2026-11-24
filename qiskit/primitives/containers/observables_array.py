@@ -14,6 +14,7 @@
 """
 ND-Array container class for Estimator observables.
 """
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -28,7 +29,6 @@ from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp, SparseObservabl
 
 from .object_array import object_array
 from .shape import ShapedMixin, shape_tuple
-
 
 if TYPE_CHECKING:
     from qiskit.transpiler.layout import TranspileLayout
