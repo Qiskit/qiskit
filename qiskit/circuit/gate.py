@@ -285,17 +285,14 @@ class GateFromRust(Gate):
     # Native instance of the gate originating from Rust
     _rust_operation = None
 
-    def __init__(self, native_gate):
+    def __init__(self, native_gate, params, label=None):
+        # ``native_gate`` only carries the Rust operation; ``params`` and ``label`` are owned by
+        # this Python object and are passed back to Rust whenever they're needed.
         self._rust_operation = native_gate
-        super().__init__(
-            self._rust_operation.name,
-            self._rust_operation.num_qubits,
-            self._rust_operation.params,
-            self._rust_operation.label,
-        )
+        super().__init__(native_gate.name, native_gate.num_qubits, params, label)
 
     def _define(self):
-        self._definition = self._rust_operation.definition
+        self._definition = self._rust_operation.definition(self.params)
 
     def __array__(self, dtype=complex, copy=None):
-        return self._rust_operation.__array__(dtype, copy)
+        return self._rust_operation.to_matrix(self.params, dtype)

@@ -835,22 +835,27 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
         }
 
         'custom_op: {
-            // Custom operation extraction has to check a hidden attribute from
-            // the main Operation instance, namely `_rust_operation`, and
-            // then use that to extract the inner dyn CustomOperation instance
-            // and its parameters.
-            let Ok(PyCustomOperation { inner, params, .. }) = ob
-                .getattr(intern!(py, "_rust_operation"))
-                .and_then(|op| Ok(op.extract::<PyCustomOperation>()?))
-            else {
+            // Operations implemented in Rust (`GateFromRust` / `InstructionFromRust`) carry the
+            // native `dyn CustomOperation` in the hidden `_rust_operation` attribute. Only the
+            // operation itself comes from the carrier: the params and label are read from the
+            // Python object, which is their source of truth (they may have been modified
+            // from Python).
+            //
+            // This runs for every non-standard Python operation, so use `getattr_opt` to avoid
+            // raising an `AttributeError` on every miss.
+            let Some(rust_op) = ob.getattr_opt(intern!(py, "_rust_operation"))? else {
                 break 'custom_op;
             };
-
-            let label = inner.label().map(|label| Box::new(label.to_string()));
+            let Ok(rust_op) = rust_op.cast::<PyCustomOperation>() else {
+                break 'custom_op;
+            };
+            let operation =
+                PackedOperation::from_custom_operation(rust_op.borrow().op().clone_dyn());
+            let params = extract_params(operation.view(), &get_params()?)?;
             return Ok(OperationFromPython {
-                operation: PackedOperation::from_custom_operation(inner),
-                params: params.map(Parameters::Params),
-                label,
+                operation,
+                params,
+                label: extract_label()?,
             });
         }
 

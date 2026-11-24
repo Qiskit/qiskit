@@ -564,15 +564,13 @@ class InstructionFromRust(Instruction):
     # Native instance of the instruction originating from Rust
     _rust_operation = None
 
-    def __init__(self, native_inst):
+    def __init__(self, native_inst, params, label=None):
+        # ``native_inst`` only carries the Rust operation; ``params`` and ``label`` are owned by
+        # this Python object and are passed back to Rust whenever they're needed.
         self._rust_operation = native_inst
         super().__init__(
-            self._rust_operation.name,
-            self._rust_operation.num_qubits,
-            self._rust_operation.num_clbits,
-            self._rust_operation.params,
-            self._rust_operation.label,
+            native_inst.name, native_inst.num_qubits, native_inst.num_clbits, params, label
         )
 
     def _define(self):
-        self._definition = self._rust_operation.definition
+        self._definition = self._rust_operation.definition(self.params)

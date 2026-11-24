@@ -22,7 +22,8 @@ use num_complex::Complex64;
 use num_traits::Zero;
 #[cfg(feature = "python")]
 use numpy::{
-    PyArray, PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
+    PyArray, PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
+    PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
 #[cfg(feature = "python")]
 use pyo3::{
