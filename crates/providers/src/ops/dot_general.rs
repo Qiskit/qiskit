@@ -12,7 +12,8 @@
 
 //! General tensor contraction, following StableHLO `dot_general`.
 
-use ndarray::{ArcArrayD, Array3, Axis, IxDyn, LinalgScalar};
+use ndarray::{ArcArrayD, Array2, Array3, ArrayView2, Axis, IxDyn, LinalgScalar};
+use num_complex::{Complex32, Complex64};
 
 use super::error::{MathOpError, check_axis};
 use super::inference::promoted_dtype;
@@ -30,8 +31,13 @@ use crate::tensor::{DType, Dim, Tensor, TensorError, TensorType, dim_shape, requ
 /// | contract | removed       | multiplied and summed over. Sizes must be equal                     |
 /// | free     | kept          | passes through                                                      |
 ///
-/// A batch pair is broadcast: a size of `1` stretches to the size of the other axis. A contracted pair
-/// is not.
+/// A batch pair is broadcast: a size of `1` stretches to the size of the other axis. A contracted
+/// pair is not. Broadcasting does not add axes: an operand with fewer axes is not padded with
+/// leading axes of size `1`, as NumPy's `matmul` does. To pair the leading axes of operands of
+/// different rank, add axes of size `1` to the shorter one before the op.
+///
+/// A paired axis must have a fixed size, except that a bounded batch axis may meet a size of `1`:
+/// a size that is only known at run time cannot be compared when the op is added.
 ///
 /// The result has the batch axes (in the order of `lhs_batch`), then the free axes of the left
 /// operand, then the free axes of the right operand:
@@ -41,11 +47,6 @@ use crate::tensor::{DType, Dim, Tensor, TensorError, TensorType, dim_shape, requ
 /// rhs (6, 2, 5)    rhs_batch [0]    rhs_contract [1]     free: axis 2 (size 5)
 /// result (6, 4, 5)                  batch 6, then lhs free 4, then rhs free 5
 /// ```
-/// Broadcasting stretches the size of a paired batch axis, and nothing else. It does not add axes:
-/// padding the operand that has fewer axes with leading axes of size `1`, as NumPy's `matmul` does for
-/// operands of different rank, is not part of the broadcasting here. An axis that is not listed is a
-/// free axis, and it comes after the batch axes. To pair the leading axes of operands of different
-/// rank, add axes of size `1` to the shorter one before the op.
 #[derive(Clone, Debug)]
 pub struct DotDims {
     /// Batch axes of the left operand.
@@ -102,11 +103,12 @@ impl DotDims {
     /// Each operand is read as a stack of matrices: its axes are put in the order batch, free,
     /// contract, its batch axes are stretched to the batch sizes of the result, and each group of axes
     /// is merged into one. That gives `(B, M, K)` for the left operand and `(B, N, K)` for the right
-    /// one. Each matrix of the result is `lhs[t]` times the transpose of `rhs[t]`.
+    /// one. Each matrix of the result is `lhs[t]` times the transpose of `rhs[t]`, computed by
+    /// [`Element::product`].
     ///
     /// `out_shape` must be what [`DotDims::output_shape`] gives for the two operands, so its first axes
     /// are the batch axes.
-    fn contract<T: LinalgScalar>(
+    fn contract<T: Element>(
         &self,
         lhs: &ArcArrayD<T>,
         rhs: &ArcArrayD<T>,
@@ -151,9 +153,7 @@ impl DotDims {
 
         let mut out = Array3::<T>::zeros((b, l.rows, r.rows));
         for t in 0..b {
-            let product = lhs
-                .index_axis(Axis(0), t)
-                .dot(&rhs.index_axis(Axis(0), t).t());
+            let product = T::product(lhs.index_axis(Axis(0), t), rhs.index_axis(Axis(0), t));
             out.index_axis_mut(Axis(0), t).assign(&product);
         }
         out.into_shape_with_order(IxDyn(out_shape))
@@ -315,18 +315,83 @@ fn broadcast_batch_pairs(
     Ok(sizes)
 }
 
-/// Admit the dtypes this op computes in: floating point and complex.
+/// Admit the dtypes this op computes in: floating point, complex, and signed and unsigned integers.
+///
+/// This lists the dtypes rather than excluding `Bit`, so that a dtype added later is not accepted by
+/// default.
 fn numeric(dtype: DType) -> bool {
-    matches!(dtype, DType::F32 | DType::F64 | DType::C64 | DType::C128)
+    matches!(
+        dtype,
+        DType::F32
+            | DType::F64
+            | DType::C64
+            | DType::C128
+            | DType::I8
+            | DType::I16
+            | DType::I32
+            | DType::I64
+            | DType::U8
+            | DType::U16
+            | DType::U32
+            | DType::U64
+    )
 }
+
+/// An element type that the op computes in, with the product of two matrices that it uses.
+trait Element: LinalgScalar {
+    /// Return `lhs` times the transpose of `rhs`, where `lhs` is `(M, K)` and `rhs` is `(N, K)`.
+    fn product(lhs: ArrayView2<'_, Self>, rhs: ArrayView2<'_, Self>) -> Array2<Self>;
+}
+
+/// Floating point and complex numbers use the matrix product of `ndarray`.
+macro_rules! impl_element_with_dot {
+    ($($t:ty),*) => {
+        $(
+            impl Element for $t {
+                fn product(lhs: ArrayView2<'_, Self>, rhs: ArrayView2<'_, Self>) -> Array2<Self> {
+                    lhs.dot(&rhs.t())
+                }
+            }
+        )*
+    };
+}
+impl_element_with_dot!(f32, f64, Complex32, Complex64);
+
+/// Integers add up the products with wrapping arithmetic, so that a result that does not fit wraps around,
+/// as in the elementwise integer ops. The matrix product of `ndarray` would panic on overflow in a debug
+/// build.
+macro_rules! impl_element_wrapping {
+    ($($t:ty),*) => {
+        $(
+            impl Element for $t {
+                fn product(lhs: ArrayView2<'_, Self>, rhs: ArrayView2<'_, Self>) -> Array2<Self> {
+                    let (m, k) = lhs.dim();
+                    let n = rhs.dim().0;
+                    let mut out = Array2::<Self>::zeros((m, n));
+                    for i in 0..m {
+                        for j in 0..n {
+                            let mut sum: $t = 0;
+                            for l in 0..k {
+                                sum = sum.wrapping_add(lhs[[i, l]].wrapping_mul(rhs[[j, l]]));
+                            }
+                            out[[i, j]] = sum;
+                        }
+                    }
+                    out
+                }
+            }
+        )*
+    };
+}
+impl_element_wrapping!(i8, i16, i32, i64, u8, u16, u32, u64);
 
 /// Contract two tensors over chosen axes, keeping chosen batch axes.
 ///
 /// This follows the semantics of StableHLO and JAX's `dot_general`, except that a batch pair is
 /// broadcast: a size of `1` stretches to the size of the other axis. No axes are added, so operands of
-/// different rank are not padded. See [`DotDims`] for the axis lists. The operand dtypes are promoted to a common dtype,
-/// which is the dtype of the result. Floating point and complex dtypes are accepted.
-/// Complex values are multiplied, not conjugated.
+/// different rank are not padded. See [`DotDims`] for the axis lists. The operand dtypes are promoted 
+/// to a common dtype,  which is the dtype of the result. Floating point, complex and integer dtypes are 
+/// accepted. Complex values are multiplied, not conjugated, and integer results wrap on overflow.
 #[derive(Clone, Debug)]
 pub struct DotGeneral(pub DotDims);
 
@@ -368,6 +433,14 @@ impl ProgramOp for DotGeneral {
             (Tensor::F64(a), Tensor::F64(b)) => Tensor::F64(dims.contract(a, b, &out_shape)),
             (Tensor::C64(a), Tensor::C64(b)) => Tensor::C64(dims.contract(a, b, &out_shape)),
             (Tensor::C128(a), Tensor::C128(b)) => Tensor::C128(dims.contract(a, b, &out_shape)),
+            (Tensor::I8(a), Tensor::I8(b)) => Tensor::I8(dims.contract(a, b, &out_shape)),
+            (Tensor::I16(a), Tensor::I16(b)) => Tensor::I16(dims.contract(a, b, &out_shape)),
+            (Tensor::I32(a), Tensor::I32(b)) => Tensor::I32(dims.contract(a, b, &out_shape)),
+            (Tensor::I64(a), Tensor::I64(b)) => Tensor::I64(dims.contract(a, b, &out_shape)),
+            (Tensor::U8(a), Tensor::U8(b)) => Tensor::U8(dims.contract(a, b, &out_shape)),
+            (Tensor::U16(a), Tensor::U16(b)) => Tensor::U16(dims.contract(a, b, &out_shape)),
+            (Tensor::U32(a), Tensor::U32(b)) => Tensor::U32(dims.contract(a, b, &out_shape)),
+            (Tensor::U64(a), Tensor::U64(b)) => Tensor::U64(dims.contract(a, b, &out_shape)),
             _ => unreachable!("both operands were cast to {dtype}"),
         };
         Ok(vec![result])
@@ -379,7 +452,6 @@ mod test {
     use super::*;
     use crate::{FunctionError, ProgramFunction};
     use ndarray::ArrayD;
-    use num_complex::{Complex32, Complex64};
 
     /// An array of the given shape, filled from `data` in row-major order.
     fn array<T: Clone>(sizes: &[usize], data: &[T]) -> ArcArrayD<T> {
@@ -682,8 +754,10 @@ mod test {
         let cases = [
             (DType::F32, DType::C64, DType::C64),
             (DType::F64, DType::C64, DType::C128),
-            // An integer operand is cast to the dtype that the pair promotes to.
             (DType::I32, DType::F32, DType::F64),
+            // Integers keep their promoted dtype: there is no widening.
+            (DType::I16, DType::I16, DType::I16),
+            // An integer pair that the promotion table sends to a float.
             (DType::U64, DType::I64, DType::F64),
         ];
         for (lhs, rhs, expected) in cases {
@@ -694,13 +768,6 @@ mod test {
                 "{lhs} with {rhs}"
             );
         }
-
-        // A pair of integers promotes to an integer, which is not computed yet.
-        let result = op.infer_output_types(&[ty(DType::I16, &[2, 2]), ty(DType::I16, &[2, 2])]);
-        assert!(matches!(
-            result.unwrap_err(),
-            MathOpError::UnsupportedPromotion { .. }
-        ));
     }
 
     #[test]
@@ -717,8 +784,10 @@ mod test {
                 match result {
                     // Accepted: the result must be a dtype the op computes in.
                     Ok(out) => assert!(numeric(out[0].dtype), "{lhs} with {rhs}"),
-                    // Rejected: the pair promotes to a dtype that is not computed.
-                    Err(MathOpError::UnsupportedPromotion { .. }) => {}
+                    // Rejected: only two `Bit` operands promote to `Bit`.
+                    Err(MathOpError::UnsupportedPromotion { dtype: Bit, .. }) => {
+                        assert_eq!((lhs, rhs), (Bit, Bit));
+                    }
                     Err(other) => panic!("{lhs} with {rhs}: unexpected error {other}"),
                 }
             }
@@ -911,6 +980,46 @@ mod test {
         assert_eq!(
             result,
             vec![Tensor::C64(array(&[1, 1], &[Complex32::new(2.0, 2.0)]))]
+        );
+    }
+
+    #[test]
+    fn test_integer_products() {
+        let op = DotGeneral(dims(&[1], &[0], &[], &[]));
+
+        // Without overflow.
+        let a = Tensor::I16(array(&[2, 2], &[1, 2, 3, 4]));
+        let b = Tensor::I16(array(&[2, 2], &[5, 6, 7, 8]));
+        assert_eq!(
+            op.eval(&[a, b]).unwrap(),
+            vec![Tensor::I16(array(&[2, 2], &[19, 22, 43, 50]))]
+        );
+
+        // Mixed integer widths promote: I8 with U8 is computed in I16.
+        let a = Tensor::I8(array(&[1, 2], &[-100, 100]));
+        let b = Tensor::U8(array(&[2, 1], &[3, 2]));
+        assert_eq!(
+            op.eval(&[a, b]).unwrap(),
+            vec![Tensor::I16(array(&[1, 1], &[-100]))]
+        );
+
+        // U8: 200 * 200 + 100 * 1 does not fit, and wraps. Values from NumPy.
+        let u = Tensor::U8(array(&[2, 2], &[200, 100, 1, 1]));
+        let result = op.eval(&[u.clone(), u]).unwrap();
+        assert_eq!(
+            result,
+            vec![Tensor::U8(array(&[2, 2], &[164, 132, 201, 101]))]
+        );
+
+        // I32: 50000 * 50000 + 50000 wraps to a negative number.
+        let i = Tensor::I32(array(&[2, 2], &[50000, 50000, 1, 1]));
+        let result = op.eval(&[i.clone(), i]).unwrap();
+        assert_eq!(
+            result,
+            vec![Tensor::I32(array(
+                &[2, 2],
+                &[-1_794_917_296, -1_794_917_296, 50001, 50001]
+            ))]
         );
     }
 

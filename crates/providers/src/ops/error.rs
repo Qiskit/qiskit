@@ -60,8 +60,9 @@ pub enum MathOpError {
         lhs: usize,
         rhs: usize,
     },
-    /// Two paired axes of the operands differ in size.
-    #[error("{kind} axes {lhs_axis} and {rhs_axis} have sizes {lhs} and {rhs}, which must match")]
+    /// Two paired axes of the operands have sizes that cannot be paired: contracted axes must be
+    /// equal, and batch axes must be equal or one of them `1`.
+    #[error("{kind} axes {lhs_axis} and {rhs_axis} have sizes {lhs} and {rhs}, which cannot be paired")]
     PairedDimMismatch {
         kind: &'static str,
         lhs_axis: usize,
@@ -69,10 +70,6 @@ pub enum MathOpError {
         lhs: Dim,
         rhs: Dim,
     },
-
-    /// The op has no in-process implementation yet.
-    #[error("this op has no in-process implementation yet")]
-    NoBuiltinEval,
 }
 
 /// Validate that an operand's dtype is `expected`, naming the offending operand by its position.
