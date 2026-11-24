@@ -402,6 +402,27 @@ impl<T> LineGraph<T> {
     pub fn iter_main(&self) -> iter::IterMain<'_, T> {
         iter::IterMain::new(self)
     }
+
+    /// Iterate over the data nodes in the graph in an arbitrary deterministic order.
+    ///
+    /// This will visit *all* nodes, whether in the main sequence or an orphan sequence.  This has a
+    /// mutable-reference variant [`iter_unordered_mut`](Self::iter_unordered_mut).
+    ///
+    /// This is optimised for iteration order and completeness of the visit, rather than following
+    /// the edge structure of the graph.
+    #[inline]
+    pub fn iter_unordered(&self) -> iter::IterUnordered<'_, T> {
+        iter::IterUnordered::new(self)
+    }
+
+    /// Iterative over mutable references to all data nodes in the graph in an arbitrary
+    /// deterministic order.
+    ///
+    /// This is the mutable form of [`iter_unordered`](Self::iter_unordered).
+    #[inline]
+    pub fn iter_unordered_mut(&mut self) -> iter::IterUnorderedMut<'_, T> {
+        iter::IterUnorderedMut::new(self)
+    }
 }
 
 impl<T> Default for LineGraph<T> {
@@ -1129,5 +1150,60 @@ mod tests {
             .collect::<Vec<_>>();
         indices_main_rev.reverse();
         assert_eq!(indices.as_slice(), indices_main_rev.as_slice());
+    }
+
+    #[test]
+    fn unordered_iterators() {
+        let mut g = LineGraph::<u8>::new();
+        for w in [4, 8, 1, 2, 3] {
+            g.push_back(w);
+        }
+        let orphan = g.push_orphan(10);
+        for w in [13, 15, 17, 19] {
+            g.insert_after(orphan, w);
+        }
+
+        // Make some holes in the main sequence and the orphan.
+        let mut x = g.head_index().unwrap();
+        while let Some(z) = g[x].next() {
+            x = g.remove(z).next().unwrap();
+        }
+        x = orphan;
+        while let Some(z) = g[x].next() {
+            x = g.remove(z).next().unwrap();
+        }
+
+        let mut expected = g
+            .iter_main()
+            .indexed()
+            .chain(g.iter_from(orphan).indexed())
+            .map(|(i, n)| (i, *n.weight()))
+            .collect::<Vec<_>>();
+        expected.sort();
+
+        assert_eq!(g.iter_unordered().len(), expected.len());
+        let mut iter = g.iter_unordered();
+        _ = iter.next();
+        _ = iter.next();
+        assert_eq!(iter.len(), expected.len() - 2);
+
+        let actual = g
+            .iter_unordered()
+            .indexed()
+            .map(|(i, n)| (i, *n.weight()))
+            .collect::<Vec<_>>();
+        assert_eq!(actual, expected);
+
+        let actual_mut = g
+            .iter_unordered_mut()
+            .indexed()
+            .map(|(i, n)| {
+                let out = *n.weight();
+                *n.weight_mut() = i.index() as u8;
+                (i, out)
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(actual_mut, expected);
+        assert_eq!(*g[orphan].weight(), orphan.index() as u8);
     }
 }
