@@ -23,6 +23,8 @@ pub type Result<T> = result::Result<T, PauliEvolutionError>;
 
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
+    #[error("operator has complex coefficients")]
+    HasComplex,
     #[error("time not float or expression")]
     TimeInvalid,
     #[error("time not evaluated")]
@@ -63,14 +65,16 @@ impl PauliEvolution {
         time: Param,
         label: impl Into<String>,
     ) -> Result<Self> {
-        if matches!(time, Param::Int(_) | Param::ParameterExpression(_)) {
+        if !matches!(time, Param::Int(_) | Param::ParameterExpression(_)) {
+            Err(PauliEvolutionError::TimeInvalid)
+        } else if operator.coeffs().iter().any(|c| c.is_normal()) {
+            Err(PauliEvolutionError::HasComplex)
+        } else {
             Ok(Self {
                 operator,
                 time: ComparableParam(time),
                 label: label.into(),
             })
-        } else {
-            Err(PauliEvolutionError::TimeInvalid)
         }
     }
 

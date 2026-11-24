@@ -115,7 +115,9 @@ impl From<PauliEvolutionError> for PyErr {
     fn from(error: PauliEvolutionError) -> Self {
         let message = compose_error(&error);
         match error {
-            PauliEvolutionError::TimeInvalid => PyTypeError::new_err(message),
+            PauliEvolutionError::HasComplex | PauliEvolutionError::TimeInvalid => {
+                PyTypeError::new_err(message)
+            }
             PauliEvolutionError::TimeNotEvaluated | PauliEvolutionError::Matrix(_) => {
                 PyRuntimeError::new_err(message)
             }
