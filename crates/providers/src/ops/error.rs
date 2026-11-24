@@ -62,7 +62,9 @@ pub enum MathOpError {
     },
     /// Two paired axes of the operands have sizes that cannot be paired: contracted axes must be
     /// equal, and batch axes must be equal or one of them `1`.
-    #[error("{kind} axes {lhs_axis} and {rhs_axis} have sizes {lhs} and {rhs}, which cannot be paired")]
+    #[error(
+        "{kind} axes {lhs_axis} and {rhs_axis} have sizes {lhs} and {rhs}, which cannot be paired"
+    )]
     PairedDimMismatch {
         kind: &'static str,
         lhs_axis: usize,

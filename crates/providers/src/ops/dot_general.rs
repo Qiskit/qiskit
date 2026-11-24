@@ -389,8 +389,8 @@ impl_element_wrapping!(i8, i16, i32, i64, u8, u16, u32, u64);
 ///
 /// This follows the semantics of StableHLO and JAX's `dot_general`, except that a batch pair is
 /// broadcast: a size of `1` stretches to the size of the other axis. No axes are added, so operands of
-/// different rank are not padded. See [`DotDims`] for the axis lists. The operand dtypes are promoted 
-/// to a common dtype,  which is the dtype of the result. Floating point, complex and integer dtypes are 
+/// different rank are not padded. See [`DotDims`] for the axis lists. The operand dtypes are promoted
+/// to a common dtype,  which is the dtype of the result. Floating point, complex and integer dtypes are
 /// accepted. Complex values are multiplied, not conjugated, and integer results wrap on overflow.
 #[derive(Clone, Debug)]
 pub struct DotGeneral(pub DotDims);
