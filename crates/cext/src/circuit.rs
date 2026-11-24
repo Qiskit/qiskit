@@ -1323,13 +1323,12 @@ pub unsafe extern "C" fn qk_circuit_unitary(
 }
 
 /// @ingroup QkCircuit
-/// Copy out the unitary matrix for a given instruction in the circuit.
+/// Copy out the unitary matrix for a given instruction in the circuit. No-op if `index` is out of
+/// bounds or references a non-unitary instruction.
 ///
 /// After this function, `out` will always point to initialized data.  However, if the Qiskit
 /// instruction is in an inconsistent state (e.g. the matrix parameter does not match the stated
 /// instruction size), then the buffer will be filled with `nan`.
-///
-/// No-op if `index` is out of bounds or references a non-unitary instruction.
 ///
 /// @param circuit A pointer to the circuit to get the unitary from.
 /// @param index The index of the instruction to get the unitary for.
@@ -1445,7 +1444,10 @@ pub unsafe extern "C" fn qk_circuit_instruction_kind(
         Some(OperationRef::PauliProductMeasurement(_)) => COperationKind::PauliProductMeasurement,
         Some(OperationRef::PauliProductRotation(_)) => COperationKind::PauliProductRotation,
         Some(OperationRef::ControlFlow(_)) => COperationKind::ControlFlow,
-        _ => COperationKind::Unknown,
+        None
+        | Some(OperationRef::PyCustom(_))
+        | Some(OperationRef::CustomOperation(_))
+        | Some(OperationRef::Store(_)) => COperationKind::Unknown,
     }
 }
 
@@ -1794,12 +1796,14 @@ pub unsafe extern "C" fn qk_circuit_view_instruction(
 }
 
 /// @ingroup QkCircuit
-/// Apply a ``QkPauliProductRotation`` to a circuit. The `circuit` becomes invalid if the
-/// `rotation` parameter has a name conflict.
+/// Apply a ``QkPauliProductRotation`` to a circuit.
+///
+/// The `circuit` becomes invalid if the `rotation` parameter has a name conflict.
 ///
 /// @param circuit The circuit to apply the operation to.
 /// @param rotation A pointer to the ``QkPauliProductRotation`` to apply.
 /// @param qubits A pointer to the qubit array.
+///
 ///
 /// # Example
 ///

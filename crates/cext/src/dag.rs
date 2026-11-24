@@ -457,7 +457,7 @@ pub unsafe extern "C" fn qk_dag_wire_node_value(dag: *const DAGCircuit, node: u3
         Some(NodeType::ClbitOut(value)) => value.index(),
         Some(NodeType::VarIn(value)) => value.index(),
         Some(NodeType::VarOut(value)) => value.index(),
-        _ => 0,
+        None | Some(NodeType::Operation(_)) => 0,
     };
 
     index as u32
