@@ -43,6 +43,7 @@ use qiskit_circuit::{Clbit, PhysicalQubit, Qubit};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
+use crate::target::PyTarget;
 use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
@@ -58,7 +59,7 @@ fn py_run_basis_translator(
     dag: &PyDAGCircuit,
     equiv_lib: &mut EquivalenceLibrary,
     min_qubits: usize,
-    target: Option<&Target>,
+    target: Option<&PyTarget>,
     target_basis: Option<HashSet<String>>,
 ) -> PyResult<Option<PyDAGCircuit>> {
     let target_basis_ref: Option<HashSet<&str>> = target_basis
@@ -68,7 +69,7 @@ fn py_run_basis_translator(
         dag.try_read()?,
         equiv_lib,
         min_qubits,
-        target,
+        target.map(|v| &**v),
         target_basis_ref,
     )?
     // Turn into Python DAG and restore metadata

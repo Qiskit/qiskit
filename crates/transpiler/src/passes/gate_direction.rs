@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::TranspilerError;
-use crate::target::Target;
+use crate::target::{PyTarget, Target};
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use qiskit_circuit::PhysicalQubit;
@@ -71,7 +71,7 @@ pub fn check_direction_coupling_map(
 ///     true iff all two-qubit gates comply with the target's coupling constraints
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
-fn py_check_direction_target(dag: &PyDAGCircuit, target: &Target) -> PyResult<bool> {
+fn py_check_direction_target(dag: &PyDAGCircuit, target: &PyTarget) -> PyResult<bool> {
     check_direction_target(dag.try_read()?, target)
 }
 
@@ -210,7 +210,7 @@ pub fn fix_direction_coupling_map(
 ///     the transformed DAGCircuit
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_target")]
-fn py_fix_direction_target(dag: &mut PyDAGCircuit, target: &Target) -> PyResult<()> {
+fn py_fix_direction_target(dag: &mut PyDAGCircuit, target: &PyTarget) -> PyResult<()> {
     fix_direction_target(dag.try_write()?, target)
 }
 /// Try to swap two-qubit gate directions using pre-defined mapping to follow the right direction with respect to the given target.

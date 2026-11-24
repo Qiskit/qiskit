@@ -32,7 +32,7 @@ use crate::passes::{
     dense_layout,
     disjoint_layout::{self, DisjointSplit},
 };
-use crate::target::{Target, TargetCouplingError};
+use crate::target::{PyTarget, Target, TargetCouplingError};
 
 use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
@@ -43,7 +43,7 @@ use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_
 #[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
 pub fn py_sabre_layout_and_routing(
     dag: &mut PyDAGCircuit,
-    target: &Target,
+    target: &PyTarget,
     heuristic: &Heuristic,
     max_iterations: usize,
     num_swap_trials: usize,

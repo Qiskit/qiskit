@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::target::{Qargs, Target};
+use crate::target::{PyTarget, Qargs, Target};
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use qiskit_circuit::PhysicalQubit;
@@ -22,7 +22,7 @@ use rustworkx_core::petgraph::prelude::NodeIndex;
 
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_target")]
-pub fn py_gates_missing_from_target(dag: &PyDAGCircuit, target: &Target) -> PyResult<bool> {
+pub fn py_gates_missing_from_target(dag: &PyDAGCircuit, target: &PyTarget) -> PyResult<bool> {
     gates_missing_from_target(dag.try_read()?, target)
 }
 

@@ -25,7 +25,7 @@ use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
-use qiskit_transpiler::target::{InstructionProperties, Qargs, Target, TargetOperation};
+use qiskit_transpiler::target::{InstructionProperties, PyTarget, Qargs, Target, TargetOperation};
 use qiskit_util::IndexMap;
 use smallvec::{SmallVec, smallvec};
 
@@ -49,19 +49,10 @@ const _: () = unsafe { expose_by_box!(Target) };
 ///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
-    Target::new(
-        None,
-        Some(num_qubits),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    )
-    .unwrap()
-    .into_leaked()
+    Target::new()
+        .try_with_num_qubits(num_qubits)
+        .unwrap()
+        .into_leaked()
 }
 
 /// @ingroup QkTarget
@@ -90,7 +81,10 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
 pub unsafe extern "C" fn qk_target_borrow_from_python(ob: *mut pyo3::ffi::PyObject) -> *mut Target {
     // SAFETY: per documentation, we are attached to a Python interpreter and `ob` points to a valid
     // Python object.
-    unsafe { crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob) }
+    unsafe {
+        let borrowed: *mut PyTarget = crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob);
+        &mut **borrowed
+    }
 }
 
 /// @ingroup QkTarget
@@ -121,9 +115,11 @@ pub unsafe extern "C" fn qk_target_convert_from_python(
     object: *mut ::pyo3::ffi::PyObject,
     address: *mut ::std::ffi::c_void,
 ) -> ::std::ffi::c_int {
-    // SAFETY: per documentation, we are attached to a Python interpreter, `object` points to a
-    // valid Python object and `address` points to enough space to write a pointer.
-    unsafe { crate::py::convert_mut::<Target>(::pyo3::Python::assume_attached(), object, address) }
+    // SAFETY: per documentation, we are attached to a Python interpreter, `ob` points to a valid
+    // Python object and `address` points to anough space to write a pointer.
+    unsafe {
+        crate::py::convert_mut::<PyTarget>(::pyo3::Python::assume_attached(), object, address)
+    }
 }
 
 /// @ingroup QkTarget
