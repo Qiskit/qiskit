@@ -81,6 +81,12 @@ impl PyPauliEvolution {
         Self { inner }
     }
 
+    pub fn power(&self, exponent: f64) -> Self {
+        let mut inner = self.inner.clone();
+        inner.power(exponent);
+        Self { inner }
+    }
+
     pub fn to_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
         let matrix = self.inner.to_matrix()?;
         Ok(PyArray2::from_owned_array(py, matrix))

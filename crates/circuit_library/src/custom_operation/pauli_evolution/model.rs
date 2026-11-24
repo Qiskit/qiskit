@@ -64,6 +64,7 @@ impl PauliEvolution {
         label: impl Into<String>,
     ) -> Result<Self> {
         validate_time(&time)?;
+
         Ok(Self {
             operator,
             time: ComparableParam(time),
