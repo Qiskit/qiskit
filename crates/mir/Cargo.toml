@@ -18,6 +18,7 @@ py = ["dep:pyo3"]
 passmanager = ["dep:qiskit-passmanager"]
 
 [dependencies]
+bitfield-struct.workspace = true
 bytemuck.workspace = true
 hashbrown.workspace = true
 mem_dbg = { workspace = true, optional = true }

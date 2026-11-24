@@ -2474,6 +2474,7 @@ dependencies = [
 name = "qiskit-mir"
 version = "2.7.0-dev"
 dependencies = [
+ "bitfield-struct",
  "bytemuck",
  "hashbrown 0.17.1",
  "itertools 0.15.0",
