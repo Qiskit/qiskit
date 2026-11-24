@@ -1249,9 +1249,13 @@ pub unsafe extern "C" fn qk_dag_op_node_pauli_product_measurement(
     // SAFETY: per documentation, `dag` points to valid data.
     let dag = unsafe { &*dag };
 
-    let Some(NodeType::Operation(instr)) = dag.dag().node_weight(NodeIndex::new(node as usize))
-    else {
+    let i = NodeIndex::new(node as usize);
+    let Some(node) = dag.dag().node_weight(i) else {
         return ExitCode::IndexError;
+    };
+
+    let NodeType::Operation(instr) = node else {
+        return ExitCode::InvalidOperationKind;
     };
 
     // Ensure the operation has the correct type, otherwise return early
