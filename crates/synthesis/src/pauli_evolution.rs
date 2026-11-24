@@ -282,44 +282,19 @@ fn multi_qubit_evolution(
         // Here we purely have projectors, meaning the target rotation is a phase gate.
         let num_ctrl_qubits = control_qubits.len();
 
-        if num_ctrl_qubits == 1 {
-            // Single projector: implement exp(-it |s><s|) as P(-t) with X-sandwich
-            // for the open-control case.
-            let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
-            let gate: PackedOperation = StandardGate::Phase.into();
-            let qubit = control_qubits[0];
-            if control_states[0] {
-                // open control (positive projector e.g. |0><0|): X-layer around Phase
-                let x: Instruction = (
-                    StandardGate::X.into(),
-                    smallvec![],
-                    vec![qubit],
-                    empty_clbits.clone(),
-                );
-                vec![
-                    x.clone(),
-                    (gate, params, vec![qubit], empty_clbits.clone()),
-                    x,
-                ]
-            } else {
-                // closed control (negative projector e.g. |1><1|): Phase only
-                vec![(gate, params, vec![qubit], empty_clbits.clone())]
-            }
-        } else {
-            // Multiple projectors: synthesize a multi-controlled phase gate.
-            // we have to adjust the rotation angle to account for the different conventions;
-            // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
-            let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
-            control_qubits.reverse();
-            add_open_control(
-                StandardGate::Phase,
-                params,
-                &control_qubits,
-                num_ctrl_qubits - 1,
-                num_ctrl_qubits,
-                &control_states,
-            )
-        }
+        // Multiple projectors: synthesize a multi-controlled phase gate.
+        // we have to adjust the rotation angle to account for the different conventions;
+        // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
+        let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
+        control_qubits.reverse();
+        add_open_control(
+            StandardGate::Phase,
+            params,
+            &control_qubits,
+            num_ctrl_qubits - 1,
+            num_ctrl_qubits,
+            &control_states,
+        )
     };
 
     // and finally chain everything together
