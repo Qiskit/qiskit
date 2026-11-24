@@ -15,7 +15,7 @@ use std::{result, sync::Arc};
 use nalgebra::DMatrix;
 use ndarray::Array2;
 use num_complex::Complex64;
-use qiskit_circuit::operations::Param;
+use qiskit_circuit::{operations::Param, parameter::parameter_expression::ParameterExpression};
 use qiskit_quantum_info::sparse_observable::{MatrixError, SparseObservable, SparseTermView};
 use thiserror::Error;
 
@@ -108,6 +108,23 @@ impl PauliEvolution {
             }
             _ => {
                 unreachable!();
+            }
+        }
+    }
+
+    /// Raise the evolution to the `exponent` power.
+    pub fn power(&mut self, exponent: f64) {
+        match &mut self.time.0 {
+            Param::ParameterExpression(time) => {
+                let exponent = ParameterExpression::from_f64(exponent);
+                let raised = time.mul(&exponent).expect("exponent has empty name map");
+                *time = Arc::new(raised);
+            }
+            Param::Float(time) => {
+                *time *= exponent;
+            }
+            _ => {
+                unreachable!()
             }
         }
     }
@@ -283,6 +300,32 @@ mod tests {
         evolution.inverse();
 
         let expected = ParameterExpression::from_f64(-3.0);
+        assert!(matches!(
+            evolution.time(),
+            Param::ParameterExpression(expr) if expr.as_ref() == &expected
+        ));
+    }
+
+    #[test]
+    fn test_power_float() {
+        let obs = xy();
+        let mut evolution = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
+        evolution.power(3.0);
+
+        assert!(matches!(
+            evolution.time(),
+            Param::Float(time) if *time == 9.0,
+        ));
+    }
+
+    #[test]
+    fn test_power_param() {
+        let obs = xy();
+        let time = Arc::new(ParameterExpression::from_f64(3.0));
+        let mut evolution = PauliEvolution::new(obs, Param::ParameterExpression(time)).unwrap();
+        evolution.power(3.0);
+
+        let expected = ParameterExpression::from_f64(9.0);
         assert!(matches!(
             evolution.time(),
             Param::ParameterExpression(expr) if expr.as_ref() == &expected
