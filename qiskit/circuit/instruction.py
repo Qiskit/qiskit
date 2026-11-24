@@ -576,8 +576,13 @@ class InstructionFromRust(Instruction):
     def _define(self):
         self._definition = self._rust_operation.definition(self.params)
 
-    def inverse(self):
-        return self._rust_operation.inverse(self.params, self.label)
+    def inverse(self, annotated: bool = False):
+        # As with the standard gates, a native inverse is always returned as a concrete
+        # operation and ``annotated`` is ignored.
+        inverse = self._rust_operation.inverse(self.params)
+        if inverse is not None:
+            return inverse
+        return super().inverse(annotated=annotated)
 
     def __reduce__(self):
         # The base Rust carrier has no constructor, so it can't be rebuilt when unpickled.

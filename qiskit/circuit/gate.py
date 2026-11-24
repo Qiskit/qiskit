@@ -299,8 +299,13 @@ class GateFromRust(Gate):
     def __array__(self, dtype=complex, copy=None):
         return self._rust_operation.to_matrix(self.params, dtype)
 
-    def inverse(self):
-        return self._rust_operation.inverse(self.params, self.label)
+    def inverse(self, annotated: bool = False):
+        # As with the standard gates, a native inverse is always returned as a concrete
+        # operation and ``annotated`` is ignored.
+        inverse = self._rust_operation.inverse(self.params)
+        if inverse is not None:
+            return inverse
+        return super().inverse(annotated=annotated)
 
     def __reduce__(self):
         # The base Rust carrier has no constructor, so it can't be rebuilt when unpickled.

@@ -2561,23 +2561,16 @@ impl PyCustomOperation {
         self.inner.as_ref() == as_own.borrow().inner.as_ref()
     }
 
-    fn inverse<'py>(
-        &self,
-        py: Python<'py>,
-        params: Option<SmallVec<[Param; 3]>>,
-        label: Option<&str>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        match self.inner.inverse(params.as_deref().unwrap_or_default()) {
-            Some((op, params)) => {
-                Ok(
-                    create_py_op(py, op.view(), Some(params).map(Parameters::Params), label)?
-                        .into_bound(py),
-                )
-            }
-            None => Err(QiskitError::new_err(
-                "Operation does not have an inverse implementation",
-            )),
-        }
+    /// Return the native inverse of the operation for the given parameters, or `None` if the
+    /// operation doesn't implement one.
+    fn inverse(&self, py: Python, params: SmallVec<[Param; 3]>) -> PyResult<Option<Py<PyAny>>> {
+        self.inner
+            .inverse(&params)
+            .map(|(op, params)| {
+                let params = (!params.is_empty()).then(|| Parameters::Params(params));
+                create_py_op(py, op.view(), params, None)
+            })
+            .transpose()
     }
 }
 
@@ -2711,6 +2704,7 @@ mod test_custom_operations {
                 }
             }
 
+            #[cfg(feature = "py")]
             impl ToPythonOperation for $ty {}
         };
     }
