@@ -2958,9 +2958,6 @@ unsafe fn append_box(
 /// This function takes ownership of ``body``, even on failure. The caller must not use or free
 /// ``body`` afterwards. ``loop_param`` is borrowed.
 ///
-/// If the instruction index of the loop is needed later, it is
-/// ``qk_circuit_num_instructions(circuit) - 1`` right after this call.
-///
 /// @param circuit A pointer to the circuit to append the loop to.
 /// @param body A pointer to the circuit to use as the body of the loop.
 /// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
@@ -2976,15 +2973,17 @@ unsafe fn append_box(
 /// @param loop_param A pointer to the loop variable, or ``NULL`` if ``kind`` is
 ///     ``QkLoopParamKind_NoLoopParam``.
 ///
-/// @return ``QkExitCode_Success`` upon successful append. Upon failure,
-///     ``QkExitCode_ZeroLoopStep`` indicates a zero ``step``, ``QkExitCode_ArithmeticError`` a
-///     ``start``, ``stop`` or ``step`` that is not representable as ``ptrdiff_t``,
-///     ``QkExitCode_InvalidLoopVariable`` a ``QkVar`` that is not ``Uint``-typed,
-///     ``QkExitCode_LoopVariableMismatch`` a ``loop_param`` that does not match ``body``'s input
-///     variable, ``QkExitCode_ParameterError`` a parameter that ``body`` does not use,
-///     ``QkExitCode_CInputError`` a parameter name that is not valid UTF-8, and
-///     ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
-///     parameter names.
+/// @return An exit code.
+/// * ``QkExitCode_Success`` upon successful append
+/// * ``QkExitCode_ZeroLoopStep`` indicates a zero ``step``
+/// * ``QkExitCode_InvalidLoopVariable`` indicates a ``QkVar`` that is not ``Uint``-typed
+/// * ``QkExitCode_LoopVariableMismatch`` indicates a ``loop_param`` that does not match
+///   ``body``'s input variable
+/// * ``QkExitCode_ParameterError`` indicates a parameter that ``body`` does not use
+/// * ``QkExitCode_CInputError`` indicates a ``start``, ``stop`` or ``step`` that is not
+///   representable as ``ptrdiff_t``, or a parameter name that is not valid UTF-8
+/// * ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
+///   parameter names
 ///
 /// # Example
 /// ```c
@@ -3032,7 +3031,7 @@ pub unsafe extern "C" fn qk_circuit_for_loop_range(
         isize::try_from(stop),
         isize::try_from(step),
     ) else {
-        return ExitCode::ArithmeticError;
+        return ExitCode::CInputError;
     };
     let Some(step) = NonZero::new(step) else {
         return ExitCode::ZeroLoopStep;
@@ -3060,9 +3059,6 @@ pub unsafe extern "C" fn qk_circuit_for_loop_range(
 /// This function takes ownership of ``body``, even on failure. The caller must not use or free
 /// ``body`` afterwards. The ``elements`` array and ``loop_param`` are borrowed.
 ///
-/// If the instruction index of the loop is needed later, it is
-/// ``qk_circuit_num_instructions(circuit) - 1`` right after this call.
-///
 /// @param circuit A pointer to the circuit to append the loop to.
 /// @param body A pointer to the circuit to use as the body of the loop.
 /// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
@@ -3075,15 +3071,17 @@ pub unsafe extern "C" fn qk_circuit_for_loop_range(
 /// @param loop_param A pointer to the loop variable, or ``NULL`` if ``kind`` is
 ///     ``QkLoopParamKind_NoLoopParam``.
 ///
-/// @return ``QkExitCode_Success`` upon successful append. Upon failure,
-///     ``QkExitCode_NullPointerError`` or ``QkExitCode_AlignmentError`` indicates an invalid
-///     ``elements.elements``, ``QkExitCode_InvalidLoopVariable`` a ``QkVar`` that is not
-///     ``Uint``-typed,
-///     ``QkExitCode_LoopVariableMismatch`` a ``loop_param`` that does not match ``body``'s input
-///     variable, ``QkExitCode_ParameterError`` a parameter that ``body`` does not use,
-///     ``QkExitCode_CInputError`` a parameter name that is not valid UTF-8, and
-///     ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
-///     parameter names.
+/// @return An exit code.
+/// * ``QkExitCode_Success`` upon successful append
+/// * ``QkExitCode_NullPointerError`` if ``elements.elements`` is null while ``elements.len`` > 0
+/// * ``QkExitCode_AlignmentError`` indicates an invalid ``elements.elements``
+/// * ``QkExitCode_InvalidLoopVariable`` indicates a ``QkVar`` that is not ``Uint``-typed
+/// * ``QkExitCode_LoopVariableMismatch`` indicates a ``loop_param`` that does not match
+///   ``body``'s input variable
+/// * ``QkExitCode_ParameterError`` indicates a parameter that ``body`` does not use
+/// * ``QkExitCode_CInputError`` indicates a parameter name that is not valid UTF-8
+/// * ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
+///   parameter names
 ///
 /// # Example
 /// ```c

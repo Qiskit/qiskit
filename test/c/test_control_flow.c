@@ -1051,6 +1051,7 @@ static int test_build_for_loop_over_range(void) {
     uint32_t body_qubits[2] = {0, 1};
     const QkParam *rx_params[1] = {param};
     qk_circuit_parameterized_gate(body, QkGate_RX, body_qubits, rx_params);
+    qk_param_free(param);
     qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
 
     QkSymbolInfo symbol = {.ty = QkSymbolType_Standalone, .name = "i", .index = 0};
@@ -1132,7 +1133,6 @@ cleanup:
         qk_control_flow_instruction_free(cf_inst);
     }
     qk_circuit_free(circuit);
-    qk_param_free(param);
     return result;
 }
 
@@ -1153,6 +1153,7 @@ static int test_build_for_loop_over_elements(void) {
     uint32_t body_qubits[2] = {0, 1};
     const QkParam *rx_params[1] = {param};
     qk_circuit_parameterized_gate(body, QkGate_RX, body_qubits, rx_params);
+    qk_param_free(param);
     qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
 
     ptrdiff_t values[3] = {1, 3, 7};
@@ -1204,7 +1205,6 @@ cleanup:
         qk_control_flow_instruction_free(cf_inst);
     }
     qk_circuit_free(circuit);
-    qk_param_free(param);
     return result;
 }
 
@@ -1225,6 +1225,7 @@ static int test_build_for_loop_without_loop_param(void) {
     uint32_t body_qubits[2] = {0, 1};
     const QkParam *rx_params[1] = {param};
     qk_circuit_parameterized_gate(body, QkGate_RX, body_qubits, rx_params);
+    qk_param_free(param);
 
     ptrdiff_t values[3] = {1, 3, 7};
     QkLoopElements elements = {values, 3};
@@ -1259,7 +1260,6 @@ cleanup:
         qk_control_flow_instruction_free(cf_inst);
     }
     qk_circuit_free(circuit);
-    qk_param_free(param);
     return result;
 }
 
