@@ -36,6 +36,7 @@ from __future__ import annotations
 import copy
 from itertools import zip_longest
 import math
+import warnings
 
 import numpy
 
@@ -577,3 +578,21 @@ class InstructionFromRust(Instruction):
 
     def inverse(self):
         return self._rust_operation.inverse(self.params, self.label)
+
+    def __reduce__(self):
+        # The base Rust carrier has no constructor, so it can't be rebuilt when unpickled.
+        # Pickle a plain ``Instruction`` holding the same data instead.
+        warnings.warn(
+            f"'{self.name}' is implemented in Rust and can't be pickled as-is. It will be "
+            "unpickled as a plain Instruction with the same name, params, label and definition.",
+            UserWarning,
+            stacklevel=2,
+        )
+        args = (self.name, self.num_qubits, self.num_clbits, self.params, self.label)
+        return (Instruction, args, {"_definition": self.definition})
+
+    def __copy__(self):
+        # Without this, ``copy.copy`` would go through ``__reduce__`` and degrade the operation.
+        cpy = object.__new__(type(self))
+        cpy.__dict__.update(self.__dict__)
+        return cpy
