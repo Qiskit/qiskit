@@ -269,14 +269,13 @@ fn multi_qubit_evolution(
             control_qubits.reverse();
             control_qubits.push(pauli_qubits[0]);
 
-            let circuit = add_control(num_ctrl_qubits, base_gate, &params);
-            let insts = circuit_to_instructions(circuit, &control_qubits);
-            apply_x_sandwich(
-                insts,
+            add_open_control(
+                base_gate,
+                params,
                 &control_qubits,
-                &control_states,
                 num_ctrl_qubits,
-                &empty_clbits,
+                num_ctrl_qubits,
+                &control_states,
             )
         }
     } else {
@@ -290,7 +289,7 @@ fn multi_qubit_evolution(
             let gate: PackedOperation = StandardGate::Phase.into();
             let qubit = control_qubits[0];
             if control_states[0] {
-                // open control (positive projector e.g. |0><0|): X-sandwich around Phase
+                // open control (positive projector e.g. |0><0|): X-layer around Phase
                 let x: Instruction = (
                     StandardGate::X.into(),
                     smallvec![],
@@ -308,18 +307,17 @@ fn multi_qubit_evolution(
             }
         } else {
             // Multiple projectors: synthesize a multi-controlled phase gate.
-            // Use multiply_param(&time, -0.5) to account for the difference between
-            // RZ(t) = exp(-i t/2 Z) and P(t) = diag(1, exp(i t)).
+            // we have to adjust the rotation angle to account for the different conventions;
+            // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
             let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
             control_qubits.reverse();
-            let circuit = add_control(num_ctrl_qubits - 1, StandardGate::Phase, &params);
-            let insts = circuit_to_instructions(circuit, &control_qubits);
-            apply_x_sandwich(
-                insts,
+            add_open_control(
+                StandardGate::Phase,
+                params,
                 &control_qubits,
-                &control_states,
+                num_ctrl_qubits - 1,
                 num_ctrl_qubits,
-                &empty_clbits,
+                &control_states,
             )
         }
     };
@@ -397,8 +395,12 @@ fn cx_fountain(qubits: Vec<Qubit>) -> Box<dyn DoubleEndedIterator<Item = Instruc
     }))
 }
 
-/// Add controls to a standard gate, returning the synthesized [`CircuitData`] directly.
-fn add_control(num_ctrl_qubits: usize, gate: StandardGate, params: &[Param]) -> CircuitData {
+/// Add controls to a standard gate, either Phase or RZ, returning the synthesized [`CircuitData`] directly.
+fn add_control_phase_rz(
+    num_ctrl_qubits: usize,
+    gate: StandardGate,
+    params: &[Param],
+) -> CircuitData {
     let [phase] = params else {
         unreachable!("RZ and Phase gates always have exactly one parameter")
     };
@@ -428,25 +430,29 @@ fn circuit_to_instructions(circuit: CircuitData, global_qubits: &[Qubit]) -> Vec
         .collect()
 }
 
-/// Apply X-sandwich for open multi-controlled Phase or RZ gates
-fn apply_x_sandwich(
-    insts: Vec<Instruction>,
-    qubits: &[Qubit],
+/// Add open multi-controls to a standard gate, either Phase or RZ,
+/// by sandwitching a layer of X gates
+fn add_open_control(
+    gate: StandardGate,
+    params: SmallVec<[Param; 3]>,
+    controls: &[Qubit],
+    target: usize,
+    len_ctrl_qubits: usize,
     control_states: &[bool],
-    num_sandwich_qubits: usize,
-    empty_clbits: &[Clbit],
 ) -> Vec<Instruction> {
-    let x_gates: Vec<Instruction> = (0..num_sandwich_qubits)
+    let circuit = add_control_phase_rz(target, gate, &params);
+    let insts = circuit_to_instructions(circuit, controls);
+    let x_gates: Vec<Instruction> = (0..len_ctrl_qubits)
         .filter(|&i| {
-            let original_idx = num_sandwich_qubits - 1 - i;
+            let original_idx = len_ctrl_qubits - 1 - i;
             control_states[original_idx]
         })
         .map(|i| {
             (
                 StandardGate::X.into(),
                 smallvec![],
-                vec![qubits[i]],
-                empty_clbits.to_owned(),
+                vec![controls[i]],
+                vec![],
             )
         })
         .collect();
