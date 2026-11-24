@@ -53,6 +53,10 @@ C, and we use various static-analysis tools.
 
 - **C**: You need CMake and GNU Make.  Run `make ctest`.
 
+- **C API extension modules**: Install each package in `test/capi_extension/` with `pip`, then run
+  its tests with `unittest`.  See [Testing C API extension
+  modules](docs/devguide/contributing.md#testing-c-api-extension-modules) for the commands.
+
 - **Formatting**: We use `black` for Python code (see the `lint` dependency-group in
   `pyproject.toml`), `rustfmt` for Rust, and `clang-format` for C.  You can use `tox -e black` to
   autoformat Python code, `cargo fmt` for Rust, and `make cformat` for C.

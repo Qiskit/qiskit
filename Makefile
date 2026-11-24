@@ -85,8 +85,6 @@ C_DIR_OUT_LIB=$(C_DIR_OUT)/lib
 C_DIR_OUT_INCLUDE=$(C_DIR_OUT)/include
 C_DIR_TEST=test/c
 C_DIR_TEST_BUILD=test/c/build
-C_DIR_CAPI_EXTENSION=test/capi_extension
-C_DIR_CAPI_EXTENSION_BUILD=test/capi_extension/build
 
 # Input directories
 C_DIR_CARGO_TARGET=target
@@ -106,12 +104,6 @@ else
 endif
 
 C_LIBQISKIT_OUT=$(C_DIR_OUT_LIB)/$(subst _cext,,$(C_LIB_CARGO_FILENAME))
-
-# A Python extension module leaves the Python symbols unresolved until it is 
-# loaded, and the macOS linker needs to be told to allow that.
-ifeq ($(shell uname), Darwin)
-	C_CAPI_EXTENSION_LDFLAGS=-undefined dynamic_lookup
-endif
 
 # ==============================================================================
 # Recipes for the C components.
@@ -191,19 +183,6 @@ ctest: cheader build-clib-dev
 ccoverage: C_LIB_RUSTC_FLAGS=-Cinstrument-coverage
 ccoverage: ctest
 
-.PHONY: capi-extension-test
-# Build a minimal Python extension module that uses the C API through `qk_import()`, then run its
-# smoke test.  Both use the `qiskit` installed in the active Python environment, including the
-# header files it ships.  Windows is currently not supported.
-capi-extension-test:
-	mkdir -p $(C_DIR_CAPI_EXTENSION_BUILD)
-	$(CC) -std=c11 -Wall -Wextra -Wno-unused-parameter -Werror -shared -fPIC $(C_CAPI_EXTENSION_LDFLAGS) \
-		-I"$$(python -P -c 'import sysconfig; print(sysconfig.get_paths()["include"])')" \
-		-I"$$(python -P -c 'import qiskit.capi; print(qiskit.capi.get_include())')" \
-		$(C_DIR_CAPI_EXTENSION)/qk_smoke.c \
-		-o $(C_DIR_CAPI_EXTENSION_BUILD)/qk_smoke$$(python -P -c 'import sysconfig; print(sysconfig.get_config_var("EXT_SUFFIX"))')
-	PYTHONPATH=$(C_DIR_CAPI_EXTENSION_BUILD) python $(C_DIR_CAPI_EXTENSION)/smoke_test.py -v
-
 .PHONY: qiskit-pyo3-ffi
 qiskit-pyo3-ffi:
 	rm -rf dist/rust/qiskit-pyo3-ffi
@@ -211,5 +190,5 @@ qiskit-pyo3-ffi:
 
 .PHONY: cclean
 cclean:
-	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD) $(C_DIR_CAPI_EXTENSION_BUILD) $(C_INCLUDE_FILES_ABS_GENERATED)
+	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD) $(C_INCLUDE_FILES_ABS_GENERATED)
 	cargo clean --package qiskit-cext

@@ -214,6 +214,7 @@ test = [
     "ddt>=1.2.0",
     "coverage>=4.4.0",
     "threadpoolctl",  # More detail from Numpy/Scipy BLAS-usage reports.
+    "setuptools",  # Used for C API extension module tests in `test/capi_extension`.
 ]
 # Random tests.
 test-random = [
@@ -549,6 +550,8 @@ ignore = [
 ]
 "test/randomized/*" = ["S101"]
 "test/qpy_compat/*" = ["S101", "INP001"]
+# Each subdirectory is a standalone package.
+"test/capi_extension/*" = ["INP001"]
 "test/benchmarks/*" = ["S101"]
 # Visualization functions often subprocess to visualization tools
 "qiskit/visualization/*" = ["S603", "S607"]

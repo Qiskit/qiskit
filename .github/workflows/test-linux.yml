@@ -107,7 +107,8 @@ jobs:
         run: |
           set -e
           source test-job/bin/activate
-          make capi-extension-test
+          python -m pip install --no-build-isolation --no-deps test/capi_extension/qk_smoke
+          python -P -m unittest discover -s test/capi_extension/qk_smoke/tests -v
       - name: Run Python tests
         if: ${{ !inputs.install-from-sdist }}
         run: |

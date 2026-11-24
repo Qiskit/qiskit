@@ -55,11 +55,11 @@ static PyMethodDef methods[] = {
 
 static struct PyModuleDef module = {
     .m_base = PyModuleDef_HEAD_INIT,
-    .m_name = "qk_smoke",
+    .m_name = "qk_smoke._core",
     .m_methods = methods,
 };
 
-PyMODINIT_FUNC PyInit_qk_smoke(void) {
+PyMODINIT_FUNC PyInit__core(void) {
     if (qk_import() < 0)
         return NULL;
     return PyModule_Create(&module);

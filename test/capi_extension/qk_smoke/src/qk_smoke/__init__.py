@@ -10,4 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Smoke test of a downstream extension module that uses the Qiskit C API."""
+"""Minimal extension module that uses the Qiskit C API through ``qk_import()``."""
+
+from ._core import api_version, bell, num_instructions
+
+__all__ = ["api_version", "bell", "num_instructions"]
