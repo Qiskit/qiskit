@@ -16,7 +16,7 @@ use std::{cmp, fmt, num};
 
 pub mod table;
 
-pub use table::ResourceTable;
+pub use table::{OverlapChecker, ResourceTable};
 
 /// A single quantum identifier, representing some sort of "quantum resource" which follows the
 /// [quantum semantics](#quantum-semantics) defined below.
