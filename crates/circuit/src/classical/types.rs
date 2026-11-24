@@ -91,7 +91,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Type {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyType(TypeKind);
+pub(super) struct PyType(TypeKind);
 
 #[cfg(feature = "py")]
 #[pymethods]
@@ -149,7 +149,7 @@ enum TypeKind {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyBool;
+pub(super) struct PyBool;
 
 #[cfg(feature = "py")]
 #[pymethods]
@@ -184,7 +184,7 @@ impl PyBool {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyDuration;
+pub(super) struct PyDuration;
 
 #[cfg(feature = "py")]
 #[pymethods]
@@ -221,7 +221,7 @@ impl PyDuration {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyFloat;
+pub(super) struct PyFloat;
 
 #[cfg(feature = "py")]
 #[pymethods]
@@ -256,7 +256,7 @@ impl PyFloat {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyUint(u32);
+pub(super) struct PyUint(u32);
 
 #[cfg(feature = "py")]
 #[pymethods]
@@ -278,15 +278,4 @@ impl PyUint {
     fn __reduce__<'py>(slf: PyRef<'py, Self>, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         (py.get_type::<Self>(), (slf.0,)).into_pyobject(py)
     }
-}
-
-#[cfg(feature = "py")]
-#[pymodule(
-    submodule,
-    module = "qiskit._accelerate.circuit.classical",
-    name = "types"
-)]
-pub(crate) mod types_mod {
-    #[pymodule_export]
-    use super::{PyBool, PyDuration, PyFloat, PyType, PyUint};
 }

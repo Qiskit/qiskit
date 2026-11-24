@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[cfg(feature = "py")]
-use pyo3::prelude::*;
-
 mod binary;
 mod cast;
 #[allow(clippy::module_inception)]
@@ -32,35 +29,24 @@ pub use unary::{Unary, UnaryOp};
 pub use value::Value;
 pub use var::Var;
 
-// These aren't "pub use" since we probably shouldn't have a
-// reason to use the Python class types from Rust if we're
-// doing things the right way.
+// These are only `pub(super)`, for registering the Python module in `classical`, since we
+// probably shouldn't have a reason to use the Python class types from Rust if we're doing
+// things the right way.
 #[cfg(feature = "py")]
-use crate::classical::expr::binary::PyBinary;
+pub(super) use crate::classical::expr::binary::PyBinary;
 #[cfg(feature = "py")]
-use crate::classical::expr::cast::PyCast;
+pub(super) use crate::classical::expr::cast::PyCast;
 #[cfg(feature = "py")]
 use crate::classical::expr::expr::ExprKind;
 #[cfg(feature = "py")]
-use crate::classical::expr::expr::PyExpr;
+pub(super) use crate::classical::expr::expr::PyExpr;
 #[cfg(feature = "py")]
-use crate::classical::expr::index::PyIndex;
+pub(super) use crate::classical::expr::index::PyIndex;
 #[cfg(feature = "py")]
-use crate::classical::expr::stretch::PyStretch;
+pub(super) use crate::classical::expr::stretch::PyStretch;
 #[cfg(feature = "py")]
-use crate::classical::expr::unary::PyUnary;
+pub(super) use crate::classical::expr::unary::PyUnary;
 #[cfg(feature = "py")]
-use crate::classical::expr::value::PyValue;
+pub(super) use crate::classical::expr::value::PyValue;
 #[cfg(feature = "py")]
-use crate::classical::expr::var::PyVar;
-
-#[cfg(feature = "py")]
-#[pymodule(
-    submodule,
-    module = "qiskit._accelerate.circuit.classical",
-    name = "expr"
-)]
-pub(crate) mod expr_mod {
-    #[pymodule_export]
-    use super::{PyBinary, PyCast, PyExpr, PyIndex, PyStretch, PyUnary, PyValue, PyVar};
-}
+pub(super) use crate::classical::expr::var::PyVar;
