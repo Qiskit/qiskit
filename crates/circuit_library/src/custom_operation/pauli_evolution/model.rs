@@ -63,13 +63,15 @@ impl PauliEvolution {
         time: Param,
         label: impl Into<String>,
     ) -> Result<Self> {
-        validate_time(&time)?;
-
-        Ok(Self {
-            operator,
-            time: ComparableParam(time),
-            label: label.into(),
-        })
+        if matches!(time, Param::Int(_) | Param::ParameterExpression(_)) {
+            Ok(Self {
+                operator,
+                time: ComparableParam(time),
+                label: label.into(),
+            })
+        } else {
+            Err(PauliEvolutionError::TimeInvalid)
+        }
     }
 
     /// Returns a reference to the `operator`.
@@ -80,17 +82,6 @@ impl PauliEvolution {
     /// Returns a reference to the `time` parameter.
     pub fn time(&self) -> &Param {
         &self.time.0
-    }
-
-    /// Set the `time` parameter.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if `time` isn't a float or expression.
-    pub fn set_time(&mut self, time: Param) -> Result<()> {
-        validate_time(&time)?;
-        self.time = ComparableParam(time);
-        Ok(())
     }
 
     /// Returns a reference to the `label`.
@@ -175,14 +166,6 @@ impl PartialEq for ComparableParam {
             (Param::ParameterExpression(a), Param::ParameterExpression(b)) => a == b,
             _ => false,
         }
-    }
-}
-
-fn validate_time(time: &Param) -> Result<()> {
-    if matches!(time, Param::Float(_) | Param::ParameterExpression(_)) {
-        Ok(())
-    } else {
-        Err(PauliEvolutionError::TimeInvalid)
     }
 }
 

@@ -66,7 +66,9 @@ impl PyPauliEvolution {
 
     #[setter]
     pub fn set_time(&mut self, time: Param) -> PyResult<()> {
-        self.inner.set_time(time)?;
+        let operator = self.inner.operator().to_owned();
+        let inner = PauliEvolution::new(operator, time)?;
+        *self = Self { inner };
         Ok(())
     }
 
