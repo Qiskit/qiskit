@@ -154,17 +154,21 @@ fn build_layers<'a>(
 }
 
 /// Calculate the range (inclusive) of the given instruction qubits/clbits over the wire indices.
+/// Note that node_clbit indices are already offset by the number of qubit wires.
 fn get_instruction_wire_range(
     node_qubits: &[Qubit],
     qubit_map: &[Option<usize>],
     node_clbits: &[Clbit],
     clbit_map: &[Option<usize>],
 ) -> (usize, usize) {
-    // We can unwrap since all the qubits/clbits part of instructions can not be idle
     let indices = node_qubits
         .iter()
-        .map(|q| qubit_map[q.index()].unwrap())
-        .chain(node_clbits.iter().map(|c| clbit_map[c.index()].unwrap()));
+        .map(|q| qubit_map[q.index()].expect("qubit should should not be idle"))
+        .chain(
+            node_clbits
+                .iter()
+                .map(|c| clbit_map[c.index()].expect("clbit should not be idle")),
+        );
 
     match indices.minmax() {
         MinMaxResult::MinMax(min, max) => (min, max),
@@ -624,7 +628,7 @@ impl<'a> VisualizationMatrix<'a> {
         // Add input elements for each qubit and clbit/creg
         let input_layer = vis_matrix.layers.first_mut().unwrap();
         for (idx, qubit) in circuit.qubits().objects().iter().enumerate() {
-            if idle_wires || vis_matrix.qubit_map[idx].is_some() {
+            if vis_matrix.qubit_map[idx].is_some() {
                 input_layer.add_input(
                     WireInputElement::Qubit(qubit),
                     vis_matrix.qubit_map[idx].unwrap(),
@@ -634,7 +638,7 @@ impl<'a> VisualizationMatrix<'a> {
 
         let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
         for (idx, clbit) in circuit.clbits().objects().iter().enumerate() {
-            if idle_wires || vis_matrix.clbit_map[idx].is_some() {
+            if vis_matrix.clbit_map[idx].is_some() {
                 if bundle_cregs {
                     let bit_location = circuit
                         .clbit_indices()
