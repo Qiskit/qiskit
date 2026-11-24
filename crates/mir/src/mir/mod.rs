@@ -117,6 +117,11 @@ impl Mir {
                 .verify(&self.resource_table, &self.symbol_table)
         })?)
     }
+
+    /// Get a displayable view of Mir using the given options.
+    pub fn display_with(&self, options: MirDisplayOptions) -> MirDisplay<'_> {
+        MirDisplay { mir: self, options }
+    }
 }
 
 impl Default for Mir {
@@ -139,12 +144,65 @@ pub enum MirVerificationError {
     // SymbolTable, ResourceTable, etc)
 }
 
-impl std::fmt::Display for Mir {
+/// Options controlling how a Mir is printed.
+#[derive(Clone, Debug)]
+pub struct MirDisplayOptions {
+    /// The header line to print before everything else; None omits the header.
+    pub header: Option<String>,
+    /// Whether to print the resource table (qids).
+    pub resource_table: bool,
+    /// Whether to print the symbol table (classical symbols).
+    pub symbol_table: bool,
+    /// Whether to print the instructions.
+    pub instructions: bool,
+}
+
+impl Default for MirDisplayOptions {
+    fn default() -> Self {
+        Self {
+            header: Some("mir, @circuit".to_string()),
+            resource_table: true,
+            symbol_table: true,
+            instructions: true,
+        }
+    }
+}
+
+pub struct MirDisplay<'a> {
+    mir: &'a Mir,
+    options: MirDisplayOptions,
+}
+
+impl std::fmt::Display for MirDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for node in self.instructions.iter_main() {
-            writeln!(f, "{}", node.weight())?;
+        if let Some(header) = &self.options.header {
+            writeln!(f, "{header}")?;
+        }
+
+        if self.options.resource_table {
+            for (qid, info) in self.mir.resource_table.iter_qids() {
+                writeln!(f, "{qid}, {}", info.layout())?;
+            }
+        }
+
+        if self.options.symbol_table {
+            for sym in self.mir.symbol_table.iter() {
+                writeln!(f, "{sym}")?;
+            }
+        }
+
+        if self.options.instructions {
+            for node in self.mir.instructions.iter_main() {
+                writeln!(f, "{}", node.weight())?;
+            }
         }
         Ok(())
+    }
+}
+
+impl std::fmt::Display for Mir {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.display_with(MirDisplayOptions::default()).fmt(f)
     }
 }
 

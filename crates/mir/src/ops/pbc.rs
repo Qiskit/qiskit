@@ -78,6 +78,13 @@ impl PauliString {
     }
 }
 
+impl fmt::Display for PauliString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let items: Vec<String> = self.0.iter().map(|p| p.to_string()).collect();
+        write!(f, "{}", items.join(""))
+    }
+}
+
 /// A rotation angle in units of `rad / pi`.
 ///
 /// # Storage
@@ -146,6 +153,17 @@ impl AngleType {
     }
 }
 
+impl fmt::Display for AngleType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let val = self.0;
+        if val.fract() == 0.0 {
+            write!(f, "{val:.1}")
+        } else {
+            write!(f, "{val}")
+        }
+    }
+}
+
 /// An arbitrary-qubit Pauli rotation.
 ///
 /// This uses the convention `exp(-i P angle / 2)`, where `P` is the Pauli string and `angle` is the
@@ -173,7 +191,7 @@ impl PauliRotation {
 
 impl fmt::Display for PauliRotation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "pauli_rotation({:?}, {:?}", self.paulis, self.angle)
+        write!(f, "PauliRotation({}, {})", self.paulis, self.angle)
     }
 }
 
@@ -203,7 +221,7 @@ impl PauliMeasure {
 
 impl fmt::Display for PauliMeasure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "pauli_measure({:?})", self.paulis)
+        write!(f, "PauliMeasure({})", self.paulis)
     }
 }
 

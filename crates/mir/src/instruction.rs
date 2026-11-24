@@ -200,11 +200,14 @@ impl MirInstruction {
 
 impl fmt::Display for MirInstruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "op: {:?}, qids: {:?}, args: {:?}, returns: {:?}",
-            self.op, self.qids, self.args, self.returns
-        )
+        write!(f, "{} = {}", self.returns, self.op)?;
+        if !self.qids.is_empty() {
+            write!(f, ", {}", self.qids)?;
+        }
+        if !self.args.is_empty() {
+            write!(f, ", {}", self.args)?;
+        }
+        Ok(())
     }
 }
 
