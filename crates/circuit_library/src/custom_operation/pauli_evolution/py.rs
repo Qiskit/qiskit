@@ -62,7 +62,7 @@ impl PyPauliEvolution {
     #[setter]
     pub fn set_operator(&mut self, operator: &Bound<'_, PySparseObservable>) -> PyResult<()> {
         let operator = operator.borrow().as_inner()?.clone();
-        let inner = PauliEvolution::new(operator, self.time())?;
+        let inner = PauliEvolution::with_label(operator, self.time(), self.label())?;
         *self = Self { inner };
         Ok(())
     }
@@ -75,7 +75,7 @@ impl PyPauliEvolution {
     #[setter]
     pub fn set_time(&mut self, time: Param) -> PyResult<()> {
         let operator = self.inner.operator().to_owned();
-        let inner = PauliEvolution::new(operator, time)?;
+        let inner = PauliEvolution::with_label(operator, time, self.label())?;
         *self = Self { inner };
         Ok(())
     }
@@ -83,6 +83,14 @@ impl PyPauliEvolution {
     #[getter]
     pub fn label(&self) -> &str {
         self.inner.label()
+    }
+
+    #[setter]
+    pub fn set_label(&mut self, label: &str) -> PyResult<()> {
+        let operator = self.inner.operator().to_owned();
+        let inner = PauliEvolution::with_label(operator, self.time(), label)?;
+        *self = Self { inner };
+        Ok(())
     }
 
     pub fn inverse(&self) -> Self {
