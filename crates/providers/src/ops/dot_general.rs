@@ -12,10 +12,12 @@
 
 //! General tensor contraction, following StableHLO `dot_general`.
 
+use ndarray::{ArcArrayD, Array3, Axis, IxDyn, LinalgScalar};
+
 use super::error::{MathOpError, check_axis};
 use super::inference::promoted_dtype;
 use super::{ProgramOp, QISKIT};
-use crate::tensor::{DType, Dim, Tensor, TensorError, TensorType};
+use crate::tensor::{DType, Dim, Tensor, TensorError, TensorType, dim_shape, require_static};
 
 /// Which axes of each operand play which role in a contraction.
 ///
@@ -94,6 +96,100 @@ impl DotDims {
         }
         Ok(shape)
     }
+
+    /// Contract `lhs` with `rhs`, returning the result of shape `out_shape`.
+    ///
+    /// Each operand is read as a stack of matrices: its axes are put in the order batch, free,
+    /// contract, its batch axes are stretched to the batch sizes of the result, and each group of axes
+    /// is merged into one. That gives `(B, M, K)` for the left operand and `(B, N, K)` for the right
+    /// one. Each matrix of the result is `lhs[t]` times the transpose of `rhs[t]`.
+    ///
+    /// `out_shape` must be what [`DotDims::output_shape`] gives for the two operands, so its first axes
+    /// are the batch axes.
+    fn contract<T: LinalgScalar>(
+        &self,
+        lhs: &ArcArrayD<T>,
+        rhs: &ArcArrayD<T>,
+        out_shape: &[usize],
+    ) -> ArcArrayD<T> {
+        let batch_sizes = &out_shape[..self.lhs_batch.len()];
+        let b: usize = batch_sizes.iter().product();
+        let l = StackLayout::new(
+            lhs.shape(),
+            &self.lhs_batch,
+            &self.lhs_contract,
+            batch_sizes,
+        );
+        let r = StackLayout::new(
+            rhs.shape(),
+            &self.rhs_batch,
+            &self.rhs_contract,
+            batch_sizes,
+        );
+
+        // Reordering and stretching give views. Making a view row-major copies only if it is not row-major
+        // already, and merging the groups of axes then needs no copy.
+        let lhs = lhs.view().permuted_axes(l.order);
+        let lhs = lhs
+            .broadcast(IxDyn(&l.stretched))
+            .expect("the batch axes were checked to broadcast");
+        let lhs = lhs.as_standard_layout();
+        let lhs = lhs
+            .view()
+            .into_shape_with_order((b, l.rows, l.columns))
+            .expect("the group sizes multiply to the element count");
+
+        let rhs = rhs.view().permuted_axes(r.order);
+        let rhs = rhs
+            .broadcast(IxDyn(&r.stretched))
+            .expect("the batch axes were checked to broadcast");
+        let rhs = rhs.as_standard_layout();
+        let rhs = rhs
+            .view()
+            .into_shape_with_order((b, r.rows, r.columns))
+            .expect("the group sizes multiply to the element count");
+
+        let mut out = Array3::<T>::zeros((b, l.rows, r.rows));
+        for t in 0..b {
+            let product = lhs
+                .index_axis(Axis(0), t)
+                .dot(&rhs.index_axis(Axis(0), t).t());
+            out.index_axis_mut(Axis(0), t).assign(&product);
+        }
+        out.into_shape_with_order(IxDyn(out_shape))
+            .expect("the result has B * M * N elements")
+            .into_shared()
+    }
+}
+
+/// How [`DotDims::contract`] reads one operand as a stack of matrices.
+struct StackLayout {
+    /// The axes of the operand in the order batch, free, contract.
+    order: Vec<usize>,
+    /// The shape after reordering, with the batch axes at the batch sizes of the result.
+    stretched: Vec<usize>,
+    /// The number of rows of each matrix: the product of the sizes of the free axes.
+    rows: usize,
+    /// The number of columns of each matrix: the product of the sizes of the contracted axes.
+    columns: usize,
+}
+
+impl StackLayout {
+    /// The layout of an operand of shape `shape`, with the given batch and contracted axes, whose batch
+    /// axes are stretched to `batch_sizes`.
+    fn new(shape: &[usize], batch: &[usize], contract: &[usize], batch_sizes: &[usize]) -> Self {
+        let free = free_axes(shape.len(), contract, batch);
+        let mut stretched = batch_sizes.to_vec();
+        for &axis in free.iter().chain(contract) {
+            stretched.push(shape[axis]);
+        }
+        Self {
+            order: [batch, &free, contract].concat(),
+            stretched,
+            rows: free.iter().map(|&axis| shape[axis]).product(),
+            columns: contract.iter().map(|&axis| shape[axis]).product(),
+        }
+    }
 }
 
 /// Return the axes of an operand with `ndim` axes that are neither contracted nor batch axes.
@@ -170,8 +266,9 @@ fn check_contracted_pairs(
 ///
 /// The two sizes must be equal, or one of them `1`. A bounded size can only meet a size of `1`,
 /// because it cannot be compared with another one when the op is added.
+///
 /// Only the sizes of paired axes are broadcast. No axis is added: padding an operand with leading
-/// axes of size `1``, so that more of its axes pair up, is not part of the broadcasting.
+/// axes of size `1`, so that more of its axes pair up, is not part of the broadcasting.
 fn broadcast_batch_pairs(
     lhs_axes: &[usize],
     rhs_axes: &[usize],
@@ -218,23 +315,9 @@ fn broadcast_batch_pairs(
     Ok(sizes)
 }
 
-/// Admit the dtypes this op computes in: floating point, complex, and signed and unsigned integers.
+/// Admit the dtypes this op computes in: floating point and complex.
 fn numeric(dtype: DType) -> bool {
-    matches!(
-        dtype,
-        DType::F32
-            | DType::F64
-            | DType::C64
-            | DType::C128
-            | DType::I8
-            | DType::I16
-            | DType::I32
-            | DType::I64
-            | DType::U8
-            | DType::U16
-            | DType::U32
-            | DType::U64
-    )
+    matches!(dtype, DType::F32 | DType::F64 | DType::C64 | DType::C128)
 }
 
 /// Contract two tensors over chosen axes, keeping chosen batch axes.
@@ -242,9 +325,8 @@ fn numeric(dtype: DType) -> bool {
 /// This follows the semantics of StableHLO and JAX's `dot_general`, except that a batch pair is
 /// broadcast: a size of `1` stretches to the size of the other axis. No axes are added, so operands of
 /// different rank are not padded. See [`DotDims`] for the axis lists. The operand dtypes are promoted to a common dtype,
-/// which is the dtype of the result. Floating point, complex and integer dtypes are accepted.
-/// Complex values are multiplied, not conjugated, and integer results wrap on overflow.
-
+/// which is the dtype of the result. Floating point and complex dtypes are accepted.
+/// Complex values are multiplied, not conjugated.
 #[derive(Clone, Debug)]
 pub struct DotGeneral(pub DotDims);
 
@@ -261,7 +343,7 @@ impl ProgramOp for DotGeneral {
         2
     }
     fn has_builtin_eval(&self) -> bool {
-        false
+        true
     }
     fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
         crate::unpack_operands!(self, inputs, [x, y]);
@@ -269,8 +351,26 @@ impl ProgramOp for DotGeneral {
         let shape = self.0.output_shape(&x.shape, &y.shape)?;
         Ok(vec![TensorType { dtype, shape }])
     }
-    fn eval(&self, _args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
-        Err(MathOpError::NoBuiltinEval)
+    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
+        crate::unpack_operands!(self, args, [x, y]);
+        let dtype = promoted_dtype(x.dtype(), y.dtype(), numeric)?;
+
+        // A tensor value has fixed sizes, so the result shape has fixed sizes too.
+        let x_shape = dim_shape(x.shape().iter().copied());
+        let y_shape = dim_shape(y.shape().iter().copied());
+        let out_shape = require_static(&self.0.output_shape(&x_shape, &y_shape)?)?;
+
+        // Bring both operands to the common dtype, then compute in it.
+        let (x, y) = (x.clone().cast(dtype), y.clone().cast(dtype));
+        let dims = &self.0;
+        let result = match (&x, &y) {
+            (Tensor::F32(a), Tensor::F32(b)) => Tensor::F32(dims.contract(a, b, &out_shape)),
+            (Tensor::F64(a), Tensor::F64(b)) => Tensor::F64(dims.contract(a, b, &out_shape)),
+            (Tensor::C64(a), Tensor::C64(b)) => Tensor::C64(dims.contract(a, b, &out_shape)),
+            (Tensor::C128(a), Tensor::C128(b)) => Tensor::C128(dims.contract(a, b, &out_shape)),
+            _ => unreachable!("both operands were cast to {dtype}"),
+        };
+        Ok(vec![result])
     }
 }
 
@@ -278,12 +378,33 @@ impl ProgramOp for DotGeneral {
 mod test {
     use super::*;
     use crate::{FunctionError, ProgramFunction};
+    use ndarray::ArrayD;
+    use num_complex::{Complex32, Complex64};
+
+    /// An array of the given shape, filled from `data` in row-major order.
+    fn array<T: Clone>(sizes: &[usize], data: &[T]) -> ArcArrayD<T> {
+        ArrayD::from_shape_vec(IxDyn(sizes), data.to_vec())
+            .unwrap()
+            .into_shared()
+    }
+
+    /// An `F64` tensor.
+    fn f64s(sizes: &[usize], data: &[f64]) -> Tensor {
+        Tensor::F64(array(sizes, data))
+    }
+
+    /// An `F64` tensor holding 1, 2, 3, ... in row-major order.
+    fn counting(sizes: &[usize]) -> Tensor {
+        let count: usize = sizes.iter().product();
+        let data: Vec<f64> = (1..=count).map(|n| n as f64).collect();
+        f64s(sizes, &data)
+    }
 
     /// A tensor type with fixed sizes.
     fn ty(dtype: DType, sizes: &[usize]) -> TensorType {
         TensorType {
             dtype,
-            shape: sizes.iter().map(|&n| Dim::Fixed(n)).collect(),
+            shape: dim_shape(sizes.iter().copied()),
         }
     }
 
@@ -336,8 +457,7 @@ mod test {
         let op = DotGeneral(dims(&[1], &[0], &[], &[]));
         assert_eq!(op.full_name(), "qiskit.dot_general");
         assert_eq!(op.arity(), 2);
-        assert!(!op.has_builtin_eval());
-        assert!(matches!(op.eval(&[]), Err(MathOpError::NoBuiltinEval)));
+        assert!(op.has_builtin_eval());
     }
 
     // ---------- result shapes ----------
@@ -562,10 +682,8 @@ mod test {
         let cases = [
             (DType::F32, DType::C64, DType::C64),
             (DType::F64, DType::C64, DType::C128),
+            // An integer operand is cast to the dtype that the pair promotes to.
             (DType::I32, DType::F32, DType::F64),
-            // Integers keep their promoted dtype: there is no widening.
-            (DType::I16, DType::I16, DType::I16),
-            // An integer pair that the promotion table sends to a float.
             (DType::U64, DType::I64, DType::F64),
         ];
         for (lhs, rhs, expected) in cases {
@@ -576,6 +694,13 @@ mod test {
                 "{lhs} with {rhs}"
             );
         }
+
+        // A pair of integers promotes to an integer, which is not computed yet.
+        let result = op.infer_output_types(&[ty(DType::I16, &[2, 2]), ty(DType::I16, &[2, 2])]);
+        assert!(matches!(
+            result.unwrap_err(),
+            MathOpError::UnsupportedPromotion { .. }
+        ));
     }
 
     #[test]
@@ -592,10 +717,8 @@ mod test {
                 match result {
                     // Accepted: the result must be a dtype the op computes in.
                     Ok(out) => assert!(numeric(out[0].dtype), "{lhs} with {rhs}"),
-                    // Rejected: only two `Bit` operands promote to `Bit`.
-                    Err(MathOpError::UnsupportedPromotion { dtype: Bit, .. }) => {
-                        assert_eq!((lhs, rhs), (Bit, Bit));
-                    }
+                    // Rejected: the pair promotes to a dtype that is not computed.
+                    Err(MathOpError::UnsupportedPromotion { .. }) => {}
                     Err(other) => panic!("{lhs} with {rhs}: unexpected error {other}"),
                 }
             }
@@ -613,22 +736,262 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_a_function_checks_the_op_when_it_is_added() {
-        let mut f = ProgramFunction::new();
-        let a = f.add_parameter(ty(DType::C128, &[1000, 2, 2]));
-        let b = f.add_parameter(ty(DType::C128, &[1000, 2, 2]));
-        let c = f.add_parameter(ty(DType::C128, &[999, 2, 2]));
+    // ---------- values ----------
 
-        // Matching batch sizes: accepted, with the inferred type.
-        let pairwise = dims(&[2], &[1], &[0], &[0]);
+    #[test]
+    fn test_matrix_product() {
+        let op = DotGeneral(dims(&[1], &[0], &[], &[]));
+        let a = f64s(&[2, 2], &[1.0, 2.0, 3.0, 4.0]);
+        let b = f64s(&[2, 2], &[5.0, 6.0, 7.0, 8.0]);
+        assert_eq!(
+            op.eval(&[a, b]).unwrap(),
+            vec![f64s(&[2, 2], &[19.0, 22.0, 43.0, 50.0])]
+        );
+
+        // Not square: (2x3) times (3x1).
+        let a = f64s(&[2, 3], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        let b = f64s(&[3, 1], &[1.0, 0.0, -1.0]);
+        assert_eq!(
+            op.eval(&[a, b]).unwrap(),
+            vec![f64s(&[2, 1], &[-2.0, -2.0])]
+        );
+    }
+
+    #[test]
+    fn test_one_matrix_for_many_with_or_without_a_batch_axis() {
+        // Three matrices times one matrix. The one matrix is given without a batch axis, and again with
+        // a batch axis of size 1 that stretches to 3. Both give the same values. Values from NumPy.
+        let m = [1.0, 2.0, 3.0, 4.0];
+        let expected = f64s(
+            &[3, 2, 2],
+            &[
+                7.0, 10.0, 15.0, 22.0, 23.0, 34.0, 31.0, 46.0, 39.0, 58.0, 47.0, 70.0,
+            ],
+        );
+        let no_batch = DotGeneral(dims(&[2], &[0], &[], &[]));
+        let result = no_batch.eval(&[counting(&[3, 2, 2]), f64s(&[2, 2], &m)]);
+        assert_eq!(result.unwrap(), vec![expected.clone()]);
+        let stretched = DotGeneral(dims(&[2], &[1], &[0], &[0]));
+        let result = stretched.eval(&[counting(&[3, 2, 2]), f64s(&[1, 2, 2], &m)]);
+        assert_eq!(result.unwrap(), vec![expected]);
+    }
+
+    #[test]
+    fn test_batch_axes_that_stretch_on_both_operands() {
+        // (5, 1, 2, 2) with (1, 7, 2, 2). Values from NumPy.
+        let op = DotGeneral(dims(&[3], &[2], &[0, 1], &[0, 1]));
+        let out = op
+            .eval(&[counting(&[5, 1, 2, 2]), counting(&[1, 7, 2, 2])])
+            .unwrap();
+        assert_eq!(out[0].shape(), &[5, 7, 2, 2]);
+        let Tensor::F64(c) = &out[0] else {
+            panic!("expected F64")
+        };
+        assert_eq!(c.sum(), 42770.0);
+        let at = |i: usize, j: usize| -> Vec<f64> {
+            c.index_axis(Axis(0), i)
+                .index_axis(Axis(0), j)
+                .iter()
+                .copied()
+                .collect()
+        };
+        assert_eq!(at(0, 0), [7.0, 10.0, 15.0, 22.0]);
+        assert_eq!(at(2, 3), [267.0, 286.0, 323.0, 346.0]);
+        assert_eq!(at(4, 6), [911.0, 946.0, 1015.0, 1054.0]);
+    }
+
+    #[test]
+    fn test_a_batch_axis_in_the_middle_that_stretches() {
+        // lhs (4, 1, 2): free 4, batch 1, contract 2. rhs (3, 2, 5): batch 3, contract 2, free 5.
+        // The batch pair stretches from 1 to 3. Values from NumPy.
+        let op = DotGeneral(dims(&[2], &[1], &[1], &[0]));
+        let out = op
+            .eval(&[counting(&[4, 1, 2]), counting(&[3, 2, 5])])
+            .unwrap();
+        assert_eq!(out[0].shape(), &[3, 4, 5]);
+        let Tensor::F64(c) = &out[0] else {
+            panic!("expected F64")
+        };
+        assert_eq!(c.sum(), 8520.0);
+        assert_eq!(c[IxDyn(&[0, 0, 4])], 25.0);
+        assert_eq!(c[IxDyn(&[2, 3, 0])], 355.0);
+    }
+
+    #[test]
+    fn test_batch_pairs_listed_in_a_different_order() {
+        // lhs batch axes (0, 1) pair with rhs batch axes (1, 0). Values from NumPy.
+        let op = DotGeneral(dims(&[3], &[2], &[0, 1], &[1, 0]));
+        let lhs = counting(&[2, 3, 2, 2]);
+        let out = op.eval(&[lhs.clone(), counting(&[3, 2, 2, 2])]).unwrap();
+        assert_eq!(out[0].shape(), &[2, 3, 2, 2]);
+        let Tensor::F64(c) = &out[0] else {
+            panic!("expected F64")
+        };
+        assert_eq!(c.sum(), 9124.0);
+        assert_eq!(c[IxDyn(&[0, 0, 0, 0])], 7.0);
+        assert_eq!(c[IxDyn(&[1, 2, 0, 0])], 947.0);
+
+        // The same with the right operand stretching along its axis 1.
+        let out = op.eval(&[lhs, counting(&[3, 1, 2, 2])]).unwrap();
+        assert_eq!(out[0].shape(), &[2, 3, 2, 2]);
+        let Tensor::F64(c) = &out[0] else {
+            panic!("expected F64")
+        };
+        assert_eq!(c.sum(), 4436.0);
+        assert_eq!(c[IxDyn(&[1, 2, 0, 0])], 431.0);
+    }
+
+    #[test]
+    fn test_two_batch_axes_and_a_contracted_last_axis() {
+        // 'bhqd,bhkd->bhqk': the last axis of both operands is contracted. Values from NumPy.
+        let op = DotGeneral(dims(&[3], &[3], &[0, 1], &[0, 1]));
+        let q = f64s(&[2, 2, 3, 2], &(0..24).map(f64::from).collect::<Vec<_>>());
+        let k = f64s(&[2, 2, 4, 2], &(0..32).map(f64::from).collect::<Vec<_>>());
+        let out = op.eval(&[q, k]).unwrap();
+        assert_eq!(out[0].shape(), &[2, 2, 3, 4]);
+        let Tensor::F64(scores) = &out[0] else {
+            panic!("expected F64")
+        };
+        assert_eq!(scores.sum(), 22896.0);
+        assert_eq!(scores[IxDyn(&[1, 1, 2, 3])], 1373.0);
+        assert_eq!(scores[IxDyn(&[0, 1, 0, 2])], 163.0);
+    }
+
+    #[test]
+    fn test_vectors() {
+        let v = f64s(&[3], &[1.0, 2.0, 3.0]);
+        let w = f64s(&[3], &[4.0, 5.0, 6.0]);
+        let dot = DotGeneral(dims(&[0], &[0], &[], &[]));
+        assert_eq!(
+            dot.eval(&[v.clone(), w.clone()]).unwrap(),
+            vec![f64s(&[], &[32.0])]
+        );
+        let outer = DotGeneral(dims(&[], &[], &[], &[]));
+        assert_eq!(
+            outer.eval(&[v, w]).unwrap(),
+            vec![f64s(
+                &[3, 3],
+                &[4.0, 5.0, 6.0, 8.0, 10.0, 12.0, 12.0, 15.0, 18.0]
+            )]
+        );
+    }
+
+    #[test]
+    fn test_axes_of_size_zero() {
+        // An empty batch gives an empty result.
+        let empty = f64s(&[0, 2, 2], &[]);
+        let out = DotGeneral(dims(&[2], &[1], &[0], &[0]))
+            .eval(&[empty.clone(), empty])
+            .unwrap();
+        assert_eq!(out[0].shape(), &[0, 2, 2]);
+
+        // A sum over an empty axis is zero.
+        let op = DotGeneral(dims(&[1], &[0], &[], &[]));
+        let out = op.eval(&[f64s(&[2, 0], &[]), f64s(&[0, 3], &[])]).unwrap();
+        assert_eq!(out, vec![f64s(&[2, 3], &[0.0; 6])]);
+    }
+
+    #[test]
+    fn test_complex_values_are_not_conjugated() {
+        let op = DotGeneral(dims(&[1], &[0], &[], &[]));
+        let i = Tensor::C128(array(&[1, 1], &[Complex64::new(0.0, 1.0)]));
+        let result = op.eval(&[i.clone(), i]).unwrap();
+        assert_eq!(
+            result,
+            vec![Tensor::C128(array(&[1, 1], &[Complex64::new(-1.0, 0.0)]))]
+        );
+    }
+
+    #[test]
+    fn test_operands_of_different_dtypes_are_promoted() {
+        let op = DotGeneral(dims(&[1], &[0], &[], &[]));
+        let a = Tensor::F32(array(&[1, 1], &[2.0_f32]));
+        let b = Tensor::C64(array(&[1, 1], &[Complex32::new(1.0, 1.0)]));
+        let result = op.eval(&[a, b]).unwrap();
+        assert_eq!(
+            result,
+            vec![Tensor::C64(array(&[1, 1], &[Complex32::new(2.0, 2.0)]))]
+        );
+    }
+
+    #[test]
+    fn test_evaluation_agrees_with_inference() {
+        let op = DotGeneral(dims(&[3], &[2], &[0, 1], &[0, 1]));
+        let (a, b) = (counting(&[5, 1, 2, 3]), counting(&[1, 7, 3, 4]));
+        let inferred = op
+            .infer_output_types(&[a.tensor_type(), b.tensor_type()])
+            .unwrap();
+        let result = op.eval(&[a, b]).unwrap();
+        assert!(result[0].matches(&inferred[0]));
+    }
+
+    #[test]
+    fn test_a_function_checks_and_evaluates_the_op() {
+        let mut f = ProgramFunction::new();
+        let a = f.add_parameter(ty(DType::F64, &[5, 1, 2, 2]));
+        let b = f.add_parameter(ty(DType::F64, &[1, 7, 2, 2]));
+        let c = f.add_parameter(ty(DType::F64, &[4, 7, 2, 2]));
+        let pairwise = dims(&[3], &[2], &[0, 1], &[0, 1]);
+
+        // Broadcasting batch axes: accepted, with the inferred type.
         let out = f.add_op(DotGeneral(pairwise.clone()), &[a, b]).unwrap()[0];
-        assert_eq!(f.type_of(out).unwrap(), &ty(DType::C128, &[1000, 2, 2]));
+        assert_eq!(f.type_of(out).unwrap(), &ty(DType::F64, &[5, 7, 2, 2]));
 
         // Batch sizes that cannot be paired: rejected, and nothing is added.
         let count_before = f.instruction_count();
         let result = f.add_op(DotGeneral(pairwise), &[a, c]);
         assert!(matches!(result, Err(FunctionError::TypeError { .. })));
         assert_eq!(f.instruction_count(), count_before);
+
+        // The function evaluates.
+        f.add_result(out).unwrap();
+        assert!(f.has_builtin_eval());
+        let result = f.eval(&[
+            counting(&[5, 1, 2, 2]),
+            counting(&[1, 7, 2, 2]),
+            counting(&[4, 7, 2, 2]),
+        ]);
+        assert_eq!(result.unwrap()[0].shape(), &[5, 7, 2, 2]);
+    }
+
+    #[test]
+    fn test_a_bounded_batch_axis_meets_a_size_of_one_when_evaluated() {
+        let bounded = Dim::Bounded { max: 8 };
+        let two = Dim::Fixed(2);
+        let pairwise = dims(&[2], &[1], &[0], &[0]);
+
+        // The number of matrices on the left is only bounded, and there is one matrix on the right,
+        // with a batch axis of size 1. The op is accepted, and the result is bounded too.
+        let mut f = ProgramFunction::new();
+        let a = f.add_parameter(TensorType {
+            dtype: DType::F64,
+            shape: vec![bounded, two, two],
+        });
+        let b = f.add_parameter(ty(DType::F64, &[1, 2, 2]));
+        let out = f.add_op(DotGeneral(pairwise.clone()), &[a, b]).unwrap()[0];
+        assert_eq!(f.type_of(out).unwrap().shape, vec![bounded, two, two]);
+
+        // The size of 1 stretches to the size that the left operand has when the function runs.
+        f.add_result(out).unwrap();
+        for n in [1, 3, 8] {
+            let result = f
+                .eval(&[counting(&[n, 2, 2]), counting(&[1, 2, 2])])
+                .unwrap();
+            assert_eq!(result[0].shape(), &[n, 2, 2], "n = {n}");
+        }
+        // More than the bound is refused by the function.
+        assert!(
+            f.eval(&[counting(&[9, 2, 2]), counting(&[1, 2, 2])])
+                .is_err()
+        );
+
+        // A bounded axis against a fixed size other than 1 is refused when the op is added.
+        let mut g = ProgramFunction::new();
+        let a = g.add_parameter(TensorType {
+            dtype: DType::F64,
+            shape: vec![bounded, two, two],
+        });
+        let b = g.add_parameter(ty(DType::F64, &[5, 2, 2]));
+        assert!(g.add_op(DotGeneral(pairwise), &[a, b]).is_err());
     }
 }
