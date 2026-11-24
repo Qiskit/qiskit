@@ -2552,6 +2552,25 @@ impl PyCustomOperation {
         };
         self.inner.as_ref() == as_own.borrow().inner.as_ref()
     }
+
+    fn inverse<'py>(
+        &self,
+        py: Python<'py>,
+        params: Option<SmallVec<[Param; 3]>>,
+        label: Option<&str>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        match self.inner.inverse(params.as_deref().unwrap_or_default()) {
+            Some((op, params)) => {
+                Ok(
+                    create_py_op(py, op.view(), Some(params).map(Parameters::Params), label)?
+                        .into_bound(py),
+                )
+            }
+            None => Err(QiskitError::new_err(
+                "Operation does not have an inverse implementation",
+            )),
+        }
+    }
 }
 
 /// Controls how a [`CustomOperation`] is exposed to Python.

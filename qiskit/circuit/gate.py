@@ -296,3 +296,6 @@ class GateFromRust(Gate):
 
     def __array__(self, dtype=complex, copy=None):
         return self._rust_operation.to_matrix(self.params, dtype)
+
+    def inverse(self):
+        return self._rust_operation.inverse(self.params, self.label)

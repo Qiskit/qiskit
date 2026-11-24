@@ -574,3 +574,6 @@ class InstructionFromRust(Instruction):
 
     def _define(self):
         self._definition = self._rust_operation.definition(self.params)
+
+    def inverse(self):
+        return self._rust_operation.inverse(self.params, self.label)
