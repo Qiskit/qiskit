@@ -130,7 +130,7 @@ impl fmt::Display for Symbol {
 
 /// An opaque, cheap reference to a symbol in the SymbolTable.
 /// Instructions and other constructs refer to symbols by SymbolId.
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
