@@ -12,8 +12,7 @@
 
 # The types here are declared by hand because DataTree comes from the compiled extension module,
 # which has no signatures of its own. Each member's summary line is repeated so that a hover
-# keeps showing one; the full documentation lives on the Rust type. Nothing may be declared here
-# that the class does not have, which test_quantum_program.py checks.
+# keeps showing one; the full documentation lives on the Rust type.
 
 from collections.abc import Iterator
 from typing import Any, ClassVar

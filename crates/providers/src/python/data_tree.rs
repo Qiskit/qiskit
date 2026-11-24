@@ -53,12 +53,16 @@ pub(super) type ObjectTree = DataTree<Py<PyAny>>;
 /// of them, and `is_mapping` says which. One that names them has a mapping form, described by
 /// `keys()`, `values()` and `items()`, so `dict(tree)` and `**tree` work. Those three raise on a
 /// branch that has none.
+///
+/// Reading a leaf, by indexing, iterating or through `leaf`, returns the object the tree holds, not
+/// a copy of it. Reading a branch returns a new `DataTree` each time, whose structure is copied
+/// from the subtree but whose leaves are the same objects, so it takes time proportional to the
+/// size of that branch.
 #[pyclass(name = "DataTree", module = "qiskit.quantum_program", frozen, mapping)]
 pub struct PyDataTree(pub(super) ObjectTree);
 
 #[pymethods]
 impl PyDataTree {
-    // The object to parse is positional, so the parameter name is not part of the API.
     #[new]
     #[pyo3(signature = (object, /))]
     fn new(object: &Bound<'_, PyAny>) -> PyResult<Self> {
@@ -372,6 +376,10 @@ fn clone_ref(py: Python<'_>, tree: &ObjectTree) -> ObjectTree {
 }
 
 /// Return a child as Python sees it: the value of a leaf, or a data tree over a subtree.
+///
+/// A leaf is the object the tree holds, with a new reference and no copy. A branch is a new
+/// `PyDataTree` over a copy of the subtree's structure, whose leaves are new references to the same
+/// objects.
 fn child_object(py: Python<'_>, child: &ObjectTree) -> PyResult<Py<PyAny>> {
     match child {
         DataTree::Leaf(value) => Ok(value.clone_ref(py)),
