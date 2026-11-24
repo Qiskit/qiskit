@@ -103,6 +103,11 @@ jobs:
       - name: Install optional non-Python dependencies
         run: sudo tools/install_ubuntu_graphviz.sh
         if: ${{ inputs.install-optionals }}
+      - name: Run C API extension-module smoke test
+        run: |
+          set -e
+          source test-job/bin/activate
+          make capi-extension-test
       - name: Run Python tests
         if: ${{ !inputs.install-from-sdist }}
         run: |
