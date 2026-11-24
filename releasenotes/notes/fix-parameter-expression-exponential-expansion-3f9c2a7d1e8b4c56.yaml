@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed exponential runtime when adding or subtracting :class:`.ParameterExpression` objects
+    that accumulate many terms. The eager simplification of a sum used to expand both sides in full
+    to look for a shared term, which made :class:`.BasisTranslator` (and therefore
+    :func:`.transpile` at every optimization level) appear to hang on parameterized circuits, for
+    example circuits of parameterized ``u`` and ``cx`` gates translated to a ``cz`` basis.
+    Fixed `#16520 <https://github.com/Qiskit/qiskit/issues/16520>`__ and
+    `#17306 <https://github.com/Qiskit/qiskit/issues/17306>`__.
