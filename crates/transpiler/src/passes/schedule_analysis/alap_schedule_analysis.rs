@@ -107,8 +107,16 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
             // C ░░░░░░░░░▒▒▒▒▒▒▒
             //            |t0 + (duration - clbit_write_latency)
 
+            //
+            // A latency longer than `t1` leaves the clbit free up to the end of the circuit; the
+            // subtraction would underflow for integer times.
+            let clbit_idle_before = if t1 > clbit_write_latency {
+                t1 - clbit_write_latency
+            } else {
+                zero
+            };
             for clbit in cargs.iter() {
-                idle_before.insert(*clbit, t0 + op_duration - clbit_write_latency);
+                idle_before.insert(*clbit, clbit_idle_before);
             }
             t1
         } else {
