@@ -10,11 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Smoke test of a compiled extension module that uses the Qiskit C API through ``qk_import()``.
-
-The compiled ``qk_smoke`` module must be importable.  ``make capi-extension-test`` builds it and
-runs this file against the ``qiskit`` installed in the active Python environment.
-"""
+"""Smoke test of a compiled extension module."""
 
 import unittest
 
