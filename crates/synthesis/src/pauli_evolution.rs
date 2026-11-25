@@ -266,14 +266,14 @@ fn multi_qubit_evolution(
             vec![(gate, params, vec![pauli_qubits[0]], empty_clbits.clone())]
         } else {
             // if we have projectors, add controls to the target rotation.
-            control_qubits.reverse();
-            control_qubits.push(pauli_qubits[0]);
+            let mut added_qubits = Vec::with_capacity(control_qubits.len() + 1);
+            added_qubits.extend_from_slice(&control_qubits);
+            added_qubits.push(pauli_qubits[0]);
 
             add_open_control(
                 base_gate,
                 params,
-                &control_qubits,
-                num_ctrl_qubits,
+                &added_qubits,
                 num_ctrl_qubits,
                 &control_states,
             )
@@ -286,13 +286,11 @@ fn multi_qubit_evolution(
         // we have to adjust the rotation angle to account for the different conventions;
         // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
         let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
-        control_qubits.reverse();
         add_open_control(
             StandardGate::Phase,
             params,
             &control_qubits,
             num_ctrl_qubits - 1,
-            num_ctrl_qubits,
             &control_states,
         )
     };
@@ -411,17 +409,14 @@ fn add_open_control(
     gate: StandardGate,
     params: SmallVec<[Param; 3]>,
     controls: &[Qubit],
-    target: usize,
-    len_ctrl_qubits: usize,
+    num_ctrl_qubits: usize,
     control_states: &[bool],
 ) -> Vec<Instruction> {
-    let circuit = add_control_phase_rz(target, gate, &params);
+    let len_states = control_states.len();
+    let circuit = add_control_phase_rz(num_ctrl_qubits, gate, &params);
     let insts = circuit_to_instructions(circuit, controls);
-    let x_gates: Vec<Instruction> = (0..len_ctrl_qubits)
-        .filter(|&i| {
-            let original_idx = len_ctrl_qubits - 1 - i;
-            control_states[original_idx]
-        })
+    let x_gates: Vec<Instruction> = (0..len_states)
+        .filter(|&i| control_states[i])
         .map(|i| {
             (
                 StandardGate::X.into(),
