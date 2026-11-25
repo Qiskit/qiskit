@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Distributions drawn uniformly from a group.
+//! Distributions drawn uniformly.
 
 use crate::program::ProgramFunction;
 use crate::randomization::partition::Partition;
@@ -25,12 +25,14 @@ pub struct UniformPauli {
 }
 
 impl UniformPauli {
-    /// Uniform Paulis factorizing as `factorization` says.
+    /// Uniform Paulis factorizing as `factorization`.
     ///
-    /// One virtual gate per part, drawn from the Pauli group on that part's qubits. Any
-    /// factorization will do, since a Pauli on n qubits is as uniform as n Paulis on one each.
-    pub fn new(factorization: Partition<u32>) -> Self {
-        UniformPauli { factorization }
+    /// Every part has to be one qubit index.
+    pub fn new(factorization: Partition<u32>) -> Option<Self> {
+        if !factorization.is_singletons() {
+            return None;
+        }
+        Some(UniformPauli { factorization })
     }
 }
 
@@ -57,8 +59,7 @@ pub struct HaarU2 {
 impl HaarU2 {
     /// Haar-random unitaries factorizing as `factorization` says, or `None` if it cannot.
     ///
-    /// Every part has to be one qubit. A wider one would be Haar over a larger unitary group
-    /// rather than over U(2).
+    /// Every part has to be one qubit index.
     pub fn new(factorization: Partition<u32>) -> Option<Self> {
         if !factorization.is_singletons() {
             return None;

@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Pauli-Lindblad noise maps.
+//! Pauli-Lindblad noise.
 
 use crate::program::ProgramFunction;
 use crate::randomization::partition::Partition;
@@ -29,20 +29,20 @@ pub struct Noise {
 }
 
 impl Noise {
-    /// A map factorizing as `factorization` says.
-    ///
-    /// One virtual gate per part. A characterized map can carry terms over several qubits so a part
-    /// may be wider than one.
+    /// A map factorizing as `factorization`.
     pub fn new(
         reference: impl Into<Box<str>>,
         modifier: Option<Box<str>>,
         factorization: Partition<u32>,
-    ) -> Self {
-        Noise {
+    ) -> Option<Self> {
+        if !factorization.is_singletons() {
+            return None;
+        }
+        Some(Noise {
             reference: reference.into(),
             modifier,
             factorization,
-        }
+        })
     }
 }
 

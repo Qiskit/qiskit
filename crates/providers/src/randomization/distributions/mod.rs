@@ -50,7 +50,8 @@ impl DistributionKind {
     /// Resolve over `factorization`, or `None` if this kind cannot factorize that way.
     pub fn resolve(&self, factorization: Partition<u32>) -> Option<Arc<dyn Distribution>> {
         match self {
-            Self::UniformPauli => Some(Arc::new(UniformPauli::new(factorization))),
+            Self::UniformPauli => UniformPauli::new(factorization)
+                .map(|pauli| Arc::new(pauli) as Arc<dyn Distribution>),
             Self::HaarU2 => {
                 HaarU2::new(factorization).map(|haar| Arc::new(haar) as Arc<dyn Distribution>)
             }
@@ -67,7 +68,9 @@ mod tests {
     }
 
     fn noise(num_qubits: u32) -> Arc<dyn Distribution> {
-        Arc::new(Noise::new("layer_1", None, singletons(num_qubits)))
+        Noise::new("layer_1", None, singletons(num_qubits))
+            .map(|noise| Arc::new(noise) as Arc<dyn Distribution>)
+            .expect("noise resolves over singletons")
     }
 
     fn resolved(kind: DistributionKind, num_qubits: u32) -> Arc<dyn Distribution> {
@@ -150,12 +153,6 @@ mod tests {
             DistributionKind::HaarU2.resolve(paired.clone()).is_none(),
             "Haar over a pair is not Haar over U(2)"
         );
-        let correlated = DistributionKind::UniformPauli
-            .resolve(paired)
-            .expect("a Pauli on two qubits is as uniform as two on one each");
-        assert_eq!(correlated.num_qubits(), 2);
-        assert_eq!(correlated.num_factors(), 1);
-        assert_eq!(correlated.factor_qubits(0), Some([0, 1].as_slice()));
     }
 
     #[test]
