@@ -204,7 +204,7 @@ pub fn fix_direction_coupling_map(
 /// Args:
 ///     dag: the DAGCircuit to analyze
 ///
-///     coupling_edges: set of edge pairs representing a directed coupling map, against which gate directionality is checked
+///     target: the Target against which gate directionality is checked
 ///
 /// Returns:
 ///     the transformed DAGCircuit

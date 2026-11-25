@@ -201,6 +201,12 @@ impl Heuristic {
     /// components to it.
     ///
     /// Args:
+    ///     basic (BasicHeuristic | None): the ``basic`` component of the heuristic, as set by
+    ///         :meth:`with_basic`, or ``None`` to leave it out.
+    ///     lookahead (LookaheadHeuristic | None): the ``lookahead`` component of the heuristic, as
+    ///         set by :meth:`with_lookahead`, or ``None`` to leave it out.
+    ///     decay (DecayHeuristic | None): the ``decay`` component of the heuristic, as set by
+    ///         :meth:`with_decay`, or ``None`` to leave it out.
     ///     attempt_limit (int): the maximum number of swaps to attempt before using a fallback
     ///         "escape" mechanism to forcibly route a gate.  Set this to ``None`` to entirely
     ///         disable the mechanism, but beware that it's possible (on large coupling maps with a

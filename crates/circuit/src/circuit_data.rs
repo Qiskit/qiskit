@@ -2324,6 +2324,12 @@ impl PyCircuitData {
     ///     clbits (Iterable[:class:`.Clbit] | None):
     ///         The clbit sequence which should replace the container's
     ///         existing qubits, or ``None`` to skip replacement.
+    ///     qregs (Iterable[:class:`.QuantumRegister`] | None):
+    ///         The quantum registers to use with the replacement ``qubits``.
+    ///         These only take effect when ``qubits`` is given.
+    ///     cregs (Iterable[:class:`.ClassicalRegister`] | None):
+    ///         The classical registers to use with the replacement ``clbits``.
+    ///         These only take effect when ``clbits`` is given.
     ///
     /// Raises:
     ///     ValueError: A replacement sequence is smaller than the bit list
@@ -2464,19 +2470,6 @@ impl PyCircuitData {
         self.inner.num_qubits()
     }
 
-    /// The list of registered :class:`.ClassicalRegisters` instances.
-    ///
-    /// .. warning::
-    ///
-    ///     Do not modify this list yourself.  It will invalidate/corrupt :attr:`.data` for this circuit.
-    ///
-    /// Returns:
-    ///     list[:class:`.ClassicalRegister`]: The current sequence of registered qubits.
-    #[getter("cregs")]
-    pub fn py_cregs<'py>(&'py self, py: Python<'py>) -> Bound<'py, PyList> {
-        self.inner.cregs.cached_list(py)
-    }
-
     /// A dict mapping Clbit instances to tuple comprised of 0) the corresponding index in
     /// circuit.clbits and 1) a list of Register-int pairs for each Register containing the Bit and
     /// its index within that register.
@@ -2601,7 +2594,9 @@ impl PyCircuitData {
     /// Registers a :class:`.QuantumRegister` instance.
     ///
     /// Args:
-    ///     bit (:class:`.QuantumRegister`): The register to add.
+    ///     register (:class:`.QuantumRegister`): The register to add.
+    ///     strict (bool): When set, raises an error if a register with the same name is already
+    ///         present.
     #[pyo3(signature = (register, *,strict = true))]
     pub fn add_qreg(&mut self, register: QuantumRegister, strict: bool) -> PyResult<()> {
         Ok(self.inner.add_qreg(register, strict)?)
@@ -2610,7 +2605,9 @@ impl PyCircuitData {
     /// Registers a :class:`.ClassicalRegister` instance.
     ///
     /// Args:
-    ///     bit (:class:`.ClassicalRegister`): The register to add.
+    ///     register (:class:`.ClassicalRegister`): The register to add.
+    ///     strict (bool): When set, raises an error if a register with the same name is already
+    ///         present.
     #[pyo3(signature = (register, *,strict = true))]
     pub fn add_creg(&mut self, register: ClassicalRegister, strict: bool) -> PyResult<()> {
         Ok(self.inner.add_creg(register, strict)?)
@@ -3402,6 +3399,14 @@ impl PyCircuitData {
         self.inner.qregs()
     }
 
+    /// The list of registered :class:`.ClassicalRegisters` instances.
+    ///
+    /// .. warning::
+    ///
+    ///     Do not modify this list yourself.  It will invalidate/corrupt :attr:`.data` for this circuit.
+    ///
+    /// Returns:
+    ///     list[:class:`.ClassicalRegister`]: The current sequence of registered qubits.
     #[getter]
     pub fn cregs(&self) -> &[ClassicalRegister] {
         self.inner.cregs()

@@ -157,7 +157,7 @@ fn decompose_two_qubit_product_gate(
 /// Decompose :math:`U = U_l \otimes U_r` where :math:`U \in SU(4)`,
 /// and :math:`U_l,~U_r \in SU(2)`.
 /// Args:
-///     special_unitary_matrix: special unitary matrix to decompose
+///     special_unitary: special unitary matrix to decompose
 /// Raises:
 ///     QiskitError: if decomposition isn't possible.
 pub fn py_decompose_two_qubit_product_gate(
@@ -177,7 +177,7 @@ pub fn py_decompose_two_qubit_product_gate(
 /// Computes the Weyl coordinates for a given two-qubit unitary matrix.
 ///
 /// Args:
-///     U (np.ndarray): Input two-qubit unitary.
+///     unitary (np.ndarray): Input two-qubit unitary.
 ///
 /// Returns:
 ///     np.ndarray: Array of the 3 Weyl coordinates.
