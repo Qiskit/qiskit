@@ -2520,6 +2520,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiskit-mir-targets"
+version = "2.7.0-dev"
+dependencies = [
+ "fixedbitset 0.5.9",
+ "qiskit-mir",
+ "qiskit-util",
+ "rayon",
+]
+
+[[package]]
 name = "qiskit-passmanager"
 version = "2.7.0-dev"
 dependencies = [

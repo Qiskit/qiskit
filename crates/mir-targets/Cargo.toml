@@ -1,0 +1,22 @@
+[package]
+name = "qiskit-mir-targets"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_mir_targets"
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+fixedbitset.workspace = true
+qiskit-mir.workspace = true
+qiskit-util.workspace = true
+rayon.workspace = true
+
+[[example]]
+name = "bb_table_histogram"
