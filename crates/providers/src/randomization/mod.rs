@@ -14,6 +14,7 @@
 
 pub mod annotations;
 pub mod distributions;
+pub mod flags;
 pub mod partition;
 pub mod virtual_type;
 
