@@ -13,6 +13,7 @@ __pycache__/
 # Generated during Python build
 /qiskit/capi/include
 /qiskit/capi/_ctypes.py
+/qiskit/_accelerate/
 *.pyd
 *.so
 

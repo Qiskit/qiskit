@@ -1,8 +1,9 @@
 [build-system]
 # This is duplicated as `dependency-groups.build` for convenience.  Sync updates there.
 requires = [
-    # Minimum version is for the `tool.maturin.include` generated-files support.
-    "maturin>=1.12.1",
+    # Minimum version is for `--generate-stubs` with PyO3 0.30.  Maturin bundles its own copy of
+    # `pyo3-introspection`, which must read the introspection format of our PyO3 version.
+    "maturin>=1.16",
 ]
 build-backend = "qiskit_local_build"
 backend-path = ["build_backend"]
@@ -199,7 +200,7 @@ default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultScheduli
 # process.  If you intended that, use `project.optional-dependencies` instead.
 [dependency-groups]
 # Sync with `build-system.requires`.
-build = ["maturin>=1.12.1"]
+build = ["maturin>=1.16"]
 # We use quite tight pins on pylint and astroid because they have a habit of adding new
 # on-by-default lints that are harder to deal with.
 lint = [
@@ -290,7 +291,7 @@ editable-profile = "dev"
 # Default features for the `maturin` build.  This could be `default-features` of `pyext`, but having
 # it set here is more convenient for reading in our custom PEP-517 build backend, which needs to be
 # able to read the defaults.
-features = ["cache_pygates"]
+features = ["cache_pygates", "type_stubs"]
 include = [
     # Generated files from Rust build scripts.
     { path = "include/**/*", from = "out-dir", to = "qiskit/capi/" },
