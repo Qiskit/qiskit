@@ -15,6 +15,7 @@
 pub mod annotations;
 pub mod distributions;
 pub mod emissions;
+pub mod flags;
 pub mod partition;
 pub mod synthesizer;
 pub mod virtual_type;
