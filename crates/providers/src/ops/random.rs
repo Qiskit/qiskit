@@ -22,6 +22,9 @@
 //!  3. The key index selects the key. The payload index selects the counter position, and the
 //!     key index never enters the counter.
 //!
+//! A key operand is typically single use, where [`Split`] should be used to fork keys that are
+//! used by subsequent operations. Otherwise, there will generally be correlations between those
+//! operations' outputs.
 
 use ndarray::{ArcArrayD, IxDyn};
 use rand::distr::{Distribution, Uniform};
@@ -116,12 +119,15 @@ fn check_substreams(kind: PrngKind, shape: &[usize], stride: usize) -> Result<()
     }
 }
 
-/// Return how many blocks a payload of `shape` takes at `bits_per_position` bits each.
+/// Return how many blocks a payload of `shape` requires at `bits_per_position` bits each.
+///
+/// This is exact unless `shape` holds more than `u128::MAX` positions, in which case it is a                                                                                                                                  
+/// lower bound.  
 fn blocks_needed(kind: PrngKind, shape: &[usize], bits_per_position: usize) -> u128 {
     let bits_per_position = bits_per_position as u128;
     let bits_per_block = (32 * kind.block_words()) as u128;
     let num_positions = positions(shape);
-    // be a bit careful about order of operations to avoid needlessly saturating u128::MAX
+    // Be a bit careful about order of operations to avoid needlessly saturating u128::MAX
     (num_positions / bits_per_block)
         .saturating_mul(bits_per_position)
         .saturating_add(
@@ -628,13 +634,13 @@ pub enum RandomOpError {
     #[error("expected a key operand, got {actual}")]
     KeyType { actual: TensorType },
     /// The dtype does not hold raw bits.
-    #[error("{dtype} does not hold raw bits: expected Bit or an unsigned integer")]
+    #[error("{dtype} does not have raw bit support: expected Bit, U8, U16, U32 or U64")]
     NotBits { dtype: DType },
     /// The range holds no values.
     #[error("the range {low}..={high} is empty")]
     EmptyRange { low: i64, high: i64 },
-    /// The generator's counter is too narrow for the payload shape.
-    #[error("{kind} affords {afforded} {unit}, and this payload needs {needed}")]
+    /// The payload needs more blocks than the counter can address.
+    #[error("{kind} has {afforded} {unit} but this payload needs {needed}")]
     CounterExhausted {
         kind: PrngKind,
         unit: CounterUnit,
@@ -649,11 +655,6 @@ pub enum RandomOpError {
 #[cfg(test)]
 mod test {
     use super::*;
-
-    /// Return a shape of fixed axes.
-    fn fixed(sizes: &[usize]) -> Vec<Dim> {
-        sizes.iter().copied().map(Dim::Fixed).collect()
-    }
 
     /// Return a tensor of `shape` keys laid out row-major.
     fn keys_of(shape: &[usize], key_words: Vec<u32>) -> Tensor {
@@ -729,11 +730,11 @@ mod test {
         assert_eq!(
             RandomBits::new(DType::U32, vec![4])
                 .unwrap()
-                .infer_output_types(&[key_type(fixed(&[3, 1]))])
+                .infer_output_types(&[key_type(dim_shape([3, 1]))])
                 .unwrap(),
             vec![TensorType {
                 dtype: DType::U32,
-                shape: fixed(&[3, 4]),
+                shape: dim_shape([3, 4]),
             }]
         );
         // A split keeps the key dtype, and uniform_int produces I64.
@@ -741,7 +742,7 @@ mod test {
             Split::new(vec![3])
                 .infer_output_types(&[key_type(vec![])])
                 .unwrap(),
-            vec![key_type(fixed(&[3]))]
+            vec![key_type(dim_shape([3]))]
         );
         assert_eq!(
             UniformInt::new(vec![2], 0, 5)
@@ -750,7 +751,7 @@ mod test {
                 .unwrap(),
             vec![TensorType {
                 dtype: DType::I64,
-                shape: fixed(&[2]),
+                shape: dim_shape([2]),
             }]
         );
     }
@@ -759,7 +760,7 @@ mod test {
     fn test_infer_rejects_an_operand_that_is_not_a_key() {
         let not_a_key = TensorType {
             dtype: DType::U32,
-            shape: fixed(&[2]),
+            shape: dim_shape([2]),
         };
         for op in [
             &Split::new(vec![2]) as &dyn ProgramOp<Error = RandomOpError>,
@@ -936,7 +937,7 @@ mod test {
                     .unwrap(),
                 vec![TensorType {
                     dtype,
-                    shape: fixed(&[3]),
+                    shape: dim_shape([3]),
                 }]
             );
         }
@@ -950,7 +951,7 @@ mod test {
         let draw = RandomBits::new(DType::U32, vec![2]).unwrap();
         assert_eq!(
             draw.infer_output_types(&[keys.tensor_type()]).unwrap()[0].shape,
-            fixed(&[2])
+            dim_shape([2])
         );
         let drawn = draw.eval(std::slice::from_ref(&keys)).unwrap();
         assert_eq!(drawn[0].shape(), &[2], "eval agrees with inference");
@@ -1394,7 +1395,7 @@ mod test {
             op.infer_output_types(&[]).unwrap(),
             vec![TensorType {
                 dtype: DType::Key(PrngKind::Philox4x32),
-                shape: fixed(&[2, 3]),
+                shape: dim_shape([2, 3]),
             }]
         );
 
@@ -1633,7 +1634,7 @@ mod test {
     fn test_the_random_ops_refuse_an_operand_that_is_not_a_key() {
         let not_a_key = TensorType {
             dtype: DType::U32,
-            shape: fixed(&[2]),
+            shape: dim_shape([2]),
         };
         let operand = Tensor::U32(
             ndarray::ArrayD::from_shape_vec(IxDyn(&[2]), vec![7u32, 8])
@@ -1672,7 +1673,7 @@ mod test {
     fn test_the_random_ops_refuse_a_payload_the_keys_do_not_broadcast_to() {
         let key_type = TensorType {
             dtype: DType::Key(PrngKind::Philox4x32),
-            shape: fixed(&[3]),
+            shape: dim_shape([3]),
         };
         let keys = numbered_keys(&[3], 0);
 
@@ -1683,7 +1684,7 @@ mod test {
                 matches!(
                     &error,
                     RandomOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs })
-                        if lhs == &fixed(&[3]) && rhs == &fixed(&[4])
+                        if lhs == &dim_shape([3]) && rhs == &dim_shape([4])
                 ),
                 "{what}: got {error:?}"
             );

@@ -49,7 +49,11 @@ use qiskit_circuit::{
     operations::{Param, PauliBased, PauliProductMeasurement, PauliProductRotation},
     packed_instruction::PackedOperation,
 };
+use qiskit_mir::mir::MirDisplayOptions;
+use qiskit_mir::qid::{BitLayout, QidInfo, QidSpace, ResourceTable};
 use qiskit_mir_passes::dag_to_mir::lower_dag;
+use qiskit_mir_passes::trivial_mir_layout::trivial_mir_layout;
+
 use std::{f64::consts::PI, vec};
 
 // Build the Bell equivalent PBC circuit.
@@ -132,6 +136,19 @@ fn build_bell_pbc_dag() -> DAGCircuit {
     DAGCircuit::from_circuit_data(&circuit, false, None, None).unwrap()
 }
 
+const BELL_HEADER: &str = "mir, @bell_circuit\n";
+const BELL_RESOURCE_TABLE: &str = concat!("v0, Base(1)\n", "v1, Base(1)\n");
+const BELL_SYMBOL_TABLE: &str = concat!("%0, c0, Bool\n", "%1, c1, Bool\n");
+const BELL_INSTRUCTIONS: &str = concat!(
+    "[] = PauliRotation(Z, 0.5), [v0]\n",
+    "[] = PauliRotation(X, 1.0), [v0]\n",
+    "[] = PauliRotation(XZ, 0.5), [v0,v1]\n",
+    "[] = PauliRotation(Z, -0.5), [v0]\n",
+    "[] = PauliRotation(X, -0.5), [v1]\n",
+    "[%0] = PauliMeasure(Z), [v0]\n",
+    "[%1] = PauliMeasure(Z), [v1]\n",
+);
+
 #[test]
 fn lower_bell_pbc() {
     let dag = build_bell_pbc_dag();
@@ -139,4 +156,77 @@ fn lower_bell_pbc() {
 
     assert_eq!(mir.instructions().node_count(), 7);
     assert_eq!(mir.resource_table().iter_qids().len(), 2);
+}
+
+#[test]
+fn layout_bell_pbc() {
+    let dag = build_bell_pbc_dag();
+    let mut mir = lower_dag(&dag).unwrap();
+    let instructions_copy = mir.instructions().clone(); // save a copy for comparison
+
+    let mut physical_resource_table = ResourceTable::new(QidSpace::Physical);
+    physical_resource_table
+        .add_qid(QidInfo::new(BitLayout::Base(1)))
+        .unwrap();
+    physical_resource_table
+        .add_qid(QidInfo::new(BitLayout::Base(1)))
+        .unwrap();
+    trivial_mir_layout(&mut mir, &physical_resource_table).unwrap();
+
+    // Number of instructions did not change
+    assert_eq!(
+        instructions_copy.node_count(),
+        mir.instructions().node_count()
+    );
+
+    // zip before (b) and after (a) instructions and compare
+    for (b, a) in instructions_copy
+        .iter_main()
+        .zip(mir.instructions().iter_main())
+    {
+        let (b, a) = (b.weight(), a.weight());
+
+        // Same qid in the same position, and (a) is physical
+        for (bq, aq) in b.qids().inner().iter().zip(a.qids().inner()) {
+            assert_eq!(aq.space(), QidSpace::Physical);
+            assert_eq!(bq.value(), aq.value());
+        }
+
+        // Everything except the qids is unchanged
+        assert_eq!(b.op(), a.op());
+        assert_eq!(b.args(), a.args());
+        assert_eq!(b.returns(), a.returns());
+    }
+}
+
+#[test]
+fn lower_bell_pbc_display_full() {
+    let dag = build_bell_pbc_dag();
+    let mir = lower_dag(&dag).unwrap();
+
+    // A custom header, with every section enabled.
+    let options = MirDisplayOptions {
+        header: Some("mir, @bell_circuit".to_string()),
+        ..Default::default()
+    };
+    let output = mir.display_with(options).to_string();
+    let expected =
+        format!("{BELL_HEADER}{BELL_RESOURCE_TABLE}{BELL_SYMBOL_TABLE}{BELL_INSTRUCTIONS}");
+    assert_eq!(output, expected);
+}
+
+#[test]
+fn lower_bell_pbc_display_instructions() {
+    let dag = build_bell_pbc_dag();
+    let mir = lower_dag(&dag).unwrap();
+
+    // Only the instructions are printed.
+    let options = MirDisplayOptions {
+        header: None,
+        resource_table: false,
+        symbol_table: false,
+        instructions: true,
+    };
+    let output = mir.display_with(options).to_string();
+    assert_eq!(output, BELL_INSTRUCTIONS);
 }

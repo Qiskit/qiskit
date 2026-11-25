@@ -13,7 +13,7 @@
 use std::ops;
 
 use hashbrown::HashSet;
-use rustworkx_core::petgraph::{acyclic::Acyclic, data::Build, prelude::*, visit};
+use rustworkx_core::petgraph::{algo::has_path_connecting, prelude::*, visit};
 
 use super::*;
 use qiskit_util::IndexMap;
@@ -76,6 +76,11 @@ pub enum ContainsError {
     Cycle,
 }
 
+/// The failure mechanism of [`ResourceTable::verify_single_bit_base_qids`].
+#[derive(thiserror::Error, Clone, Copy, Debug, PartialEq, Eq)]
+#[error("{0} is not a base qid of width 1")]
+pub struct NotSingleBitBaseError(pub Qid);
+
 /// The "context" for an entire table of [`Qid`]s.
 ///
 /// This is responsible for:
@@ -92,7 +97,7 @@ pub struct ResourceTable {
     /// from the "bigger" qid to the smaller one.
     ///
     /// The graph is indexed by the table's [`Qid::value`]s.
-    qids: Acyclic<Graph<QidInfo, ()>>,
+    qids: Graph<QidInfo, ()>,
 }
 impl ResourceTable {
     /// Initialize a new resource table with no capacity.
@@ -107,8 +112,7 @@ impl ResourceTable {
     pub fn with_capacity(space: QidSpace, qids: usize, subrelations: usize) -> Self {
         Self {
             space,
-            qids: Acyclic::try_from_graph(Graph::with_capacity(qids, subrelations))
-                .expect("empty graphs cannot have cycles"),
+            qids: Graph::with_capacity(qids, subrelations),
         }
     }
 
@@ -140,6 +144,12 @@ impl ResourceTable {
     pub fn next_qid(&self) -> Option<Qid> {
         (self.qids.node_count() <= Qid::MAX_VALUE as usize)
             .then_some(Qid::from_parts(self.space, self.qids.node_count() as u32))
+    }
+
+    /// Get the space of this table.
+    #[inline]
+    pub fn space(&self) -> QidSpace {
+        self.space
     }
 
     /// Validate a given explicit bit layout, returning an iterator over unique node indices that the
@@ -200,9 +210,9 @@ impl ResourceTable {
         };
         let idx = self.qids.add_node(info);
         for contained in contains {
-            self.qids
-                .try_add_edge(idx, contained, ())
-                .expect("adding an edge to a leaf not should not cause a cycle");
+            // idx was just created, so it has no incoming edges. Therefore it cannot be part of a
+            // cycle. No check is needed here.
+            self.qids.add_edge(idx, contained, ());
         }
         Ok(qid)
     }
@@ -217,9 +227,12 @@ impl ResourceTable {
         let small_idx = self
             .index_from_qid(smaller)
             .ok_or(ContainsError::AbsentQid(smaller))?;
-        self.qids
-            .try_update_edge(big_idx, small_idx, ())
-            .map_err(|_| ContainsError::Cycle)?;
+        // Adding the edge big_index -> small_idx would create a cycle if there is a path
+        // from small_idx to big_idx.
+        if has_path_connecting(&self.qids, small_idx, big_idx, None) {
+            return Err(ContainsError::Cycle);
+        }
+        self.qids.update_edge(big_idx, small_idx, ());
         Ok(())
     }
 
@@ -227,39 +240,18 @@ impl ResourceTable {
     ///
     /// Returns the error variant with a [`Qid`] that was not present in the table, if one is
     /// encountered before the question of overlap is resolved.
+    ///
+    /// If you need to do this a lot, create a reusable [`OverlapChecker`] to re-use the working
+    /// allocations.
+    #[inline]
     pub fn try_overlap(&self, qids: impl IntoIterator<Item = Qid>) -> Result<bool, Qid> {
-        let mut qids = qids.into_iter();
-        // We need at least two qids for it to be possible to have an overlap.
-        let Some(first) = qids.next() else {
-            return Ok(false);
-        };
-        let Some(second) = qids.next() else {
-            // There can't be an overlap, but `first` might not be a valid qid for this table.
-            return self.index_from_qid(first).map(|_| false).ok_or(first);
-        };
-        // TODO: this is a pretty clear candidate for future optimisation.  There are several
-        // straightforward possibilities that might be suitable:
-        // - share the workspace between multiple calls (little-to-no downside other than potential
-        //   cache invalidation of the `VisitMap`).
-        // - cache the reachable leaves for each node directly (risks huge memory explosion).
-        // - use a custom DFS that tracks the visit map with a "generation", so we don't have to
-        //   reset it between nodes (though that uses more memory).
-        let mut leaves = HashSet::<NodeIndex>::new();
-        // Use pre-order not post-order because that (in theory) short-circuits faster.
-        let mut dfs = visit::Dfs::empty(&self.qids);
-        for qid in [first, second].into_iter().chain(qids) {
-            dfs.reset(&self.qids);
-            dfs.move_to(self.index_from_qid(qid).ok_or(qid)?);
-            for idx in visit::Walker::iter(&mut dfs, &self.qids) {
-                if self.qids.first_edge(idx, Direction::Outgoing).is_none() && !leaves.insert(idx) {
-                    return Ok(true);
-                }
-            }
-        }
-        Ok(false)
+        OverlapChecker::new(self).try_overlap(qids)
     }
 
     /// Check if there is any aliasing in a series of [`Qid`]s.
+    ///
+    /// If you need to do this a lot, create a reusable [`OverlapChecker`] to re-use the working
+    /// allocations.
     ///
     /// # Panics
     ///
@@ -278,6 +270,17 @@ impl ResourceTable {
             .node_indices()
             .map(|idx| (self.qid_from_index(idx), &self.qids[idx]))
     }
+
+    /// Check that all qids are base qids of width 1.
+    pub fn verify_single_bit_base_qids(&self) -> Result<(), NotSingleBitBaseError> {
+        match self
+            .iter_qids()
+            .find(|(_, info)| !matches!(info.layout(), BitLayout::Base(1)))
+        {
+            Some((qid, _)) => Err(NotSingleBitBaseError(qid)),
+            None => Ok(()),
+        }
+    }
 }
 
 impl ops::Index<Qid> for ResourceTable {
@@ -290,10 +293,80 @@ impl ops::Index<Qid> for ResourceTable {
     }
 }
 
-// TEMPORARY: ResourceTable is not actually thread-safe — Acyclic's is not
-// thread safe. This is here ONLY to enable using  MIR as passmanager IR.
-// Tracked for removal: https://github.com/Qiskit/qiskit/issues/17397
-unsafe impl Sync for ResourceTable {}
+// This is just for legibility purposes in describing the `OverlapChecker`.
+type QidGraph<'a> = &'a Graph<QidInfo, ()>;
+
+/// A reusable object for checking [`Qid`] overlaps.
+///
+/// This maintains an internal set of backing allocations, which are re-used between calls.
+pub struct OverlapChecker<'a> {
+    table: &'a ResourceTable,
+    leaves: HashSet<NodeIndex>,
+    dfs: visit::Dfs<
+        <QidGraph<'a> as visit::GraphBase>::NodeId,
+        <QidGraph<'a> as visit::Visitable>::Map,
+    >,
+}
+impl<'a> OverlapChecker<'a> {
+    pub fn new(table: &'a ResourceTable) -> Self {
+        Self {
+            table,
+            leaves: HashSet::new(),
+            dfs: visit::Dfs::empty(&table.qids),
+        }
+    }
+}
+impl OverlapChecker<'_> {
+    /// Check if there is any aliasing in a series of [`Qid`]s.
+    ///
+    /// Returns the error variant with a [`Qid`] that was not present in the table, if one is
+    /// encountered before the question of overlap is resolved.
+    pub fn try_overlap(&mut self, qids: impl IntoIterator<Item = Qid>) -> Result<bool, Qid> {
+        let qid_graph = &self.table.qids;
+        let mut qids = qids.into_iter();
+        // We need at least two qids for it to be possible to have an overlap.
+        let Some(first) = qids.next() else {
+            return Ok(false);
+        };
+        let Some(second) = qids.next() else {
+            // There can't be an overlap, but `first` might not be a valid qid for this table.
+            return self.table.index_from_qid(first).map(|_| false).ok_or(first);
+        };
+
+        // TODO: this is a pretty clear candidate for future optimisation.  There are several
+        // straightforward possibilities that might be suitable:
+        // - cache the reachable leaves for each node directly (risks huge memory explosion).
+        // - use a custom DFS that tracks the visit map with a "generation", so we don't have to
+        //   reset it between nodes (though that uses more memory).
+
+        self.leaves.clear();
+        // Use pre-order not post-order because that (in theory) short-circuits faster.
+        for qid in [first, second].into_iter().chain(qids) {
+            self.dfs.reset(qid_graph);
+            self.dfs.move_to(self.table.index_from_qid(qid).ok_or(qid)?);
+            for idx in visit::Walker::iter(&mut self.dfs, qid_graph) {
+                if qid_graph.first_edge(idx, Direction::Outgoing).is_none()
+                    && !self.leaves.insert(idx)
+                {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    /// Check if there is any aliasing in a series of [`Qid`]s.
+    ///
+    /// # Panics
+    ///
+    /// If any of the qids are not present in the table.  If you can't ensure that, use
+    /// [`try_overlap`](Self::try_overlap) instead.
+    #[inline]
+    pub fn overlap(&mut self, qids: impl IntoIterator<Item = Qid>) -> bool {
+        self.try_overlap(qids)
+            .expect("caller should ensure all qids are present")
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -469,11 +542,12 @@ mod tests {
             "should be idempotent"
         );
         table.mark_contains(qids[2], qids[1]).unwrap();
-        assert!(table.overlap([qids[2], qids[0]]));
-        assert!(table.overlap([qids[0], qids[2]]));
-        assert!(table.overlap([qids[2], qids[1]]));
-        assert!(table.overlap([qids[1], qids[2]]));
-        assert!(!table.overlap([qids[0], qids[1]]));
+        let mut checker = OverlapChecker::new(&table);
+        assert!(checker.overlap([qids[2], qids[0]]));
+        assert!(checker.overlap([qids[0], qids[2]]));
+        assert!(checker.overlap([qids[2], qids[1]]));
+        assert!(checker.overlap([qids[1], qids[2]]));
+        assert!(!checker.overlap([qids[0], qids[1]]));
 
         table.mark_contains(qids[3], qids[0]).unwrap();
         assert!(table.overlap([qids[2], qids[3]]), "both touch Qid(p:0)");
@@ -518,12 +592,13 @@ mod tests {
             table.try_overlap([Qid::virt(0), qids[0]]),
             Err(q) if q == Qid::virt(0)
         ));
+        let mut checker = OverlapChecker::new(&table);
         assert!(matches!(
-            table.try_overlap([qids[0], qids[1], Qid::virt(0)]),
+            checker.try_overlap([qids[0], qids[1], Qid::virt(0)]),
             Err(q) if q == Qid::virt(0)
         ));
         assert!(matches!(
-            table.try_overlap([qids[0], qids[1], table.next_qid().unwrap()]),
+            checker.try_overlap([qids[0], qids[1], table.next_qid().unwrap()]),
             Err(q) if q == table.next_qid().unwrap(),
         ));
     }
@@ -584,5 +659,37 @@ mod tests {
             table.mark_contains(Qid::phys(100), qids[0]),
             Err(ContainsError::AbsentQid(q)) if q == Qid::phys(100)
         ));
+    }
+
+    #[test]
+    fn verify_single_bit_base_qids() {
+        // empty
+        let mut table = ResourceTable::new(QidSpace::Virtual);
+        assert!(table.verify_single_bit_base_qids().is_ok());
+
+        // single base qid with width 1
+        let base = table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+        assert!(table.verify_single_bit_base_qids().is_ok());
+
+        // Abstract
+        let mut with_abstract = table.clone();
+        with_abstract
+            .add_qid(QidInfo::new(BitLayout::Abstract))
+            .unwrap();
+        assert!(with_abstract.verify_single_bit_base_qids().is_err());
+
+        // Alias
+        let mut with_alias = table.clone();
+        with_alias
+            .add_qid(QidInfo::new(BitLayout::Alias(
+                [Some(QidBit::new(base, 0))].into(),
+            )))
+            .unwrap();
+        assert!(with_alias.verify_single_bit_base_qids().is_err());
+
+        // Base with width > 1
+        let mut with_wide = table.clone();
+        with_wide.add_qid(QidInfo::new(BitLayout::Base(2))).unwrap();
+        assert!(with_wide.verify_single_bit_base_qids().is_err());
     }
 }
