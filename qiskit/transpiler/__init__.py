@@ -1506,14 +1506,6 @@ to insert the instructions into the circuit, which completes the scheduling.
 Transpiler API
 ==============
 
-Circuit Transpilation
----------------------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   transpile
-
 Hardware description
 --------------------
 
