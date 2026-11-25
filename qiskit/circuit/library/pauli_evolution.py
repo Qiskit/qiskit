@@ -330,9 +330,11 @@ class PauliEvolutionGate(Gate):
 
 def _map_operator(operator):
     match operator:
-        case list([_, *_]):
-            operators = [_map_operator_one(o) for o in operator]
-            return sum(operators)
+        case list([first, *rest]):
+            total = _map_operator_one(first)
+            for o in rest:
+                total += _map_operator_one(o)
+            return total
         case _:
             return _map_operator_one(operator)
 
