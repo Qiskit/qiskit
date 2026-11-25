@@ -102,3 +102,8 @@ mod tests {
         assert!(bits.windows(2).all(|pair| pair[0] < pair[1]));
     }
 }
+
+impl VirtualType {
+    /// Every virtual type.
+    pub const ALL: [VirtualType; 4] = [Self::Pauli, Self::C1, Self::U2, Self::Z2];
+}

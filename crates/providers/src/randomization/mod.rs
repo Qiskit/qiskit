@@ -14,27 +14,14 @@
 
 pub mod annotations;
 pub mod distributions;
+pub mod emissions;
 pub mod flags;
 pub mod partition;
+pub mod synthesizer;
 pub mod virtual_type;
 
 pub use distributions::{Distribution, DistributionKind};
-
-/// The synthesizer to use for virtual gates.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SynthesizerKind {
-    RzSx,
-    RzRx,
-}
-
-impl SynthesizerKind {
-    /// The number of qubits the synthesized gate acts on.
-    pub fn num_qubits(&self) -> u32 {
-        match self {
-            Self::RzSx | Self::RzRx => 1,
-        }
-    }
-}
+pub use synthesizer::{Synthesizer, SynthesizerError, SynthesizerKind};
 
 /// Which way virtual state flows temporally.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
