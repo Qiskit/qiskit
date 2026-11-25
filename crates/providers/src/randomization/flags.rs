@@ -20,7 +20,7 @@ use std::ops::{BitAnd, BitOr};
 
 /// A fieldless enum whose variants are distinct single bits of a `u32`.
 pub trait BitFlag: Copy + 'static {
-    /// Every variant, in increasing bit order.
+    /// Every variant in increasing bit order.
     const FLAGS: &'static [Self];
 
     /// Return the bit of this variant.
@@ -148,7 +148,7 @@ impl<T: BitFlag> IntoIterator for BitFlags<T> {
     }
 }
 
-/// Render as `Pauli | C1`, or as `<empty>` for the empty set.
+/// Render enum variants by name separated by `|`, or as `<empty>` for the empty set.
 impl<T: BitFlag + fmt::Debug> fmt::Display for BitFlags<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut flags = self.iter();

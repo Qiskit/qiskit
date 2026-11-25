@@ -49,7 +49,7 @@ impl VirtualType {
     /// The dtype a virtual gate of this type is stored as.
     pub const fn dtype(&self) -> DType {
         match self {
-            Self::Pauli | Self::C1 => DType::U8, // TODO: Pauli likely wont stay as u8
+            Self::Pauli | Self::C1 => DType::U8, // TODO: Pauli likely won't stay as u8
             Self::U2 => DType::C128,
             Self::Z2 => DType::Bit,
         }
