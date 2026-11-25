@@ -1,0 +1,34 @@
+---
+features_transpiler:
+  - |
+    The :class:`.LightCone` transpiler pass is now implemented in Rust, which makes it
+    significantly faster on large circuits.
+  - |
+    :class:`.LightCone` now handles :class:`.PauliProductMeasurement` instructions in the same
+    way as standard measurements.
+fixes:
+  - |
+    Fixed :class:`.LightCone` applying ``bit_terms`` to ``indices`` in reverse order. As in
+    :meth:`.SparseObservable.to_sparse_list`, ``bit_terms[i]`` now acts on qubit ``indices[i]``.
+    Observables with different terms on different qubits, such as ``bit_terms="XZ"``, could
+    previously have the wrong gates removed, which changed their expectation value.
+    See `#16866 <https://github.com/Qiskit/qiskit/issues/16866>`__.
+  - |
+    Fixed :class:`.LightCone` treating a product of projectors, such as ``"00"``, as a product of
+    Paulis. This could remove gates that change the expectation value of the projector.
+    See `#16872 <https://github.com/Qiskit/qiskit/issues/16872>`__.
+  - |
+    Fixed :class:`.LightCone` ignoring mid-circuit measurements, which could remove every gate of
+    a circuit. Every measurement is now kept, along with the gates it depends on.
+    See `#15937 <https://github.com/Qiskit/qiskit/issues/15937>`__.
+upgrade_transpiler:
+  - |
+    :class:`.LightCone` now keeps every operation that writes a classical wire (a clbit, or a
+    classical variable) that a later kept operation may read, and, when the circuit is measured,
+    every operation that writes a clbit, since clbits are outputs. This covers :class:`.Store`
+    and control flow whose blocks measure or store. Previously such operations could be removed,
+    which changed the outcome. The pass keeps all operations that affect the measured quantity
+    of the circuit as part of the light cone, and removes almost everything else.
+  - |
+    :class:`.LightCone` now also raises a :class:`ValueError` when an observable is given and a
+    measurement is inside a control-flow block, as it already did for top-level measurements.
