@@ -1,0 +1,14 @@
+---
+performance:
+  - |
+    Building the definition of :class:`.Isometry` is now faster, because its decomposition is
+    implemented in Rust. Benchmarks show speedups from about **2x** for single-qubit isometries to
+    about **35x** for isometries on 4 to 6 qubits.
+    See `#17151 <https://github.com/Qiskit/qiskit/pull/17151>`__ for more details.
+upgrade:
+  - |
+    The ``definition`` of :class:`.Isometry` now contains the synthesized single-qubit and ``cx`` gates
+    directly, instead of nested :class:`.UCGate`, :class:`.MCGupDiag` and :class:`.DiagonalGate`
+    instructions, so :meth:`~.QuantumCircuit.decompose` shows a different circuit. The implemented
+    isometry is unchanged.
+
