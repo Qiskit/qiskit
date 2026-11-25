@@ -73,8 +73,6 @@ class RVGate(Gate):
             label: An optional label for the gate.
         """
 
-        from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
-
         super().__init__("rv", 1, [v_x, v_y, v_z], label=label)
         self._rust_operation = InnerRVGate(basis)
 
@@ -92,16 +90,4 @@ class RVGate(Gate):
 
     def to_matrix(self) -> numpy.ndarray:
         """Return a numpy.array for the R(v) gate."""
-        v = numpy.asarray(self.params, dtype=float)
-        angle = math.sqrt(v.dot(v))
-        if angle == 0:
-            return numpy.array([[1, 0], [0, 1]])
-        nx, ny, nz = v / angle
-        sin = math.sin(angle / 2)
-        cos = math.cos(angle / 2)
-        return numpy.array(
-            [
-                [cos - 1j * nz * sin, (-ny - 1j * nx) * sin],
-                [(ny - 1j * nx) * sin, cos + 1j * nz * sin],
-            ]
-        )
+        return self._rust_operation.to_matrix(self.params)

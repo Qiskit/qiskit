@@ -114,7 +114,7 @@ impl CustomOperation for RVGate {
             Complex64::from(*vy),
             Complex64::from(*vz)
         ];
-        let angle = array.dot(&array);
+        let angle = array.dot(&array).sqrt();
         if angle == Complex64::ZERO {
             return Ok(Some(array![
                 [Complex64::ONE, Complex64::ZERO],
@@ -127,8 +127,8 @@ impl CustomOperation for RVGate {
         let ny = div[1];
         let nz = div[2];
 
-        let sin = angle.sin();
-        let cos = angle.cos();
+        let sin = (angle / Complex64::from(2.0)).sin();
+        let cos = (angle / Complex64::from(2.0)).cos();
 
         Ok(Some(array![
             [
