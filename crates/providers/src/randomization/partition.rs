@@ -115,6 +115,17 @@ impl<T: Copy + Ord> Partition<T> {
         self.num_parts() == self.elements.len()
     }
 
+    /// The size every part has, or `None` if the parts differ in size or there are none.
+    pub fn uniform_size(&self) -> Option<usize> {
+        if self.is_singletons() && self.num_parts() > 0 {
+            // early exit for common case that doesn't involve any iteration
+            return Some(1);
+        }
+        let mut sizes = self.iter().map(<[T]>::len);
+        let first = sizes.next()?;
+        sizes.all(|size| size == first).then_some(first)
+    }
+
     /// Whether this partition contains `element`.
     pub fn contains(&self, element: &T) -> bool {
         self.elements.contains(element)
@@ -163,6 +174,17 @@ mod tests {
             vec![[5, 3].as_slice()]
         );
         assert!(Partition::whole([7]).unwrap().is_singletons());
+    }
+
+    #[test]
+    fn test_uniform_size() {
+        assert_eq!(parts(&[&[0, 1], &[3, 2]]).uniform_size(), Some(2));
+        assert_eq!(
+            Partition::singletons([3, 5, 4]).unwrap().uniform_size(),
+            Some(1)
+        );
+        assert_eq!(parts(&[&[0], &[2, 1]]).uniform_size(), None);
+        assert_eq!(parts(&[]).uniform_size(), None);
     }
 
     #[test]
