@@ -167,7 +167,7 @@ pub mod gf2 {
         }
 
         /// Transpose the matrix.
-        pub const fn t(self) -> Self {
+        pub const fn transpose(self) -> Self {
             // Algorithm from Hacker's Delight, via Claude Sonnet 5.5.  Implementation and comments
             // by hand.
 
@@ -399,7 +399,7 @@ pub mod pauli {
         pub const fn evolve_css(self, mat: gf2::Mat<N>, inv: gf2::Mat<N>) -> Self {
             Self {
                 x: mat.dot(self.x),
-                z: inv.t().dot(self.z),
+                z: inv.transpose().dot(self.z),
             }
         }
 
@@ -521,7 +521,7 @@ pub mod bb {
         automorphisms: &[[gf2::Mat<6>; 2]],
     ) -> impl Iterator<Item = [Pauli<6>; 2]> {
         automorphisms.iter().flat_map(|&[a, a_inv]| {
-            let [a_t, a_inv_t] = [a.t(), a_inv.t()];
+            let [a_t, a_inv_t] = [a.transpose(), a_inv.transpose()];
             BUILTIN_MEASURES
                 .into_iter()
                 .map(move |[low, high]| [low.evolve_css(a, a_inv), high.evolve_css(a_t, a_inv_t)])
