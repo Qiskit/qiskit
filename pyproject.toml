@@ -190,6 +190,8 @@ trivial = "qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPa
 [project.entry-points."qiskit.transpiler.scheduling"]
 alap = "qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager"
 asap = "qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager"
+as_late_as_possible = "qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager"
+as_soon_as_possible = "qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager"
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultSchedulingPassManager"
 
 # Dependency groups are for developers working with the source code.  Install a dependency group by

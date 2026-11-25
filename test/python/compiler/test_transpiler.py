@@ -4239,7 +4239,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
 
     @combine(
         optimization_level=[0, 1, 2, 3],
-        scheduling_method=["asap", "alap"],
+        scheduling_method=["asap", "alap", "as_late_as_possible", "as_soon_as_possible"],
     )
     def test_transpile_target_with_qubits_without_delays_with_scheduling(
         self, optimization_level, scheduling_method
