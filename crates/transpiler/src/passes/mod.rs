@@ -31,6 +31,7 @@ mod commutation_cancellation;
 mod commutative_optimization;
 mod consolidate_blocks;
 mod constrained_reschedule;
+mod control_pattern_simplification;
 mod convert_to_pauli_rotations;
 mod dense_layout;
 mod disjoint_layout;
@@ -68,6 +69,9 @@ pub use commutation_cancellation::{cancel_commutations, commutation_cancellation
 pub use commutative_optimization::{commutative_optimization_mod, run_commutative_optimization};
 pub use consolidate_blocks::{DecomposerType, consolidate_blocks_mod, run_consolidate_blocks};
 pub use constrained_reschedule::{constrained_reschedule_mod, run_constrained_reschedule};
+pub use control_pattern_simplification::{
+    control_pattern_simplification_mod, run_control_pattern_simplification,
+};
 pub use convert_to_pauli_rotations::{convert_to_pauli_rotations, convert_to_pauli_rotations_mod};
 pub use dense_layout::{best_subset, dense_layout_mod};
 pub use disjoint_layout::{combine_barriers, disjoint_utils_mod, distribute_components};
