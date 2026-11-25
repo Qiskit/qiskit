@@ -21,9 +21,8 @@ import scipy as sc
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
-from qiskit._accelerate.circuit.library import PauliEvolution
+from qiskit._accelerate.circuit_library import PauliEvolution
 import qiskit.quantum_info
 
 if TYPE_CHECKING:
@@ -328,11 +327,21 @@ def _map_operator(operator):
         case Pauli():
             return SparseObservable.from_pauli(operator)
         case list([_, *_]):
-            operators = [_map_operator(o) for o in operator]
+            operators = [_map_list_operator(o) for o in operator]
             return sum(operators)
         case _:
             raise ValueError("unsupported operator type")
 
+def _map_list_operator(operator):
+    match operator:
+        case SparseObservable():
+            return operator
+        case SparsePauliOp():
+            return SparseObservable.from_sparse_pauli_op(operator)
+        case Pauli():
+            return SparseObservable.from_pauli(operator)
+        case _:
+            raise ValueError("unsupported operator type")
 
 def _merge_two_pauli_evolutions(
     gate1: PauliEvolutionGate, gate2: PauliEvolutionGate

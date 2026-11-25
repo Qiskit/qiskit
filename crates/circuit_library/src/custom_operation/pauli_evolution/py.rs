@@ -26,7 +26,7 @@ use super::model::{PauliEvolution, PauliEvolutionError};
 #[derive(Debug, PartialEq)]
 #[pyclass(
     name = "PauliEvolution",
-    module = "qiskit._accelerate.circuit.library",
+    module = "qiskit._accelerate.circuit_library",
     eq
 )]
 pub struct PyPauliEvolution {

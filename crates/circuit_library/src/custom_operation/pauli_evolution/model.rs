@@ -65,7 +65,7 @@ impl PauliEvolution {
         time: Param,
         label: impl Into<String>,
     ) -> Result<Self> {
-        if !matches!(time, Param::Int(_) | Param::ParameterExpression(_)) {
+        if !matches!(time, Param::Float(_) | Param::ParameterExpression(_)) {
             Err(PauliEvolutionError::TimeInvalid)
         } else if operator.coeffs().iter().any(|c| c.is_normal()) {
             Err(PauliEvolutionError::HasComplex)
