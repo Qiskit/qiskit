@@ -973,7 +973,8 @@ static int test_for_loop_over_range(void) {
 
     uint32_t qubits[2] = {2, 0};
 
-    QkExitCode exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, 1, 10, 3,
+    QkLoopRange range = {.start = 1, .stop = 10, .step = 3};
+    QkExitCode exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, range,
                                                      QkLoopParamKind_Variable, &loop_param);
     if (exit_code != QkExitCode_Success) {
         fprintf(stderr, "Expected the for-loop to be appended, got exit code %u\n", exit_code);
@@ -1059,7 +1060,8 @@ static int test_build_for_loop_over_range(void) {
 
     uint32_t qubits[2] = {2, 0};
 
-    QkExitCode exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, 0, 5, 1,
+    QkLoopRange range = {.start = 0, .stop = 5, .step = 1};
+    QkExitCode exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, range,
                                                      QkLoopParamKind_Parameter, &loop_param);
     if (exit_code != QkExitCode_Success) {
         fprintf(stderr, "Expected the for-loop to be appended, got exit code %u\n", exit_code);
@@ -1271,7 +1273,8 @@ static int test_build_for_loop_invalid_input(void) {
 
     uint32_t qubits[2] = {0, 1};
 
-    QkExitCode exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, 0, 5, 0,
+    QkLoopRange range = {.start = 0, .stop = 5, .step = 0};
+    QkExitCode exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, range,
                                                      QkLoopParamKind_NoLoopParam, NULL);
     if (exit_code != QkExitCode_ZeroLoopStep) {
         fprintf(stderr, "Expected QkExitCode_ZeroLoopStep for a zero step, got exit code %u\n",
@@ -1280,10 +1283,11 @@ static int test_build_for_loop_invalid_input(void) {
         goto cleanup;
     }
 
+    range = (QkLoopRange){.start = 0, .stop = 5, .step = 1};
     body = qk_circuit_new(2, 0);
     QkSymbolInfo symbol = {.ty = QkSymbolType_Standalone, .name = "i", .index = 0};
     QkLoopParamValue loop_param = {.symbol = &symbol};
-    exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, 0, 5, 1,
+    exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, range,
                                           QkLoopParamKind_Parameter, &loop_param);
     if (exit_code != QkExitCode_ParameterError) {
         fprintf(
@@ -1298,7 +1302,8 @@ static int test_build_for_loop_invalid_input(void) {
     body = qk_circuit_new(2, 0);
     symbol = (QkSymbolInfo){.ty = QkSymbolType_Standalone, .name = "\xff", .index = 0};
     loop_param = (QkLoopParamValue){.symbol = &symbol};
-    exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, 0, 5, 1,
+    range = (QkLoopRange){.start = 0, .stop = 5, .step = 1};
+    exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, range,
                                           QkLoopParamKind_Parameter, &loop_param);
     if (exit_code != QkExitCode_CInputError) {
         fprintf(
@@ -1333,7 +1338,8 @@ static int test_build_for_loop_invalid_loop_variable(void) {
     QkLoopParamValue loop_param = {.variable = var};
     uint32_t qubits[2] = {2, 0};
 
-    QkExitCode exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, 0, 5, 1,
+    QkLoopRange range = {.start = 0, .stop = 5, .step = 1};
+    QkExitCode exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, range,
                                                      QkLoopParamKind_Variable, &loop_param);
     if (exit_code != QkExitCode_InvalidLoopVariable) {
         fprintf(
@@ -1349,7 +1355,9 @@ static int test_build_for_loop_invalid_loop_variable(void) {
     var = qk_var_new("v", type_info);
     loop_param = (QkLoopParamValue){.variable = var};
     body = qk_circuit_new(2, 0);
-    exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, 0, 5, 1,
+
+    range = (QkLoopRange){.start = 0, .stop = 5, .step = 1};
+    exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, range,
                                           QkLoopParamKind_Variable, &loop_param);
     if (exit_code != QkExitCode_LoopVariableMismatch) {
         fprintf(stderr,

@@ -144,6 +144,7 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CLoopParamKind", "LoopParamKind"),
     ("CLoopElements", "LoopElements"),
     ("CLoopParamValue", "LoopParamValue"),
+    ("CLoopRange", "LoopRange"),
 ];
 pub static EXPORT_VERBATIM: &[&str] = &["PyObject"];
 

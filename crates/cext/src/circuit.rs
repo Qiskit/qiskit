@@ -18,7 +18,8 @@ use crate::ExitCode::CInputError;
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::classical_expr::CDurationInfo;
 use crate::control_flow::{
-    CControlFlowInstruction, CLoopElements, CLoopParamKind, CLoopParamValue, CSymbolType,
+    CControlFlowInstruction, CLoopElements, CLoopParamKind, CLoopParamValue, CLoopRange,
+    CSymbolType,
 };
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
@@ -2965,23 +2966,22 @@ unsafe fn append_box(
 /// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
 ///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits. This
 ///     can be a null pointer if ``body`` has no clbits.
-/// @param start The first value of the range.
-/// @param stop The value the range stops before.
-/// @param step The difference between successive values. This may be negative, but must not be
-///     zero.
+/// @param range The range of values. ``range.start`` is the first value, ``range.stop`` the value
+///     the range stops before, and ``range.step`` the difference between successive values. The
+///     step may be negative, but must not be zero.
 /// @param kind The kind of loop variable, which selects the active member of ``loop_param``.
 /// @param loop_param A pointer to the loop variable, or ``NULL`` if ``kind`` is
 ///     ``QkLoopParamKind_NoLoopParam``.
 ///
 /// @return An exit code.
 /// * ``QkExitCode_Success`` upon successful append
-/// * ``QkExitCode_ZeroLoopStep`` indicates a zero ``step``
+/// * ``QkExitCode_ZeroLoopStep`` indicates a zero ``range.step``
 /// * ``QkExitCode_InvalidLoopVariable`` indicates a ``QkVar`` that is not ``Uint``-typed
 /// * ``QkExitCode_LoopVariableMismatch`` indicates a ``loop_param`` that does not match
 ///   ``body``'s input variable
 /// * ``QkExitCode_ParameterError`` indicates a parameter that ``body`` does not use
-/// * ``QkExitCode_CInputError`` indicates a ``start``, ``stop`` or ``step`` that is not
-///   representable as ``ptrdiff_t``, or a parameter name that is not valid UTF-8
+/// * ``QkExitCode_CInputError`` indicates a ``range`` value that is not representable as
+///   ``ptrdiff_t``, or a parameter name that is not valid UTF-8
 /// * ``QkExitCode_ParameterNameConflict`` if ``circuit`` and ``body`` have conflicting
 ///   parameter names
 ///
@@ -2994,7 +2994,8 @@ unsafe fn append_box(
 /// qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
 ///
 /// uint32_t qubits[2] = {0, 1};
-/// qk_circuit_for_loop_range(qc, body, qubits, NULL, 0, 5, 1, QkLoopParamKind_NoLoopParam, NULL);
+/// QkLoopRange range = {.start = 0, .stop = 5, .step = 1};
+/// qk_circuit_for_loop_range(qc, body, qubits, NULL, range, QkLoopParamKind_NoLoopParam, NULL);
 ///
 /// qk_circuit_free(qc);
 /// ```
@@ -3017,9 +3018,7 @@ pub unsafe extern "C" fn qk_circuit_for_loop_range(
     body: *mut CircuitData,
     qubits: *const u32,
     clbits: *const u32,
-    start: i64,
-    stop: i64,
-    step: i64,
+    range: CLoopRange,
     kind: CLoopParamKind,
     loop_param: *const CLoopParamValue,
 ) -> ExitCode {
@@ -3027,9 +3026,9 @@ pub unsafe extern "C" fn qk_circuit_for_loop_range(
     let body = unsafe { Box::from_raw(body) };
 
     let (Ok(start), Ok(stop), Ok(step)) = (
-        isize::try_from(start),
-        isize::try_from(stop),
-        isize::try_from(step),
+        isize::try_from(range.start),
+        isize::try_from(range.stop),
+        isize::try_from(range.step),
     ) else {
         return ExitCode::CInputError;
     };
@@ -3805,9 +3804,11 @@ mod test {
                 body,
                 qubits.as_ptr(),
                 ptr::null(),
-                0,
-                5,
-                1,
+                CLoopRange {
+                    start: 0,
+                    stop: 5,
+                    step: 1,
+                },
                 CLoopParamKind::Parameter,
                 &CLoopParamValue { symbol: &symbol },
             )

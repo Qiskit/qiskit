@@ -282,6 +282,17 @@ pub struct CLoopElements {
     pub len: usize,
 }
 
+/// A range of values for a ForLoop control flow instruction.
+#[repr(C)]
+pub struct CLoopRange {
+    /// The first value of the range.
+    pub start: i64,
+    /// The value the range stops before.
+    pub stop: i64,
+    /// The difference between successive values.
+    pub step: i64,
+}
+
 /// A union to hold the loop variable of a ForLoop.
 #[repr(C)]
 pub union CLoopParamValue {
