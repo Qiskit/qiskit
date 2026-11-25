@@ -65,17 +65,16 @@ impl Stream {
     /// A *substream* is a run of `stride` consecutive blocks, and substream `output` begins at
     /// block `output * stride`.
     ///
-    /// A common use for substreams is rejection sampling. For example, drawing a uniform
-    /// random integers between two values separated by a value that is not a multiple of 2 typically
-    /// use rejection sampling, where rejection consumes words in geometrically distributed runs: an
-    /// attempt takes a fixed few
-    /// words and is retried with some probability `p < 1`, so a draw exceeds `n` attempts with
-    /// probability `p^n`. [`Uniform`] and the other [`rand`](https://docs.rs/rand) integer
-    /// distributions use Lemire's method over a 32-bit word, where `p < 1/2` and an attempt takes
-    /// two words. A stride of `n` blocks therefore holds `n * w / 2` attempts, for `w` words per
-    /// block from [`PrngKind::block_words`], and is overrun with probability under
-    /// `2^(-n * w / 2)`. A draw that does overrun continues into the next output's substream, and
-    /// the two variates are then correlated. This is a risk we accept.
+    /// A common use for substreams is rejection sampling, where a draw consumes words in
+    /// geometrically distributed runs. An attempt takes a fixed number of words and is rejected
+    /// with some probability `p < 1`, so a draw exceeds `a` attempts with probability `p^a`.
+    /// [`Uniform`] samples integers by Lemire's method. An attempt is rejected only when the size
+    /// of the range is not a power of two, and then with probability `p < 1/2`. An attempt takes
+    /// one word for integer types of up to 32 bits and two words for 64-bit types. At 64 bits, a
+    /// stride of `s` blocks therefore holds `s * w / 2` attempts, for `w` words per block from
+    /// [`PrngKind::block_words`], and is overrun with probability under `2^(-s * w / 2)`. A draw
+    /// that does overrun continues into the next output's substream, and the two variates are
+    /// then correlated. This is a risk we accept.
     ///
     /// # Panics
     ///
@@ -536,9 +535,9 @@ impl ProgramOp for RandomBits {
 
 /// How many blocks [`UniformInt`] reserves for each value it draws.
 ///
-/// See [`Stream::at_substream`] for how a stride is chosen. At four words per block this holds
-/// 256 attempts, so it is overrun with probability under `2^-256`. The measured rejection rate
-/// of `Uniform<i64>` over its worst range is 1/4, which gives `4^-256`.
+/// See [`Stream::at_substream`] for how a stride is chosen. An attempt of `Uniform<i64>` takes
+/// two words, so at four words per block this holds 512 attempts. Each attempt is rejected with
+/// probability under 1/2, so a draw overruns its substream with probability under `2^-512`.
 const UNIFORM_INT_STRIDE: usize = 1 << 8;
 
 /// Draw integers uniformly from an inclusive range.
@@ -754,28 +753,6 @@ mod test {
                 shape: dim_shape([2]),
             }]
         );
-    }
-
-    #[test]
-    fn test_infer_rejects_an_operand_that_is_not_a_key() {
-        let not_a_key = TensorType {
-            dtype: DType::U32,
-            shape: dim_shape([2]),
-        };
-        for op in [
-            &Split::new(vec![2]) as &dyn ProgramOp<Error = RandomOpError>,
-            &RandomBits::new(DType::U32, vec![2]).unwrap(),
-            &UniformInt::new(vec![2], 0, 5).unwrap(),
-        ] {
-            assert!(
-                matches!(
-                    op.infer_output_types(std::slice::from_ref(&not_a_key)).unwrap_err(),
-                    RandomOpError::KeyType { actual } if actual == not_a_key
-                ),
-                "for {}",
-                op.full_name()
-            );
-        }
     }
 
     #[test]
@@ -1189,7 +1166,7 @@ mod test {
         assert_eq!(
             substreams(kind, UNIFORM_INT_STRIDE),
             None,
-            "2^128 / 2^12 exceeds usize"
+            "2^128 / 2^8 exceeds usize"
         );
         assert_eq!(kind.blocks(), None, "2^128 blocks exceeds usize");
 
@@ -1343,11 +1320,8 @@ mod test {
         );
         assert_eq!(drawn(7, 7), vec![7; 64]);
 
-        // An empty range is refused. `unwrap_err` would need UniformInt to be Debug, which no op
-        // in the catalogue is.
-        let Err(error) = UniformInt::new(vec![2], 5, 4) else {
-            panic!("an empty range is refused")
-        };
+        // An empty range is refused.
+        let error = UniformInt::new(vec![2], 5, 4).unwrap_err();
         assert!(matches!(
             error,
             RandomOpError::EmptyRange { low: 5, high: 4 }
@@ -1661,6 +1635,18 @@ mod test {
             "split eval",
         );
 
+        let uniform = UniformInt::new(vec![2], 0, 5).unwrap();
+        assert_key_type(
+            uniform
+                .infer_output_types(std::slice::from_ref(&not_a_key))
+                .unwrap_err(),
+            "uniform_int inference",
+        );
+        assert_key_type(
+            uniform.eval(std::slice::from_ref(&operand)).unwrap_err(),
+            "uniform_int eval",
+        );
+
         let draw = RandomBits::new(DType::U32, vec![2]).unwrap();
         assert_key_type(
             draw.infer_output_types(&[not_a_key]).unwrap_err(),
@@ -1710,6 +1696,18 @@ mod test {
         assert_eval(
             split.eval(std::slice::from_ref(&keys)).unwrap_err(),
             "split eval",
+        );
+
+        let uniform = UniformInt::new(vec![4], 0, 5).unwrap();
+        assert_inference(
+            uniform
+                .infer_output_types(std::slice::from_ref(&key_type))
+                .unwrap_err(),
+            "uniform_int inference",
+        );
+        assert_eval(
+            uniform.eval(std::slice::from_ref(&keys)).unwrap_err(),
+            "uniform_int eval",
         );
 
         let draw = RandomBits::new(DType::U32, vec![4]).unwrap();
