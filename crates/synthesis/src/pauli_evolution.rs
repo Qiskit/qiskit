@@ -273,8 +273,7 @@ fn multi_qubit_evolution(
             BasePhaseGate::RZ
         };
 
-        let num_ctrl_qubits = control_qubits.len();
-        if num_ctrl_qubits == 0 {
+        if control_qubits.is_empty() {
             // simple case: no projectors, so we're done
             let gate: PackedOperation = StandardGate::from(base_gate).into();
             vec![(gate, params, vec![pauli_qubits[0]], empty_clbits.clone())]
@@ -415,11 +414,9 @@ fn add_open_control(
     controls: &[Qubit],
     control_states: &[bool],
 ) -> Vec<Instruction> {
-    let num_ctrl_qubits = controls.len() - 1;
-    let len_states = control_states.len();
-    let circuit = add_control_phase_rz(num_ctrl_qubits, gate, &params);
+    let circuit = add_control_phase_rz(controls.len() - 1, gate, &params);
     let insts = circuit_to_instructions(circuit, controls);
-    let x_gates: Vec<Instruction> = (0..len_states)
+    let x_gates: Vec<Instruction> = (0..control_states.len())
         .filter(|&i| control_states[i])
         .map(|i| {
             (
