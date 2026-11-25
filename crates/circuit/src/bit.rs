@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -19,17 +19,23 @@ use std::{
     sync::atomic::{AtomicU32, AtomicU64, Ordering},
 };
 
+#[cfg(feature = "py")]
 use hashbrown::HashSet;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::{
     IntoPyObjectExt, PyTypeInfo,
     exceptions::{PyIndexError, PyTypeError, PyValueError},
     types::{PyList, PyType},
 };
 
+#[cfg(feature = "py")]
 use crate::circuit_data::CircuitError;
+#[cfg(feature = "py")]
 use crate::dag_circuit::PyBitLocations;
-use crate::slice::{PySequenceIndex, SequenceIndex};
+#[cfg(feature = "py")]
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 /// Describes a relationship between a bit and all the registers it belongs to
 #[derive(Debug, Clone)]
@@ -73,6 +79,7 @@ impl<R: Register + PartialEq> BitLocations<R> {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py, R> IntoPyObject<'py> for BitLocations<R>
 where
     R: Debug + Clone + Register + for<'a> IntoPyObject<'a>,
@@ -93,6 +100,7 @@ where
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py, R> FromPyObject<'a, 'py> for BitLocations<R>
 where
     R: Debug
@@ -148,7 +156,7 @@ pub trait ShareableBit: Clone + Eq + Hash + Debug {
     const DESCRIPTION: &'static str;
 }
 // An internal trait to let `RegisterInfo` manifest full `ShareableBit` instances from `BitInfo`
-// structs without leaking that implemntation detail into the public.
+// structs without leaking that implementation detail into the public.
 trait ManifestableBit: ShareableBit {
     fn from_info(val: BitInfo<<Self as ShareableBit>::Subclass>) -> Self;
     fn info(&self) -> &BitInfo<<Self as ShareableBit>::Subclass>;
@@ -159,6 +167,7 @@ trait ManifestableBit: ShareableBit {
 /// .. note::
 ///     This class cannot be instantiated directly. Its only purpose is to allow generic type
 ///     checking for :class:`.Clbit` and :class:`.Qubit`.
+#[cfg(feature = "py")]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[pyclass(subclass, name = "Bit", module = "qiskit.circuit", frozen)]
 pub struct PyBit;
@@ -167,6 +176,7 @@ pub struct PyBit;
 /// .. note::
 ///     This class cannot be instantiated directly.  Its only purpose is to allow generic type
 ///     checking for :class:`~.ClassicalRegister` and :class:`~.QuantumRegister`.
+#[cfg(feature = "py")]
 #[pyclass(
     name = "Register",
     module = "qiskit.circuit",
@@ -303,6 +313,8 @@ pub trait Register {
     fn bits(&self) -> impl ExactSizeIterator<Item = Self::Bit>;
     /// Gets a bit by index
     fn get(&self, index: usize) -> Option<Self::Bit>;
+    /// Checks if the register is owning or alias
+    fn is_owning(&self) -> bool;
 }
 
 /// Create a (Bit, Register) pair, and the associated Python objects.
@@ -348,7 +360,7 @@ macro_rules! create_bit_object {
         /// corresponding bits between two circuits.
         ///
         /// These objects are comparable in a global sense, unlike the lighter [Qubit] or [Clbit]
-        /// index-like objects used only _within_ a cirucit.  We use these objects when comparing
+        /// index-like objects used only _within_ a circuit.  We use these objects when comparing
         /// two circuits to each other, and resolving Python objects, but within the context of a
         /// circuit, we just use the simple indices.
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -366,10 +378,45 @@ macro_rules! create_bit_object {
             }
 
             /// Create a new anonymous bit.
+            #[inline]
             pub fn new_anonymous() -> Self {
                 Self(BitInfo::Anonymous {
                     uid: Self::anonymous_instance_count().fetch_add(1, Ordering::Relaxed),
                     subclass: Default::default(),
+                })
+            }
+
+            /// Return the register owning the bit, if it exists
+            pub fn owning_register(&self) -> Option<$reg_struct> {
+                match &self.0 {
+                    BitInfo::Owned { register, .. } => Some($reg_struct(Arc::new(
+                        RegisterInfo::Owning(register.clone()),
+                    ))),
+                    BitInfo::Anonymous { .. } => None,
+                }
+            }
+
+            /// Return the index of the bit in its owning register, if it exists
+            pub fn owning_register_index(&self) -> Option<u32> {
+                match &self.0 {
+                    BitInfo::Owned { index, .. } => Some(*index),
+                    BitInfo::Anonymous { .. } => None,
+                }
+            }
+
+            /// Create `count` new anonymous bits, returned as an iterator.
+            ///
+            /// This is a bit more efficient than creating the bits individually, since we only have
+            /// to update the underlying atomic instance count once.
+            #[inline]
+            pub fn iter_anonymous(count: u32) -> impl ExactSizeIterator<Item = Self> {
+                let base = Self::anonymous_instance_count()
+                    .fetch_add(count as u64, Ordering::Relaxed);
+                (0..count).map(move |offset| {
+                    Self(BitInfo::Anonymous {
+                        uid: base + offset as u64,
+                        subclass: Default::default(),
+                    })
                 })
             }
         }
@@ -387,42 +434,48 @@ macro_rules! create_bit_object {
             }
         }
 
+        #[cfg(feature = "py")]
         #[doc = concat!("A ", $bit_desc, ", which can be compared between different circuits.")]
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
         #[pyclass(subclass, name=$pybit_name, module="qiskit.circuit", extends=PyBit, frozen, eq, hash)]
         pub struct $pybit_struct($bit_struct);
+        #[cfg(feature = "py")]
         #[pymethods]
         impl $pybit_struct {
             /// Create a new bit.
             #[new]
             #[pyo3(signature=(register=None, index=None))]
-            fn new(register: Option<Bound<$pyreg_struct>>, index: Option<u32>) -> PyResult<(Self, PyBit)> {
-                match (register, index) {
+            fn new(
+                register: Option<Bound<$pyreg_struct>>,
+                index: Option<u32>,
+            ) -> PyResult<PyClassInitializer<Self>> {
+                let bit = match (register, index) {
                     (Some(register), Some(index)) => {
                         let register = &register.borrow().0;
-                        let bit = register.get(index as usize).ok_or_else(|| {
+                        register.get(index as usize).ok_or_else(|| {
                             PyIndexError::new_err(format!(
-                                "index {} out of range for size {}", index, register.len()
+                                "index {} out of range for size {}",
+                                index,
+                                register.len()
                             ))
-                        })?;
-                        Ok((Self(bit), PyBit))
+                        })?
                     }
-                    (None, None) => {
-                        Ok((Self($bit_struct::new_anonymous()), PyBit))
-                    }
-                    _ => {
-                        Err(PyTypeError::new_err("either both 'register' and 'index' are provided, or neither are"))
-                    }
-                }
+                    (None, None) => $bit_struct::new_anonymous(),
+                    _ => return Err(PyTypeError::new_err(
+                        "either both 'register' and 'index' are provided, or neither are",
+                    )),
+                };
+                Ok(PyClassInitializer::from(PyBit).add_subclass(Self(bit)))
             }
 
             fn __repr__(slf: Bound<Self>) -> PyResult<String> {
                 let ob = &slf.borrow().0;
                 let name = slf.get_type().qualname()?;
                 match &ob.0 {
-                    BitInfo::Owned { register, index } => {
-                        Ok(format!("<{} register=({}, \"{}\"), index={}>", name, register.size, &register.name, index))
-                    }
+                    BitInfo::Owned { register, index } => Ok(format!(
+                        "<{} register=({}, \"{}\"), index={}>",
+                        name, register.size, &register.name, index
+                    )),
                     BitInfo::Anonymous { uid, .. } => Ok(format!("<{name} uid={uid}>")),
                 }
             }
@@ -442,12 +495,12 @@ macro_rules! create_bit_object {
                 // This is deliberately type-erasing up top, so `AncillaQubit` can override the
                 // constructor methods.
                 let ty = slf.get_type();
-                match &slf.borrow().0 .0 {
+                match &slf.borrow().0.0 {
                     BitInfo::Owned { register, index } => (
                         ty.getattr("_from_owned")?,
                         (register.name.to_owned(), register.size, index),
                     )
-                        .into_bound_py_any(slf.py()),
+                    .into_bound_py_any(slf.py()),
                     // Don't need to examine the subclass, because it's handled by the overrides of
                     // the `_from_anonymous` and `_from_owned` methods.
                     BitInfo::Anonymous { uid, .. } => {
@@ -500,9 +553,9 @@ macro_rules! create_bit_object {
             #[getter]
             fn _register(&self) -> Option<$reg_struct> {
                 match &self.0.0 {
-                    BitInfo::Owned { register, .. } => {
-                        Some($reg_struct(Arc::new(RegisterInfo::Owning(register.clone()))))
-                    }
+                    BitInfo::Owned { register, .. } => Some($reg_struct(Arc::new(
+                        RegisterInfo::Owning(register.clone()),
+                    ))),
                     BitInfo::Anonymous { .. } => None,
                 }
             }
@@ -515,6 +568,7 @@ macro_rules! create_bit_object {
             }
         }
 
+        #[cfg(feature = "py")]
         impl<'a, 'py> FromPyObject<'a, 'py> for $bit_struct {
             type Error = ::pyo3::CastError<'a, 'py>;
 
@@ -522,6 +576,7 @@ macro_rules! create_bit_object {
                 ob.cast::<$pybit_struct>().map(|ob| ob.borrow().0.clone())
             }
         }
+        #[cfg(feature = "py")]
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
         // subclassing.
         impl<'a, 'py> IntoPyObject<'py> for &'a $bit_struct {
@@ -552,11 +607,13 @@ macro_rules! create_bit_object {
             /// Create a new owning register.
             #[inline]
             pub fn new_owning<S: Into<String>>(name: S, size: u32) -> Self {
-                Self(Arc::new(RegisterInfo::Owning(Arc::new(OwningRegisterInfo {
-                    name: name.into(),
-                    size,
-                    subclass: Default::default(),
-                }))))
+                Self(Arc::new(RegisterInfo::Owning(Arc::new(
+                    OwningRegisterInfo {
+                        name: name.into(),
+                        size,
+                        subclass: Default::default(),
+                    },
+                ))))
             }
 
             /// Create a new aliasing register.
@@ -620,7 +677,7 @@ macro_rules! create_bit_object {
             fn len(&self) -> usize {
                 self.0.len()
             }
-            fn is_empty(&self)-> bool {
+            fn is_empty(&self) -> bool {
                 self.0.is_empty()
             }
             fn name(&self) -> &str {
@@ -635,8 +692,15 @@ macro_rules! create_bit_object {
             fn get(&self, index: usize) -> Option<Self::Bit> {
                 self.0.get(index)
             }
+            fn is_owning(&self) -> bool {
+                match self.0.as_ref() {
+                    RegisterInfo::Owning(_) => true,
+                    RegisterInfo::Alias { .. } => false,
+                }
+            }
         }
 
+        #[cfg(feature = "py")]
         impl<'a, 'py> FromPyObject<'a, 'py> for $reg_struct {
             type Error = ::pyo3::CastError<'a, 'py>;
 
@@ -644,6 +708,7 @@ macro_rules! create_bit_object {
                 ob.cast::<$pyreg_struct>().map(|ob| ob.borrow().0.clone())
             }
         }
+        #[cfg(feature = "py")]
         // The owning impl of `IntoPyObject` needs to be done manually, to better handle
         // subclassing.
         impl<'a, 'py> IntoPyObject<'py> for &'a $reg_struct {
@@ -656,11 +721,13 @@ macro_rules! create_bit_object {
             }
         }
 
+        #[cfg(feature = "py")]
         /// Implement a register.
         #[pyclass(subclass, name=$pyreg_name, module="qiskit.circuit", extends=PyRegister, frozen, eq, hash, sequence)]
         #[derive(Clone, Debug, PartialEq, Eq, Hash)]
         pub struct $pyreg_struct($reg_struct);
 
+        #[cfg(feature = "py")]
         #[pymethods]
         impl $pyreg_struct {
             /// Create a new register.
@@ -690,7 +757,7 @@ macro_rules! create_bit_object {
                 size: Option<isize>,
                 name: Option<String>,
                 bits: Option<Vec<$bit_struct>>,
-            ) -> PyResult<(Self, PyRegister)> {
+            ) -> PyResult<PyClassInitializer<Self>> {
                 let name = name.unwrap_or_else(|| {
                     format!(
                         "{}{}",
@@ -698,8 +765,8 @@ macro_rules! create_bit_object {
                         $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
                     )
                 });
-                match (size, bits) {
-                    (None, None) | (Some(_), Some(_)) => Err(CircuitError::new_err(
+                let register = match (size, bits) {
+                    (None, None) | (Some(_), Some(_)) => return Err(CircuitError::new_err(
                         "Exactly one of the size or bits arguments can be provided.",
                     )),
                     (Some(size), None) => {
@@ -711,7 +778,7 @@ macro_rules! create_bit_object {
                         let Ok(size) = size.try_into() else {
                             return Err(CircuitError::new_err("Register size too large."));
                         };
-                        Ok((Self($reg_struct::new_owning(name, size)), PyRegister))
+                        $reg_struct::new_owning(name, size)
                     }
                     (None, Some(bits)) => {
                         if bits.iter().cloned().collect::<HashSet<_>>().len() != bits.len() {
@@ -719,9 +786,10 @@ macro_rules! create_bit_object {
                                 "Register bits must not be duplicated.",
                             ));
                         }
-                        Ok((Self($reg_struct::new_alias(Some(name), bits)), PyRegister))
+                        $reg_struct::new_alias(Some(name), bits)
                     }
-                }
+                };
+                Ok(PyClassInitializer::from(PyRegister).add_subclass(Self(register)))
             }
 
             /// The name of the register.
@@ -761,15 +829,14 @@ macro_rules! create_bit_object {
             }
             fn __getitem__<'py>(&self, ob: Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
                 let get_inner = |idx| {
-                    self.0.get(idx)
-                        .expect("PySequenceIndex always returns valid indices")
+                    self.0
+                    .get(idx)
+                    .expect("PySequenceIndex always returns valid indices")
                 };
                 if let Ok(sequence) = ob.extract::<PySequenceIndex>() {
                     match sequence.with_len(self.0.len())? {
                         SequenceIndex::Int(idx) => get_inner(idx).into_bound_py_any(ob.py()),
-                        s => {
-                            Ok(PyList::new(ob.py(), s.into_iter().map(get_inner))?.into_any())
-                        }
+                        s => Ok(PyList::new(ob.py(), s.into_iter().map(get_inner))?.into_any()),
                     }
                 } else if let Ok(list) = ob.cast::<PyList>() {
                     let out = PyList::empty(ob.py());
@@ -788,11 +855,13 @@ macro_rules! create_bit_object {
             /// The index of the given bit in the register.
             fn index(&self, bit: Bound<$pybit_struct>) -> PyResult<usize> {
                 let bit_inner = bit.borrow();
-                self.0.index_of(&bit_inner.0).ok_or_else(|| {
-                    match bit.repr() {
-                        Ok(repr) => PyValueError::new_err(format!("Bit {repr} not found in register.")),
-                        Err(err) => err,
+                self.0
+                .index_of(&bit_inner.0)
+                .ok_or_else(|| match bit.repr() {
+                    Ok(repr) => {
+                        PyValueError::new_err(format!("Bit {repr} not found in register."))
                     }
+                    Err(err) => err,
                 })
             }
 
@@ -806,12 +875,11 @@ macro_rules! create_bit_object {
                 name: Option<String>,
                 bits: Option<Vec<$bit_struct>>,
             ) -> PyResult<Py<Self>> {
-                let name =
-                    format!(
-                        "{}{}",
-                        name.unwrap_or(Self::prefix().to_string()),
-                        $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
-                    );
+                let name = format!(
+                    "{}{}",
+                    name.unwrap_or(Self::prefix().to_string()),
+                    $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
+                );
                 Py::new(py, Self::py_new(size, Some(name), bits)?)
             }
 
@@ -826,6 +894,14 @@ macro_rules! create_bit_object {
             #[classattr]
             fn instances_count() -> u32 {
                 $reg_struct::anonymous_instance_count().load(Ordering::Relaxed)
+            }
+        }
+
+        #[cfg(feature = "py")]
+        impl ::std::ops::Deref for $pyreg_struct {
+            type Target = $reg_struct;
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
     };
@@ -872,9 +948,11 @@ impl ShareableQubit {
 }
 
 /// A qubit used as an ancilla.
+#[cfg(feature = "py")]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[pyclass(name="AncillaQubit", module="qiskit.circuit", extends=PyQubit, frozen)]
 pub struct PyAncillaQubit;
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyAncillaQubit {
     /// Create a new anonymous ancilla qubit.
@@ -932,6 +1010,7 @@ impl PyAncillaQubit {
         .into_any())
     }
 }
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for ShareableQubit {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -986,14 +1065,16 @@ impl QuantumRegister {
 }
 // This isn't intended for use from Rust space.
 /// Implement an ancilla register.
+#[cfg(feature = "py")]
 #[pyclass(
     name = "AncillaRegister",
     module = "qiskit.circuit",
     frozen,
-    extends=PyQuantumRegister
+    extends=PyQuantumRegister,
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PyAncillaRegister;
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyAncillaRegister {
     // Most of the methods are inherited from `QuantumRegister` in Python space.
@@ -1062,6 +1143,7 @@ impl PyAncillaRegister {
         PyAncillaQubit::type_object(py)
     }
 }
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for QuantumRegister {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -1104,7 +1186,9 @@ create_bit_object!(
     CLBIT_INSTANCES,
     CLASSICAL_REGISTER_INSTANCES
 );
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for ShareableClbit {
+    #[cfg(feature = "py")]
     type Target = PyClbit;
     type Output = Bound<'py, PyClbit>;
     type Error = PyErr;
@@ -1114,6 +1198,7 @@ impl<'py> IntoPyObject<'py> for ShareableClbit {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for ClassicalRegister {
     type Target = PyClassicalRegister;
     type Output = Bound<'py, PyClassicalRegister>;

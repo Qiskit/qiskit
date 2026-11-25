@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,6 @@
 
 import unittest
 import os
-from contextlib import contextmanager
 from pathlib import Path
 
 from qiskit import QuantumCircuit
@@ -24,9 +23,9 @@ from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
-from test.python.legacy_cmaps import (  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+from test.visual import VisualTestUtilities
+from test.python.legacy_cmaps import (
     YORKTOWN_CMAP,
     LAGOS_CMAP,
     RUESCHLIKON_CMAP,
@@ -44,17 +43,6 @@ RESULT_DIR = Path(BASE_DIR) / "graph_results"
 TEST_REFERENCE_DIR = Path(BASE_DIR) / "references"
 FAILURE_DIFF_DIR = Path(BASE_DIR).parent / "visual_test_failures"
 FAILURE_PREFIX = "graph_failure_"
-
-
-@contextmanager
-def cwd(path):
-    """A context manager to run in a particular path"""
-    oldpwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(oldpwd)
 
 
 class TestGraphMatplotlibDrawer(QiskitTestCase):
@@ -155,6 +143,29 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.99)
 
+    def test_plot_entangled_state_qsphere(self):
+        """test for plot_state_qsphere"""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.z(0)
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        # getting the state using quantum_info
+        state = Statevector(circuit)
+
+        fname = "entangled_qsphere.png"
+        self.graph_state_drawer(state=state, output="qsphere", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.99)
+
     def test_plot_state_city(self):
         """test for plot_state_city"""
         circuit = QuantumCircuit(1)
@@ -197,7 +208,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
     def test_plot_histogram(self):
         """for testing the plot_histogram"""
-        # specifing counts because we do not want oscillation of
+        # specifying counts because we do not want oscillation of
         # result until a changes is made to plot_histogram
 
         counts = {"11": 500, "00": 500}

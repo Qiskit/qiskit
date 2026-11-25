@@ -4,28 +4,34 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::env;
-
 pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
+mod blocks;
 pub mod circuit_data;
+pub mod circuit_drawer;
+#[cfg(feature = "py")]
 pub mod circuit_instruction;
 pub mod classical;
+#[cfg(feature = "py")]
 pub mod converters;
 pub mod dag_circuit;
+#[cfg(feature = "py")]
 pub mod dag_node;
+#[cfg(feature = "py")]
 mod dot_utils;
 pub mod duration;
 pub mod error;
 pub mod gate_matrix;
+#[cfg(feature = "py")]
 pub mod imports;
+pub mod instruction;
 pub mod interner;
 pub mod nlayout;
 pub mod object_registry;
@@ -34,24 +40,48 @@ pub mod packed_instruction;
 pub mod parameter;
 pub mod parameter_table;
 pub mod register_data;
-pub mod slice;
-pub mod util;
+mod stack;
+pub mod standard_gate;
+pub mod var_stretch_container;
+mod variable_mapper;
 pub mod vf2;
 
-mod variable_mapper;
+use std::ops::Add;
 
-use pyo3::PyTypeInfo;
-use pyo3::exceptions::PyValueError;
+use bytemuck::{Pod, Zeroable};
+#[cfg(feature = "py")]
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::{PySequence, PyString, PyTuple};
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[cfg_attr(feature = "py", derive(FromPyObject))]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, Zeroable, Pod)]
 #[repr(transparent)]
 pub struct Qubit(pub u32);
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[cfg_attr(feature = "py", derive(FromPyObject))]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, Zeroable, Pod)]
 #[repr(transparent)]
 pub struct Clbit(pub u32);
+
+/// Offset a qubit by a number of positions, for walking over a contiguous register.
+impl Add<u32> for Qubit {
+    type Output = Self;
+
+    fn add(self, by: u32) -> Self {
+        Self(self.0 + by)
+    }
+}
+
+impl Add<u32> for Clbit {
+    type Output = Self;
+
+    fn add(self, by: u32) -> Self {
+        Self(self.0 + by)
+    }
+}
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct Var(u32);
@@ -59,8 +89,21 @@ pub struct Var(u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Stretch(u32);
 
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Block(u32);
+
+// Although this marker only exists to be used with Operations coming from
+// Python, we need to keep it exposed due to `qiskit-synthesis` depending on it.
+// Once the PyO3 dependency is removed from `qiskit-synthesis`, we can put this
+// back inside of `circuit_instruction.rs`.
+/// Marker object for use with `OperationFromPython` that marks that the
+/// extraction should fail if the object contains circuit blocks.
+pub struct NoBlocks;
+
+pub use blocks::ControlFlowBlocks;
 pub use nlayout::PhysicalQubit;
 pub use nlayout::VirtualQubit;
+pub use packed_instruction::BlockMapper;
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {
@@ -105,11 +148,14 @@ impl_circuit_identifier!(Qubit);
 impl_circuit_identifier!(Clbit);
 impl_circuit_identifier!(Var);
 impl_circuit_identifier!(Stretch);
+impl_circuit_identifier!(Block);
 
+#[cfg(feature = "py")]
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for TupleLikeArg<'py> {
     type Error = PyErr;
 
@@ -146,6 +192,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TupleLikeArg<'py> {
 ///
 /// Usually this doesn't matter much to code authors, but it can help a lot when dealing with
 /// references nested in ad-hoc structures, like `(&T1, &T2)`.
+#[cfg(feature = "py")]
 #[macro_export]
 macro_rules! impl_intopyobject_for_copy_pyclass {
     ($ty:ty) => {
@@ -174,6 +221,7 @@ pub enum VarsMode {
     Drop,
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
     type Error = PyErr;
 
@@ -189,21 +237,29 @@ impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
     }
 }
 
-#[inline]
-pub fn getenv_use_multiple_threads() -> bool {
-    let parallel_context = env::var("QISKIT_IN_PARALLEL")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    let force_threads = env::var("QISKIT_FORCE_THREADS")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    !parallel_context || force_threads
+/// The mode to use when handling blocks for operations that create a new [dag_circuit::DAGCircuit]
+/// or [circuit_data::CircuitData] based on an existing one.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum BlocksMode {
+    Drop,
+    Keep,
 }
 
+/// Simple error type for objects with built-in hard-coded capacity limits.
+#[derive(Clone, Copy, Debug, thiserror::Error)]
+#[error("exceeded allowed runtime capacity")]
+pub struct CapacityError;
+#[cfg(feature = "py")]
+impl From<CapacityError> for PyErr {
+    fn from(val: CapacityError) -> PyErr {
+        PyRuntimeError::new_err(val.to_string())
+    }
+}
+
+#[cfg(feature = "py")]
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<annotation::PyAnnotation>()?;
+    m.add_class::<annotation::PyNativeAnnotation>()?;
     m.add_class::<bit::PyBit>()?;
     m.add_class::<bit::PyClbit>()?;
     m.add_class::<bit::PyQubit>()?;
@@ -213,47 +269,22 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bit::PyQuantumRegister>()?;
     m.add_class::<bit::PyAncillaRegister>()?;
 
-    // We need to explicitly add the auto-generated Python subclasses of Duration
-    // to the module so that pickle can find them during deserialization.
-    m.add_class::<duration::Duration>()?;
-    m.add(
-        "Duration_ps",
-        duration::Duration::type_object(m.py()).getattr("ps")?,
-    )?;
-    m.add(
-        "Duration_ns",
-        duration::Duration::type_object(m.py()).getattr("ns")?,
-    )?;
-    m.add(
-        "Duration_us",
-        duration::Duration::type_object(m.py()).getattr("us")?,
-    )?;
-    m.add(
-        "Duration_ms",
-        duration::Duration::type_object(m.py()).getattr("ms")?,
-    )?;
-    m.add(
-        "Duration_s",
-        duration::Duration::type_object(m.py()).getattr("s")?,
-    )?;
-    m.add(
-        "Duration_dt",
-        duration::Duration::type_object(m.py()).getattr("dt")?,
-    )?;
-
-    m.add_class::<circuit_data::CircuitData>()?;
+    m.add_class::<circuit_data::PyCircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
-    m.add_class::<dag_circuit::DAGCircuit>()?;
+    m.add_class::<dag_circuit::PyDAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<dag_circuit::PyBitLocations>()?;
+    m.add_class::<duration::Duration>()?;
+    m.add_class::<operations::ControlFlowType>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
     m.add_class::<parameter::parameter_expression::PyParameterExpression>()?;
     m.add_class::<parameter::parameter_expression::PyParameter>()?;
     m.add_class::<parameter::parameter_expression::PyParameterVectorElement>()?;
+    m.add_class::<parameter::parameter_expression::PyParameterVector>()?;
     m.add_class::<parameter::parameter_expression::OpCode>()?;
     m.add_class::<parameter::parameter_expression::OPReplay>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;

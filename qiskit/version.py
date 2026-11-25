@@ -4,20 +4,22 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import
 
 """Contains Qiskit version."""
 
+import importlib.metadata
 import os
+import pathlib
 import subprocess
+import tomllib
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = pathlib.Path(__file__).absolute().parents[1]
 
 
 def _minimal_ext_cmd(cmd):
@@ -31,12 +33,12 @@ def _minimal_ext_cmd(cmd):
     env["LANGUAGE"] = "C"
     env["LANG"] = "C"
     env["LC_ALL"] = "C"
-    with subprocess.Popen(
+    with subprocess.Popen(  # noqa: S603  We are calling git with fixed arguments
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
-        cwd=os.path.join(os.path.dirname(ROOT_DIR)),
+        cwd=ROOT_DIR,
     ) as proc:
         stdout, stderr = proc.communicate()
         if proc.returncode > 0:
@@ -57,8 +59,23 @@ def git_version():
     return git_revision
 
 
-with open(os.path.join(ROOT_DIR, "VERSION.txt")) as version_file:
-    VERSION = version_file.read().strip()
+def _guess_version_from_uninstalled():
+    # Somebody is trying to import us without properly installing the package.  That _probably_
+    # means we've got a `pyproject.toml` file available to read the version from, but if not then
+    # really who knows what's going on.
+    default = "0.0.0"
+    try:
+        config = tomllib.load(open(ROOT_DIR / "pyproject.toml", "rb"))
+    except (OSError, tomllib.TOMLDecodeError):
+        return default
+    # Defensive against this file not actually being our `pyproject.toml`.
+    return config.get("project", {}).get("version", default)
+
+
+try:
+    VERSION = importlib.metadata.version("qiskit")
+except importlib.metadata.PackageNotFoundError:
+    VERSION = _guess_version_from_uninstalled()
 
 
 def get_version_info():
@@ -68,11 +85,11 @@ def get_version_info():
     # up the build under Python 3.
     full_version = VERSION
 
-    if not os.path.exists(os.path.join(os.path.dirname(ROOT_DIR), ".git")):
+    if not (ROOT_DIR / ".git").is_dir():
         return full_version
     try:
         release = _minimal_ext_cmd(["git", "tag", "-l", "--points-at", "HEAD"])
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         return full_version
     git_revision = git_version()
     if not release:

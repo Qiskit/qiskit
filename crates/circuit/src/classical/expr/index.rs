@@ -4,16 +4,21 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Expr, ExprKind, PyExpr};
+use crate::classical::expr::Expr;
+#[cfg(feature = "py")]
+use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyTuple;
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
 
 /// An indexing expression.
@@ -25,6 +30,7 @@ pub struct Index {
     pub constant: bool,
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Index {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -35,6 +41,7 @@ impl<'py> IntoPyObject<'py> for Index {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Index {
     type Error = <PyIndex as FromPyObject<'a, 'py>>::Error;
 
@@ -50,10 +57,18 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Index {
 ///     target: The object being indexed.
 ///     index: The expression doing the indexing.
 ///     type: The resolved type of the result.
-#[pyclass(eq, extends = PyExpr, name = "Index", module = "qiskit._accelerate.circuit.classical.expr")]
+#[cfg(feature = "py")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Index",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object,
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyIndex(Index);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyIndex {
     #[new]

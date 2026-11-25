@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,23 +12,12 @@
 
 """Image comparison tests."""
 
+import contextlib
 import json
 import os
-from contextlib import contextmanager
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw
-
-
-@contextmanager
-def cwd(path):
-    """A context manager to run in a particular path"""
-    oldpwd = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(oldpwd)
 
 
 class VisualTestUtilities:
@@ -94,7 +83,7 @@ class VisualTestUtilities:
 
         def wrapper(*args, **kwargs):
             image_filename = kwargs["filename"]
-            with cwd(result_dir):
+            with contextlib.chdir(result_dir):
                 results = func(*args, **kwargs)
                 VisualTestUtilities.save_data(image_filename, testname)
             return results

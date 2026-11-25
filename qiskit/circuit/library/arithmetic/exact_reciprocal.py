@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -119,7 +119,7 @@ class ExactReciprocalGate(Gate):
 
         if self.neg_vals:
             circuit.append(
-                UCRYGate([-theta for theta in angles]).control(),
+                UCRYGate([-theta for theta in angles]).control(annotated=False),
                 [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1],
             )
             angles_neg = [0.0]
@@ -131,7 +131,8 @@ class ExactReciprocalGate(Gate):
                 else:
                     angles_neg.append(0.0)
             circuit.append(
-                UCRYGate(angles_neg).control(), [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1]
+                UCRYGate(angles_neg).control(annotated=False),
+                [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1],
             )
 
         self.definition = circuit

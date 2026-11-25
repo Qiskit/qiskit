@@ -4,18 +4,25 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use crate::classical::expr::{ExprKind, PyExpr};
+#[cfg(feature = "py")]
 use crate::classical::types::Type;
+#[cfg(feature = "py")]
 use crate::imports::UUID;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::{IntoPyDict, PyTuple};
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
+#[cfg(feature = "py")]
 use uuid::Uuid;
 
 /// A stretch variable.
@@ -25,6 +32,7 @@ pub struct Stretch {
     pub name: String,
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Stretch {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -35,6 +43,7 @@ impl<'py> IntoPyObject<'py> for Stretch {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Stretch {
     type Error = <PyStretch as FromPyObject<'a, 'py>>::Error;
 
@@ -48,10 +57,20 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Stretch {
 ///
 /// In general, construction of stretch variables for use in programs should use :meth:`Stretch.new`
 /// or :meth:`.QuantumCircuit.add_stretch`
-#[pyclass(eq, hash, frozen, extends = PyExpr, name = "Stretch", module = "qiskit._accelerate.circuit.classical.expr")]
+#[cfg(feature = "py")]
+#[pyclass(
+    eq,
+    hash,
+    frozen,
+    extends = PyExpr,
+    name = "Stretch",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug, Hash)]
 pub struct PyStretch(Stretch);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyStretch {
     #[new]

@@ -4,20 +4,38 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use std::sync::OnceLock;
 use std::{fmt::Debug, marker::PhantomData};
 
 use hashbrown::HashMap;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::{IntoPyDict, PyDict, PyList};
 
-use crate::{bit::Register, circuit_data::CircuitError};
+use crate::bit::Register;
+#[cfg(feature = "py")]
+use crate::circuit_data::CircuitError;
+
+/// Error thrown when adding a register using strict mode
+/// and it's already present.
+#[derive(Debug, thiserror::Error)]
+#[error("register name \"{0}\" already exists")]
+pub struct RegisterAlreadyExists(String);
+
+#[cfg(feature = "py")]
+impl From<RegisterAlreadyExists> for PyErr {
+    fn from(value: RegisterAlreadyExists) -> Self {
+        CircuitError::new_err(value.to_string())
+    }
+}
 
 /// Represents the location in which the register is stored within [RegisterData].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -58,6 +76,7 @@ impl<R: Register> RegisterIndex<R> {
 pub struct RegisterData<R: Register> {
     reg_index: HashMap<String, RegisterIndex<R>>,
     registers: Vec<R>,
+    #[cfg(feature = "py")]
     cached_registers: OnceLock<Py<PyDict>>,
 }
 
@@ -85,6 +104,7 @@ where
         Self {
             reg_index: HashMap::new(),
             registers: Vec::new(),
+            #[cfg(feature = "py")]
             cached_registers: OnceLock::new(),
         }
     }
@@ -95,6 +115,7 @@ where
         Self {
             reg_index: HashMap::with_capacity(capacity),
             registers: Vec::new(),
+            #[cfg(feature = "py")]
             cached_registers: OnceLock::new(),
         }
     }
@@ -102,21 +123,23 @@ where
     /// Inserts a [Register] into the circuit. If it exists, the index of where
     /// it sits will be returned.
     ///
-    /// __**Note** if `strict` is passed, the insertion will fail.
-    pub fn add_register(&mut self, register: R, strict: bool) -> PyResult<bool> {
+    /// _**Note**_ if `strict` is passed, the insertion will fail.
+    pub fn add_register(
+        &mut self,
+        register: R,
+        strict: bool,
+    ) -> Result<bool, RegisterAlreadyExists> {
         if self
             .reg_index
             .try_insert(register.name().to_string(), self.registers.len().into())
             .is_ok()
         {
             self.registers.push(register);
+            #[cfg(feature = "py")]
             self.cached_registers.take();
             Ok(true)
         } else if strict {
-            Err(CircuitError::new_err(format!(
-                "register name \"{}\" already exists",
-                register.name()
-            )))
+            Err(RegisterAlreadyExists(register.name().to_string()))
         } else {
             Ok(false)
         }
@@ -159,6 +182,7 @@ where
     ///
     /// __**Note:** This operation is performed at `O(n)` times in the worst case.__
     pub fn remove(&mut self, register: &str) -> Option<R> {
+        #[cfg(feature = "py")]
         self.cached_registers.take();
         if let Some(index) = self.reg_index.remove(register) {
             let bit = self.registers.remove(index.index());
@@ -184,6 +208,7 @@ where
             .filter_map(|i| self.reg_index.get(&i).map(|idx| idx.index()))
             .collect();
         indices_sorted.sort();
+        #[cfg(feature = "py")]
         self.cached_registers.take();
         for index in indices_sorted.into_iter().rev() {
             let bit = self.registers.remove(index);
@@ -206,6 +231,7 @@ where
     pub fn dispose(&mut self) {
         self.reg_index.clear();
         self.registers.clear();
+        #[cfg(feature = "py")]
         self.cached_registers.take();
     }
 
@@ -224,11 +250,13 @@ where
         Self {
             registers,
             reg_index,
+            #[cfg(feature = "py")]
             cached_registers: OnceLock::new(),
         }
     }
 }
 
+#[cfg(feature = "py")]
 impl<R> RegisterData<R>
 where
     R: Debug + Clone + Register + for<'py> IntoPyObject<'py>,

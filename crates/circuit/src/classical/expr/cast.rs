@@ -4,16 +4,20 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Expr, ExprKind, PyExpr};
-use crate::classical::types::Type;
+#[cfg(feature = "py")]
+use crate::classical::expr::{ExprKind, PyExpr};
+use crate::classical::{expr::Expr, types::Type};
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyTuple;
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
 
 /// A cast from one type to another, implied by the use of an expression in a different
@@ -26,6 +30,7 @@ pub struct Cast {
     pub implicit: bool,
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Cast {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -36,6 +41,7 @@ impl<'py> IntoPyObject<'py> for Cast {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Cast {
     type Error = <PyCast as FromPyObject<'a, 'py>>::Error;
 
@@ -47,10 +53,18 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Cast {
 
 /// A cast from one type to another, implied by the use of an expression in a different
 /// context.
-#[pyclass(eq, extends = PyExpr, name = "Cast", module = "qiskit._accelerate.circuit.classical.expr")]
+#[cfg(feature = "py")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Cast",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyCast(Cast);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyCast {
     #[new]

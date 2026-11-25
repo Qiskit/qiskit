@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -26,7 +26,6 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
 from qiskit.utils.deprecation import deprecate_func
 
-from .ucrz import UCRZGate
 
 _EPS = 1e-10
 
@@ -103,32 +102,16 @@ class DiagonalGate(Gate):
         super().__init__("diagonal", num_qubits, diag)
 
     def _define(self):
-        # Since the diagonal is a unitary, all its entries have absolute value
-        # one and the diagonal is fully specified by the phases of its entries.
+        from qiskit._accelerate.synthesis.diagonal import synth_diagonal
+
         diag_phases = [cmath.phase(z) for z in self.params]
-        n = len(diag_phases)
-        circuit = QuantumCircuit(self.num_qubits)
-
-        while n >= 2:
-            angles_rz = []
-            for i in range(0, n, 2):
-                diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
-                angles_rz.append(rz_angle)
-            num_act_qubits = int(math.log2(n))
-            ctrl_qubits = list(range(self.num_qubits - num_act_qubits + 1, self.num_qubits))
-            target_qubit = self.num_qubits - num_act_qubits
-
-            ucrz = UCRZGate(angles_rz)
-            circuit.append(ucrz, [target_qubit] + ctrl_qubits)
-
-            n //= 2
-        circuit.global_phase += diag_phases[0]
-
-        self.definition = circuit
+        definition = QuantumCircuit._from_circuit_data(synth_diagonal(diag_phases, self.num_qubits))
+        definition.name = "diagonal"
+        self.definition = definition
 
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex
-        (in addition to the Gate parameter types) and always return build-in complex."""
+        (in addition to the Gate parameter types) and always return built-in complex."""
         if isinstance(parameter, complex):
             return complex(parameter)
         else:
@@ -151,13 +134,3 @@ class DiagonalGate(Gate):
             raise CircuitError("The number of diagonal entries is not a positive power of 2.")
         if not np.allclose(np.abs(diag), 1, atol=_EPS):
             raise CircuitError("A diagonal element does not have absolute value one.")
-
-
-def _extract_rz(phi1, phi2):
-    """
-    Extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
-    is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2).
-    """
-    phase = (phi1 + phi2) / 2.0
-    z_angle = phi2 - phi1
-    return phase, z_angle

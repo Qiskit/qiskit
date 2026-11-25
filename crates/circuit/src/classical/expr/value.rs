@@ -4,18 +4,22 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
 use crate::duration::Duration;
 use num_bigint::BigUint;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyTuple;
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
 
 /// A single scalar value expression.
@@ -26,6 +30,7 @@ pub enum Value {
     Uint { raw: BigUint, ty: Type },
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Value {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -36,6 +41,7 @@ impl<'py> IntoPyObject<'py> for Value {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Value {
     type Error = <PyValue as FromPyObject<'a, 'py>>::Error;
 
@@ -46,10 +52,18 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Value {
 }
 
 /// A single scalar value.
-#[pyclass(eq, extends = PyExpr, name = "Value", module = "qiskit._accelerate.circuit.classical.expr")]
+#[cfg(feature = "py")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Value",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyValue(Value);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyValue {
     #[new]

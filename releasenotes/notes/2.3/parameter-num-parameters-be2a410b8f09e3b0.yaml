@@ -1,0 +1,6 @@
+---
+features_circuits:
+  - |
+    :class:`.ParameterExpression` now has a :attr:`~.ParameterExpression.num_parameters` attribute,
+    which is equal to the length of its :attr:`~.ParameterExpression.parameters` set, but calculated
+    with less overhead.

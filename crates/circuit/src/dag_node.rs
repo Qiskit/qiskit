@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,15 +15,16 @@ use std::hash::Hasher;
 use std::sync::OnceLock;
 
 use crate::TupleLikeArg;
-use crate::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use crate::imports::QUANTUM_CIRCUIT;
-use crate::operations::{Operation, OperationRef, Param, PythonOperation};
+use crate::circuit_data::CircuitData;
+use crate::circuit_instruction::{CircuitInstruction, OperationFromPython, extract_params};
+use crate::operations::{Operation, OperationRef, Param};
 
 use ahash::AHasher;
 use approx::relative_eq;
 use num_complex::Complex64;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use crate::instruction::Instruction;
 use numpy::IntoPyArray;
 use numpy::PyArray2;
 use pyo3::IntoPyObjectExt;
@@ -126,7 +127,7 @@ impl DAGOpNode {
         qargs: Option<TupleLikeArg>,
         cargs: Option<TupleLikeArg>,
     ) -> PyResult<Py<Self>> {
-        let py_op = op.extract::<OperationFromPython>()?;
+        let py_op = op.extract::<OperationFromPython<CircuitData>>()?;
         let qargs = qargs.map_or_else(|| PyTuple::empty(py), |q| q.value);
         let cargs = cargs.map_or_else(|| PyTuple::empty(py), |c| c.value);
         let instruction = CircuitInstruction {
@@ -175,36 +176,70 @@ impl DAGOpNode {
         {
             return Ok(false);
         }
-        let params_eq = if slf.instruction.operation.try_standard_gate().is_some() {
-            let mut params_eq = true;
-            for (a, b) in slf
-                .instruction
-                .params
-                .iter()
-                .zip(borrowed_other.instruction.params.iter())
-            {
-                let res = match [a, b] {
-                    [Param::Float(float_a), Param::Float(float_b)] => {
-                        relative_eq!(float_a, float_b, max_relative = 1e-10)
+        let params_eq = match (
+            slf.instruction.operation.view(),
+            borrowed_other.instruction.operation.view(),
+        ) {
+            (OperationRef::StandardGate(_), OperationRef::StandardGate(_))
+            | (OperationRef::StandardInstruction(_), OperationRef::StandardInstruction(_)) => {
+                let slf_params = slf.instruction.params_view();
+                let other_params = borrowed_other.instruction.params_view();
+                let mut params_eq = true;
+                for (a, b) in slf_params.iter().zip(other_params) {
+                    let res = match [a, b] {
+                        [Param::Float(float_a), Param::Float(float_b)] => {
+                            relative_eq!(float_a, float_b, max_relative = 1e-10)
+                        }
+                        [
+                            Param::ParameterExpression(param_a),
+                            Param::ParameterExpression(param_b),
+                        ] => param_a == param_b,
+                        [Param::Obj(param_a), Param::Obj(param_b)] => {
+                            param_a.bind(py).eq(param_b)?
+                        }
+                        [Param::Int(param_a), Param::Int(param_b)] => param_a == param_b,
+                        [Param::ParameterExpression(_), Param::Int(_)]
+                        | [Param::Int(_), Param::ParameterExpression(_)] => false,
+                        [Param::ParameterExpression(_), Param::Float(_)]
+                        | [Param::Float(_), Param::ParameterExpression(_)] => false,
+                        [Param::Int(_), Param::Float(_)] | [Param::Float(_), Param::Int(_)] => {
+                            false
+                        }
+                        [Param::Obj(obj_a), param_a] | [param_a, Param::Obj(obj_a)] => {
+                            obj_a.bind(py).eq(param_a)?
+                        }
+                    };
+                    if !res {
+                        params_eq = false;
+                        break;
                     }
-                    [
-                        Param::ParameterExpression(param_a),
-                        Param::ParameterExpression(param_b),
-                    ] => param_a == param_b,
-                    [Param::Obj(param_a), Param::Obj(param_b)] => param_a.bind(py).eq(param_b)?,
-                    _ => false,
-                };
-                if !res {
-                    params_eq = false;
-                    break;
                 }
+                params_eq
             }
-            params_eq
-        } else {
-            // We've already evaluated the parameters are equal here via the Python space equality
-            // check so if we're not comparing standard gates and we've reached this point we know
-            // the parameters are already equal.
-            true
+            (OperationRef::ControlFlow(_), OperationRef::ControlFlow(_)) => {
+                let slf_blocks = slf.instruction.blocks_view();
+                let other_blocks = borrowed_other.instruction.blocks_view();
+                let mut params_eq = true;
+                // TODO: we should be able to do the semantic-equality comparison from Rust
+                // space in the future, without going via Python.  See gh-15267.
+                for (a, b) in slf_blocks.iter().zip(other_blocks) {
+                    if !a
+                        .clone()
+                        .into_py_quantum_circuit(py)?
+                        .eq(b.clone().into_py_quantum_circuit(py)?)?
+                    {
+                        params_eq = false;
+                        break;
+                    }
+                }
+                params_eq
+            }
+            _ => {
+                // For our Python object types (i.e. PyInstruction, PyGate, PyOperation), we've
+                // already evaluated the parameters are equal here via the Python space operation
+                // equality check.
+                true
+            }
         };
 
         Ok(params_eq
@@ -228,15 +263,7 @@ impl DAGOpNode {
         deepcopy: bool,
     ) -> PyResult<Py<PyAny>> {
         if deepcopy {
-            instruction.operation = match instruction.operation.view() {
-                OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                OperationRef::Instruction(instruction) => instruction.py_deepcopy(py, None)?.into(),
-                OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
-                OperationRef::StandardGate(gate) => gate.into(),
-                OperationRef::StandardInstruction(instruction) => instruction.into(),
-                OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-            };
+            instruction.operation = instruction.operation.py_deepcopy(py, None)?;
             #[cfg(feature = "cache_pygates")]
             {
                 instruction.py_op = OnceLock::new();
@@ -274,17 +301,7 @@ impl DAGOpNode {
     fn _to_circuit_instruction(&self, py: Python, deepcopy: bool) -> PyResult<CircuitInstruction> {
         Ok(CircuitInstruction {
             operation: if deepcopy {
-                match self.instruction.operation.view() {
-                    OperationRef::Gate(gate) => gate.py_deepcopy(py, None)?.into(),
-                    OperationRef::Instruction(instruction) => {
-                        instruction.py_deepcopy(py, None)?.into()
-                    }
-                    OperationRef::Operation(operation) => operation.py_deepcopy(py, None)?.into(),
-                    OperationRef::StandardGate(gate) => gate.into(),
-                    OperationRef::StandardInstruction(instruction) => instruction.into(),
-                    OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
-                }
+                self.instruction.operation.py_deepcopy(py, None)?
             } else {
                 self.instruction.operation.clone()
             },
@@ -304,7 +321,7 @@ impl DAGOpNode {
 
     #[setter]
     fn set_op(&mut self, op: &Bound<PyAny>) -> PyResult<()> {
-        let res = op.extract::<OperationFromPython>()?;
+        let res = op.extract::<OperationFromPython<CircuitData>>()?;
         self.instruction.operation = res.operation;
         self.instruction.params = res.params;
         self.instruction.label = res.label;
@@ -352,18 +369,19 @@ impl DAGOpNode {
     }
 
     #[getter]
-    fn get_params(&self) -> &[Param] {
-        self.instruction.params.as_slice()
+    fn get_params(&self, py: Python) -> PyResult<Py<PyAny>> {
+        self.instruction.get_params(py)
     }
 
     #[setter]
-    fn set_params(&mut self, val: smallvec::SmallVec<[crate::operations::Param; 3]>) {
-        self.instruction.params = val;
+    fn set_params(&mut self, val: Bound<PyAny>) -> PyResult<()> {
+        self.instruction.params = extract_params(self.instruction.op(), &val)?;
+        Ok(())
     }
 
     #[getter]
     fn matrix<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyArray2<Complex64>>> {
-        let matrix = self.instruction.operation.matrix(&self.instruction.params);
+        let matrix = self.instruction.try_matrix();
         matrix.map(|mat| mat.into_pyarray(py))
     }
 
@@ -405,14 +423,13 @@ impl DAGOpNode {
 
     #[getter]
     fn definition<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyAny>>> {
-        self.instruction
-            .operation
-            .definition(&self.instruction.params)
-            .map(|data| {
-                QUANTUM_CIRCUIT
-                    .get_bound(py)
-                    .call_method1(intern!(py, "_from_circuit_data"), (data,))
-            })
+        let definition = match self.instruction.operation.view() {
+            OperationRef::StandardGate(g) => g.definition(self.instruction.params_view()),
+            OperationRef::PyCustom(i) => i.definition(),
+            _ => None,
+        };
+        definition
+            .map(|data| data.into_py_quantum_circuit(py))
             .transpose()
     }
 
@@ -421,7 +438,7 @@ impl DAGOpNode {
     fn set_name(&mut self, py: Python, new_name: Py<PyAny>) -> PyResult<()> {
         let op = self.instruction.get_operation_mut(py)?;
         op.setattr(intern!(py, "name"), new_name)?;
-        self.instruction.operation = op.extract::<OperationFromPython>()?.operation;
+        self.instruction.operation = op.extract::<OperationFromPython<CircuitData>>()?.operation;
         Ok(())
     }
 
@@ -452,8 +469,8 @@ impl DAGInNode {
 #[pymethods]
 impl DAGInNode {
     #[new]
-    fn py_new(wire: Py<PyAny>) -> PyResult<(Self, DAGNode)> {
-        Ok((DAGInNode { wire }, DAGNode { node: None }))
+    fn py_new(wire: Py<PyAny>) -> PyClassInitializer<Self> {
+        PyClassInitializer::from(DAGNode { node: None }).add_subclass(Self { wire })
     }
 
     fn __reduce__<'py>(slf: PyRef<'py, Self>, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
@@ -510,8 +527,8 @@ impl DAGOutNode {
 #[pymethods]
 impl DAGOutNode {
     #[new]
-    fn py_new(wire: Py<PyAny>) -> PyResult<(Self, DAGNode)> {
-        Ok((DAGOutNode { wire }, DAGNode { node: None }))
+    fn py_new(wire: Py<PyAny>) -> PyClassInitializer<Self> {
+        PyClassInitializer::from(DAGNode { node: None }).add_subclass(Self { wire })
     }
 
     fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<Py<PyAny>> {

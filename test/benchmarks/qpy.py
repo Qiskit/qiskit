@@ -1,0 +1,138 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2024
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+
+import io
+import os
+from unittest.mock import patch
+from qiskit.circuit import Parameter
+from qiskit import QuantumCircuit
+from qiskit import qpy
+
+from .utils import random_circuit
+
+
+class RandomBenchmarks:
+
+    params = ([20], [256, 1024], [0, 42])
+
+    param_names = ["n_qubits", "depth", "seed"]
+    timeout = 300
+
+    def setup(self, n_qubits, depth, seed):
+        self.circuit = random_circuit(
+            n_qubits,
+            depth,
+            measure=True,
+            conditional=True,
+            reset=True,
+            seed=seed,
+            max_operands=3,
+        )
+
+    def time_dump(self, _, __, ___):
+        qpy_file = io.BytesIO()
+        qpy.dump(self.circuit, qpy_file)
+
+    def time_dump_and_load(self, _, __, ___):
+        qpy_file = io.BytesIO()
+        qpy.dump(self.circuit, qpy_file)
+        qpy_file.seek(0)
+        qpy.load(qpy_file)
+
+
+class ParallelLoadBenchmarks:
+
+    params = ([1, 10, 50], [20], [50])
+
+    param_names = ["num_circuits", "n_qubits", "depth"]
+    timeout = 300
+
+    def setup(self, num_circuits, n_qubits, depth):
+        circuits = [
+            random_circuit(
+                n_qubits,
+                depth,
+                measure=True,
+                conditional=True,
+                reset=True,
+                seed=seed,
+                max_operands=3,
+            )
+            for seed in range(num_circuits)
+        ]
+        qpy_file = io.BytesIO()
+        qpy.dump(circuits, qpy_file)
+        self.qpy_bytes = qpy_file.getvalue()
+
+    def time_load_sequential(self, _, __, ___):
+        with patch.dict(os.environ, {"QISKIT_IN_PARALLEL": "TRUE"}):
+            qpy.load(io.BytesIO(self.qpy_bytes))
+
+    def time_load_parallel(self, _, __, ___):
+        with patch.dict(os.environ, {"QISKIT_IN_PARALLEL": "FALSE"}):
+            qpy.load(io.BytesIO(self.qpy_bytes))
+
+
+class CustomGateBenchmarks:
+
+    params = ([200], [100])
+
+    param_names = ["n_qubits", "depth"]
+    timeout = 300
+
+    def setup(self, n_qubits, depth):
+        custom_gate = QuantumCircuit(2, name="custom_gate")
+        custom_gate.h(0)
+        custom_gate.x(1)
+
+        qc = QuantumCircuit(n_qubits)
+        for _ in range(depth):
+            for i in range(n_qubits - 1):
+                qc.append(custom_gate.to_gate(), [i, i + 1])
+        self.circuit = qc
+
+    def time_dump(self, _, __):
+        qpy_file = io.BytesIO()
+        qpy.dump(self.circuit, qpy_file)
+
+    def time_dump_and_load(self, _, __):
+        qpy_file = io.BytesIO()
+        qpy.dump(self.circuit, qpy_file)
+        qpy_file.seek(0)
+        qpy.load(qpy_file)
+
+
+class ParameterizedBenchmarks:
+
+    params = ([20, 50], [1, 5, 10])
+
+    param_names = ["n_qubits", "n_params"]
+    timeout = 300
+
+    def setup(self, n_qubits, n_params):
+        qc = QuantumCircuit(n_qubits)
+        params = [Parameter(f"angle{i}") for i in range(n_params)]
+        for n in range(n_qubits - 1):
+            for i in params:
+                qc.rx(i, n)
+        self.circuit = qc
+
+    def time_dump(self, _, __):
+        qpy_file = io.BytesIO()
+        qpy.dump(self.circuit, qpy_file)
+
+    def time_dump_and_load(self, _, __):
+        qpy_file = io.BytesIO()
+        qpy.dump(self.circuit, qpy_file)
+        qpy_file.seek(0)
+        qpy.load(qpy_file)

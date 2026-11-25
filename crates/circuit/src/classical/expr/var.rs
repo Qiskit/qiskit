@@ -4,19 +4,25 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
+#[cfg(feature = "py")]
 use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
+#[cfg(feature = "py")]
 use crate::imports::UUID;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::{IntoPyDict, PyTuple};
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
+#[cfg(feature = "py")]
 use uuid::Uuid;
 
 /// A classical variable expression.
@@ -49,6 +55,7 @@ impl Var {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Var {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -59,6 +66,7 @@ impl<'py> IntoPyObject<'py> for Var {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Var {
     type Error = <PyVar as FromPyObject<'a, 'py>>::Error;
 
@@ -76,11 +84,21 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Var {
 /// construction of variables for use in programs should use :meth:`Var.new` or
 /// :meth:`.QuantumCircuit.add_var`.
 ///
-/// Variables are immutable after construction, so they can be used as dictionary keys."""
-#[pyclass(eq, hash, frozen, extends = PyExpr, name = "Var", module = "qiskit._accelerate.circuit.classical.expr")]
+/// Variables are immutable after construction, so they can be used as dictionary keys.
+#[cfg(feature = "py")]
+#[pyclass(
+    eq,
+    hash,
+    frozen,
+    extends = PyExpr,
+    name = "Var",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug, Hash)]
 pub struct PyVar(Var);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyVar {
     #[new]
@@ -136,7 +154,7 @@ impl PyVar {
     /// this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`.  If the variable is a
     /// new-style classical variable (one that owns its own storage separate to the old
     /// :class:`.Clbit`/:class:`.ClassicalRegister` model), this field will be a :class:`~uuid.UUID`
-    /// to uniquely identify it."""
+    /// to uniquely identify it.
     #[getter]
     fn get_var(&self, py: Python) -> PyResult<Py<PyAny>> {
         match &self.0 {
@@ -151,7 +169,7 @@ impl PyVar {
 
     /// The name of the variable.  This is required to exist if the backing :attr:`var` attribute
     /// is a :class:`~uuid.UUID`, i.e. if it is a new-style variable, and must be ``None`` if it is
-    /// an old-style variable."""
+    /// an old-style variable.
     #[getter]
     fn get_name(&self, py: Python) -> PyResult<Py<PyAny>> {
         match &self.0 {
@@ -163,7 +181,7 @@ impl PyVar {
 
     /// Whether this :class:`Var` is a standalone variable that owns its storage
     /// location, if applicable. If false, this is a wrapper :class:`Var` around a
-    /// pre-existing circuit object."""
+    /// pre-existing circuit object.
     #[getter]
     fn get_standalone(&self) -> bool {
         match self.0 {

@@ -1,0 +1,9 @@
+---
+features_transpiler:
+  - |
+    When transpiling to the Clifford+T basis, the :class:`.UnitarySynthesis`
+    transpiler pass now uses a Clifford+T synthesis algorithm by default to 
+    approximate single-qubit unitaries.
+
+    Similarly, the :class:`~.DefaultUnitarySynthesis` plugin now uses the
+    same Clifford+T synthesis algorithm to approximate single-qubit unitaries.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ from numpy import pi
 
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.circuit import Parameter
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -41,8 +41,10 @@ class TestPiCheck(QiskitTestCase):
             (-3 * pi, "-3π"),
             (pi / 35, "π/35"),
             (-pi / 35, "-π/35"),
-            (3 * pi / 35, "0.26927937030769655"),
-            (-3 * pi / 35, "-0.26927937030769655"),
+            (3 * pi / 35, "3π/35"),
+            (-3 * pi / 35, "-3π/35"),
+            (17 * pi, "17π"),
+            (-17 * pi, "-17π"),
             (pi**2, "π**2"),
             (-(pi**2), "-π**2"),
             (1e9, "1000000000.0"),
@@ -81,7 +83,10 @@ class TestPiCheck(QiskitTestCase):
         x = Parameter("x")
         y = Parameter("y")
         z = Parameter("z")
-        pcase = (pi**3 * x + 3 / (4 * pi) * y - 13 * pi / 2 * z, "π**3*x + 3/4π*y - 13π/2*z")
+        pcase = (
+            pi**3 * x + 3 / (4 * pi) * y - 13 * pi / 2 * z,
+            "(π**3)*x + (3/4π)*y - (13π/2)*z",
+        )
         input_number = pcase[0]
         expected_string = pcase[1]
         result = pi_check(input_number)
@@ -91,9 +96,22 @@ class TestPiCheck(QiskitTestCase):
         """Test pi/2 displays properly in ParameterExpression - #6758"""
         x = Parameter("x")
         input_number = x + pi / 2
-        expected_string = "π/2 + x"
+        expected_string = "(π/2) + x"
         result = pi_check(input_number)
         self.assertEqual(result, expected_string)
+        self.assertEqual(pi_check(input_number, output="latex"), r"(\frac{\pi}{2}) + x")
+        self.assertEqual(pi_check(input_number, output="mpl"), r"($\pi$/2) + x")
+        self.assertEqual(pi_check(x + pi, output="latex"), r"\pi + x")
+        self.assertEqual(pi_check(x + pi, output="mpl"), r"$\pi$ + x")
+
+    def test_near_pi_over_k_no_redundant_coefficient(self):
+        """Floats near π/k format like π/k, not 1π/k — #16170"""
+        a = 1.5707963276708181
+        self.assertEqual(pi_check(a), "π/2")
+        self.assertEqual(pi_check(a, output="latex"), "\\frac{\\pi}{2}")
+        self.assertEqual(pi_check(a, output="mpl"), "$\\pi$/2")
+        self.assertEqual(pi_check(a, output="qasm"), "pi/2")
+        self.assertEqual(pi_check(-a), "-π/2")
 
 
 if __name__ == "__main__":

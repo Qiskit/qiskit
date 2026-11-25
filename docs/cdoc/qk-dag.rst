@@ -1,3 +1,5 @@
+.. _capi-dag:
+
 =====
 QkDag
 =====
@@ -26,6 +28,9 @@ Data Types
 .. doxygenenum:: QkDagNodeType
 
 .. doxygenenum:: QkOperationKind
+
+.. doxygenstruct:: QkDagNeighbors
+   :members:
 
 Functions
 =========

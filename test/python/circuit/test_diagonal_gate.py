@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,7 +22,7 @@ from qiskit.compiler import transpile
 from qiskit.circuit.library.generalized_gates import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestDiagonalGate(QiskitTestCase):
@@ -87,6 +87,13 @@ class TestDiagonalGate(QiskitTestCase):
                 gate = DiagonalGate(diag)
                 operator = Operator(gate)
                 self.assertTrue(np.allclose(Operator(gate.repeat(2)), operator @ operator))
+
+    def test_synth_diagonal_rejects_mismatched_length(self):
+        """synth_diagonal should raise, not panic, on a num_qubits/phases-length mismatch."""
+        from qiskit._accelerate.synthesis.diagonal import synth_diagonal
+
+        with self.assertRaises(ValueError):
+            synth_diagonal([0.1, 0.2, 0.3, 0.4], 1)  # 4 phases needs num_qubits=2, not 1
 
 
 def _get_diag_gate_matrix(diag):

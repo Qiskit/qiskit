@@ -4,15 +4,19 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::error::Error;
+
 use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
 
 /// A classical expression.
@@ -140,16 +144,18 @@ impl Expr {
     }
 
     /// Visits all nodes by mutable reference, in a post-order traversal.
-    pub fn visit_mut<F>(&mut self, mut visitor: F) -> PyResult<()>
+    pub fn visit_mut<F, E>(&mut self, mut visitor: F) -> Result<(), E>
     where
-        F: FnMut(ExprRefMut) -> PyResult<()>,
+        F: FnMut(ExprRefMut) -> Result<(), E>,
+        E: Error,
     {
         self.visit_mut_impl(&mut visitor)
     }
 
-    fn visit_mut_impl<F>(&mut self, visitor: &mut F) -> PyResult<()>
+    fn visit_mut_impl<F, E>(&mut self, visitor: &mut F) -> Result<(), E>
     where
-        F: FnMut(ExprRefMut) -> PyResult<()>,
+        F: FnMut(ExprRefMut) -> Result<(), E>,
+        E: Error,
     {
         match self {
             Expr::Unary(u) => u.operand.visit_mut_impl(visitor)?,
@@ -388,7 +394,8 @@ impl From<Box<Index>> for Expr {
 /// expressions, and it does not make sense to add more outside of Qiskit library code.
 ///
 /// All subclasses are responsible for setting their ``type`` attribute in their ``__init__``, and
-/// should not call the parent initializer."""
+/// should not call the parent initializer.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     hash,
@@ -400,6 +407,7 @@ impl From<Box<Index>> for Expr {
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 pub struct PyExpr(pub ExprKind); // ExprKind is used for fast extraction from Python
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyExpr {
     /// Call the relevant ``visit_*`` method on the given :class:`ExprVisitor`.  The usual entry
@@ -411,7 +419,7 @@ impl PyExpr {
     ///     visitor.accept(expr)
     ///
     /// Subclasses of :class:`Expr` should override this to call the correct virtual method on the
-    /// visitor.  This implements double dispatch with the visitor."""
+    /// visitor.  This implements double dispatch with the visitor.
     /// return visitor.visit_generic(self)
     fn accept<'py>(
         slf: PyRef<'py, Self>,
@@ -423,6 +431,7 @@ impl PyExpr {
 
 /// The expression's kind, used internally during Python instance extraction to avoid
 /// `isinstance` checks.
+#[cfg(feature = "py")]
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ExprKind {
@@ -435,6 +444,7 @@ pub enum ExprKind {
     Index,
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Expr {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -453,6 +463,7 @@ impl<'py> IntoPyObject<'py> for Expr {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
     type Error = PyErr;
 
@@ -472,6 +483,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::Infallible;
+
     use crate::bit::{ClassicalRegister, ShareableClbit};
     use crate::classical::expr::{
         Binary, BinaryOp, Cast, Expr, ExprRef, ExprRefMut, IdentifierRef, Index, Stretch, Unary,
@@ -480,7 +493,6 @@ mod tests {
     use crate::classical::types::Type;
     use crate::duration::Duration;
     use num_bigint::BigUint;
-    use pyo3::PyResult;
     use uuid::Uuid;
 
     #[test]
@@ -627,7 +639,7 @@ mod tests {
     }
 
     #[test]
-    fn test_visit_mut_ordering() -> PyResult<()> {
+    fn test_visit_mut_ordering() {
         let mut expr: Expr = Binary {
             op: BinaryOp::Mul,
             left: Binary {
@@ -703,15 +715,15 @@ mod tests {
 
         expr.visit_mut(|x| {
             assert!(order.next().unwrap()(&x));
-            Ok(())
-        })?;
+            Ok::<_, Infallible>(())
+        })
+        .unwrap();
 
         assert!(order.next().is_none());
-        Ok(())
     }
 
     #[test]
-    fn test_visit_mut() -> PyResult<()> {
+    fn test_visit_mut() {
         let mut expr: Expr = Binary {
             op: BinaryOp::BitAnd,
             left: Unary {
@@ -739,20 +751,20 @@ mod tests {
         expr.visit_mut(|x| match x {
             ExprRefMut::Var(Var::Standalone { name, .. }) => {
                 *name = "updated".to_string();
-                Ok(())
+                Ok::<_, Infallible>(())
             }
             _ => Ok(()),
-        })?;
+        })
+        .unwrap();
 
         let Var::Standalone { name, .. } = expr.vars().next().unwrap() else {
             panic!("wrong var type")
         };
         assert_eq!(name.as_str(), "updated");
-        Ok(())
     }
 
     #[test]
-    fn test_structurally_eq_to_self() -> PyResult<()> {
+    fn test_structurally_eq_to_self() {
         let exprs = [
             Expr::Var(Var::Bit {
                 bit: ShareableClbit::new_anonymous(),
@@ -893,8 +905,6 @@ mod tests {
         for expr in exprs.iter() {
             assert!(expr.structurally_equivalent(expr));
         }
-
-        Ok(())
     }
 
     #[test]
@@ -981,7 +991,7 @@ mod tests {
     }
 
     #[test]
-    fn test_structurally_eq_key_function_both() -> PyResult<()> {
+    fn test_structurally_eq_key_function_both() {
         let left_clbit = ShareableClbit::new_anonymous();
         let left_cr = ClassicalRegister::new_owning("a", 3);
         let right_clbit = ShareableClbit::new_anonymous();
@@ -1079,7 +1089,5 @@ mod tests {
             left.structurally_equivalent_by_key(key_func, &right, key_func),
             "Expressions that only care that their vars are of the same kind should be equivalent"
         );
-
-        Ok(())
     }
 }

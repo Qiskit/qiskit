@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -42,7 +42,7 @@ from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
 from qiskit.synthesis.multi_controlled import synth_mcmt_vchain, synth_mcmt_xgate
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 
 @ddt
@@ -331,7 +331,7 @@ class TestMCMT(QiskitTestCase):
         circuit.append(mcmt, circuit.qubits)  # append the MCMT circuit as gate called "MCMT"
 
         transpiled = transpile(circuit, basis_gates=["u", "cx"])
-        self.assertEqual(Operator(transpiled), Operator(gate.control(1)))
+        self.assertEqual(Operator(transpiled), Operator(gate.control(1, annotated=False)))
 
 
 if __name__ == "__main__":
