@@ -86,6 +86,8 @@ pub enum ExitCode {
     CustomOperation = 900,
     /// Repeated vtable slot error
     CustomOperationRepeatedSlot = 901,
+    /// OpenQASM 2 importer error.
+    OpenQasm2Error = 1000,
 }
 
 impl From<ArithmeticError> for ExitCode {

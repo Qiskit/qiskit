@@ -91,7 +91,7 @@ static int test_defined_gate(void) {
 }
 
 /**
- * A malformed program is reported as bad input, with a description and no circuit.
+ * A malformed program is reported as a parse error, with a description and no circuit.
  */
 static int test_parse_error(void) {
     QkOpenQasm2Options *options = qk_openqasm2_options_new();
@@ -99,8 +99,8 @@ static int test_parse_error(void) {
     char *error = NULL;
     QkExitCode code = qk_openqasm2_load("qreg q[2]; not_a_gate q[0];", options, &parsed, &error);
     qk_openqasm2_options_free(options);
-    if (code != QkExitCode_CInputError) {
-        fprintf(stderr, "%s: expected an input error, got exit code %u\n", __func__,
+    if (code != QkExitCode_OpenQasm2Error) {
+        fprintf(stderr, "%s: expected a parse error, got exit code %u\n", __func__,
                 (unsigned)code);
         qk_circuit_free(parsed);
         qk_str_free(error);
@@ -131,7 +131,7 @@ static int test_strict_requires_version(void) {
     QkCircuit *parsed = NULL;
     QkExitCode code = qk_openqasm2_load("qreg q[1];", options, &parsed, NULL);
     qk_openqasm2_options_free(options);
-    if (code != QkExitCode_CInputError) {
+    if (code != QkExitCode_OpenQasm2Error) {
         fprintf(stderr, "%s: strict mode accepted a program with no version statement\n", __func__);
         qk_circuit_free(parsed);
         return EqualityError;

@@ -154,8 +154,9 @@ pub unsafe extern "C" fn qk_openqasm2_options_append_include_path(
 ///     itself.
 ///
 /// @return ``QkExitCode_Success`` on success, ``QkExitCode_NullPointerError`` if ``program`` or
-///     ``circuit`` is null, ``QkExitCode_AlignmentError`` if ``circuit`` is misaligned, or
-///     ``QkExitCode_CInputError`` if the program could not be imported.
+///     ``circuit`` is null, ``QkExitCode_AlignmentError`` if ``circuit`` is misaligned,
+///     ``QkExitCode_CInputError`` if the program is not valid UTF-8, or
+///     ``QkExitCode_OpenQasm2Error`` if the program could not be parsed.
 ///
 /// # Example
 /// ```c
@@ -226,6 +227,6 @@ pub unsafe extern "C" fn qk_openqasm2_load(
             unsafe { circuit.write(built.into_leaked()) };
             ExitCode::Success
         }
-        Err(err) => unsafe { return_error(error, ExitCode::CInputError, &err.message) },
+        Err(err) => unsafe { return_error(error, ExitCode::OpenQasm2Error, &err.message) },
     }
 }
