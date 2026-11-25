@@ -14,9 +14,34 @@ use crate::TranspilerError;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use qiskit_circuit::dag_circuit::PyDAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
+
+/// Possible errors during the `InstructionDurationCheck` pass.
+#[derive(Debug, thiserror::Error)]
+pub enum InstructionDurationCheckError {
+    #[error("Delay instruction missing duration parameter")]
+    MissingDurationParameter,
+    #[error("Delay duration must have dt unit for checking alignment.")]
+    InvalidDurationUnit,
+    #[error("The provided Delay duration is not an integer.")]
+    NonIntegerDuration,
+}
+
+impl From<InstructionDurationCheckError> for PyErr {
+    fn from(value: InstructionDurationCheckError) -> Self {
+        match value {
+            InstructionDurationCheckError::MissingDurationParameter => {
+                PyValueError::new_err(value.to_string())
+            }
+            InstructionDurationCheckError::InvalidDurationUnit
+            | InstructionDurationCheckError::NonIntegerDuration => {
+                TranspilerError::new_err(value.to_string())
+            }
+        }
+    }
+}
 
 /// Run duration validation passes.
 ///
@@ -30,13 +55,24 @@ use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 ///     True if rescheduling is required, False otherwise.
 
 #[pyfunction]
-#[pyo3(signature=(dag, acquire_align, pulse_align))]
-pub fn run_instruction_duration_check(
+#[pyo3(name = "run_instruction_duration_check", signature=(dag, acquire_align, pulse_align))]
+pub fn py_run_instruction_duration_check(
     dag: &PyDAGCircuit,
     acquire_align: u32,
     pulse_align: u32,
 ) -> PyResult<bool> {
-    let dag = dag.try_read()?;
+    Ok(run_instruction_duration_check(
+        dag.try_read()?,
+        acquire_align,
+        pulse_align,
+    )?)
+}
+
+pub fn run_instruction_duration_check(
+    dag: &DAGCircuit,
+    acquire_align: u32,
+    pulse_align: u32,
+) -> Result<bool, InstructionDurationCheckError> {
     let num_stretches = dag.num_stretches();
 
     let acquire_align = i64::from(acquire_align);
@@ -53,21 +89,17 @@ pub fn run_instruction_duration_check(
             packed_op.op.view()
         {
             let params = packed_op.params_view();
-            let param = params.first().ok_or_else(|| {
-                PyValueError::new_err("Delay instruction missing duration parameter")
-            })?;
+            let param = params
+                .first()
+                .ok_or(InstructionDurationCheckError::MissingDurationParameter)?;
 
             if unit != DelayUnit::DT {
-                return Err(TranspilerError::new_err(
-                    "Delay duration must have dt unit for checking alignment.",
-                ));
+                return Err(InstructionDurationCheckError::InvalidDurationUnit);
             }
             let duration = match param {
                 Param::Int(val) => *val,
                 _ => {
-                    return Err(TranspilerError::new_err(
-                        "The provided Delay duration is not an integer.",
-                    ));
+                    return Err(InstructionDurationCheckError::NonIntegerDuration);
                 }
             };
 
@@ -80,6 +112,6 @@ pub fn run_instruction_duration_check(
 }
 
 pub fn instruction_duration_check_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_instruction_duration_check))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_instruction_duration_check))?;
     Ok(())
 }
