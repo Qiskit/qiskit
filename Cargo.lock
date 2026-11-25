@@ -2475,6 +2475,7 @@ name = "qiskit-mir"
 version = "2.7.0-dev"
 dependencies = [
  "bytemuck",
+ "fixedbitset 0.5.9",
  "hashbrown 0.17.1",
  "itertools 0.15.0",
  "mem_dbg",
