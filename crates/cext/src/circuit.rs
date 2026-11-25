@@ -3197,7 +3197,11 @@ unsafe fn append_for_loop(
         Some(LoopParam::Variable(var)) => Some(var),
         _ => None,
     };
-    if !body.vars_stretches_view().iter_vars(VarType::Input).eq(loop_var) {
+    if !body
+        .vars_stretches_view()
+        .iter_vars(VarType::Input)
+        .eq(loop_var)
+    {
         return ExitCode::LoopVariableMismatch;
     }
 
