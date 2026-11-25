@@ -55,6 +55,9 @@ impl MirInstruction {
     pub fn op(&self) -> &MirOp {
         &self.op
     }
+    pub fn op_mut(&mut self) -> &mut MirOp {
+        &mut self.op
+    }
 
     pub fn qids(&self) -> &QidList {
         &self.qids

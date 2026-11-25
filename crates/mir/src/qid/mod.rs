@@ -388,7 +388,7 @@ impl QidInfo {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct QidList(Vec<Qid>);
 
@@ -396,7 +396,7 @@ impl QidList {
     pub fn new(qids: Vec<Qid>) -> Self {
         QidList(qids)
     }
-    pub fn inner(&self) -> &Vec<Qid> {
+    pub fn inner(&self) -> &[Qid] {
         &self.0
     }
     pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, Qid> {

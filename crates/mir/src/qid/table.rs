@@ -299,6 +299,7 @@ type QidGraph<'a> = &'a Graph<QidInfo, ()>;
 /// A reusable object for checking [`Qid`] overlaps.
 ///
 /// This maintains an internal set of backing allocations, which are re-used between calls.
+#[derive(Clone, Debug)]
 pub struct OverlapChecker<'a> {
     table: &'a ResourceTable,
     leaves: HashSet<NodeIndex>,
@@ -317,6 +318,11 @@ impl<'a> OverlapChecker<'a> {
     }
 }
 impl OverlapChecker<'_> {
+    #[inline]
+    pub fn table(&self) -> &ResourceTable {
+        self.table
+    }
+
     /// Check if there is any aliasing in a series of [`Qid`]s.
     ///
     /// Returns the error variant with a [`Qid`] that was not present in the table, if one is

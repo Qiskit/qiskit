@@ -14,11 +14,13 @@ workspace = true
 
 [dependencies]
 anyhow.workspace = true
+thiserror.workspace = true
 hashbrown.workspace = true
-qiskit-circuit = {workspace = true, features = ["passmanager"]}
 pyo3 = { workspace = true, optional = true }
+qiskit-circuit = {workspace = true, features = ["passmanager"]}
 qiskit-mir = {workspace = true, features = ["passmanager"] }
 qiskit-passmanager.workspace = true
+qiskit-util.workspace = true
 
 [features]
 py = ["dep:pyo3", "qiskit-mir/py"]
