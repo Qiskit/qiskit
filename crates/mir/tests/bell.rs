@@ -46,13 +46,12 @@ use qiskit_mir::{
     mir::Mir,
     ops::{
         MirOp,
-        pbc::{AngleType, Pauli, PauliRotation, PauliString},
+        pbc::{AngleType, Pauli, PauliMeasure, PauliRotation, PauliString},
     },
     qid::{BitLayout, QidInfo, QidList},
-    symbol_table::SymbolIdList,
+    symbol_table::{Symbol, SymbolIdList, SymbolType},
 };
-#[test]
-fn construct_bell_mir() {
+fn build_bell_mir() -> Mir {
     let mut mir = Mir::new();
 
     // Create Qids for q_0 and q_1.
@@ -66,6 +65,13 @@ fn construct_bell_mir() {
         .unwrap();
     let qid_1 = resource_table
         .add_qid(QidInfo::new(BitLayout::Base(1))) // use Base here to represent individual qubits with no aliasing/overlap
+        .unwrap();
+    let symbol_table = mir.symbol_table_mut();
+    let clbit0 = symbol_table
+        .add(Symbol::new("clbit0".to_string(), SymbolType::Bool))
+        .unwrap();
+    let clbit1 = symbol_table
+        .add(Symbol::new("clbit1".to_string(), SymbolType::Bool))
         .unwrap();
 
     // Here the instructions are created manually, from visually inspecting the
@@ -124,9 +130,46 @@ fn construct_bell_mir() {
         SymbolIdList::default(),
         SymbolIdList::default(),
     ));
+    instr_list.push_back(MirInstruction::new(
+        MirOp::PauliMeasure(PauliMeasure::new(PauliString::new(vec![Pauli::Z]))),
+        QidList::new(vec![qid_0]),
+        SymbolIdList::default(),
+        SymbolIdList::new(vec![clbit0]),
+    ));
+    instr_list.push_back(MirInstruction::new(
+        MirOp::PauliMeasure(PauliMeasure::new(PauliString::new(vec![Pauli::Z]))),
+        QidList::new(vec![qid_1]),
+        SymbolIdList::default(),
+        SymbolIdList::new(vec![clbit1]),
+    ));
 
-    //
-    // Measures go here -- Not Defined Yet
+    mir
+}
 
+#[test]
+fn construct_bell_mir() {
+    let mir = build_bell_mir();
     mir.verify().unwrap();
+}
+
+#[cfg(feature = "serde")]
+#[test]
+fn bell_mir_serde_roundtrip() {
+    let mir = build_bell_mir();
+    let json_dump = serde_json::to_string(&mir).unwrap();
+    let restored: Mir = serde_json::from_str(&json_dump).unwrap();
+
+    restored.verify().unwrap();
+
+    // Same qids (since ResourceTable is using petgraph, it can't derive PartialEq, so we do it manually).
+    assert_eq!(
+        mir.resource_table().iter_qids().len(),
+        restored.resource_table().iter_qids().len()
+    );
+    for (qid, info) in mir.resource_table().iter_qids() {
+        assert_eq!(restored.resource_table().info(qid), Some(info));
+    }
+
+    assert_eq!(mir.symbol_table(), restored.symbol_table());
+    assert_eq!(mir.instructions(), restored.instructions());
 }

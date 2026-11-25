@@ -24,6 +24,7 @@ use std::{f64, fmt};
 /// I have not yet looked at the existing implementation pwdin Qiskit to know
 /// whether the same could be done with them.
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
     derive(mem_dbg::MemSize, mem_dbg::MemDbg),
@@ -61,12 +62,17 @@ impl fmt::Display for Pauli {
 /// functionality. This will be optimized in future work (see [Issue
 /// 17326](https://github.com/Qiskit/qiskit/issues/17326)).
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct PauliString(Vec<Pauli>);
 
 impl PauliString {
     pub fn new(paulis: Vec<Pauli>) -> Self {
         PauliString(paulis)
+    }
+
+    pub fn inner(&self) -> &Vec<Pauli> {
+        &self.0
     }
 
     pub fn len(&self) -> usize {
@@ -102,6 +108,7 @@ impl fmt::Display for PauliString {
 /// and simple arithmetic on them is exact.  This is not the case with raw radians, which incur
 /// round-off error due to the irrational `pi`.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(
     feature = "mem_dbg",
     derive(mem_dbg::MemSize, mem_dbg::MemDbg),
@@ -169,6 +176,7 @@ impl fmt::Display for AngleType {
 /// This uses the convention `exp(-i P angle / 2)`, where `P` is the Pauli string and `angle` is the
 /// value (in radians) of [`angle`](Self::angle).
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct PauliRotation {
     paulis: PauliString,
@@ -204,6 +212,7 @@ impl fmt::Display for PauliRotation {
 /// length as `paulis` (one qid per Pauli), `args` must be empty, and `returns`
 /// must contain exactly one `SymbolId` for the boolean result.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "mem_dbg", derive(mem_dbg::MemSize, mem_dbg::MemDbg))]
 pub struct PauliMeasure {
     paulis: PauliString,
