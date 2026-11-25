@@ -155,6 +155,7 @@ def update_config_from_environment(
     parser.add_argument("--profile")
     parser.add_argument("-F", "--features", action="append", default=None)
     parser.add_argument("--all-features", action="store_true")
+    parser.add_argument("--generate-stubs", action="store_true")
     parsed, build_args = parser.parse_known_args(build_args)
 
     extra_args = []
@@ -164,7 +165,7 @@ def update_config_from_environment(
     feature_args, enabled = resolve_features(parsed)
     extra_args.extend(feature_args)
     # Maturin can only generate the stubs from a library built with the introspection data.
-    if TYPE_STUBS_FEATURE in enabled and "--generate-stubs" not in build_args:
+    if parsed.generate_stubs or TYPE_STUBS_FEATURE in enabled:
         extra_args.append("--generate-stubs")
 
     # Ours go at the start, so any `--` present doesn't mess us up.
