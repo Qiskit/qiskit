@@ -17,6 +17,18 @@ use std::fmt;
 use std::convert::From;
 use std::convert::Into;
 
+/// Errors encountered when creating and manipulating Pauli strings.
+///
+/// This is intentionally left simple for now, but could expand as PauliStrings
+/// evolve.
+#[derive(thiserror::Error, Clone, Copy, Debug)]
+pub enum PauliStringErrorKind {
+    #[error("Itwalid Pauli: {0}")]
+    InvalidPauli(u8),
+    #[error("Invalid Phase: {0}")]
+    InvalidPhase(u8),
+}
+
 /// This represents a Pauli.
 ///
 /// This is mostly experimental for now, and is used as a way to represent the
@@ -42,7 +54,7 @@ impl Pauli {
         assert!(x < 2, "Invalid x component!");
         assert!(z < 2, "Invalid z component!");
 
-        Self::from(z << 1 | x)
+        Self::try_from(z << 1 | x).expect("Invalid Pauli")
     }
 
     fn to_components(self) -> (u8, u8) {
@@ -53,14 +65,16 @@ impl Pauli {
     }
 }
 
-impl From<u8> for Pauli {
-    fn from(pauli: u8) -> Pauli {
+impl TryFrom<u8> for Pauli {
+    type Error = PauliStringErrorKind;
+
+    fn try_from(pauli: u8) -> Result<Pauli, Self::Error> {
         match pauli {
-            0 => Self::I,
-            1 => Self::X,
-            2 => Self::Z,
-            3 => Self::Y,
-            _ => unreachable!(),
+            0 => Ok(Self::I),
+            1 => Ok(Self::X),
+            2 => Ok(Self::Z),
+            3 => Ok(Self::Y),
+            invalid => Err(PauliStringErrorKind::InvalidPauli(invalid)),
         }
     }
 }
@@ -82,21 +96,17 @@ pub enum Phase {
     I = 3,
 }
 
-impl Phase {
-    fn new(phase: u8) -> Self {
-        match phase {
-            0 => Self::One,
-            1 => Self::NegI,
-            2 => Self::NegOne,
-            3 => Self::I,
-            _ => unreachable!("Invalid phase!!"),
-        }
-    }
-}
+impl TryFrom<u8> for Phase {
+    type Error = PauliStringErrorKind;
 
-impl From<u8> for Phase {
-    fn from(phase: u8) -> Self {
-        Phase::new(phase)
+    fn try_from(phase: u8) -> Result<Self, Self::Error> {
+        match phase {
+            0 => Ok(Self::One),
+            1 => Ok(Self::NegI),
+            2 => Ok(Self::NegOne),
+            3 => Ok(Self::I),
+            invalid => Err(PauliStringErrorKind::InvalidPhase(invalid)),
+        }
     }
 }
 
@@ -245,7 +255,7 @@ impl PauliString {
     /// Get the Phase multiplier of the Pauli string.
     pub fn phase(&self) -> Phase {
         if self.0.is_inline() {
-            Phase::from(self.0.phase())
+            Phase::try_from(self.0.phase()).expect("Phase incorrectly encoded!")
         } else {
             todo!()
         }
@@ -520,5 +530,18 @@ mod tests {
         let pauli_vec = pauli_string.iter().collect::<Vec<_>>();
 
         assert_eq!(pauli_vec, input);
+    }
+
+    #[test]
+    fn test_errors() {
+        assert!(matches!(
+            Phase::try_from(5),
+            Err(PauliStringErrorKind::InvalidPhase(5))
+        ));
+
+        assert!(matches!(
+            Pauli::try_from(6),
+            Err(PauliStringErrorKind::InvalidPauli(6))
+        ));
     }
 }
