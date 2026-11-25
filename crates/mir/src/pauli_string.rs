@@ -265,9 +265,9 @@ impl PauliString {
         self.0.set_phase(phase as u8)
     }
 
-    pub fn iter(&self) -> PauliStringIter {
+    pub fn iter(&self) -> PauliStringIter<'_> {
         PauliStringIter {
-            pauli: self.clone(), // FIXME: Is this clone necessary?
+            pauli: self,
             index: 0,
         }
     }
@@ -380,12 +380,12 @@ impl Drop for PauliString {
 }
 
 #[derive(Debug)]
-pub struct PauliStringIter {
-    pauli: PauliString,
+pub struct PauliStringIter<'a> {
+    pauli: &'a PauliString,
     index: usize,
 }
 
-impl Iterator for PauliStringIter {
+impl Iterator for PauliStringIter<'_> {
     type Item = Pauli;
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.pauli.len() {
@@ -400,13 +400,13 @@ impl Iterator for PauliStringIter {
     }
 }
 
-impl IntoIterator for PauliString {
+impl<'a> IntoIterator for &'a PauliString {
     type Item = Pauli;
-    type IntoIter = PauliStringIter;
+    type IntoIter = PauliStringIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         PauliStringIter {
-            pauli: self,
+            pauli: &self,
             index: 0,
         }
     }
