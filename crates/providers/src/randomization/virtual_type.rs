@@ -12,37 +12,22 @@
 
 //! The algebraic type of a virtual gate.
 
-use std::ops::BitOr;
+use enumflags2::bitflags;
 
-use super::flags::{BitFlag, BitFlags};
 use crate::tensor::{DType, TensorType, dim_shape};
 
 /// The group a virtual gate belongs to.
 ///
-/// A set of virtual types is a [`BitFlags<VirtualType>`](BitFlags).
+/// A set of virtual types is a [`BitFlags<VirtualType>`](enumflags2::BitFlags).
+#[bitflags]
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum VirtualType {
     Pauli = 1 << 0,
     C1 = 1 << 1,
     U2 = 1 << 2,
     Z2 = 1 << 3,
-}
-
-impl BitFlag for VirtualType {
-    const FLAGS: &'static [Self] = &[Self::Pauli, Self::C1, Self::U2, Self::Z2];
-
-    fn bits(self) -> u32 {
-        self as u32
-    }
-}
-
-impl BitOr for VirtualType {
-    type Output = BitFlags<Self>;
-
-    fn bitor(self, other: Self) -> BitFlags<Self> {
-        BitFlags::from_flag(self) | other
-    }
 }
 
 impl VirtualType {
@@ -93,12 +78,5 @@ mod tests {
         assert_eq!(VirtualType::C1.tensor_type(2), None);
         assert_eq!(VirtualType::U2.tensor_type(2), None);
         assert_eq!(VirtualType::Z2.tensor_type(2), None);
-    }
-
-    #[test]
-    fn test_flags_are_distinct_bits_in_order() {
-        let bits: Vec<u32> = VirtualType::FLAGS.iter().map(|flag| flag.bits()).collect();
-        assert!(bits.iter().all(|bit| bit.is_power_of_two()));
-        assert!(bits.windows(2).all(|pair| pair[0] < pair[1]));
     }
 }
