@@ -370,6 +370,7 @@ repair-wheel-command =  [
 line-length = 110
 extend-exclude = [
     "qiskit/capi/_ctypes.py",  # Generated file.
+    "qiskit/_accelerate/",  # Generated type stubs.
 ]
 
 
