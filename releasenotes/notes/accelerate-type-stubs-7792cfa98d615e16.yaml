@@ -7,12 +7,3 @@ features_misc:
     the attributes and method signatures of the classes Qiskit implements in Rust, for example
     :class:`.DAGCircuit`, :class:`.Qubit` and :class:`.SparseObservable`, when these are imported
     from their public locations.
-build:
-  - |
-    Building Qiskit from source now requires ``maturin>=1.16``, which generates the type stubs for
-    ``qiskit._accelerate``.  Build front-ends that use build isolation, such as ``pip``, install a
-    suitable version automatically.
-
-    The stubs come from PyO3's experimental introspection support, which the new ``type_stubs``
-    Rust feature enables.  Set the environment variable ``QISKIT_NO_TYPE_STUBS=1`` to build without
-    the feature and without the stubs.
