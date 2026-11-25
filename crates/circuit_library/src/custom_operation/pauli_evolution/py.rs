@@ -1,0 +1,139 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2026
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
+use std::error;
+
+use numpy::{Complex64, PyArray2};
+use pyo3::{
+    Bound, PyErr, PyResult, Python,
+    exceptions::{PyRuntimeError, PyTypeError},
+    pyclass, pymethods,
+};
+use qiskit_circuit::operations::Param;
+use qiskit_quantum_info::sparse_observable::PySparseObservable;
+
+use super::model::{PauliEvolution, PauliEvolutionError};
+
+#[derive(Debug, PartialEq)]
+#[pyclass(
+    name = "PauliEvolution",
+    module = "qiskit._accelerate.circuit.library",
+    eq
+)]
+pub struct PyPauliEvolution {
+    inner: PauliEvolution,
+}
+
+#[pymethods]
+impl PyPauliEvolution {
+    #[pyo3(signature = (operator, time, /, label = None))]
+    #[new]
+    pub fn new(
+        operator: &Bound<'_, PySparseObservable>,
+        time: Param,
+        label: Option<String>,
+    ) -> PyResult<Self> {
+        let operator = operator.borrow().as_inner()?.clone();
+
+        if let Some(label) = label {
+            let inner = PauliEvolution::with_label(operator, time, label)?;
+            Ok(Self { inner })
+        } else {
+            let inner = PauliEvolution::new(operator, time)?;
+            Ok(Self { inner })
+        }
+    }
+
+    #[getter]
+    pub fn operator(&self) -> PySparseObservable {
+        let operator = self.inner.operator().clone();
+        PySparseObservable::from(operator)
+    }
+
+    #[setter]
+    pub fn set_operator(&mut self, operator: &Bound<'_, PySparseObservable>) -> PyResult<()> {
+        let operator = operator.borrow().as_inner()?.clone();
+        let inner = PauliEvolution::with_label(operator, self.time(), self.label())?;
+        *self = Self { inner };
+        Ok(())
+    }
+
+    #[getter]
+    pub fn time(&self) -> Param {
+        self.inner.time().clone()
+    }
+
+    #[setter]
+    pub fn set_time(&mut self, time: Param) -> PyResult<()> {
+        let operator = self.inner.operator().to_owned();
+        let inner = PauliEvolution::with_label(operator, time, self.label())?;
+        *self = Self { inner };
+        Ok(())
+    }
+
+    #[getter]
+    pub fn label(&self) -> &str {
+        self.inner.label()
+    }
+
+    #[setter]
+    pub fn set_label(&mut self, label: &str) -> PyResult<()> {
+        let operator = self.inner.operator().to_owned();
+        let inner = PauliEvolution::with_label(operator, self.time(), label)?;
+        *self = Self { inner };
+        Ok(())
+    }
+
+    pub fn inverse(&self) -> Self {
+        let mut inner = self.inner.clone();
+        inner.inverse();
+        Self { inner }
+    }
+
+    pub fn power(&self, exponent: f64) -> Self {
+        let mut inner = self.inner.clone();
+        inner.power(exponent);
+        Self { inner }
+    }
+
+    pub fn to_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
+        let matrix = self.inner.to_matrix()?;
+        Ok(PyArray2::from_owned_array(py, matrix))
+    }
+}
+
+impl From<PauliEvolutionError> for PyErr {
+    fn from(error: PauliEvolutionError) -> Self {
+        let message = compose_error(&error);
+        match error {
+            PauliEvolutionError::HasComplex | PauliEvolutionError::TimeInvalid => {
+                PyTypeError::new_err(message)
+            }
+            PauliEvolutionError::TimeNotEvaluated | PauliEvolutionError::Matrix(_) => {
+                PyRuntimeError::new_err(message)
+            }
+        }
+    }
+}
+
+fn compose_error(error: &dyn error::Error) -> String {
+    use std::fmt::Write;
+
+    let mut message = error.to_string();
+
+    let next = error;
+    while let Some(error) = next.source() {
+        write!(message, ": {error}").expect("should allocate");
+    }
+
+    message
+}
