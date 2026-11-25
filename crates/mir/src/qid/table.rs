@@ -240,39 +240,18 @@ impl ResourceTable {
     ///
     /// Returns the error variant with a [`Qid`] that was not present in the table, if one is
     /// encountered before the question of overlap is resolved.
+    ///
+    /// If you need to do this a lot, create a reusable [`OverlapChecker`] to re-use the working
+    /// allocations.
+    #[inline]
     pub fn try_overlap(&self, qids: impl IntoIterator<Item = Qid>) -> Result<bool, Qid> {
-        let mut qids = qids.into_iter();
-        // We need at least two qids for it to be possible to have an overlap.
-        let Some(first) = qids.next() else {
-            return Ok(false);
-        };
-        let Some(second) = qids.next() else {
-            // There can't be an overlap, but `first` might not be a valid qid for this table.
-            return self.index_from_qid(first).map(|_| false).ok_or(first);
-        };
-        // TODO: this is a pretty clear candidate for future optimisation.  There are several
-        // straightforward possibilities that might be suitable:
-        // - share the workspace between multiple calls (little-to-no downside other than potential
-        //   cache invalidation of the `VisitMap`).
-        // - cache the reachable leaves for each node directly (risks huge memory explosion).
-        // - use a custom DFS that tracks the visit map with a "generation", so we don't have to
-        //   reset it between nodes (though that uses more memory).
-        let mut leaves = HashSet::<NodeIndex>::new();
-        // Use pre-order not post-order because that (in theory) short-circuits faster.
-        let mut dfs = visit::Dfs::empty(&self.qids);
-        for qid in [first, second].into_iter().chain(qids) {
-            dfs.reset(&self.qids);
-            dfs.move_to(self.index_from_qid(qid).ok_or(qid)?);
-            for idx in visit::Walker::iter(&mut dfs, &self.qids) {
-                if self.qids.first_edge(idx, Direction::Outgoing).is_none() && !leaves.insert(idx) {
-                    return Ok(true);
-                }
-            }
-        }
-        Ok(false)
+        OverlapChecker::new(self).try_overlap(qids)
     }
 
     /// Check if there is any aliasing in a series of [`Qid`]s.
+    ///
+    /// If you need to do this a lot, create a reusable [`OverlapChecker`] to re-use the working
+    /// allocations.
     ///
     /// # Panics
     ///
@@ -311,6 +290,81 @@ impl ops::Index<Qid> for ResourceTable {
         &self.qids[self
             .index_from_qid(index)
             .expect("caller enforces qid should be present")]
+    }
+}
+
+// This is just for legibility purposes in describing the `OverlapChecker`.
+type QidGraph<'a> = &'a Graph<QidInfo, ()>;
+
+/// A reusable object for checking [`Qid`] overlaps.
+///
+/// This maintains an internal set of backing allocations, which are re-used between calls.
+pub struct OverlapChecker<'a> {
+    table: &'a ResourceTable,
+    leaves: HashSet<NodeIndex>,
+    dfs: visit::Dfs<
+        <QidGraph<'a> as visit::GraphBase>::NodeId,
+        <QidGraph<'a> as visit::Visitable>::Map,
+    >,
+}
+impl<'a> OverlapChecker<'a> {
+    pub fn new(table: &'a ResourceTable) -> Self {
+        Self {
+            table,
+            leaves: HashSet::new(),
+            dfs: visit::Dfs::empty(&table.qids),
+        }
+    }
+}
+impl OverlapChecker<'_> {
+    /// Check if there is any aliasing in a series of [`Qid`]s.
+    ///
+    /// Returns the error variant with a [`Qid`] that was not present in the table, if one is
+    /// encountered before the question of overlap is resolved.
+    pub fn try_overlap(&mut self, qids: impl IntoIterator<Item = Qid>) -> Result<bool, Qid> {
+        let qid_graph = &self.table.qids;
+        let mut qids = qids.into_iter();
+        // We need at least two qids for it to be possible to have an overlap.
+        let Some(first) = qids.next() else {
+            return Ok(false);
+        };
+        let Some(second) = qids.next() else {
+            // There can't be an overlap, but `first` might not be a valid qid for this table.
+            return self.table.index_from_qid(first).map(|_| false).ok_or(first);
+        };
+
+        // TODO: this is a pretty clear candidate for future optimisation.  There are several
+        // straightforward possibilities that might be suitable:
+        // - cache the reachable leaves for each node directly (risks huge memory explosion).
+        // - use a custom DFS that tracks the visit map with a "generation", so we don't have to
+        //   reset it between nodes (though that uses more memory).
+
+        self.leaves.clear();
+        // Use pre-order not post-order because that (in theory) short-circuits faster.
+        for qid in [first, second].into_iter().chain(qids) {
+            self.dfs.reset(qid_graph);
+            self.dfs.move_to(self.table.index_from_qid(qid).ok_or(qid)?);
+            for idx in visit::Walker::iter(&mut self.dfs, qid_graph) {
+                if qid_graph.first_edge(idx, Direction::Outgoing).is_none()
+                    && !self.leaves.insert(idx)
+                {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    /// Check if there is any aliasing in a series of [`Qid`]s.
+    ///
+    /// # Panics
+    ///
+    /// If any of the qids are not present in the table.  If you can't ensure that, use
+    /// [`try_overlap`](Self::try_overlap) instead.
+    #[inline]
+    pub fn overlap(&mut self, qids: impl IntoIterator<Item = Qid>) -> bool {
+        self.try_overlap(qids)
+            .expect("caller should ensure all qids are present")
     }
 }
 
@@ -488,11 +542,12 @@ mod tests {
             "should be idempotent"
         );
         table.mark_contains(qids[2], qids[1]).unwrap();
-        assert!(table.overlap([qids[2], qids[0]]));
-        assert!(table.overlap([qids[0], qids[2]]));
-        assert!(table.overlap([qids[2], qids[1]]));
-        assert!(table.overlap([qids[1], qids[2]]));
-        assert!(!table.overlap([qids[0], qids[1]]));
+        let mut checker = OverlapChecker::new(&table);
+        assert!(checker.overlap([qids[2], qids[0]]));
+        assert!(checker.overlap([qids[0], qids[2]]));
+        assert!(checker.overlap([qids[2], qids[1]]));
+        assert!(checker.overlap([qids[1], qids[2]]));
+        assert!(!checker.overlap([qids[0], qids[1]]));
 
         table.mark_contains(qids[3], qids[0]).unwrap();
         assert!(table.overlap([qids[2], qids[3]]), "both touch Qid(p:0)");
@@ -537,12 +592,13 @@ mod tests {
             table.try_overlap([Qid::virt(0), qids[0]]),
             Err(q) if q == Qid::virt(0)
         ));
+        let mut checker = OverlapChecker::new(&table);
         assert!(matches!(
-            table.try_overlap([qids[0], qids[1], Qid::virt(0)]),
+            checker.try_overlap([qids[0], qids[1], Qid::virt(0)]),
             Err(q) if q == Qid::virt(0)
         ));
         assert!(matches!(
-            table.try_overlap([qids[0], qids[1], table.next_qid().unwrap()]),
+            checker.try_overlap([qids[0], qids[1], table.next_qid().unwrap()]),
             Err(q) if q == table.next_qid().unwrap(),
         ));
     }
