@@ -30,15 +30,15 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
 use qiskit_circuit::operations::Param;
 use qiskit_util::complex::C_ZERO;
 
 use crate::diagonal::diagonal_gate_circuit;
 use crate::mcg_up_to_diagonal::mcg_up_to_diagonal_inner;
-use crate::qsd::append;
 use crate::uc_gate::dec_ucg_inner;
+use crate::utils::append_with_qubit_map;
 
 #[inline(always)]
 fn l2_norm(vec: &[Complex64]) -> f64 {
@@ -132,6 +132,20 @@ fn ucg_is_identity_up_to_global_phase(
     true
 }
 
+/// Appends `sub_circuit`, whose qubit 0 is the target and whose remaining qubits are the
+/// controls (in order), to `circuit`.
+fn append_on_target_and_controls(
+    circuit: &mut CircuitData,
+    sub_circuit: CircuitData,
+    target_qubit: Qubit,
+    control_qubits: &[Qubit],
+) -> Result<(), CircuitDataError> {
+    let qubit_map: Vec<Qubit> = iter::once(target_qubit)
+        .chain(control_qubits.iter().copied())
+        .collect();
+    append_with_qubit_map(circuit, sub_circuit, &qubit_map)
+}
+
 /// Appends a uniformly controlled gate, targeting `target_qubit` and controlled by
 /// `control_qubits`, to `circuit`. Returns the trailing diagonal left over, for the caller
 /// to fold into whatever comes next.
@@ -144,10 +158,7 @@ fn append_ucg_up_to_diagonal(
     let gates: Vec<Matrix2<Complex64>> = single_qubit_gates.iter().map(array2_to_matrix2).collect();
     let num_qubits = control_qubits.len() as u32 + 1;
     let (sub_circuit, diag) = dec_ucg_inner(gates, num_qubits, true, true)?;
-    let qubit_map: Vec<Qubit> = iter::once(target_qubit)
-        .chain(control_qubits.iter().copied())
-        .collect();
-    append(circuit, sub_circuit, &qubit_map)?;
+    append_on_target_and_controls(circuit, sub_circuit, target_qubit, control_qubits)?;
     Ok(diag)
 }
 
@@ -162,10 +173,7 @@ fn append_mcg_up_to_diagonal(
 ) -> Result<Vec<Complex64>, CircuitDataError> {
     let (sub_circuit, diag) =
         mcg_up_to_diagonal_inner(array2_to_matrix2(gate), control_qubits.len() as u32)?;
-    let qubit_map: Vec<Qubit> = iter::once(target_qubit)
-        .chain(control_qubits.iter().copied())
-        .collect();
-    append(circuit, sub_circuit, &qubit_map)?;
+    append_on_target_and_controls(circuit, sub_circuit, target_qubit, control_qubits)?;
     Ok(diag)
 }
 
@@ -350,6 +358,10 @@ fn apply_multi_controlled_gate(
 
 /// Zeroes out qubit `s` of column `k`, appending whatever gates that takes to `circuit`.
 /// Returns the updated isometry and the diagonal correction accumulated so far.
+///
+/// Qubits are labelled by decreasing significance, so label `0` is the most significant qubit and
+/// qubit `s` of the circuit has label `n - s - 1`. `k` is the column index, `s` the qubit being
+/// disentangled and `n` the total number of qubits of the isometry (without ancillas).
 fn disentangle(
     circuit: &mut CircuitData,
     mut v: Array2<Complex64>,
@@ -421,18 +433,47 @@ fn decompose_column(
     }
     Ok((v, diag))
 }
+
 /// Builds the circuit that maps `iso`'s columns onto the first `2^m` basis states, column by
 /// column, then widens it with `num_ancillas_zero + num_ancillas_dirty` unused ancilla qubits.
+///
+/// `epsilon` is the tolerance below which amplitudes are treated as zero. The ancillas are not
+/// used by the decomposition: they only add idle qubits to the returned circuit.
+///
+/// # Errors
+///
+/// Returns a `ValueError` (through `CircuitDataError::ErrorFromPython`) if the number of rows or
+/// columns of `iso` is not a power of 2, or if it has more columns than rows.
 pub(crate) fn synth_isometry_inner(
     iso: ArrayView2<Complex64>,
     num_ancillas_zero: usize,
     num_ancillas_dirty: usize,
     epsilon: f64,
 ) -> Result<CircuitData, CircuitDataError> {
+    let (rows, cols) = (iso.nrows(), iso.ncols());
+    let invalid = |msg: String| CircuitDataError::ErrorFromPython(PyValueError::new_err(msg));
+    if !rows.is_power_of_two() {
+        return Err(invalid(format!(
+            "the number of rows ({rows}) is not a power of 2"
+        )));
+    }
+    if !cols.is_power_of_two() {
+        return Err(invalid(format!(
+            "the number of columns ({cols}) is not a power of 2"
+        )));
+    }
+    if cols > rows {
+        return Err(invalid(format!(
+            "the isometry has more columns ({cols}) than rows ({rows})"
+        )));
+    }
+
     let n = iso.shape()[0].ilog2() as usize;
     let m = iso.shape()[1].ilog2() as usize;
     let num_qubits = n + num_ancillas_zero + num_ancillas_dirty;
 
+    // The instruction count is not pre-allocated: it depends on which multi-controlled and
+    // uniformly controlled steps each column needs, so there is no simple exact bound.
     let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, 0, Param::Float(0.0))?;
     let mut remaining_isometry = iso.to_owned();
     let mut diag: Vec<Complex64> = Vec::with_capacity(1 << m);
@@ -454,53 +495,30 @@ pub(crate) fn synth_isometry_inner(
 
     if diag.len() > 1 && !diag_is_identity_up_to_global_phase(&diag, epsilon) {
         // phase(conj(z)) = -phase(z) = -z.arg().
-        let mut phases: Vec<f64> = diag.iter().map(|z| -z.arg()).collect();
-        let diag_circuit = diagonal_gate_circuit(&mut phases, m)?;
+        let phases: Vec<f64> = diag.iter().map(|z| -z.arg()).collect();
+        let diag_circuit = diagonal_gate_circuit(&phases)?;
         let qubit_map: Vec<Qubit> = (0..m as u32).map(Qubit).collect();
-        append(&mut circuit, diag_circuit, &qubit_map)?;
+        append_with_qubit_map(&mut circuit, diag_circuit, &qubit_map)?;
     }
 
     Ok(circuit)
 }
 
-/// Validates that `iso`'s shape is a valid isometry (power-of-2 rows and columns, with at
-/// least as many rows as columns), then returns the circuit decomposing it, named
-/// `"isometry_to_uncompute"`.
+/// Python entry point for [`synth_isometry_inner`]; invalid shapes raise `ValueError`.
 #[pyfunction]
 pub fn synth_isometry(
-    py: Python,
     iso: PyReadonlyArray2<Complex64>,
     num_ancillas_zero: usize,
     num_ancillas_dirty: usize,
     epsilon: f64,
-) -> PyResult<Py<PyAny>> {
-    let iso_array = iso.as_array();
-    let (rows, cols) = (iso_array.shape()[0], iso_array.shape()[1]);
-    if !rows.is_power_of_two() {
-        return Err(PyValueError::new_err(format!(
-            "the number of rows ({rows}) is not a power of 2"
-        )));
-    }
-    if !cols.is_power_of_two() {
-        return Err(PyValueError::new_err(format!(
-            "the number of columns ({cols}) is not a power of 2"
-        )));
-    }
-    if cols > rows {
-        return Err(PyValueError::new_err(format!(
-            "the isometry has more columns ({cols}) than rows ({rows})"
-        )));
-    }
+) -> PyResult<PyCircuitData> {
     let circuit = synth_isometry_inner(
         iso.as_array(),
         num_ancillas_zero,
         num_ancillas_dirty,
         epsilon,
-    )
-    .map_err(PyErr::from)?;
-    let qc = circuit.into_py_quantum_circuit(py)?;
-    qc.setattr("name", "isometry_to_uncompute")?;
-    Ok(qc.unbind())
+    )?;
+    Ok(circuit.into())
 }
 
 pub fn isometry(m: &Bound<PyModule>) -> PyResult<()> {
@@ -802,6 +820,18 @@ mod test {
     // ------------------------------------------------------------------
     // synth_isometry_inner (end-to-end)
     // ------------------------------------------------------------------
+
+    #[test]
+    fn test_synth_isometry_inner_rejects_invalid_shapes() {
+        // (rows, cols): non-power-of-2 rows, non-power-of-2 columns, more columns than rows.
+        for (rows, cols) in [(3, 2), (4, 3), (2, 4)] {
+            let iso: Array2<Complex64> = Array2::zeros((rows, cols));
+            assert!(
+                synth_isometry_inner(iso.view(), 0, 0, 1e-10).is_err(),
+                "{rows}x{cols} should be rejected"
+            );
+        }
+    }
 
     #[test]
     fn test_synth_isometry_inner_identity_produces_empty_circuit() {

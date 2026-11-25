@@ -128,9 +128,13 @@ class Isometry(Instruction):
         return inv
 
     def _gates_to_uncompute(self):
-        return isometry_rs.synth_isometry(
-            self.iso_data, self.num_ancillas_zero, self.num_ancillas_dirty, self._epsilon
+        circuit = QuantumCircuit._from_circuit_data(
+            isometry_rs.synth_isometry(
+                self.iso_data, self.num_ancillas_zero, self.num_ancillas_dirty, self._epsilon
+            )
         )
+        circuit.name = "isometry_to_uncompute"
+        return circuit
 
     def validate_parameter(self, parameter):
         """Isometry parameter has to be an ndarray."""
