@@ -27,6 +27,20 @@ pub type Instruction = (
     Vec<Clbit>,
 );
 
+enum BasePhaseGate {
+    RZ,
+    Phase,
+}
+
+impl From<BasePhaseGate> for StandardGate {
+    fn from(gate: BasePhaseGate) -> Self {
+        match gate {
+            BasePhaseGate::RZ => StandardGate::RZ,
+            BasePhaseGate::Phase => StandardGate::Phase,
+        }
+    }
+}
+
 /// Return instructions to implement evolution of Pauli terms and projectors.
 ///
 /// Args:
@@ -254,15 +268,15 @@ fn multi_qubit_evolution(
         // per default (unless the user specified otherwise)
         let params: SmallVec<[Param; 3]> = smallvec![time];
         let base_gate = if phase_gate_for_paulis {
-            StandardGate::Phase
+            BasePhaseGate::Phase
         } else {
-            StandardGate::RZ
+            BasePhaseGate::RZ
         };
 
         let num_ctrl_qubits = control_qubits.len();
         if num_ctrl_qubits == 0 {
             // simple case: no projectors, so we're done
-            let gate: PackedOperation = base_gate.into();
+            let gate: PackedOperation = StandardGate::from(base_gate).into();
             vec![(gate, params, vec![pauli_qubits[0]], empty_clbits.clone())]
         } else {
             // if we have projectors, add controls to the target rotation.
@@ -287,7 +301,7 @@ fn multi_qubit_evolution(
         // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
         let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
         add_open_control(
-            StandardGate::Phase,
+            BasePhaseGate::Phase,
             params,
             &control_qubits,
             num_ctrl_qubits - 1,
@@ -371,7 +385,7 @@ fn cx_fountain(qubits: Vec<Qubit>) -> Box<dyn DoubleEndedIterator<Item = Instruc
 /// Add controls to a standard gate, either Phase or RZ, returning the synthesized [`CircuitData`] directly.
 fn add_control_phase_rz(
     num_ctrl_qubits: usize,
-    gate: StandardGate,
+    gate: BasePhaseGate,
     params: &[Param],
 ) -> CircuitData {
     let [phase] = params else {
@@ -379,9 +393,8 @@ fn add_control_phase_rz(
     };
 
     match gate {
-        StandardGate::RZ => synth_mcrz_noaux(num_ctrl_qubits, phase.clone()),
-        StandardGate::Phase => synth_mcp_noaux_default(num_ctrl_qubits, phase.clone()),
-        _ => unreachable!("This is only called for Phase or RZ gates."),
+        BasePhaseGate::RZ => synth_mcrz_noaux(num_ctrl_qubits, phase.clone()),
+        BasePhaseGate::Phase => synth_mcp_noaux_default(num_ctrl_qubits, phase.clone()),
     }
     .expect("synth_mcrz_noaux / synth_mcp_noaux_default only fail on circuit construction errors.")
 }
@@ -403,10 +416,10 @@ fn circuit_to_instructions(circuit: CircuitData, global_qubits: &[Qubit]) -> Vec
         .collect()
 }
 
-/// Add open multi-controls to a standard gate, either Phase or RZ,
+/// Add open multi-controls to either Phase or RZ standard gate,
 /// by sandwitching a layer of X gates
 fn add_open_control(
-    gate: StandardGate,
+    gate: BasePhaseGate,
     params: SmallVec<[Param; 3]>,
     controls: &[Qubit],
     num_ctrl_qubits: usize,
