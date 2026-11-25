@@ -50,7 +50,6 @@ class Isometry(Instruction):
     # ...
     # n -> least significant one
     # finally, we convert the labels back to the qubit numbering used in Qiskit
-    # (using: _get_qubits_by_label)
 
     def __init__(
         self,
@@ -128,6 +127,10 @@ class Isometry(Instruction):
         return inv
 
     def _gates_to_uncompute(self):
+        """
+        Call to create a circuit with gates that take the desired isometry to the first 2^m columns
+        of the 2^n*2^n identity matrix (see https://arxiv.org/abs/1501.06911)
+        """
         circuit = QuantumCircuit._from_circuit_data(
             isometry_rs.synth_isometry(
                 self.iso_data, self.num_ancillas_zero, self.num_ancillas_dirty, self._epsilon

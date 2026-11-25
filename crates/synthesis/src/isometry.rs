@@ -147,8 +147,9 @@ fn append_on_target_and_controls(
 }
 
 /// Appends a uniformly controlled gate, targeting `target_qubit` and controlled by
-/// `control_qubits`, to `circuit`. Returns the trailing diagonal left over, for the caller
-/// to fold into whatever comes next.
+/// `control_qubits`, to `circuit`. The appended circuit `U'` implements the requested gate `U` up
+/// to a diagonal `D`, i.e. `U = D * U'`. Returns the `2^(k + 1)` diagonal entries of `D`
+/// (`k = control_qubits.len()`), for the caller to fold into the remaining isometry.
 fn append_ucg_up_to_diagonal(
     circuit: &mut CircuitData,
     single_qubit_gates: &[Array2<Complex64>],
@@ -163,8 +164,9 @@ fn append_ucg_up_to_diagonal(
 }
 
 /// Appends a multi-controlled single-qubit `gate`, targeting `target_qubit` and controlled by
-/// `control_qubits`, to `circuit`. Returns the trailing diagonal left over, for the caller
-/// to fold into whatever comes next.
+/// `control_qubits`, to `circuit`. The appended circuit `U'` implements the requested gate `U` up
+/// to a diagonal `D`, i.e. `U = D * U'`. Returns the `2^(k + 1)` diagonal entries of `D`
+/// (`k = control_qubits.len()`), for the caller to fold into the remaining isometry.
 fn append_mcg_up_to_diagonal(
     circuit: &mut CircuitData,
     gate: &Array2<Complex64>,
@@ -356,8 +358,9 @@ fn apply_multi_controlled_gate(
     m
 }
 
-/// Zeroes out qubit `s` of column `k`, appending whatever gates that takes to `circuit`.
-/// Returns the updated isometry and the diagonal correction accumulated so far.
+/// Disentangles qubit `s` of column `k`, i.e. moves it into the basis state given by bit `s` of
+/// `k`, appending whatever gates that takes to `circuit`. Returns the updated isometry and the
+/// diagonal correction accumulated so far.
 ///
 /// Qubits are labelled by decreasing significance, so label `0` is the most significant qubit and
 /// qubit `s` of the circuit has label `n - s - 1`. `k` is the column index, `s` the qubit being
@@ -443,7 +446,8 @@ fn decompose_column(
 /// # Errors
 ///
 /// Returns a `ValueError` (through `CircuitDataError::ErrorFromPython`) if the number of rows or
-/// columns of `iso` is not a power of 2, or if it has more columns than rows.
+/// columns of `iso` is not a power of 2, if it has more columns than rows, or if the total number
+/// of qubits does not fit in a `u32`.
 pub(crate) fn synth_isometry_inner(
     iso: ArrayView2<Complex64>,
     num_ancillas_zero: usize,
@@ -470,11 +474,15 @@ pub(crate) fn synth_isometry_inner(
 
     let n = iso.shape()[0].ilog2() as usize;
     let m = iso.shape()[1].ilog2() as usize;
-    let num_qubits = n + num_ancillas_zero + num_ancillas_dirty;
+    let num_qubits = n
+        .checked_add(num_ancillas_zero)
+        .and_then(|total| total.checked_add(num_ancillas_dirty))
+        .and_then(|total| u32::try_from(total).ok())
+        .ok_or_else(|| invalid("the number of qubits is too large".to_string()))?;
 
     // The instruction count is not pre-allocated: it depends on which multi-controlled and
     // uniformly controlled steps each column needs, so there is no simple exact bound.
-    let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, 0, Param::Float(0.0))?;
+    let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(0.0))?;
     let mut remaining_isometry = iso.to_owned();
     let mut diag: Vec<Complex64> = Vec::with_capacity(1 << m);
 
@@ -504,7 +512,7 @@ pub(crate) fn synth_isometry_inner(
     Ok(circuit)
 }
 
-/// Python entry point for [`synth_isometry_inner`]; invalid shapes raise `ValueError`.
+/// Python entry point for `synth_isometry_inner`; invalid shapes raise `ValueError`.
 #[pyfunction]
 pub fn synth_isometry(
     iso: PyReadonlyArray2<Complex64>,
@@ -834,6 +842,18 @@ mod test {
     }
 
     #[test]
+    fn test_synth_isometry_inner_rejects_too_many_qubits() {
+        let iso: Array2<Complex64> = Array2::eye(2);
+        // The qubit count does not fit in a `u32`, and the sum overflows a `usize`.
+        for (zero, dirty) in [(1_usize << 32, 0), (0, 1 << 32), (usize::MAX, 1)] {
+            assert!(
+                synth_isometry_inner(iso.view(), zero, dirty, 1e-10).is_err(),
+                "ancillas=({zero},{dirty}) should be rejected"
+            );
+        }
+    }
+
+    #[test]
     fn test_synth_isometry_inner_identity_produces_empty_circuit() {
         // An isometry already equal to (a block of) the identity needs no gates at all.
         for n in 1..=3_usize {
@@ -851,7 +871,7 @@ mod test {
     #[test]
     fn test_synth_isometry_inner_state_prep_uniform_superposition() {
         // m = 0 (state preparation): a 2-qubit uniform superposition, unlike the identity
-        // case above, needs real disentangling gates.
+        // case, needs real disentangling gates.
         let half = c(0.5, 0.0);
         let iso: Array2<Complex64> = array![[half], [half], [half], [half]];
         let circuit = synth_isometry_inner(iso.view(), 0, 0, 1e-10).unwrap();
