@@ -54,6 +54,8 @@ Primitives and providers:
    providers
    providers_basic_provider
    providers_fake_provider
+   quantum_program
+   quantum_program_ops
 
 Results and visualizations:
 
