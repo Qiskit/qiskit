@@ -10,4 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod pauli_evolution;
+pub mod pauli_evolution {
+    pub mod model;
+    pub mod py;
+}

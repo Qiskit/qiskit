@@ -37,6 +37,7 @@ pub fn circuit_library(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(quantum_volume::quantum_volume))?;
     m.add_wrapped(wrap_pyfunction!(multi_local::py_n_local))?;
     m.add_class::<blocks::Block>()?;
+    m.add_class::<custom_operation::pauli_evolution::py::PyPauliEvolution>()?;
 
     Ok(())
 }

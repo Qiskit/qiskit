@@ -13,15 +13,16 @@
 """A gate to implement time-evolution of operators."""
 
 from __future__ import annotations
+import copy
+from typing_extensions import override
 
 from typing import TYPE_CHECKING
 import numpy as np
-import scipy as sc
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
-from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
+from qiskit._accelerate.circuit_library import PauliEvolution
 import qiskit.quantum_info
 
 if TYPE_CHECKING:
@@ -136,37 +137,48 @@ class PauliEvolutionGate(Gate):
             synthesis: A synthesis strategy. If None, the default synthesis is the Lie-Trotter
                 product formula with a single repetition.
         """
-        if isinstance(operator, list):
-            operator = [_to_sparse_op(op) for op in operator]
-        else:
-            operator = _to_sparse_op(operator)
+        operator = _map_operator(operator)
+        num_qubits = operator.num_qubits
 
-        if label is None:
-            label = _get_default_label(operator)
-
-        if isinstance(operator, list):
-            if len(operator) == 0:
-                raise ValueError("The argument 'operator' cannot be an empty list.")
-            num_qubits = operator[0].num_qubits
-            for op in operator[1:]:
-                if op.num_qubits != num_qubits:
-                    raise ValueError(
-                        "When represented as a list of operators, all of these operators "
-                        "must have the same number of qubits."
-                    )
-        else:
-            num_qubits = operator.num_qubits
-
+        self._inner = PauliEvolution(operator, time, label)
+        label = self._inner.label
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
-        self.operator = operator
 
         if synthesis is None:
-
             from qiskit.synthesis.evolution import LieTrotter
 
-            synthesis = LieTrotter()
+            self.synthesis = LieTrotter()
+        else:
+            self.synthesis = synthesis
 
-        self.synthesis = synthesis
+    @property
+    def operator(self) -> SparseObservable:
+        """Return the operator.
+
+        Returns:
+            The operator.
+        """
+        return self._inner.operator
+
+    @operator.setter
+    def operator(
+        self,
+        operator: (
+            qiskit.quantum_info.Pauli
+            | SparsePauliOp
+            | SparseObservable
+            | list[qiskit.quantum_info.Pauli | SparsePauliOp | SparseObservable]
+        ),
+    ) -> None:
+        """Set the evolution operator.
+
+        Args:
+            operator: The evolution operator.
+
+        Raises:
+            ValueError: If ``operator`` has complex coefficients.
+        """
+        self._inner.operator = _map_operator(operator)
 
     @property
     def time(self) -> ParameterValueType:
@@ -183,8 +195,33 @@ class PauliEvolutionGate(Gate):
 
         Args:
             time: The evolution time.
+
+        Raises:
+            ValueError: If ``time`` isn't a float or expression.
         """
         self.params = [time]
+        self._inner.time = time
+
+    @override
+    @property
+    def label(self) -> str:
+        """Return the label.
+
+        Returns:
+            The label
+        """
+        return self._inner.label
+
+    @override
+    @label.setter
+    def label(self, label: str) -> None:
+        """Set the label
+
+        Args:
+            label: The label.
+        """
+        self.label = label
+        self._inner.label = label
 
     def to_matrix(self) -> np.ndarray:
         """Return the matrix :math:`e^{-it H}` as ``numpy.ndarray``.
@@ -195,39 +232,13 @@ class PauliEvolutionGate(Gate):
         Raises:
             ValueError: If the ``time`` parameters is not numeric.
         """
-        # check the parameter is numeric, otherwise raise an error
-        if isinstance(self.time, ParameterExpression):
-            try:
-                time = self.time.numeric()
-            except TypeError as exc:
-                raise ValueError(
-                    f"Cannot compute matrix with non-numeric parameter: {self.time}"
-                ) from exc
-        else:
-            time = self.time
-
-        # sum up all commuting terms if the operators are given as list
-        if isinstance(self.operator, list):
-            operator = sum(self.operator[1:], start=self.operator[0])
-        else:
-            operator = self.operator
-
-        # SparseObservable does not have a to_matrix method yet
-        if isinstance(operator, SparseObservable):
-            operator = SparsePauliOp.from_sparse_observable(operator)
-
-        # we use a sparse matrix representation for the exponentiation, as operators
-        # are typically sparse (and if they aren't the whole thing is inefficient anyways)
-        spmatrix = operator.to_matrix(sparse=True)
-
-        exp = sc.sparse.linalg.expm(-1j * time * spmatrix)
-
-        # return as dense matrix, since that's what the interface dictates
-        return exp.toarray()
+        return self._inner.to_matrix()
 
     def inverse(self, annotated: bool = False):
         """Return the inverse, which is obtained by flipping the sign of the evolution time."""
-        return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
+        inverse = copy.deepcopy(self)
+        inverse._inner.inverse()
+        return inverse
 
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
@@ -244,10 +255,9 @@ class PauliEvolutionGate(Gate):
         Returns:
             An operation implementing ``gate^exponent``.
         """
-        return PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
-
-    def _return_repeat(self, exponent: float) -> PauliEvolutionGate:
-        return self.power(exponent)  # same implementation
+        power = copy.deepcopy(self)
+        power._inner.power(exponent)
+        return power
 
     def control(
         self,
@@ -298,17 +308,7 @@ class PauliEvolutionGate(Gate):
         # circuit that only controls the central Pauli rotation. For example, calling
         # PauliEvolutionGate(Z).control(2) will produce PauliEvolutionGate(11Z).
         control_op = SparseObservable(ctrl_state)
-
-        def extend_op(op):
-            if isinstance(op, SparsePauliOp):
-                op = SparseObservable.from_sparse_pauli_op(op)
-
-            return op ^ control_op
-
-        if isinstance(self.operator, list):
-            operator = [extend_op(op) for op in self.operator]
-        else:
-            operator = extend_op(self.operator)
+        operator = self.operator ^ control_op
 
         return PauliEvolutionGate(operator, self.time, label, synthesis=self.synthesis)
 
@@ -324,68 +324,31 @@ class PauliEvolutionGate(Gate):
         return super().validate_parameter(parameter)
 
     def _extract_sparse_observable(self) -> SparseObservable:
-        """Return the internal operator as single SparseObservable.
-
-        This will sum all operators if given as list of commuting operators.
-        """
-        if isinstance(self.operator, list):
-            return sum(
-                map(_to_sparse_observable, self.operator[1:]),
-                _to_sparse_observable(self.operator[0]),
-            )
-        return _to_sparse_observable(self.operator)
+        """Return the internal operator as single SparseObservable."""
+        return self.operator
 
 
-def _to_sparse_op(
-    operator: Pauli | SparsePauliOp | SparseObservable,
-) -> SparsePauliOp | SparseObservable:
-    """Cast the operator to a sparse format; either SparseObservable or SparsePauliOp."""
-
-    if isinstance(operator, Pauli):
-        sparse = SparsePauliOp(operator)
-    elif isinstance(operator, (SparseObservable, SparsePauliOp)):
-        sparse = operator
-    else:
-        raise ValueError(f"Unsupported operator type for evolution: {type(operator)}.")
-
-    if any(np.iscomplex(sparse.coeffs)):
-        raise ValueError("Operator contains complex coefficients, which are not supported.")
-    if any(isinstance(coeff, ParameterExpression) for coeff in sparse.coeffs):
-        raise ValueError("Operator contains ParameterExpression, which are not supported.")
-
-    return sparse
+def _map_operator(operator):
+    match operator:
+        case list([first, *rest]):
+            total = _map_operator_one(first)
+            for o in rest:
+                total += _map_operator_one(o)
+            return total
+        case _:
+            return _map_operator_one(operator)
 
 
-def _to_sparse_observable(operator: SparseObservable | SparsePauliOp) -> SparseObservable:
-    """Coerce SparsePauliOp or SparseObservable into a SparseObservable."""
-    if isinstance(operator, SparsePauliOp):
-        return SparseObservable.from_sparse_pauli_op(operator)
-    return operator
-
-
-def _operator_label(operator):
-    if isinstance(operator, SparseObservable):
-        if len(operator) == 1:
-            return _sparse_term_label(operator[0])
-
-        return "(" + " + ".join(_sparse_term_label(term) for term in operator) + ")"
-
-    # else: is a SparsePauliOp
-    if len(operator.paulis) == 1:
-        return operator.paulis.to_labels()[0]
-    return "(" + " + ".join(operator.paulis.to_labels()) + ")"
-
-
-def _sparse_term_label(term) -> str:
-    labels = term.bit_labels()
-    indices = term.indices
-    return " ".join(f"{label}{idx}" for label, idx in zip(labels, indices))
-
-
-def _get_default_label(operator):
-    if isinstance(operator, list):
-        return "exp(-it [" + ", ".join(_operator_label(op) for op in operator) + "])"
-    return f"exp(-it {_operator_label(operator)})"
+def _map_operator_one(operator):
+    match operator:
+        case SparseObservable():
+            return operator
+        case SparsePauliOp():
+            return SparseObservable.from_sparse_pauli_op(operator)
+        case Pauli():
+            return SparseObservable.from_pauli(operator)
+        case _:
+            raise ValueError("unsupported operator type")
 
 
 def _merge_two_pauli_evolutions(
@@ -401,24 +364,10 @@ def _merge_two_pauli_evolutions(
 
     This function is internal (used from within Rust code) and not a part of public API.
     """
-    if not isinstance(gate1, PauliEvolutionGate) or not isinstance(gate2, PauliEvolutionGate):
-        return None
-
-    if isinstance(gate1.operator, SparseObservable) and isinstance(
-        gate2.operator, SparseObservable
-    ):
-        # When both operators are SparseObservables, we can compare their canonical representatives.
-        can_merge = gate1.operator.simplify() == gate2.operator.simplify()
-    elif isinstance(gate1.operator, SparsePauliOp) and isinstance(gate2.operator, SparsePauliOp):
-        # SparsePauliOp already has a function that compares canonical representatives.
-        can_merge = gate1.operator.equiv(gate2.operator)
-    else:
-        can_merge = gate1.operator == gate2.operator
-
-    if can_merge:
+    if gate1.operator.simplify() == gate2.operator.simplify():
         return PauliEvolutionGate(gate1.operator, gate1.time + gate2.time)
-
-    return None
+    else:
+        return None
 
 
 def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
@@ -428,37 +377,16 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
 
     This function is internal (used from within Rust code) and not a part of public API.
     """
-    # Is it even a PauliEvolutionGate?
-    if not isinstance(gate, PauliEvolutionGate):
-        return None
-
     if gate.is_parameterized():
         return None
 
-    # If the operator is a list, it should only have a single element.
-    if isinstance(gate.operator, list):
-        if len(gate.operator) == 1:
-            operator = gate.operator[0]
-        else:
-            return None
-    else:
-        operator = gate.operator
+    operator = gate.operator
 
-    # If the operator is a SparseObservable, it should have a single term
-    # without projects.
-    if isinstance(operator, SparseObservable):
-        if len(operator) == 1:
-            label = operator[0].bit_labels()
-            if any(c in label for c in ["+", "-", "0", "1", "l", "r"]):
-                return None
-            num_qubits = len(label)
-            angle = operator.coeffs[0].real * gate.time
-        else:
+    # It should have a single term without projects.
+    if len(operator) == 1:
+        label = operator[0].bit_labels()
+        if any(c in label for c in ["+", "-", "0", "1", "l", "r"]):
             return None
-    # If the operator is a SparsePauliOp, it should have a single term.
-    elif len(operator.paulis) == 1:
-        label = operator.paulis.to_labels()[0]
-        label = label.replace("I", "")
         num_qubits = len(label)
         angle = operator.coeffs[0].real * gate.time
     else:
@@ -467,16 +395,10 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
     if num_qubits == 0:
         # This is an identity Pauli rotation.
         return (np.exp(-1j * angle), 1)
-
-    return (np.cos(angle), 2**num_qubits)
+    else:
+        return (np.cos(angle), 2**num_qubits)
 
 
 def _contains_projectors(gate: PauliEvolutionGate) -> bool:
     """Return whether gate contains any projector terms."""
-    if isinstance(gate.operator, SparseObservable):
-        return gate.operator.contains_projectors()
-    elif isinstance(gate.operator, list):
-        return any(
-            isinstance(op, SparseObservable) and op.contains_projectors() for op in gate.operator
-        )
-    return False
+    return gate.operator.contains_projectors()
