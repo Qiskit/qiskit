@@ -34,3 +34,10 @@ workspace = true
 [dependencies.ndarray]
 workspace = true
 features = ["rayon", "approx"]
+
+[dependencies.pyo3]
+workspace = true
+optional = true
+
+[features]
+py = ["dep:pyo3"]
