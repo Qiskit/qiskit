@@ -149,6 +149,17 @@ pub fn broadcast_dims_to(shape: &[Dim], target: &[Dim]) -> Result<Vec<Dim>, Tens
 }
 
 /// A specification of a tensor without any data.
+#[cfg_attr(
+    feature = "py",
+    pyo3::pyclass(
+        name = "TensorType",
+        module = "qiskit.quantum_program",
+        eq,
+        frozen,
+        from_py_object,
+        hash
+    )
+)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TensorType {
     /// The element type of the tensor.
