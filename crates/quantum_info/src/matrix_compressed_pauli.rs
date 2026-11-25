@@ -14,7 +14,7 @@ use foldhash::fast::RandomState;
 use ndarray::{Array2, ArrayView1, ArrayView2, Axis, s};
 use num_complex::Complex64;
 use num_traits::Zero;
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 use pyo3::{PyErr, exceptions::PyValueError};
 use qiskit_util::{
     IndexMap,
@@ -37,7 +37,7 @@ pub enum PauliCompressionError {
     },
 }
 
-#[cfg(feature = "python")]
+#[cfg(feature = "py")]
 impl From<PauliCompressionError> for PyErr {
     fn from(value: PauliCompressionError) -> Self {
         PyValueError::new_err(value.to_string())
