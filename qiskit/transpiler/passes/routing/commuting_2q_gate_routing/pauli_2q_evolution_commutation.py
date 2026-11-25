@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """An analysis pass to find evolution gates in which the Paulis commute."""
+from qiskit.circuit.parameterexpression import ParameterValueType
 from collections import defaultdict
 
 import numpy as np
@@ -19,7 +20,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass
-from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.quantum_info import SparsePauliOp, Pauli, SparseObservable
 from .commuting_2q_block import Commuting2qBlock
 
 
@@ -54,11 +55,13 @@ class FindCommutingPauliEvolutions(TransformationPass):
         for node in dag.op_nodes():
             if isinstance(node.op, PauliEvolutionGate):
                 operator = node.op.operator
+                operator = SparsePauliOp.from_sparse_observable(operator)
+
                 if self.single_qubit_terms_only(operator):
                     continue
 
-                if self.summands_commute(node.op.operator):
-                    sub_dag = self._decompose_to_2q(dag, node.op)
+                if self.summands_commute(operator):
+                    sub_dag = self._decompose_to_2q(dag, operator, node.op.time)
 
                     block_op = Commuting2qBlock(set(sub_dag.op_nodes()))
                     wire_order = {
@@ -126,12 +129,18 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
         return edge
 
-    def _decompose_to_2q(self, dag: DAGCircuit, op: PauliEvolutionGate) -> DAGCircuit:
+    def _decompose_to_2q(
+        self,
+        dag: DAGCircuit,
+        operator: SparseObservable,
+        time: ParameterValueType
+    ) -> DAGCircuit:
         """Decompose the SparsePauliOp into two-qubit.
 
         Args:
             dag: The dag needed to get access to qubits.
-            op: The operator with all the Pauli terms we need to apply.
+            operator: The operator with all the Pauli terms we need to apply.
+            time: The time parameter.
 
         Returns:
             A dag made of two-qubit :class:`.PauliEvolutionGate`.
@@ -139,7 +148,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         sub_dag = dag.copy_empty_like()
 
         required_paulis = defaultdict(int)
-        for pauli, coeff in zip(op.operator.paulis, op.operator.coeffs):
+        for pauli, coeff in zip(operator.paulis, operator.coeffs):
             edge = self._pauli_to_edge(pauli)
             required_paulis[(pauli, edge)] += coeff
 
@@ -148,7 +157,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
             simple_pauli = Pauli(pauli.to_label().replace("I", ""))
 
-            pauli_2q = PauliEvolutionGate(simple_pauli, op.time * np.real(coeff))
+            pauli_2q = PauliEvolutionGate(simple_pauli, time * np.real(coeff))
             sub_dag.apply_operation_back(pauli_2q, qubits)
 
         return sub_dag
