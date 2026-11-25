@@ -286,8 +286,7 @@ fn multi_qubit_evolution(
             add_open_control(base_gate, params, &added_qubits, &control_states)
         }
     } else {
-        // Here we purely have projectors, meaning the target rotation is a phase gate.
-        // Multiple projectors: synthesize a multi-controlled phase gate.
+        // Here we purely have projectors, meaning the target rotation is a phase gate. Remember
         // we have to adjust the rotation angle to account for the different conventions;
         // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
         let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
@@ -407,7 +406,7 @@ fn circuit_to_instructions(circuit: CircuitData, global_qubits: &[Qubit]) -> Vec
 }
 
 /// Add open multi-controls to either Phase or RZ standard gate,
-/// by sandwitching a layer of X gates
+/// by sandwitching a layer of X gates.
 fn add_open_control(
     gate: BasePhaseGate,
     params: SmallVec<[Param; 3]>,
