@@ -1,0 +1,24 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass :class:`.ControlPatternSimplification` that simplifies
+    groups of controlled gates applying the same standard gate to the same target qubits
+    under different conditions on the control qubits. For example, two gates controlled
+    on the states ``11`` and ``01`` of two qubits are replaced by a single gate with one
+    control qubit::
+
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import RXGate
+        from qiskit.transpiler.passes import ControlPatternSimplification
+
+        qc = QuantumCircuit(3)
+        qc.append(RXGate(0.5).control(2, ctrl_state="11"), [0, 1, 2])
+        qc.append(RXGate(0.5).control(2, ctrl_state="01"), [0, 1, 2])
+
+        # A single CRX gate controlled on qubit 0.
+        optimized_qc = ControlPatternSimplification()(qc)
+
+    The pass also covers all but a few control states with an uncontrolled gate and its
+    inverse, replaces control states that differ in several qubits by a single gate
+    conjugated by CX gates, adds up the angles of rotation gates with the same control
+    state, and cancels pairs of identical self-inverse gates.

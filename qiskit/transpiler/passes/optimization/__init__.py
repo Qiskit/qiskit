@@ -41,6 +41,7 @@ from .split_2q_unitaries import Split2QUnitaries
 from .collect_and_collapse import CollectAndCollapse
 from .two_qubit_peephole import TwoQubitPeepholeOptimization
 from .contract_idle_wires_in_control_flow import ContractIdleWiresInControlFlow
+from .control_pattern_simplification import ControlPatternSimplification
 from .optimize_clifford_t import OptimizeCliffordT
 from .litinski_transformation import LitinskiTransformation
 from .light_cone import LightCone
@@ -60,6 +61,7 @@ __all__ = [
     "CommutativeOptimization",
     "ConsolidateBlocks",
     "ContractIdleWiresInControlFlow",
+    "ControlPatternSimplification",
     "ConvertToPauliRotations",
     "ElidePermutations",
     "HoareOptimizer",
