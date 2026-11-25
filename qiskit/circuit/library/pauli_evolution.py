@@ -146,6 +146,7 @@ class PauliEvolutionGate(Gate):
 
         if synthesis is None:
             from qiskit.synthesis.evolution import LieTrotter
+
             self.synthesis = LieTrotter()
         else:
             self.synthesis = synthesis
@@ -167,7 +168,7 @@ class PauliEvolutionGate(Gate):
             | SparsePauliOp
             | SparseObservable
             | list[qiskit.quantum_info.Pauli | SparsePauliOp | SparseObservable]
-        )
+        ),
     ) -> None:
         """Set the evolution operator.
 
@@ -325,6 +326,7 @@ class PauliEvolutionGate(Gate):
     def _extract_sparse_observable(self) -> SparseObservable:
         """Return the internal operator as single SparseObservable."""
         return self.operator
+
 
 def _map_operator(operator):
     match operator:

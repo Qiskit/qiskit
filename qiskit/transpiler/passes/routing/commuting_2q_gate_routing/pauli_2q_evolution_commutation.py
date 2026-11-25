@@ -130,10 +130,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         return edge
 
     def _decompose_to_2q(
-        self,
-        dag: DAGCircuit,
-        operator: SparseObservable,
-        time: ParameterValueType
+        self, dag: DAGCircuit, operator: SparseObservable, time: ParameterValueType
     ) -> DAGCircuit:
         """Decompose the SparsePauliOp into two-qubit.
 
