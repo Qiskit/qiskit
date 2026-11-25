@@ -297,6 +297,8 @@ class GateFromRust(Gate):
         self._definition = self._rust_operation.definition(self.params)
 
     def __array__(self, dtype=complex, copy=None):
+        if copy is False:
+            raise ValueError("Unable to avoid copy while creating an array as requested")
         return self._rust_operation.to_matrix(self.params, dtype)
 
     def inverse(self, annotated: bool = False):

@@ -2537,6 +2537,10 @@ impl PyCustomOperation {
     }
 
     /// Build the matrix of the operation for the given parameters.
+    ///
+    /// Raises a `CircuitError` if no matrix is available, for example if the operation doesn't
+    /// implement one or its parameters are symbolic. Like any `QiskitError`, this lets callers
+    /// such as `Operator` fall back to the operation's definition.
     #[pyo3(signature = (params, dtype=None))]
     fn to_matrix<'py>(
         &self,
@@ -2546,8 +2550,10 @@ impl PyCustomOperation {
     ) -> PyResult<Bound<'py, PyAny>> {
         match self.inner.matrix(params.as_deref().unwrap_or_default()) {
             Ok(Some(mat)) => cast_array_type(py, mat.into_pyarray(py), dtype),
-            Ok(None) => py.None().into_bound_py_any(py),
-            // Is this the best way to handle errors??
+            Ok(None) => Err(crate::circuit_data::CircuitError::new_err(format!(
+                "No matrix is available for '{}' with the given parameters",
+                self.inner.name()
+            ))),
             Err(e) => Err(QiskitError::new_err(e.to_string())),
         }
     }
@@ -2677,8 +2683,6 @@ mod test_custom_operations {
     use crate::packed_instruction::PackedOperation;
     use crate::{Clbit, Qubit};
     use ndarray::aview2;
-    #[cfg(all(not(miri), feature = "py"))]
-    use numpy::PyArrayMethods;
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
