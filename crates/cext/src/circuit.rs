@@ -2989,6 +2989,8 @@ pub struct CircuitDrawerConfig {
     barrier_label_len: usize,
     /// If `false`, removes unused wires from the circuit
     idle_wires: bool,
+    /// If `true`, reverses the order of the qubit and classical bit wires.
+    reverse_bits: bool,
 }
 
 /// @ingroup QkCircuit
@@ -3002,6 +3004,7 @@ pub struct CircuitDrawerConfig {
 ///     * ``fold = 0``
 ///     * ``barrier_label_len = 16``
 ///     * ``idle_wires = true``
+///     * ``reverse_bits = false``
 ///
 /// @return A pointer to a null-terminated string containing the circuit representation.
 ///     You must use ``qk_str_free`` to release the allocated memory when done.
@@ -3015,7 +3018,7 @@ pub struct CircuitDrawerConfig {
 /// qk_circuit_measure(circuit, 0, 0);
 /// qk_circuit_measure(circuit, 1, 0);
 ///
-/// QkCircuitDrawerConfig config = {false, true, 0, 16, false};
+/// QkCircuitDrawerConfig config = {false, true, 0, 16, false, false};
 ///
 /// char *circ_str = qk_circuit_draw(circuit, &config);
 ///
@@ -3037,23 +3040,25 @@ pub unsafe extern "C" fn qk_circuit_draw(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { &*circuit };
 
-    let (bundle_cregs, merge_wires, fold, barrier_label_len, idle_wires) = if !config.is_null() {
-        // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
-        let config = unsafe { &*config };
-        (
-            config.bundle_cregs,
-            config.merge_wires,
-            if config.fold != 0 {
-                Some(config.fold)
-            } else {
-                None
-            },
-            config.barrier_label_len,
-            config.idle_wires,
-        )
-    } else {
-        (true, true, None, 0, true)
-    };
+    let (bundle_cregs, merge_wires, fold, barrier_label_len, idle_wires, reverse_bits) =
+        if !config.is_null() {
+            // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
+            let config = unsafe { &*config };
+            (
+                config.bundle_cregs,
+                config.merge_wires,
+                if config.fold != 0 {
+                    Some(config.fold)
+                } else {
+                    None
+                },
+                config.barrier_label_len,
+                config.idle_wires,
+                config.reverse_bits,
+            )
+        } else {
+            (true, true, None, 0, true, false)
+        };
 
     let circuit_str = draw_circuit(
         circuit,
@@ -3062,6 +3067,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
         fold,
         barrier_label_len,
         idle_wires,
+        reverse_bits,
     );
 
     util::cstring_from_utf8_lossy(circuit_str).into_raw()

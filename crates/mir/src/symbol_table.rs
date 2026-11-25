@@ -118,7 +118,11 @@ impl Symbol {
 
 impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Symbol: {:?}, {}", self.sym_id, self.name)
+        if let Some(id) = self.sym_id {
+            write!(f, "{id}, {}, {:?}", self.name, self.symbol_type)
+        } else {
+            write!(f, "%?, {}, {:?}", self.name, self.symbol_type)
+        }
     }
 }
 
@@ -134,7 +138,7 @@ pub struct SymbolId(usize);
 
 impl fmt::Display for SymbolId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "%{}", self.0)
     }
 }
 
@@ -182,6 +186,11 @@ impl SymbolTable {
     pub fn get_mut(&mut self, sym_id: SymbolId) -> Option<&mut Symbol> {
         self.sym_table.get_mut(sym_id.0)
     }
+
+    /// Iterate over the symbols.
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &Symbol> {
+        self.sym_table.iter()
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -202,6 +211,13 @@ impl SymbolIdList {
 
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+}
+
+impl fmt::Display for SymbolIdList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let items: Vec<String> = self.0.iter().map(|s| s.to_string()).collect();
+        write!(f, "[{}]", items.join(","))
     }
 }
 
