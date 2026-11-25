@@ -20,6 +20,7 @@ use thiserror::Error;
 
 use crate::program::ProgramFunction;
 
+use super::flags::BitFlag;
 use super::partition::Partition;
 use super::virtual_type::VirtualType;
 
@@ -85,7 +86,7 @@ impl RzSx {
 
 impl Synthesizer for RzSx {
     fn accepts(&self) -> &[VirtualType] {
-        &VirtualType::ALL
+        VirtualType::FLAGS
     }
 
     fn factorization(&self) -> &Partition<u32> {
@@ -117,7 +118,7 @@ impl RzRx {
 
 impl Synthesizer for RzRx {
     fn accepts(&self) -> &[VirtualType] {
-        &VirtualType::ALL
+        VirtualType::FLAGS
     }
 
     fn factorization(&self) -> &Partition<u32> {
@@ -182,7 +183,7 @@ mod tests {
     #[test]
     fn test_a_synthesizer_accepts_what_it_can_express() {
         let synthesizer = SynthesizerKind::RzSx.resolve(1);
-        assert_eq!(synthesizer.accepts(), VirtualType::ALL);
+        assert_eq!(synthesizer.accepts(), VirtualType::FLAGS);
     }
 
     #[test]
