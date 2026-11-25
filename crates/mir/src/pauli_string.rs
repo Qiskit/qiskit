@@ -119,6 +119,12 @@ impl From<Phase> for u8 {
 mod inner {
     use bitfield_struct::bitfield;
 
+    /// Maximum number of Paulis that can be encoded.
+    /// Currently using 8 bits for metadata, leaving 56 bits remaining to encode Paulis.
+    /// Each pauli requires two bits to encode, for the X and Z components respectively.
+    /// Thus, we can encode 28 Paulis.
+    pub const MAX_PAULIS: u8 = 28;
+
     /// The following shows the bit layout used for 64-bits.
     ///
     /// Discriminant is used to differentiate between encoded Pauli string and
@@ -142,13 +148,6 @@ mod inner {
     /// |    P   | Phase        |    2        |      6-7     |
     /// |    X   | X Component  |    23       |      8-35    |
     /// |    Z   | Z Component  |    23       |     36-63    |
-    ///
-    /// Maximum number of Paulis that can be encoded.
-    /// Currently using 8 bits for metadata, leaving 56 bits remaining to encode Paulis.
-    /// Each pauli requires two bits to encode, for the X and Z components respectively.
-    /// Thus, we can encode 28 Paulis.
-    pub const MAX_PAULIS: u8 = 28;
-
     #[bitfield(u64)]
     #[derive(PartialEq, Eq)]
     #[cfg_attr(
