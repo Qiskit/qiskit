@@ -279,11 +279,8 @@ fn multi_qubit_evolution(
             vec![(gate, params, vec![pauli_qubits[0]], empty_clbits.clone())]
         } else {
             // if we have projectors, add controls to the target rotation.
-            let mut added_qubits = Vec::with_capacity(control_qubits.len() + 1);
-            added_qubits.extend_from_slice(&control_qubits);
-            added_qubits.push(pauli_qubits[0]);
-
-            add_open_control(base_gate, params, &added_qubits, &control_states)
+            control_qubits.push(pauli_qubits[0]);
+            add_open_control(base_gate, params, &control_qubits, &control_states)
         }
     } else {
         // Here we purely have projectors, meaning the target rotation is a phase gate. Remember
