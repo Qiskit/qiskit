@@ -24,6 +24,7 @@ from collections.abc import Iterable, Mapping
 import struct
 import warnings
 import re
+import sys
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -274,6 +275,11 @@ def dump(
             _write_circuit(file_obj, program)
 
 
+def _get_recursion_limit() -> int:
+    """Get a recursion limit suitable for the parser."""
+    return sys.getrecursionlimit() // 10
+
+
 def load(
     file_obj: BinaryIO,
     metadata_deserializer: type[JSONDecoder] | None = None,
@@ -283,6 +289,15 @@ def load(
 
     This function is used to load a serialized QPY Qiskit program file and create
     :class:`~qiskit.circuit.QuantumCircuit` objects from its contents.
+
+    For QPY payloads of version 16 or later, circuits are deserialized concurrently
+    across multiple threads. This is controlled by the ``QISKIT_IN_PARALLEL`` and
+    ``QISKIT_FORCE_THREADS`` environment variables, the same ones used to control
+    multithreading elsewhere in Qiskit. By default, it will create threads
+    equal to the number of CPUs. You can tune the number of threads with the
+    ``RAYON_NUM_THREADS`` environment variable. For example, setting
+    ``RAYON_NUM_THREADS=4`` would limit the thread pool to 4 threads.
+
     For example:
 
     .. code-block:: python
@@ -304,6 +319,12 @@ def load(
 
     which will read the contents of the qpy and return a list of
     :class:`~qiskit.circuit.QuantumCircuit` objects from the file.
+
+    .. note::
+        Certain aspects of QPY payload deserialization are recursive, and will raise a
+        :exc:`RecursionError` if anything requires excessive depth to evaluate. This maxmimum
+        depth can be adjusted using :func:`sys.setrecursionlimit`; the actual limit is
+        one-tenth of this value.
 
     Args:
         file_obj: A file like object that contains the QPY binary
@@ -351,7 +372,9 @@ def load(
         )
     use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
     if use_rust:
-        return _qpy.load(file_obj, metadata_deserializer, annotation_factories)
+        return _qpy.load(
+            file_obj, metadata_deserializer, annotation_factories, _get_recursion_limit()
+        )
 
     if version < 10:
         data = formats.FILE_HEADER._make(

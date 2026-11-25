@@ -21,9 +21,14 @@ pub(super) type Accepts = fn(DType) -> bool;
 /// How an op's result dtype follows from its operand's.
 pub(super) type ResultDType = fn(DType) -> DType;
 
-/// Admit every dtype.
-pub(super) fn any(_dtype: DType) -> bool {
-    true
+/// Admit every dtype that has a position in the promotion lattice.
+pub(super) fn promotable(dtype: DType) -> bool {
+    promotion(dtype, dtype).is_some()
+}
+
+/// Admit the floating-point dtypes.
+pub(super) fn float(dtype: DType) -> bool {
+    matches!(dtype, DType::F32 | DType::F64)
 }
 
 /// Infer the result type of an elementwise operation over two operands.
@@ -35,14 +40,7 @@ pub(super) fn elementwise_binary(
     y: &TensorType,
     accepts: Accepts,
 ) -> Result<TensorType, MathOpError> {
-    let dtype = promotion(x.dtype, y.dtype);
-    if !accepts(dtype) {
-        return Err(MathOpError::UnsupportedPromotion {
-            lhs: x.dtype,
-            rhs: y.dtype,
-            dtype,
-        });
-    }
+    let dtype = promoted_dtype(x.dtype, y.dtype, accepts)?;
     Ok(TensorType {
         dtype,
         shape: broadcast_dims(&x.shape, &y.shape)?,
@@ -90,6 +88,14 @@ pub(super) fn broadcast_to(x: &TensorType, target: &[Dim]) -> Result<TensorType,
     })
 }
 
+/// Return the axes of `shape` before its last, if that last axis is `len` long.
+pub(super) fn leading_axes(shape: &[Dim], len: usize) -> Option<&[Dim]> {
+    match shape.split_last() {
+        Some((&Dim::Fixed(size), leading)) if size == len => Some(leading),
+        _ => None,
+    }
+}
+
 /// Validate that a single operand's dtype is admitted.
 fn check_accepts(dtype: DType, accepts: Accepts) -> Result<(), MathOpError> {
     if !accepts(dtype) {
@@ -101,10 +107,10 @@ fn check_accepts(dtype: DType, accepts: Accepts) -> Result<(), MathOpError> {
 /// Return the dtype a cast from `from` to `to` produces.
 ///
 /// This is the evaluation-time counterpart of [`cast`]. Every cast is supported except from a
-/// complex dtype to a real one.
+/// complex dtype to a real one, and any cast involving a [`DType::Key`], which is opaque.
 pub(super) fn cast_dtype(from: DType, to: DType) -> Result<DType, MathOpError> {
     let complex = |dtype| matches!(dtype, DType::C64 | DType::C128);
-    if complex(from) && !complex(to) {
+    if (complex(from) && !complex(to)) || from.prng_kind().is_some() || to.prng_kind().is_some() {
         return Err(MathOpError::UnsupportedCast { from, to });
     }
     Ok(to)
@@ -114,8 +120,11 @@ pub(super) fn cast_dtype(from: DType, to: DType) -> Result<DType, MathOpError> {
 ///
 /// This is the evaluation-time counterpart of [`elementwise_binary`]. Evaluation casts both operands
 /// to this dtype first.
+///
+/// Returns [`MathOpError::NoPromotion`] if the operands have no common dtype, and
+/// [`MathOpError::UnsupportedPromotion`] if they have one that `accepts` rejects.
 pub(super) fn promoted_dtype(x: DType, y: DType, accepts: Accepts) -> Result<DType, MathOpError> {
-    let dtype = promotion(x, y);
+    let dtype = promotion(x, y).ok_or(MathOpError::NoPromotion { lhs: x, rhs: y })?;
     if !accepts(dtype) {
         return Err(MathOpError::UnsupportedPromotion {
             lhs: x,
@@ -129,13 +138,18 @@ pub(super) fn promoted_dtype(x: DType, y: DType, accepts: Accepts) -> Result<DTy
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tensor::{Dim, TensorError};
+    use crate::tensor::{Dim, TensorError, dim_shape};
+
+    /// Admit every dtype, so that a rule is exercised with nothing of its own rejected.
+    fn any(_dtype: DType) -> bool {
+        true
+    }
 
     /// Return a `TensorType` of `dtype` over fixed axes `shape`.
     fn ty(dtype: DType, shape: &[usize]) -> TensorType {
         TensorType {
             dtype,
-            shape: shape.iter().copied().map(Dim::Fixed).collect(),
+            shape: dim_shape(shape),
         }
     }
 
@@ -232,6 +246,46 @@ mod test {
     }
 
     #[test]
+    fn test_a_key_is_refused_by_every_rule() {
+        let key = DType::Key(crate::tensor::PrngKind::Philox4x32);
+        let key_type = ty(key, &[3]);
+        let f64_type = ty(DType::F64, &[3]);
+
+        // Arithmetic has no dtype to compute in, so neither operand position is admitted.
+        for (lhs, rhs) in [(&key_type, &f64_type), (&f64_type, &key_type)] {
+            assert!(matches!(
+                elementwise_binary(lhs, rhs, promotable).unwrap_err(),
+                MathOpError::NoPromotion { .. }
+            ));
+        }
+        assert!(matches!(
+            promoted_dtype(key, DType::F64, promotable).unwrap_err(),
+            MathOpError::NoPromotion {
+                lhs,
+                rhs: DType::F64
+            } if lhs == key
+        ));
+
+        // A reduction and a unary operation each read one operand, so they reject it directly.
+        assert!(matches!(
+            reduce(&key_type, 0, promotable, |dtype| dtype).unwrap_err(),
+            MathOpError::UnsupportedDType { operand: 0, dtype } if dtype == key
+        ));
+        assert!(matches!(
+            elementwise_unary(&key_type, promotable).unwrap_err(),
+            MathOpError::UnsupportedDType { operand: 0, dtype } if dtype == key
+        ));
+
+        // Casting is refused.
+        for (from, to) in [(key, DType::U32), (DType::U32, key), (key, key)] {
+            assert!(matches!(
+                cast_dtype(from, to).unwrap_err(),
+                MathOpError::UnsupportedCast { .. }
+            ));
+        }
+    }
+
+    #[test]
     fn test_promoted_dtype_is_the_dtype_elementwise_binary_infers() {
         for (lhs, rhs) in [
             (DType::Bit, DType::F64),
@@ -321,5 +375,34 @@ mod test {
             MathOpError::Tensor(TensorError::DimShapeMismatch { lhs, rhs })
                 if lhs == [Dim::Fixed(2)] && rhs == target
         ));
+    }
+
+    #[test]
+    fn test_leading_axes_splits_off_the_trailing_axis() {
+        assert_eq!(
+            leading_axes(&ty(DType::F64, &[2]).shape, 2),
+            Some(&[] as &[Dim]),
+            "a shape of one axis has no leading axes"
+        );
+        assert_eq!(
+            leading_axes(&ty(DType::F32, &[5, 3, 2]).shape, 2).unwrap(),
+            [Dim::Fixed(5), Dim::Fixed(3)]
+        );
+        assert_eq!(
+            leading_axes(&[Dim::Bounded { max: 4 }, Dim::Fixed(0)], 0).unwrap(),
+            [Dim::Bounded { max: 4 }],
+            "a leading axis passes through whatever it is, and a trailing axis may be empty"
+        );
+    }
+
+    #[test]
+    fn test_leading_axes_refuses_a_trailing_axis_of_another_length() {
+        assert_eq!(leading_axes(&[Dim::Fixed(3)], 2), None);
+        assert_eq!(leading_axes(&[], 0), None, "there is no trailing axis");
+        assert_eq!(
+            leading_axes(&[Dim::Bounded { max: 2 }], 2),
+            None,
+            "a bounded axis is not known to be two long"
+        );
     }
 }

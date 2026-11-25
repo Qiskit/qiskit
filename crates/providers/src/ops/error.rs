@@ -38,9 +38,19 @@ pub enum MathOpError {
         rhs: DType,
         dtype: DType,
     },
+    /// Two operands have no common dtype to promote to.
+    #[error("operands of dtype {lhs} and {rhs} have no common dtype")]
+    NoPromotion { lhs: DType, rhs: DType },
     /// Complex dtypes cannot be cast to real dtypes.
     #[error("cannot cast {from} to {to}")]
     UnsupportedCast { from: DType, to: DType },
+    /// An operand's trailing axes are incorrect.
+    #[error("operand {operand}: expected trailing axes {expected}, got shape {actual}")]
+    WrongTrailingShape {
+        operand: usize,
+        expected: String,
+        actual: String,
+    },
     /// A tensor operation failed (dtype or shape mismatch).
     #[error(transparent)]
     Tensor(#[from] TensorError),
