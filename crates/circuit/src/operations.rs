@@ -2230,7 +2230,6 @@ mod custom_traits {
     use crate::operations::CustomOperation;
     #[cfg(feature = "py")]
     use crate::operations::Param;
-    #[cfg(feature = "py")]
     use crate::operations::ToPythonOperation;
     #[cfg(feature = "py")]
     use pyo3::prelude::*;
@@ -2586,36 +2585,8 @@ impl PyCustomOperation {
 /// trait. To use the default conversion, which wraps the operation in a `GateFromRust` (if
 /// [`CustomOperation::is_unitary`]) or an `InstructionFromRust`, an empty implementation is
 /// enough.
-///
-/// # Feature gating
-///
-/// This trait only exists when the `py` feature of `qiskit-circuit` is enabled, so
-/// implementations in other crates must be gated as well. A crate's `#[cfg(feature = ...)]`
-/// can only refer to that crate's own features, so gate the implementation on your crate's
-/// `py` feature and make that feature enable `qiskit-circuit/py`:
-///
-/// ```toml
-/// [features]
-/// py = ["dep:pyo3", "qiskit-circuit/py"]
-/// ```
-///
-/// ```ignore
-/// #[cfg(feature = "py")]
-/// use qiskit_circuit::operations::ToPythonOperation;
-///
-/// #[cfg(feature = "py")]
-/// impl ToPythonOperation for MyOperation {}
-/// ```
-///
-/// Forwarding the feature means the trait is always available whenever your implementation
-/// is compiled. The opposite case still has to be avoided: Cargo unifies features across the
-/// whole build, so `qiskit-circuit/py` can be enabled by another crate while your crate's `py`
-/// feature is off. Your [`CustomOperation`] implementation would then be missing its required
-/// `ToPythonOperation` implementation and fail to compile. Qiskit's crates only combine
-/// `py`-gated code across crates when both crates' `py` features are enabled, so this does not
-/// happen within the workspace. A crate that doesn't follow that rule can't feature-gate its
-/// implementation.
-#[cfg(feature = "py")]
+// TODO: Conditionally compile under the `py` feature once
+// `qiskit-circuit-library` no longer depends on pyo3.
 pub trait ToPythonOperation {
     /// Build the Python representation of this operation.
     fn create_py_op<'py>(
