@@ -47,7 +47,6 @@ import maturin
 with open("pyproject.toml", "rb") as fp:
     PYPROJECT_TOML = tomllib.load(fp)
 
-# The default features of the build.
 DEFAULT_FEATURES = frozenset(PYPROJECT_TOML.get("tool", {}).get("maturin", {}).get("features", ()))
 
 
@@ -90,11 +89,16 @@ def build_profile():
     return None
 
 
-def feature_overrides() -> set[str] | None:
-    """Convert the feature-setting environment variables into a suitable feature set.
-
-    Returns ``None`` if we resolve to the defaults.  An empty iterable means the feature set needs
-    to be explicitly overridden to be empty."""
+def enabled_features(parsed: argparse.Namespace) -> frozenset[str]:
+    """Return enabled build features."""
+    # Prioritize explicit command line arguments.
+    if parsed.all_features:
+        return frozenset(feature.name for feature in KNOWN_FEATURES)
+    if parsed.features is not None:
+        # Both space- and comma-separated arguments are supported.
+        return frozenset(
+            feature for arg in parsed.features for feature in arg.replace(",", " ").split()
+        )
     # Qiskit's environment variables are additive (or subtractive) from the base configuration,
     # whereas Maturin's `--features`-like flags are overrides.  To make our set of features, we have
     # to start from the defaults and modify, rather than building up a set of additions/removals.
@@ -113,22 +117,7 @@ def feature_overrides() -> set[str] | None:
             features.add(feature.name)
         else:
             features.discard(feature.name)
-    return None if features == DEFAULT_FEATURES else features
-
-
-def resolve_features(parsed: argparse.Namespace) -> tuple[list[str], frozenset[str]]:
-    """Return the Maturin arguments that select the features, and the features they enable."""
-    if parsed.all_features:
-        return ["--all-features"], frozenset(feature.name for feature in KNOWN_FEATURES)
-    if parsed.features is not None:
-        # Both space- and comma-separated arguments are supported.
-        features = [feature for arg in parsed.features for feature in arg.replace(",", " ").split()]
-        return [f"--features={','.join(features)}"], frozenset(features)
-    if (features := feature_overrides()) is not None:
-        # Note that this is a configuration override even if `features` is empty; the case of
-        # "unset" is different to "set to empty".
-        return [f"--features={','.join(sorted(features))}"], frozenset(features)
-    return [], DEFAULT_FEATURES
+    return frozenset(features)
 
 
 def update_config_from_environment(
@@ -162,10 +151,15 @@ def update_config_from_environment(
     if profile := parsed.profile or build_profile():
         extra_args.append(f"--profile={profile}")
 
-    feature_args, enabled = resolve_features(parsed)
-    extra_args.extend(feature_args)
+    features = enabled_features(parsed)
+    if parsed.all_features:
+        extra_args.append("--all-features")
+    elif features != DEFAULT_FEATURES:
+        # Note that this is a configuration override even if `features` is empty; the case of
+        # "unset" is different to "set to empty".
+        extra_args.append(f"--features={','.join(sorted(features))}")
     # Maturin can only generate the stubs from a library built with the introspection data.
-    if parsed.generate_stubs or TYPE_STUBS_FEATURE in enabled:
+    if parsed.generate_stubs or TYPE_STUBS_FEATURE in features:
         extra_args.append("--generate-stubs")
 
     # Ours go at the start, so any `--` present doesn't mess us up.
