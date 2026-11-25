@@ -26,7 +26,7 @@ import rustworkx as rx
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.quantum_info import SparsePauliOp, SparseObservable
-from qiskit._accelerate.circuit_library import pauli_evolution
+from qiskit._accelerate.circuit_library import pauli_evolution, CXStructure
 import qiskit.quantum_info
 
 from .evolution_synthesis import EvolutionSynthesis
@@ -35,6 +35,12 @@ if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
 
 SparsePauliLabel = tuple[str, list[int], ParameterValueType]
+
+_CX_STRUCTURES = {
+    "chain": CXStructure.Chain,
+    "fountain": CXStructure.Fountain,
+    "cascade": CXStructure.Cascade,
+}
 
 
 class ProductFormula(EvolutionSynthesis):
@@ -65,8 +71,8 @@ class ProductFormula(EvolutionSynthesis):
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
                 ``"chain"``, where next neighbor connections are used, or ``"fountain"``,
-                where all qubits are connected to one. This only takes effect when
-                ``atomic_evolution is None``.
+                where all qubits are connected to one, or ``"cascade"``, where log-depth
+                implementation is used. This only takes effect when ``atomic_evolution is None``.
             atomic_evolution: A function to apply the evolution of a single
                 :class:`~.quantum_info.Pauli`, or :class:`.SparsePauliOp` of only commuting terms,
                 to a circuit. The function takes in three arguments: the circuit to append the
@@ -94,7 +100,7 @@ class ProductFormula(EvolutionSynthesis):
         # user-provided atomic evolution, stored for serialization
         self._atomic_evolution = atomic_evolution
 
-        if cx_structure not in ["chain", "fountain"]:
+        if cx_structure not in _CX_STRUCTURES:
             raise ValueError(f"Unsupported CX structure: {cx_structure}")
 
         self._cx_structure = cx_structure
@@ -144,8 +150,12 @@ class ProductFormula(EvolutionSynthesis):
             circuit = self._custom_evolution(num_qubits, pauli_rotations)
         else:
             # this is the fast path, where the whole evolution is constructed Rust-side
-            cx_fountain = self._cx_structure == "fountain"
-            data = pauli_evolution(num_qubits, pauli_rotations, self.insert_barriers, cx_fountain)
+            data = pauli_evolution(
+                num_qubits,
+                pauli_rotations,
+                self.insert_barriers,
+                _CX_STRUCTURES[self._cx_structure],
+            )
             circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True)
 
         return circuit
@@ -181,7 +191,6 @@ class ProductFormula(EvolutionSynthesis):
         of individual Paulis needs to be wrapped in gates.
         """
         circuit = QuantumCircuit(num_qubits)
-        cx_fountain = self._cx_structure == "fountain"
 
         num_paulis = len(pauli_rotations)
         for i, pauli_rotation in enumerate(pauli_rotations):
@@ -198,10 +207,7 @@ class ProductFormula(EvolutionSynthesis):
 
                 # build the circuit Rust-side
                 data = pauli_evolution(
-                    len(qubits),
-                    [local_pauli],
-                    False,
-                    cx_fountain,
+                    len(qubits), [local_pauli], False, _CX_STRUCTURES[self._cx_structure]
                 )
                 evo = QuantumCircuit._from_circuit_data(data)
 

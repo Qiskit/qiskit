@@ -17,8 +17,38 @@ use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations;
 use qiskit_circuit::operations::{Param, multiply_param, radd_param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_synthesis::pauli_evolution::sparse_term_evolution;
+use qiskit_synthesis::pauli_evolution::{CXStructure, sparse_term_evolution};
 use smallvec::smallvec;
+
+/// Specifies how to implement CX propagation.
+#[pyclass(
+    module = "qiskit._accelerate.circuit_library",
+    name = "CXStructure",
+    frozen,
+    eq,
+    from_py_object
+)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PyCXStructure {
+    /// Implement the CX propagation using a chain of neighboring qubits.
+    Chain,
+
+    /// Implement the CX propagation as "fountain" shape, where each CX uses the top qubit as target.
+    Fountain,
+
+    /// Implement the CX propagation as a balanced binary tree, resulting in log-depth CX-circuits.
+    Cascade,
+}
+
+impl From<PyCXStructure> for CXStructure {
+    fn from(value: PyCXStructure) -> Self {
+        match value {
+            PyCXStructure::Chain => CXStructure::Chain,
+            PyCXStructure::Fountain => CXStructure::Fountain,
+            PyCXStructure::Cascade => CXStructure::Cascade,
+        }
+    }
+}
 
 /// Implement a Pauli evolution circuit.
 ///
@@ -44,19 +74,17 @@ use smallvec::smallvec;
 ///         X_q0 I_q1 Y_q2 Z_q3 and will use a RZ rotation angle of 2.
 ///     insert_barriers: If ``true``, insert a barrier in between the evolution of individual
 ///         Pauli terms.
-///     do_fountain: If ``true``, implement the CX propagation as "fountain" shape, where each
-///         CX uses the top qubit as target. If ``false``, uses a "chain" shape, where CX in between
-///         neighboring qubits are used.
+///     cx_structure: Specifies how to implement CX propagation.
 ///
 /// Returns:
 ///     Circuit data for to implement the evolution.
 #[pyfunction]
-#[pyo3(name = "pauli_evolution", signature = (num_qubits, sparse_paulis, insert_barriers=false, do_fountain=false))]
+#[pyo3(name = "pauli_evolution", signature = (num_qubits, sparse_paulis, insert_barriers=false, cx_structure=PyCXStructure::Chain))]
 pub fn py_pauli_evolution(
     num_qubits: i64,
     sparse_paulis: &Bound<PyList>,
     insert_barriers: bool,
-    do_fountain: bool,
+    cx_structure: PyCXStructure,
 ) -> PyResult<PyCircuitData> {
     let num_paulis = sparse_paulis.len();
     let mut paulis: Vec<String> = Vec::with_capacity(num_paulis);
@@ -90,9 +118,11 @@ pub fn py_pauli_evolution(
         vec![],
     );
 
+    let cx_structure = cx_structure.into();
+
     let evos = paulis.iter().enumerate().zip(indices).zip(times).flat_map(
         |(((i, pauli), qubits), time)| {
-            let as_packed = sparse_term_evolution(pauli, qubits, time, false, do_fountain).map(Ok);
+            let as_packed = sparse_term_evolution(pauli, qubits, time, false, cx_structure).map(Ok);
             // this creates an iterator containing a barrier only if required, otherwise it is empty
             let maybe_barrier = (insert_barriers && i < (num_paulis - 1))
                 .then_some(Ok(barrier.clone()))
