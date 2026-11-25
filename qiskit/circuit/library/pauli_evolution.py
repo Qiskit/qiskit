@@ -18,7 +18,6 @@ from typing_extensions import override
 
 from typing import TYPE_CHECKING
 import numpy as np
-import scipy as sc
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import ParameterValueType
@@ -329,19 +328,14 @@ class PauliEvolutionGate(Gate):
 
 def _map_operator(operator):
     match operator:
-        case SparseObservable():
-            return operator
-        case SparsePauliOp():
-            return SparseObservable.from_sparse_pauli_op(operator)
-        case Pauli():
-            return SparseObservable.from_pauli(operator)
         case list([_, *_]):
-            operators = [_map_list_operator(o) for o in operator]
+            operators = [_map_operator_one(o) for o in operator]
             return sum(operators)
         case _:
-            raise ValueError("unsupported operator type")
+            return _map_operator_one(operator)
 
-def _map_list_operator(operator):
+
+def _map_operator_one(operator):
     match operator:
         case SparseObservable():
             return operator
@@ -351,6 +345,7 @@ def _map_list_operator(operator):
             return SparseObservable.from_pauli(operator)
         case _:
             raise ValueError("unsupported operator type")
+
 
 def _merge_two_pauli_evolutions(
     gate1: PauliEvolutionGate, gate2: PauliEvolutionGate
@@ -365,24 +360,10 @@ def _merge_two_pauli_evolutions(
 
     This function is internal (used from within Rust code) and not a part of public API.
     """
-    if not isinstance(gate1, PauliEvolutionGate) or not isinstance(gate2, PauliEvolutionGate):
-        return None
-
-    if isinstance(gate1.operator, SparseObservable) and isinstance(
-        gate2.operator, SparseObservable
-    ):
-        # When both operators are SparseObservables, we can compare their canonical representatives.
-        can_merge = gate1.operator.simplify() == gate2.operator.simplify()
-    elif isinstance(gate1.operator, SparsePauliOp) and isinstance(gate2.operator, SparsePauliOp):
-        # SparsePauliOp already has a function that compares canonical representatives.
-        can_merge = gate1.operator.equiv(gate2.operator)
-    else:
-        can_merge = gate1.operator == gate2.operator
-
-    if can_merge:
+    if gate1.operator.simplify() == gate2.operator.simplify():
         return PauliEvolutionGate(gate1.operator, gate1.time + gate2.time)
-
-    return None
+    else:
+        return None
 
 
 def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, int] | None:
@@ -392,37 +373,16 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
 
     This function is internal (used from within Rust code) and not a part of public API.
     """
-    # Is it even a PauliEvolutionGate?
-    if not isinstance(gate, PauliEvolutionGate):
-        return None
-
     if gate.is_parameterized():
         return None
 
-    # If the operator is a list, it should only have a single element.
-    if isinstance(gate.operator, list):
-        if len(gate.operator) == 1:
-            operator = gate.operator[0]
-        else:
-            return None
-    else:
-        operator = gate.operator
+    operator = gate.operator
 
-    # If the operator is a SparseObservable, it should have a single term
-    # without projects.
-    if isinstance(operator, SparseObservable):
-        if len(operator) == 1:
-            label = operator[0].bit_labels()
-            if any(c in label for c in ["+", "-", "0", "1", "l", "r"]):
-                return None
-            num_qubits = len(label)
-            angle = operator.coeffs[0].real * gate.time
-        else:
+    # It should have a single term without projects.
+    if len(operator) == 1:
+        label = operator[0].bit_labels()
+        if any(c in label for c in ["+", "-", "0", "1", "l", "r"]):
             return None
-    # If the operator is a SparsePauliOp, it should have a single term.
-    elif len(operator.paulis) == 1:
-        label = operator.paulis.to_labels()[0]
-        label = label.replace("I", "")
         num_qubits = len(label)
         angle = operator.coeffs[0].real * gate.time
     else:
@@ -431,16 +391,10 @@ def _pauli_rotation_trace_and_dim(gate: PauliEvolutionGate) -> tuple[complex, in
     if num_qubits == 0:
         # This is an identity Pauli rotation.
         return (np.exp(-1j * angle), 1)
-
-    return (np.cos(angle), 2**num_qubits)
+    else:
+        return (np.cos(angle), 2**num_qubits)
 
 
 def _contains_projectors(gate: PauliEvolutionGate) -> bool:
     """Return whether gate contains any projector terms."""
-    if isinstance(gate.operator, SparseObservable):
-        return gate.operator.contains_projectors()
-    elif isinstance(gate.operator, list):
-        return any(
-            isinstance(op, SparseObservable) and op.contains_projectors() for op in gate.operator
-        )
-    return False
+    return gate.operator.contains_projectors()
