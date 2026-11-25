@@ -1368,6 +1368,27 @@ static int test_build_for_loop_invalid_loop_variable(void) {
         goto cleanup;
     }
 
+    body = qk_circuit_new(2, 0);
+    if (!inner_test_add_input_var(body, var)) {
+        fprintf(stderr, "Failed to add the loop variable to the body\n");
+        result = RuntimeError;
+        qk_circuit_free(body);
+        body = NULL;
+        goto cleanup;
+    }
+
+    range = (QkLoopRange){.start = 0, .stop = 5, .step = 1};
+    exit_code = qk_circuit_for_loop_range(circuit, body, qubits, NULL, range,
+                                          QkLoopParamKind_NoLoopParam, NULL);
+    if (exit_code != QkExitCode_LoopVariableMismatch) {
+        fprintf(stderr,
+                "Expected QkExitCode_LoopVariableMismatch for a body with an input variable "
+                "but no loop variable, got exit code %u\n",
+                exit_code);
+        result = EqualityError;
+        goto cleanup;
+    }
+
     if (qk_circuit_num_instructions(circuit) != 0) {
         fprintf(stderr, "Expected no instruction to be appended, got %zu\n",
                 qk_circuit_num_instructions(circuit));

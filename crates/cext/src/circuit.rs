@@ -3191,17 +3191,14 @@ unsafe fn append_for_loop(
         }
     };
 
-    // The body's input variables must be exactly the loop variable, if any.
-    {
-        let mut input_vars = body.vars_stretches_view().iter_vars(VarType::Input);
-        let expected = if let Some(LoopParam::Variable(var)) = &loop_param {
-            Some(var)
-        } else {
-            None
-        };
-        if input_vars.len() > 1 || input_vars.next() != expected {
-            return ExitCode::LoopVariableMismatch;
-        }
+    // If there is a loop variable, it must be the body's only input variable. Otherwise, the body
+    // must have no input variables. Captured and declared variables are not restricted.
+    let loop_var = match &loop_param {
+        Some(LoopParam::Variable(var)) => Some(var),
+        _ => None,
+    };
+    if !body.vars_stretches_view().iter_vars(VarType::Input).eq(loop_var) {
+        return ExitCode::LoopVariableMismatch;
     }
 
     let num_qubits = body.num_qubits();
