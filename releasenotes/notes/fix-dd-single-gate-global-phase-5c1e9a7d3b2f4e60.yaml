@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :class:`.PadDynamicalDecoupling` changing the global phase of a circuit when the
+    dynamical-decoupling sequence is a single gate whose inverse is absorbed into a neighboring
+    :class:`.UGate` or :class:`.U3Gate`.  The output is now exactly equivalent to the input.
+    Fixed `#17437 <https://github.com/Qiskit/qiskit/issues/17437>`__.
