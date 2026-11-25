@@ -18,6 +18,7 @@ use std::fmt::Debug;
 use crate::program::ProgramFunction;
 use crate::randomization::partition::Partition;
 use crate::randomization::virtual_type::VirtualType;
+use crate::tensor::Dim;
 
 /// A distribution.
 pub trait Distribution: Any + Debug + Send + Sync {
@@ -28,7 +29,11 @@ pub trait Distribution: Any + Debug + Send + Sync {
     fn factorization(&self) -> &Partition<u32>;
 
     /// The sampling program function.
-    fn program_function(&self) -> ProgramFunction;
+    ///
+    /// `batch` gives the leading axes to draw over. The function takes one key of shape `batch`
+    /// plus a trailing axis of one. That axis is shared along the factors. The sample it returns
+    /// carries `batch` as its leading axes.
+    fn program_function(&self, batch: &[Dim]) -> ProgramFunction;
 
     /// How many qubits the distribution is drawn over.
     fn num_qubits(&self) -> u32 {
