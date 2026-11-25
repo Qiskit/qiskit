@@ -13,6 +13,7 @@
 """A gate to implement time-evolution of operators."""
 
 from __future__ import annotations
+import copy
 from typing_extensions import override
 
 from typing import TYPE_CHECKING
@@ -152,6 +153,11 @@ class PauliEvolutionGate(Gate):
 
     @property
     def operator(self) -> SparseObservable:
+        """Return the operator.
+
+        Returns:
+            The operator.
+        """
         return self._inner.operator
 
     @operator.setter
@@ -164,6 +170,14 @@ class PauliEvolutionGate(Gate):
             | list[qiskit.quantum_info.Pauli | SparsePauliOp | SparseObservable]
         )
     ) -> None:
+        """Set the evolution operator.
+
+        Args:
+            operator: The evolution operator.
+
+        Raises:
+            ValueError: If ``operator`` has complex coefficients.
+        """
         self._inner.operator = _map_operator(operator)
 
     @property
@@ -173,7 +187,7 @@ class PauliEvolutionGate(Gate):
         Returns:
             The evolution time.
         """
-        return self._inner.time
+        return self.params[0]
 
     @time.setter
     def time(self, time: ParameterValueType) -> None:
@@ -181,6 +195,9 @@ class PauliEvolutionGate(Gate):
 
         Args:
             time: The evolution time.
+
+        Raises:
+            ValueError: If ``time`` isn't a float or expression.
         """
         self.params = [time]
         self._inner.time = time
@@ -219,8 +236,9 @@ class PauliEvolutionGate(Gate):
 
     def inverse(self, annotated: bool = False):
         """Return the inverse, which is obtained by flipping the sign of the evolution time."""
-        inner = self._inner.inverse()
-        return PauliEvolutionGate(inner.operator, inner.time, inner.label, self.synthesis)
+        inverse = copy.deepcopy(self)
+        inverse._inner.inverse()
+        return inverse
 
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
@@ -237,8 +255,9 @@ class PauliEvolutionGate(Gate):
         Returns:
             An operation implementing ``gate^exponent``.
         """
-        inner = self._inner.power(exponent)
-        return PauliEvolutionGate(inner.operator, inner.time, inner.label, self.synthesis)
+        power = copy.deepcopy(self)
+        power._inner.power(exponent)
+        return power
 
     def control(
         self,
@@ -289,17 +308,7 @@ class PauliEvolutionGate(Gate):
         # circuit that only controls the central Pauli rotation. For example, calling
         # PauliEvolutionGate(Z).control(2) will produce PauliEvolutionGate(11Z).
         control_op = SparseObservable(ctrl_state)
-
-        def extend_op(op):
-            if isinstance(op, SparsePauliOp):
-                op = SparseObservable.from_sparse_pauli_op(op)
-
-            return op ^ control_op
-
-        if isinstance(self.operator, list):
-            operator = [extend_op(op) for op in self.operator]
-        else:
-            operator = extend_op(self.operator)
+        operator = self.operator ^ control_op
 
         return PauliEvolutionGate(operator, self.time, label, synthesis=self.synthesis)
 

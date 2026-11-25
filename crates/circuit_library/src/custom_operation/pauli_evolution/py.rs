@@ -23,7 +23,7 @@ use qiskit_quantum_info::sparse_observable::PySparseObservable;
 
 use super::model::{PauliEvolution, PauliEvolutionError};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[pyclass(
     name = "PauliEvolution",
     module = "qiskit._accelerate.circuit_library",
@@ -62,8 +62,7 @@ impl PyPauliEvolution {
     #[setter]
     pub fn set_operator(&mut self, operator: &Bound<'_, PySparseObservable>) -> PyResult<()> {
         let operator = operator.borrow().as_inner()?.clone();
-        let inner = PauliEvolution::with_label(operator, self.time(), self.label())?;
-        *self = Self { inner };
+        self.inner.set_operator(operator)?;
         Ok(())
     }
 
@@ -74,9 +73,7 @@ impl PyPauliEvolution {
 
     #[setter]
     pub fn set_time(&mut self, time: Param) -> PyResult<()> {
-        let operator = self.inner.operator().to_owned();
-        let inner = PauliEvolution::with_label(operator, time, self.label())?;
-        *self = Self { inner };
+        self.inner.set_time(time)?;
         Ok(())
     }
 
@@ -86,28 +83,29 @@ impl PyPauliEvolution {
     }
 
     #[setter]
-    pub fn set_label(&mut self, label: &str) -> PyResult<()> {
-        let operator = self.inner.operator().to_owned();
-        let inner = PauliEvolution::with_label(operator, self.time(), label)?;
-        *self = Self { inner };
-        Ok(())
+    pub fn set_label(&mut self, label: &str) {
+        self.inner.set_label(label);
     }
 
-    pub fn inverse(&self) -> Self {
-        let mut inner = self.inner.clone();
-        inner.inverse();
-        Self { inner }
+    pub fn inverse(&mut self) {
+        self.inner.inverse();
     }
 
-    pub fn power(&self, exponent: f64) -> Self {
-        let mut inner = self.inner.clone();
-        inner.power(exponent);
-        Self { inner }
+    pub fn power(&mut self, exponent: f64) {
+        self.inner.power(exponent);
     }
 
     pub fn to_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
         let matrix = self.inner.to_matrix()?;
         Ok(PyArray2::from_owned_array(py, matrix))
+    }
+
+    pub fn __copy__(&self) -> Self {
+        self.clone()
+    }
+
+    pub fn __deepcopy__(&self) -> Self {
+        self.clone()
     }
 }
 

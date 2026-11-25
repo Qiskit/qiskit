@@ -49,33 +49,32 @@ impl PauliEvolution {
     ///
     /// # Errors
     ///
-    /// Returns an error if `time` isn't a float or expression.
+    /// Returns an error if `operator` has complex coefficients or `time` isn't a float or
+    /// expression.
     pub fn new(operator: SparseObservable, time: Param) -> Result<Self> {
         let label = format_default_label(&operator);
         Self::with_label(operator, time, label)
     }
 
-    /// Construct a new [`PauliEvolution`] with a custom label.
+    /// Construct a new [`PauliEvolution`] with the given `label`.
     ///
     /// # Errors
     ///
-    /// Returns an error if `time` isn't a float or expression.
+    /// Returns an error if `operator` has complex coefficients or `time` isn't a float or
+    /// expression.
     pub fn with_label(
         operator: SparseObservable,
         time: Param,
         label: impl Into<String>,
     ) -> Result<Self> {
-        if !matches!(time, Param::Float(_) | Param::ParameterExpression(_)) {
-            Err(PauliEvolutionError::TimeInvalid)
-        } else if operator.coeffs().iter().any(|c| c.is_normal()) {
-            Err(PauliEvolutionError::HasComplex)
-        } else {
-            Ok(Self {
-                operator,
-                time: ComparableParam(time),
-                label: label.into(),
-            })
-        }
+        validate_operator(&operator)?;
+        validate_time(&time)?;
+
+        Ok(Self {
+            operator,
+            time: ComparableParam(time),
+            label: label.into(),
+        })
     }
 
     /// Returns a reference to the `operator`.
@@ -83,14 +82,41 @@ impl PauliEvolution {
         &self.operator
     }
 
+    /// Set the `operator`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `operator` has complex coefficients.
+    pub fn set_operator(&mut self, operator: SparseObservable) -> Result<()> {
+        validate_operator(&operator)?;
+        self.operator = operator;
+        Ok(())
+    }
+
     /// Returns a reference to the `time` parameter.
     pub fn time(&self) -> &Param {
         &self.time.0
     }
 
+    /// Set the `time` parameter.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `time` isn't a float or expression.
+    pub fn set_time(&mut self, time: Param) -> Result<()> {
+        validate_time(&time)?;
+        self.time = ComparableParam(time);
+        Ok(())
+    }
+
     /// Returns a reference to the `label`.
     pub fn label(&self) -> &str {
         &self.label
+    }
+
+    /// Set the `label`.
+    pub fn set_label(&mut self, label: impl Into<String>) {
+        self.label = label.into();
     }
 
     /// Inverse the evolution by negating `time` parameter.
@@ -154,6 +180,22 @@ impl PauliEvolution {
             time: self.time.0,
             label: self.label,
         }
+    }
+}
+
+fn validate_operator(operator: &SparseObservable) -> Result<()> {
+    if operator.coeffs().iter().all(|c| c.im == 0.0) {
+        Ok(())
+    } else {
+        Err(PauliEvolutionError::HasComplex)
+    }
+}
+
+fn validate_time(time: &Param) -> Result<()> {
+    if matches!(time, Param::Float(_) | Param::ParameterExpression(_)) {
+        Ok(())
+    } else {
+        Err(PauliEvolutionError::TimeInvalid)
     }
 }
 
