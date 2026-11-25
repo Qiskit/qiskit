@@ -20,3 +20,8 @@ pub enum VirtualType {
     U2,
     Z2,
 }
+
+impl VirtualType {
+    /// Every virtual type.
+    pub const ALL: [VirtualType; 4] = [Self::Pauli, Self::C1, Self::U2, Self::Z2];
+}
