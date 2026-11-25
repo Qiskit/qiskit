@@ -284,18 +284,10 @@ fn multi_qubit_evolution(
             added_qubits.extend_from_slice(&control_qubits);
             added_qubits.push(pauli_qubits[0]);
 
-            add_open_control(
-                base_gate,
-                params,
-                &added_qubits,
-                num_ctrl_qubits,
-                &control_states,
-            )
+            add_open_control(base_gate, params, &added_qubits, &control_states)
         }
     } else {
         // Here we purely have projectors, meaning the target rotation is a phase gate.
-        let num_ctrl_qubits = control_qubits.len();
-
         // Multiple projectors: synthesize a multi-controlled phase gate.
         // we have to adjust the rotation angle to account for the different conventions;
         // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
@@ -304,7 +296,6 @@ fn multi_qubit_evolution(
             BasePhaseGate::Phase,
             params,
             &control_qubits,
-            num_ctrl_qubits - 1,
             &control_states,
         )
     };
@@ -422,9 +413,9 @@ fn add_open_control(
     gate: BasePhaseGate,
     params: SmallVec<[Param; 3]>,
     controls: &[Qubit],
-    num_ctrl_qubits: usize,
     control_states: &[bool],
 ) -> Vec<Instruction> {
+    let num_ctrl_qubits = controls.len() - 1;
     let len_states = control_states.len();
     let circuit = add_control_phase_rz(num_ctrl_qubits, gate, &params);
     let insts = circuit_to_instructions(circuit, controls);
