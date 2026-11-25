@@ -71,6 +71,10 @@ impl PauliString {
         PauliString(paulis)
     }
 
+    pub fn inner(&self) -> &Vec<Pauli> {
+        &self.0
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }
