@@ -43,20 +43,14 @@ pub enum ConstrainedRescheduleError {
 impl From<ConstrainedRescheduleError> for PyErr {
     fn from(value: ConstrainedRescheduleError) -> Self {
         match value {
-            ConstrainedRescheduleError::MissingStartTime(_) => {
-                TranspilerError::new_err(value.to_string())
-            }
-            ConstrainedRescheduleError::UnknownOperation(_) => {
+            ConstrainedRescheduleError::MissingStartTime(_)
+            | ConstrainedRescheduleError::UnknownOperation(_)
+            | ConstrainedRescheduleError::DelayInstructionDurationNotInDt
+            | ConstrainedRescheduleError::InvalidDelayDuration(_) => {
                 TranspilerError::new_err(value.to_string())
             }
             ConstrainedRescheduleError::DelayInstructionMissingDuration => {
                 PyValueError::new_err(value.to_string())
-            }
-            ConstrainedRescheduleError::DelayInstructionDurationNotInDt => {
-                TranspilerError::new_err(value.to_string())
-            }
-            ConstrainedRescheduleError::InvalidDelayDuration(_) => {
-                TranspilerError::new_err(value.to_string())
             }
         }
     }
