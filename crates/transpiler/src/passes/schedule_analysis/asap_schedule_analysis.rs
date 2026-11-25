@@ -20,15 +20,28 @@ use qiskit_circuit::{Clbit, Qubit};
 use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
+/// Possible errors during the `ASAPScheduleAnalysis` pass.
+#[derive(Debug, thiserror::Error)]
+pub enum AsapScheduleAnalysisError {
+    #[error("ASAP schedule runs on physical circuits only")]
+    NonPhysicalCircuit,
+    #[error("No duration found for node at index {0}")]
+    MissingDuration(usize),
+}
+
+impl From<AsapScheduleAnalysisError> for PyErr {
+    fn from(value: AsapScheduleAnalysisError) -> Self {
+        TranspilerError::new_err(value.to_string())
+    }
+}
+
 pub fn run_asap_schedule_analysis<T: TimeOps>(
     dag: &DAGCircuit,
     clbit_write_latency: T,
     node_durations: &IndexMap<NodeIndex, T>,
-) -> PyResult<IndexMap<NodeIndex, T>> {
+) -> Result<IndexMap<NodeIndex, T>, AsapScheduleAnalysisError> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
-        return Err(TranspilerError::new_err(
-            "ASAP schedule runs on physical circuits only",
-        ));
+        return Err(AsapScheduleAnalysisError::NonPhysicalCircuit);
     }
 
     let mut node_start_time: IndexMap<NodeIndex, T> = IndexMap::default();
@@ -60,12 +73,9 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
             .map(|&c| Wire::Clbit(c))
             .collect();
 
-        let &op_duration = node_durations.get(&node_index).ok_or_else(|| {
-            TranspilerError::new_err(format!(
-                "No duration found for node at index {}",
-                node_index.index()
-            ))
-        })?;
+        let &op_duration = node_durations
+            .get(&node_index)
+            .ok_or_else(|| AsapScheduleAnalysisError::MissingDuration(node_index.index()))?;
         let op_view = op.op.view();
         let is_gate_or_delay = matches!(
             op_view,
