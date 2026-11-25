@@ -20,7 +20,7 @@ Compilation Routines (:mod:`qiskit.compiler`)
 Circuit Compilation Functions
 =======================================
 
-.. autofunction:: transpile
+For circuit compilation, see :func:`~qiskit.transpiler.transpile`.
 
 """
 

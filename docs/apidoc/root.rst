@@ -27,12 +27,6 @@ Names re-exported from :mod:`qiskit.circuit`:
    ~circuit.QuantumCircuit
    ~circuit.QuantumRegister
 
-Names re-exported from :mod:`qiskit.compiler`:
-
-.. autosummary::
-
-   ~compiler.transpile
-
 Names re-exported from :mod:`qiskit.exceptions`:
 
 .. autosummary::
@@ -45,3 +39,4 @@ Names re-exported from :mod:`qiskit.transpiler`:
 .. autosummary::
 
    ~transpiler.generate_preset_pass_manager
+   ~transpiler.transpile
