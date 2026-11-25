@@ -14,9 +14,10 @@
 
 use crate::instruction::{InstructionVerificationError, MirInstruction};
 use crate::line_graph::LineGraph;
-use crate::qid::{QidSpace, ResourceTable};
+use crate::qid::{Qid, QidSpace, ResourceTable};
 use crate::symbol_table::SymbolTable;
 
+use hashbrown::HashMap;
 use thiserror::Error;
 
 /// The Qiskit Middle IR
@@ -75,6 +76,22 @@ impl Mir {
         &mut self.symbol_table
     }
 
+    /// Replace every occurrence of a qid in `mapping` with its mapped qid in all instructions
+    /// of the main sequence.
+    pub fn replace_instructions_qids(&mut self, mapping: &HashMap<Qid, Qid>) {
+        let mut cur = self.instructions.head_index();
+        while let Some(idx) = cur {
+            let node = &mut self.instructions[idx];
+            for qid in node.weight_mut().qids_mut().iter_mut() {
+                if let Some(&mapped_qid) = mapping.get(qid) {
+                    *qid = mapped_qid;
+                }
+            }
+
+            cur = node.next();
+        }
+    }
+
     /// Run verification on components that make up Mir.
     ///
     /// This walks the data structures for Mir and runs verification on them.
@@ -100,6 +117,11 @@ impl Mir {
                 .verify(&self.resource_table, &self.symbol_table)
         })?)
     }
+
+    /// Get a displayable view of Mir using the given options.
+    pub fn display_with(&self, options: MirDisplayOptions) -> MirDisplay<'_> {
+        MirDisplay { mir: self, options }
+    }
 }
 
 impl Default for Mir {
@@ -122,12 +144,65 @@ pub enum MirVerificationError {
     // SymbolTable, ResourceTable, etc)
 }
 
-impl std::fmt::Display for Mir {
+/// Options controlling how a Mir is printed.
+#[derive(Clone, Debug)]
+pub struct MirDisplayOptions {
+    /// The header line to print before everything else; None omits the header.
+    pub header: Option<String>,
+    /// Whether to print the resource table (qids).
+    pub resource_table: bool,
+    /// Whether to print the symbol table (classical symbols).
+    pub symbol_table: bool,
+    /// Whether to print the instructions.
+    pub instructions: bool,
+}
+
+impl Default for MirDisplayOptions {
+    fn default() -> Self {
+        Self {
+            header: Some("mir, @circuit".to_string()),
+            resource_table: true,
+            symbol_table: true,
+            instructions: true,
+        }
+    }
+}
+
+pub struct MirDisplay<'a> {
+    mir: &'a Mir,
+    options: MirDisplayOptions,
+}
+
+impl std::fmt::Display for MirDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for node in self.instructions.iter_main() {
-            writeln!(f, "{}", node.weight())?;
+        if let Some(header) = &self.options.header {
+            writeln!(f, "{header}")?;
+        }
+
+        if self.options.resource_table {
+            for (qid, info) in self.mir.resource_table.iter_qids() {
+                writeln!(f, "{qid}, {}", info.layout())?;
+            }
+        }
+
+        if self.options.symbol_table {
+            for sym in self.mir.symbol_table.iter() {
+                writeln!(f, "{sym}")?;
+            }
+        }
+
+        if self.options.instructions {
+            for node in self.mir.instructions.iter_main() {
+                writeln!(f, "{}", node.weight())?;
+            }
         }
         Ok(())
+    }
+}
+
+impl std::fmt::Display for Mir {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.display_with(MirDisplayOptions::default()).fmt(f)
     }
 }
 
@@ -222,5 +297,52 @@ mod tests {
                 InstructionVerificationError::AliasedQids
             ))
         ));
+    }
+
+    #[test]
+    fn test_replace_instructions_qids() {
+        let mut mir = Mir::new();
+        for _ in 0..3 {
+            mir.resource_table_mut()
+                .add_qid(QidInfo::new(BitLayout::Base(1)))
+                .unwrap();
+        }
+        // add instruction on [0,1]
+        mir.instructions_mut().push_back(MirInstruction::new(
+            MirOp::PauliRotation(PauliRotation::new(
+                PauliString::new(vec![Pauli::X; 2]),
+                AngleType::new(0.5),
+            )),
+            QidList::new(vec![Qid::virt(0), Qid::virt(1)]),
+            SymbolIdList::default(),
+            SymbolIdList::default(),
+        ));
+        // add instruction on [2,0]
+        mir.instructions_mut().push_back(MirInstruction::new(
+            MirOp::PauliRotation(PauliRotation::new(
+                PauliString::new(vec![Pauli::X; 2]),
+                AngleType::new(0.5),
+            )),
+            QidList::new(vec![Qid::virt(2), Qid::virt(0)]),
+            SymbolIdList::default(),
+            SymbolIdList::default(),
+        ));
+
+        // map qids 0 and 1 to 10, 11; 2 is not mapped.
+        let mapping = HashMap::from([(Qid::virt(0), Qid::virt(10)), (Qid::virt(1), Qid::virt(11))]);
+
+        // call replace
+        mir.replace_instructions_qids(&mapping);
+
+        let mut instrs = mir.instructions().iter_main();
+
+        assert_eq!(
+            instrs.next().unwrap().weight().qids().inner(),
+            &vec![Qid::virt(10), Qid::virt(11)]
+        );
+        assert_eq!(
+            instrs.next().unwrap().weight().qids().inner(),
+            &vec![Qid::virt(2), Qid::virt(10)]
+        );
     }
 }

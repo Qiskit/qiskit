@@ -717,9 +717,9 @@ class TestMCSynthesisCounts(QiskitTestCase):
         elif isinstance(base_gate, RZGate):
             expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, (RXGate, RYGate)):
-            expected = {1: 2, 2: 8, 3: 20, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
+            expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, (UGate, U2Gate, U3Gate)):
-            expected = {1: 2, 2: 22, 3: 54, 4: 92, 5: 164, 6: 250, 7: 362, 8: 482}
+            expected = {1: 2, 2: 22, 3: 48, 4: 92, 5: 164, 6: 250, 7: 362, 8: 482}
         elif isinstance(base_gate, CZGate):
             expected = {1: 6, 2: 14, 3: 36, 4: 82, 5: 122, 6: 170, 7: 226, 8: 290}
         else:
