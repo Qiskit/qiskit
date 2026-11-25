@@ -16,6 +16,7 @@ import math
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit_library.library import InnerRVGate
 
 
 class RVGate(Gate):
@@ -51,6 +52,9 @@ class RVGate(Gate):
                 \end{pmatrix}
     """
 
+    # Native instance of the gate originating from Rust
+    _rust_operation = None
+
     def __init__(
         self,
         v_x: float,
@@ -72,11 +76,11 @@ class RVGate(Gate):
         from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 
         super().__init__("rv", 1, [v_x, v_y, v_z], label=label)
-        self._decomposer = OneQubitEulerDecomposer(basis=basis)
+        self._rust_operation = InnerRVGate(basis)
 
     def _define(self):
         try:
-            self.definition = self._decomposer(self.to_matrix())
+            self.definition = self._rust_operation.definition(self.params)
         except TypeError as ex:
             raise CircuitError(
                 f"The {self.name} gate cannot be decomposed with unbound parameters"
@@ -84,8 +88,7 @@ class RVGate(Gate):
 
     def inverse(self, annotated: bool = False):
         """Invert this gate."""
-        vx, vy, vz = self.params
-        return RVGate(-vx, -vy, -vz)
+        return self._rust_operation.inverse(self.params)
 
     def to_matrix(self) -> numpy.ndarray:
         """Return a numpy.array for the R(v) gate."""

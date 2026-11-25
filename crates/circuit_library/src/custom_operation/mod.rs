@@ -10,4 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::prelude::*;
+
+use crate::custom_operation::rv_gate::PyRVGate;
+
 pub mod pauli_evolution;
+pub mod rv_gate;
+
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod library {
+    #[pymodule_export]
+    use super::PyRVGate;
+}
