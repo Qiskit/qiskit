@@ -3,7 +3,7 @@ upgrade_transpiler:
   - |
     The canonical implementation of
     :func:`~qiskit.transpiler.transpile` now lives in the
-    :mod:`qiskit.transpiler` package alongside the rest of the transpiler
+    :mod:`qiskit.transpiler` module alongside the rest of the transpiler
     internals. Importing from :mod:`qiskit.transpiler` avoids an unnecessary
     dependency on :mod:`qiskit.compiler` and better reflects where the
     transpiler logic resides. The legacy
