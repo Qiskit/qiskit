@@ -78,6 +78,7 @@ Optimizations
    CommutativeOptimization
    ConsolidateBlocks
    ContractIdleWiresInControlFlow
+   ControlPatternSimplification
    ConvertToPauliRotations
    ElidePermutations
    HoareOptimizer
