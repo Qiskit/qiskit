@@ -30,9 +30,9 @@ use std::{mem, num, ops};
 ///
 /// There are several supported iteration methods on the graph for shared references, such as
 /// [`iter_from`](Self::iter_from), [`iter_main`](Self::iter_main) and
-/// [`iter_range_back`](Self::iter_range_back).  There are no mutable-reference iterators because
-/// this is near-impossible to achieve with the require random access through the graph's backing
-/// data storage.
+/// [`iter_range_back`](Self::iter_range_back).  There are no mutable-reference iterators that
+/// respect the topological graph ordering because this is near-impossible to achieve with the
+/// required random access through the graph's backing data storage.
 ///
 /// The various iteration methods typically have an [`indexed`](iter::Iter::indexed) method, which
 /// attaches the [`Index`] of each node, similar to [`Iterator::enumerate`].
@@ -408,14 +408,14 @@ impl<T> LineGraph<T> {
     /// This will visit *all* nodes, whether in the main sequence or an orphan sequence.  This has a
     /// mutable-reference variant [`iter_unordered_mut`](Self::iter_unordered_mut).
     ///
-    /// This is optimised for iteration order and completeness of the visit, rather than following
+    /// This is optimised for iteration speed and completeness of the visit, rather than following
     /// the edge structure of the graph.
     #[inline]
     pub fn iter_unordered(&self) -> iter::IterUnordered<'_, T> {
         iter::IterUnordered::new(self)
     }
 
-    /// Iterative over mutable references to all data nodes in the graph in an arbitrary
+    /// Iterate over mutable references to all data nodes in the graph in an arbitrary
     /// deterministic order.
     ///
     /// This is the mutable form of [`iter_unordered`](Self::iter_unordered).
@@ -1187,14 +1187,15 @@ mod tests {
         _ = iter.next();
         assert_eq!(iter.len(), expected.len() - 2);
 
-        let actual = g
+        let mut actual = g
             .iter_unordered()
             .indexed()
             .map(|(i, n)| (i, *n.weight()))
             .collect::<Vec<_>>();
+        actual.sort();
         assert_eq!(actual, expected);
 
-        let actual_mut = g
+        let mut actual_mut = g
             .iter_unordered_mut()
             .indexed()
             .map(|(i, n)| {
@@ -1203,6 +1204,7 @@ mod tests {
                 (i, out)
             })
             .collect::<Vec<_>>();
+        actual_mut.sort();
         assert_eq!(actual_mut, expected);
         assert_eq!(*g[orphan].weight(), orphan.index() as u8);
     }

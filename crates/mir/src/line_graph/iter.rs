@@ -14,7 +14,6 @@
 
 use super::{Index, LineGraph, Node, Slot};
 use std::marker::PhantomData;
-use std::num;
 
 mod sealed {
     use crate::line_graph::{Index, Node};
@@ -240,10 +239,8 @@ impl<'a, T> IterUnordered<'a, T> {
 }
 impl<T> sealed::PrevIndex for IterUnordered<'_, T> {
     fn prev_index(&self) -> Index {
-        let offset = self.orig_len - self.slice.len();
-        num::NonZero::new(offset as u32)
-            .map(Index)
-            .expect("after successful iteration, `last_ptr` must be greater than `head_ptr`")
+        Index::try_from(self.orig_len - self.slice.len())
+            .expect("iteration must have shortened the slice")
     }
 }
 impl<'a, T> Iterator for IterUnordered<'a, T> {
@@ -294,10 +291,8 @@ impl<'a, T> IterUnorderedMut<'a, T> {
 }
 impl<T> sealed::PrevIndex for IterUnorderedMut<'_, T> {
     fn prev_index(&self) -> Index {
-        let offset = self.orig_len - self.slice.len();
-        num::NonZero::new(offset as u32)
-            .map(Index)
-            .expect("after successful iteration, `last_ptr` must be greater than `head_ptr`")
+        Index::try_from(self.orig_len - self.slice.len())
+            .expect("iteration must have shortened the slice")
     }
 }
 impl<'a, T> Iterator for IterUnorderedMut<'a, T> {
