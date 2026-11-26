@@ -20,10 +20,8 @@
 use numpy::PyReadonlyArray2;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use crate::uc_gate::dec_ucg_inner;
-use crate::ucrz::get_ucrz;
 
 use nalgebra::{Matrix2, MatrixView2};
 use num_complex::Complex64;
