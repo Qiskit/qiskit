@@ -1222,7 +1222,7 @@ mod tests {
         assert_eq!(actual_mut, expected);
         assert_eq!(*g[orphan].weight(), orphan.index() as u8);
     }
-    
+
     #[test]
     fn unordered_iterators_work_on_empty() {
         let mut g = LineGraph::<u8>::new();
