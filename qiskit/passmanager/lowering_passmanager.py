@@ -255,6 +255,12 @@ class Pass(Generic[IRIn, IROut], abc.ABC):
         """
 
 
+# Rust-defined passes that operate via the _qiskit_pass_run_ mechanism are registered as
+# virtual subclasses here.
+for _pass_type in passmanager._PASS_TYPES:
+    Pass.register(_pass_type)
+
+
 def _native_pass_from_lowering_pass(pass_: Pass) -> passmanager.PyPass:
     """Interpret the given implementation of :class:`Pass`, resolving any version /
     calling-signature conventions, into a Rust-native ``PyPass``."""

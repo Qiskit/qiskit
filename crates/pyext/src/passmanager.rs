@@ -17,7 +17,7 @@ use std::sync::{Arc, RwLock};
 use pyo3::exceptions::{PyKeyError, PyRuntimeError, PyTypeError};
 use pyo3::gc::PyVisit;
 use pyo3::prelude::*;
-use pyo3::types::PyType;
+use pyo3::types::{PyTuple, PyType};
 use pyo3::{PyTraverseError, import_exception, intern};
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
@@ -527,6 +527,19 @@ impl PyPassManager {
 
 #[pymodule(submodule, module = "qiskit._accelerate", name = "passmanager")]
 pub mod passmanager_mod {
+    use super::*;
+
     #[pymodule_export]
     use super::{PassContextHandle, PyPass, PyPassManager};
+
+    #[pymodule_init]
+    fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+        // The Rust-defined classes that implement the Python `Pass` interface.
+        let py = m.py();
+        let pass_types = qiskit_mir_passes::py::_PASS_TYPES
+            .iter()
+            .map(|type_object| type_object(py));
+        m.add("_PASS_TYPES", PyTuple::new(py, pass_types)?)?;
+        Ok(())
+    }
 }
