@@ -1222,4 +1222,110 @@ mod tests {
         assert_eq!(actual_mut, expected);
         assert_eq!(*g[orphan].weight(), orphan.index() as u8);
     }
+    
+    #[test]
+    fn unordered_iterators_work_on_empty() {
+        let mut g = LineGraph::<u8>::new();
+        assert_eq!(g.iter_unordered().len(), 0);
+        assert_eq!(g.iter_unordered().count(), 0);
+        assert_eq!(g.iter_unordered_mut().len(), 0);
+        assert_eq!(g.iter_unordered_mut().count(), 0);
+
+        // Every slot is allocated but free.
+        let indices = [0, 1, 2]
+            .into_iter()
+            .map(|w| g.push_back(w))
+            .collect::<Vec<_>>();
+        for idx in indices {
+            g.remove(idx);
+        }
+        assert_eq!(g.iter_unordered().len(), 0);
+        assert_eq!(g.iter_unordered().count(), 0);
+        assert_eq!(g.iter_unordered_mut().len(), 0);
+        assert_eq!(g.iter_unordered_mut().count(), 0);
+    }
+
+    #[test]
+    fn unordered_iterators_include_orphans() {
+        let mut g = LineGraph::<u8>::new();
+        g.push_orphan(0);
+        assert_eq!(g.iter_unordered().count(), 1);
+        assert_eq!(g.iter_unordered_mut().count(), 1);
+
+        g.push_back(1);
+        g.push_back(2);
+        // Orphan the main sequence built so far, and start a new one.
+        g.replace_main_with_node(3);
+        g.push_back(4);
+        assert_eq!(g.iter_main().count(), 2);
+
+        let mut weights = g.iter_unordered().map(|n| *n.weight()).collect::<Vec<_>>();
+        weights.sort();
+        assert_eq!([0, 1, 2, 3, 4].as_slice(), weights.as_slice());
+        let mut weights_mut = g
+            .iter_unordered_mut()
+            .map(|n| *n.weight)
+            .collect::<Vec<_>>();
+        weights_mut.sort();
+        assert_eq!([0, 1, 2, 3, 4].as_slice(), weights_mut.as_slice());
+    }
+
+    #[test]
+    fn unordered_iterators_len_is_exact() {
+        fn case<I>(mut iter: I, count: usize, desc: &str)
+        where
+            I: ExactSizeIterator + std::iter::FusedIterator,
+        {
+            for remaining in (1..=count).rev() {
+                assert_eq!(iter.len(), remaining, "{desc}");
+                assert_eq!(iter.size_hint(), (remaining, Some(remaining)), "{desc}");
+                assert!(iter.next().is_some(), "{desc}");
+            }
+            assert_eq!(iter.len(), 0, "{desc}");
+            assert!(iter.next().is_none(), "{desc}");
+            assert!(iter.next().is_none(), "{desc}");
+            assert_eq!(iter.len(), 0, "{desc}");
+        }
+
+        let mut g = LineGraph::<u8>::new();
+        let indices = (0..6).map(|w| g.push_back(w)).collect::<Vec<_>>();
+        // Free the first and last slots in storage, and two in the middle.
+        for i in [0, 2, 3, 5] {
+            g.remove(indices[i]);
+        }
+        let count = g.node_count();
+        case(g.iter_unordered(), count, "shared");
+        case(g.iter_unordered().indexed(), count, "shared indexed");
+        case(g.iter_unordered_mut(), count, "mut");
+        case(g.iter_unordered_mut().indexed(), count, "mut indexed");
+    }
+
+    #[test]
+    fn unordered_mut_changes_only_weights() {
+        let mut g = LineGraph::<u8>::new();
+        for w in [0, 1, 2, 3] {
+            g.push_back(w);
+        }
+        let orphan = g.push_orphan(4);
+        g.insert_after(orphan, 5);
+        let second = g.head().and_then(Node::next).unwrap();
+        g.remove(second);
+
+        let edges = g
+            .iter_unordered_mut()
+            .indexed()
+            .map(|(i, n)| {
+                *n.weight += 10;
+                (i, n.prev, n.next)
+            })
+            .collect::<Vec<_>>();
+        for (i, prev, next) in edges {
+            assert_eq!((g[i].prev(), g[i].next()), (prev, next));
+        }
+
+        let main = g.iter_main().map(|n| *n.weight()).collect::<Vec<_>>();
+        assert_eq!([10, 12, 13].as_slice(), main.as_slice());
+        let orphaned = g.iter_from(orphan).map(|n| *n.weight()).collect::<Vec<_>>();
+        assert_eq!([14, 15].as_slice(), orphaned.as_slice());
+    }
 }
