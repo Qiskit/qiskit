@@ -539,7 +539,8 @@ mod test {
     fn check_eig(mat: Matrix2<Complex64>) {
         let (eigvals, eigenvectors) = compute_2x2_eig(mat);
         for i in [0, 1] {
-            const EPS: f64 = 1e-13;
+            // Use a looser tolerance for Miri.
+            const EPS: f64 = if cfg!(miri) { 1e-10 } else { 1e-13 };
             assert!(abs_diff_eq!(
                 mat * eigenvectors.column(i),
                 eigenvectors.column(i).map(|x| x * eigvals[i]),
@@ -551,7 +552,9 @@ mod test {
     #[test]
     fn test_eig() {
         let mut rng = Pcg64Mcg::seed_from_u64(42);
-        for _ in 0..4096 {
+
+        let num_trials = if cfg!(miri) { 64 } else { 4096 };
+        for _ in 0..num_trials {
             let mat: Matrix2<Complex64> = [
                 [random_complex(&mut rng), random_complex(&mut rng)],
                 [random_complex(&mut rng), random_complex(&mut rng)],
@@ -565,7 +568,8 @@ mod test {
     fn test_diagonal_eig() {
         let mut rng = Pcg64Mcg::seed_from_u64(43);
 
-        for _ in 0..1024 {
+        let num_trials = if cfg!(miri) { 64 } else { 1024 };
+        for _ in 0..num_trials {
             let mat = Matrix2::from_diagonal(
                 &[random_complex(&mut rng), random_complex(&mut rng)].into(),
             );
@@ -576,7 +580,9 @@ mod test {
     #[test]
     fn test_off_diagonal_eig() {
         let mut rng = Pcg64Mcg::seed_from_u64(44);
-        for _ in 0..1024 {
+
+        let num_trials = if cfg!(miri) { 64 } else { 1024 };
+        for _ in 0..num_trials {
             let mat: Matrix2<Complex64> = [
                 [Complex64::ZERO, random_complex(&mut rng)],
                 [random_complex(&mut rng), Complex64::ZERO],

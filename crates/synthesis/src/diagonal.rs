@@ -88,6 +88,7 @@ mod tests {
 
     use crate::matrix::sim::sim_unitary_circuit;
 
+    #[cfg(not(miri))]
     #[test]
     fn test_diagonal_gate_circuit_synthesizes_diagonal() {
         let phases = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8];
