@@ -415,7 +415,7 @@ impl<T> LineGraph<T> {
         iter::IterUnordered::new(self)
     }
 
-    /// Iterate over mutable references to all data nodes in the graph in an arbitrary
+    /// Iterate over mutable references to all weights in the graph in an arbitrary
     /// deterministic order.
     ///
     /// This is the mutable form of [`iter_unordered`](Self::iter_unordered).
@@ -555,6 +555,24 @@ impl<T> Node<T> {
     pub fn prev(&self) -> Option<Index> {
         self.prev
     }
+
+    #[inline]
+    pub fn as_mut(&mut self) -> NodeMut<'_, T> {
+        NodeMut {
+            weight: &mut self.weight,
+            next: self.next,
+            prev: self.prev,
+        }
+    }
+}
+
+/// A reference to a graph node that allows mutable access to contained weight, but not to the graph
+/// structure itself.
+#[derive(Debug)]
+pub struct NodeMut<'a, T> {
+    pub weight: &'a mut T,
+    pub next: Option<Index>,
+    pub prev: Option<Index>,
 }
 
 #[cfg(test)]
@@ -1198,11 +1216,7 @@ mod tests {
         let mut actual_mut = g
             .iter_unordered_mut()
             .indexed()
-            .map(|(i, n)| {
-                let out = *n.weight();
-                *n.weight_mut() = i.index() as u8;
-                (i, out)
-            })
+            .map(|(i, n)| (i, mem::replace(n.weight, i.index() as u8)))
             .collect::<Vec<_>>();
         actual_mut.sort();
         assert_eq!(actual_mut, expected);

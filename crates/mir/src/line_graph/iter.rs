@@ -12,7 +12,7 @@
 
 //! Implementations of the iterator parts of [`LineGraph`].
 
-use super::{Index, LineGraph, Node, Slot};
+use super::{Index, LineGraph, Node, NodeMut, Slot};
 use std::marker::PhantomData;
 
 mod sealed {
@@ -296,12 +296,12 @@ impl<T> sealed::PrevIndex for IterUnorderedMut<'_, T> {
     }
 }
 impl<'a, T> Iterator for IterUnorderedMut<'a, T> {
-    type Item = &'a mut Node<T>;
+    type Item = NodeMut<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(head) = self.slice.split_off_first_mut() {
             match head {
-                Slot::Data(n) => return Some(n),
+                Slot::Data(n) => return Some(n.as_mut()),
                 Slot::Free(_) => self.rem_free -= 1,
             }
         }
