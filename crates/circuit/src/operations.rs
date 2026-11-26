@@ -40,6 +40,7 @@ use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
 #[cfg(feature = "py")]
 use crate::imports;
+#[cfg(feature = "py")]
 use crate::imports::{GATE_FROM_RUST, INSTRUCTION_FROM_RUST};
 #[cfg(feature = "py")]
 use crate::instruction::{Parameters, create_py_op};
@@ -2231,6 +2232,7 @@ mod custom_traits {
     use crate::operations::CustomOperation;
     #[cfg(feature = "py")]
     use crate::operations::Param;
+    #[cfg(feature = "py")]
     use crate::operations::ToPythonOperation;
     #[cfg(feature = "py")]
     use pyo3::prelude::*;
@@ -2295,6 +2297,7 @@ mod custom_traits {
             params: Option<SmallVec<[Param; 3]>>,
             label: Option<&str>,
         ) -> PyResult<Py<PyAny>>;
+        #[cfg(feature = "py")]
         fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>>;
     }
 
@@ -2593,6 +2596,7 @@ impl PyCustomOperation {
 /// enough.
 // TODO: Conditionally compile under the `py` feature once
 // `qiskit-circuit-library` no longer depends on pyo3.
+#[cfg(feature = "py")]
 pub trait ToPythonOperation {
     /// Build the Python representation of this operation.
     fn create_py_op<'py>(
