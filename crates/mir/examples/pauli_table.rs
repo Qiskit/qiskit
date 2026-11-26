@@ -440,7 +440,8 @@ pub mod pauli {
 /// Data and functions related to bivariate bicycle (BB) codes.
 pub mod bb {
     use fixedbitset::FixedBitSet;
-    use std::{fmt, mem};
+    use rayon::prelude::*;
+    use std::{array, fmt, mem};
 
     use super::gf2;
     use super::pauli::{Pauli, SinglePauli};
@@ -658,6 +659,112 @@ pub mod bb {
         }
     }
 
+    struct MeasurementTableBuilder<'a> {
+        automorphisms: &'a [[gf2::Mat<6>; 2]],
+        rotations: qiskit_util::IndexSet<PackedData>,
+        /// Primary tracker for if we've handled a Pauli.
+        visited: FixedBitSet,
+        /// During the reverse BFS step, we need to update a generation all at once, or we
+        /// risk finding chains out of order, making them longer.
+        backwards_visited: FixedBitSet,
+        cur_generation: Vec<PackedData>,
+        next_generation: Vec<PackedData>,
+        first_use: bool,
+    }
+    impl<'a> MeasurementTableBuilder<'a> {
+        #[inline]
+        fn new(automorphisms: &'a [[gf2::Mat<6>; 2]]) -> Self {
+            Self {
+                automorphisms,
+                rotations: native_rotations(automorphisms)
+                    .map(PackedData::pack)
+                    .collect(),
+                visited: FixedBitSet::with_capacity(MeasurementTable::NUM_DATA_PAULIS),
+                backwards_visited: FixedBitSet::with_capacity(MeasurementTable::NUM_DATA_PAULIS),
+                cur_generation: Vec::new(),
+                next_generation: Vec::new(),
+                first_use: true,
+            }
+        }
+    }
+    impl MeasurementTableBuilder<'_> {
+        #[inline]
+        fn reset(&mut self) {
+            if !self.first_use {
+                self.visited.clear();
+                self.backwards_visited.clear();
+                self.cur_generation.clear();
+                self.next_generation.clear();
+            }
+            self.first_use = false;
+            // The all-identity rotation is trivially "native" (it's a no-op).
+            self.visited.insert(0);
+        }
+
+        fn make_table(&mut self, pivot: SinglePauli, lens: &mut [u16]) -> Box<[Successor]> {
+            self.reset();
+            let mut table =
+                vec![Successor::NATIVE; MeasurementTable::NUM_DATA_PAULIS].into_boxed_slice();
+            for meas in native_measures(self.automorphisms)
+                .filter(|m| m[0].at(0) == pivot)
+                .map(PackedData::pack)
+            {
+                self.next_generation.push(meas);
+                self.visited.insert(meas.index());
+            }
+
+            let mut num_generation = 0u16;
+            let mut tot_visited = 0;
+            // Forwards BFS: for each Pauli that was discovered in the prior generation, see
+            // where we can reach from it.
+            while !self.next_generation.is_empty() {
+                tot_visited += self.next_generation.len();
+                mem::swap(&mut self.cur_generation, &mut self.next_generation);
+                if self.cur_generation.len() > MeasurementTable::NUM_DATA_PAULIS - tot_visited {
+                    // Swap from forwards BFS to reverse BFS.
+                    break;
+                }
+                num_generation += 1;
+                for s in self.cur_generation.drain(..) {
+                    for &rotation in self.rotations.iter() {
+                        let meas = s.evolve_pi_2(rotation);
+                        if !self.visited.contains(meas.index()) {
+                            table[meas.index()] = Successor::from_packed_data(s);
+                            self.visited.insert(meas.index());
+                            lens[meas.index()] |= (num_generation & 0xF) << (4 * (pivot as u32));
+                            self.next_generation.push(meas)
+                        }
+                    }
+                }
+            }
+            // Reverse BFS: the forwards BFS typically will get to a point where the next
+            // generation is much larger than the number of Paulis left to find.  That means
+            // it's much more efficient to search "backwards" through all the Paulis we
+            // haven't yet found.  The rotations are self-inverse in terms of Pauli mapping,
+            // so finding a rotation that goes from "unvisited -> visited" is equivalent to
+            // the reverse.
+            self.next_generation
+                .extend(self.visited.zeroes().map(PackedData::from_index_unmasked));
+            while !self.next_generation.is_empty() {
+                num_generation += 1;
+                self.next_generation.retain(|&s| {
+                    for &rotation in self.rotations.iter() {
+                        let meas = s.evolve_pi_2(rotation);
+                        if self.visited.contains(meas.index()) {
+                            table[s.index()] = Successor::from_packed_data(meas);
+                            self.backwards_visited.insert(s.index());
+                            lens[s.index()] |= (num_generation & 0xF) << (4 * (pivot as u32));
+                            return false;
+                        }
+                    }
+                    true
+                });
+                self.visited |= &self.backwards_visited;
+            }
+            table
+        }
+    }
+
     /// A measurement- and rotation-nativization table for the 11q in-module PBC operations for some
     /// gross/two-gross code.
     ///
@@ -677,93 +784,39 @@ pub mod bb {
         lens: Box<[u16]>,
     }
     impl MeasurementTable {
+        const NUM_DATA_PAULIS: usize = 1 << 22;
+
         /// Generate a measurement-nativization table for the 11q in-module PBC operations for the
         /// gross and two-gross codes.
         pub fn from_automorphisms(automorphisms: &[[gf2::Mat<6>; 2]]) -> Self {
-            let rotations = native_rotations(automorphisms)
-                .map(PackedData::pack)
-                .collect::<qiskit_util::IndexSet<_>>();
-
-            // State for the BFS search.
-            let num_paulis = 1 << 22;
-            let mut first = true;
-            // Primary tracker for if we've handled a Pauli.
-            let mut visited = FixedBitSet::with_capacity(num_paulis);
-            // During the reverse BFS step, we need to update a generation all at once, or we risk
-            // finding chains out of order, making them longer.
-            let mut backwards_visited = FixedBitSet::with_capacity(num_paulis);
-            let mut cur_generation = Vec::new();
-            let mut next_generation = Vec::new();
-            let mut lens = vec![0u16; num_paulis].into_boxed_slice();
-            let make_table = |p: SinglePauli| {
-                if !first {
-                    visited.clear();
-                    backwards_visited.clear();
+            if rayon::current_num_threads() == 1 {
+                let mut lens = vec![0u16; Self::NUM_DATA_PAULIS].into_boxed_slice();
+                let mut state = MeasurementTableBuilder::new(automorphisms);
+                Self {
+                    table: SinglePauli::IN_ORDER.map(|pivot| state.make_table(pivot, &mut lens)),
+                    lens,
                 }
-                first = false;
-                let mut table = vec![Successor::NATIVE; num_paulis].into_boxed_slice();
-                cur_generation.clear();
-                for meas in native_measures(automorphisms)
-                    .filter(|m| m[0].at(0) == p)
-                    .map(PackedData::pack)
-                {
-                    next_generation.push(meas);
-                    visited.insert(meas.index());
+            } else {
+                let mut lens: [_; 4] =
+                    array::from_fn(|_| vec![0u16; Self::NUM_DATA_PAULIS].into_boxed_slice());
+                let table: [Box<[Successor]>; 4] = lens
+                    .par_iter_mut()
+                    .zip(SinglePauli::IN_ORDER)
+                    .map(|(lens, pivot)| {
+                        MeasurementTableBuilder::new(automorphisms).make_table(pivot, lens)
+                    })
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .expect("iterator is a 4-length array");
+                // This is a Clippy false positive, and rewriting it into zipped iterators to
+                // satisfy it properly is illegibly ugly.
+                #[allow(clippy::needless_range_loop)]
+                for i in 0..Self::NUM_DATA_PAULIS {
+                    // Each table already does the shifts.
+                    lens[0][i] |= lens[1][i] | lens[2][i] | lens[3][i];
                 }
-                // The all-identity rotation is trivially "native" (it's a no-op).
-                visited.insert(0);
-
-                let mut num_generation = 0u16;
-                let mut tot_visited = 0;
-                // Forwards BFS: for each Pauli that was discovered in the prior generation, see
-                // where we can reach from it.
-                while !next_generation.is_empty() {
-                    tot_visited += next_generation.len();
-                    mem::swap(&mut cur_generation, &mut next_generation);
-                    if cur_generation.len() > num_paulis - tot_visited {
-                        // Swap from forwards BFS to reverse BFS.
-                        break;
-                    }
-                    num_generation += 1;
-                    for s in cur_generation.drain(..) {
-                        for &rotation in rotations.iter() {
-                            let meas = s.evolve_pi_2(rotation);
-                            if !visited.contains(meas.index()) {
-                                table[meas.index()] = Successor::from_packed_data(s);
-                                visited.insert(meas.index());
-                                lens[meas.index()] |= (num_generation & 0xF) << (4 * (p as u32));
-                                next_generation.push(meas)
-                            }
-                        }
-                    }
-                }
-                // Reverse BFS: the forwards BFS typically will get to a point where the next
-                // generation is much larger than the number of Paulis left to find.  That means
-                // it's much more efficient to search "backwards" through all the Paulis we haven't
-                // yet found.  The rotations are self-inverse in terms of Pauli mapping, so finding
-                // a rotation that goes from "unvisited -> visited" is equivalent to the reverse.
-                next_generation.extend(visited.zeroes().map(PackedData::from_index_unmasked));
-                while !next_generation.is_empty() {
-                    num_generation += 1;
-                    next_generation.retain(|&s| {
-                        for &rotation in rotations.iter() {
-                            let meas = s.evolve_pi_2(rotation);
-                            if visited.contains(meas.index()) {
-                                table[s.index()] = Successor::from_packed_data(meas);
-                                backwards_visited.insert(s.index());
-                                lens[s.index()] |= (num_generation & 0xF) << (4 * (p as u32));
-                                return false;
-                            }
-                        }
-                        true
-                    });
-                    visited |= &backwards_visited;
-                }
-                table
-            };
-            Self {
-                table: SinglePauli::IN_ORDER.map(make_table),
-                lens,
+                let [lens, ..] = lens;
+                Self { table, lens }
             }
         }
 

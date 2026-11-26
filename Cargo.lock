@@ -2502,6 +2502,7 @@ dependencies = [
  "pyo3",
  "qiskit-passmanager",
  "qiskit-util",
+ "rayon",
  "rustworkx-core",
  "thiserror 2.0.21",
 ]
