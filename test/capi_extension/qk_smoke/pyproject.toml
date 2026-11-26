@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools", "qiskit"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qk_smoke"
+version = "0.0.0"
+dependencies = ["qiskit"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
