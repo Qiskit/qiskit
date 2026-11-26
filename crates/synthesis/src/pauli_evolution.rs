@@ -386,7 +386,17 @@ fn add_control_phase_rz(
 }
 
 /// Flatten a synthesized [`CircuitData`] into a [`Vec`] of [`Instruction`] tuples.
+/// Since this function only handles MCPhase and MCRZ gates, it asserts that the global_phase is 0.
+///
+/// # Panics
+///
+/// Panics if `circuit` carries a non-zero global phase.
 fn circuit_to_instructions(circuit: CircuitData, global_qubits: &[Qubit]) -> Vec<Instruction> {
+    assert!(
+        matches!(circuit.global_phase(), Param::Float(p) if *p == 0.0),
+        "circuit_to_instructions: circuit has a non-zero global phase ({:?})",
+        circuit.global_phase(),
+    );
     circuit
         .iter()
         .map(|inst| {
