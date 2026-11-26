@@ -16,7 +16,7 @@ use crate::target::Target;
 use ::hashbrown::HashSet;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
+use pyo3::{PyResult, pyfunction};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{
@@ -327,7 +327,12 @@ pub fn run_constrained_reschedule(
     Ok(())
 }
 
-pub fn constrained_reschedule_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_constrained_reschedule))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "constrained_reschedule"
+)]
+pub mod constrained_reschedule_mod {
+    #[pymodule_export]
+    use super::py_run_constrained_reschedule;
 }

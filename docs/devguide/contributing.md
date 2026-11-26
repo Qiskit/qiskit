@@ -24,6 +24,8 @@ community in this goal.
   * [Testing Rust components](#testing-rust-components)
     * [Using a custom venv instead of tox](#using-a-custom-venv-instead-of-tox)
     * [Calling Python from Rust tests](#calling-python-from-rust-tests)
+  * [Testing the C API](#testing-the-c-api)
+  * [Testing C API extension modules](#testing-c-api-extension-modules)
 * [Style and Lint](#style-and-lint)
 * [Building API docs locally](#building-api-docs-locally)
   * [Troubleshooting docs builds](#troubleshooting-docs-builds)
@@ -205,6 +207,11 @@ interaction](#advanced-build-system-interaction).
 
   Corresponds to the negation of the Rust feature `cache_pygates`.
 
+* `QISKIT_NO_TYPE_STUBS`: if set to `1`, do not generate the type stubs (`.pyi` files) for the
+  compiled extension module `qiskit._accelerate`.  By default, the build embeds PyO3's
+  introspection data in the library and generates the stubs from it with
+  `maturin --generate-stubs`.  This corresponds to the negation of the Rust feature `type_stubs`.
+
 * `QISKIT_ALLOW_AUTOMATIC_RUST_INSTALLATION`: if set to `1`, this permits (but does not force) the
   underlying build system to install a Rust toolchain if necessary.  Qiskit's build backend
   suppresses this automatic behavior by default so that it is opt in rather than opt out.  This will
@@ -235,11 +242,15 @@ pip install --group build
 
 The following `maturin` commands may be useful:
 
-- `maturin develop [--release] --skip-install`: rebuild _only_ the Rust extension module, without
-  otherwise modifying the Python environment.
+- `maturin develop [--release] [--generate-stubs] --skip-install`: rebuild _only_ the Rust
+  extension module, without otherwise modifying the Python environment.
 
   You can use the `-F`/`--features` option to change the features passed to `pyext`.  Note that
   setting this overrides the defaults set in `pyproject.toml`'s `tool.maturin.features`.
+
+  Include `--generate-stubs` when you add or change Python bindings.  It regenerates the type stubs
+  in `qiskit/_accelerate/`.  It needs the `type_stubs` feature, so keep `type_stubs` in `-F`
+  if you are also modifying the feature list.
 
 ## Issues and pull requests
 
@@ -1051,6 +1062,30 @@ int test_FILE_NAME()
     return num_failed;
 }
 ```
+
+### Testing C API extension modules
+
+The directory `test/capi_extension/` contains Python packages that use the
+Qiskit C API in the same way as a downstream [Python extension
+module](https://quantum.cloud.ibm.com/docs/en/qiskit/c-extension-for-python).
+Each package is a subdirectory and its tests are in its `tests/` subdirectory.
+
+A package must be built against the Qiskit installed in your active environment,
+so install it without build isolation.  Its build requirements must already be
+installed.  The `test` dependency group includes `setuptools` for this purpose.
+To build and test the `qk_smoke` package, run
+
+```bash
+pip install --no-build-isolation --no-deps test/capi_extension/qk_smoke
+python -P -m unittest discover -s test/capi_extension/qk_smoke/tests -v
+```
+
+With `-P`, the working directory is not added to `sys.path`.  This is needed
+when Qiskit is not installed in editable mode.
+
+setuptools does not recompile the extension when only the Qiskit headers have
+changed.  Delete the `build/` directory of the package to force a rebuild.
+
 
 ## Style and lint
 

@@ -1026,9 +1026,8 @@ pub fn get_standard_commutation_checker() -> CommutationChecker {
     }
 }
 
-pub fn commutation_checker(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<CommutationLibrary>()?;
-    m.add_class::<CommutationChecker>()?;
-    m.add_wrapped(wrap_pyfunction!(get_standard_commutation_checker))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod commutation_checker {
+    #[pymodule_export]
+    use super::{CommutationChecker, CommutationLibrary, get_standard_commutation_checker};
 }

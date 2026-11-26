@@ -18,7 +18,6 @@ use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -404,7 +403,8 @@ pub(crate) fn twirl_circuit(
         .collect()
 }
 
-pub fn twirling(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(twirl_circuit))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod twirling {
+    #[pymodule_export]
+    use super::twirl_circuit;
 }

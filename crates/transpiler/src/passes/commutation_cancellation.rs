@@ -14,7 +14,7 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
+use pyo3::{PyResult, pyfunction};
 
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_util::IndexMap;
@@ -375,7 +375,12 @@ pub fn cancel_commutations(
     Ok(())
 }
 
-pub fn commutation_cancellation_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_cancel_commutations))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "commutation_cancellation"
+)]
+pub mod commutation_cancellation_mod {
+    #[pymodule_export]
+    use super::py_cancel_commutations;
 }

@@ -1,8 +1,9 @@
 [build-system]
 # This is duplicated as `dependency-groups.build` for convenience.  Sync updates there.
 requires = [
-    # Minimum version is for the `tool.maturin.include` generated-files support.
-    "maturin>=1.12.1",
+    # Minimum version is for `--generate-stubs` with PyO3 0.30.  Maturin bundles its own copy of
+    # `pyo3-introspection`, which must read the introspection format of our PyO3 version.
+    "maturin>=1.16",
 ]
 build-backend = "qiskit_local_build"
 backend-path = ["build_backend"]
@@ -199,7 +200,7 @@ default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultScheduli
 # process.  If you intended that, use `project.optional-dependencies` instead.
 [dependency-groups]
 # Sync with `build-system.requires`.
-build = ["maturin>=1.12.1"]
+build = ["maturin>=1.16"]
 # We use quite tight pins on pylint and astroid because they have a habit of adding new
 # on-by-default lints that are harder to deal with.
 lint = [
@@ -214,6 +215,7 @@ test = [
     "ddt>=1.2.0",
     "coverage>=4.4.0",
     "threadpoolctl",  # More detail from Numpy/Scipy BLAS-usage reports.
+    "setuptools",  # Used for C API extension module tests in `test/capi_extension`.
 ]
 # Random tests.
 test-random = [
@@ -289,7 +291,7 @@ editable-profile = "dev"
 # Default features for the `maturin` build.  This could be `default-features` of `pyext`, but having
 # it set here is more convenient for reading in our custom PEP-517 build backend, which needs to be
 # able to read the defaults.
-features = ["cache_pygates"]
+features = ["cache_pygates", "type_stubs"]
 include = [
     # Generated files from Rust build scripts.
     { path = "include/**/*", from = "out-dir", to = "qiskit/capi/" },
@@ -368,6 +370,7 @@ repair-wheel-command =  [
 line-length = 110
 extend-exclude = [
     "qiskit/capi/_ctypes.py",  # Generated file.
+    "qiskit/_accelerate/",  # Generated type stubs.
 ]
 
 
@@ -549,6 +552,8 @@ ignore = [
 ]
 "test/randomized/*" = ["S101"]
 "test/qpy_compat/*" = ["S101", "INP001"]
+# Each subdirectory is a standalone package.
+"test/capi_extension/*" = ["INP001"]
 "test/benchmarks/*" = ["S101"]
 # Visualization functions often subprocess to visualization tools
 "qiskit/visualization/*" = ["S603", "S607"]

@@ -257,40 +257,27 @@ impl From<CapacityError> for PyErr {
 }
 
 #[cfg(feature = "py")]
-pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<annotation::PyAnnotation>()?;
-    m.add_class::<annotation::PyNativeAnnotation>()?;
-    m.add_class::<bit::PyBit>()?;
-    m.add_class::<bit::PyClbit>()?;
-    m.add_class::<bit::PyQubit>()?;
-    m.add_class::<bit::PyAncillaQubit>()?;
-    m.add_class::<bit::PyRegister>()?;
-    m.add_class::<bit::PyClassicalRegister>()?;
-    m.add_class::<bit::PyQuantumRegister>()?;
-    m.add_class::<bit::PyAncillaRegister>()?;
-
-    m.add_class::<circuit_data::PyCircuitData>()?;
-    m.add_class::<circuit_instruction::CircuitInstruction>()?;
-    m.add_class::<dag_circuit::PyDAGCircuit>()?;
-    m.add_class::<dag_node::DAGNode>()?;
-    m.add_class::<dag_node::DAGInNode>()?;
-    m.add_class::<dag_node::DAGOutNode>()?;
-    m.add_class::<dag_node::DAGOpNode>()?;
-    m.add_class::<dag_circuit::PyBitLocations>()?;
-    m.add_class::<duration::Duration>()?;
-    m.add_class::<operations::ControlFlowType>()?;
-    m.add_class::<operations::StandardGate>()?;
-    m.add_class::<operations::StandardInstructionType>()?;
-    m.add_class::<parameter::parameter_expression::PyParameterExpression>()?;
-    m.add_class::<parameter::parameter_expression::PyParameter>()?;
-    m.add_class::<parameter::parameter_expression::PyParameterVectorElement>()?;
-    m.add_class::<parameter::parameter_expression::PyParameterVector>()?;
-    m.add_class::<parameter::parameter_expression::OpCode>()?;
-    m.add_class::<parameter::parameter_expression::OPReplay>()?;
-    let classical_mod = PyModule::new(m.py(), "classical")?;
-    classical::register_python(&classical_mod)?;
-    m.add_submodule(&classical_mod)?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod circuit {
+    #[pymodule_export]
+    use super::{
+        annotation::{PyAnnotation, PyNativeAnnotation},
+        bit::{
+            PyAncillaQubit, PyAncillaRegister, PyBit, PyClassicalRegister, PyClbit,
+            PyQuantumRegister, PyQubit, PyRegister,
+        },
+        circuit_data::PyCircuitData,
+        circuit_instruction::CircuitInstruction,
+        classical::classical_mod,
+        dag_circuit::{PyBitLocations, PyDAGCircuit},
+        dag_node::{DAGInNode, DAGNode, DAGOpNode, DAGOutNode},
+        duration::Duration,
+        operations::{ControlFlowType, StandardGate, StandardInstructionType},
+        parameter::parameter_expression::{
+            OPReplay, OpCode, PyParameter, PyParameterExpression, PyParameterVector,
+            PyParameterVectorElement,
+        },
+    };
 }
 
 #[cfg(test)]

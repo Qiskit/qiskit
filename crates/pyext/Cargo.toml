@@ -27,6 +27,9 @@ workspace = true
 [features]
 cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-accelerate/cache_pygates", "qiskit-transpiler/cache_pygates", "qiskit-cext/cache_pygates", "qiskit-qpy/cache_pygates"]
 global_mimalloc = ["qiskit-util/global_mimalloc"]
+# Embed PyO3's introspection data in the library, which `maturin --generate-stubs` reads to write
+# the type stubs for `qiskit._accelerate`.
+type_stubs = ["pyo3/experimental-inspect"]
 
 [build-dependencies]
 anyhow.workspace = true

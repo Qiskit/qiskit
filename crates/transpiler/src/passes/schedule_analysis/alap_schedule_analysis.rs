@@ -191,7 +191,12 @@ fn py_run_alap_schedule_analysis(
     Ok(node_durations)
 }
 
-pub fn alap_schedule_analysis_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_alap_schedule_analysis))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "alap_schedule_analysis"
+)]
+pub mod alap_schedule_analysis_mod {
+    #[pymodule_export]
+    use super::py_run_alap_schedule_analysis;
 }

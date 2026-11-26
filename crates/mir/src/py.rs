@@ -56,9 +56,8 @@ impl Default for PyMir {
     }
 }
 
-/// Registers the qiskit._accelerate.mir Python submodule.
-#[pymodule(name = "mir")]
-pub fn mir_mod(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<PyMir>()?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "mir")]
+pub mod mir_mod {
+    #[pymodule_export]
+    use super::PyMir;
 }

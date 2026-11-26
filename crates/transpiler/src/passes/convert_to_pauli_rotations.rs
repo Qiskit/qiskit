@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use qiskit_circuit::operations::PauliBased;
 use smallvec::smallvec;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
@@ -646,7 +645,12 @@ pub fn convert_to_pauli_rotations(
     Ok(new_dag)
 }
 
-pub fn convert_to_pauli_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_convert_to_pauli_rotations))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "convert_to_pauli_rotations"
+)]
+pub mod convert_to_pauli_rotations_mod {
+    #[pymodule_export]
+    use super::py_convert_to_pauli_rotations;
 }

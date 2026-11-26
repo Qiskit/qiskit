@@ -1112,12 +1112,15 @@ pub fn run_high_level_synthesis(
     }
 }
 
-pub fn high_level_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_high_level_synthesis))?;
-    m.add_wrapped(wrap_pyfunction!(py_synthesize_operation))?;
-    m.add_wrapped(wrap_pyfunction!(py_synthesize_circuit))?;
-
-    m.add_class::<QubitTracker>()?;
-    m.add_class::<HighLevelSynthesisData>()?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "high_level_synthesis"
+)]
+pub mod high_level_synthesis_mod {
+    #[pymodule_export]
+    use super::{
+        HighLevelSynthesisData, QubitTracker, py_synthesize_circuit, py_synthesize_operation,
+        run_high_level_synthesis,
+    };
 }

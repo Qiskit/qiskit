@@ -68,6 +68,12 @@ jobs:
           pip install --group optionals-all -c constraints.txt
           pip check
         if: ${{ inputs.install-optionals }}
+      - name: Run C API extension-module smoke test
+        run: |
+          set -e
+          source test-job/bin/activate
+          python -m pip install --no-build-isolation --no-deps test/capi_extension/qk_smoke
+          python -P -m unittest discover -s test/capi_extension/qk_smoke/tests -v
       - name: "Run tests"
         run: |
           set -e
