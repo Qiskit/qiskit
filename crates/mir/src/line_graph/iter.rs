@@ -12,7 +12,7 @@
 
 //! Implementations of the iterator parts of [`LineGraph`].
 
-use super::{Index, LineGraph, Node};
+use super::{Index, LineGraph, Node, NodeMut, Slot};
 use std::marker::PhantomData;
 
 mod sealed {
@@ -31,6 +31,11 @@ mod sealed {
         /// Get the tentative index of the next node to be emitted.  If this is `None`, the iterator
         /// terminates.  This is allowed to be `Some` even if the iterator doesn't emit the node.
         fn next_index(&self) -> Option<Index>;
+    }
+    pub trait PrevIndex {
+        /// Get the index that the iterator emitted in its last step.  This is guaranteed to only be
+        /// called immediately after a successful call to `next`.
+        fn prev_index(&self) -> Index;
     }
     /// Trait that powers the [`Indexed`](super::Indexed) iterator combinator for
     /// [`DoubleEndedIterator`].
@@ -56,13 +61,13 @@ impl<T> sealed::Direction<T> for Predecessors {
 }
 
 macro_rules! impl_indexed {
-    () => {
+    ($phantom:ty) => {
         /// Create an iterator which gives the current node index as well as the node itself.
         ///
         /// This is analogous to [`Iterator::enumerate`].
         #[inline]
-        pub fn indexed(self) -> Indexed<Self> {
-            Indexed(self)
+        pub fn indexed(self) -> Indexed<Self, $phantom> {
+            Indexed(self, Default::default())
         }
     };
 }
@@ -98,7 +103,7 @@ impl<'a, T, D: sealed::Direction<T>> Iter<'a, T, D> {
         }
     }
 
-    impl_indexed! {}
+    impl_indexed! { IndexBeforeStepping }
 }
 impl<'a, T, D: sealed::Direction<T>> Iterator for Iter<'a, T, D> {
     type Item = &'a Node<T>;
@@ -152,7 +157,7 @@ impl<'a, T> IterMain<'a, T> {
         }
     }
 
-    impl_indexed! {}
+    impl_indexed! { IndexBeforeStepping }
 }
 impl<'a, T> Iterator for IterMain<'a, T> {
     type Item = &'a Node<T>;
@@ -213,9 +218,117 @@ impl<T> sealed::NextIndexBack for IterMain<'_, T> {
     }
 }
 
+/// An iterator that walks every node in the graph in an arbitrary deterministic order.
 #[derive(Debug)]
-pub struct Indexed<I>(I);
-impl<I> Iterator for Indexed<I>
+pub struct IterUnordered<'a, T> {
+    slice: &'a [Slot<T>],
+    orig_len: usize,
+    rem_free: usize,
+}
+impl<'a, T> IterUnordered<'a, T> {
+    pub(super) fn new(g: &'a LineGraph<T>) -> Self {
+        Self {
+            // Skip the dummy free slot.
+            orig_len: g.slots.len() - 1,
+            slice: &g.slots[1..],
+            rem_free: g.free_len,
+        }
+    }
+
+    impl_indexed! { IndexAfterStepping }
+}
+impl<T> sealed::PrevIndex for IterUnordered<'_, T> {
+    fn prev_index(&self) -> Index {
+        Index::try_from(self.orig_len - self.slice.len())
+            .expect("iteration must have shortened the slice")
+    }
+}
+impl<'a, T> Iterator for IterUnordered<'a, T> {
+    type Item = &'a Node<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(head) = self.slice.split_off_first() {
+            match head {
+                Slot::Data(n) => return Some(n),
+                Slot::Free(_) => self.rem_free -= 1,
+            }
+        }
+        None
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+impl<T> ExactSizeIterator for IterUnordered<'_, T> {
+    #[inline]
+    fn len(&self) -> usize {
+        self.slice.len() - self.rem_free
+    }
+}
+impl<T> std::iter::FusedIterator for IterUnordered<'_, T> {}
+
+/// An iterator that walks every node in the graph in an arbitrary deterministic order.
+#[derive(Debug)]
+pub struct IterUnorderedMut<'a, T> {
+    slice: &'a mut [Slot<T>],
+    orig_len: usize,
+    rem_free: usize,
+}
+impl<'a, T> IterUnorderedMut<'a, T> {
+    pub(super) fn new(g: &'a mut LineGraph<T>) -> Self {
+        Self {
+            // Skip the dummy free slot.
+            orig_len: g.slots.len() - 1,
+            slice: &mut g.slots[1..],
+            rem_free: g.free_len,
+        }
+    }
+
+    impl_indexed! { IndexAfterStepping }
+}
+impl<T> sealed::PrevIndex for IterUnorderedMut<'_, T> {
+    fn prev_index(&self) -> Index {
+        Index::try_from(self.orig_len - self.slice.len())
+            .expect("iteration must have shortened the slice")
+    }
+}
+impl<'a, T> Iterator for IterUnorderedMut<'a, T> {
+    type Item = NodeMut<'a, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(head) = self.slice.split_off_first_mut() {
+            match head {
+                Slot::Data(n) => return Some(n.as_mut()),
+                Slot::Free(_) => self.rem_free -= 1,
+            }
+        }
+        None
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+impl<T> ExactSizeIterator for IterUnorderedMut<'_, T> {
+    #[inline]
+    fn len(&self) -> usize {
+        self.slice.len() - self.rem_free
+    }
+}
+impl<T> std::iter::FusedIterator for IterUnorderedMut<'_, T> {}
+
+#[derive(Debug, Default)]
+pub struct IndexBeforeStepping;
+#[derive(Debug, Default)]
+pub struct IndexAfterStepping;
+#[derive(Debug)]
+pub struct Indexed<I, T>(I, T);
+impl<I> Iterator for Indexed<I, IndexBeforeStepping>
 where
     I: Iterator + sealed::NextIndex,
 {
@@ -229,16 +342,44 @@ where
         self.0.size_hint()
     }
 }
-impl<I> DoubleEndedIterator for Indexed<I>
+impl<I> DoubleEndedIterator for Indexed<I, IndexBeforeStepping>
 where
-    I: DoubleEndedIterator + sealed::NextIndex + sealed::NextIndexBack,
+    I: DoubleEndedIterator + sealed::NextIndexBack,
+    Self: Iterator<Item = (Index, I::Item)>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let idx = self.0.next_index_back()?;
         self.0.next_back().map(|x| (idx, x))
     }
 }
-impl<I> std::iter::FusedIterator for Indexed<I> where
-    I: Iterator + sealed::NextIndex + std::iter::FusedIterator
+impl<I> Iterator for Indexed<I, IndexAfterStepping>
+where
+    I: Iterator + sealed::PrevIndex,
+{
+    type Item = (Index, I::Item);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|x| (self.0.prev_index(), x))
+    }
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+impl<I, F> ExactSizeIterator for Indexed<I, F>
+where
+    I: ExactSizeIterator,
+    Self: Iterator,
+{
+    #[inline]
+    fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+impl<I, F> std::iter::FusedIterator for Indexed<I, F>
+where
+    I: Iterator + std::iter::FusedIterator,
+    Self: Iterator,
 {
 }

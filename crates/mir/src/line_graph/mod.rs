@@ -30,9 +30,9 @@ use std::{mem, num, ops};
 ///
 /// There are several supported iteration methods on the graph for shared references, such as
 /// [`iter_from`](Self::iter_from), [`iter_main`](Self::iter_main) and
-/// [`iter_range_back`](Self::iter_range_back).  There are no mutable-reference iterators because
-/// this is near-impossible to achieve with the require random access through the graph's backing
-/// data storage.
+/// [`iter_range_back`](Self::iter_range_back).  There are no mutable-reference iterators that
+/// respect the topological graph ordering because this is near-impossible to achieve with the
+/// required random access through the graph's backing data storage.
 ///
 /// The various iteration methods typically have an [`indexed`](iter::Iter::indexed) method, which
 /// attaches the [`Index`] of each node, similar to [`Iterator::enumerate`].
@@ -402,6 +402,27 @@ impl<T> LineGraph<T> {
     pub fn iter_main(&self) -> iter::IterMain<'_, T> {
         iter::IterMain::new(self)
     }
+
+    /// Iterate over the data nodes in the graph in an arbitrary deterministic order.
+    ///
+    /// This will visit *all* nodes, whether in the main sequence or an orphan sequence.  This has a
+    /// mutable-reference variant [`iter_unordered_mut`](Self::iter_unordered_mut).
+    ///
+    /// This is optimised for iteration speed and completeness of the visit, rather than following
+    /// the edge structure of the graph.
+    #[inline]
+    pub fn iter_unordered(&self) -> iter::IterUnordered<'_, T> {
+        iter::IterUnordered::new(self)
+    }
+
+    /// Iterate over mutable references to all weights in the graph in an arbitrary
+    /// deterministic order.
+    ///
+    /// This is the mutable form of [`iter_unordered`](Self::iter_unordered).
+    #[inline]
+    pub fn iter_unordered_mut(&mut self) -> iter::IterUnorderedMut<'_, T> {
+        iter::IterUnorderedMut::new(self)
+    }
 }
 
 impl<T> Default for LineGraph<T> {
@@ -534,6 +555,24 @@ impl<T> Node<T> {
     pub fn prev(&self) -> Option<Index> {
         self.prev
     }
+
+    #[inline]
+    pub fn as_mut(&mut self) -> NodeMut<'_, T> {
+        NodeMut {
+            weight: &mut self.weight,
+            next: self.next,
+            prev: self.prev,
+        }
+    }
+}
+
+/// A reference to a graph node that allows mutable access to contained weight, but not to the graph
+/// structure itself.
+#[derive(Debug)]
+pub struct NodeMut<'a, T> {
+    pub weight: &'a mut T,
+    pub next: Option<Index>,
+    pub prev: Option<Index>,
 }
 
 #[cfg(test)]
@@ -1129,5 +1168,164 @@ mod tests {
             .collect::<Vec<_>>();
         indices_main_rev.reverse();
         assert_eq!(indices.as_slice(), indices_main_rev.as_slice());
+    }
+
+    #[test]
+    fn unordered_iterators() {
+        let mut g = LineGraph::<u8>::new();
+        for w in [4, 8, 1, 2, 3] {
+            g.push_back(w);
+        }
+        let orphan = g.push_orphan(10);
+        for w in [13, 15, 17, 19] {
+            g.insert_after(orphan, w);
+        }
+
+        // Make some holes in the main sequence and the orphan.
+        let mut x = g.head_index().unwrap();
+        while let Some(z) = g[x].next() {
+            x = g.remove(z).next().unwrap();
+        }
+        x = orphan;
+        while let Some(z) = g[x].next() {
+            x = g.remove(z).next().unwrap();
+        }
+
+        let mut expected = g
+            .iter_main()
+            .indexed()
+            .chain(g.iter_from(orphan).indexed())
+            .map(|(i, n)| (i, *n.weight()))
+            .collect::<Vec<_>>();
+        expected.sort();
+
+        assert_eq!(g.iter_unordered().len(), expected.len());
+        let mut iter = g.iter_unordered();
+        _ = iter.next();
+        _ = iter.next();
+        assert_eq!(iter.len(), expected.len() - 2);
+
+        let mut actual = g
+            .iter_unordered()
+            .indexed()
+            .map(|(i, n)| (i, *n.weight()))
+            .collect::<Vec<_>>();
+        actual.sort();
+        assert_eq!(actual, expected);
+
+        let mut actual_mut = g
+            .iter_unordered_mut()
+            .indexed()
+            .map(|(i, n)| (i, mem::replace(n.weight, i.index() as u8)))
+            .collect::<Vec<_>>();
+        actual_mut.sort();
+        assert_eq!(actual_mut, expected);
+        assert_eq!(*g[orphan].weight(), orphan.index() as u8);
+    }
+
+    #[test]
+    fn unordered_iterators_work_on_empty() {
+        let mut g = LineGraph::<u8>::new();
+        assert_eq!(g.iter_unordered().len(), 0);
+        assert_eq!(g.iter_unordered().count(), 0);
+        assert_eq!(g.iter_unordered_mut().len(), 0);
+        assert_eq!(g.iter_unordered_mut().count(), 0);
+
+        // Every slot is allocated but free.
+        let indices = [0, 1, 2]
+            .into_iter()
+            .map(|w| g.push_back(w))
+            .collect::<Vec<_>>();
+        for idx in indices {
+            g.remove(idx);
+        }
+        assert_eq!(g.iter_unordered().len(), 0);
+        assert_eq!(g.iter_unordered().count(), 0);
+        assert_eq!(g.iter_unordered_mut().len(), 0);
+        assert_eq!(g.iter_unordered_mut().count(), 0);
+    }
+
+    #[test]
+    fn unordered_iterators_include_orphans() {
+        let mut g = LineGraph::<u8>::new();
+        g.push_orphan(0);
+        assert_eq!(g.iter_unordered().count(), 1);
+        assert_eq!(g.iter_unordered_mut().count(), 1);
+
+        g.push_back(1);
+        g.push_back(2);
+        // Orphan the main sequence built so far, and start a new one.
+        g.replace_main_with_node(3);
+        g.push_back(4);
+        assert_eq!(g.iter_main().count(), 2);
+
+        let mut weights = g.iter_unordered().map(|n| *n.weight()).collect::<Vec<_>>();
+        weights.sort();
+        assert_eq!([0, 1, 2, 3, 4].as_slice(), weights.as_slice());
+        let mut weights_mut = g
+            .iter_unordered_mut()
+            .map(|n| *n.weight)
+            .collect::<Vec<_>>();
+        weights_mut.sort();
+        assert_eq!([0, 1, 2, 3, 4].as_slice(), weights_mut.as_slice());
+    }
+
+    #[test]
+    fn unordered_iterators_len_is_exact() {
+        fn case<I>(mut iter: I, count: usize, desc: &str)
+        where
+            I: ExactSizeIterator + std::iter::FusedIterator,
+        {
+            for remaining in (1..=count).rev() {
+                assert_eq!(iter.len(), remaining, "{desc}");
+                assert_eq!(iter.size_hint(), (remaining, Some(remaining)), "{desc}");
+                assert!(iter.next().is_some(), "{desc}");
+            }
+            assert_eq!(iter.len(), 0, "{desc}");
+            assert!(iter.next().is_none(), "{desc}");
+            assert!(iter.next().is_none(), "{desc}");
+            assert_eq!(iter.len(), 0, "{desc}");
+        }
+
+        let mut g = LineGraph::<u8>::new();
+        let indices = (0..6).map(|w| g.push_back(w)).collect::<Vec<_>>();
+        // Free the first and last slots in storage, and two in the middle.
+        for i in [0, 2, 3, 5] {
+            g.remove(indices[i]);
+        }
+        let count = g.node_count();
+        case(g.iter_unordered(), count, "shared");
+        case(g.iter_unordered().indexed(), count, "shared indexed");
+        case(g.iter_unordered_mut(), count, "mut");
+        case(g.iter_unordered_mut().indexed(), count, "mut indexed");
+    }
+
+    #[test]
+    fn unordered_mut_changes_only_weights() {
+        let mut g = LineGraph::<u8>::new();
+        for w in [0, 1, 2, 3] {
+            g.push_back(w);
+        }
+        let orphan = g.push_orphan(4);
+        g.insert_after(orphan, 5);
+        let second = g.head().and_then(Node::next).unwrap();
+        g.remove(second);
+
+        let edges = g
+            .iter_unordered_mut()
+            .indexed()
+            .map(|(i, n)| {
+                *n.weight += 10;
+                (i, n.prev, n.next)
+            })
+            .collect::<Vec<_>>();
+        for (i, prev, next) in edges {
+            assert_eq!((g[i].prev(), g[i].next()), (prev, next));
+        }
+
+        let main = g.iter_main().map(|n| *n.weight()).collect::<Vec<_>>();
+        assert_eq!([10, 12, 13].as_slice(), main.as_slice());
+        let orphaned = g.iter_from(orphan).map(|n| *n.weight()).collect::<Vec<_>>();
+        assert_eq!([14, 15].as_slice(), orphaned.as_slice());
     }
 }
