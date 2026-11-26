@@ -3193,15 +3193,15 @@ unsafe fn append_for_loop(
 
     // If there is a loop variable, it must be the body's only input variable. Otherwise, the body
     // must have no input variables. Captured and declared variables are not restricted.
-    let loop_var = match &loop_param {
-        Some(LoopParam::Variable(var)) => Some(var),
-        _ => None,
-    };
-    if !body
-        .vars_stretches_view()
-        .iter_vars(VarType::Input)
-        .eq(loop_var)
-    {
+    if let Some(LoopParam::Variable(loop_var)) = &loop_param {
+        if !body
+            .vars_stretches_view()
+            .iter_vars(VarType::Input)
+            .eq([loop_var])
+        {
+            return ExitCode::LoopVariableMismatch;
+        }
+    } else if body.vars_stretches_view().num_vars(VarType::Input) > 0 {
         return ExitCode::LoopVariableMismatch;
     }
 
@@ -3703,7 +3703,8 @@ pub(crate) unsafe fn ptr_to_params_owned<B>(
 mod test {
     use super::*;
     use crate::control_flow::CSymbolInfo;
-    use crate::param::{qk_param_free, qk_param_new_symbol};
+    use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+    use qiskit_circuit::parameter::symbol_expr::Symbol;
     use qiskit_circuit::{
         bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit},
         circuit_data::CircuitData,
@@ -3712,6 +3713,7 @@ mod test {
         operations::Param,
     };
     use std::mem::MaybeUninit;
+    use std::sync::Arc;
 
     #[test]
     fn test_register_circuit_bits() {
@@ -3781,28 +3783,29 @@ mod test {
     // Covers the unsafe code of `append_for_loop` for a loop parameter.
     #[test]
     fn test_circuit_for_loop_range() {
-        let circuit = qk_circuit_new(3, 0);
+        let mut circuit = CircuitData::with_capacity(3, 0, 0, Param::Float(0.0)).unwrap();
         let name = c"i";
-        let param = unsafe { qk_param_new_symbol(name.as_ptr()) };
         let symbol = CSymbolInfo {
             ty: CSymbolType::Standalone,
             name: name.as_ptr().cast_mut(),
             index: 0,
         };
 
-        let body = qk_circuit_new(2, 0);
-        let qubits = [0_u32, 1];
-        let params = [param.cast_const()];
-        unsafe {
-            qk_circuit_parameterized_gate(body, StandardGate::RX, qubits.as_ptr(), params.as_ptr());
-            qk_circuit_gate(body, StandardGate::CX, qubits.as_ptr(), ptr::null());
-        }
+        let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+            Symbol::standalone("i".to_owned(), None),
+        )));
+
+        let mut body = CircuitData::with_capacity(2, 0, 2, Param::Float(0.0)).unwrap();
+        body.push_standard_gate(StandardGate::RX, &[param], &[Qubit(0)])
+            .unwrap();
+        body.push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])
+            .unwrap();
 
         let qubits = [2_u32, 0];
         let exit_code = unsafe {
             qk_circuit_for_loop_range(
-                circuit,
-                body,
+                &mut circuit,
+                Box::into_raw(Box::new(body)),
                 qubits.as_ptr(),
                 ptr::null(),
                 CLoopRange {
@@ -3815,29 +3818,22 @@ mod test {
             )
         };
         assert_eq!(exit_code, ExitCode::Success);
-
-        unsafe {
-            qk_circuit_free(circuit);
-            qk_param_free(param);
-        }
     }
 
     // Covers the elements array and the unsafe code of `append_for_loop` for a loop variable.
     #[test]
     fn test_circuit_for_loop_elements() {
-        let circuit = qk_circuit_new(3, 0);
+        let mut circuit = CircuitData::with_capacity(3, 0, 0, Param::Float(0.0)).unwrap();
         let var = Var::Standalone {
             uuid: 1,
             name: "v".to_owned(),
             ty: Type::Uint(8),
         };
 
-        let body = qk_circuit_new(2, 0);
-        let qubits = [0_u32];
-        unsafe {
-            qk_circuit_gate(body, StandardGate::Y, qubits.as_ptr(), ptr::null());
-            (*body).add_var(var.clone(), VarType::Input).unwrap();
-        }
+        let mut body = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0)).unwrap();
+        body.push_standard_gate(StandardGate::Y, &[], &[Qubit(0)])
+            .unwrap();
+        body.add_var(var.clone(), VarType::Input).unwrap();
 
         let qubits = [2_u32, 0];
         let values = [1_isize, 3, 7];
@@ -3847,8 +3843,8 @@ mod test {
         };
         let exit_code = unsafe {
             qk_circuit_for_loop_elements(
-                circuit,
-                body,
+                &mut circuit,
+                Box::into_raw(Box::new(body)),
                 qubits.as_ptr(),
                 ptr::null(),
                 elements,
@@ -3857,10 +3853,6 @@ mod test {
             )
         };
         assert_eq!(exit_code, ExitCode::Success);
-
-        unsafe {
-            qk_circuit_free(circuit);
-        }
     }
 
     #[test]
