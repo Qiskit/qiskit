@@ -12,7 +12,6 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use crate::ucrz::get_ucrz;
 use crate::utils::append_with_qubit_map;
@@ -74,9 +73,10 @@ pub fn synth_diagonal(diag_phases: Vec<f64>, num_qubits: u32) -> PyResult<PyCirc
     Ok(circuit.into())
 }
 
-pub fn diagonal(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(synth_diagonal, m)?)?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
+pub mod diagonal {
+    #[pymodule_export]
+    use super::synth_diagonal;
 }
 
 #[cfg(test)]
@@ -88,6 +88,7 @@ mod tests {
 
     use crate::matrix::sim::sim_unitary_circuit;
 
+    #[cfg(not(miri))]
     #[test]
     fn test_diagonal_gate_circuit_synthesizes_diagonal() {
         let phases = [0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8];

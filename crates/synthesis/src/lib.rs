@@ -36,50 +36,13 @@ use pyo3::prelude::*;
 
 import_exception!(qiskit.exceptions, QiskitError);
 
-pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
-    let linear_mod = PyModule::new(m.py(), "linear")?;
-    linear::linear(&linear_mod)?;
-    m.add_submodule(&linear_mod)?;
-
-    let linear_phase_mod = PyModule::new(m.py(), "linear_phase")?;
-    linear_phase::linear_phase(&linear_phase_mod)?;
-    m.add_submodule(&linear_phase_mod)?;
-
-    let permutation_mod = PyModule::new(m.py(), "permutation")?;
-    permutation::permutation(&permutation_mod)?;
-    m.add_submodule(&permutation_mod)?;
-
-    let clifford_mod = PyModule::new(m.py(), "clifford")?;
-    clifford::clifford(&clifford_mod)?;
-    m.add_submodule(&clifford_mod)?;
-
-    let mc_mod = PyModule::new(m.py(), "multi_controlled")?;
-    multi_controlled::multi_controlled(&mc_mod)?;
-    m.add_submodule(&mc_mod)?;
-
-    let pbc_mod = PyModule::new(m.py(), "pauli_products")?;
-    pauli_products::pauli_products_mod(&pbc_mod)?;
-    m.add_submodule(&pbc_mod)?;
-
-    let evolution_mod = PyModule::new(m.py(), "evolution")?;
-    evolution::evolution(&evolution_mod)?;
-    m.add_submodule(&evolution_mod)?;
-
-    let discrete_basis_mod = PyModule::new(m.py(), "discrete_basis")?;
-    discrete_basis::discrete_basis(&discrete_basis_mod)?;
-    m.add_submodule(&discrete_basis_mod)?;
-
-    let qft_mod = PyModule::new(m.py(), "qft")?;
-    qft::qft(&qft_mod)?;
-    m.add_submodule(&qft_mod)?;
-
-    let diagonal_mod = PyModule::new(m.py(), "diagonal")?;
-    diagonal::diagonal(&diagonal_mod)?;
-    m.add_submodule(&diagonal_mod)?;
-
-    let uc_gate_mod = PyModule::new(m.py(), "uc_gate")?;
-    uc_gate::uc_gate(&uc_gate_mod)?;
-    m.add_submodule(&uc_gate_mod)?;
-
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod synthesis {
+    #[pymodule_export]
+    use super::{
+        clifford::clifford, diagonal::diagonal, discrete_basis::discrete_basis,
+        evolution::evolution, linear::linear, linear_phase::linear_phase,
+        multi_controlled::multi_controlled, pauli_products::pauli_products_mod,
+        permutation::permutation, qft::qft, uc_gate::uc_gate,
+    };
 }

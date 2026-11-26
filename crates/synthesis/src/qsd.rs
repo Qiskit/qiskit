@@ -779,6 +779,10 @@ fn apply_a2(
 ///         This decomposes two qubit unitaries into a diagonal gate and
 ///         a two ``cx`` unitary and reduces overall ``cx`` count by :math:`4^{n-2} - 1`.
 ///         This optimization should not be done if the original unitary is controlled.
+///     one_qubit_decomposer_basis_string: the name of the Euler basis to use for single-qubit
+///         unitaries.  If ``None``, the ``U`` basis is used.
+///     two_qubit_decomposer: the decomposer to use for two-qubit unitaries.  If ``None``, a
+///         decomposer using ``cx`` and ``u`` gates is used.
 ///
 /// Returns:
 ///     QuantumCircuit: Decomposed quantum circuit.
@@ -819,7 +823,8 @@ pub fn qs_decomposition(
     Ok(res.into())
 }
 
-pub fn qsd_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(qs_decomposition, m)?)?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "qsd")]
+pub mod qsd_mod {
+    #[pymodule_export]
+    use super::qs_decomposition;
 }

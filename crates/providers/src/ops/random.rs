@@ -27,6 +27,7 @@
 //! operations' outputs.
 
 use ndarray::{ArcArrayD, IxDyn};
+use rand::distr::{Distribution, StandardUniform, Uniform};
 use rand_philox::Philox;
 use thiserror::Error;
 
@@ -59,11 +60,61 @@ impl Stream {
         }
     }
 
+    /// Open the stream of `kind` for `key_words` at the start of `output`'s substream.
+    ///
+    /// A *substream* is a run of `stride` consecutive blocks, and substream `output` begins at
+    /// block `output * stride`.
+    ///
+    /// A common use for substreams is rejection sampling, where a draw consumes words in
+    /// geometrically distributed runs. An attempt takes a fixed number of words and is rejected
+    /// with some probability `p < 1`, so a draw exceeds `a` attempts with probability `p^a`.
+    /// [`Uniform`] samples integers by Lemire's method. An attempt is rejected only when the size
+    /// of the range is not a power of two, and then with probability `p < 1/2`. An attempt takes
+    /// one word for integer types of up to 32 bits and two words for 64-bit types. At 64 bits, a
+    /// stride of `s` blocks therefore holds `s * w / 2` attempts, for `w` words per block from
+    /// [`PrngKind::block_words`], and is overrun with probability under `2^(-s * w / 2)`. A draw
+    /// that does overrun continues into the next output's substream, and the two variates are
+    /// then correlated. This is a risk we accept.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless `key_words` is [`PrngKind::key_words`] long.
+    fn at_substream(kind: PrngKind, key_words: &[u32], output: usize, stride: usize) -> Self {
+        Self::at_block(kind, key_words, output.wrapping_mul(stride))
+    }
+
     /// Fill `dest` with the words at the stream's position.
     fn fill(&mut self, dest: &mut [u32]) {
         match self {
             Stream::Philox4x32(philox) => philox.fill_u32(dest),
         }
+    }
+
+    /// Return the stream as an [`rand::Rng`], so that a distribution can sample from it.
+    fn as_rng(&mut self) -> &mut dyn rand::Rng {
+        match self {
+            Stream::Philox4x32(philox) => philox,
+        }
+    }
+}
+
+/// Return how many substreams of `stride` blocks a key affords, or `None` if more than
+/// `usize::MAX`.
+fn substreams(kind: PrngKind, stride: usize) -> Option<usize> {
+    Some(kind.blocks()? / stride)
+}
+
+/// Check that we will not run out of substreams given a `stride` size and sample shape.
+fn check_substreams(kind: PrngKind, shape: &[usize], stride: usize) -> Result<(), RandomOpError> {
+    let needed = positions(shape);
+    match substreams(kind, stride) {
+        Some(afforded) if needed > afforded as u128 => Err(RandomOpError::CounterExhausted {
+            kind,
+            unit: CounterUnit::Substreams,
+            needed,
+            afforded: afforded as u128,
+        }),
+        _ => Ok(()),
     }
 }
 
@@ -429,56 +480,240 @@ impl ProgramOp for RandomBits {
         let keys = key_operand(x)?;
         let layout = Layout::new(keys, &self.shape)?;
         let bits = bits_per_value(self.dtype).expect("the constructor checked the dtype");
-        let width = keys.kind().key_words();
-        let source = flat_key_words(keys);
-        // How many values one block holds, and so how far one block advances the payload index. A
-        // value never straddles a block, since every width divides a block.
-        let per_block = (32 * keys.kind().block_words()) / bits;
-
-        /// Draw each key's values, then gather them in output order.
-        ///
-        /// `$value` reads value `i` out of the block of words a key drew.
-        macro_rules! draw {
-            ($variant:ident, $t:ty, $value:expr) => {{
-                let mut block = vec![0u32; keys.kind().block_words()];
-                let mut cached: Option<(usize, usize)> = None;
-                let values: Vec<$t> = layout
-                    .sources()
-                    .map(|(key, payload)| {
-                        let wanted = (key, payload / per_block);
-                        if cached != Some(wanted) {
-                            let words = &source[key * width..][..width];
-                            Stream::at_block(keys.kind(), words, wanted.1).fill(&mut block);
-                            cached = Some(wanted);
-                        }
-                        $value(&block, payload % per_block)
-                    })
-                    .collect();
-                Tensor::$variant(
-                    ndarray::ArrayD::from_shape_vec(IxDyn(&layout.shape), values)
-                        .expect("one value per output position")
-                        .into_shared(),
-                )
-            }};
-        }
 
         // A value takes the next `bits` bits of its key's stream, least significant first.
         Ok(vec![match self.dtype {
-            DType::U64 => draw!(U64, u64, |b: &[u32], i: usize| (b[2 * i] as u64)
-                | ((b[2 * i + 1] as u64) << 32)),
-            DType::U32 => draw!(U32, u32, |b: &[u32], i: usize| b[i]),
-            DType::U16 => {
-                draw!(U16, u16, |b: &[u32], i: usize| (b[i / 2] >> (16 * (i % 2)))
-                    as u16)
-            }
-            DType::U8 => draw!(U8, u8, |b: &[u32], i: usize| (b[i / 4] >> (8 * (i % 4)))
-                as u8),
-            DType::Bit => {
-                draw!(Bit, u8, |b: &[u32], i: usize| ((b[i / 32] >> (i % 32)) & 1)
-                    as u8)
-            }
+            DType::U64 => Tensor::U64(draw_values(keys, &layout, bits, |b, i| {
+                (b[2 * i] as u64) | ((b[2 * i + 1] as u64) << 32)
+            })),
+            DType::U32 => Tensor::U32(draw_values(keys, &layout, bits, |b, i| b[i])),
+            DType::U16 => Tensor::U16(draw_values(keys, &layout, bits, |b, i| {
+                (b[i / 2] >> (16 * (i % 2))) as u16
+            })),
+            DType::U8 => Tensor::U8(draw_values(keys, &layout, bits, |b, i| {
+                (b[i / 4] >> (8 * (i % 4))) as u8
+            })),
+            DType::Bit => Tensor::Bit(draw_values(keys, &layout, bits, |b, i| {
+                ((b[i / 32] >> (i % 32)) & 1) as u8
+            })),
             dtype => unreachable!("the constructor refuses {dtype}"),
         }])
+    }
+}
+
+/// Draw uniformly distributed reals from the half-open interval `[0, 1)` using a key.
+#[derive(Debug, Clone)]
+pub struct RandomReal {
+    dtype: DType,
+    shape: Vec<usize>,
+}
+
+impl RandomReal {
+    /// Construct a `RandomReal` op producing `shape` values of `dtype` per key.
+    ///
+    /// Returns [`RandomOpError::NotReal`] unless `dtype` is [`DType::F64`] or [`DType::F32`].
+    pub fn new(dtype: DType, shape: Vec<usize>) -> Result<Self, RandomOpError> {
+        if !is_drawable_real(dtype) {
+            return Err(RandomOpError::NotReal { dtype });
+        }
+        Ok(Self { dtype, shape })
+    }
+
+    /// Return the dtype of the values drawn.
+    pub fn dtype(&self) -> DType {
+        self.dtype
+    }
+}
+
+/// Return whether `dtype` is one `RandomReal` can draw, that is [`DType::F32`] or [`DType::F64`].
+fn is_drawable_real(dtype: DType) -> bool {
+    matches!(dtype, DType::F32 | DType::F64)
+}
+
+impl ProgramOp for RandomReal {
+    type Error = RandomOpError;
+
+    fn name(&self) -> &str {
+        "random_real"
+    }
+    fn namespace(&self) -> &str {
+        QISKIT
+    }
+    fn arity(&self) -> usize {
+        1
+    }
+    fn has_builtin_eval(&self) -> bool {
+        true
+    }
+    fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
+        crate::unpack_operands!(self, inputs, [x]);
+        let (kind, batch) = key_type(x)?;
+        check_substreams(kind, &self.shape, RANDOM_REAL_STRIDE)?;
+        Ok(vec![TensorType {
+            dtype: self.dtype,
+            shape: broadcast_dims(batch, &dim_shape(&self.shape))?,
+        }])
+    }
+    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
+        crate::unpack_operands!(self, args, [x]);
+        let keys = key_operand(x)?;
+        let layout = Layout::new(keys, &self.shape)?;
+        // `StandardUniform` takes the top 53 (`F64`) or 24 (`F32`) bits of one word and scales them
+        // into `[0, 1)`, so `0.0` can be drawn and `1.0` never is.
+        Ok(vec![match self.dtype {
+            DType::F64 => Tensor::F64(sample_substreams(
+                keys,
+                &layout,
+                RANDOM_REAL_STRIDE,
+                &StandardUniform,
+            )),
+            DType::F32 => Tensor::F32(sample_substreams(
+                keys,
+                &layout,
+                RANDOM_REAL_STRIDE,
+                &StandardUniform,
+            )),
+            dtype => unreachable!("the constructor refuses {dtype}"),
+        }])
+    }
+}
+
+/// Draw each key's values and gather them in output order.
+///
+/// A block of the key's stream holds several values side by side (two 64-bit values or four
+/// 32-bit ones), and a value never spills into the next block. A key's values are numbered from
+/// zero, so with two per block, values 0 and 1 are in the first block and 2 and 3 in the second.
+/// `value` is given a block and which of its values to read, and returns that one.
+fn draw_values<T: Clone>(
+    keys: &KeyTensor,
+    layout: &Layout,
+    bits: usize,
+    value: impl Fn(&[u32], usize) -> T,
+) -> ArcArrayD<T> {
+    let kind = keys.kind();
+    let width = kind.key_words();
+    let source = flat_key_words(keys);
+    let per_block = (32 * kind.block_words()) / bits;
+    let mut block = vec![0u32; kind.block_words()];
+    let mut cached: Option<(usize, usize)> = None;
+    let values: Vec<T> = layout
+        .sources()
+        .map(|(key, payload)| {
+            let wanted = (key, payload / per_block);
+            if cached != Some(wanted) {
+                let words = &source[key * width..][..width];
+                Stream::at_block(kind, words, wanted.1).fill(&mut block);
+                cached = Some(wanted);
+            }
+            value(&block, payload % per_block)
+        })
+        .collect();
+    ndarray::ArrayD::from_shape_vec(IxDyn(&layout.shape), values)
+        .expect("one value per output position")
+        .into_shared()
+}
+
+/// Draw one value per output position by sampling `distribution` from a stretch of the key's
+/// stream reserved for that position.
+///
+/// Each position gets its own stretch, `stride` blocks long, so two positions never share words.
+/// The one exception is a draw that needs more than its whole stretch: it would spill into the
+/// next position's, so `stride` is chosen large enough to make that very unlikely
+fn sample_substreams<T: Clone, D: Distribution<T>>(
+    keys: &KeyTensor,
+    layout: &Layout,
+    stride: usize,
+    distribution: &D,
+) -> ArcArrayD<T> {
+    let kind = keys.kind();
+    let width = kind.key_words();
+    let source = flat_key_words(keys);
+    let values: Vec<T> = layout
+        .sources()
+        .map(|(which, position)| {
+            let key = &source[which * width..][..width];
+            let mut stream = Stream::at_substream(kind, key, position, stride);
+            distribution.sample(stream.as_rng())
+        })
+        .collect();
+    ndarray::ArrayD::from_shape_vec(IxDyn(&layout.shape), values)
+        .expect("one value per output position")
+        .into_shared()
+}
+
+/// How many blocks [`UniformInt`] reserves for each value it draws.
+///
+/// See [`Stream::at_substream`] for how a stride is chosen. An attempt of `Uniform<i64>` takes
+/// two words, so at four words per block this holds 512 attempts. Each attempt is rejected with
+/// probability under 1/2, so a draw overruns its substream with probability under `2^-512`.
+const UNIFORM_INT_STRIDE: usize = 1 << 8;
+
+/// How many blocks [`RandomReal`] reserves for each value it draws.
+///
+/// A draw takes exactly one word of the stream, so a single block per value is never overrun.
+const RANDOM_REAL_STRIDE: usize = 1;
+
+/// Draw integers uniformly from an inclusive range.
+#[derive(Debug, Clone)]
+pub struct UniformInt {
+    shape: Vec<usize>,
+    low: i64,
+    high: i64,
+}
+
+impl UniformInt {
+    /// Construct a `UniformInt` op drawing `shape` values from `low..=high` per key.
+    ///
+    /// Returns [`RandomOpError::EmptyRange`] if `low` exceeds `high`.
+    pub fn new(shape: Vec<usize>, low: i64, high: i64) -> Result<Self, RandomOpError> {
+        if low > high {
+            return Err(RandomOpError::EmptyRange { low, high });
+        }
+        Ok(Self { shape, low, high })
+    }
+
+    /// Return the inclusive bounds values are drawn from.
+    pub fn range(&self) -> (i64, i64) {
+        (self.low, self.high)
+    }
+}
+
+impl ProgramOp for UniformInt {
+    type Error = RandomOpError;
+
+    fn name(&self) -> &str {
+        "uniform_int"
+    }
+    fn namespace(&self) -> &str {
+        QISKIT
+    }
+    fn arity(&self) -> usize {
+        1
+    }
+    fn has_builtin_eval(&self) -> bool {
+        true
+    }
+    fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
+        crate::unpack_operands!(self, inputs, [x]);
+        let (kind, batch) = key_type(x)?;
+        check_substreams(kind, &self.shape, UNIFORM_INT_STRIDE)?;
+        Ok(vec![TensorType {
+            dtype: DType::I64,
+            shape: broadcast_dims(batch, &dim_shape(&self.shape))?,
+        }])
+    }
+    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
+        crate::unpack_operands!(self, args, [x]);
+        let keys = key_operand(x)?;
+        let layout = Layout::new(keys, &self.shape)?;
+        let range = Uniform::new_inclusive(self.low, self.high)
+            .expect("low <= high is checked in the constructor");
+        Ok(vec![Tensor::I64(sample_substreams(
+            keys,
+            &layout,
+            UNIFORM_INT_STRIDE,
+            &range,
+        ))])
     }
 }
 
@@ -507,6 +742,12 @@ pub enum RandomOpError {
     /// The dtype does not hold raw bits.
     #[error("{dtype} does not have raw bit support: expected Bit, U8, U16, U32 or U64")]
     NotBits { dtype: DType },
+    /// The dtype is not a real that can be drawn.
+    #[error("{dtype} is not a real dtype that can be drawn: expected F64 or F32")]
+    NotReal { dtype: DType },
+    /// The range holds no values.
+    #[error("the range {low}..={high} is empty")]
+    EmptyRange { low: i64, high: i64 },
     /// The payload needs more blocks than the counter can address.
     #[error("{kind} has {afforded} {unit} but this payload needs {needed}")]
     CounterExhausted {
@@ -550,6 +791,78 @@ mod test {
             panic!("expected U32, got {}", tensor.dtype())
         };
         array.iter().copied().collect()
+    }
+
+    /// Return the `I64` values a tensor holds.
+    fn ints_of(tensor: &Tensor) -> Vec<i64> {
+        let Tensor::I64(array) = tensor else {
+            panic!("expected I64, got {}", tensor.dtype())
+        };
+        array.iter().copied().collect()
+    }
+
+    #[test]
+    fn test_names_arities_and_builtin_eval() {
+        for (op, name, arity) in [
+            (
+                &Entropy::new(PrngKind::Philox4x32, vec![])
+                    as &dyn ProgramOp<Error = RandomOpError>,
+                "qiskit.entropy",
+                0,
+            ),
+            (&Split::new(vec![]), "qiskit.split", 1),
+            (
+                &RandomBits::new(DType::U32, vec![]).unwrap(),
+                "qiskit.random_bits",
+                1,
+            ),
+            (
+                &UniformInt::new(vec![], 0, 9).unwrap(),
+                "qiskit.uniform_int",
+                1,
+            ),
+        ] {
+            assert_eq!(op.full_name(), name);
+            assert_eq!(op.arity(), arity, "for {name}");
+            assert!(op.has_builtin_eval(), "for {name}");
+        }
+    }
+
+    #[test]
+    fn test_infer_broadcasts_the_batch_against_the_payload_shape() {
+        let key_type = |shape: Vec<Dim>| TensorType {
+            dtype: DType::Key(PrngKind::Philox4x32),
+            shape,
+        };
+
+        // A batch of keys and a payload shape broadcast, right-aligned.
+        assert_eq!(
+            RandomBits::new(DType::U32, vec![4])
+                .unwrap()
+                .infer_output_types(&[key_type(dim_shape([3, 1]))])
+                .unwrap(),
+            vec![TensorType {
+                dtype: DType::U32,
+                shape: dim_shape([3, 4]),
+            }]
+        );
+        // A split keeps the key dtype, and uniform_int produces I64.
+        assert_eq!(
+            Split::new(vec![3])
+                .infer_output_types(&[key_type(vec![])])
+                .unwrap(),
+            vec![key_type(dim_shape([3]))]
+        );
+        assert_eq!(
+            UniformInt::new(vec![2], 0, 5)
+                .unwrap()
+                .infer_output_types(&[key_type(vec![])])
+                .unwrap(),
+            vec![TensorType {
+                dtype: DType::I64,
+                shape: dim_shape([2]),
+            }]
+        );
     }
 
     #[test]
@@ -713,6 +1026,52 @@ mod test {
                     dtype,
                     shape: dim_shape([3]),
                 }]
+            );
+        }
+    }
+
+    #[test]
+    fn test_the_batch_and_the_payload_shape_broadcast() {
+        // The key batch and the payload shape broadcast against each other, so the two may share
+        // axes. A [2] batch against a payload of [2] gives two outputs, not four.
+        let keys = keys_of(&[2], vec![10, 11, 20, 21]);
+        let draw = RandomBits::new(DType::U32, vec![2]).unwrap();
+        assert_eq!(
+            draw.infer_output_types(&[keys.tensor_type()]).unwrap()[0].shape,
+            dim_shape([2])
+        );
+        let drawn = draw.eval(std::slice::from_ref(&keys)).unwrap();
+        assert_eq!(drawn[0].shape(), &[2], "eval agrees with inference");
+
+        // On the diagonal, output i reads key i at payload index i, so it is not key i's first
+        // value. `test_a_draw_follows_the_documented_semantics` pins the rule itself; this only
+        // records that the two indices move together here.
+        let first_values = words_of(
+            &RandomBits::new(DType::U32, vec![1])
+                .unwrap()
+                .eval(&[keys_of(&[2], vec![10, 11, 20, 21])])
+                .unwrap()[0],
+        );
+        let diagonal = words_of(&drawn[0].clone());
+        assert_eq!(diagonal[0], first_values[0], "output 0 is payload index 0");
+        assert_ne!(diagonal[1], first_values[1], "output 1 is payload index 1");
+
+        // Every op agrees on the layout.
+        for op in [
+            &Split::new(vec![2]) as &dyn ProgramOp<Error = RandomOpError>,
+            &RandomBits::new(DType::Bit, vec![2]).unwrap(),
+            &UniformInt::new(vec![2], 0, 7).unwrap(),
+        ] {
+            let inferred = op
+                .infer_output_types(&[keys.tensor_type()])
+                .unwrap()
+                .remove(0);
+            let evaluated = op.eval(std::slice::from_ref(&keys)).unwrap().remove(0);
+            assert!(
+                evaluated.matches(&inferred),
+                "{} inferred {inferred} and produced {}",
+                op.full_name(),
+                evaluated.tensor_type()
             );
         }
     }
@@ -908,6 +1267,40 @@ mod test {
     }
 
     #[test]
+    fn test_a_counter_too_narrow_for_the_payload_is_refused_at_inference() {
+        // A payload shape is fixed when the program is built, and the key's batch shape never
+        // enters the counter, so a payload a key cannot afford is refused during inference.
+        let kind = PrngKind::Philox4x32;
+
+        // Philox's counter affords more positions than `usize` holds, so no payload exhausts it.
+        assert_eq!(
+            substreams(kind, UNIFORM_INT_STRIDE),
+            None,
+            "2^128 / 2^8 exceeds usize"
+        );
+        assert_eq!(kind.blocks(), None, "2^128 blocks exceeds usize");
+
+        // So the largest payload a shape can express is admitted.
+        let operand = TensorType {
+            dtype: DType::Key(kind),
+            shape: vec![],
+        };
+        let huge = vec![usize::MAX];
+        for op in [
+            &UniformInt::new(huge.clone(), 0, 5).unwrap() as &dyn ProgramOp<Error = RandomOpError>,
+            &RandomBits::new(DType::U64, huge.clone()).unwrap(),
+            &Split::new(huge),
+        ] {
+            assert!(
+                op.infer_output_types(std::slice::from_ref(&operand))
+                    .is_ok(),
+                "{} refused a payload Philox affords",
+                op.full_name()
+            );
+        }
+    }
+
+    #[test]
     fn test_a_block_holds_every_value_that_fits_in_it() {
         // The capacity count is what a draw actually consumes, so it has to agree with the
         // packing `eval` uses. Counting a word per value instead would charge a Bit payload 32
@@ -972,6 +1365,18 @@ mod test {
                 "at block {block}"
             );
         }
+
+        // An output's substream starts a stride of blocks past the previous one's, for whatever
+        // stride its sampler chose.
+        for stride in [1usize, 8, UNIFORM_INT_STRIDE] {
+            for output in [0usize, 1, 2] {
+                assert_eq!(
+                    block_of(&mut Stream::at_substream(kind, &key, output, stride)),
+                    block_of(&mut Stream::at_block(kind, &key, output * stride)),
+                    "substream {output} of stride {stride}"
+                );
+            }
+        }
     }
 
     #[test]
@@ -1003,6 +1408,107 @@ mod test {
         assert_ne!(draws[0], draws[1]);
         assert_ne!(draws[1], draws[2]);
         assert_ne!(draws[0], draws[2]);
+    }
+
+    #[test]
+    fn test_uniform_int_honours_its_range() {
+        // The bounds are inclusive, and a single-value range is constant.
+        let key = key_from(3);
+        let drawn = |low, high| {
+            ints_of(
+                &UniformInt::new(vec![64], low, high)
+                    .unwrap()
+                    .eval(std::slice::from_ref(&key))
+                    .unwrap()[0],
+            )
+        };
+        let samples = drawn(-5, 5);
+        assert!(samples.iter().all(|&v| (-5..=5).contains(&v)));
+        assert!(
+            samples.contains(&-5) || samples.contains(&5),
+            "the bounds are reachable"
+        );
+        assert_eq!(drawn(7, 7), vec![7; 64]);
+
+        // An empty range is refused.
+        let error = UniformInt::new(vec![2], 5, 4).unwrap_err();
+        assert!(matches!(
+            error,
+            RandomOpError::EmptyRange { low: 5, high: 4 }
+        ));
+    }
+
+    #[test]
+    fn test_random_real_reads_its_own_substream() {
+        // Each value is one `StandardUniform` draw from its own substream: position 0 uses
+        // substream 0, position 1 uses substream 1, and so on. Were neighbouring values slots of
+        // one block instead, they would share words, so the output is compared with substreams
+        // opened directly on the generator, without the op.
+        let key = key_from(9);
+
+        let Tensor::F64(reals) = &RandomReal::new(DType::F64, vec![7])
+            .unwrap()
+            .eval(std::slice::from_ref(&key))
+            .unwrap()[0]
+        else {
+            panic!("expected F64")
+        };
+        for (position, &value) in reals.iter().enumerate() {
+            assert_eq!(
+                value,
+                reference_real::<f64>(&key, position),
+                "F64 at {position}"
+            );
+        }
+
+        let Tensor::F32(reals) = &RandomReal::new(DType::F32, vec![7])
+            .unwrap()
+            .eval(std::slice::from_ref(&key))
+            .unwrap()[0]
+        else {
+            panic!("expected F32")
+        };
+        for (position, &value) in reals.iter().enumerate() {
+            assert_eq!(
+                value,
+                reference_real::<f32>(&key, position),
+                "F32 at {position}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_a_uniform_sample_reads_its_own_substream() {
+        // Each sample comes from the substream its own position opens. Were positions adjacent
+        // blocks instead, a sample would read words belonging to its neighbour, so this compares
+        // the op's output against substreams opened independently of it.
+        let key = key_from(41);
+        let key_words: Vec<u32> = key.keys().unwrap().words().iter().copied().collect();
+        let key_pair = [key_words[0], key_words[1]];
+
+        let samples = ints_of(
+            &UniformInt::new(vec![6], 0, 2)
+                .unwrap()
+                .eval(std::slice::from_ref(&key))
+                .unwrap()[0],
+        );
+        let range = Uniform::new_inclusive(0i64, 2).unwrap();
+        for (position, &sample) in samples.iter().enumerate() {
+            // Spelled out rather than taken from `UNIFORM_INT_STRIDE`, so that a change to the
+            // stride has to be made here too rather than passing silently.
+            let counter = (position as u128) * (1 << 8);
+            assert_eq!(UNIFORM_INT_STRIDE, 1 << 8, "the stride this test assumes");
+            let mut substream = Philox::new(key_pair, counter);
+            assert_eq!(
+                sample,
+                range.sample(&mut substream),
+                "at position {position}"
+            );
+        }
+        assert!(
+            samples.windows(2).any(|w| w[0] != w[1]),
+            "every position reading one substream would give one repeated value"
+        );
     }
 
     #[test]
@@ -1278,6 +1784,18 @@ mod test {
             "split eval",
         );
 
+        let uniform = UniformInt::new(vec![2], 0, 5).unwrap();
+        assert_key_type(
+            uniform
+                .infer_output_types(std::slice::from_ref(&not_a_key))
+                .unwrap_err(),
+            "uniform_int inference",
+        );
+        assert_key_type(
+            uniform.eval(std::slice::from_ref(&operand)).unwrap_err(),
+            "uniform_int eval",
+        );
+
         let draw = RandomBits::new(DType::U32, vec![2]).unwrap();
         assert_key_type(
             draw.infer_output_types(&[not_a_key]).unwrap_err(),
@@ -1329,12 +1847,58 @@ mod test {
             "split eval",
         );
 
+        let uniform = UniformInt::new(vec![4], 0, 5).unwrap();
+        assert_inference(
+            uniform
+                .infer_output_types(std::slice::from_ref(&key_type))
+                .unwrap_err(),
+            "uniform_int inference",
+        );
+        assert_eval(
+            uniform.eval(std::slice::from_ref(&keys)).unwrap_err(),
+            "uniform_int eval",
+        );
+
         let draw = RandomBits::new(DType::U32, vec![4]).unwrap();
         assert_inference(
             draw.infer_output_types(&[key_type]).unwrap_err(),
             "random_bits inference",
         );
         assert_eval(draw.eval(&[keys]).unwrap_err(), "random_bits eval");
+    }
+
+    #[test]
+    fn test_uniform_int_matches_its_recorded_output() {
+        // These pin the substream addressing and the distribution together, so a change to the
+        // stride, to the counter layout, or to how `Uniform` is driven shows up here.
+        let key = golden_key();
+        assert_eq!(
+            ints_of(
+                &UniformInt::new(vec![8], 0, 99)
+                    .unwrap()
+                    .eval(std::slice::from_ref(&key))
+                    .unwrap()[0]
+            ),
+            [81, 6, 66, 28, 83, 21, 51, 59]
+        );
+        assert_eq!(
+            ints_of(
+                &UniformInt::new(vec![8], -1000, 1000)
+                    .unwrap()
+                    .eval(std::slice::from_ref(&key))
+                    .unwrap()[0]
+            ),
+            [637, -873, 336, -438, 662, -565, 28, 195]
+        );
+        assert_eq!(
+            ints_of(
+                &UniformInt::new(vec![2], 0, 7)
+                    .unwrap()
+                    .eval(&[golden_batch()])
+                    .unwrap()[0]
+            ),
+            [4, 6, 2, 0, 7, 0]
+        );
     }
 
     #[test]
@@ -1375,5 +1939,230 @@ mod test {
         let drawn = function.add_op(draw, &[entropy[0]]).unwrap();
         function.add_result(drawn[0]).unwrap();
         assert_eq!(function.eval(&[]).unwrap()[0].dtype(), DType::U32);
+    }
+
+    /// Return the `F64` and `F32` values `StandardUniform` draws from the substream `position` of
+    /// `key`, opened directly on the generator and independently of the op under test.
+    fn reference_real<T>(key: &Tensor, position: usize) -> T
+    where
+        StandardUniform: Distribution<T>,
+    {
+        let words: Vec<u32> = key.keys().unwrap().words().iter().copied().collect();
+        // Spelled out rather than taken from `RANDOM_REAL_STRIDE`, so that a change to the stride
+        // has to be made here too rather than passing silently.
+        assert_eq!(RANDOM_REAL_STRIDE, 1, "the stride this helper assumes");
+        let mut substream = Philox::new([words[0], words[1]], position as u128);
+        StandardUniform.sample(&mut substream)
+    }
+
+    /// Copy and return the flattened values of an F64 tensor.
+    fn reals_of(tensor: &Tensor) -> Vec<f64> {
+        let Tensor::F64(array) = tensor else {
+            panic!("expected F64, got {}", tensor.dtype())
+        };
+        array.iter().copied().collect()
+    }
+    #[test]
+    fn test_random_real_refuses_a_dtype_that_is_not_a_drawable_real() {
+        for dtype in [
+            DType::Bit,
+            DType::U32,
+            DType::I64,
+            DType::C64,
+            DType::Key(PrngKind::Philox4x32),
+        ] {
+            assert!(matches!(
+                RandomReal::new(dtype, vec![2]),
+                Err(RandomOpError::NotReal { dtype: d }) if d == dtype
+            ));
+        }
+        assert!(RandomReal::new(DType::F64, vec![2]).is_ok());
+        assert!(RandomReal::new(DType::F32, vec![2]).is_ok());
+    }
+
+    #[test]
+    fn test_random_real_infers_dtype_and_broadcast_shape() {
+        let key = TensorType {
+            dtype: DType::Key(PrngKind::Philox4x32),
+            shape: dim_shape([3, 1]),
+        };
+        for dtype in [DType::F64, DType::F32] {
+            let op = RandomReal::new(dtype, vec![1, 5]).unwrap();
+            assert_eq!(
+                op.infer_output_types(std::slice::from_ref(&key)).unwrap(),
+                vec![TensorType {
+                    dtype,
+                    shape: dim_shape([3, 5])
+                }]
+            );
+        }
+        let not_a_key = TensorType {
+            dtype: DType::U32,
+            shape: dim_shape([3]),
+        };
+        assert!(matches!(
+            RandomReal::new(DType::F64, vec![2])
+                .unwrap()
+                .infer_output_types(&[not_a_key]),
+            Err(RandomOpError::KeyType { .. })
+        ));
+    }
+
+    #[test]
+    fn test_random_real_is_in_the_half_open_unit_interval() {
+        let key = key_from(1);
+        let out = RandomReal::new(DType::F64, vec![20_000])
+            .unwrap()
+            .eval(std::slice::from_ref(&key))
+            .unwrap();
+        let values = reals_of(&out[0]);
+        assert!(values.iter().all(|v| (0.0..1.0).contains(v)));
+        let mean = values.iter().sum::<f64>() / values.len() as f64;
+        assert!((mean - 0.5).abs() < 0.01, "mean {mean}");
+
+        let out = RandomReal::new(DType::F32, vec![20_000])
+            .unwrap()
+            .eval(&[key])
+            .unwrap();
+        let Tensor::F32(array) = &out[0] else {
+            panic!("expected F32")
+        };
+        assert!(array.iter().all(|v| (0.0..1.0).contains(v)));
+    }
+
+    #[test]
+    fn test_random_real_broadcasts_a_key_batch_against_the_payload() {
+        // Key batch `[3, 1]` against payload `[1, 4]` gives `[3, 4]`. Each `row` comes from its
+        // own key, and the key never enters the counter, so every row reads the same four
+        // substreams, one per `column`.
+        let keys = numbered_keys(&[3, 1], 10);
+        let reals = RandomReal::new(DType::F64, vec![1, 4])
+            .unwrap()
+            .eval(std::slice::from_ref(&keys))
+            .unwrap();
+        assert_eq!(reals[0].shape(), &[3, 4]);
+        let words: Vec<u32> = keys.keys().unwrap().words().iter().copied().collect();
+        let got = reals_of(&reals[0]);
+        for row in 0..3 {
+            let one_key = keys_of(&[], vec![words[2 * row], words[2 * row + 1]]);
+            for column in 0..4 {
+                assert_eq!(
+                    got[4 * row + column],
+                    reference_real::<f64>(&one_key, column),
+                    "row {row}, column {column}"
+                );
+            }
+        }
+
+        // One shared key and payload `[3, 4]`: twelve consecutive substreams of that key.
+        let key = key_from(2);
+        let reals = RandomReal::new(DType::F64, vec![3, 4])
+            .unwrap()
+            .eval(std::slice::from_ref(&key))
+            .unwrap();
+        for (position, &value) in reals_of(&reals[0]).iter().enumerate() {
+            assert_eq!(
+                value,
+                reference_real::<f64>(&key, position),
+                "at {position}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_random_real_changes_stream_when_only_the_key_changes() {
+        // Payload `[1, 2]` reads substreams 0 and 1 of every key, so consecutive rows read the same
+        // positions of different keys. A draw that remembered only the position would reuse the
+        // previous row.
+        let keys = numbered_keys(&[3, 1], 10);
+        let reals = RandomReal::new(DType::F64, vec![1, 2])
+            .unwrap()
+            .eval(std::slice::from_ref(&keys))
+            .unwrap();
+        let words: Vec<u32> = keys.keys().unwrap().words().iter().copied().collect();
+        let got = reals_of(&reals[0]);
+        for row in 0..3 {
+            let one_key = keys_of(&[], vec![words[2 * row], words[2 * row + 1]]);
+            for column in 0..2 {
+                assert_eq!(
+                    got[2 * row + column],
+                    reference_real::<f64>(&one_key, column)
+                );
+            }
+        }
+        assert_ne!(got[0..2], got[2..4], "rows come from different keys");
+    }
+    #[test]
+    fn test_random_real_is_deterministic_and_single_use() {
+        let op = RandomReal::new(DType::F64, vec![5]).unwrap();
+        let a = op.eval(&[key_from(3)]).unwrap();
+        let b = op.eval(&[key_from(3)]).unwrap();
+        assert_eq!(a, b);
+        assert_ne!(a, op.eval(&[key_from(4)]).unwrap());
+    }
+
+    #[test]
+    fn test_random_real_runs_inside_a_program() {
+        // A seeded key enters as a program input; RandomReal feeds the arithmetic ops like any value.
+        use crate::DataTree;
+        use crate::ops::{Add, Constant, Mean, Multiply};
+        use crate::program::{ProgramFunction, QuantumProgram};
+
+        let mut function = ProgramFunction::new();
+        let key = function.add_parameter(TensorType {
+            dtype: DType::Key(PrngKind::Philox4x32),
+            shape: vec![],
+        });
+        let u = function
+            .add_op(RandomReal::new(DType::F64, vec![1000]).unwrap(), &[key])
+            .unwrap()[0];
+        let two = function
+            .add_op(Constant::new(Tensor::from([2.0_f64])), &[])
+            .unwrap()[0];
+        let minus_one = function
+            .add_op(Constant::new(Tensor::from([-1.0_f64])), &[])
+            .unwrap()[0];
+        let scaled = function.add_op(Multiply, &[u, two]).unwrap()[0];
+        let centred = function.add_op(Add, &[scaled, minus_one]).unwrap()[0];
+        let mean = function.add_op(Mean::new(0), &[centred]).unwrap()[0];
+        function.add_result(centred).unwrap();
+        function.add_result(mean).unwrap();
+        assert_eq!(
+            function.type_of(centred),
+            Some(&TensorType {
+                dtype: DType::F64,
+                shape: dim_shape([1000]),
+            })
+        );
+
+        let program = QuantumProgram::new(
+            vec![function],
+            DataTree::mapping([("key", DataTree::Leaf(()))]).unwrap(),
+            DataTree::mapping([("values", DataTree::Leaf(())), ("mean", DataTree::Leaf(()))])
+                .unwrap(),
+        )
+        .unwrap();
+        assert!(program.has_builtin_eval(), "every op here runs in process");
+
+        let run = |label| {
+            program
+                .eval(DataTree::mapping([("key", DataTree::Leaf(key_from(label)))]).unwrap())
+                .unwrap()
+        };
+        let outputs = run(5);
+        assert_eq!(outputs, run(5), "the same key reproduces the run");
+        assert_ne!(outputs, run(6));
+
+        let Some(DataTree::Leaf(values)) = outputs.get_by_str_key("values") else {
+            panic!("values is a leaf")
+        };
+        assert!(reals_of(values).iter().all(|v| (-1.0..1.0).contains(v)));
+        let Some(DataTree::Leaf(Tensor::F64(mean))) = outputs.get_by_str_key("mean") else {
+            panic!("mean is an F64 leaf")
+        };
+        assert!(
+            mean.iter().all(|m| m.abs() < 0.1),
+            "mean of 2u - 1 is near zero"
+        );
     }
 }

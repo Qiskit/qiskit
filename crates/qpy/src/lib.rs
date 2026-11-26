@@ -16,8 +16,6 @@
 #![deny(clippy::unwrap_used, clippy::expect_used)]
 
 use pyo3::prelude::*;
-use pyo3::types::PyModule;
-use pyo3::{Bound, PyResult, wrap_pyfunction};
 
 mod annotations;
 mod bytes;
@@ -48,8 +46,8 @@ const NATIVE_QPY_RECURSION_DEPTH: usize = 100;
 
 /// Internal module supplying the QPY capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
-pub fn qpy(module: &Bound<PyModule>) -> PyResult<()> {
-    module.add_function(wrap_pyfunction!(interface::py_dump_qpy, module)?)?;
-    module.add_function(wrap_pyfunction!(interface::py_load_qpy, module)?)?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod qpy {
+    #[pymodule_export]
+    use super::interface::{py_dump_qpy, py_load_qpy};
 }

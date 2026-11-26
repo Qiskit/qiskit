@@ -80,8 +80,10 @@ sys.modules["qiskit._accelerate.nlayout"] = _accelerate.nlayout
 sys.modules["qiskit._accelerate.optimize_1q_gates"] = _accelerate.optimize_1q_gates
 sys.modules["qiskit._accelerate.pauli_expval"] = _accelerate.pauli_expval
 sys.modules["qiskit._accelerate.pauli_lindblad_map"] = _accelerate.pauli_lindblad_map
+sys.modules["qiskit._accelerate.pauli_products"] = _accelerate.pauli_products
 sys.modules["qiskit._accelerate.qasm2"] = _accelerate.qasm2
 sys.modules["qiskit._accelerate.qasm3"] = _accelerate.qasm3
+sys.modules["qiskit._accelerate.qpy"] = _accelerate.qpy
 sys.modules["qiskit._accelerate.remove_diagonal_gates_before_measure"] = (
     _accelerate.remove_diagonal_gates_before_measure
 )
@@ -95,6 +97,7 @@ sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.elide_permutations"] = _accelerate.elide_permutations
 sys.modules["qiskit._accelerate.target"] = _accelerate.target
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = _accelerate.two_qubit_decompose
+sys.modules["qiskit._accelerate.unitary_sim"] = _accelerate.unitary_sim
 sys.modules["qiskit._accelerate.unitary_synthesis"] = _accelerate.unitary_synthesis
 sys.modules["qiskit._accelerate.vf2_layout"] = _accelerate.vf2_layout
 sys.modules["qiskit._accelerate.synthesis"] = _accelerate.synthesis

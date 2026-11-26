@@ -29,11 +29,15 @@ thiserror.workspace = true
 
 [dev-dependencies]
 itertools.workspace = true
+fixedbitset.workspace = true
 
 [[example]]
 name = "memory_report"
 required-features = ["mem_dbg"]
 harness = false
+
+[[example]]
+name = "pauli_table"
 
 [[test]]
 name = "validate_mem_dbg"

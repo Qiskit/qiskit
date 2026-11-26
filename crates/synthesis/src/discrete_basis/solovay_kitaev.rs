@@ -200,6 +200,8 @@ impl SolovayKitaevSynthesis {
     ///     tol (float | None): A tolerance determining the granularity of the basic approximations.
     ///         Any sequence whose SO(3) representation is within :math:`\sqrt{\texttt{tol}}` of
     ///         an existing point, will be discarded. Defaults to ``1e-12``.
+    ///     do_checks (bool): Whether to run runtime checks on the matrices handled during
+    ///         synthesis. Defaults to ``False``.
     #[new]
     #[pyo3 (signature = (basis_gates=None, depth=12, tol=None, do_checks=false))]
     fn py_new(
@@ -247,7 +249,7 @@ impl SolovayKitaevSynthesis {
     /// representation.
     ///
     /// Args:
-    ///     matrix (np.ndarray): A 2x2 complex matrix representing a 1-qubit gate.
+    ///     gate_matrix (np.ndarray): A 2x2 complex matrix representing a 1-qubit gate.
     ///     recursion_degree (int): The recursion degree of the algorithm.
     ///
     /// Returns:

@@ -3301,6 +3301,9 @@ impl PyDAGCircuit {
     ///     remove_idle_qubits (bool): Flag denoting whether to remove idle qubits from
     ///         the separated circuits. If ``False``, each output circuit will contain the
     ///         same number of qubits as ``self``.
+    ///     vars_mode (str): How to handle the realtime variables in each output circuit.  This
+    ///         takes the same values as the ``vars_mode`` argument of
+    ///         :meth:`.QuantumCircuit.copy_empty_like`, and defaults to ``"alike"``.
     ///
     /// Returns:
     ///     List[DAGCircuit]: The circuits resulting from separating ``self`` into sets
@@ -4754,7 +4757,7 @@ impl PyDAGCircuit {
     /// Is this stretch in the DAG?
     ///
     /// Args:
-    ///     var: the stretch or name to check.
+    ///     stretch: the stretch or name to check.
     #[pyo3(name = "has_stretch")]
     fn py_has_stretch(&self, stretch: &Bound<PyAny>) -> PyResult<bool> {
         if let Ok(name) = stretch.extract::<String>() {

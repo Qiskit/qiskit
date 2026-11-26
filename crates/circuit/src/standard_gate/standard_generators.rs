@@ -15,8 +15,6 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, SQRT_2};
 
 #[cfg(feature = "py")]
 use pyo3::prelude::*;
-#[cfg(feature = "py")]
-use pyo3::wrap_pyfunction;
 
 use crate::operations::{Operation, Param, StandardGate};
 use qiskit_quantum_info::sparse_observable::SparseObservable;
@@ -338,7 +336,8 @@ pub fn py_standard_gate_exponent(
 }
 
 #[cfg(feature = "py")]
-pub fn standard_generators(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(py_standard_gate_exponent, m)?)?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod standard_generators {
+    #[pymodule_export]
+    use super::py_standard_gate_exponent;
 }

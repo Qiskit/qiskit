@@ -19,7 +19,6 @@ use num_complex::Complex64;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use ndarray::prelude::*;
 use rayon::prelude::*;
@@ -610,8 +609,12 @@ pub fn matmul_1q_with_slice(operator: &mut [[Complex64; 2]; 2], other: &[[Comple
     ];
 }
 
-pub fn optimize_1q_gates_decomposition_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_optimize_1q_gates_decomposition))?;
-    m.add_class::<Optimize1qGatesDecompositionState>()?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "optimize_1q_gates_decomposition"
+)]
+pub mod optimize_1q_gates_decomposition_mod {
+    #[pymodule_export]
+    use super::{Optimize1qGatesDecompositionState, py_run_optimize_1q_gates_decomposition};
 }

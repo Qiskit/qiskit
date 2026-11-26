@@ -27,15 +27,11 @@ pub enum PartitionError {
 
 /// A grouping of elements into non-overlapping subsets.
 ///
-/// Order in a given part is meaningful. For instance, when sampling from a distribution over
-/// multiple elements, it may not be symmetric under permutations of those elements.
-///
-/// Order of parts is the caller's responsibility and maintained by [`Partition::iter`].
-///
-/// While a partition can have no parts, each part must have an element.
+/// Order within a part and order of parts are both meaningful and preserved. A partition can have
+/// no parts but every part has an element.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Partition<T> {
-    /// The elements, in part order then slot order.
+    /// The elements, in part order then element order within a part.
     elements: Box<[T]>,
     /// Where each part after the first begins.
     splits: Box<[u32]>,
@@ -101,6 +97,13 @@ impl<T: Copy + Ord> Partition<T> {
         &self.elements
     }
 
+    /// The part at index `index` or `None` if there is no such part.
+    pub fn part(&self, index: usize) -> Option<&[T]> {
+        let start = *self.splits.get(index)? as usize;
+        let end = *self.splits.get(index + 1)? as usize;
+        Some(&self.elements[start..end])
+    }
+
     /// Get an iterator over the individual parts.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &[T]> {
         std::ops::Range {
@@ -113,6 +116,17 @@ impl<T: Copy + Ord> Partition<T> {
     /// Whether every part is a single element.
     pub fn is_singletons(&self) -> bool {
         self.num_parts() == self.elements.len()
+    }
+
+    /// The size every part has, or `None` if the parts differ in size or there are none.
+    pub fn uniform_size(&self) -> Option<usize> {
+        if self.is_singletons() && self.num_parts() > 0 {
+            // early exit for common case that doesn't involve any iteration
+            return Some(1);
+        }
+        let mut sizes = self.iter().map(<[T]>::len);
+        let first = sizes.next()?;
+        sizes.all(|size| size == first).then_some(first)
     }
 
     /// Whether this partition contains `element`.
@@ -163,6 +177,17 @@ mod tests {
             vec![[5, 3].as_slice()]
         );
         assert!(Partition::whole([7]).unwrap().is_singletons());
+    }
+
+    #[test]
+    fn test_uniform_size() {
+        assert_eq!(parts(&[&[0, 1], &[3, 2]]).uniform_size(), Some(2));
+        assert_eq!(
+            Partition::singletons([3, 5, 4]).unwrap().uniform_size(),
+            Some(1)
+        );
+        assert_eq!(parts(&[&[0], &[2, 1]]).uniform_size(), None);
+        assert_eq!(parts(&[]).uniform_size(), None);
     }
 
     #[test]

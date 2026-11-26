@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Operation;
@@ -107,7 +106,8 @@ pub fn run_check_map<'a>(
         })
 }
 
-pub fn check_map_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_check_map))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "check_map")]
+pub mod check_map_mod {
+    #[pymodule_export]
+    use super::py_run_check_map;
 }

@@ -352,7 +352,8 @@ impl ::std::ops::Index<PhysicalQubit> for NLayout {
 }
 
 #[cfg(feature = "py")]
-pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<NLayout>()?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod nlayout {
+    #[pymodule_export]
+    use super::NLayout;
 }

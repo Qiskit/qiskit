@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::dag_circuit::{NodeType, PyDAGCircuit, Wire};
 use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, Param, StandardInstruction};
@@ -98,7 +97,8 @@ pub(crate) fn compute_estimated_duration(dag: &PyDAGCircuit, target: &Target) ->
     }
 }
 
-pub fn compute_duration(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(compute_estimated_duration))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "circuit_duration")]
+pub mod compute_duration {
+    #[pymodule_export]
+    use super::compute_estimated_duration;
 }
