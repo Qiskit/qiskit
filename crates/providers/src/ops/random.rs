@@ -551,7 +551,7 @@ impl ProgramOp for RandomReal {
         check_substreams(kind, &self.shape, RANDOM_REAL_STRIDE)?;
         Ok(vec![TensorType {
             dtype: self.dtype,
-            shape: output_shape(batch, &self.shape)?,
+            shape: broadcast_dims(batch, &dim_shape(&self.shape))?,
         }])
     }
     fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
@@ -1984,7 +1984,7 @@ mod test {
     fn test_random_real_infers_dtype_and_broadcast_shape() {
         let key = TensorType {
             dtype: DType::Key(PrngKind::Philox4x32),
-            shape: fixed(&[3, 1]),
+            shape: dim_shape(&[3, 1]),
         };
         for dtype in [DType::F64, DType::F32] {
             let op = RandomReal::new(dtype, vec![1, 5]).unwrap();
@@ -1992,13 +1992,13 @@ mod test {
                 op.infer_output_types(std::slice::from_ref(&key)).unwrap(),
                 vec![TensorType {
                     dtype,
-                    shape: fixed(&[3, 5])
+                    shape: dim_shape(&[3, 5])
                 }]
             );
         }
         let not_a_key = TensorType {
             dtype: DType::U32,
-            shape: fixed(&[3]),
+            shape: dim_shape(&[3]),
         };
         assert!(matches!(
             RandomReal::new(DType::F64, vec![2])
@@ -2131,7 +2131,7 @@ mod test {
             function.type_of(centred),
             Some(&TensorType {
                 dtype: DType::F64,
-                shape: fixed(&[1000]),
+                shape: dim_shape(&[1000]),
             })
         );
 
