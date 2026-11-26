@@ -97,9 +97,14 @@ pub mod mcg_up_to_diagonal {
 #[cfg(test)]
 mod tests {
     use super::mcg_up_to_diagonal_inner;
+    // Miri reports undefined behavior inside `matrixmultiply`, which `sim_unitary_circuit` reaches
+    // through `ndarray`, so the tests that simulate circuits do not run under Miri.
+    #[cfg(not(miri))]
     use crate::matrix::sim::sim_unitary_circuit;
+    #[cfg(not(miri))]
     use approx::abs_diff_eq;
     use nalgebra::Matrix2;
+    #[cfg(not(miri))]
     use ndarray::Array2;
     use num_complex::Complex64;
 
@@ -113,6 +118,7 @@ mod tests {
 
     // A generic (non-real) SU(2) gate, so tests aren't only exercising the
     // real-orthogonal `ry` gates above.
+    #[cfg(not(miri))]
     fn su2(theta: f64, phi: f64, lam: f64) -> Matrix2<Complex64> {
         let c = Complex64::new((theta / 2.0).cos(), 0.0);
         let s = Complex64::new((theta / 2.0).sin(), 0.0);
@@ -120,6 +126,7 @@ mod tests {
         Matrix2::new(c, -e_i(lam) * s, e_i(phi) * s, e_i(phi + lam) * c)
     }
 
+    #[cfg(not(miri))]
     fn diag_matrix(diag: &[Complex64]) -> Array2<Complex64> {
         let n = diag.len();
         let mut out = Array2::zeros((n, n));
@@ -129,6 +136,7 @@ mod tests {
         out
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_mcg_up_to_diagonal_inner_no_controls() {
         let gate = ry(0.5);
@@ -158,6 +166,7 @@ mod tests {
     }
 
     /// Unitary of the multi-controlled `gate`: identity except for the last 2x2 block.
+    #[cfg(not(miri))]
     fn expected_mcg(gate: Matrix2<Complex64>, num_ctrls: u32) -> Array2<Complex64> {
         let dim = 1usize << (num_ctrls + 1);
         let mut expected = Array2::<Complex64>::eye(dim);
@@ -170,6 +179,7 @@ mod tests {
     }
 
     // The synthesized circuit U' and its diagonal D must satisfy D * U' = U (the MCG unitary).
+    #[cfg(not(miri))]
     fn check_matches_mcg(gate: Matrix2<Complex64>, num_ctrls: u32) {
         let (circuit, diag) = mcg_up_to_diagonal_inner(gate, num_ctrls).unwrap();
         let up_to_diag = sim_unitary_circuit(&circuit).unwrap();
@@ -181,26 +191,31 @@ mod tests {
         ));
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_mcg_up_to_diagonal_inner_zero_controls() {
         check_matches_mcg(su2(0.7, 0.2, -0.5), 0);
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_mcg_up_to_diagonal_inner_one_control() {
         check_matches_mcg(ry(0.9), 1);
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_mcg_up_to_diagonal_inner_two_controls() {
         check_matches_mcg(ry(1.3), 2);
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_mcg_up_to_diagonal_inner_three_controls() {
         check_matches_mcg(ry(-0.4), 3);
     }
 
+    #[cfg(not(miri))]
     #[test]
     fn test_mcg_up_to_diagonal_inner_complex_gate() {
         check_matches_mcg(su2(0.7, 0.2, -0.5), 2);
