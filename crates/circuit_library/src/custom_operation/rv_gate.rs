@@ -165,13 +165,16 @@ impl ToPythonOperation for RVGate {
         let rv = RVGATE.get_bound(py);
         let param = params.into_pyobject(py)?.cast_into::<PyList>()?;
         Ok(rv
-            .call1((
-                param.get_item(0)?,
-                param.get_item(1)?,
-                param.get_item(2)?,
-                self.basis().as_str(),
-                label,
-            ))?
+            .call_method1(
+                "_init_with_rust",
+                (
+                    param.get_item(0)?,
+                    param.get_item(1)?,
+                    param.get_item(2)?,
+                    PyRVGate::from_rv_gate(py, self.clone())?,
+                    label,
+                ),
+            )?
             .unbind())
     }
 }
@@ -195,5 +198,14 @@ impl PyRVGate {
             Self,
             PyCustomOperation::new(Box::new(RVGate::new(basis))).into(),
         ))
+    }
+}
+
+impl PyRVGate {
+    pub fn from_rv_gate<'py>(py: Python<'py>, rv_gate: RVGate) -> PyResult<Bound<'py, PyRVGate>> {
+        Bound::new(
+            py,
+            PyClassInitializer::new(Self, PyCustomOperation::new(Box::new(rv_gate)).into()),
+        )
     }
 }

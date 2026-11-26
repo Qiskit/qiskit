@@ -53,7 +53,7 @@ class RVGate(Gate):
     """
 
     # Native instance of the gate originating from Rust
-    _rust_operation = None
+    _rust_operation: InnerRVGate = None
 
     def __init__(
         self,
@@ -73,7 +73,17 @@ class RVGate(Gate):
             label: An optional label for the gate.
         """
 
-        self._rust_operation = InnerRVGate(basis)
+        self._init_with_rust(v_x, v_y, v_z, InnerRVGate(basis), label)
+
+    def _init_with_rust(
+        self,
+        v_x: float,
+        v_y: float,
+        v_z: float,
+        op: InnerRVGate,
+        label: str | None = None,
+    ):
+        self._rust_operation = op
         super().__init__(
             self._rust_operation.name, self._rust_operation.num_qubits, [v_x, v_y, v_z], label=label
         )
