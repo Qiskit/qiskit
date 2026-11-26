@@ -14,8 +14,9 @@ use std::{ops::Div, str::FromStr};
 
 use ndarray::{Array1, array};
 use numpy::Complex64;
+use pyo3::exceptions::PyTypeError;
 use pyo3::{prelude::*, types::PyList};
-use qiskit_circuit::operations::{PyCustomOperation, ToPythonOperation};
+use qiskit_circuit::operations::{PyCustomOperation, ToPythonOperation, multiply_param};
 use qiskit_circuit::{
     operations::{CustomOperation, Operation, Param},
     packed_instruction::PackedOperation,
@@ -91,12 +92,16 @@ impl CustomOperation for RVGate {
         qiskit_circuit::packed_instruction::PackedOperation,
         smallvec::SmallVec<[qiskit_circuit::operations::Param; 3]>,
     )> {
-        let [Param::Float(vx), Param::Float(vy), Param::Float(vz)] = params else {
+        let [vx, vy, vz] = params else {
             return None;
         };
         Some((
-            PackedOperation::from_custom_operation(Box::new(Self::default())),
-            smallvec![Param::Float(-vx), Param::Float(-vy), Param::Float(-vz)],
+            PackedOperation::from_custom_operation(Box::new(self.clone())),
+            smallvec![
+                multiply_param(vx, -1.0),
+                multiply_param(vy, -1.0),
+                multiply_param(vz, -1.0)
+            ],
         ))
     }
 
@@ -198,6 +203,19 @@ impl PyRVGate {
             Self,
             PyCustomOperation::new(Box::new(RVGate::new(basis))).into(),
         ))
+    }
+
+    fn __getnewargs__<'py>(slf: Bound<'py, Self>) -> PyResult<String> {
+        if let Some(op) = slf.as_super().borrow().op().downcast_ref::<RVGate>() {
+            Ok(op.name().to_string())
+        } else {
+            Err(PyTypeError::new_err(format!(
+                "Operation {} is not of type {} but is stored witin a '{}' object",
+                slf,
+                slf.get_type(),
+                slf.get_type()
+            )))
+        }
     }
 }
 

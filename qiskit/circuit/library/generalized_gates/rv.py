@@ -73,20 +73,26 @@ class RVGate(Gate):
             label: An optional label for the gate.
         """
 
-        self._init_with_rust(v_x, v_y, v_z, InnerRVGate(basis), label)
+        self._rust_operation = InnerRVGate(basis)
+        super().__init__(
+            self._rust_operation.name, self._rust_operation.num_qubits, [v_x, v_y, v_z], label=label
+        )
 
+    @classmethod
     def _init_with_rust(
-        self,
+        cls,
         v_x: float,
         v_y: float,
         v_z: float,
         op: InnerRVGate,
         label: str | None = None,
     ):
-        self._rust_operation = op
+        gate = cls.__new__(cls)
+        gate._rust_operation = op
         super().__init__(
-            self._rust_operation.name, self._rust_operation.num_qubits, [v_x, v_y, v_z], label=label
+            gate, op.name, op.num_qubits, [v_x, v_y, v_z], label=label
         )
+        return gate
 
     def _define(self):
         try:
