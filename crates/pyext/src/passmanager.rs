@@ -536,10 +536,10 @@ pub mod passmanager_mod {
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         // The Rust-defined classes that implement the Python `Pass` interface.
         let py = m.py();
-        let pass_types = qiskit_mir_passes::py::PASS_TYPES
+        let pass_types = qiskit_mir_passes::py::_PASS_TYPES
             .iter()
             .map(|type_object| type_object(py));
-        m.add("PASS_TYPES", PyTuple::new(py, pass_types)?)?;
+        m.add("_PASS_TYPES", PyTuple::new(py, pass_types)?)?;
         Ok(())
     }
 }

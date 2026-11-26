@@ -56,7 +56,7 @@ impl PyDagToMirPass {
 }
 
 /// The classes in this crate that implement the Python `Pass` interface.
-pub static PASS_TYPES: &[fn(Python<'_>) -> Bound<'_, PyType>] = &[PyDagToMirPass::type_object];
+pub static _PASS_TYPES: &[fn(Python<'_>) -> Bound<'_, PyType>] = &[PyDagToMirPass::type_object];
 
 #[pymodule(submodule, module = "qiskit._accelerate", name = "mir_passes")]
 pub mod mir_passes_mod {

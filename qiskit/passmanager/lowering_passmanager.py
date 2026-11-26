@@ -257,7 +257,7 @@ class Pass(Generic[IRIn, IROut], abc.ABC):
 
 # Rust-defined passes that operate via the _qiskit_pass_run_ mechanism are registered as
 # virtual subclasses here.
-for _pass_type in passmanager.PASS_TYPES:
+for _pass_type in passmanager._PASS_TYPES:
     Pass.register(_pass_type)
 
 
