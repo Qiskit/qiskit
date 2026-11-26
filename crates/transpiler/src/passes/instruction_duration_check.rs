@@ -117,5 +117,5 @@ pub fn run_instruction_duration_check(
 )]
 pub mod instruction_duration_check_mod {
     #[pymodule_export]
-    use super::run_instruction_duration_check;
+    use super::py_run_instruction_duration_check;
 }
