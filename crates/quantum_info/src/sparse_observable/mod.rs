@@ -4605,9 +4605,10 @@ fn coerce_to_observable<'py>(
 }
 
 #[cfg(feature = "python")]
-pub fn sparse_observable(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PySparseObservable>()?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod sparse_observable {
+    #[pymodule_export]
+    use super::PySparseObservable;
 }
 
 #[cfg(test)]

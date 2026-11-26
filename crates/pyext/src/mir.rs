@@ -12,7 +12,5 @@
 
 use pyo3::prelude::*;
 
-#[pymodule(name = "mir")]
-pub fn mir_mod(_m: &Bound<'_, PyModule>) -> PyResult<()> {
-    Ok(())
-}
+#[pymodule(submodule, module = "qiskit._accelerate", name = "mir")]
+pub mod mir_mod {}

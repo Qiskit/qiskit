@@ -14,19 +14,13 @@ pub mod converters;
 pub mod marginalization;
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
-pub fn results(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_counts))?;
-    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_distribution))?;
-    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_memory))?;
-    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_measure_level_0))?;
-    m.add_wrapped(wrap_pyfunction!(
-        marginalization::marginal_measure_level_0_avg
-    ))?;
-    m.add_wrapped(wrap_pyfunction!(marginalization::marginal_measure_level_1))?;
-    m.add_wrapped(wrap_pyfunction!(
-        marginalization::marginal_measure_level_1_avg
-    ))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod results {
+    #[pymodule_export]
+    use super::marginalization::{
+        marginal_counts, marginal_distribution, marginal_measure_level_0,
+        marginal_measure_level_0_avg, marginal_measure_level_1, marginal_measure_level_1_avg,
+        marginal_memory,
+    };
 }
