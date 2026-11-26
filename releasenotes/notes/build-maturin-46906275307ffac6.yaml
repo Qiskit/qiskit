@@ -15,7 +15,7 @@ build:
 
     This change will enable Qiskit in the future to more easily support free-threaded Python builds
     and keep pace with improvements in the mixed Rust/Python ecosystem.
-
-    Additionally, the type stubs for ``qiskit._accelerate`` are generated from PyO3's experimental
+  - |
+    Type stubs for ``qiskit._accelerate`` are generated from PyO3's experimental
     introspection data, which is enabled by the ``type_stubs`` Rust feature.  Set the environment
     variable ``QISKIT_NO_TYPE_STUBS=1`` to build without the feature and without the stubs.
