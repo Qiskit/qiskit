@@ -47,6 +47,8 @@ import maturin
 with open("pyproject.toml", "rb") as fp:
     PYPROJECT_TOML = tomllib.load(fp)
 
+DEFAULT_FEATURES = frozenset(PYPROJECT_TOML.get("tool", {}).get("maturin", {}).get("features", ()))
+
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class Feature:
@@ -56,11 +58,15 @@ class Feature:
     """Which environment sets it, and whether it enables it (``True``) or not (``False``)."""
 
 
+# The feature that embeds the introspection data `maturin --generate-stubs` needs.
+TYPE_STUBS_FEATURE = "type_stubs"
+
 # The features we might want to override at build time.  The names should match the features of
 # `pyext`, while the defaults are taken from the `tool.maturin.features` key of `pyproject.toml`.
 KNOWN_FEATURES = [
     Feature("cache_pygates", ("QISKIT_NO_CACHE_GATES", False)),
     Feature("global_mimalloc", ("QISKIT_BUILD_WITH_MIMALLOC", True)),
+    Feature(TYPE_STUBS_FEATURE, ("QISKIT_NO_TYPE_STUBS", False)),
 ]
 
 
@@ -83,24 +89,26 @@ def build_profile():
     return None
 
 
-def feature_overrides() -> set[str] | None:
-    """Convert the feature-setting environment variables into a suitable feature set.
-
-    Returns ``None`` if we resolve to the defaults.  An empty iterable means the feature set needs
-    to be explicitly overridden to be empty."""
+def enabled_features(parsed: argparse.Namespace) -> frozenset[str]:
+    """Return enabled build features."""
+    # Prioritize explicit command line arguments.
+    if parsed.all_features:
+        return frozenset(feature.name for feature in KNOWN_FEATURES)
+    if parsed.features is not None:
+        # Both space- and comma-separated arguments are supported.
+        return frozenset(
+            feature for arg in parsed.features for feature in arg.replace(",", " ").split()
+        )
     # Qiskit's environment variables are additive (or subtractive) from the base configuration,
     # whereas Maturin's `--features`-like flags are overrides.  To make our set of features, we have
     # to start from the defaults and modify, rather than building up a set of additions/removals.
-    default_features = frozenset(
-        PYPROJECT_TOML.get("tool", {}).get("maturin", {}).get("features", ())
-    )
-    if unknown := default_features - {feature.name for feature in KNOWN_FEATURES}:
+    if unknown := DEFAULT_FEATURES - {feature.name for feature in KNOWN_FEATURES}:
         print(
             f"`tool.maturin.features` contains unknown features: {', '.join(sorted(unknown))}",
             file=sys.stderr,
         )
         sys.exit(1)
-    features = set(default_features)
+    features = set(DEFAULT_FEATURES)
     for feature in KNOWN_FEATURES:
         var, positive = feature.env
         if not envvar_bool(var):
@@ -109,7 +117,7 @@ def feature_overrides() -> set[str] | None:
             features.add(feature.name)
         else:
             features.discard(feature.name)
-    return None if features == default_features else features
+    return frozenset(features)
 
 
 def update_config_from_environment(
@@ -136,22 +144,23 @@ def update_config_from_environment(
     parser.add_argument("--profile")
     parser.add_argument("-F", "--features", action="append", default=None)
     parser.add_argument("--all-features", action="store_true")
-    (parsed, build_args) = parser.parse_known_args(build_args)
+    parser.add_argument("--generate-stubs", action="store_true")
+    parsed, build_args = parser.parse_known_args(build_args)
 
     extra_args = []
     if profile := parsed.profile or build_profile():
         extra_args.append(f"--profile={profile}")
 
+    features = enabled_features(parsed)
     if parsed.all_features:
         extra_args.append("--all-features")
-    elif parsed.features is not None:
-        # Both space- and comma-separated arguments are supported.
-        features = [feature for arg in parsed.features for feature in arg.replace(",", " ").split()]
-        extra_args.append(f"--features={','.join(features)}")
-    elif (features := feature_overrides()) is not None:
+    elif features != DEFAULT_FEATURES:
         # Note that this is a configuration override even if `features` is empty; the case of
         # "unset" is different to "set to empty".
         extra_args.append(f"--features={','.join(sorted(features))}")
+    # Maturin can only generate the stubs from a library built with the introspection data.
+    if parsed.generate_stubs or TYPE_STUBS_FEATURE in features:
+        extra_args.append("--generate-stubs")
 
     # Ours go at the start, so any `--` present doesn't mess us up.
     build_args = extra_args + build_args
