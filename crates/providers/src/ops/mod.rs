@@ -21,6 +21,7 @@ mod constant;
 mod error;
 mod euler_angles;
 mod inference;
+mod lookup_table;
 mod program_op;
 mod random;
 mod reduction;
@@ -34,6 +35,7 @@ pub use cast::Cast;
 pub use constant::Constant;
 pub use error::MathOpError;
 pub use euler_angles::EulerAnglesZYZ;
+pub use lookup_table::{LookupTable, LookupTableError};
 pub use program_op::{BoxedOpError, BoxedProgramOp, ErasedProgramOp, ProgramOp, QISKIT};
 pub use random::{CounterUnit, Entropy, RandomBits, RandomOpError, Split, UniformInt};
 
