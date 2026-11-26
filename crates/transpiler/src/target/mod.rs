@@ -342,7 +342,7 @@ impl Target {
     ///         if representing a variadic.
     ///     properties: A mapping of qargs and ``InstructionProperties``.
     ///     name: A name assigned to the provided gate.
-    ///     bound_list: The bounds on the parameters for a given gate. This is specified by a list
+    ///     angle_bounds: The bounds on the parameters for a given gate. This is specified by a list
     ///         of tuples (low, high) which represent the low and high bound (inclusively) on what
     ///         float values are allowed for the parameter in that position. If a parameter
     ///         doesn't have an angle bound you can use ``None`` to represent that. For example if

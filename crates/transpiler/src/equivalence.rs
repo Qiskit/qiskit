@@ -477,7 +477,7 @@ impl EquivalenceLibrary {
     /// corresponding entries from Gate.params.
     ///
     /// Args:
-    ///     gate (Gate) - Gate: A Gate instance.
+    ///     gate (Gate): A Gate instance.
     ///
     /// Returns:
     ///     List[QuantumCircuit]: A list of equivalent :class:`.QuantumCircuit` instances.
