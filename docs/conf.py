@@ -148,6 +148,25 @@ autosummary_filename_map = {
 }
 
 
+def _resolve_legacy_transpile_reference(app, env, node, contnode):
+    # Existing docstrings and release notes still link to the compiler import path.
+    if node.get("refdomain") == "py" and node.get("reftarget") == "qiskit.compiler.transpile":
+        return env.get_domain("py").resolve_xref(
+            env,
+            node["refdoc"],
+            app.builder,
+            node["reftype"],
+            "qiskit.transpiler.transpile",
+            node,
+            contnode,
+        )
+    return None
+
+
+def setup(app):
+    app.connect("missing-reference", _resolve_legacy_transpile_reference, priority=400)
+
+
 # ----------------------------------------------------------------------------------
 # Doctest
 # ----------------------------------------------------------------------------------

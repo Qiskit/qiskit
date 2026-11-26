@@ -1506,6 +1506,14 @@ to insert the instructions into the circuit, which completes the scheduling.
 Transpiler API
 ==============
 
+Circuit Transpilation
+---------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   transpile
+
 Hardware description
 --------------------
 
@@ -1613,6 +1621,7 @@ from .preset_passmanagers import (
 from .target import Target
 from .target import InstructionProperties
 from .optimization_metric import OptimizationMetric
+from .transpile import transpile
 
 from . import passes, preset_passmanagers
 
@@ -1646,4 +1655,5 @@ __all__ = [
     "generate_preset_pbc_pass_manager",
     "passes",
     "preset_passmanagers",
+    "transpile",
 ]
