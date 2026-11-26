@@ -40,6 +40,7 @@ use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
 #[cfg(feature = "py")]
 use crate::imports;
+use crate::imports::{GATE_FROM_RUST, INSTRUCTION_FROM_RUST};
 #[cfg(feature = "py")]
 use crate::instruction::{Parameters, create_py_op};
 use crate::operations::custom_traits::{ClonableOp, ComparableOp, ConvertibleOperation};
@@ -2294,6 +2295,7 @@ mod custom_traits {
             params: Option<SmallVec<[Param; 3]>>,
             label: Option<&str>,
         ) -> PyResult<Py<PyAny>>;
+        fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>>;
     }
 
     #[cfg(not(feature = "py"))]
@@ -2308,6 +2310,10 @@ mod custom_traits {
             label: Option<&str>,
         ) -> PyResult<Py<PyAny>> {
             ToPythonOperation::create_py_op(self, py, params, label)
+        }
+
+        fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
+            ToPythonOperation::py_type(self, py)
         }
     }
 }
@@ -2599,6 +2605,17 @@ pub trait ToPythonOperation {
         Self: CustomOperation,
     {
         PyCustomOperation::new(self.clone_dyn()).into_py_op(py, params.as_deref(), label)
+    }
+
+    fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>>
+    where
+        Self: CustomOperation,
+    {
+        if self.is_unitary() {
+            Ok(GATE_FROM_RUST.get_bound(py).clone().unbind())
+        } else {
+            Ok(INSTRUCTION_FROM_RUST.get_bound(py).clone().unbind())
+        }
     }
 }
 

@@ -182,6 +182,13 @@ impl ToPythonOperation for RVGate {
             )?
             .unbind())
     }
+
+    fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>>
+    where
+        Self: CustomOperation,
+    {
+        Ok(RVGATE.get_bound(py).clone().unbind())
+    }
 }
 
 #[pyclass(name="InnerRVGate", extends=PyCustomOperation, module="qiskit.circuit.library.generalized_gates.rv")]

@@ -89,9 +89,7 @@ class RVGate(Gate):
     ):
         gate = cls.__new__(cls)
         gate._rust_operation = op
-        super().__init__(
-            gate, op.name, op.num_qubits, [v_x, v_y, v_z], label=label
-        )
+        super().__init__(gate, op.name, op.num_qubits, [v_x, v_y, v_z], label=label)
         return gate
 
     def _define(self):
