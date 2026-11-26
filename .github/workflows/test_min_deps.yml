@@ -1,0 +1,39 @@
+name: Test Minimum Dependencies
+
+on:
+  pull_request:
+  push:
+    branches:
+      - test-extremal-dependencies
+  workflow_dispatch:
+jobs:
+  test-min-deps:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+
+          #installs minimum requiered versions of all dependencies from requirements.txt
+          sed 's/[>~]=/==/g' requirements.txt > minimum-constraints.txt
+
+          #needed to ensure dependency versions aren't updated when qiskit is installed
+          python -m pip install -c minimum-constraints.txt --group test -e .
+        
+      - run: |
+          source venv/bin/activate
+          python -m pip list
+          python -m pip freeze
+          python -m pip check
+
+      - run: |
+          source venv/bin/activate
+          stestr run
