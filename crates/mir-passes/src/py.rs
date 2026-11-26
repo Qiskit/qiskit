@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::dag_to_mir::lower_dag;
+use pyo3::PyTypeInfo;
 use pyo3::prelude::*;
 use qiskit_mir::py::PyMir;
 
@@ -53,6 +54,9 @@ impl PyDagToMirPass {
         Ok(PyMir(mir))
     }
 }
+
+/// The classes in this crate that implement the Python `Pass` interface.
+pub static PASS_TYPES: &[fn(Python<'_>) -> Bound<'_, PyType>] = &[PyDagToMirPass::type_object];
 
 #[pymodule(submodule, module = "qiskit._accelerate", name = "mir_passes")]
 pub mod mir_passes_mod {
