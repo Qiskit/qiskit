@@ -73,8 +73,10 @@ class RVGate(Gate):
             label: An optional label for the gate.
         """
 
-        super().__init__("rv", 1, [v_x, v_y, v_z], label=label)
         self._rust_operation = InnerRVGate(basis)
+        super().__init__(
+            self._rust_operation.name, self._rust_operation.num_qubits, [v_x, v_y, v_z], label=label
+        )
 
     def _define(self):
         try:

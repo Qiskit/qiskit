@@ -2679,7 +2679,6 @@ mod test_custom_operations {
                 }
             }
 
-            #[cfg(feature = "py")]
             impl ToPythonOperation for $ty {}
         };
     }
