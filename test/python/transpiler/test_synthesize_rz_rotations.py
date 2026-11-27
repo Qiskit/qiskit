@@ -224,6 +224,17 @@ class TestSynthesizeRzRotations(QiskitTestCase):
 
         self.assertLessEqual(operator_norm_distance(qc, full_angle), full_error)
 
+    @data(-10, -9, 0, 2.5)
+    def test_invalid_synthesis_error_raises(self, synthesis_error):
+        """Test that a synthesis_error outside ``(0, 2]`` raises ``ValueError``.
+
+        Regression test of https://github.com/Qiskit/qiskit/issues/16384.
+        """
+        qc = QuantumCircuit(1)
+        qc.rz(0.1, 0)
+        with self.assertRaises(ValueError):
+            SynthesizeRZRotations(synthesis_error=synthesis_error, cache_error=0.5)(qc)
+
     def test_control_flow(self):
         """Test that synthesize_rz_rotations synthesizes operations within control-flow blocks."""
 
