@@ -338,7 +338,7 @@ mod tests {
     use qiskit_mir::instruction::MirInstruction;
     use qiskit_mir::mir::Mir;
     use qiskit_mir::ops::pbc;
-    use qiskit_mir::qid::{BitLayout, QidInfo, QidSpace};
+    use qiskit_mir::qid::{BitLayout, QidBit, QidInfo, QidSpace};
     use qiskit_mir::symbol_table::{Symbol, SymbolIdList, SymbolType};
 
     fn pauli_from_ascii(ascii: &[u8]) -> Option<pbc::PauliString> {
@@ -515,6 +515,16 @@ mod tests {
                 ("XIXYXZYIXXYZ", p[..12].iter().rev().copied().collect()),
                 ("YXIXIYZXZYXX", modules.iter().rev().copied().collect()),
             ],
+            [
+                // Interleaved leaves of two modules, returning to the first after the second.
+                ("XYZ", vec![p[0], p[4], p[1]]),
+                ("IIIYIIXZ", vec![modules[0], modules[1]]),
+            ],
+            [
+                // ... and the same, but the output module order is not the numeric order.
+                ("YZX", vec![p[4], p[0], p[5]]),
+                ("IIIZIIYX", vec![modules[1], modules[0]]),
+            ],
         ];
 
         let sym = mir
@@ -640,6 +650,83 @@ mod tests {
     }
 
     #[test]
+    fn nontrivial_bases_with_others() {
+        // Multi-bit leaves in a module, mixed in with wide pass-through qids in both spaces, with
+        // the module both leading and in the middle.
+        let mut table = ResourceTable::new(QidSpace::Physical);
+        let p = [1, 1, 2].map(|width| table.add_qid(QidInfo::base(width)).unwrap());
+        let module = table
+            .add_qid(QidInfo::new(BitLayout::Alias(
+                vec![
+                    Some(p[2].bit(1)),
+                    Some(p[0].bit(0)),
+                    None,
+                    Some(p[2].bit(0)),
+                    Some(p[1].bit(0)),
+                ]
+                .into(),
+            )))
+            .unwrap();
+        let wide_phys = table.add_qid(QidInfo::base(3)).unwrap();
+        let pass = ModularizePbc {
+            map: ModuleMap::for_modules(&table, [module]).unwrap(),
+            phys_table: Arc::new(table),
+        };
+
+        let mut mir = Mir::new();
+        let wide_virt = mir.resource_table_mut().add_qid(QidInfo::base(2)).unwrap();
+
+        let cases = [
+            [
+                ("YXZYXZYX", vec![p[2], wide_virt, p[1], wide_phys]),
+                ("YXZXZYXIIY", vec![module, wide_virt, wide_phys]),
+            ],
+            [
+                ("XZZYXXYZ", vec![wide_virt, p[0], wide_phys, p[2]]),
+                ("ZYXIZIXXYZ", vec![wide_virt, module, wide_phys]),
+            ],
+        ];
+
+        // Not the same angle as other tests, and not one that's "special" in any way.
+        let angle = pbc::AngleType::new(0.125);
+        for [(pauli, qids), _] in cases.iter() {
+            let rot = pbc::PauliRotation::new(pauli_from_ascii(pauli.as_bytes()).unwrap(), angle);
+            mir.instructions_mut().push_back(MirInstruction::new(
+                MirOp::PauliRotation(rot),
+                QidList::new(qids.clone()),
+                Default::default(),
+                Default::default(),
+            ));
+        }
+        let expected = cases
+            .into_iter()
+            .map(|[_, (s, q)]| (s.to_owned(), q))
+            .collect::<Vec<_>>();
+
+        let (out, _) = pass.into_passmanager().run::<_, Mir>(mir).unwrap();
+        let actual = out
+            .instructions()
+            .iter_main()
+            .map(|n| {
+                let inst = n.weight();
+                let MirOp::PauliRotation(rot) = inst.op() else {
+                    panic!("modularise produced a non-rotation")
+                };
+                assert_eq!(rot.angle(), angle, "rotation angle should be unchanged");
+                (
+                    pauli_to_ascii(rot.paulis().as_slice()),
+                    inst.qids().inner().to_owned(),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let mismatches = iter::zip(actual, expected)
+            .filter(|(a, b)| a != b)
+            .collect::<Vec<_>>();
+        assert!(mismatches.is_empty(), "{}", fmt_failures(&mismatches))
+    }
+
+    #[test]
     fn new_overlap_detection() {
         let mut table = ResourceTable::new(QidSpace::Physical);
         let p = (0..2)
@@ -667,5 +754,127 @@ mod tests {
             )
             .unwrap_err();
         assert!(matches!(err, ModularizerError::NewOverlap));
+    }
+
+    #[test]
+    fn new_overlap_between_modules() {
+        let mut table = ResourceTable::new(QidSpace::Physical);
+        let p = (0..4)
+            .map(|_| table.add_qid(QidInfo::base(1)).unwrap())
+            .collect::<Vec<_>>();
+        let modules = p
+            .chunks_exact(2)
+            .map(|qids| {
+                let layout = qids.iter().map(|q| Some(q.bit(0))).collect();
+                table
+                    .add_qid(QidInfo::new(BitLayout::Alias(layout)))
+                    .unwrap()
+            })
+            .collect::<Vec<_>>();
+        let shared = table.add_qid(QidInfo::new(BitLayout::Abstract)).unwrap();
+        for &module in modules.iter() {
+            table.mark_contains(module, shared).unwrap();
+        }
+
+        let pass = ModularizePbc {
+            map: ModuleMap::for_modules(&table, modules.iter().copied()).unwrap(),
+            phys_table: Arc::new(table),
+        };
+        let mir_table = ResourceTable::new(QidSpace::Virtual);
+        let mut state = ModularizerState::new(&pass);
+        let paulis = pauli_from_ascii(b"XZ").unwrap();
+
+        assert!(matches!(
+            state.modularize(&mir_table, &paulis, &[p[0], p[1]]),
+            Ok(Some(_))
+        ));
+        assert!(matches!(
+            state.modularize(&mir_table, &paulis, &[p[0], p[2]]),
+            Err(ModularizerError::NewOverlap)
+        ));
+    }
+
+    #[test]
+    fn new_overlap_alias_passthrough() {
+        let mut table = ResourceTable::new(QidSpace::Physical);
+        let p = (0..2)
+            .map(|_| table.add_qid(QidInfo::base(1)).unwrap())
+            .collect::<Vec<_>>();
+        let module = table
+            .add_qid(QidInfo::new(BitLayout::Alias(
+                vec![Some(p[0].bit(0)), Some(p[1].bit(0))].into(),
+            )))
+            .unwrap();
+        // A different view onto one of the module's base qids, which isn't itself in the module's
+        // layout, so won't be rewritten.
+        let other_view = table
+            .add_qid(QidInfo::new(BitLayout::Alias(
+                vec![Some(p[1].bit(0))].into(),
+            )))
+            .unwrap();
+
+        let pass = ModularizePbc {
+            map: ModuleMap::for_modules(&table, [module]).unwrap(),
+            phys_table: Arc::new(table),
+        };
+        let err = ModularizerState::new(&pass)
+            .modularize(
+                &ResourceTable::new(QidSpace::Virtual),
+                &pauli_from_ascii(b"XZ").unwrap(),
+                &[p[0], other_view],
+            )
+            .unwrap_err();
+        assert!(matches!(err, ModularizerError::NewOverlap));
+    }
+
+    #[test]
+    fn module_map_errors() {
+        fn alias(table: &mut ResourceTable, bits: &[QidBit]) -> Qid {
+            table
+                .add_qid(QidInfo::new(BitLayout::Alias(
+                    bits.iter().copied().map(Some).collect(),
+                )))
+                .unwrap()
+        }
+
+        let mut table = ResourceTable::new(QidSpace::Physical);
+        let p = [1, 1, 2].map(|width| table.add_qid(QidInfo::base(width)).unwrap());
+        let both = alias(&mut table, &[p[0].bit(0), p[1].bit(0)]);
+        let just_p0 = alias(&mut table, &[p[0].bit(0)]);
+        let wide = alias(&mut table, &[p[2].bit(0), p[2].bit(1)]);
+        let wide_rev = alias(&mut table, &[p[2].bit(1), p[2].bit(0)]);
+        let abstract_qid = table.add_qid(QidInfo::new(BitLayout::Abstract)).unwrap();
+
+        assert!(ModuleMap::for_modules(&table, iter::empty()).is_ok());
+        assert!(ModuleMap::for_modules(&table, [both, wide]).is_ok());
+
+        assert!(matches!(
+            ModuleMap::for_modules(&table, [both, p[0]]),
+            Err(ModuleMapError::NotModule(q)) if q == p[0],
+        ));
+        assert!(matches!(
+            ModuleMap::for_modules(&table, [abstract_qid]),
+            Err(ModuleMapError::NotModule(q)) if q == abstract_qid,
+        ));
+
+        let absent = Qid::phys(100);
+        assert!(matches!(
+            ModuleMap::for_modules(&table, [absent]),
+            Err(ModuleMapError::AbsentQid(q)) if q == absent,
+        ));
+        let wrong_space = Qid::virt(both.value());
+        assert!(matches!(
+            ModuleMap::for_modules(&table, [wrong_space]),
+            Err(ModuleMapError::AbsentQid(q)) if q == wrong_space,
+        ));
+
+        assert!(matches!(
+            ModuleMap::for_modules(&table, [both, just_p0]),
+            Err(ModuleMapError::AmbiguousMap(q)) if q == p[0],
+        ));
+        assert!(matches!(
+            ModuleMap::for_modules(&table, [wide, wide_rev]),
+            Err(ModuleMapError::AmbiguousMap(q)) if q == p[2],
+        ));
     }
 }
