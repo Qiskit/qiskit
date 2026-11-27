@@ -1071,6 +1071,33 @@ class TestParameterExpression(QiskitTestCase):
         expected = x + y - 3.0
         self.assertEqual(expected, sub2)
 
+    def test_equality_with_constants(self):
+        """Test ``==`` on sums with constants, which are collected into a single constant."""
+        x, y = Parameter("x"), Parameter("y")
+        equal = [
+            ((x + 1) + y, 1 + (y + x)),
+            (2 * (x + 1) - 2, 2 * x),
+            ((1 - x) - (2 - y), y - x - 1),
+            ((x + 1) - (2 + y), x - y - 1),
+            (1 - (x + y) - 2, -x - y - 1),
+            (-2 * (1 - x + y), 2 * x - 2 * y - 2),
+            ((x + 1) * 3 + (y - 2) * 3, 3 * x + 3 * y - 3),
+        ]
+        for left, right in equal:
+            with self.subTest(left=str(left), right=str(right)):
+                self.assertEqual(left, right)
+                self.assertEqual(right, left)
+
+        not_equal = [
+            ((x + 1) + y, (x + 2) + y),
+            ((1 - x) - (2 - y), x - y - 1),
+            (2 * (x + 1), 2 * x + 1),
+        ]
+        for left, right in not_equal:
+            with self.subTest(left=str(left), right=str(right)):
+                self.assertNotEqual(left, right)
+                self.assertNotEqual(right, left)
+
     def test_deep_string_parse(self):
         """Test that the string parser can handle very deep expressions."""
         n = 100_000
@@ -1091,14 +1118,12 @@ class TestParameterExpression(QiskitTestCase):
         x = Parameter("x")
         y = Parameter("y")
 
-        # These two expressions do not canonicalise to each other, as of the introduction of the
-        # test (2026-09-07), so they should not appear structurally equal.  If canonicalisation is
-        # introduced, the test case should be changed (after we've checked that `structurally_equal`
-        # is actually correct).
+        # These two expressions do canonicalise to each other, since all constants are
+        # stored as LHS element.
         left = x + y + 1
         right = 1 + y + x
         self.assertEqual(left, right)
-        self.assertNotStructurallyEqual(left, right)
+        self.assertStructurallyEqual(left, right)
 
     @ddt.unpack
     @ddt.data(
