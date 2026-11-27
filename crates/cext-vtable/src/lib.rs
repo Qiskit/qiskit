@@ -164,6 +164,8 @@ mod circuit {
             export_fn!(qk_circuit_box),
             export_fn!(qk_circuit_box_duration_info),
             export_fn!(qk_circuit_box_duration_expr),
+            export_fn!(qk_circuit_for_loop_range),
+            export_fn!(qk_circuit_for_loop_elements),
         ]
     });
 }
