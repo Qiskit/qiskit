@@ -689,7 +689,6 @@ mod tests {
             ],
         ];
 
-        // Not the same angle as other tests, and not one that's "special" in any way.
         let angle = pbc::AngleType::new(0.125);
         for [(pauli, qids), _] in cases.iter() {
             let rot = pbc::PauliRotation::new(pauli_from_ascii(pauli.as_bytes()).unwrap(), angle);
