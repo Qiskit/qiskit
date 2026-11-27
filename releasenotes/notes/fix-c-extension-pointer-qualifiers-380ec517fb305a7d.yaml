@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed nested pointer const qualifiers in generated C API extension headers,
+    which could reject valid calls to :c:func:`qk_circuit_parameterized_gate` from C++.
