@@ -70,7 +70,7 @@ pub fn run_instruction_duration_check(
                 }
             };
 
-            if !(duration % acquire_align == 0 || duration % pulse_align == 0) {
+            if !(duration % acquire_align == 0 && duration % pulse_align == 0) {
                 return Ok(true);
             }
         }
