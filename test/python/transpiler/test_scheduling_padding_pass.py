@@ -25,6 +25,7 @@ from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     ConstrainedReschedule,
     PadDelay,
+    SetIOLatency,
     TimeUnitConversion,
 )
 from qiskit.transpiler.passmanager import PassManager
@@ -144,6 +145,27 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         pass_ = schedule_pass(target=target)
         pass_(qc, property_set=property_set)
         self.assertEqual(property_set["node_start_time"], {})
+
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    def test_clbit_write_latency_longer_than_idle_time(self, schedule_pass):
+        """Test a clbit write latency that is longer than the time the clbit has been busy.
+        See: https://github.com/Qiskit/qiskit/issues/17398
+        """
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        qc.barrier()
+
+        durations = InstructionDurations([("measure", None, 1600)], dt=1e-9)
+        for clbit_write_latency in (1600, 3200):
+            with self.subTest(clbit_write_latency=clbit_write_latency):
+                schedule = schedule_pass(durations)
+                pm = PassManager([SetIOLatency(clbit_write_latency=clbit_write_latency), schedule])
+                pm.run(qc)
+                start_times = {
+                    node.op.name: start
+                    for node, start in schedule.property_set["node_start_time"].items()
+                }
+                self.assertEqual(start_times, {"measure": 0, "barrier": 1600})
 
     @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_shorter_measure_after_measure(self, schedule_pass):

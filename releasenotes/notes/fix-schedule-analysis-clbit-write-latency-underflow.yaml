@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :class:`.ASAPScheduleAnalysis` and :class:`.ALAPScheduleAnalysis` returning
+    start times close to ``2**64`` when the ``clbit_write_latency`` set by
+    :class:`.SetIOLatency` was longer than the time a measured clbit had been in use.
+    Fixed `#17398 <https://github.com/Qiskit/qiskit/issues/17398>`__.

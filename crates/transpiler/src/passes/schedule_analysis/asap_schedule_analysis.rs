@@ -120,7 +120,14 @@ pub fn run_asap_schedule_analysis<T: TimeOps>(
             // Q ▒▒▒▒░░░░▒▒▒▒▒▒▒▒
             // C ▒▒▒▒▒▒▒▒░░░▒▒▒▒▒
             //              |t0c' = t0c + clbut_write_latency
-            let t0 = *T::max(&t0q, &(t0c - clbit_write_latency));
+            //
+            // The comparison avoids evaluating `t0c - clbit_write_latency` when the latency is
+            // longer than `t0c`, which would underflow for integer times.
+            let t0 = if t0c > t0q + clbit_write_latency {
+                t0c - clbit_write_latency
+            } else {
+                t0q
+            };
             let t1 = t0 + op_duration;
             for clbit in cargs.iter() {
                 idle_after.insert(*clbit, t1);
