@@ -15,6 +15,7 @@
 use crate::program::ProgramFunction;
 use crate::randomization::partition::Partition;
 use crate::randomization::virtual_type::VirtualType;
+use crate::tensor::Dim;
 
 use super::Distribution;
 
@@ -55,7 +56,7 @@ impl Distribution for Noise {
         &self.factorization
     }
 
-    fn program_function(&self) -> ProgramFunction {
+    fn program_function(&self, _batch: &[Dim]) -> ProgramFunction {
         todo!("sampling a Pauli-Lindblad map is not implemented yet")
     }
 }
