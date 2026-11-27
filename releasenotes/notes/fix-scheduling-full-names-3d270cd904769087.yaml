@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed the ``scheduling_method`` argument of :func:`~qiskit.compiler.transpile`
+    rejecting the full names ``"as_late_as_possible"`` and
+    ``"as_soon_as_possible"``, which were documented but raised a
+    :class:`~qiskit.transpiler.exceptions.TranspilerError`. The short aliases
+    ``"alap"`` and ``"asap"`` were unaffected. See
+    `#10195 <https://github.com/Qiskit/qiskit/issues/10195>`__ for more details.
