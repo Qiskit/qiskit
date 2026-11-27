@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.PiecewiseChebyshevGate` where the function was approximated
+    outside the given breakpoints instead of padding with the identity polynomial
+    (the constant :math:`\arcsin(1)`) as documented, and as previously done in the (now deprecated) 
+    :class:`.PiecewiseChebyshev` circuit.
+
+    See `#17454 <https://github.com/Qiskit/qiskit/issues/17454>`__.
+  - |
+    Fixed :class:`.PiecewiseChebyshevGate` to explicitly raise an error if only a single
+    breakpoint is given, which is invalid as it does not unambigiously define approximation
+    intervals, instead of silently applying the identity polynomial globally.
+

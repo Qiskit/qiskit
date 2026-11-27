@@ -19,6 +19,7 @@ from ddt import ddt, data, unpack
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import BlueprintCircuit
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import (
     PiecewiseChebyshev,
     PiecewiseChebyshevGate,
@@ -31,10 +32,12 @@ from test import QiskitTestCase
 class TestPiecewiseChebyshev(QiskitTestCase):
     """Test the piecewise Chebyshev approximation."""
 
-    def assertFunctionIsCorrect(self, function_circuit, reference, num_ancillas=None):
+    def assertFunctionIsCorrect(self, function_circuit, reference, num_ancillas=None, decimal=1):
         """Assert that ``function_circuit`` implements the reference function ``reference``."""
-        function_circuit._build()
-        num_ancillas = function_circuit.num_ancillas if num_ancillas is None else num_ancillas
+        if isinstance(function_circuit, BlueprintCircuit):
+            function_circuit._build()
+            num_ancillas = function_circuit.num_ancillas if num_ancillas is None else num_ancillas
+
         num_state_qubits = function_circuit.num_qubits - num_ancillas - 1
 
         circuit = QuantumCircuit(num_state_qubits + 1 + num_ancillas)
@@ -61,26 +64,24 @@ class TestPiecewiseChebyshev(QiskitTestCase):
             unrolled_expectations += [np.real(np.abs(expected_amplitude) ** 2)]
 
         np.testing.assert_array_almost_equal(
-            unrolled_probabilities, unrolled_expectations, decimal=1
+            unrolled_probabilities, unrolled_expectations, decimal=decimal
         )
 
     @data(
-        (lambda x: np.arcsin(1 / x), 2, [2, 4], 2),
-        (lambda x: x / 8, 1, [1, 8], 3),
-        (np.sqrt, 2, None, 2),
+        # these are exact approxiations, use decimal=7
+        (lambda x: x / 8, 1, [1, 2], 2, 7),
+        # these are approximate, use decimal=1
+        (lambda x: np.arcsin(1 / x), 2, [2, 4], 2, 1),
+        (np.sqrt, 4, None, 5, 1),
     )
     @unpack
-    def test_piecewise_chebyshev(self, f_x, degree, breakpoints, num_state_qubits):
+    def test_piecewise_chebyshev(self, f_x, degree, breakpoints, num_state_qubits, decimal):
         """Test the piecewise Chebyshev approximation."""
 
         def pw_poly(x):
-            if breakpoints:
-                if len(breakpoints) > 1:
-                    start = breakpoints[0]
-                    end = breakpoints[-1]
-                else:
-                    start = breakpoints[0]
-                    end = 2**num_state_qubits
+            if breakpoints and len(breakpoints) > 2:
+                start = breakpoints[0]
+                end = breakpoints[-1]
             else:
                 start = 0
                 end = 2**num_state_qubits
@@ -94,7 +95,9 @@ class TestPiecewiseChebyshev(QiskitTestCase):
                     pw_approximation = PiecewiseChebyshevGate(
                         f_x, num_state_qubits, degree, breakpoints
                     )
-                    num_ancillas = 0 if breakpoints is None else int(len(breakpoints) > 1)
+                    num_ancillas = (
+                        0 if breakpoints is None else int(len(pw_approximation.breakpoints) > 2)
+                    )
                 else:
                     with self.assertWarns(DeprecationWarning):
                         pw_approximation = PiecewiseChebyshev(
@@ -102,7 +105,13 @@ class TestPiecewiseChebyshev(QiskitTestCase):
                         )
                     num_ancillas = None
 
-        self.assertFunctionIsCorrect(pw_approximation, pw_poly, num_ancillas)
+                self.assertFunctionIsCorrect(pw_approximation, pw_poly, num_ancillas, decimal)
+
+    @data([], [0], [1], [2], [4])
+    def test_piecewise_chebyshev_gate_single_breakpoint(self, breakpoints):
+        """Test fewer than two breakpoints raise, as they do not define an interval."""
+        with self.assertRaisesRegex(ValueError, "do not define an interval"):
+            _ = PiecewiseChebyshevGate(lambda x: x / 8, 2, 1, breakpoints)
 
     def test_piecewise_chebyshev_mutability(self):
         """Test the mutability of the piecewise Chebyshev approximation."""
