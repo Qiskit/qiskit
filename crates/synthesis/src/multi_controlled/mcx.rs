@@ -2028,18 +2028,28 @@ pub fn synth_mc_rot_noaux(
     let k_1 = (num_ctrl_qubits as f64 / 2.0).ceil() as usize;
     let k_2 = (num_ctrl_qubits as f64 / 2.0).floor() as usize;
 
-    let mcx1 = synth_mcx_n_dirty_i15(k_1, false, false)?;
-    let num_qubits_mcx1 = if k_1 < 4 { k_1 + 1 } else { 2 * k_1 - 1 };
-    let mcx1_num_ancillas = num_qubits_mcx1 - k_1 - 1;
+    let mcx1 = synth_mcx_n_dirty_m15(k_1)?;
+    let mcx1_num_ancillas = if k_1 < 3 {
+        0
+    } else if k_1 == 3 {
+        1
+    } else {
+        ((k_1 - 2) as f64 / 2.0).ceil() as usize
+    };
     let mcx1_qubits: Vec<Qubit> = (0..k_1)
         .chain([num_ctrl_qubits])
         .chain(k_1..k_1 + mcx1_num_ancillas)
         .map(|q| Qubit(q as u32))
         .collect();
 
-    let mcx2 = synth_mcx_n_dirty_i15(k_2, false, false)?;
-    let num_qubits_mcx2 = if k_2 < 4 { k_2 + 1 } else { 2 * k_2 - 1 };
-    let mcx2_num_ancillas = num_qubits_mcx2 - k_2 - 1;
+    let mcx2 = synth_mcx_n_dirty_m15(k_2)?;
+    let mcx2_num_ancillas = if k_2 < 3 {
+        0
+    } else if k_2 == 3 {
+        1
+    } else {
+        ((k_2 - 2) as f64 / 2.0).ceil() as usize
+    };
     let mcx2_qubits: Vec<Qubit> = (k_1..num_ctrl_qubits)
         .chain([num_ctrl_qubits])
         .chain(k_1 - mcx2_num_ancillas..k_1)
