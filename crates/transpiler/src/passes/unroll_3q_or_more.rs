@@ -15,14 +15,17 @@ use qiskit_circuit::dag_circuit::DAGError;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::QiskitError;
+use crate::equivalence::EquivalenceLibrary;
 use crate::target::Target;
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Operation;
 use thiserror::Error;
 
+const BASIC_INSTRS: [&str; 6] = ["measure", "reset", "barrier", "snapshot", "delay", "store"];
+
 #[derive(Error, Debug)]
 pub enum Unroll3qError {
-    #[error("Cannot unroll all 3q or more gates. No rule to expand {0}")]
+    #[error("Cannot unroll gate. No rule to expand {0}")]
     NoDefinition(String),
     #[error("Failed to substitute the definition")]
     SubstitutionError(#[from] DAGError),
@@ -44,15 +47,32 @@ pub fn run_unroll_3q_or_more(
     dag: &mut DAGCircuit,
     target: Option<&Target>,
 ) -> Result<(), Unroll3qError> {
+    run_unroll_custom_definitions(dag, target, None, 3)
+}
+
+pub fn run_unroll_custom_definitions(
+    dag: &mut DAGCircuit,
+    target: Option<&Target>,
+    equiv_lib: Option<&EquivalenceLibrary>,
+    min_qubits: u32,
+) -> Result<(), Unroll3qError> {
     let remove_list: Result<Vec<(NodeIndex, DAGCircuit)>, Unroll3qError> = dag
         .op_nodes(false)
         .filter_map(
             |(idx, inst)| -> Option<Result<(NodeIndex, DAGCircuit), Unroll3qError>> {
-                if inst.op.num_qubits() < 3 || inst.op.try_control_flow().is_some() {
+                if inst.op.num_qubits() < min_qubits || inst.op.try_control_flow().is_some() {
+                    return None;
+                }
+                if BASIC_INSTRS.contains(&inst.op.name()) {
                     return None;
                 }
                 if let Some(target) = target
                     && target.contains_key(inst.op.name())
+                {
+                    return None;
+                }
+                if let Some(equiv_lib) = equiv_lib
+                    && equiv_lib.has_entry(&inst.op)
                 {
                     return None;
                 }
@@ -67,7 +87,9 @@ pub fn run_unroll_3q_or_more(
                         Ok(dag) => dag,
                         Err(e) => return Some(Err(Unroll3qError::SubstitutionError(e))),
                     };
-                if let Err(e) = run_unroll_3q_or_more(&mut decomp_dag, target) {
+                if let Err(e) =
+                    run_unroll_custom_definitions(&mut decomp_dag, target, equiv_lib, min_qubits)
+                {
                     return Some(Err(e));
                 }
                 Some(Ok((idx, decomp_dag)))
