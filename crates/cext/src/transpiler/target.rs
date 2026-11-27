@@ -862,15 +862,14 @@ pub unsafe extern "C" fn qk_target_add_instruction(
         Some(entry.map)
     };
 
-    match target.add_instruction(
+    let result = target.add_instruction(
         instruction.into(),
         entry.params.map(Parameters::Params),
         entry.name.as_deref(),
         property_map,
-    ) {
-        Ok(_) => ExitCode::Success,
-        Err(e) => e.into(),
-    }
+    );
+
+    ExitCode::from_result(&result)
 }
 
 /// @ingroup QkTarget
@@ -930,14 +929,13 @@ pub unsafe extern "C" fn qk_target_update_property(
     };
     let error = if error.is_nan() { None } else { Some(error) };
 
-    match target.update_instruction_properties(
+    let result = target.update_instruction_properties(
         instruction.name(),
         &qargs,
         Some(InstructionProperties::new(duration, error)),
-    ) {
-        Ok(_) => ExitCode::Success,
-        Err(e) => e.into(),
-    }
+    );
+
+    ExitCode::from_result(&result)
 }
 
 /// @ingroup QkTarget

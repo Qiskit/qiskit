@@ -151,11 +151,13 @@ unsafe fn dump_buffer_impl(
     error: *mut *mut c_char,
 ) -> ExitCode {
     if let Err(error) = check_ptr(buffer) {
-        return error.into();
+        return ExitCode::from_error(&error);
     }
+
     if let Err(error) = check_ptr(size) {
-        return error.into();
+        return ExitCode::from_error(&error);
     }
+
     // File header takes 20 bytes so this is the min size of a qpy buffer
     let mut output: Vec<u8> = Vec::with_capacity(20);
     // SAFETY: this function's caller upholds the circuit-array contract.
@@ -300,9 +302,11 @@ pub unsafe extern "C" fn qk_qpy_load_file(
     if filename.is_null() {
         return ExitCode::NullPointerError;
     }
+
     if let Err(error) = check_ptr(circuits) {
-        return error.into();
+        return ExitCode::from_error(&error);
     }
+
     // SAFETY: upheld by the caller contract and checked non-null above.
     let Ok(filename) = unsafe { CStr::from_ptr(filename) }.to_str() else {
         return return_error(
@@ -445,8 +449,9 @@ pub unsafe extern "C" fn qk_qpy_load_buffer(
         return ExitCode::NullPointerError;
     }
     if let Err(error) = check_ptr(circuits) {
-        return error.into();
+        return ExitCode::from_error(&error);
     }
+
     // SAFETY: upheld by the caller contract and checked non-null above.
     match load(unsafe { slice::from_raw_parts(buffer.cast::<u8>(), size) }) {
         Ok(loaded) => {
