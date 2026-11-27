@@ -1,0 +1,6 @@
+fixes:
+  - |
+    Fixed problematic panic cases for some C API functions in a backwards
+    compatible manner. The panic cases could occur based on caller input, which
+    is undesireable for production services using Qiskit. The affected
+    functions now return invalid data or do nothing instead of panicking.
