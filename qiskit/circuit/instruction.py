@@ -36,6 +36,7 @@ from __future__ import annotations
 import copy
 from itertools import zip_longest
 import math
+import warnings
 
 import numpy
 
@@ -556,3 +557,47 @@ class Instruction(Operation):
                 if x != y:
                     return False
         return True
+
+
+class InstructionFromRust(Instruction):
+    """Opaque non-unitary operation implemented in Rust"""
+
+    # Native instance of the instruction originating from Rust
+    _rust_operation = None
+
+    def __init__(self, native_inst, params, label=None):
+        # ``native_inst`` only carries the Rust operation; ``params`` and ``label`` are owned by
+        # this Python object and are passed back to Rust whenever they're needed.
+        self._rust_operation = native_inst
+        super().__init__(
+            native_inst.name, native_inst.num_qubits, native_inst.num_clbits, params, label
+        )
+
+    def _define(self):
+        self._definition = self._rust_operation.definition(self.params)
+
+    def inverse(self, annotated: bool = False):
+        # As with the standard gates, a native inverse is always returned as a concrete
+        # operation and ``annotated`` is ignored.
+        inverse = self._rust_operation.inverse(self.params)
+        if inverse is not None:
+            return inverse
+        return super().inverse(annotated=annotated)
+
+    def __reduce__(self):
+        # The base Rust carrier has no constructor, so it can't be rebuilt when unpickled.
+        # Pickle a plain ``Instruction`` holding the same data instead.
+        warnings.warn(
+            f"'{self.name}' is implemented in Rust and can't be pickled as-is. It will be "
+            "unpickled as a plain Instruction with the same name, params, label and definition.",
+            UserWarning,
+            stacklevel=2,
+        )
+        args = (self.name, self.num_qubits, self.num_clbits, self.params, self.label)
+        return (Instruction, args, {"_definition": self.definition})
+
+    def __copy__(self):
+        # Without this, ``copy.copy`` would go through ``__reduce__`` and degrade the operation.
+        cpy = object.__new__(type(self))
+        cpy.__dict__.update(self.__dict__)
+        return cpy

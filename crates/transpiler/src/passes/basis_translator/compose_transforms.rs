@@ -16,7 +16,7 @@ use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::CustomOperation;
+use qiskit_circuit::operations::{CustomOperation, ToPythonOperation};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::SymbolVector;
@@ -196,3 +196,5 @@ impl CustomOperation for CustomDummy {
         true
     }
 }
+
+impl ToPythonOperation for CustomDummy {}

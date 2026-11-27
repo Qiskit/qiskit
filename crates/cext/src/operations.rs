@@ -17,6 +17,7 @@ use std::{
     sync::Arc,
 };
 
+use qiskit_circuit::operations::ToPythonOperation;
 use qiskit_circuit::{
     circuit_data::CircuitData,
     operations::{BoxedCustomOperation, CustomOperation, Operation, Param},
@@ -228,6 +229,8 @@ impl CustomOperation for CustomOp {
         }
     }
 }
+
+impl ToPythonOperation for CustomOp {}
 
 /// Represents a vtable containing all the function pointers
 /// pertaining to the methods associated with the instance of

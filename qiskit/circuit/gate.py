@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 from collections.abc import Iterator, Iterable
+import warnings
+
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -277,3 +279,50 @@ class Gate(Instruction):
             return parameter.item()
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")
+
+
+class GateFromRust(Gate):
+    """Opaque unitary gate implemented in Rust"""
+
+    # Native instance of the gate originating from Rust
+    _rust_operation = None
+
+    def __init__(self, native_gate, params, label=None):
+        # ``native_gate`` only carries the Rust operation; ``params`` and ``label`` are owned by
+        # this Python object and are passed back to Rust whenever they're needed.
+        self._rust_operation = native_gate
+        super().__init__(native_gate.name, native_gate.num_qubits, params, label)
+
+    def _define(self):
+        self._definition = self._rust_operation.definition(self.params)
+
+    def __array__(self, dtype=complex, copy=None):
+        if copy is False:
+            raise ValueError("Unable to avoid copy while creating an array as requested")
+        return self._rust_operation.to_matrix(self.params, dtype)
+
+    def inverse(self, annotated: bool = False):
+        # As with the standard gates, a native inverse is always returned as a concrete
+        # operation and ``annotated`` is ignored.
+        inverse = self._rust_operation.inverse(self.params)
+        if inverse is not None:
+            return inverse
+        return super().inverse(annotated=annotated)
+
+    def __reduce__(self):
+        # The base Rust carrier has no constructor, so it can't be rebuilt when unpickled.
+        # Pickle a plain ``Gate`` holding the same data instead.
+        warnings.warn(
+            f"'{self.name}' is implemented in Rust and can't be pickled as-is. It will be "
+            "unpickled as a plain Gate with the same name, params, label and definition.",
+            UserWarning,
+            stacklevel=2,
+        )
+        args = (self.name, self.num_qubits, self.params, self.label)
+        return (Gate, args, {"_definition": self.definition})
+
+    def __copy__(self):
+        # Without this, ``copy.copy`` would go through ``__reduce__`` and degrade the operation.
+        cpy = object.__new__(type(self))
+        cpy.__dict__.update(self.__dict__)
+        return cpy

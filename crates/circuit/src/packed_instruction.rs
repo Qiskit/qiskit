@@ -33,8 +33,6 @@ use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, CowArray, Ix2};
 use num_complex::Complex64;
 #[cfg(feature = "py")]
-use pyo3::exceptions::PyNotImplementedError;
-#[cfg(feature = "py")]
 use pyo3::prelude::*;
 #[cfg(feature = "py")]
 use pyo3::types::{PyDict, PyType};
@@ -683,6 +681,9 @@ impl PackedOperation {
                 OperationRef::PauliProductRotation(right),
             ) => Ok(left == right),
             (OperationRef::Store(left), OperationRef::Store(right)) => Ok(left == right),
+            (OperationRef::CustomOperation(left), OperationRef::CustomOperation(right)) => {
+                Ok(left == right)
+            }
             _ => Ok(false),
         }
     }
@@ -754,9 +755,11 @@ impl PackedOperation {
                 .get_bound(py)
                 .cast::<PyType>()?
                 .is_subclass(py_type),
-            OperationRef::CustomOperation(_) => Err(PyNotImplementedError::new_err(
-                "Custom operations from Rust cannot be checked by instance",
-            )),
+            OperationRef::CustomOperation(op) => op
+                .py_type(py)?
+                .bind(py)
+                .cast::<PyType>()?
+                .is_subclass(py_type),
             OperationRef::Store(_) => STORE.get_bound(py).cast::<PyType>()?.is_subclass(py_type),
         }
     }

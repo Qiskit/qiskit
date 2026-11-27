@@ -12,6 +12,8 @@
 
 use approx::relative_eq;
 use qiskit_quantum_info::matrix_compressed_pauli::MatrixCompressedPaulis;
+#[cfg(feature = "py")]
+use qiskit_quantum_info::sparse_observable::cast_array_type;
 use std::any::Any;
 #[cfg(not(feature = "py"))]
 use std::convert::Infallible;
@@ -38,12 +40,20 @@ use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
 #[cfg(feature = "py")]
 use crate::imports;
-use crate::operations::custom_traits::{ClonableOp, ComparableOp};
+#[cfg(feature = "py")]
+use crate::imports::{GATE_FROM_RUST, INSTRUCTION_FROM_RUST};
+#[cfg(feature = "py")]
+use crate::instruction::{Parameters, create_py_op};
+use crate::operations::custom_traits::{ClonableOp, ComparableOp, ConvertibleOperation};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
 #[cfg(feature = "py")]
 use crate::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 use crate::parameter::symbol_expr::{Symbol, Value};
+#[cfg(feature = "py")]
+use numpy::IntoPyArray;
+#[cfg(feature = "py")]
+use qiskit_quantum_info::QiskitError;
 
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array1, Array2, ArrayView2, Dim, ShapeBuilder, array};
@@ -2220,6 +2230,14 @@ impl Operation for Store {
 /// and [`Clone`].
 mod custom_traits {
     use crate::operations::CustomOperation;
+    #[cfg(feature = "py")]
+    use crate::operations::Param;
+    #[cfg(feature = "py")]
+    use crate::operations::ToPythonOperation;
+    #[cfg(feature = "py")]
+    use pyo3::prelude::*;
+    #[cfg(feature = "py")]
+    use smallvec::SmallVec;
 
     /// A trait which implements comparisons between [`CustomOperation`] instances.
     /// If the operation implements [`PartialEq`], this trait will be automatically implemented.
@@ -2259,6 +2277,48 @@ mod custom_traits {
             Box::new(self.clone())
         }
     }
+
+    /// A dyn-compatible bridge to [`ToPythonOperation`], which allows a
+    /// `dyn CustomOperation` to dispatch to the implementor's conversion.
+    ///
+    /// With the `py` feature enabled, this is only implemented for types that also implement
+    /// [`ToPythonOperation`]. Without it, this is implemented for every [`CustomOperation`].
+    /// See [`ToPythonOperation`] for how implementors should gate their implementations.
+    #[diagnostic::on_unimplemented(
+        message = "ToPythonOperation is required to correctly implement CustomOperation on {Self}.",
+        label = "This type needs an implementation of ToPythonOperation",
+        note = "Consider adding `impl ToPythonOperation for {Self} {{}}` to use the default conversion"
+    )]
+    pub trait ConvertibleOperation {
+        #[cfg(feature = "py")]
+        fn create_py_op<'py>(
+            &self,
+            py: Python<'py>,
+            params: Option<SmallVec<[Param; 3]>>,
+            label: Option<&str>,
+        ) -> PyResult<Py<PyAny>>;
+        #[cfg(feature = "py")]
+        fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>>;
+    }
+
+    #[cfg(not(feature = "py"))]
+    impl<Op: CustomOperation> ConvertibleOperation for Op {}
+
+    #[cfg(feature = "py")]
+    impl<Op: CustomOperation + ToPythonOperation> ConvertibleOperation for Op {
+        fn create_py_op<'py>(
+            &self,
+            py: Python<'py>,
+            params: Option<SmallVec<[Param; 3]>>,
+            label: Option<&str>,
+        ) -> PyResult<Py<PyAny>> {
+            ToPythonOperation::create_py_op(self, py, params, label)
+        }
+
+        fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>> {
+            ToPythonOperation::py_type(self, py)
+        }
+    }
 }
 
 /// Trait that implements common methods found in operations that, in conjunction with
@@ -2280,7 +2340,7 @@ mod custom_traits {
 /// This trait has an implicit requirement to [`PartialEq`] and [`Clone`] to allow for
 /// comparison between opaque gates and dynamic cloning.
 pub trait CustomOperation:
-    Operation + Any + Debug + Send + Sync + ComparableOp + ClonableOp
+    Operation + Any + Debug + Send + Sync + ComparableOp + ClonableOp + ConvertibleOperation
 {
     /// Return the custom label assigned to this instruction.
     fn label(&self) -> Option<&str> {
@@ -2396,6 +2456,173 @@ impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
     }
 }
 
+/// Python-side carrier for a `dyn CustomOperation`.
+///
+/// This only holds the operation itself. The parameters and label belong to the Python
+/// `GateFromRust` / `InstructionFromRust` wrapper, which is the single source of truth for
+/// them, and are passed in to the methods that need them.
+#[cfg(feature = "py")]
+#[pyclass(name = "GenericRustOperation", weakref, subclass, from_py_object)]
+#[derive(Debug, Clone)]
+pub struct PyCustomOperation {
+    inner: Box<dyn CustomOperation>,
+}
+
+#[cfg(feature = "py")]
+impl PyCustomOperation {
+    pub fn new(op: Box<dyn CustomOperation>) -> Self {
+        Self { inner: op }
+    }
+
+    pub fn op(&self) -> &dyn CustomOperation {
+        self.inner.as_ref()
+    }
+
+    /// Wrap this carrier in the matching Python class (`GateFromRust` if the operation is
+    /// unitary, `InstructionFromRust` otherwise).
+    ///
+    /// If `label` is `None`, the label from [`CustomOperation::label`] is used.
+    pub fn into_py_op<'py>(
+        self,
+        py: Python<'py>,
+        params: Option<&[Param]>,
+        label: Option<&str>,
+    ) -> PyResult<Py<PyAny>> {
+        let class = if self.inner.is_unitary() {
+            imports::GATE_FROM_RUST.get_bound(py)
+        } else {
+            imports::INSTRUCTION_FROM_RUST.get_bound(py)
+        };
+        let label = label.or(self.inner.label()).map(str::to_owned);
+        let params = pyo3::types::PyList::new(py, params.unwrap_or_default())?;
+        Ok(class.call1((self, params, label))?.unbind())
+    }
+}
+
+#[cfg(feature = "py")]
+#[pymethods]
+impl PyCustomOperation {
+    #[getter]
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    #[getter]
+    fn num_qubits(&self) -> u32 {
+        self.inner.num_qubits()
+    }
+
+    #[getter]
+    fn num_clbits(&self) -> u32 {
+        self.inner.num_clbits()
+    }
+
+    #[getter]
+    fn num_params(&self) -> u32 {
+        self.inner.num_params()
+    }
+
+    #[getter]
+    fn directive(&self) -> bool {
+        self.inner.directive()
+    }
+
+    #[getter]
+    fn label(&self) -> Option<&str> {
+        self.inner.label()
+    }
+
+    /// Build the definition circuit of the operation for the given parameters.
+    fn definition<'py>(
+        &self,
+        py: Python<'py>,
+        params: SmallVec<[Param; 3]>,
+    ) -> PyResult<Option<Bound<'py, PyAny>>> {
+        self.inner
+            .definition(&params)
+            .map(|circ| circ.into_py_quantum_circuit(py))
+            .transpose()
+    }
+
+    /// Build the matrix of the operation for the given parameters.
+    ///
+    /// Raises a `CircuitError` if no matrix is available, for example if the operation doesn't
+    /// implement one or its parameters are symbolic. Like any `QiskitError`, this lets callers
+    /// such as `Operator` fall back to the operation's definition.
+    #[pyo3(signature = (params, dtype=None))]
+    fn to_matrix<'py>(
+        &self,
+        py: Python<'py>,
+        params: Option<SmallVec<[Param; 3]>>,
+        dtype: Option<&Bound<'py, PyAny>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        match self.inner.matrix(params.as_deref().unwrap_or_default()) {
+            Ok(Some(mat)) => cast_array_type(py, mat.into_pyarray(py), dtype),
+            Ok(None) => Err(crate::circuit_data::CircuitError::new_err(format!(
+                "No matrix is available for '{}' with the given parameters",
+                self.inner.name()
+            ))),
+            Err(e) => Err(QiskitError::new_err(e.to_string())),
+        }
+    }
+
+    /// Compare the wrapped operations. Parameters live on the Python wrapper and are
+    /// compared there.
+    fn __eq__<'py>(&'py self, other: Bound<'py, PyAny>) -> bool {
+        let Ok(as_own) = other.cast::<Self>() else {
+            return false;
+        };
+        self.inner.as_ref() == as_own.borrow().inner.as_ref()
+    }
+
+    /// Return the native inverse of the operation for the given parameters, or `None` if the
+    /// operation doesn't implement one.
+    fn inverse(&self, py: Python, params: SmallVec<[Param; 3]>) -> PyResult<Option<Py<PyAny>>> {
+        self.inner
+            .inverse(&params)
+            .map(|(op, params)| {
+                let params = (!params.is_empty()).then(|| Parameters::Params(params));
+                create_py_op(py, op.view(), params, None)
+            })
+            .transpose()
+    }
+}
+
+/// Controls how a [`CustomOperation`] is exposed to Python.
+///
+/// When this crate's `py` feature is enabled, every [`CustomOperation`] must implement this
+/// trait. To use the default conversion, which wraps the operation in a `GateFromRust` (if
+/// [`CustomOperation::is_unitary`]) or an `InstructionFromRust`, an empty implementation is
+/// enough.
+// TODO: Conditionally compile under the `py` feature once
+// `qiskit-circuit-library` no longer depends on pyo3.
+#[cfg(feature = "py")]
+pub trait ToPythonOperation {
+    /// Build the Python representation of this operation.
+    fn create_py_op<'py>(
+        &self,
+        py: Python<'py>,
+        params: Option<SmallVec<[Param; 3]>>,
+        label: Option<&str>,
+    ) -> PyResult<Py<PyAny>>
+    where
+        Self: CustomOperation,
+    {
+        PyCustomOperation::new(self.clone_dyn()).into_py_op(py, params.as_deref(), label)
+    }
+
+    fn py_type<'py>(&self, py: Python<'py>) -> PyResult<Py<PyAny>>
+    where
+        Self: CustomOperation,
+    {
+        if self.is_unitary() {
+            Ok(GATE_FROM_RUST.get_bound(py).clone().unbind())
+        } else {
+            Ok(INSTRUCTION_FROM_RUST.get_bound(py).clone().unbind())
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use approx::assert_abs_diff_eq;
@@ -2472,6 +2699,8 @@ mod test_custom_operations {
                     $directive
                 }
             }
+
+            impl ToPythonOperation for $ty {}
         };
     }
 
@@ -2508,6 +2737,7 @@ mod test_custom_operations {
         label: Option<String>,
     }
     impl_static_operation!(ParametrizedAndLabeled; "custom_rz", 1, 0, 1, false);
+
     impl ParametrizedAndLabeled {
         pub fn new<T: Into<String>>(label: Option<T>) -> Self {
             Self {
@@ -2604,6 +2834,7 @@ mod test_custom_operations {
     #[derive(Debug, Clone, PartialEq)]
     struct OpaqueGate;
     impl_static_operation!(OpaqueGate; "foo", 1, 0, 0, false);
+
     impl CustomOperation for OpaqueGate {
         fn is_unitary(&self) -> bool {
             true

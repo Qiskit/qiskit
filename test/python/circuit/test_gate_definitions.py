@@ -356,6 +356,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "SingletonControlledGate",
         "_U0Gate",
         "_DefinedGate",
+        "GateFromRust",
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
         "QFTGate",

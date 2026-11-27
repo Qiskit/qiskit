@@ -15,6 +15,7 @@
 
 use hashbrown::HashMap;
 use num_complex::{Complex64, ComplexFloat};
+use qiskit_circuit::circuit_data::CircuitDataError;
 use smallvec::{SmallVec, smallvec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
@@ -902,9 +903,42 @@ pub fn unitary_to_gate_sequence_inner(
         })
 }
 
-#[pyfunction]
-#[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
 pub fn unitary_to_circuit(
+    unitary: ArrayView2<Complex64>,
+    target_basis_list: &EulerBasisSet,
+    qubit: usize,
+    error_map: Option<&OneQubitGateErrorMap>,
+    simplify: bool,
+    atol: Option<f64>,
+) -> Result<Option<CircuitData>, CircuitDataError> {
+    let circuit_sequence = unitary_to_gate_sequence_inner(
+        unitary,
+        target_basis_list,
+        qubit,
+        error_map,
+        simplify,
+        atol,
+    );
+    circuit_sequence
+        .map(|seq| {
+            CircuitData::from_standard_gates(
+                1,
+                seq.gates.into_iter().map(|(gate, params)| {
+                    (
+                        gate,
+                        params.into_iter().map(Param::Float).collect(),
+                        smallvec![Qubit(0)],
+                    )
+                }),
+                Param::Float(seq.global_phase),
+            )
+        })
+        .transpose()
+}
+
+#[pyfunction]
+#[pyo3(name = "unitary_to_circuit", signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
+pub fn py_unitary_to_circuit(
     unitary: PyReadonlyArray2<Complex64>,
     target_basis_list: Vec<PyBackedStr>,
     qubit: usize,
@@ -919,29 +953,15 @@ pub fn unitary_to_circuit(
     {
         target_basis_set.add_basis(basis?);
     }
-    let circuit_sequence = unitary_to_gate_sequence_inner(
+    Ok(unitary_to_circuit(
         unitary.as_array(),
         &target_basis_set,
         qubit,
         error_map,
         simplify,
         atol,
-    );
-    Ok(circuit_sequence.map(|seq| {
-        CircuitData::from_standard_gates(
-            1,
-            seq.gates.into_iter().map(|(gate, params)| {
-                (
-                    gate,
-                    params.into_iter().map(Param::Float).collect(),
-                    smallvec![Qubit(0)],
-                )
-            }),
-            Param::Float(seq.global_phase),
-        )
-        .map(Into::into)
-        .expect("Unexpected Qiskit python bug")
-    }))
+    )
+    .map(|circ| circ.map(Into::into))?)
 }
 
 #[inline]
@@ -1078,6 +1098,6 @@ pub mod euler_one_qubit_decomposer {
     use super::{
         EulerBasis, OneQubitGateErrorMap, OneQubitGateSequence, compute_error_list,
         generate_circuit, params_u1x, params_u3, params_xyx, params_xzx, params_zxz, params_zyz,
-        unitary_to_circuit, unitary_to_gate_sequence,
+        py_unitary_to_circuit, unitary_to_gate_sequence,
     };
 }

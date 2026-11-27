@@ -21,6 +21,8 @@ use num_bigint::BigUint;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, Register};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::instruction::Parameters;
+#[cfg(feature = "py")]
+use qiskit_circuit::operations::ToPythonOperation;
 use qiskit_circuit::operations::{
     Condition, ControlFlow, ControlFlowInstruction, CustomOperation, Operation, Param,
     StandardInstruction,
@@ -177,6 +179,9 @@ impl CustomOperation for DefinedGate {
         self.template.build_definition(params)
     }
 }
+
+#[cfg(feature = "py")]
+impl ToPythonOperation for DefinedGate {}
 
 /// Indexed by `GateId`, so the order must match `State::new` in `parse.rs`: `U`=0, `CX`=1, then
 /// `qelib1`.  That holds only while no caller passes the parser its own `CustomInstruction`s;

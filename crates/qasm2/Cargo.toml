@@ -14,7 +14,7 @@ workspace = true
 
 [features]
 default = ["py"]
-py = ["dep:pyo3"]
+py = ["dep:pyo3", "qiskit-circuit/py"]
 
 [dependencies]
 num-bigint.workspace = true

@@ -32,8 +32,9 @@ use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
     ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, UnitaryGate,
+    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    PyCustomOperation, PyInstruction, PyOpKind, StandardGate, StandardInstruction,
+    StandardInstructionType, Store, UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -826,6 +827,31 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
             };
             let operation = PackedOperation::from_control_flow(control_flow.into());
             let params = extract_params(operation.view(), &params)?;
+            return Ok(OperationFromPython {
+                operation,
+                params,
+                label: extract_label()?,
+            });
+        }
+
+        'custom_op: {
+            // Operations implemented in Rust (`GateFromRust` / `InstructionFromRust`) carry the
+            // native `dyn CustomOperation` in the hidden `_rust_operation` attribute. Only the
+            // operation itself comes from the carrier: the params and label are read from the
+            // Python object, which is their source of truth (they may have been modified
+            // from Python).
+            //
+            // This runs for every non-standard Python operation, so use `getattr_opt` to avoid
+            // raising an `AttributeError` on every miss.
+            let Some(rust_op) = ob.getattr_opt(intern!(py, "_rust_operation"))? else {
+                break 'custom_op;
+            };
+            let Ok(rust_op) = rust_op.cast::<PyCustomOperation>() else {
+                break 'custom_op;
+            };
+            let operation =
+                PackedOperation::from_custom_operation(rust_op.borrow().op().clone_dyn());
+            let params = extract_params(operation.view(), &get_params()?)?;
             return Ok(OperationFromPython {
                 operation,
                 params,

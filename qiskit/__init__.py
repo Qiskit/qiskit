@@ -61,6 +61,7 @@ sys.modules["qiskit._accelerate.circuit.classical"] = _accelerate.circuit.classi
 sys.modules["qiskit._accelerate.circuit.classical.expr"] = _accelerate.circuit.classical.expr
 sys.modules["qiskit._accelerate.circuit.classical.types"] = _accelerate.circuit.classical.types
 sys.modules["qiskit._accelerate.circuit_library"] = _accelerate.circuit_library
+sys.modules["qiskit._accelerate.circuit_library.library"] = _accelerate.circuit_library.library
 sys.modules["qiskit._accelerate.basis_translator"] = _accelerate.basis_translator
 sys.modules["qiskit._accelerate.converters"] = _accelerate.converters
 sys.modules["qiskit._accelerate.dense_layout"] = _accelerate.dense_layout

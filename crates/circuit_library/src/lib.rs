@@ -33,6 +33,7 @@ pub mod circuit_library {
     #[pymodule_export]
     use super::{
         blocks::Block,
+        custom_operation::library,
         entanglement::get_entangler_map,
         iqp::{py_iqp, py_random_iqp},
         multi_local::py_n_local,
