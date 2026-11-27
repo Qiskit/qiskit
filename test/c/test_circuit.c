@@ -1863,6 +1863,300 @@ static int test_circuit_add_unknown_type(void) {
 }
 
 /*
+ * Test looking up the index of a classical variable
+ */
+static int test_circuit_var_index(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkExprTypeInfo ty = {QkExprType_Bool, 0};
+    QkVar *a = qk_var_new("a", ty);
+    QkVar *b = qk_var_new("b", ty);
+    QkVar *a_lookalike = qk_var_new("a", ty); // Same name, but not the var in the circuit.
+    qk_circuit_add_var(qc, a, QkVariableType_Declare, NULL);
+    qk_circuit_add_var(qc, b, QkVariableType_Declare, NULL);
+
+    uint32_t a_idx = qk_circuit_var_index(qc, a);
+    uint32_t b_idx = qk_circuit_var_index(qc, b);
+    uint32_t lookalike_idx = qk_circuit_var_index(qc, a_lookalike);
+
+    if (!(a_idx == 0 && b_idx == 1)) {
+        fprintf(stderr, "Expected var \"a\" at index 0, got index %u\n", a_idx);
+        fprintf(stderr, "Expected var \"b\" at index 1, got index %u\n", b_idx);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (lookalike_idx != UINT32_MAX) {
+        fprintf(stderr, "Expected UINT32_MAX for a var not in the circuit, got index %u\n",
+                lookalike_idx);
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_var_free(a);
+    qk_var_free(b);
+    qk_var_free(a_lookalike);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test looking up the index of a stretch
+ */
+static int test_circuit_stretch_index(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkStretch *s = qk_stretch_new("s");
+    QkStretch *t = qk_stretch_new("t");
+    QkStretch *s_lookalike = qk_stretch_new("s"); // Same name, but not the stretch in the circuit.
+    qk_circuit_add_stretch(qc, s, QkStretchType_Declare, NULL);
+    qk_circuit_add_stretch(qc, t, QkStretchType_Declare, NULL);
+
+    uint32_t s_idx = qk_circuit_stretch_index(qc, s);
+    uint32_t t_idx = qk_circuit_stretch_index(qc, t);
+    uint32_t lookalike_idx = qk_circuit_stretch_index(qc, s_lookalike);
+
+    if (!(s_idx == 0 && t_idx == 1)) {
+        fprintf(stderr, "Expected stretch \"s\" at index 0, got index %u\n", s_idx);
+        fprintf(stderr, "Expected stretch \"t\" at index 1, got index %u\n", t_idx);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (lookalike_idx != UINT32_MAX) {
+        fprintf(stderr, "Expected UINT32_MAX for a stretch not in the circuit, got index %u\n",
+                lookalike_idx);
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_stretch_free(s);
+    qk_stretch_free(t);
+    qk_stretch_free(s_lookalike);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test querying the scope type of a classical variable
+ */
+static int test_circuit_variable_type(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkExprTypeInfo ty = {QkExprType_Bool, 0};
+    QkVar *a = qk_var_new("a", ty);
+    QkVar *b = qk_var_new("b", ty);
+    QkVar *a_lookalike = qk_var_new("a", ty); // Same name, but not the var in the circuit.
+    qk_circuit_add_var(qc, a, QkVariableType_Input, NULL);
+    qk_circuit_add_var(qc, b, QkVariableType_Declare, NULL);
+
+    QkVariableType a_type = qk_circuit_variable_type(qc, a);
+    QkVariableType b_type = qk_circuit_variable_type(qc, b);
+    QkVariableType lookalike_type = qk_circuit_variable_type(qc, a_lookalike);
+
+    if (a_type != QkVariableType_Input) {
+        fprintf(stderr, "Expected var \"a\" to be of type Input (=%d), got type %d\n",
+                QkVariableType_Input, a_type);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (b_type != QkVariableType_Declare) {
+        fprintf(stderr, "Expected var \"b\" to be of type Declare (=%d), got type %d\n",
+                QkVariableType_Declare, b_type);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (lookalike_type != QkVariableType_Unknown) {
+        fprintf(stderr, "Expected type Unknown (=%d) for a var not in the circuit, got type %d\n",
+                QkVariableType_Unknown, lookalike_type);
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_var_free(a);
+    qk_var_free(b);
+    qk_var_free(a_lookalike);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test querying the scope type of a stretch
+ */
+static int test_circuit_stretch_type(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkStretch *s = qk_stretch_new("s");
+    QkStretch *t = qk_stretch_new("t");
+    QkStretch *s_lookalike = qk_stretch_new("s"); // Same name, but not the stretch in the circuit.
+    qk_circuit_add_stretch(qc, s, QkStretchType_Capture, NULL);
+    qk_circuit_add_stretch(qc, t, QkStretchType_Declare, NULL);
+
+    QkStretchType s_type = qk_circuit_stretch_type(qc, s);
+    QkStretchType t_type = qk_circuit_stretch_type(qc, t);
+    QkStretchType lookalike_type = qk_circuit_stretch_type(qc, s_lookalike);
+
+    if (s_type != QkStretchType_Capture) {
+        fprintf(stderr, "Expected stretch \"s\" to be of type Capture (=%d), got type %d\n",
+                QkStretchType_Capture, s_type);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (t_type != QkStretchType_Declare) {
+        fprintf(stderr, "Expected stretch \"t\" to be of type Declare (=%d), got type %d\n",
+                QkStretchType_Declare, t_type);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (lookalike_type != QkStretchType_Unknown) {
+        fprintf(stderr,
+                "Expected type Unknown (=%d) for a stretch not in the circuit, got type %d\n",
+                QkStretchType_Unknown, lookalike_type);
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_stretch_free(s);
+    qk_stretch_free(t);
+    qk_stretch_free(s_lookalike);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test getting a borrowed classical variable by index
+ */
+static int test_circuit_get_var(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkVar *a = qk_var_new("a", (QkExprTypeInfo){QkExprType_Uint, 8});
+    size_t idx;
+    qk_circuit_add_var(qc, a, QkVariableType_Declare, &idx);
+
+    const QkVar *var = qk_circuit_get_var(qc, idx);
+    char *name = qk_var_name(var);
+    QkExprTypeInfo ty = qk_var_type_info(var);
+    size_t num_vars = qk_circuit_num_vars(qc);
+
+    if (!(strcmp(name, "a") == 0 && ty.ty == QkExprType_Uint && ty.width == 8)) {
+        fprintf(stderr, "Expected name \"a\", got \"%s\"\n", name);
+        fprintf(stderr, "Expected type Uint (=%d) with width 8, got type %d with width %u\n",
+                QkExprType_Uint, ty.ty, ty.width);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (qk_circuit_var_index(qc, var) != idx) {
+        fprintf(stderr, "Expected var \"a\" at index %zu, got index %u\n", idx,
+                qk_circuit_var_index(qc, var));
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (num_vars != 1) {
+        fprintf(stderr, "Expected number of vars to be 1, got %zu\n", num_vars);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (qk_circuit_get_var(qc, num_vars) != NULL) {
+        fprintf(stderr, "Expected NULL for out-of-range index %zu\n", num_vars);
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_str_free(name);
+    qk_var_free(a);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test getting a borrowed stretch by index
+ */
+static int test_circuit_get_stretch(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkStretch *s = qk_stretch_new("s");
+    size_t idx;
+    qk_circuit_add_stretch(qc, s, QkStretchType_Declare, &idx);
+
+    const QkStretch *stretch = qk_circuit_get_stretch(qc, idx);
+    char *name = qk_stretch_name(stretch);
+    size_t num_stretches = qk_circuit_num_stretches(qc);
+
+    if (strcmp(name, "s") != 0) {
+        fprintf(stderr, "Expected name \"s\", got \"%s\"\n", name);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (qk_circuit_stretch_index(qc, stretch) != idx) {
+        fprintf(stderr, "Expected stretch \"s\" at index %zu, got index %u\n", idx,
+                qk_circuit_stretch_index(qc, stretch));
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (num_stretches != 1) {
+        fprintf(stderr, "Expected number of stretches to be 1, got %zu\n", num_stretches);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (qk_circuit_get_stretch(qc, num_stretches) != NULL) {
+        fprintf(stderr, "Expected NULL for out-of-range index %zu\n", num_stretches);
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_str_free(name);
+    qk_stretch_free(s);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test that the same var can be in two circuits with a different index and scope type in each
+ */
+static int test_circuit_var_in_two_circuits(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc1 = qk_circuit_new(0, 0);
+    QkCircuit *qc2 = qk_circuit_new(0, 0);
+    QkExprTypeInfo ty = {QkExprType_Bool, 0};
+    QkVar *a = qk_var_new("a", ty);
+    QkVar *b = qk_var_new("b", ty);
+    qk_circuit_add_var(qc1, a, QkVariableType_Input, NULL);
+    qk_circuit_add_var(qc2, b, QkVariableType_Declare, NULL);
+    qk_circuit_add_var(qc2, a, QkVariableType_Capture, NULL);
+
+    uint32_t idx1 = qk_circuit_var_index(qc1, a);
+    uint32_t idx2 = qk_circuit_var_index(qc2, a);
+    QkVariableType type1 = qk_circuit_variable_type(qc1, a);
+    QkVariableType type2 = qk_circuit_variable_type(qc2, a);
+
+    if (!(idx1 == 0 && idx2 == 1)) {
+        fprintf(stderr, "Expected var \"a\" at index 0 in qc1, got index %u\n", idx1);
+        fprintf(stderr, "Expected var \"a\" at index 1 in qc2, got index %u\n", idx2);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (!(type1 == QkVariableType_Input && type2 == QkVariableType_Capture)) {
+        fprintf(stderr, "Expected var \"a\" to be of type Input (=%d) in qc1, got type %d\n",
+                QkVariableType_Input, type1);
+        fprintf(stderr, "Expected var \"a\" to be of type Capture (=%d) in qc2, got type %d\n",
+                QkVariableType_Capture, type2);
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_var_free(a);
+    qk_var_free(b);
+    qk_circuit_free(qc1);
+    qk_circuit_free(qc2);
+    return result;
+}
+
+/*
  * Test iteration, name and bit queries
  */
 static int test_basic_register_queries(void) {
@@ -2072,6 +2366,13 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_add_var_error);
     num_failed += RUN_TEST(test_circuit_add_stretch_error);
     num_failed += RUN_TEST(test_circuit_add_unknown_type);
+    num_failed += RUN_TEST(test_circuit_var_index);
+    num_failed += RUN_TEST(test_circuit_stretch_index);
+    num_failed += RUN_TEST(test_circuit_variable_type);
+    num_failed += RUN_TEST(test_circuit_stretch_type);
+    num_failed += RUN_TEST(test_circuit_get_var);
+    num_failed += RUN_TEST(test_circuit_get_stretch);
+    num_failed += RUN_TEST(test_circuit_var_in_two_circuits);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

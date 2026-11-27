@@ -3153,6 +3153,16 @@ impl TryFrom<CVariableType> for VarType {
     }
 }
 
+impl From<VarType> for CVariableType {
+    fn from(value: VarType) -> Self {
+        match value {
+            VarType::Input => CVariableType::Input,
+            VarType::Capture => CVariableType::Capture,
+            VarType::Declare => CVariableType::Declare,
+        }
+    }
+}
+
 /// @ingroup QkCircuit
 ///
 /// The scope type of a stretch within a circuit.
@@ -3173,6 +3183,15 @@ impl TryFrom<CStretchType> for StretchType {
             CStretchType::Capture => Ok(StretchType::Capture),
             CStretchType::Declare => Ok(StretchType::Declare),
             CStretchType::Unknown => Err(value),
+        }
+    }
+}
+
+impl From<StretchType> for CStretchType {
+    fn from(value: StretchType) -> Self {
+        match value {
+            StretchType::Capture => CStretchType::Capture,
+            StretchType::Declare => CStretchType::Declare,
         }
     }
 }
@@ -3289,6 +3308,343 @@ pub unsafe extern "C" fn qk_circuit_add_stretch(
         }
         Err(_) => ExitCode::CircuitError,
     }
+}
+
+/// @ingroup QkCircuit
+/// Get the number of classical variables in the circuit.
+///
+/// This counts the variables of all scope types (input, captured and declared).
+///
+/// @param circuit A pointer to the circuit.
+///
+/// @return The number of classical variables in the circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkExprTypeInfo ty = {QkExprType_Bool, 0};
+/// QkVar *var = qk_var_new("a", ty);
+/// qk_circuit_add_var(qc, var, QkVariableType_Declare, NULL);
+///
+/// size_t num_vars = qk_circuit_num_vars(qc);  // num_vars==1
+///
+/// qk_var_free(var);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_num_vars(circuit: *const CircuitData) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { &*circuit };
+
+    circuit.vars_stretches_view().vars().len()
+}
+
+/// @ingroup QkCircuit
+/// Get the number of stretches in the circuit.
+///
+/// This counts the stretches of all scope types (captured and declared).
+///
+/// @param circuit A pointer to the circuit.
+///
+/// @return The number of stretches in the circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkStretch *stretch = qk_stretch_new("s");
+/// qk_circuit_add_stretch(qc, stretch, QkStretchType_Declare, NULL);
+///
+/// size_t num_stretches = qk_circuit_num_stretches(qc);  // num_stretches==1
+///
+/// qk_stretch_free(stretch);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_num_stretches(circuit: *const CircuitData) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { &*circuit };
+
+    circuit.vars_stretches_view().stretches().len()
+}
+
+/// @ingroup QkCircuit
+/// Get the classical variable at the specified index in the circuit.
+///
+/// Variables are indexed in the order they were added to the circuit, across all scope types.
+/// This is the index written by `qk_circuit_add_var`.
+///
+/// The returned pointer is valid as long as the circuit exists and is not modified.
+/// The caller should not free the returned pointer.
+///
+/// @param circuit A pointer to the circuit.
+/// @param var_idx The index of the variable to retrieve.
+///
+/// @return A borrowed pointer to the variable at the specified index, or `NULL` if ``var_idx``
+///     is out of range. Do not free this pointer.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkExprTypeInfo ty = {QkExprType_Bool, 0};
+/// QkVar *var = qk_var_new("a", ty);
+/// size_t var_idx;
+/// qk_circuit_add_var(qc, var, QkVariableType_Declare, &var_idx);
+/// qk_var_free(var);
+///
+/// const QkVar *retrieved = qk_circuit_get_var(qc, var_idx);
+///
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_get_var(
+    circuit: *const CircuitData,
+    var_idx: usize,
+) -> *const expr::Var {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { &*circuit };
+
+    circuit
+        .vars_stretches_view()
+        .vars()
+        .objects()
+        .get(var_idx)
+        .map_or(ptr::null(), ptr::from_ref)
+}
+
+/// @ingroup QkCircuit
+/// Get the stretch at the specified index in the circuit.
+///
+/// Stretches are indexed in the order they were added to the circuit, across all scope types.
+/// This is the index written by `qk_circuit_add_stretch`.
+///
+/// The returned pointer is valid as long as the circuit exists and is not modified.
+/// The caller should not free the returned pointer.
+///
+/// @param circuit A pointer to the circuit.
+/// @param stretch_idx The index of the stretch to retrieve.
+///
+/// @return A borrowed pointer to the stretch at the specified index, or `NULL` if
+///     ``stretch_idx`` is out of range. Do not free this pointer.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkStretch *stretch = qk_stretch_new("s");
+/// size_t stretch_idx;
+/// qk_circuit_add_stretch(qc, stretch, QkStretchType_Declare, &stretch_idx);
+/// qk_stretch_free(stretch);
+///
+/// const QkStretch *retrieved = qk_circuit_get_stretch(qc, stretch_idx);
+///
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_get_stretch(
+    circuit: *const CircuitData,
+    stretch_idx: usize,
+) -> *const expr::Stretch {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { &*circuit };
+
+    circuit
+        .vars_stretches_view()
+        .stretches()
+        .objects()
+        .get(stretch_idx)
+        .map_or(ptr::null(), ptr::from_ref)
+}
+
+/// @ingroup QkCircuit
+/// Get the scope type of a classical variable in the circuit.
+///
+/// @param circuit A pointer to the circuit.
+/// @param var A pointer to the variable. It can be one owned by the caller or one
+///     borrowed from the circuit, e.g. by `qk_circuit_get_var`.
+///
+/// @return The scope type of the variable within the circuit, or `QkVariableType_Unknown` if
+///     ``var`` is not present in the circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkExprTypeInfo ty = {QkExprType_Bool, 0};
+/// QkVar *var = qk_var_new("a", ty);
+/// qk_circuit_add_var(qc, var, QkVariableType_Input, NULL);
+///
+/// QkVariableType var_type = qk_circuit_variable_type(qc, var);  // QkVariableType_Input
+///
+/// qk_var_free(var);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`,
+/// or if ``var`` is not a valid, non-null pointer to a `QkVar`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_variable_type(
+    circuit: *const CircuitData,
+    var: *const expr::Var,
+) -> CVariableType {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let circuit = unsafe { &*circuit };
+    let var = unsafe { &*var };
+
+    circuit
+        .vars_stretches_view()
+        .var_type(var)
+        .map_or(CVariableType::Unknown, Into::into)
+}
+
+/// @ingroup QkCircuit
+/// Get the scope type of a stretch in the circuit.
+///
+/// @param circuit A pointer to the circuit.
+/// @param stretch A pointer to the stretch. It can be one owned by the caller or one
+///     borrowed from the circuit, e.g. by `qk_circuit_get_stretch`.
+///
+/// @return The scope type of the stretch within the circuit, or `QkStretchType_Unknown` if
+///     ``stretch`` is not present in the circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkStretch *stretch = qk_stretch_new("s");
+/// qk_circuit_add_stretch(qc, stretch, QkStretchType_Declare, NULL);
+///
+/// QkStretchType stretch_type = qk_circuit_stretch_type(qc, stretch);  // QkStretchType_Declare
+///
+/// qk_stretch_free(stretch);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`,
+/// or if ``stretch`` is not a valid, non-null pointer to a `QkStretch`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_stretch_type(
+    circuit: *const CircuitData,
+    stretch: *const expr::Stretch,
+) -> CStretchType {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let circuit = unsafe { &*circuit };
+    let stretch = unsafe { &*stretch };
+
+    circuit
+        .vars_stretches_view()
+        .stretch_type(stretch)
+        .map_or(CStretchType::Unknown, Into::into)
+}
+
+/// @ingroup QkCircuit
+/// Get the index of a classical variable in the circuit.
+///
+/// This is the index written by `qk_circuit_add_var`, and accepted by `qk_circuit_get_var`.
+///
+/// @param circuit A pointer to the circuit.
+/// @param var A pointer to the variable.
+///
+/// @return The index of the variable in the circuit, or ``UINT32_MAX`` if the variable is not
+///     present in the circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkExprTypeInfo ty = {QkExprType_Bool, 0};
+/// QkVar *a = qk_var_new("a", ty);
+/// QkVar *b = qk_var_new("b", ty);
+/// qk_circuit_add_var(qc, a, QkVariableType_Declare, NULL);
+///
+/// uint32_t a_idx = qk_circuit_var_index(qc, a);  // a_idx==0
+/// uint32_t b_idx = qk_circuit_var_index(qc, b);  // b_idx==UINT32_MAX
+///
+/// qk_var_free(a);
+/// qk_var_free(b);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`,
+/// or if ``var`` is not a valid, non-null pointer to a `QkVar`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_var_index(
+    circuit: *const CircuitData,
+    var: *const expr::Var,
+) -> u32 {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let circuit = unsafe { &*circuit };
+    let var = unsafe { &*var };
+
+    circuit
+        .vars_stretches_view()
+        .vars()
+        .find(var)
+        .map_or(u32::MAX, |idx| idx.index() as u32)
+}
+
+/// @ingroup QkCircuit
+/// Get the index of a stretch in the circuit.
+///
+/// This is the index written by `qk_circuit_add_stretch`, and accepted by
+/// `qk_circuit_get_stretch`.
+///
+/// @param circuit A pointer to the circuit.
+/// @param stretch A pointer to the stretch.
+///
+/// @return The index of the stretch in the circuit, or ``UINT32_MAX`` if the stretch is not
+///     present in the circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkStretch *s = qk_stretch_new("s");
+/// QkStretch *t = qk_stretch_new("t");
+/// qk_circuit_add_stretch(qc, s, QkStretchType_Declare, NULL);
+///
+/// uint32_t s_idx = qk_circuit_stretch_index(qc, s);  // s_idx==0
+/// uint32_t t_idx = qk_circuit_stretch_index(qc, t);  // t_idx==UINT32_MAX
+///
+/// qk_stretch_free(s);
+/// qk_stretch_free(t);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`,
+/// or if ``stretch`` is not a valid, non-null pointer to a `QkStretch`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_stretch_index(
+    circuit: *const CircuitData,
+    stretch: *const expr::Stretch,
+) -> u32 {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let circuit = unsafe { &*circuit };
+    let stretch = unsafe { &*stretch };
+
+    circuit
+        .vars_stretches_view()
+        .stretches()
+        .find(stretch)
+        .map_or(u32::MAX, |idx| idx.index() as u32)
 }
 
 /// @ingroup QkCircuit

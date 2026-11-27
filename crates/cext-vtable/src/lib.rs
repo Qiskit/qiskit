@@ -175,6 +175,14 @@ mod circuit {
         vec![
             export_fn!(qk_circuit_add_var),
             export_fn!(qk_circuit_add_stretch),
+            export_fn!(qk_circuit_num_vars),
+            export_fn!(qk_circuit_num_stretches),
+            export_fn!(qk_circuit_get_var),
+            export_fn!(qk_circuit_get_stretch),
+            export_fn!(qk_circuit_variable_type),
+            export_fn!(qk_circuit_stretch_type),
+            export_fn!(qk_circuit_var_index),
+            export_fn!(qk_circuit_stretch_index),
         ]
     });
 }
