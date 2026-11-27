@@ -308,7 +308,9 @@ _DUMMY_GATE_PARAMETERS: list[Parameter] = []
 
 def _get_dummy_gate_parameter(index: int) -> Parameter:
     while len(_DUMMY_GATE_PARAMETERS) <= index:
-        _DUMMY_GATE_PARAMETERS.append(Parameter(f"_gate_p_{len(_DUMMY_GATE_PARAMETERS)}"))
+        _DUMMY_GATE_PARAMETERS.append(
+            Parameter(f"{QASM3Builder.gate_parameter_prefix}_{len(_DUMMY_GATE_PARAMETERS)}")
+        )
     return _DUMMY_GATE_PARAMETERS[index]
 
 
