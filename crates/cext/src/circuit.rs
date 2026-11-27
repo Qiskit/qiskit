@@ -32,7 +32,7 @@ use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::circuit_drawer::draw_circuit;
-use qiskit_circuit::classical::expr::Expr;
+use qiskit_circuit::classical::expr::{self, Expr};
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
@@ -43,6 +43,7 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter_table::ParameterTableError;
+use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 use qiskit_transpiler::target::{Target, estimate_fidelity};
 use smallvec::smallvec;
@@ -3122,6 +3123,171 @@ impl From<CBlocksMode> for BlocksMode {
             CBlocksMode::Drop => BlocksMode::Drop,
             CBlocksMode::Keep => BlocksMode::Keep,
         }
+    }
+}
+
+/// @ingroup QkCircuit
+///
+/// The scope type of a classical variable within a circuit.
+#[repr(u8)]
+pub enum CVariableType {
+    /// An unknown variable scope type.
+    Unknown = 0,
+    /// An input variable, whose value is provided when the circuit is run.
+    Input = 1,
+    /// A variable captured from an enclosing scope.
+    Capture = 2,
+    /// A variable declared locally within the circuit.
+    Declare = 3,
+}
+
+impl TryFrom<CVariableType> for VarType {
+    type Error = CVariableType;
+    fn try_from(value: CVariableType) -> Result<Self, Self::Error> {
+        match value {
+            CVariableType::Input => Ok(VarType::Input),
+            CVariableType::Capture => Ok(VarType::Capture),
+            CVariableType::Declare => Ok(VarType::Declare),
+            CVariableType::Unknown => Err(value),
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+///
+/// The scope type of a stretch within a circuit.
+#[repr(u8)]
+pub enum CStretchType {
+    /// An unknown stretch scope type.
+    Unknown = 0,
+    /// A stretch captured from an enclosing scope.
+    Capture = 1,
+    /// A stretch declared locally within the circuit.
+    Declare = 2,
+}
+
+impl TryFrom<CStretchType> for StretchType {
+    type Error = CStretchType;
+    fn try_from(value: CStretchType) -> Result<Self, Self::Error> {
+        match value {
+            CStretchType::Capture => Ok(StretchType::Capture),
+            CStretchType::Declare => Ok(StretchType::Declare),
+            CStretchType::Unknown => Err(value),
+        }
+    }
+}
+
+/// @ingroup QkCircuit
+/// Add a classical variable to the circuit.
+///
+/// The circuit stores its own copy of ``var``, so the caller keeps ownership of ``var``.
+///
+/// @param circuit A pointer to the circuit.
+/// @param var A pointer to the variable to add. It must be a standalone variable, i.e.
+///     not one wrapping a classical bit or register.
+/// @param var_type The scope type of the variable within the circuit.
+/// @param out_var_idx An output parameter that will be set to the index of the added variable
+///     on success, or ``NULL`` if the index is not needed.
+///
+/// @return An exit code. `QkExitCode_CircuitError` is returned if the variable cannot be
+///     added, e.g. if it is already present in the circuit, its name shadows an existing
+///     identifier, it wraps a classical bit or register, or input and captured variables
+///     would be mixed in the same circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkExprTypeInfo ty = {QkExprType_Bool, 0};
+/// QkVar *var = qk_var_new("a", ty);
+/// qk_circuit_add_var(qc, var, QkVariableType_Declare, NULL);
+/// qk_var_free(var);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`,
+/// ``var`` is not a valid, non-null pointer to a `QkVar`, ``var_type`` is not a valid
+/// `QkVariableType`, or ``out_var_idx`` is neither ``NULL`` nor a valid pointer to a ``size_t``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_add_var(
+    circuit: *mut CircuitData,
+    var: *const expr::Var,
+    var_type: CVariableType,
+    out_var_idx: *mut usize,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointers are valid.
+    let circuit = unsafe { &mut *circuit };
+    let var = unsafe { &*var };
+    let Ok(var_type) = VarType::try_from(var_type) else {
+        return ExitCode::CInputError;
+    };
+
+    match circuit.add_var(var.clone(), var_type) {
+        Ok(var_idx) => {
+            if !out_var_idx.is_null() {
+                // SAFETY: Per documentation, a non-null `out_var_idx` is valid for writes.
+                unsafe { out_var_idx.write(var_idx.index()) };
+            }
+            ExitCode::Success
+        }
+        Err(_) => ExitCode::CircuitError,
+    }
+}
+
+/// @ingroup QkCircuit
+/// Add a stretch to the circuit.
+///
+/// The circuit stores its own copy of ``stretch``, so the caller keeps ownership of ``stretch``.
+///
+/// @param circuit A pointer to the circuit.
+/// @param stretch A pointer to the stretch to add.
+/// @param stretch_type The scope type of the stretch within the circuit.
+/// @param out_stretch_idx An output parameter that will be set to the index of the added
+///     stretch on success, or ``NULL`` if the index is not needed.
+///
+/// @return An exit code. `QkExitCode_CircuitError` is returned if the stretch cannot be
+///     added, e.g. if it is already present in the circuit, its name shadows an existing
+///     identifier, or a captured stretch is added to a circuit with input variables.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkStretch *stretch = qk_stretch_new("s");
+/// qk_circuit_add_stretch(qc, stretch, QkStretchType_Declare, NULL);
+/// qk_stretch_free(stretch);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a `QkCircuit`,
+/// ``stretch`` is not a valid, non-null pointer to a `QkStretch`, ``stretch_type`` is not a
+/// valid `QkStretchType`, or ``out_stretch_idx`` is neither ``NULL`` nor a valid pointer to a
+/// ``size_t``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_add_stretch(
+    circuit: *mut CircuitData,
+    stretch: *const expr::Stretch,
+    stretch_type: CStretchType,
+    out_stretch_idx: *mut usize,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointers are valid.
+    let circuit = unsafe { &mut *circuit };
+    let stretch = unsafe { &*stretch };
+    let Ok(stretch_type) = StretchType::try_from(stretch_type) else {
+        return ExitCode::CInputError;
+    };
+
+    match circuit.add_stretch(stretch.clone(), stretch_type) {
+        Ok(stretch_idx) => {
+            if !out_stretch_idx.is_null() {
+                // SAFETY: Per documentation, a non-null `out_stretch_idx` is valid for writes.
+                unsafe { out_stretch_idx.write(stretch_idx.index()) };
+            }
+            ExitCode::Success
+        }
+        Err(_) => ExitCode::CircuitError,
     }
 }
 

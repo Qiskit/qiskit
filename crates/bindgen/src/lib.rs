@@ -111,6 +111,8 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CSparseTerm", "ObsTerm"),
     ("CTargetOp", "TargetOp"),
     ("CVarsMode", "VarsMode"),
+    ("CVariableType", "VariableType"),
+    ("CStretchType", "StretchType"),
     ("CircuitData", "Circuit"),
     ("DAGCircuit", "Dag"),
     ("CPass", "Pass"),

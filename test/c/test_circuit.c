@@ -1737,6 +1737,132 @@ static int test_estimate_fidelity_non_physical(void) {
 }
 
 /*
+ * Test adding classical variables
+ */
+static int test_circuit_add_var(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkExprTypeInfo ty = {QkExprType_Bool, 0};
+    QkVar *a = qk_var_new("a", ty);
+    QkVar *b = qk_var_new("b", ty);
+
+    size_t a_idx, b_idx;
+    QkExitCode a_ec = qk_circuit_add_var(qc, a, QkVariableType_Input, &a_idx);
+    QkExitCode b_ec = qk_circuit_add_var(qc, b, QkVariableType_Declare, &b_idx);
+
+    if (!(a_ec == QkExitCode_Success && b_ec == QkExitCode_Success && a_idx == 0 && b_idx == 1)) {
+        fprintf(stderr, "Expected vars to be added at indices 0 and 1\n");
+        result = EqualityError;
+    }
+
+    qk_var_free(a);
+    qk_var_free(b);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test adding stretches
+ */
+static int test_circuit_add_stretch(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkStretch *s = qk_stretch_new("s");
+    QkStretch *t = qk_stretch_new("t");
+
+    size_t s_idx, t_idx;
+    QkExitCode s_ec = qk_circuit_add_stretch(qc, s, QkStretchType_Capture, &s_idx);
+    QkExitCode t_ec = qk_circuit_add_stretch(qc, t, QkStretchType_Declare, &t_idx);
+
+    if (!(s_ec == QkExitCode_Success && t_ec == QkExitCode_Success && s_idx == 0 && t_idx == 1)) {
+        fprintf(stderr, "Expected stretches to be added at indices 0 and 1\n");
+        result = EqualityError;
+    }
+
+    qk_stretch_free(s);
+    qk_stretch_free(t);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test that a failure to add a var is reported as a circuit error
+ */
+static int test_circuit_add_var_error(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkVar *a = qk_var_new("a", (QkExprTypeInfo){QkExprType_Bool, 0});
+
+    // The out index is optional, so this also checks passing NULL.
+    QkExitCode ec = qk_circuit_add_var(qc, a, QkVariableType_Declare, NULL);
+    QkExitCode dup_ec = qk_circuit_add_var(qc, a, QkVariableType_Declare, NULL);
+
+    if (!(ec == QkExitCode_Success && dup_ec == QkExitCode_CircuitError)) {
+        fprintf(stderr, "Adding a var twice should fail with CircuitError\n");
+        result = EqualityError;
+    }
+
+    qk_var_free(a);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test that a failure to add a stretch is reported as a circuit error
+ */
+static int test_circuit_add_stretch_error(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkStretch *s = qk_stretch_new("s");
+
+    // The out index is optional, so this also checks passing NULL.
+    QkExitCode ec = qk_circuit_add_stretch(qc, s, QkStretchType_Declare, NULL);
+    QkExitCode dup_ec = qk_circuit_add_stretch(qc, s, QkStretchType_Declare, NULL);
+
+    if (!(ec == QkExitCode_Success && dup_ec == QkExitCode_CircuitError)) {
+        fprintf(stderr, "Adding a stretch twice should fail with CircuitError\n");
+        result = EqualityError;
+    }
+
+    qk_stretch_free(s);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
+ * Test that unknown scope types are rejected without adding anything
+ */
+static int test_circuit_add_unknown_type(void) {
+    enum TestResult result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkVar *a = qk_var_new("a", (QkExprTypeInfo){QkExprType_Bool, 0});
+    QkStretch *s = qk_stretch_new("s");
+
+    QkExitCode var_ec = qk_circuit_add_var(qc, a, QkVariableType_Unknown, NULL);
+    QkExitCode stretch_ec = qk_circuit_add_stretch(qc, s, QkStretchType_Unknown, NULL);
+    // Nothing was added, so the same objects can still be added at index 0.
+    size_t var_idx, stretch_idx;
+    qk_circuit_add_var(qc, a, QkVariableType_Declare, &var_idx);
+    qk_circuit_add_stretch(qc, s, QkStretchType_Declare, &stretch_idx);
+
+    if (!(var_ec == QkExitCode_CInputError && stretch_ec == QkExitCode_CInputError &&
+          var_idx == 0 && stretch_idx == 0)) {
+        fprintf(stderr, "Unknown scope types should fail with CInputError and add nothing\n");
+        result = EqualityError;
+    }
+
+    qk_var_free(a);
+    qk_stretch_free(s);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/*
  * Test iteration, name and bit queries
  */
 static int test_basic_register_queries(void) {
@@ -1941,6 +2067,11 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_estimate_fidelity_non_physical);
     num_failed += RUN_TEST(test_basic_register_queries);
     num_failed += RUN_TEST(test_register_bits);
+    num_failed += RUN_TEST(test_circuit_add_var);
+    num_failed += RUN_TEST(test_circuit_add_stretch);
+    num_failed += RUN_TEST(test_circuit_add_var_error);
+    num_failed += RUN_TEST(test_circuit_add_stretch_error);
+    num_failed += RUN_TEST(test_circuit_add_unknown_type);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
