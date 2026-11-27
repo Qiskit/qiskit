@@ -39,7 +39,7 @@ impl SynthName {
     }
 }
 
-/// Render in lowercase without underscores, as `rzrx`.
+/// Render in lowercase without underscores.
 impl fmt::Display for SynthName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
