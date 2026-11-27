@@ -1,15 +1,21 @@
 # Contributing: C API
 
-Qiskit was fundamentally developed as a Python library, yet it has continued to
-evolve into a more universal tool. As quantum computing steadily expands its
-userbase, the need for different entry points to use Qiskit will lead to the
-development of new pipelines, which ultimately resulted in the development of
-the C API. 
+Qiskit was originally developed as a Python library, yet it has continued to
+evolve over it's development history into a Rust library with a Python interface.
+As Qiskit transitioned into a Rust library internally it also became desirable to
+access the Rust core directly for better performance. Additionally, as quantum
+computing steadily expands its user base there was also a desire for different
+to use Qiskit in environments where Python was not available. This resulted in
+the development of the C API. The C API is intended to enable accessing Qiskit,
+and by extension quantum computing, from any programming environment and provide
+a stable ABI for accessing Qiskit's Rust core directly.
 
-**Use Cases**
+**Example Use Cases**
 
-- Wrappers such as [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl) and
-  [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
+- Language binding library that wrap the C API in a ergonomic interface in
+  different programming languages such as
+  [Qiskit.jl](https://github.com/Qiskit/Qiskit.jl)
+  and [qiskit-cpp](https://github.com/Qiskit/qiskit-cpp).
 - Projects with high-performance computing (HPC) requirements.
 - Python extension modules.
 
@@ -258,11 +264,13 @@ incrementing the major version number.
 ## Platform-specific Features
 
 It's best practice to avoid compiler and platform dependent features because
-callers could be targeting multiple platforms. For example, `__int128_t` and
-`_Complex double` are potentially relevant in the quantum domain, but those
-types are only available in GCC. In this case, we would be better off using the
-platform independent complex number utilities defined in `complex.h` since C99.
-For reference, Qiskit targets C11 as the minimum C standard.
+callers are targeting multiple platforms. For example, `_Complex double` and
+`_DComplex` are relevant in the quantum domain, but those types are only
+available for programs compiled with GCC and MSVC respectively. In this case,
+we're better off defining our own, platform agnostic `QkComplex64`. We avoid
+the standard `complex.h` because it's optional in C11.
+
+*For reference, Qiskit targets C11 as the minimum standard.*
 
 ## Documentation
 
