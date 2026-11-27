@@ -14,6 +14,7 @@
 
 pub mod dag_to_mir;
 
+pub mod modularize_pbc;
 #[cfg(feature = "py")]
 pub mod py;
 pub mod trivial_mir_layout;

@@ -69,6 +69,13 @@ impl PauliString {
         PauliString(paulis)
     }
 
+    #[inline]
+    pub fn as_slice(&self) -> &[Pauli] {
+        // TODO: this method will not survive as-is, but while this `Vec`-backed version of
+        // `PauliString` still exists, we need a way to get at the Paulis _somehow_.
+        &self.0
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }

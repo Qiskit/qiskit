@@ -2517,6 +2517,8 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-mir",
  "qiskit-passmanager",
+ "qiskit-util",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
