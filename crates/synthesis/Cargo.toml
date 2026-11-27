@@ -55,6 +55,12 @@ features = ["num-complex"]
 workspace = true
 features = ["rayon", "serde"]
 
+# `rayon` is part of faer's default features, but doesn't work on `emscripten` because of how one of
+# faer's dependencies (spindle) implements some thread-pool primitives.  On most platforms, we can
+# add the feature back in.
+[target.'cfg(not(target_os = "emscripten"))'.dependencies]
+faer = { workspace = true, features = ["rayon"] }
+
 [dev-dependencies]
 tempfile.workspace = true
 
