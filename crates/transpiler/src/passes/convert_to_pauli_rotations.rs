@@ -15,7 +15,7 @@ use qiskit_circuit::operations::PauliBased;
 use smallvec::smallvec;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType, PyDAGCircuit};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, StandardGate,
@@ -25,6 +25,35 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::BitTerm;
 
 use crate::TranspilerError;
+
+/// Possible errors during the `ConvertToPauliRotations` pass.
+#[derive(Debug, thiserror::Error)]
+pub enum ConvertToPauliRotationsError {
+    #[error(
+        "Unable to convert to pauli rotations as the circuit contains instructions not supported by the pass: {0:?}"
+    )]
+    UnsupportedGate(String),
+    #[error(
+        "Unable to run convert to pauli rotations as the circuit contains instructions not supported by the pass: {0:?}"
+    )]
+    UnsupportedInstruction(String),
+    #[error(transparent)]
+    DAGCircuit(#[from] DAGError),
+}
+
+impl From<ConvertToPauliRotationsError> for PyErr {
+    fn from(value: ConvertToPauliRotationsError) -> Self {
+        match value {
+            ConvertToPauliRotationsError::UnsupportedGate(_)
+            | ConvertToPauliRotationsError::UnsupportedInstruction(_) => {
+                TranspilerError::new_err(value.to_string())
+            }
+            ConvertToPauliRotationsError::DAGCircuit(dagcircuit_inner_error) => {
+                dagcircuit_inner_error.into()
+            }
+        }
+    }
+}
 
 type GateToPauliRotType = (&'static [(&'static [BitTerm], f64, &'static [u32])], f64);
 type GateToPauliRotVec = (Vec<(&'static [BitTerm], Param, &'static [u32])>, Param);
@@ -480,7 +509,9 @@ fn py_convert_to_pauli_rotations(py_dag: &PyDAGCircuit) -> PyResult<PyDAGCircuit
 /// and a global phase, as well as `PauliProductMeasurement` instructions.
 /// Raises a `TranspilerError`: if the circuit contains instructions not supported by
 /// the pass.
-pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
+pub fn convert_to_pauli_rotations(
+    dag: &DAGCircuit,
+) -> Result<DAGCircuit, ConvertToPauliRotationsError> {
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep);
 
     // Iterate over nodes in the DAG and collect nodes
@@ -519,10 +550,9 @@ pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
             )?;
         } else if let OperationRef::StandardGate(gate) = inst.op.view() {
             if gate.num_qubits() > 3 {
-                return Err(TranspilerError::new_err(format!(
-                    "Unable to convert to pauli rotations as the circuit contains instructions not supported by the pass: {:?}",
-                    gate.name()
-                )));
+                return Err(ConvertToPauliRotationsError::UnsupportedGate(
+                    gate.name().to_string(),
+                ));
             }
             // handling only 1-qubit, 2-qubit and 3-qubit gates with no parameter or with a single parameter
             if gate.num_params() <= 1 {
@@ -562,10 +592,9 @@ pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
                     global_phase = radd_param(global_phase, global_phase_update);
                 } else if matches!(gate, StandardGate::I) {
                 } else {
-                    return Err(TranspilerError::new_err(format!(
-                        "Unable to convert to pauli rotations as the circuit contains instructions not supported by the pass: {:?}",
-                        inst.op.name()
-                    )));
+                    return Err(ConvertToPauliRotationsError::UnsupportedGate(
+                        inst.op.name().to_string(),
+                    ));
                 }
             }
             // handling only 1-qubit and 2-qubit gates with more than one parameter
@@ -604,10 +633,9 @@ pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
                 global_phase = radd_param(global_phase, global_phase_update);
             }
         } else {
-            return Err(TranspilerError::new_err(format!(
-                "Unable to run convert to pauli rotations as the circuit contains instructions not supported by the pass: {:?}",
-                inst.op.name()
-            )));
+            return Err(ConvertToPauliRotationsError::UnsupportedInstruction(
+                inst.op.name().to_string(),
+            ));
         }
     }
 

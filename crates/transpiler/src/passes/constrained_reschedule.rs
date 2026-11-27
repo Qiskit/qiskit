@@ -25,6 +25,37 @@ use qiskit_circuit::operations::{
 use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+/// Possible errors during the `ConstrainedReschedule` pass
+#[derive(Debug, thiserror::Error)]
+pub enum ConstrainedRescheduleError {
+    #[error("Missing start time for node {0}. Run scheduler again.")]
+    MissingStartTime(usize),
+    #[error("Unknown operation type for '{0}'.")]
+    UnknownOperation(String),
+    #[error("Delay instruction missing duration parameter")]
+    DelayInstructionMissingDuration,
+    #[error("Delay instruction duration not in terms of dt")]
+    DelayInstructionDurationNotInDt,
+    #[error("delay duration must be a non-negative integer in dt, got {0} dt.")]
+    InvalidDelayDuration(i64),
+}
+
+impl From<ConstrainedRescheduleError> for PyErr {
+    fn from(value: ConstrainedRescheduleError) -> Self {
+        match value {
+            ConstrainedRescheduleError::MissingStartTime(_)
+            | ConstrainedRescheduleError::UnknownOperation(_)
+            | ConstrainedRescheduleError::DelayInstructionDurationNotInDt
+            | ConstrainedRescheduleError::InvalidDelayDuration(_) => {
+                TranspilerError::new_err(value.to_string())
+            }
+            ConstrainedRescheduleError::DelayInstructionMissingDuration => {
+                PyValueError::new_err(value.to_string())
+            }
+        }
+    }
+}
+
 /// Returns the immediate successor operation nodes of a given node in the DAG.
 ///
 /// This function traverses the DAG to find all nodes that are direct successors
@@ -68,7 +99,7 @@ fn push_node_back(
     pulse_align: u32,
     acquire_align: u32,
     target: Option<&Target>,
-) -> PyResult<()> {
+) -> Result<(), ConstrainedRescheduleError> {
     let NodeType::Operation(op) = &dag[node_index] else {
         unreachable!("topological_op_nodes() should only return operations.")
     };
@@ -87,17 +118,16 @@ fn push_node_back(
             if op_view.directive() {
                 None
             } else {
-                return Err(TranspilerError::new_err(format!(
-                    "Unknown operation type for '{}'.",
-                    op_view.name()
-                )));
+                return Err(ConstrainedRescheduleError::UnknownOperation(
+                    op_view.name().to_string(),
+                ));
             }
         }
     };
 
     let mut this_t0: u64 = *node_start_time
         .get(&node_index)
-        .ok_or_else(|| PyValueError::new_err("Missing value in node_start_time"))?;
+        .ok_or_else(|| ConstrainedRescheduleError::MissingStartTime(node_index.index()))?;
 
     if let Some(alignment) = alignment {
         let misalignment = this_t0 % alignment as u64;
@@ -129,15 +159,15 @@ fn push_node_back(
         let params = op.params_view();
         let param = params
             .first()
-            .ok_or_else(|| PyValueError::new_err("Delay instruction missing duration parameter"))?;
+            .ok_or(ConstrainedRescheduleError::DelayInstructionMissingDuration)?;
         let duration = match param {
             Param::Int(val) => Ok(*val),
-            _ => Err(TranspilerError::new_err(
-                "The provided Delay duration is not in terms of dt.",
-            )),
+            _ => Err(ConstrainedRescheduleError::DelayInstructionDurationNotInDt),
         }?;
 
-        this_t0 + u64::try_from(duration)?
+        let duration = u64::try_from(duration)
+            .map_err(|_| ConstrainedRescheduleError::InvalidDelayDuration(duration))?;
+        this_t0 + duration
     } else {
         this_t0
     };
@@ -178,7 +208,7 @@ fn push_node_back(
         let next_t0q: u64 = node_start_time
             .get(&next_node_index)
             .copied()
-            .expect("Expected value in node_start_time for next_node_index");
+            .ok_or_else(|| ConstrainedRescheduleError::MissingStartTime(next_node_index.index()))?;
 
         let next_qubits: HashSet<_> = dag
             .qargs_interner()
@@ -273,15 +303,11 @@ pub fn run_constrained_reschedule(
     acquire_align: u32,
     pulse_align: u32,
     target: Option<&Target>,
-) -> PyResult<()> {
+) -> Result<(), ConstrainedRescheduleError> {
     for node_index in dag.topological_op_nodes(false) {
         let start_time = node_start_time.get(&node_index);
-        let val = *start_time.ok_or_else(|| {
-            TranspilerError::new_err(format!(
-                "Missing start time for node {}. Run scheduler again.",
-                node_index.index()
-            ))
-        })?;
+        let val = *start_time
+            .ok_or_else(|| ConstrainedRescheduleError::MissingStartTime(node_index.index()))?;
 
         if val == 0 {
             continue;

@@ -21,15 +21,28 @@ use qiskit_circuit::{Clbit, Qubit};
 use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
+/// Possible errors during the `ALAPScheduleAnalysis` pass.
+#[derive(Debug, thiserror::Error)]
+pub enum AlapScheduleAnalysisError {
+    #[error("ALAP schedule runs on physical circuits only")]
+    NonPhysicalCircuit,
+    #[error("No duration found for node at index {0}")]
+    MissingDuration(usize),
+}
+
+impl From<AlapScheduleAnalysisError> for PyErr {
+    fn from(value: AlapScheduleAnalysisError) -> Self {
+        TranspilerError::new_err(value.to_string())
+    }
+}
+
 pub fn run_alap_schedule_analysis<T: TimeOps>(
     dag: &DAGCircuit,
     clbit_write_latency: T,
     node_durations: &IndexMap<NodeIndex, T>,
-) -> PyResult<IndexMap<NodeIndex, T>> {
+) -> Result<IndexMap<NodeIndex, T>, AlapScheduleAnalysisError> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
-        return Err(TranspilerError::new_err(
-            "ALAP schedule runs on physical circuits only",
-        ));
+        return Err(AlapScheduleAnalysisError::NonPhysicalCircuit);
     }
 
     let mut node_start_time: IndexMap<NodeIndex, T> = IndexMap::default();
@@ -67,7 +80,7 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
 
         let &op_duration = node_durations
             .get(&node_index)
-            .ok_or_else(|| TranspilerError::new_err("No duration for node"))?;
+            .ok_or_else(|| AlapScheduleAnalysisError::MissingDuration(node_index.index()))?;
 
         let op_view = op.op.view();
         let is_gate_or_delay = matches!(
