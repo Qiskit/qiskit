@@ -48,7 +48,7 @@ use qiskit_mir::{
         MirOp,
         pbc::{AngleType, Pauli, PauliRotation, PauliString},
     },
-    qid::{BitLayout, QidInfo, QidList},
+    qid::{QidInfo, QidList},
     symbol_table::SymbolIdList,
 };
 #[test]
@@ -62,10 +62,10 @@ fn construct_bell_mir() {
     // They could be created as physical to start with also.
     let resource_table: &mut qiskit_mir::qid::ResourceTable = mir.resource_table_mut();
     let qid_0 = resource_table
-        .add_qid(QidInfo::new(BitLayout::Base(1))) // use Base here to represent individual qubits with no aliasing/overlap
+        .add_qid(QidInfo::base(1)) // use Base here to represent individual qubits with no aliasing/overlap
         .unwrap();
     let qid_1 = resource_table
-        .add_qid(QidInfo::new(BitLayout::Base(1))) // use Base here to represent individual qubits with no aliasing/overlap
+        .add_qid(QidInfo::base(1)) // use Base here to represent individual qubits with no aliasing/overlap
         .unwrap();
 
     // Here the instructions are created manually, from visually inspecting the

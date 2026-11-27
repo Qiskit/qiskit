@@ -261,14 +261,14 @@ mod tests {
         let mut virtual_mir = Mir::new();
         let qid = virtual_mir
             .resource_table_mut()
-            .add_qid(QidInfo::new(BitLayout::Base(1)))
+            .add_qid(QidInfo::base(1))
             .unwrap();
         assert_eq!(qid.space(), QidSpace::Virtual);
 
         let mut physical_mir = Mir::with_space(QidSpace::Physical);
         let qid = physical_mir
             .resource_table_mut()
-            .add_qid(QidInfo::new(BitLayout::Base(1)))
+            .add_qid(QidInfo::base(1))
             .unwrap();
         assert_eq!(qid.space(), QidSpace::Physical);
     }
@@ -276,10 +276,7 @@ mod tests {
     #[test]
     fn test_bad_instruction() {
         let mut mir = Mir::new();
-        let qid = mir
-            .resource_table_mut()
-            .add_qid(QidInfo::new(BitLayout::Base(1)))
-            .unwrap();
+        let qid = mir.resource_table_mut().add_qid(QidInfo::base(1)).unwrap();
         mir.instructions_mut().push_back(MirInstruction::new(
             MirOp::PauliRotation(PauliRotation::new(
                 PauliString::new(vec![Pauli::X; 2]),
@@ -303,9 +300,7 @@ mod tests {
     fn test_replace_instructions_qids() {
         let mut mir = Mir::new();
         for _ in 0..3 {
-            mir.resource_table_mut()
-                .add_qid(QidInfo::new(BitLayout::Base(1)))
-                .unwrap();
+            mir.resource_table_mut().add_qid(QidInfo::base(1)).unwrap();
         }
         // add instruction on [0,1]
         mir.instructions_mut().push_back(MirInstruction::new(

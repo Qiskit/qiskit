@@ -37,7 +37,7 @@ pub fn lower_dag(dag: &DAGCircuit) -> anyhow::Result<Mir> {
     for qubit in 0..dag.num_qubits() as u32 {
         let qid = mir
             .resource_table_mut()
-            .add_qid(QidInfo::new(qiskit_mir::qid::BitLayout::Base(1)))
+            .add_qid(QidInfo::base(1))
             .map_err(|e| anyhow::anyhow!("failed to allocate qid for qubit {qubit}: {e}"))?;
         qid_for_qubits.insert(qubit, qid);
     }

@@ -50,7 +50,7 @@ use qiskit_circuit::{
     packed_instruction::PackedOperation,
 };
 use qiskit_mir::mir::MirDisplayOptions;
-use qiskit_mir::qid::{BitLayout, QidInfo, QidSpace, ResourceTable};
+use qiskit_mir::qid::{QidInfo, QidSpace, ResourceTable};
 use qiskit_mir_passes::dag_to_mir::lower_dag;
 use qiskit_mir_passes::trivial_mir_layout::trivial_mir_layout;
 
@@ -165,12 +165,8 @@ fn layout_bell_pbc() {
     let instructions_copy = mir.instructions().clone(); // save a copy for comparison
 
     let mut physical_resource_table = ResourceTable::new(QidSpace::Physical);
-    physical_resource_table
-        .add_qid(QidInfo::new(BitLayout::Base(1)))
-        .unwrap();
-    physical_resource_table
-        .add_qid(QidInfo::new(BitLayout::Base(1)))
-        .unwrap();
+    physical_resource_table.add_qid(QidInfo::base(1)).unwrap();
+    physical_resource_table.add_qid(QidInfo::base(1)).unwrap();
     trivial_mir_layout(&mut mir, &physical_resource_table).unwrap();
 
     // Number of instructions did not change
