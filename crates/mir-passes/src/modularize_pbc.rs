@@ -302,6 +302,7 @@ impl ModuleMap {
 impl StaticPass<Mir> for ModularizePbc {
     fn run(&self, mut mir: Box<Mir>, context: &mut PassContext) -> anyhow::Result<Box<Mir>> {
         let mut state = ModularizerState::new(self);
+        let mut modified = false;
         // TODO: ideally the encapsulation wouldn't require us to partially deconstruct the `Mir`;
         // doing this `take`/`replace` dance isn't any different to direct `pub` access, really.
         let mut instructions = mem::take(mir.instructions_mut());
@@ -323,9 +324,10 @@ impl StaticPass<Mir> for ModularizePbc {
                 _ => unreachable!("we checked the op type while extracting the Pauli string"),
             }
             *inst.qids_mut() = qids;
-            context.ir_modified = true;
+            modified = true;
         }
         *mir.instructions_mut() = instructions;
+        context.ir_modified = modified;
         Ok(mir)
     }
 }
