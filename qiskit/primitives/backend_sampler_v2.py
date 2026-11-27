@@ -17,7 +17,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 from collections.abc import Iterable
 
 import numpy as np
@@ -122,15 +122,19 @@ class BackendSamplerV2(BaseSamplerV2):
         *,
         backend: BackendV2,
         options: dict | None = None,
+        memory_format: Literal["hex", "bitstring"] = "hex",
     ):
         """
         Args:
             backend: The backend to run the primitive on.
             options: The options to control the default shots (``default_shots``) and
                 the random seed for the simulator (``seed_simulator``).
+            memory_format: The format to use for the memory output. Can be "hex" (default)
+                or "bitstring".
         """
         self._backend = backend
         self._options = Options(**options) if options else Options()
+        self.memory_format = memory_format
 
     @property
     def backend(self) -> BackendV2:
@@ -245,7 +249,7 @@ class BackendSamplerV2(BaseSamplerV2):
                 item.creg_name: np.zeros(shape + (shots, item.num_bytes), dtype=np.uint8)
                 for item in meas_info
             }
-            memory_array = _memory_array(result_memory, max_num_bytes)
+            memory_array = _memory_array(result_memory, max_num_bytes, self.memory_format)
 
             for samples, index in zip(memory_array, np.ndindex(*shape)):
                 for item in meas_info:
@@ -305,12 +309,20 @@ def _prepare_memory(results: list[Result]) -> list[ResultMemory]:
     return lst
 
 
-def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]:
+def _memory_array(
+    results: list[list[str]], num_bytes: int, memory_format: str = "hex"
+) -> NDArray[np.uint8]:
     """Converts the memory data into an array in an unpacked way."""
     lst = []
+    if memory_format == "hex":
+        int_cast = lambda i: int(i, 16)
+    elif memory_format == "bitstring":
+        int_cast = lambda i: int(i, 2)
+    else:
+        raise QiskitError(f"Unsupported memory_format: {memory_format}")
     for memory in results:
         if num_bytes > 0:
-            data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in memory)
+            data = b"".join(int_cast(i).to_bytes(num_bytes, "big") for i in memory)
             data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
         else:
             # no measure in a circuit

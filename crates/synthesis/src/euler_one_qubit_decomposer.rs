@@ -25,7 +25,6 @@ use pyo3::Python;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
-use pyo3::wrap_pyfunction;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
@@ -195,9 +194,15 @@ fn circuit_u3(
         Some(atol) => atol,
         None => ANGLE_ZERO_EPSILON,
     };
-    let phi = mod_2pi(phi, atol);
-    let lam = mod_2pi(lam, atol);
-    if !simplify || theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
+    if simplify && theta.abs() < atol {
+        // At zero theta the gate is diagonal and only depends on `phi + lam`.
+        let tot = mod_2pi(phi + lam, atol);
+        if tot.abs() > atol {
+            circuit.push((StandardGate::U3, smallvec![0., 0., tot]));
+        }
+    } else {
+        let phi = mod_2pi(phi, atol);
+        let lam = mod_2pi(lam, atol);
         circuit.push((StandardGate::U3, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
@@ -260,9 +265,15 @@ fn circuit_u(
     if !simplify {
         atol = -1.0;
     }
-    let phi = mod_2pi(phi, atol);
-    let lam = mod_2pi(lam, atol);
-    if theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
+    if theta.abs() < atol {
+        // At zero theta the gate is diagonal and only depends on `phi + lam`.
+        let tot = mod_2pi(phi + lam, atol);
+        if tot.abs() > atol {
+            circuit.push((StandardGate::U, smallvec![0., 0., tot]));
+        }
+    } else {
+        let phi = mod_2pi(phi, atol);
+        let lam = mod_2pi(lam, atol);
         circuit.push((StandardGate::U, smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
@@ -1061,19 +1072,12 @@ pub fn params_zxz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     params_zxz_inner(mat)
 }
 
-pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(params_zyz))?;
-    m.add_wrapped(wrap_pyfunction!(params_xyx))?;
-    m.add_wrapped(wrap_pyfunction!(params_xzx))?;
-    m.add_wrapped(wrap_pyfunction!(params_zxz))?;
-    m.add_wrapped(wrap_pyfunction!(params_u3))?;
-    m.add_wrapped(wrap_pyfunction!(params_u1x))?;
-    m.add_wrapped(wrap_pyfunction!(generate_circuit))?;
-    m.add_wrapped(wrap_pyfunction!(unitary_to_gate_sequence))?;
-    m.add_wrapped(wrap_pyfunction!(unitary_to_circuit))?;
-    m.add_wrapped(wrap_pyfunction!(compute_error_list))?;
-    m.add_class::<OneQubitGateSequence>()?;
-    m.add_class::<OneQubitGateErrorMap>()?;
-    m.add_class::<EulerBasis>()?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod euler_one_qubit_decomposer {
+    #[pymodule_export]
+    use super::{
+        EulerBasis, OneQubitGateErrorMap, OneQubitGateSequence, compute_error_list,
+        generate_circuit, params_u1x, params_u3, params_xyx, params_xzx, params_zxz, params_zyz,
+        unitary_to_circuit, unitary_to_gate_sequence,
+    };
 }

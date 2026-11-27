@@ -37,6 +37,8 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python-version }}
+      - name: Install Rust
+        run: rustup toolchain install --profile minimal --no-self-update
       - name: Cache stestr
         uses: actions/cache@v6
         with:
@@ -66,6 +68,12 @@ jobs:
           pip install --group optionals-all -c constraints.txt
           pip check
         if: ${{ inputs.install-optionals }}
+      - name: Run C API extension-module smoke test
+        run: |
+          set -e
+          source test-job/bin/activate
+          python -m pip install --no-build-isolation --no-deps test/capi_extension/qk_smoke
+          python -P -m unittest discover -s test/capi_extension/qk_smoke/tests -v
       - name: "Run tests"
         run: |
           set -e

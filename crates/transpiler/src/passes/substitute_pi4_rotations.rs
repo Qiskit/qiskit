@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGError;
 use qiskit_circuit::dag_circuit::NodeIndex;
@@ -20,7 +19,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
 use crate::passes::common::{MINIMUM_TOL, is_angle_close_to_multiple_of_pi_k};
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
@@ -1046,10 +1045,10 @@ fn rotation_to_pi_div(gate: StandardGate) -> usize {
 #[pyfunction]
 #[pyo3(name = "substitute_pi4_rotations")]
 fn py_run_substitute_pi4_rotations(
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    run_substitute_pi4_rotations(dag, approximation_degree).map_err(Into::into)
+    run_substitute_pi4_rotations(dag.try_write()?, approximation_degree).map_err(Into::into)
 }
 
 pub fn run_substitute_pi4_rotations(
@@ -1142,7 +1141,12 @@ pub fn run_substitute_pi4_rotations(
     Ok(())
 }
 
-pub fn substitute_pi4_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_substitute_pi4_rotations))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "substitute_pi4_rotations"
+)]
+pub mod substitute_pi4_rotations_mod {
+    #[pymodule_export]
+    use super::py_run_substitute_pi4_rotations;
 }

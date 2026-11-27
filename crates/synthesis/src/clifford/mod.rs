@@ -86,9 +86,8 @@ fn synth_clifford_bm(clifford: PyReadonlyArray2<bool>) -> PyResult<PyCircuitData
     )
 }
 
-pub fn clifford(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(synth_clifford_greedy, m)?)?;
-    m.add_function(wrap_pyfunction!(synth_clifford_bm, m)?)?;
-    m.add_function(wrap_pyfunction!(random_clifford_tableau, m)?)?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
+pub mod clifford {
+    #[pymodule_export]
+    use super::{random_clifford_tableau, synth_clifford_bm, synth_clifford_greedy};
 }

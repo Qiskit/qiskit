@@ -13,7 +13,7 @@ doctest = false
 workspace = true
 
 [dependencies]
-qiskit-circuit.workspace = true
+qiskit-circuit = {workspace = true, features = [ "py" ]}
 qiskit-quantum-info.workspace = true
 qiskit-util.workspace = true
 bytemuck.workspace = true
@@ -30,7 +30,7 @@ faer.workspace = true
 rustworkx-core.workspace = true
 rustiq-core = "0.0.11"
 rsgridsynth = "0.2.0"
-rstar = "0.13.0"
+rstar = "0.14.0"
 thiserror.workspace = true
 fixedbitset.workspace = true
 binrw.workspace = true
@@ -54,6 +54,9 @@ features = ["num-complex"]
 [dependencies.hashbrown]
 workspace = true
 features = ["rayon", "serde"]
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [features]
 cache_pygates = ["qiskit-circuit/cache_pygates"]
