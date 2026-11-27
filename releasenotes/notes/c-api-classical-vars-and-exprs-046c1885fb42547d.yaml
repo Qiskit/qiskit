@@ -1,0 +1,40 @@
+---
+features_c:
+  - |
+    Added C API functions for adding and querying classical variables and stretches in a circuit:
+
+    * :c:func:`qk_circuit_add_var`
+    * :c:func:`qk_circuit_add_stretch`
+    * :c:func:`qk_circuit_num_vars`
+    * :c:func:`qk_circuit_num_stretches`
+    * :c:func:`qk_circuit_get_var`
+    * :c:func:`qk_circuit_get_stretch`
+    * :c:func:`qk_circuit_var_index`
+    * :c:func:`qk_circuit_stretch_index`
+    * :c:func:`qk_circuit_variable_type`
+    * :c:func:`qk_circuit_stretch_type`
+  - |
+    Added C API functions for building classical expression trees:
+
+    * :c:func:`qk_expr_from_var`
+    * :c:func:`qk_expr_from_stretch`
+    * :c:func:`qk_expr_from_value`
+    * :c:func:`qk_expr_new_unary`
+    * :c:func:`qk_expr_new_binary`
+    * :c:func:`qk_expr_new_cast`
+    * :c:func:`qk_expr_new_index`
+    * :c:func:`qk_expr_copy`
+    * :c:func:`qk_expr_free`
+  - |
+    Added C API functions for creating and freeing classical variables, stretches, and values:
+
+    * :c:func:`qk_var_new`
+    * :c:func:`qk_var_free`
+    * :c:func:`qk_stretch_new`
+    * :c:func:`qk_stretch_free`
+    * :c:func:`qk_value_new_bool`
+    * :c:func:`qk_value_new_uint`
+    * :c:func:`qk_value_new_biguint`
+    * :c:func:`qk_value_new_float`
+    * :c:func:`qk_value_new_duration`
+    * :c:func:`qk_value_free`

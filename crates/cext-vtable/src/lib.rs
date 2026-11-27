@@ -615,6 +615,16 @@ mod classical_expr {
             export_fn!(qk_value_new_uint),
             export_fn!(qk_value_new_biguint),
             export_fn!(qk_value_free),
+            export_fn!(qk_value_new_bool),
+            export_fn!(qk_expr_from_var),
+            export_fn!(qk_expr_from_stretch),
+            export_fn!(qk_expr_from_value),
+            export_fn!(qk_expr_new_unary),
+            export_fn!(qk_expr_new_binary),
+            export_fn!(qk_expr_new_cast),
+            export_fn!(qk_expr_new_index),
+            export_fn!(qk_expr_copy),
+            export_fn!(qk_expr_free),
         ]
     });
 }

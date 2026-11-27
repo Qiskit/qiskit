@@ -12,6 +12,7 @@
 
 use std::ptr;
 
+use crate::pointers::{ExposesOwnedPointers, expose_by_box};
 use crate::util;
 
 use num_bigint::BigUint;
@@ -26,6 +27,9 @@ use qiskit_circuit::{
 };
 use std::ffi::{CStr, c_char};
 use uuid::Uuid;
+
+// SAFETY: owned `Expr` pointers in the C API must be backed by `Box`.
+const _: () = unsafe { expose_by_box!(Expr) };
 
 /// The different types of expression nodes that can appear in a classical expression tree.
 #[repr(u8)]
@@ -291,6 +295,28 @@ pub extern "C" fn qk_value_new_float(val: f64) -> *mut Value {
     let value = Value::Float {
         raw: val,
         ty: Type::Float,
+    };
+    Box::into_raw(Box::new(value))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Construct a new boolean value.
+///
+/// @param val The ``bool`` to store.
+///
+/// @return The new value. Caller owns the return value.
+///
+/// # Example
+/// ```c
+/// QkValue *value = qk_value_new_bool(true);
+/// // Use the value...
+/// qk_value_free(value);
+/// ```
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_value_new_bool(val: bool) -> *mut Value {
+    let value = Value::Uint {
+        raw: BigUint::from(val as u8),
+        ty: Type::Bool,
     };
     Box::into_raw(Box::new(value))
 }
@@ -1319,6 +1345,316 @@ pub unsafe extern "C" fn qk_stretch_name(stretch: *const Stretch) -> *mut c_char
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let stretch = unsafe { &*stretch };
     util::cstring_from_utf8_lossy(&stretch.name).into_raw()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Construct a variable expression node.
+///
+/// The expression stores its own copy of ``var``.
+///
+/// @param var A pointer to the variable.
+///
+/// @return The new expression node. Caller owns the return value.
+///
+/// # Example
+/// ```c
+/// QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+/// QkVar *var = qk_var_new("a", uint8);
+/// QkExprNode *expr = qk_expr_from_var(var);
+/// // Use the expression...
+/// qk_expr_free(expr);
+/// qk_var_free(var);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``var`` is not a valid, non-null pointer to a `QkVar`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_from_var(var: *const Var) -> *mut Expr {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let var = unsafe { &*var };
+    Expr::Var(var.clone()).into_leaked()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Construct a stretch expression node.
+///
+/// The expression stores its own copy of ``stretch``.
+///
+/// @param stretch A pointer to the stretch.
+///
+/// @return The new expression node. Caller owns the return value.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``stretch`` is not a valid, non-null pointer to a `QkStretch`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_from_stretch(stretch: *const Stretch) -> *mut Expr {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let stretch = unsafe { &*stretch };
+    Expr::Stretch(stretch.clone()).into_leaked()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Construct a value expression node.
+///
+/// The expression stores its own copy of ``value``.
+///
+/// @param value A pointer to the value.
+///
+/// @return The new expression node. Caller owns the return value.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a `QkValue`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_from_value(value: *const Value) -> *mut Expr {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let value = unsafe { &*value };
+    Expr::Value(value.clone()).into_leaked()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Construct a unary expression node.
+///
+/// No type checking is done: ``ty`` and ``constant`` are stored as given.
+///
+/// @param op The unary operator.
+/// @param operand The operand. Ownership is transferred to the new node.
+/// @param ty The result type of the expression.
+/// @param constant Whether the expression is constant.
+///
+/// @return The new expression node. Caller owns the return value.
+///
+/// # Example
+/// ```c
+/// QkExprTypeInfo boolean = {QkExprType_Bool, 0};
+/// QkValue *value = qk_value_new_bool(true);
+/// QkExprNode *expr =
+///     qk_expr_new_unary(QkUnaryOpType_LogicNot, qk_expr_from_value(value), boolean, true);
+/// // Use the expression...
+/// qk_expr_free(expr);
+/// qk_value_free(value);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``operand`` is not a valid, non-null pointer to a `QkExprNode`
+/// owned by the caller.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_new_unary(
+    op: CUnaryOpType,
+    operand: *mut Expr,
+    ty: CExprTypeInfo,
+    constant: bool,
+) -> *mut Expr {
+    // SAFETY: Per documentation, `operand` is a valid owned expression.
+    let operand = unsafe { *Expr::steal(operand) };
+    Expr::Unary(Box::new(Unary {
+        op: op.into(),
+        operand,
+        ty: ty.into(),
+        constant,
+    }))
+    .into_leaked()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Construct a binary expression node.
+///
+/// No type checking is done: ``ty`` and ``constant`` are stored as given.
+///
+/// Sub-expressions cannot be shared. To use an expression as a sub-expression in more than one
+/// place, make a copy with `qk_expr_copy`.
+///
+/// @param op The binary operator.
+/// @param left The left operand. Ownership is transferred to the new node.
+/// @param right The right operand. Ownership is transferred to the new node.
+/// @param ty The result type of the expression.
+/// @param constant Whether the expression is constant.
+///
+/// @return The new expression node. Caller owns the return value.
+///
+/// # Example
+/// ```c
+/// QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+/// QkVar *var = qk_var_new("a", uint8);
+/// QkValue *five = qk_value_new_uint(5, 8);
+///
+/// // a + 5
+/// QkExprNode *expr = qk_expr_new_binary(QkBinaryOpType_Add, qk_expr_from_var(var),
+///                                       qk_expr_from_value(five), uint8, false);
+/// // Use the expression...
+/// qk_expr_free(expr);
+/// qk_value_free(five);
+/// qk_var_free(var);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` is not a valid, non-null pointer to a
+/// `QkExprNode` owned by the caller, or if ``left`` and ``right`` point to the same node.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_new_binary(
+    op: CBinaryOpType,
+    left: *mut Expr,
+    right: *mut Expr,
+    ty: CExprTypeInfo,
+    constant: bool,
+) -> *mut Expr {
+    // SAFETY: Per documentation, `left` and `right` are distinct, valid owned expressions.
+    let (left, right) = unsafe { (*Expr::steal(left), *Expr::steal(right)) };
+    Expr::Binary(Box::new(Binary {
+        op: op.into(),
+        left,
+        right,
+        ty: ty.into(),
+        constant,
+    }))
+    .into_leaked()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Construct a cast expression node.
+///
+/// No type checking is done: ``ty``, ``constant`` and ``implicit`` are stored as given.
+///
+/// @param operand The expression to cast. Ownership is transferred to the new node.
+/// @param ty The type to cast to.
+/// @param constant Whether the expression is constant.
+/// @param implicit Whether the cast is implicit.
+///
+/// @return The new expression node. Caller owns the return value.
+///
+/// # Example
+/// ```c
+/// QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+/// QkExprTypeInfo boolean = {QkExprType_Bool, 0};
+/// QkVar *var = qk_var_new("a", uint8);
+/// QkExprNode *expr = qk_expr_new_cast(qk_expr_from_var(var), boolean, false, false);
+/// // Use the expression...
+/// qk_expr_free(expr);
+/// qk_var_free(var);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``operand`` is not a valid, non-null pointer to a `QkExprNode`
+/// owned by the caller.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_new_cast(
+    operand: *mut Expr,
+    ty: CExprTypeInfo,
+    constant: bool,
+    implicit: bool,
+) -> *mut Expr {
+    // SAFETY: Per documentation, `operand` is a valid owned expression.
+    let operand = unsafe { *Expr::steal(operand) };
+    Expr::Cast(Box::new(Cast {
+        operand,
+        ty: ty.into(),
+        constant,
+        implicit,
+    }))
+    .into_leaked()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Construct an index expression node.
+///
+/// No type checking is done: ``ty`` and ``constant`` are stored as given.
+///
+/// @param target The expression being indexed. Ownership is transferred to the new node.
+/// @param index The index expression. Ownership is transferred to the new node.
+/// @param ty The result type of the expression.
+/// @param constant Whether the expression is constant.
+///
+/// @return The new expression node. Caller owns the return value.
+///
+/// # Example
+/// ```c
+/// QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+/// QkExprTypeInfo boolean = {QkExprType_Bool, 0};
+/// QkVar *var = qk_var_new("a", uint8);
+/// QkValue *zero = qk_value_new_uint(0, 3);
+/// QkExprNode *expr =
+///     qk_expr_new_index(qk_expr_from_var(var), qk_expr_from_value(zero), boolean, false);
+/// // Use the expression...
+/// qk_expr_free(expr);
+/// qk_value_free(zero);
+/// qk_var_free(var);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` or ``index`` is not a valid, non-null pointer to a
+/// `QkExprNode` owned by the caller, or if ``target`` and ``index`` point to the same node.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_new_index(
+    target: *mut Expr,
+    index: *mut Expr,
+    ty: CExprTypeInfo,
+    constant: bool,
+) -> *mut Expr {
+    // SAFETY: Per documentation, `target` and `index` are distinct, valid owned expressions.
+    let (target, index) = unsafe { (*Expr::steal(target), *Expr::steal(index)) };
+    Expr::Index(Box::new(Index {
+        target,
+        index,
+        ty: ty.into(),
+        constant,
+    }))
+    .into_leaked()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Make a deep copy of an expression tree.
+///
+/// @param expr A pointer to the expression node to copy. It may be any node, including one
+///     borrowed from inside another expression, for example through `qk_expr_binary_info`.
+///
+/// @return A new expression tree, independent of ``expr``. Caller owns the return value.
+///
+/// # Example
+/// ```c
+/// QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+/// QkVar *var = qk_var_new("a", uint8);
+/// QkExprNode *a = qk_expr_from_var(var);
+///
+/// // a * a: the second operand must be a copy.
+/// QkExprNode *copy = qk_expr_copy(a);
+/// QkExprNode *expr = qk_expr_new_binary(QkBinaryOpType_Mul, a, copy, uint8, false);
+/// // Use the expression...
+/// qk_expr_free(expr);
+/// qk_var_free(var);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``expr`` is not a valid, non-null pointer to a `QkExprNode`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_copy(expr: *const Expr) -> *mut Expr {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let expr = unsafe { &*expr };
+    expr.clone().into_leaked()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Free an expression tree, including all of its sub-expressions.
+///
+/// @param expr A pointer to the expression to free. If ``NULL``, this function does nothing.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``expr`` is not either null or a valid pointer to a `QkExprNode`
+/// owned by the caller.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_free(expr: *mut Expr) {
+    if expr.is_null() {
+        return;
+    }
+    // SAFETY: Per documentation, `expr` is a valid owned expression.
+    drop(unsafe { Expr::steal(expr) });
 }
 
 //////////////////////////////////////////////////////////////////

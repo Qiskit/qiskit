@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // TODO: remove these forward declarations
@@ -871,6 +872,26 @@ static int test_value_new(void) {
     }
     qk_value_free(value);
 
+    // Bool, both values:
+    value = qk_value_new_bool(true);
+    type_info = qk_value_type_info(value);
+    if (!(type_info.ty == QkExprType_Bool && qk_value_bool(value) == true)) {
+        fprintf(stderr, "Expected bool value true, got ty=%d value=%d\n", type_info.ty,
+                qk_value_bool(value));
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_value_free(value);
+    value = qk_value_new_bool(false);
+    type_info = qk_value_type_info(value);
+    if (!(type_info.ty == QkExprType_Bool && qk_value_bool(value) == false)) {
+        fprintf(stderr, "Expected bool value false, got ty=%d value=%d\n", type_info.ty,
+                qk_value_bool(value));
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_value_free(value);
+
     // Uint with bit width of zero is allowed.
     value = qk_value_new_uint(256, 0);
     type_info = qk_value_type_info(value);
@@ -953,6 +974,398 @@ static int test_value_new_biguint(void) {
     return result;
 }
 
+static bool type_info_eq(QkExprTypeInfo a, QkExprTypeInfo b) {
+    if (a.ty != b.ty) {
+        return false;
+    }
+    switch (a.ty) {
+    case QkExprType_Bool:
+    case QkExprType_Duration:
+    case QkExprType_Float:
+        // `width` is ignored for these types.
+        return true;
+    case QkExprType_Uint:
+        return a.width == b.width;
+    default:
+        // A new type was added: decide whether it uses `width` and add it to the right case.
+        fprintf(stderr, "type_info_eq: unhandled QkExprType %d\n", (int)a.ty);
+        abort();
+    }
+}
+
+/*
+ * Test lifting terminals into expressions. The terminals are copied, so they stay usable, and
+ * the copies keep their identity, as checked through a circuit.
+ */
+static int test_expr_from_terminals(void) {
+    enum TestResult result = Ok;
+    QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+    QkVar *var = qk_var_new("a", uint8);
+    QkStretch *stretch = qk_stretch_new("s");
+    QkValue *value = qk_value_new_uint(5, 8);
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkExprNode *var_expr = qk_expr_from_var(var);
+    QkExprNode *stretch_expr = qk_expr_from_stretch(stretch);
+    QkExprNode *value_expr = qk_expr_from_value(value);
+    char *name = NULL;
+
+    size_t var_idx = 0, stretch_idx = 0;
+    if (!(qk_circuit_add_var(qc, var, QkVariableType_Input, &var_idx) == QkExitCode_Success &&
+          qk_circuit_add_stretch(qc, stretch, QkStretchType_Declare, &stretch_idx) ==
+              QkExitCode_Success)) {
+        fprintf(stderr, "Failed to add var or stretch to circuit\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // Var:
+    if (qk_expr_kind(var_expr) != QkExprNodeKind_Var) {
+        fprintf(stderr, "Expected var kind, got %d\n", qk_expr_kind(var_expr));
+        result = EqualityError;
+        goto cleanup;
+    }
+    const QkVar *inner_var = qk_expr_as_var(var_expr);
+    name = qk_var_name(inner_var);
+    if (!(inner_var != var && strcmp(name, "a") == 0 &&
+          type_info_eq(qk_var_type_info(inner_var), uint8) &&
+          qk_circuit_var_index(qc, inner_var) == var_idx)) {
+        fprintf(stderr, "Expected a distinct copy of var 'a' (uint[8], index %zu), got '%s'\n",
+                var_idx, name);
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_str_free(name);
+    name = NULL;
+
+    // Stretch:
+    if (qk_expr_kind(stretch_expr) != QkExprNodeKind_Stretch) {
+        fprintf(stderr, "Expected stretch kind, got %d\n", qk_expr_kind(stretch_expr));
+        result = EqualityError;
+        goto cleanup;
+    }
+    const QkStretch *inner_stretch = qk_expr_as_stretch(stretch_expr);
+    name = qk_stretch_name(inner_stretch);
+    if (!(inner_stretch != stretch && strcmp(name, "s") == 0 &&
+          qk_circuit_stretch_index(qc, inner_stretch) == stretch_idx)) {
+        fprintf(stderr, "Expected a distinct copy of stretch 's' (index %zu), got '%s'\n",
+                stretch_idx, name);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Value:
+    if (qk_expr_kind(value_expr) != QkExprNodeKind_Value) {
+        fprintf(stderr, "Expected value kind, got %d\n", qk_expr_kind(value_expr));
+        result = EqualityError;
+        goto cleanup;
+    }
+    const QkValue *inner_value = qk_expr_as_value(value_expr);
+    if (!(inner_value != value && type_info_eq(qk_value_type_info(inner_value), uint8) &&
+          qk_value_uint(inner_value) == 5)) {
+        fprintf(stderr, "Expected a distinct copy of uint[8] value 5\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // The originals are still usable after the expressions are freed.
+    qk_expr_free(var_expr);
+    qk_expr_free(stretch_expr);
+    qk_expr_free(value_expr);
+    var_expr = stretch_expr = value_expr = NULL;
+    if (!(qk_value_uint(value) == 5 && qk_circuit_var_index(qc, var) == var_idx &&
+          qk_circuit_stretch_index(qc, stretch) == stretch_idx)) {
+        fprintf(stderr, "Originals changed after freeing the expressions\n");
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_str_free(name);
+    qk_expr_free(var_expr);
+    qk_expr_free(stretch_expr);
+    qk_expr_free(value_expr);
+    qk_circuit_free(qc);
+    qk_value_free(value);
+    qk_stretch_free(stretch);
+    qk_var_free(var);
+    return result;
+}
+
+/*
+ * Test that `qk_expr_new_unary` stores the operator, operand, type, and `constant` flag as given.
+ */
+static int test_expr_new_unary(void) {
+    enum TestResult result = Ok;
+    QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+    QkVar *a = qk_var_new("a", uint8);
+    QkExprNode *expr = NULL;
+    QkExprNode *non_const = NULL;
+
+    // ~a
+    expr = qk_expr_new_unary(QkUnaryOpType_BitNot, qk_expr_from_var(a), uint8, true);
+    QkUnaryExprInfo info = qk_expr_unary_info(expr);
+    if (!(info.op == QkUnaryOpType_BitNot && qk_expr_kind(info.operand) == QkExprNodeKind_Var &&
+          type_info_eq(qk_var_type_info(qk_expr_as_var(info.operand)), uint8) &&
+          type_info_eq(info.ty, uint8) && info.constant)) {
+        fprintf(stderr, "Unexpected unary info\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    non_const = qk_expr_new_unary(QkUnaryOpType_BitNot, qk_expr_from_var(a), uint8, false);
+    if (qk_expr_unary_info(non_const).constant) {
+        fprintf(stderr, "Expected a non-constant unary expression\n");
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_expr_free(non_const);
+    qk_expr_free(expr);
+    qk_var_free(a);
+    return result;
+}
+
+/*
+ * Test that `qk_expr_new_binary` stores the operator, operands, type, and `constant` flag as
+ * given.
+ */
+static int test_expr_new_binary(void) {
+    enum TestResult result = Ok;
+    QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+    QkVar *a = qk_var_new("a", uint8);
+    QkValue *five = qk_value_new_uint(5, 8);
+    QkExprNode *expr = NULL;
+    QkExprNode *non_const = NULL;
+
+    // a + 5
+    expr = qk_expr_new_binary(QkBinaryOpType_Add, qk_expr_from_var(a), qk_expr_from_value(five),
+                              uint8, true);
+    QkBinaryExprInfo info = qk_expr_binary_info(expr);
+    if (!(info.op == QkBinaryOpType_Add && qk_expr_kind(info.left) == QkExprNodeKind_Var &&
+          qk_expr_kind(info.right) == QkExprNodeKind_Value &&
+          qk_value_uint(qk_expr_as_value(info.right)) == 5 && type_info_eq(info.ty, uint8) &&
+          info.constant)) {
+        fprintf(stderr, "Unexpected binary info\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    non_const = qk_expr_new_binary(QkBinaryOpType_Add, qk_expr_from_var(a),
+                                   qk_expr_from_value(five), uint8, false);
+    if (qk_expr_binary_info(non_const).constant) {
+        fprintf(stderr, "Expected a non-constant binary expression\n");
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_expr_free(non_const);
+    qk_expr_free(expr);
+    qk_value_free(five);
+    qk_var_free(a);
+    return result;
+}
+
+/*
+ * Test that `qk_expr_new_cast` stores the operand, type, and the `constant` and `implicit` flags as
+ * given. The flags are independent, so each is set without the other.
+ */
+static int test_expr_new_cast(void) {
+    enum TestResult result = Ok;
+    QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+    QkExprTypeInfo boolean = {QkExprType_Bool, 0};
+    QkVar *a = qk_var_new("a", uint8);
+    QkExprNode *constant = NULL;
+    QkExprNode *implicit = NULL;
+
+    // (bool)a
+    constant = qk_expr_new_cast(qk_expr_from_var(a), boolean, true, false);
+    QkCastExprInfo info = qk_expr_cast_info(constant);
+    if (!(qk_expr_kind(info.operand) == QkExprNodeKind_Var &&
+          type_info_eq(qk_var_type_info(qk_expr_as_var(info.operand)), uint8) &&
+          type_info_eq(info.ty, boolean) && info.constant && !info.implicit)) {
+        fprintf(stderr, "Unexpected constant cast info\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    implicit = qk_expr_new_cast(qk_expr_from_var(a), boolean, false, true);
+    info = qk_expr_cast_info(implicit);
+    if (!(!info.constant && info.implicit)) {
+        fprintf(stderr, "Unexpected implicit cast info\n");
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_expr_free(implicit);
+    qk_expr_free(constant);
+    qk_var_free(a);
+    return result;
+}
+
+/*
+ * Test that `qk_expr_new_index` stores the target, index, type, and `constant` flag as given.
+ */
+static int test_expr_new_index(void) {
+    enum TestResult result = Ok;
+    QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+    QkExprTypeInfo uint3 = {QkExprType_Uint, 3};
+    QkExprTypeInfo boolean = {QkExprType_Bool, 0};
+    QkVar *a = qk_var_new("a", uint8);
+    QkVar *i = qk_var_new("i", uint3);
+    QkExprNode *expr = NULL;
+    QkExprNode *non_const = NULL;
+
+    // a[i]
+    expr = qk_expr_new_index(qk_expr_from_var(a), qk_expr_from_var(i), boolean, true);
+    QkIndexExprInfo info = qk_expr_index_info(expr);
+    if (!(qk_expr_kind(info.target) == QkExprNodeKind_Var &&
+          type_info_eq(qk_var_type_info(qk_expr_as_var(info.target)), uint8) &&
+          qk_expr_kind(info.index) == QkExprNodeKind_Var &&
+          type_info_eq(qk_var_type_info(qk_expr_as_var(info.index)), uint3) &&
+          type_info_eq(info.ty, boolean) && info.constant)) {
+        fprintf(stderr, "Unexpected index info\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    non_const = qk_expr_new_index(qk_expr_from_var(a), qk_expr_from_var(i), boolean, false);
+    if (qk_expr_index_info(non_const).constant) {
+        fprintf(stderr, "Expected a non-constant index expression\n");
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_expr_free(non_const);
+    qk_expr_free(expr);
+    qk_var_free(i);
+    qk_var_free(a);
+    return result;
+}
+
+/*
+ * Test that every unary operator roundtrips through `qk_expr_new_unary`.
+ */
+static int test_expr_new_unary_ops(void) {
+    enum TestResult result = Ok;
+    const QkUnaryOpType ops[] = {
+        QkUnaryOpType_BitNot,
+        QkUnaryOpType_LogicNot,
+        QkUnaryOpType_Negate,
+    };
+    const size_t num_ops = sizeof(ops) / sizeof(ops[0]);
+    QkExprTypeInfo ty = {QkExprType_Float, 0};
+    QkValue *value = qk_value_new_float(0.0);
+
+    for (size_t i = 0; i < num_ops; i++) {
+        QkExprNode *expr = qk_expr_new_unary(ops[i], qk_expr_from_value(value), ty, true);
+        QkUnaryOpType actual = qk_expr_unary_info(expr).op;
+        qk_expr_free(expr);
+        if (actual != ops[i]) {
+            fprintf(stderr, "Expected unary op %d, got %d\n", ops[i], actual);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    qk_value_free(value);
+    return result;
+}
+
+/*
+ * Test that every binary operator roundtrips through `qk_expr_new_binary`.
+ */
+static int test_expr_new_binary_ops(void) {
+    enum TestResult result = Ok;
+    const QkBinaryOpType ops[] = {
+        QkBinaryOpType_BitAnd,     QkBinaryOpType_BitOr,        QkBinaryOpType_BitXor,
+        QkBinaryOpType_LogicAnd,   QkBinaryOpType_LogicOr,      QkBinaryOpType_Equal,
+        QkBinaryOpType_NotEqual,   QkBinaryOpType_Less,         QkBinaryOpType_LessEqual,
+        QkBinaryOpType_Greater,    QkBinaryOpType_GreaterEqual, QkBinaryOpType_ShiftLeft,
+        QkBinaryOpType_ShiftRight, QkBinaryOpType_Add,          QkBinaryOpType_Sub,
+        QkBinaryOpType_Mul,        QkBinaryOpType_Div,
+    };
+    const size_t num_ops = sizeof(ops) / sizeof(ops[0]);
+    QkExprTypeInfo ty = {QkExprType_Float, 0};
+    QkValue *value = qk_value_new_float(0.0);
+
+    for (size_t i = 0; i < num_ops; i++) {
+        QkExprNode *expr = qk_expr_new_binary(ops[i], qk_expr_from_value(value),
+                                              qk_expr_from_value(value), ty, true);
+        QkBinaryOpType actual = qk_expr_binary_info(expr).op;
+        qk_expr_free(expr);
+        if (actual != ops[i]) {
+            fprintf(stderr, "Expected binary op %d, got %d\n", ops[i], actual);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    qk_value_free(value);
+    return result;
+}
+
+/*
+ * Test that `qk_expr_copy` makes an independent deep copy, which can be used to reuse a
+ * sub-expression, and that copying a borrowed sub-expression works.
+ */
+static int test_expr_copy(void) {
+    enum TestResult result = Ok;
+    QkExprTypeInfo uint8 = {QkExprType_Uint, 8};
+    QkVar *var = qk_var_new("a", uint8);
+    QkValue *five = qk_value_new_uint(5, 8);
+    QkCircuit *qc = qk_circuit_new(0, 0);
+    QkExprNode *sub_copy = NULL;
+    QkExprNode *product = NULL;
+    size_t var_idx = 0;
+    if (qk_circuit_add_var(qc, var, QkVariableType_Input, &var_idx) != QkExitCode_Success) {
+        fprintf(stderr, "Failed to add var to circuit\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // (a + 5) * (a + 5)
+    QkExprNode *sum = qk_expr_new_binary(QkBinaryOpType_Add, qk_expr_from_var(var),
+                                         qk_expr_from_value(five), uint8, false);
+    QkExprNode *sum_copy = qk_expr_copy(sum);
+    product = qk_expr_new_binary(QkBinaryOpType_Mul, sum, sum_copy, uint8, false);
+
+    // `sum` and `sum_copy` are now owned by `product`, so read them back through it. The copy is
+    // deep: its children are separate nodes, with the same contents.
+    QkBinaryExprInfo info = qk_expr_binary_info(product);
+    QkBinaryExprInfo left = qk_expr_binary_info(info.left);
+    QkBinaryExprInfo right = qk_expr_binary_info(info.right);
+    if (!(left.left != right.left && left.right != right.right && left.op == QkBinaryOpType_Add &&
+          right.op == QkBinaryOpType_Add &&
+          qk_circuit_var_index(qc, qk_expr_as_var(right.left)) == var_idx &&
+          qk_value_uint(qk_expr_as_value(right.right)) == 5 && type_info_eq(right.ty, uint8) &&
+          !right.constant)) {
+        fprintf(stderr, "Expected the copy to be a deep copy with equal contents\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Copy a borrowed sub-expression, then free the tree it was borrowed from.
+    sub_copy = qk_expr_copy(info.right);
+    qk_expr_free(product);
+    product = NULL;
+    QkBinaryExprInfo sub_info = qk_expr_binary_info(sub_copy);
+    if (!(sub_info.op == QkBinaryOpType_Add &&
+          qk_circuit_var_index(qc, qk_expr_as_var(sub_info.left)) == var_idx &&
+          qk_value_uint(qk_expr_as_value(sub_info.right)) == 5)) {
+        fprintf(stderr, "Expected the sub-expression copy to outlive its source\n");
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_expr_free(sub_copy);
+    qk_expr_free(product);
+    qk_circuit_free(qc);
+    qk_value_free(five);
+    qk_var_free(var);
+    return result;
+}
+
 int test_classical_expr(void) {
     int num_failed = 0;
 
@@ -967,6 +1380,14 @@ int test_classical_expr(void) {
     num_failed += RUN_TEST(test_stretch_new);
     num_failed += RUN_TEST(test_value_new);
     num_failed += RUN_TEST(test_value_new_biguint);
+    num_failed += RUN_TEST(test_expr_from_terminals);
+    num_failed += RUN_TEST(test_expr_new_unary);
+    num_failed += RUN_TEST(test_expr_new_binary);
+    num_failed += RUN_TEST(test_expr_new_cast);
+    num_failed += RUN_TEST(test_expr_new_index);
+    num_failed += RUN_TEST(test_expr_new_unary_ops);
+    num_failed += RUN_TEST(test_expr_new_binary_ops);
+    num_failed += RUN_TEST(test_expr_copy);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
