@@ -1,0 +1,8 @@
+---
+features_quantum_info:
+  - |
+    Added the function :func:`.renyi_entropy`, which computes the Rényi entropy of any order
+    :math:`\alpha \geq 0` of a :class:`.Statevector`, :class:`.DensityMatrix` or
+    :class:`.StabilizerState`, optionally of a subsystem given by ``qargs``. For a
+    :class:`.StabilizerState` the entropy is computed from the binary rank of the stabilizer
+    tableau restricted to the subsystem, without building the density matrix.

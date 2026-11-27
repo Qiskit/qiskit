@@ -15,8 +15,10 @@ Quantum information measures, metrics, and related functions for states.
 
 from __future__ import annotations
 import numpy as np
+from qiskit._accelerate.synthesis.linear import compute_rank
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
+from qiskit.quantum_info.states.stabilizerstate import StabilizerState
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.states.utils import (
     partial_trace,
@@ -129,6 +131,82 @@ def entropy(state: Statevector | DensityMatrix, base: int = 2) -> float:
     # Density matrix case
     evals = np.maximum(np.real(la.eigvals(state.data)), 0.0)
     return shannon_entropy(evals, base=base)
+
+
+def renyi_entropy(
+    state: Statevector | DensityMatrix | StabilizerState,
+    alpha: float,
+    qargs: list[int] | None = None,
+) -> float:
+    r"""Calculate the Rényi entropy of a quantum state or of one of its subsystems.
+
+    The Rényi entropy of order :math:`\alpha` of the reduced state
+    :math:`\rho_A = Tr_B[\rho]` is
+
+    .. math::
+
+        S_\alpha(\rho_A) = \frac{1}{1 - \alpha} \log_2 Tr[\rho_A^\alpha]
+
+    with the limits :math:`S_0 = \log_2 \operatorname{rank}(\rho_A)` and
+    :math:`S_1(\rho_A) = - Tr[\rho_A \log_2 \rho_A]` (the von Neumann entropy).
+
+    For a :class:`.StabilizerState` the spectrum of :math:`\rho_A` is flat, so the entropy does
+    not depend on :math:`\alpha` and is computed from the stabilizer tableau without building
+    :math:`\rho_A`:
+
+    .. math::
+
+        S_\alpha(\rho_A) = \operatorname{rank}_2(T_A) - |A|
+
+    where :math:`T_A` is the tableau restricted to the columns of the qubits in :math:`A`.
+
+    Args:
+        state (Statevector or DensityMatrix or StabilizerState): a quantum state.
+        alpha (float): the order of the Rényi entropy, :math:`\alpha \geq 0`.
+        qargs (list[int] or None): the qubits of the subsystem :math:`A`. If ``None``, the
+            entropy of the whole state is returned.
+
+    Returns:
+        float: The Rényi entropy :math:`S_\alpha(\rho_A)`, in bits.
+
+    Raises:
+        QiskitError: if ``alpha`` is negative, if ``qargs`` contains a qubit out of range or a
+            repeated qubit, or if the input state is not a valid quantum state.
+    """
+    if alpha < 0:
+        raise QiskitError("The Rényi order alpha must be non-negative.")
+    if not isinstance(state, StabilizerState):
+        state = _format_state(state, validate=True)
+    num_qubits = state.num_qubits
+    if qargs is not None:
+        qargs = list(qargs)
+        if any(q < 0 or q >= num_qubits for q in qargs):
+            raise QiskitError(f"Qubit index out of range in qargs {qargs}.")
+        if len(set(qargs)) != len(qargs):
+            raise QiskitError(f"Repeated qubit index in qargs {qargs}.")
+
+    if isinstance(state, StabilizerState):
+        # A stabilizer state is pure, so the whole state and the empty subsystem have no entropy.
+        if not qargs or len(qargs) == num_qubits:
+            return 0.0
+        columns = qargs + [q + num_qubits for q in qargs]
+        return float(compute_rank(state.clifford.stab[:, columns]) - len(qargs))
+
+    if qargs is None:
+        if isinstance(state, Statevector):
+            return 0.0
+        rho = state
+    else:
+        if not qargs:
+            return 0.0
+        rho = partial_trace(state, [q for q in range(num_qubits) if q not in qargs])
+    evals = np.linalg.eigvalsh(rho.data)
+    evals = evals[evals > rho.atol]
+    if alpha == 0:
+        return float(np.log2(len(evals)))
+    if alpha == 1:
+        return float(shannon_entropy(evals, base=2))
+    return float(np.log2(np.sum(evals**alpha)) / (1 - alpha))
 
 
 def mutual_information(state: Statevector | DensityMatrix, base: int = 2) -> float:
