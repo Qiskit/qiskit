@@ -3946,7 +3946,7 @@ class QuantumCircuit(IR):
         gates_to_decompose: (
             str | type[Instruction] | Sequence[str | type[Instruction]] | None
         ) = None,
-        reps: int = 1,
+        reps: int | None = 1,
     ) -> typing.Self:
         """Call a decomposition pass on this circuit, to decompose one level (shallow decompose).
 
@@ -3958,6 +3958,8 @@ class QuantumCircuit(IR):
                 the circuit.
             reps: Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
+                If ``None``, definitions are expanded recursively until only operations without a
+                definition remain, which is the fixed point that repeated calls would reach.
 
         Returns:
             QuantumCircuit: a circuit one level decomposed
@@ -3969,9 +3971,12 @@ class QuantumCircuit(IR):
 
         dag = circuit_to_dag(self, copy_operations=True)
 
-        pass_ = Decompose(gates_to_decompose, apply_synthesis=True)
-        for _ in range(reps):
-            dag = pass_.run(dag)
+        if reps is None:
+            dag = Decompose(gates_to_decompose, apply_synthesis=True, recursive=True).run(dag)
+        else:
+            pass_ = Decompose(gates_to_decompose, apply_synthesis=True)
+            for _ in range(reps):
+                dag = pass_.run(dag)
 
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)

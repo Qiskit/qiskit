@@ -36,6 +36,7 @@ class Decompose(TransformationPass):
             str | type[Instruction] | Sequence[str | type[Instruction]] | None
         ) = None,
         apply_synthesis: bool = False,
+        recursive: bool = False,
     ) -> None:
         """
         Args:
@@ -43,10 +44,13 @@ class Decompose(TransformationPass):
                 identified by gate label, name or type. Defaults to all gates.
             apply_synthesis: If ``True``, run :class:`.HighLevelSynthesis` to synthesize operations
                 that do not have a definition attached.
+            recursive: If ``True``, expand operations recursively until only operations without a
+                definition remain, instead of by a single level.
         """
         super().__init__()
         self.gates_to_decompose = gates_to_decompose
         self.apply_synthesis = apply_synthesis
+        self.recursive = recursive
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.
@@ -59,7 +63,9 @@ class Decompose(TransformationPass):
         """
         # We might use HLS to synthesize objects that do not have a definition
         hls = HighLevelSynthesis(qubits_initially_zero=False) if self.apply_synthesis else None
+        return self._run(dag, hls)
 
+    def _run(self, dag: DAGCircuit, hls: HighLevelSynthesis | None) -> DAGCircuit:
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             # Check in self.gates_to_decompose if the operation should be decomposed
@@ -67,7 +73,9 @@ class Decompose(TransformationPass):
                 continue
 
             if node.is_control_flow():
-                decomposition = control_flow.map_blocks(self.run, node.op)
+                decomposition = control_flow.map_blocks(
+                    lambda block: self._run(block, hls), node.op
+                )
                 dag.substitute_node(node, decomposition, inplace=True)
 
             elif getattr(node.op, "definition", None) is None:
@@ -75,9 +83,14 @@ class Decompose(TransformationPass):
                 if self.apply_synthesis:
                     node_as_dag = _node_to_dag(node)
                     synthesized = hls.run(node_as_dag)
+                    if self.recursive and synthesized.count_ops() != {node.name: 1}:
+                        synthesized = self._run(synthesized, hls)
                     dag.substitute_node_with_dag(node, synthesized)
 
                 # else: no definition and synthesis not enabled, so we do nothing
+            elif self.recursive:
+                decomposition = self._run(circuit_to_dag(node.op.definition), hls)
+                dag.substitute_node_with_dag(node, decomposition)
             else:
                 rule = node.op.definition.data
 
