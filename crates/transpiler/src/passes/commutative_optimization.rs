@@ -16,7 +16,7 @@ use std::f64::consts::PI;
 
 use num_complex::Complex64;
 use pyo3::prelude::*;
-use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
+use pyo3::{PyResult, pyfunction};
 use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
@@ -24,7 +24,7 @@ use crate::commutation_checker::{CommutationChecker, try_matrix_with_definition}
 use crate::passes::common::{MINIMUM_TOL, average_gate_fidelity_below_tol};
 use crate::passes::remove_identity_equiv::is_identity_equiv;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
     StandardGate, multiply_param, radd_param,
@@ -594,15 +594,16 @@ fn disjoint_instructions(
 
 #[pyfunction]
 #[pyo3(name = "commutative_optimization")]
-#[pyo3(signature = (dag, commutation_checker, approximation_degree=1., matrix_max_num_qubits=0))]
+#[pyo3(signature = (py_dag, commutation_checker, approximation_degree=1., matrix_max_num_qubits=0))]
 pub fn run_commutative_optimization(
-    dag: &mut DAGCircuit,
+    py_dag: &PyDAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
     matrix_max_num_qubits: u32,
-) -> PyResult<Option<DAGCircuit>> {
+) -> PyResult<Option<PyDAGCircuit>> {
     let tol = MINIMUM_TOL.max(1. - approximation_degree);
     let error_cutoff_fn = |_inst: &PackedInstruction| -> f64 { tol };
+    let dag = py_dag.try_read()?;
 
     // Create output DAG.
     // We will use it to intern qubits of canonicalized instructions.
@@ -731,11 +732,18 @@ pub fn run_commutative_optimization(
             }
         }
     }
-
-    Ok(Some(new_dag))
+    // Preserve metadata from original circuit
+    Ok(Some(PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
+        new_dag, py_dag,
+    )))
 }
 
-pub fn commutative_optimization_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_commutative_optimization))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "commutative_optimization"
+)]
+pub mod commutative_optimization_mod {
+    #[pymodule_export]
+    use super::run_commutative_optimization;
 }

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    A register too large for a circuit to index is now reported as a :exc:`.QASM2ParseError` that
+    names the size, the limit and the source position.  The circuit model addresses qubits and
+    clbits with a 32-bit index, so a program declaring, for example, ``qreg q[4294967296];`` cannot
+    be represented; previously the parse succeeded and the failure surfaced later, during circuit
+    construction, as a generic ``CircuitError: 'Register size too large.'``.

@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use qiskit_bindgen::render::ctypes;
-use qiskit_cext_vtable::{FUNCTIONS_CIRCUIT, FUNCTIONS_QI, FUNCTIONS_TRANSPILE};
+use qiskit_cext_vtable::{FUNCTIONS_CIRCUIT, FUNCTIONS_MIR, FUNCTIONS_QI, FUNCTIONS_TRANSPILE};
 use std::fs;
 use std::path::Path;
 
@@ -76,6 +76,7 @@ fn install_py_function_headers(
         ("_Qk_API_Circuit", &FUNCTIONS_CIRCUIT),
         ("_Qk_API_Transpile", &FUNCTIONS_TRANSPILE),
         ("_Qk_API_QI", &FUNCTIONS_QI),
+        ("_Qk_API_Mir", &FUNCTIONS_MIR),
     ];
     let funcs = qiskit_bindgen::render::c::functions_as_funcptr_casts(bindings);
     for (vtable_name, vtable) in vtables {
@@ -107,7 +108,7 @@ fn main() -> anyhow::Result<()> {
     let out_dir = Path::new(&out_dir);
     let include_path = out_dir.join("include");
     let mut bindings = qiskit_bindgen::generate_bindings(&cext_path)?;
-    // We install the headers into our `OUT_DIR`, then we configure `setuptools-rust` to pick them
+    // We install the headers into our `OUT_DIR`, then we configure our build system to pick them
     // up from there and put them into the Python package.
     qiskit_bindgen::install_c_headers(&mut bindings, &include_path)?;
     install_py_function_headers(&bindings, &include_path)?;
