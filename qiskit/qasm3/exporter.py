@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import dataclasses
 import io
 import itertools
@@ -301,6 +302,17 @@ class Exporter:
 # standard library.  We have to use the same `Parameter` instances each time so the equality
 # comparisons will work.
 _FIXED_PARAMETERS = (Parameter("p0"), Parameter("p1"), Parameter("p2"), Parameter("p3"))
+
+_DUMMY_GATE_PARAMETERS: list[Parameter] = []
+
+
+def _get_dummy_gate_parameter(index: int) -> Parameter:
+    while len(_DUMMY_GATE_PARAMETERS) <= index:
+        _DUMMY_GATE_PARAMETERS.append(
+            Parameter(f"{QASM3Builder.gate_parameter_prefix}_{len(_DUMMY_GATE_PARAMETERS)}")
+        )
+    return _DUMMY_GATE_PARAMETERS[index]
+
 
 _CANONICAL_STANDARD_GATES = {
     standard: standard.gate_class(*_FIXED_PARAMETERS[: standard.num_params])
@@ -623,9 +635,8 @@ def _gate_canonical_form(gate: Gate) -> Gate:
 
     This is the gate object that should be used to provide the OpenQASM 3 definition of a gate (but
     not the call site; that's the input object).  This lets us return a re-parametrised gate in
-    terms of general parameters, in cases where we can be sure that that is valid.  This is
-    currently only Qiskit standard gates.  This lets multiple call-site gates match the same symbol,
-    in the case of parametric gates.
+    terms of general parameters, in cases where we can be sure that that is valid.  This lets
+    multiple call-site gates match the same symbol, in the case of parametric gates.
 
     The definition source provides the number of qubits, the parameter signature and the body of the
     `gate` statement.  It does not provide the name of the symbol being defined."""
@@ -633,13 +644,29 @@ def _gate_canonical_form(gate: Gate) -> Gate:
     # reparameterised gate by passing the parameters positionally to the standard-gate constructor
     # (and control state, if appropriate).
     standard = gate._standard_gate
-    if standard is None:
-        return gate
-    return (
-        _CANONICAL_CONTROLLED_STANDARD_GATES[standard][gate.ctrl_state]
-        if standard.is_controlled_gate
-        else _CANONICAL_STANDARD_GATES[standard]
-    )
+    if standard is not None:
+        return (
+            _CANONICAL_CONTROLLED_STANDARD_GATES[standard][gate.ctrl_state]
+            if standard.is_controlled_gate
+            else _CANONICAL_STANDARD_GATES[standard]
+        )
+    if gate.params and gate.definition is not None and type(gate) is not Gate:
+        try:
+            param_names = [p.name for p in gate.params if isinstance(p, Parameter)]
+            if len(param_names) == len(gate.params) and len(set(param_names)) == len(gate.params):
+                dummy_params = list(gate.params)
+            else:
+                dummy_params = [_get_dummy_gate_parameter(i) for i in range(len(gate.params))]
+            canon = copy.copy(gate)
+            canon.params = dummy_params
+            canon._definition = None
+            if canon.definition is not None and len(canon.definition.parameters) == len(
+                dummy_params
+            ):
+                return canon
+        except Exception:
+            pass
+    return gate
 
 
 @dataclasses.dataclass
@@ -872,9 +899,15 @@ class QASM3Builder:
                         f"parameter mismatch in definition of '{gate.name}':"
                         f" call has {len(gate.params)}, definition has {defn.num_parameters}"
                     )
+                if all(isinstance(param, Parameter) for param in canonical.params) and set(
+                    canonical.params
+                ) == set(defn.parameters):
+                    param_source = canonical.params
+                else:
+                    param_source = defn.parameters
                 params = [
                     self.symbols.register_variable(param.name, param, allow_rename=True)
-                    for param in defn.parameters
+                    for param in param_source
                 ]
             else:
                 # Fill with dummy parameters. The name is unimportant, because they're not actually
