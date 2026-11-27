@@ -1150,6 +1150,17 @@ class TestParameterExpression(QiskitTestCase):
 
                 self.assertStructurallyEqual(expression, expected)
 
+    def test_optimization_with_large_shared_terms(self):
+        """A shared term is still combined when it is too large to compare in expanded form, as
+        long as both sides hold the same expression tree."""
+        big = param_x
+        for _ in range(20):
+            big = (big * param_y).sin()
+
+        self.assertStructurallyEqual(2 * big + 3 * big, 5 * big)
+        self.assertStructurallyEqual((big + 1) + (big + 2), 3 + 2 * big)
+        self.assertStructurallyEqual(5 * big - 3 * big, 2 * big)
+
     def test_deep_parameter_expression(self):
         a = Parameter("a")
         param_expr = a

@@ -536,6 +536,29 @@ class TestBasisTranslator(QiskitTestCase):
         inst = std_eq_lib._get_equivalences(rx_key)[0].circuit.data[0]
         self.assertEqual(inst.params, inst.operation.params)
 
+    def test_parameterized_global_phase_accumulation(self):
+        """Test that accumulating a parameterized global phase does not take exponential time.
+
+        Regression test of gh-16520 and gh-17306.  Before the fix, each extra gate doubled the
+        runtime."""
+        g = Parameter("g")
+        qc = QuantumCircuit(2, global_phase=g + 1)
+        for i in range(64):
+            qc.u(0, 0, -(i % 3 + 1) * g, 0)
+            qc.cx(0, 1)
+
+        # As in `TestSabreSwap.test_no_infinite_loop`, a regression shows up as this test hanging.
+        out = dag_to_circuit(
+            BasisTranslator(std_eqlib, ["cz", "rz", "x", "sx"]).run(circuit_to_dag(qc))
+        )
+
+        # the input's global phase must not be modified by the in-place phase accumulation
+        self.assertEqual(qc.global_phase, g + 1)
+        # Operator equality includes the global phase
+        self.assertEqual(
+            Operator(out.assign_parameters({g: 0.3})), Operator(qc.assign_parameters({g: 0.3}))
+        )
+
 
 class TestUnrollerCompatability(QiskitTestCase):
     """Tests backward compatibility with the Unroller pass.
