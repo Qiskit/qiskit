@@ -184,7 +184,7 @@ impl DecayHeuristic {
 ///     available options and configuration of it may change without warning in minor versions of
 ///     Qiskit.  If you are doing research using this, be sure to pin the version of Qiskit in your
 ///     requirements.
-#[pyclass(module = "qiskit._accelerate.sabre", frozen, eq, skip_from_py_object)]
+#[pyclass(module = "qiskit._accelerate.sabre", frozen, eq)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Heuristic {
     pub basic: Option<BasicHeuristic>,
@@ -201,6 +201,12 @@ impl Heuristic {
     /// components to it.
     ///
     /// Args:
+    ///     basic (BasicHeuristic | None): the ``basic`` component of the heuristic, as set by
+    ///         :meth:`with_basic`, or ``None`` to leave it out.
+    ///     lookahead (LookaheadHeuristic | None): the ``lookahead`` component of the heuristic, as
+    ///         set by :meth:`with_lookahead`, or ``None`` to leave it out.
+    ///     decay (DecayHeuristic | None): the ``decay`` component of the heuristic, as set by
+    ///         :meth:`with_decay`, or ``None`` to leave it out.
     ///     attempt_limit (int): the maximum number of swaps to attempt before using a fallback
     ///         "escape" mechanism to forcibly route a gate.  Set this to ``None`` to entirely
     ///         disable the mechanism, but beware that it's possible (on large coupling maps with a

@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 const PI: f64 = std::f64::consts::PI;
 
@@ -90,7 +89,8 @@ pub fn compose_u3_rust(
     out_angles
 }
 
-pub fn optimize_1q_gates(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(compose_u3_rust))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod optimize_1q_gates {
+    #[pymodule_export]
+    use super::compose_u3_rust;
 }

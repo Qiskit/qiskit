@@ -13,8 +13,7 @@
 use crate::TranspilerError;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::PyDAGCircuit;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 
@@ -32,12 +31,15 @@ use qiskit_circuit::operations::{DelayUnit, OperationRef, StandardInstruction};
 #[pyfunction]
 #[pyo3(signature=(dag, acquire_align, pulse_align))]
 pub fn run_instruction_duration_check(
-    py: Python,
-    dag: &DAGCircuit,
+    dag: &PyDAGCircuit,
     acquire_align: u32,
     pulse_align: u32,
 ) -> PyResult<bool> {
+    let dag = dag.try_read()?;
     let num_stretches = dag.num_stretches();
+
+    let acquire_align = i64::from(acquire_align);
+    let pulse_align = i64::from(pulse_align);
 
     // Rescheduling is not necessary
     if (acquire_align == 1 && pulse_align == 1) || num_stretches != 0 {
@@ -60,11 +62,13 @@ pub fn run_instruction_duration_check(
                 ));
             }
             let duration = match param {
-                Param::Obj(val) => val.bind(py).extract::<u32>(),
-                _ => Err(TranspilerError::new_err(
-                    "The provided Delay duration is not in terms of dt.",
-                )),
-            }?;
+                Param::Int(val) => *val,
+                _ => {
+                    return Err(TranspilerError::new_err(
+                        "The provided Delay duration is not an integer.",
+                    ));
+                }
+            };
 
             if !(duration % acquire_align == 0 || duration % pulse_align == 0) {
                 return Ok(true);
@@ -74,7 +78,12 @@ pub fn run_instruction_duration_check(
     Ok(false)
 }
 
-pub fn instruction_duration_check_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_instruction_duration_check))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "instruction_duration_check"
+)]
+pub mod instruction_duration_check_mod {
+    #[pymodule_export]
+    use super::run_instruction_duration_check;
 }

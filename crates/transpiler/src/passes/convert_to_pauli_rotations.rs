@@ -11,12 +11,11 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use qiskit_circuit::operations::PauliBased;
 use smallvec::smallvec;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, StandardGate,
@@ -468,7 +467,20 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 /// the pass.
 #[pyfunction]
 #[pyo3(name = "convert_to_pauli_rotations")]
-pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
+fn py_convert_to_pauli_rotations(py_dag: &PyDAGCircuit) -> PyResult<PyDAGCircuit> {
+    let dag = py_dag.try_read()?;
+    Ok(PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
+        convert_to_pauli_rotations(dag)?,
+        py_dag,
+    ))
+}
+
+/// Convert a quantum circuit containing single-qubit, two-qubit and three-qubit standard gates,
+/// barriers and measurements, into an equivalent list of `PauliProductRotation` gates
+/// and a global phase, as well as `PauliProductMeasurement` instructions.
+/// Raises a `TranspilerError`: if the circuit contains instructions not supported by
+/// the pass.
+pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep);
 
     // Iterate over nodes in the DAG and collect nodes
@@ -541,8 +553,10 @@ pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
                             None,
                         )?;
                     }
-                    global_phase =
-                        radd_param(multiply_param(&angle, global_phase_update), global_phase);
+                    if global_phase_update != 0.0 {
+                        global_phase =
+                            radd_param(multiply_param(&angle, global_phase_update), global_phase);
+                    }
                 } else if matches!(gate, StandardGate::GlobalPhase) {
                     let global_phase_update = inst.params_view()[0].clone();
                     global_phase = radd_param(global_phase, global_phase_update);
@@ -599,10 +613,16 @@ pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
 
     new_dag.add_global_phase(&global_phase)?;
 
+    // Preserve metadata from original circuit
     Ok(new_dag)
 }
 
-pub fn convert_to_pauli_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_convert_to_pauli_rotations))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "convert_to_pauli_rotations"
+)]
+pub mod convert_to_pauli_rotations_mod {
+    #[pymodule_export]
+    use super::py_convert_to_pauli_rotations;
 }
