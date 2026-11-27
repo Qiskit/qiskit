@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::dag_circuit::DAGError;
 use qiskit_circuit::dag_circuit::NodeIndex;
@@ -1142,7 +1141,12 @@ pub fn run_substitute_pi4_rotations(
     Ok(())
 }
 
-pub fn substitute_pi4_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_substitute_pi4_rotations))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "substitute_pi4_rotations"
+)]
+pub mod substitute_pi4_rotations_mod {
+    #[pymodule_export]
+    use super::py_run_substitute_pi4_rotations;
 }

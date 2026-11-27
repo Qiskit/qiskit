@@ -197,7 +197,8 @@ pub fn run_split_2q_unitaries(
         .map(|x| Some((x, mapping)))
 }
 
-pub fn split_2q_unitaries_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_split_2q_unitaries))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "split_2q_unitaries")]
+pub mod split_2q_unitaries_mod {
+    #[pymodule_export]
+    use super::py_run_split_2q_unitaries;
 }

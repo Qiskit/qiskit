@@ -34,7 +34,7 @@ use hashbrown::HashMap;
 /// error rates, you should assign both elements of the key to the same
 /// qubit index. If an edge or qubit is ideal and has no error rate, you can
 /// either set it to ``0.0`` explicitly or as ``NaN``.
-#[pyclass(mapping, module = "qiskit._accelerate.error_map", skip_from_py_object)]
+#[pyclass(mapping, module = "qiskit._accelerate.error_map")]
 #[derive(Clone, Debug)]
 pub struct ErrorMap {
     pub error_map: HashMap<[PhysicalQubit; 2], f64>,
@@ -118,7 +118,8 @@ impl ErrorMap {
     }
 }
 
-pub fn error_map_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<ErrorMap>()?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "error_map")]
+pub mod error_map_mod {
+    #[pymodule_export]
+    use super::ErrorMap;
 }

@@ -25,8 +25,8 @@ use std::hash;
 use thread_local::ThreadLocal;
 
 use numpy::PyReadonlyArray2;
+use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::{intern, wrap_pyfunction};
 
 pub(crate) use self::decomposers::Direction2q;
 
@@ -1253,8 +1253,8 @@ pub fn py_synthesize_unitary_matrix(
     Ok(out_dag.build().into())
 }
 
-pub fn unitary_synthesis_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_unitary_synthesis))?;
-    m.add_wrapped(wrap_pyfunction!(py_synthesize_unitary_matrix))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "unitary_synthesis")]
+pub mod unitary_synthesis_mod {
+    #[pymodule_export]
+    use super::{py_synthesize_unitary_matrix, py_unitary_synthesis};
 }

@@ -23,7 +23,7 @@ use rustworkx_core::petgraph::data::Create;
 use rustworkx_core::petgraph::prelude::*;
 
 use pyo3::prelude::*;
-use pyo3::{IntoPyObjectExt, create_exception, wrap_pyfunction};
+use pyo3::{IntoPyObjectExt, create_exception};
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::interner::{Interned, Interner};
@@ -36,7 +36,7 @@ use crate::target::{Qargs, QargsRef, Target, TargetOperation};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
-#[pyclass(name = "VF2PassConfiguration", skip_from_py_object)]
+#[pyclass(name = "VF2PassConfiguration")]
 #[derive(Clone, Debug)]
 pub struct Vf2PassConfiguration {
     /// The maximum numbers of times VF2 is allowed to extend the mapping (before, after) the first
@@ -932,16 +932,13 @@ pub fn vf2_layout_pass_exact(
     Ok(Vf2PassReturn::Solution(mapping))
 }
 
-pub fn vf2_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_vf2_layout_pass_average))?;
-    m.add_wrapped(wrap_pyfunction!(py_vf2_layout_pass_exact))?;
-    m.add("MultiQEncountered", m.py().get_type::<MultiQEncountered>())?;
-    m.add(
-        "VF2PassConfiguration",
-        m.py().get_type::<Vf2PassConfiguration>(),
-    )?;
-    m.add("VF2PassReturn", m.py().get_type::<VF2PassReturn>())?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "vf2_layout")]
+pub mod vf2_layout_mod {
+    #[pymodule_export]
+    use super::{
+        MultiQEncountered, VF2PassReturn, Vf2PassConfiguration, py_vf2_layout_pass_average,
+        py_vf2_layout_pass_exact,
+    };
 }
 
 #[cfg(test)]

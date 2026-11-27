@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
-
 mod binary;
 mod cast;
 #[allow(clippy::module_inception)]
@@ -31,26 +29,24 @@ pub use unary::{Unary, UnaryOp};
 pub use value::Value;
 pub use var::Var;
 
-// These aren't "pub use" since we probably shouldn't have a
-// reason to use the Python class types from Rust if we're
-// doing things the right way.
-use crate::classical::expr::binary::PyBinary;
-use crate::classical::expr::cast::PyCast;
-use crate::classical::expr::expr::{ExprKind, PyExpr};
-use crate::classical::expr::index::PyIndex;
-use crate::classical::expr::stretch::PyStretch;
-use crate::classical::expr::unary::PyUnary;
-use crate::classical::expr::value::PyValue;
-use crate::classical::expr::var::PyVar;
-
-pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PyExpr>()?;
-    m.add_class::<PyUnary>()?;
-    m.add_class::<PyBinary>()?;
-    m.add_class::<PyCast>()?;
-    m.add_class::<PyValue>()?;
-    m.add_class::<PyVar>()?;
-    m.add_class::<PyStretch>()?;
-    m.add_class::<PyIndex>()?;
-    Ok(())
-}
+// These are only `pub(super)`, for registering the Python module in `classical`, since we
+// probably shouldn't have a reason to use the Python class types from Rust if we're doing
+// things the right way.
+#[cfg(feature = "py")]
+pub(super) use crate::classical::expr::binary::PyBinary;
+#[cfg(feature = "py")]
+pub(super) use crate::classical::expr::cast::PyCast;
+#[cfg(feature = "py")]
+use crate::classical::expr::expr::ExprKind;
+#[cfg(feature = "py")]
+pub(super) use crate::classical::expr::expr::PyExpr;
+#[cfg(feature = "py")]
+pub(super) use crate::classical::expr::index::PyIndex;
+#[cfg(feature = "py")]
+pub(super) use crate::classical::expr::stretch::PyStretch;
+#[cfg(feature = "py")]
+pub(super) use crate::classical::expr::unary::PyUnary;
+#[cfg(feature = "py")]
+pub(super) use crate::classical::expr::value::PyValue;
+#[cfg(feature = "py")]
+pub(super) use crate::classical::expr::var::PyVar;

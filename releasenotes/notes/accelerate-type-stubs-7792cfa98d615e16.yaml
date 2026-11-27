@@ -1,0 +1,9 @@
+---
+features_misc:
+  - |
+    Qiskit now generates type stubs (``.pyi`` files) for its compiled extension module,
+    ``qiskit._accelerate``, during its build, and includes them in its wheels.  Static type checkers
+    and editors that read stub files from installed packages, such as Pyright and Pylance, now see
+    the attributes and method signatures of the classes Qiskit implements in Rust, for example
+    :class:`.DAGCircuit`, :class:`.Qubit` and :class:`.SparseObservable`, when these are imported
+    from their public locations.

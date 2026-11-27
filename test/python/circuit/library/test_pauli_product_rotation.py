@@ -242,7 +242,10 @@ class TestPauliProductRotationGate(QiskitTestCase):
             # we want to ensure that the output is an efficient controlled version.
             self.assertTrue(np.allclose(Operator(expected).data, Operator(ctrl).data))
 
-            counts = {"sx": 1, "sxdg": 1, "h": 2, "cx": 4, num_ctrl_qubits * "c" + "rz": 1}
+            if num_ctrl_qubits == 1:
+                counts = {"sx": 1, "sxdg": 1, "h": 2, "cx": 4, "crz": 1}
+            else:  # num_ctrl_qubits == 2
+                counts = {"cx": 8, "rz": 4, "h": 2, "sx": 1, "sxdg": 1}
             self.assertDictEqual(counts, ctrl.definition.count_ops())
 
     def test_parameter_assignment(self):

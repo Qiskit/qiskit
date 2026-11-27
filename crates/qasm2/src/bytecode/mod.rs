@@ -13,9 +13,12 @@
 use num_bigint::BigUint;
 #[cfg(feature = "py")]
 use pyo3::prelude::*;
+use qiskit_circuit::{Clbit, Qubit};
 
+use crate::error::ParseError;
 use crate::expr::Expr;
-use crate::parse::{ClbitId, CregId, GateId, QubitId};
+use crate::ext::ClassicalEvaluator;
+use crate::parse::{CregId, GateId, State};
 
 /// An internal representation of the bytecode that will later be converted to the more free-form
 /// [Bytecode] Python-space objects.  This is fairly tightly coupled to Python space; the intent is
@@ -32,67 +35,126 @@ pub enum InternalBytecode {
     Gate {
         id: GateId,
         arguments: Vec<f64>,
-        qubits: Vec<QubitId>,
+        qubits: Vec<Qubit>,
     },
     ConditionedGate {
         id: GateId,
         arguments: Vec<f64>,
-        qubits: Vec<QubitId>,
+        qubits: Vec<Qubit>,
         creg: CregId,
         value: BigUint,
     },
     Measure {
-        qubit: QubitId,
-        clbit: ClbitId,
+        qubit: Qubit,
+        clbit: Clbit,
     },
     ConditionedMeasure {
-        qubit: QubitId,
-        clbit: ClbitId,
+        qubit: Qubit,
+        clbit: Clbit,
         creg: CregId,
         value: BigUint,
     },
     Reset {
-        qubit: QubitId,
+        qubit: Qubit,
     },
     ConditionedReset {
-        qubit: QubitId,
+        qubit: Qubit,
         creg: CregId,
         value: BigUint,
     },
     Barrier {
-        qubits: Vec<QubitId>,
+        qubits: Vec<Qubit>,
     },
     DeclareQreg {
         name: String,
-        size: usize,
+        size: u32,
     },
     DeclareCreg {
         name: String,
-        size: usize,
+        size: u32,
     },
     DeclareGate {
         name: String,
-        num_qubits: usize,
+        num_qubits: u32,
+        num_params: u32,
     },
     GateInBody {
         id: GateId,
         arguments: Vec<Expr>,
-        qubits: Vec<QubitId>,
+        qubits: Vec<Qubit>,
     },
     EndDeclareGate {},
     DeclareOpaque {
         name: String,
-        num_qubits: usize,
+        num_qubits: u32,
+        num_params: u32,
     },
     SpecialInclude {
         indices: Vec<usize>,
     },
 }
 
+/// Hands out one statement's bytecode at a time; `parse_next` leaves unused slots as `None`.
+pub(crate) struct Iter {
+    state: State,
+    buffer: Vec<Option<InternalBytecode>>,
+    handed_out: usize,
+    evaluator: ClassicalEvaluator<'static>,
+    exhausted: bool,
+}
+
+impl Iter {
+    pub(crate) fn new(state: State) -> Self {
+        Self {
+            state,
+            buffer: Vec::new(),
+            handed_out: 0,
+            evaluator: ClassicalEvaluator::detached(),
+            exhausted: false,
+        }
+    }
+}
+
+impl Iterator for Iter {
+    type Item = Result<InternalBytecode, ParseError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            while self.handed_out < self.buffer.len() {
+                let instruction = self.buffer[self.handed_out].take();
+                self.handed_out += 1;
+                if let Some(instruction) = instruction {
+                    return Some(Ok(instruction));
+                }
+            }
+            if self.exhausted {
+                return None;
+            }
+            self.buffer.clear();
+            self.handed_out = 0;
+            match self.state.parse_next(&mut self.buffer, self.evaluator) {
+                Ok(Some(_)) => (),
+                Ok(None) => self.exhausted = true,
+                Err(err) => {
+                    self.buffer.clear();
+                    self.exhausted = true;
+                    return Some(Err(err));
+                }
+            }
+        }
+    }
+}
+
 #[cfg(feature = "py")]
 mod py;
 #[cfg(feature = "py")]
 pub use py::*;
+
+/// The indices of `qubits`, as the plain integers that the Python-space bytecode protocol uses.
+#[cfg(feature = "py")]
+fn qubit_indices(qubits: Vec<Qubit>) -> Vec<u32> {
+    qubits.into_iter().map(|qubit| qubit.0).collect()
+}
 
 #[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for InternalBytecode {
@@ -111,7 +173,7 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     qubits,
                 } => Bytecode {
                     opcode: OpCode::Gate,
-                    operands: (id, arguments, qubits)
+                    operands: (id, arguments, qubit_indices(qubits))
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),
@@ -124,14 +186,14 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     value,
                 } => Bytecode {
                     opcode: OpCode::ConditionedGate,
-                    operands: (id, arguments, qubits, creg, value)
+                    operands: (id, arguments, qubit_indices(qubits), creg, value)
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),
                 },
                 InternalBytecode::Measure { qubit, clbit } => Bytecode {
                     opcode: OpCode::Measure,
-                    operands: (qubit, clbit).into_pyobject(py)?.into_any().unbind(),
+                    operands: (qubit.0, clbit.0).into_pyobject(py)?.into_any().unbind(),
                 },
                 InternalBytecode::ConditionedMeasure {
                     qubit,
@@ -140,22 +202,28 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     value,
                 } => Bytecode {
                     opcode: OpCode::ConditionedMeasure,
-                    operands: (qubit, clbit, creg, value)
+                    operands: (qubit.0, clbit.0, creg, value)
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),
                 },
                 InternalBytecode::Reset { qubit } => Bytecode {
                     opcode: OpCode::Reset,
-                    operands: (qubit,).into_pyobject(py)?.into_any().unbind(),
+                    operands: (qubit.0,).into_pyobject(py)?.into_any().unbind(),
                 },
                 InternalBytecode::ConditionedReset { qubit, creg, value } => Bytecode {
                     opcode: OpCode::ConditionedReset,
-                    operands: (qubit, creg, value).into_pyobject(py)?.into_any().unbind(),
+                    operands: (qubit.0, creg, value)
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
                 },
                 InternalBytecode::Barrier { qubits } => Bytecode {
                     opcode: OpCode::Barrier,
-                    operands: (qubits,).into_pyobject(py)?.into_any().unbind(),
+                    operands: (qubit_indices(qubits),)
+                        .into_pyobject(py)?
+                        .into_any()
+                        .unbind(),
                 },
                 InternalBytecode::DeclareQreg { name, size } => Bytecode {
                     opcode: OpCode::DeclareQreg,
@@ -165,7 +233,12 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     opcode: OpCode::DeclareCreg,
                     operands: (name, size).into_pyobject(py)?.into_any().unbind(),
                 },
-                InternalBytecode::DeclareGate { name, num_qubits } => Bytecode {
+                // `num_params` isn't forwarded: `parse.py` infers it from the call site.
+                InternalBytecode::DeclareGate {
+                    name,
+                    num_qubits,
+                    num_params: _,
+                } => Bytecode {
                     opcode: OpCode::DeclareGate,
                     operands: (name, num_qubits).into_pyobject(py)?.into_any().unbind(),
                 },
@@ -178,7 +251,11 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     // parameters changing here, so we can just use `OpCode::Gate` unlike in the
                     // internal bytecode.
                     opcode: OpCode::Gate,
-                    operands: (id, py::GateBodyArguments::new(arguments), qubits)
+                    operands: (
+                        id,
+                        py::GateBodyArguments::new(arguments),
+                        qubit_indices(qubits),
+                    )
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),
@@ -187,7 +264,11 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     opcode: OpCode::EndDeclareGate,
                     operands: ().into_pyobject(py)?.into_any().unbind(),
                 },
-                InternalBytecode::DeclareOpaque { name, num_qubits } => Bytecode {
+                InternalBytecode::DeclareOpaque {
+                    name,
+                    num_qubits,
+                    num_params: _,
+                } => Bytecode {
                     opcode: OpCode::DeclareOpaque,
                     operands: (name, num_qubits).into_pyobject(py)?.into_any().unbind(),
                 },

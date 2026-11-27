@@ -648,7 +648,7 @@ fn replace_node(
             Param::Float(_) => dag
                 .add_global_phase(target_dag.global_phase())
                 .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string())),
-            Param::Obj(_) => Ok(()),
+            Param::Obj(_) | Param::Int(_) => Ok(()),
         }?
     }
 
@@ -673,6 +673,9 @@ fn param_expr_assignment(
                 let val = Python::attach(|py| val.extract::<Value>(py))
                     .map_err(|_| ParameterError::InvalidValue)?;
                 bind_map.insert(key, val);
+            }
+            Param::Int(int) => {
+                bind_map.insert(key, Value::Int(*int));
             }
         }
     }
@@ -701,7 +704,8 @@ fn param_assignment_expr(
     }
 }
 
-pub fn basis_translator_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_basis_translator))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "basis_translator")]
+pub mod basis_translator_mod {
+    #[pymodule_export]
+    use super::py_run_basis_translator;
 }

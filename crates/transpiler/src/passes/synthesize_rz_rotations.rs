@@ -209,7 +209,12 @@ pub fn py_run_synthesize_rz_rotations(
     Ok(())
 }
 
-pub fn synthesize_rz_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_synthesize_rz_rotations))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "synthesize_rz_rotations"
+)]
+pub mod synthesize_rz_rotations_mod {
+    #[pymodule_export]
+    use super::py_run_synthesize_rz_rotations;
 }

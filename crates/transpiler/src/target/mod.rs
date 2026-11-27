@@ -209,8 +209,7 @@ memory.
     mapping,
     subclass,
     name = "BaseTarget",
-    module = "qiskit._accelerate.target",
-    skip_from_py_object
+    module = "qiskit._accelerate.target"
 )]
 #[derive(Clone, Debug)]
 pub struct Target {
@@ -343,7 +342,7 @@ impl Target {
     ///         if representing a variadic.
     ///     properties: A mapping of qargs and ``InstructionProperties``.
     ///     name: A name assigned to the provided gate.
-    ///     bound_list: The bounds on the parameters for a given gate. This is specified by a list
+    ///     angle_bounds: The bounds on the parameters for a given gate. This is specified by a list
     ///         of tuples (low, high) which represent the low and high bound (inclusively) on what
     ///         float values are allowed for the parameter in that position. If a parameter
     ///         doesn't have an angle bound you can use ``None`` to represent that. For example if
@@ -1773,12 +1772,10 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
         .product()
 }
 
-pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<InstructionProperties>()?;
-    m.add_class::<Target>()?;
-    m.add_class::<QubitProperties>()?;
-    m.add_wrapped(wrap_pyfunction!(py_estimate_fidelity))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod target {
+    #[pymodule_export]
+    use super::{InstructionProperties, QubitProperties, Target, py_estimate_fidelity};
 }
 
 #[cfg(test)]
