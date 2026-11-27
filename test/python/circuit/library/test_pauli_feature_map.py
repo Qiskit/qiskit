@@ -458,6 +458,37 @@ class TestPauliFeatureMap(QiskitTestCase):
         expected_ops = {"h": num_qubits, "p": 2 * num_qubits - 1, "cx": 2 * (num_qubits - 1)}
         self.assertEqual(ops, expected_ops)
 
+    @combine(entanglement=["linear", "reverse_linear", "pairwise"])
+    def test_zz_with_rzz(self, entanglement):
+        """Test the ZZ feature map implemented with RZZ gates is equivalent
+        to the circuit produced with phase rotations up to a global phase"""
+        num_qubits = 5
+        parameters = np.linspace(0.1, 2.0, num_qubits)
+        encoding_phase = zz_feature_map(
+            num_qubits, entanglement=entanglement, reps=1
+        ).assign_parameters(parameters)
+        encoding_rzz = zz_feature_map(
+            num_qubits, entanglement=entanglement, reps=1, use_phase_gates=False
+        ).assign_parameters(parameters)
+        self.assertTrue(Operator(encoding_rzz).equiv(encoding_phase))
+        ops = encoding_rzz.count_ops()
+        expected_ops = {"h": num_qubits, "rz": num_qubits, "rzz": num_qubits - 1}
+        self.assertEqual(ops, expected_ops)
+
+    def test_z_with_rz(self):
+        """Test the Z feature map implemented with RZ gates is equivalent
+        to the circuit produced with phase rotations up to a global phase"""
+        num_qubits = 5
+        parameters = np.linspace(0.1, 2.0, num_qubits)
+        encoding_phase = z_feature_map(num_qubits, reps=1).assign_parameters(parameters)
+        encoding_rz = z_feature_map(num_qubits, reps=1, use_phase_gates=False).assign_parameters(
+            parameters
+        )
+        self.assertTrue(Operator(encoding_rz).equiv(encoding_phase))
+        ops = encoding_rz.count_ops()
+        expected_ops = {"h": num_qubits, "rz": num_qubits}
+        self.assertEqual(ops, expected_ops)
+
     def test_pauli_alpha(self):
         """Test  Pauli rotation factor (getter, setter)."""
         alpha = 1.234
