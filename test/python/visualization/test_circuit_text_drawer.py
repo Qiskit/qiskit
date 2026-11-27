@@ -1985,11 +1985,11 @@ class TestTextDrawerParams(QiskitTestCase):
         """cu3 drawing with parameters"""
         expected = "\n".join(
             [
-                "                            ",
-                "q_0: |0>─────────■──────────",
-                "        ┌────────┴─────────┐",
-                "q_1: |0>┤ U(π/2,theta,π,0) ├",
-                "        └──────────────────┘",
+                "                             ",
+                "q_0: |0>──────────■──────────",
+                "        ┌─────────┴─────────┐",
+                "q_1: |0>┤ U4(π/2,theta,π,0) ├",
+                "        └───────────────────┘",
             ]
         )
 
@@ -4375,11 +4375,12 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         circuit = QuantumCircuit(qr, cr)
 
         a = Parameter("a")
+        angle = Parameter("π/a")
         circuit.h(0)
         circuit.measure(0, 2)
         with circuit.for_loop((2, 4, 8), loop_parameter=a):
             circuit.cx(0, 1)
-            circuit.rx(pi / a, 1)
+            circuit.rx(angle, 1)
             circuit.measure(0, 0)
             with circuit.if_test((cr[2], 1)):
                 circuit.z(0)

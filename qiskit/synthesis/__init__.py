@@ -135,8 +135,10 @@ Multi Controlled Synthesis
 .. autofunction:: synth_mcx_2_clean_kg24
 .. autofunction:: synth_mcx_2_dirty_kg24
 .. autofunction:: synth_mcx_n_dirty_i15
+.. autofunction:: synth_mcx_n_dirty_m15
 .. autofunction:: synth_mcx_n_clean_m15
 .. autofunction:: synth_mcx_1_clean_b95
+.. autofunction:: synth_mcx_noaux_sp22
 .. autofunction:: synth_mcx_noaux_v24
 .. autofunction:: synth_mcx_noaux_hp24
 .. autofunction:: synth_mcx_gray_code

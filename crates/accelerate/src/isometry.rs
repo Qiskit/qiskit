@@ -16,7 +16,6 @@ use approx::abs_diff_eq;
 use num_complex::{Complex64, ComplexFloat};
 use pyo3::Python;
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 use hashbrown::HashSet;
 use itertools::Itertools;
@@ -339,18 +338,12 @@ fn b(k: usize, s: usize) -> usize {
     k - (a(k, s) * 2_usize.pow(s as u32))
 }
 
-pub fn isometry(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(diag_is_identity_up_to_global_phase))?;
-    m.add_wrapped(wrap_pyfunction!(find_squs_for_disentangling))?;
-    m.add_wrapped(wrap_pyfunction!(reverse_qubit_state))?;
-    m.add_wrapped(wrap_pyfunction!(apply_ucg))?;
-    m.add_wrapped(wrap_pyfunction!(apply_diagonal_gate))?;
-    m.add_wrapped(wrap_pyfunction!(apply_diagonal_gate_to_diag))?;
-    m.add_wrapped(wrap_pyfunction!(apply_multi_controlled_gate))?;
-    m.add_wrapped(wrap_pyfunction!(ucg_is_identity_up_to_global_phase))?;
-    m.add_wrapped(wrap_pyfunction!(merge_ucgate_and_diag))?;
-    m.add_wrapped(wrap_pyfunction!(a))?;
-    m.add_wrapped(wrap_pyfunction!(b))?;
-    m.add_wrapped(wrap_pyfunction!(k_s))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod isometry {
+    #[pymodule_export]
+    use super::{
+        a, apply_diagonal_gate, apply_diagonal_gate_to_diag, apply_multi_controlled_gate,
+        apply_ucg, b, diag_is_identity_up_to_global_phase, find_squs_for_disentangling, k_s,
+        merge_ucgate_and_diag, reverse_qubit_state, ucg_is_identity_up_to_global_phase,
+    };
 }

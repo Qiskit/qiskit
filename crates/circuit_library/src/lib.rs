@@ -13,28 +13,31 @@
 use pyo3::import_exception;
 use pyo3::prelude::*;
 
-mod blocks;
-mod entanglement;
+pub mod blocks;
+pub mod entanglement;
 pub mod iqp;
-mod multi_local;
-mod parameter_ledger;
+pub mod multi_local;
+pub mod parameter_ledger;
 pub mod pauli_evolution;
 mod pauli_feature_map;
 pub mod quantum_volume;
 pub mod suzuki_trotter;
 
+pub mod custom_operation;
+
 import_exception!(qiskit.exceptions, QiskitError);
 import_exception!(qiskit.circuit.exceptions, CircuitError);
 
-pub fn circuit_library(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(pauli_evolution::py_pauli_evolution))?;
-    m.add_wrapped(wrap_pyfunction!(pauli_feature_map::pauli_feature_map))?;
-    m.add_wrapped(wrap_pyfunction!(entanglement::get_entangler_map))?;
-    m.add_wrapped(wrap_pyfunction!(iqp::py_iqp))?;
-    m.add_wrapped(wrap_pyfunction!(iqp::py_random_iqp))?;
-    m.add_wrapped(wrap_pyfunction!(quantum_volume::quantum_volume))?;
-    m.add_wrapped(wrap_pyfunction!(multi_local::py_n_local))?;
-    m.add_class::<blocks::Block>()?;
-
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod circuit_library {
+    #[pymodule_export]
+    use super::{
+        blocks::Block,
+        entanglement::get_entangler_map,
+        iqp::{py_iqp, py_random_iqp},
+        multi_local::py_n_local,
+        pauli_evolution::py_pauli_evolution,
+        pauli_feature_map::pauli_feature_map,
+        quantum_volume::quantum_volume,
+    };
 }

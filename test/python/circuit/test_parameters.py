@@ -2256,6 +2256,13 @@ class TestParameterEquality(QiskitTestCase):
         self.assertEqual(expr, theta)
         self.assertEqual(theta, expr)
 
+    def test_inverse_equals_negative_power(self):
+        """Verify 1/x is equal to x ** (-1) for parameter expressions."""
+        theta = Parameter("theta")
+
+        self.assertEqual(1 / theta, theta ** (-1))
+        self.assertEqual(theta ** (-2), 1 / (theta**2))
+
 
 class TestParameterView(QiskitTestCase):
     """Test the ParameterView object."""
@@ -2311,6 +2318,20 @@ class TestParameterView(QiskitTestCase):
         """Test __eq__."""
         self.assertTrue(self.view1 != self.view2)
         self.assertFalse(self.view3 != self.view3)
+
+    def test_cancelled_parameters(self):
+        """Test that cancelled parameters still factor into comparision"""
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+
+        # should fail since one expression has "theta" and the othe "phi"
+        self.assertNotEqual(theta * 0, phi * 0)
+        # should fail since one expression has "theta" and the other has none
+        self.assertNotEqual(theta * 0, 0)
+        # should invoke non-value comparision (which should also fail)
+        self.assertNotEqual(theta, theta + phi * 0)
+        # should succeed since they are both 0 with parameter theta
+        self.assertEqual(theta * 0, theta - theta)
 
 
 if __name__ == "__main__":

@@ -10,29 +10,30 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+// The actual configuration of `clippy::disallowed_methods` is in the crate-local `clipppy.toml`.
+#![warn(clippy::disallowed_methods)]
+
 mod extras;
 mod pointers;
 #[cfg(feature = "python_binding")]
 mod py;
+mod util;
 
 pub mod circuit;
 pub mod circuit_library;
 pub mod classical_expr;
 pub mod control_flow;
 pub mod dag;
+pub mod dyn_types;
 pub mod exit_codes;
+pub mod operations;
 pub mod param;
+pub mod passmanager;
+pub mod qpy;
 pub mod sparse_observable;
 pub mod transpiler;
 
 pub use exit_codes::ExitCode;
-
-#[cfg(feature = "mimalloc")]
-use mimalloc::MiMalloc;
-
-#[cfg(feature = "mimalloc")]
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
 
 /// Get the C API version of the loaded library.
 ///
@@ -44,7 +45,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 /// @return The version of the compiled Qiskit C API library, in the same format as the
 ///     `QISKIT_VERSION_HEX` header-file macro.
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_api_version() -> u32 {
+pub const extern "C" fn qk_api_version() -> u32 {
     const VERSION: u32 = {
         const fn parse_int(s: &[u8]) -> u32 {
             let mut i = 0;

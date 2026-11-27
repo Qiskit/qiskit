@@ -13,15 +13,25 @@
 pub mod expr;
 pub mod types;
 
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 
-pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    let expr_mod = PyModule::new(m.py(), "expr")?;
-    expr::register_python(&expr_mod)?;
-    m.add_submodule(&expr_mod)?;
+#[cfg(feature = "py")]
+#[pymodule(submodule, module = "qiskit._accelerate.circuit", name = "classical")]
+pub(crate) mod classical_mod {
+    use super::*;
 
-    let types_mod = PyModule::new(m.py(), "types")?;
-    types::register_python(&types_mod)?;
-    m.add_submodule(&types_mod)?;
-    Ok(())
+    #[pymodule]
+    mod expr {
+        #[pymodule_export]
+        use crate::classical::expr::{
+            PyBinary, PyCast, PyExpr, PyIndex, PyStretch, PyUnary, PyValue, PyVar,
+        };
+    }
+
+    #[pymodule]
+    mod types {
+        #[pymodule_export]
+        use crate::classical::types::{PyBool, PyDuration, PyFloat, PyType, PyUint};
+    }
 }
