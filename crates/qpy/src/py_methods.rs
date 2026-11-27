@@ -43,7 +43,7 @@ use crate::circuit_reader::{
 };
 use crate::circuit_writer::standard_instruction_class_name;
 use crate::error::QpyError;
-use crate::formats;
+use crate::formats::v18 as formats;
 use crate::params::generic_value_to_param;
 use crate::value::{
     BitType, CircuitInstructionType, GenericValue, ModifierType, ParamRegisterValue, QPYReadData,

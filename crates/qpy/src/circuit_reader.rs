@@ -53,10 +53,10 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::consts::standard_gate_from_gate_class_name;
 use crate::error::QpyError;
-use crate::formats;
-use crate::formats::ConditionData;
-use crate::formats::QPYCircuit;
-use crate::formats::VirtualQBitPack;
+use crate::formats::v18 as formats;
+use crate::formats::v18::ConditionData;
+use crate::formats::v18::QPYCircuit;
+use crate::formats::v18::VirtualQBitPack;
 use crate::params::generic_value_to_param;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,

@@ -30,7 +30,7 @@ use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::{pack_circuit, pack_layout};
 use crate::error::QpyError;
-use crate::formats::{LayoutV2Pack, QPYCircuit, QPYFileHeader};
+use crate::formats::v18::{LayoutV2Pack, QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
 use crate::value::{ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args};
 use crate::{NATIVE_QPY_RECURSION_DEPTH, QPY_READ_MIN_VERSION, QPY_WRITE_MIN_VERSION};

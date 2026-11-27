@@ -47,7 +47,7 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::error::QpyError;
-use crate::formats::{self, VirtualQBitPack};
+use crate::formats::v18::{self as formats, VirtualQBitPack};
 use crate::interface::ExtraCircuitData;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
