@@ -57,6 +57,28 @@ pub enum MathOpError {
     /// The requested axis was out of bounds for the tensor's number of dimensions.
     #[error("axis {axis} is out of bounds for tensor with {ndim} dimension(s)")]
     InvalidAxis { axis: usize, ndim: usize },
+    /// An axis is listed more than once among one operand's contracting and batch axes.
+    #[error("operand {operand}: axis {axis} is listed more than once")]
+    RepeatedAxis { operand: usize, axis: usize },
+    /// The two operands list different numbers of contracting, or of batch, axes.
+    #[error("the operands list {lhs} and {rhs} {kind} axes, which must be equal in number")]
+    AxisCountMismatch {
+        kind: &'static str,
+        lhs: usize,
+        rhs: usize,
+    },
+    /// Two paired axes of the operands have sizes that cannot be paired: contracted axes must be
+    /// equal, and batch axes must be equal or one of them `1`.
+    #[error(
+        "{kind} axes {lhs_axis} and {rhs_axis} have sizes {lhs} and {rhs}, which cannot be paired"
+    )]
+    PairedDimMismatch {
+        kind: &'static str,
+        lhs_axis: usize,
+        rhs_axis: usize,
+        lhs: Dim,
+        rhs: Dim,
+    },
 }
 
 /// Validate that an operand's dtype is `expected`, naming the offending operand by its position.
