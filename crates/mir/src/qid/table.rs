@@ -375,8 +375,7 @@ mod tests {
 
     #[test]
     fn add_qid_invalid() {
-        let single_alias_info =
-            |qid, bit| QidInfo::new(BitLayout::Alias([Some(QidBit::new(qid, bit))].into()));
+        let single_alias_info = |bit| QidInfo::new(BitLayout::Alias([Some(bit)].into()));
 
         let mut table = ResourceTable::new(QidSpace::Virtual);
 
@@ -384,7 +383,7 @@ mod tests {
         assert!(
             matches!(
                 table
-                    .add_qid(single_alias_info(next, 0))
+                    .add_qid(single_alias_info(next.bit(0)))
                     .unwrap_err()
                     .kind(),
                 AddQidErrorKind::AbsentQid(q) if q == next,
@@ -396,7 +395,7 @@ mod tests {
         assert!(
             matches!(
                 table
-                    .add_qid(single_alias_info(Qid::phys(0), 0))
+                    .add_qid(single_alias_info(Qid::phys(0).bit( 0)))
                     .unwrap_err()
                     .kind(),
                 AddQidErrorKind::AbsentQid(q) if q == Qid::phys(0),
@@ -405,10 +404,9 @@ mod tests {
         );
         assert_eq!(table.next_qid().unwrap(), next, "failure should not mutate");
 
-        let good = table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+        let good = table.add_qid(QidInfo::base(1)).unwrap();
         let next = table.next_qid().unwrap();
-        let duplicate_qid =
-            BitLayout::Alias([Some(QidBit::new(good, 0)), Some(QidBit::new(good, 0))].into());
+        let duplicate_qid = BitLayout::Alias([Some(good.bit(0)), Some(good.bit(0))].into());
         assert!(
             matches!(
                 table
@@ -421,23 +419,22 @@ mod tests {
         );
         assert_eq!(table.next_qid().unwrap(), next, "failure should not mutate");
 
-        let oob_bit =
-            BitLayout::Alias([Some(QidBit::new(good, 0)), Some(QidBit::new(good, 1))].into());
+        let oob_bit = BitLayout::Alias([Some(good.bit(0)), Some(good.bit(1))].into());
         assert!(
             matches!(
                 table.add_qid(QidInfo::new(oob_bit)).unwrap_err().kind(),
-                AddQidErrorKind::BadIndex(bit) if bit == QidBit::new(good, 1)
+                AddQidErrorKind::BadIndex(bit) if bit == good.bit(1)
             ),
             "layout references out-of-range bit"
         );
         assert_eq!(table.next_qid().unwrap(), next, "failure should not mutate");
 
-        let abstract_qid = table.add_qid(QidInfo::new(BitLayout::Abstract)).unwrap();
+        let abstract_qid = table.add_qid(QidInfo::widthless()).unwrap();
         let next = table.next_qid().unwrap();
         assert!(
             matches!(
                 table
-                    .add_qid(single_alias_info(abstract_qid, 0))
+                    .add_qid(single_alias_info(abstract_qid.bit(0)))
                     .unwrap_err()
                     .kind(),
                 AddQidErrorKind::BadBase(q) if q == abstract_qid,
@@ -446,12 +443,12 @@ mod tests {
         );
         assert_eq!(table.next_qid().unwrap(), next, "failure should not mutate");
 
-        let alias_qid = table.add_qid(single_alias_info(good, 0)).unwrap();
+        let alias_qid = table.add_qid(single_alias_info(good.bit(0))).unwrap();
         let next = table.next_qid().unwrap();
         assert!(
             matches!(
                 table
-                    .add_qid(single_alias_info(alias_qid, 0))
+                    .add_qid(single_alias_info(alias_qid.bit(0)))
                     .unwrap_err()
                     .kind(),
                 AddQidErrorKind::BadBase(q) if q == alias_qid,
@@ -460,12 +457,12 @@ mod tests {
         );
         assert_eq!(table.next_qid().unwrap(), next, "failure should not mutate");
 
-        let two_bit_qid = table.add_qid(QidInfo::new(BitLayout::Base(2))).unwrap();
+        let two_bit_qid = table.add_qid(QidInfo::base(2)).unwrap();
         let next = table.next_qid().unwrap();
         assert!(
             matches!(
                 table
-                    .add_qid(single_alias_info(two_bit_qid, 1))
+                    .add_qid(single_alias_info(two_bit_qid.bit(1)))
                     .unwrap_err()
                     .kind(),
                 AddQidErrorKind::IncompleteUse(q) if q == two_bit_qid,
@@ -480,18 +477,14 @@ mod tests {
         let mut table = ResourceTable::with_capacity(QidSpace::Virtual, 8, 16);
         let base_width = 2;
         let bases = (0..4)
-            .map(|_| {
-                table
-                    .add_qid(QidInfo::new(BitLayout::Base(base_width)))
-                    .unwrap()
-            })
+            .map(|_| table.add_qid(QidInfo::base(base_width)).unwrap())
             .collect::<Vec<_>>();
         assert!(!table.overlap(bases.iter().copied()));
 
         let flat_layout = QidInfo::new(BitLayout::Alias(
             bases
                 .iter()
-                .flat_map(|&qid| (0..base_width).map(move |bit| Some(QidBit::new(qid, bit))))
+                .flat_map(|&qid| (0..base_width).map(move |bit| Some(qid.bit(bit))))
                 .collect(),
         ));
         let flat_qid = table.add_qid(flat_layout).unwrap();
@@ -499,12 +492,12 @@ mod tests {
 
         let with_holes_layout = QidInfo::new(BitLayout::Alias(
             [
-                Some(QidBit::new(bases[0], 0)),
-                Some(QidBit::new(bases[0], 1)),
+                Some(bases[0].bit(0)),
+                Some(bases[0].bit(1)),
                 None,
                 None,
-                Some(QidBit::new(bases[1], 1)),
-                Some(QidBit::new(bases[1], 0)),
+                Some(bases[1].bit(1)),
+                Some(bases[1].bit(0)),
             ]
             .into(),
         ));
@@ -532,7 +525,7 @@ mod tests {
     fn overlap_simple() {
         let mut table = ResourceTable::with_capacity(QidSpace::Physical, 8, 16);
         let qids = (0..8)
-            .map(|_| table.add_qid(QidInfo::new(BitLayout::Abstract)).unwrap())
+            .map(|_| table.add_qid(QidInfo::widthless()).unwrap())
             .collect::<Vec<_>>();
         assert!(!table.overlap(qids.iter().copied()));
 
@@ -607,7 +600,7 @@ mod tests {
     fn overlap_implicit_layout() {
         let mut table = ResourceTable::with_capacity(QidSpace::Physical, 8, 16);
         let bases = (0..4)
-            .map(|_| table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap())
+            .map(|_| table.add_qid(QidInfo::base(1)).unwrap())
             .collect::<Vec<_>>();
         let aliases = [
             [bases[0], bases[1]],
@@ -617,7 +610,7 @@ mod tests {
         .map(|[l, r]| {
             table
                 .add_qid(QidInfo::new(BitLayout::Alias(
-                    [Some(QidBit::new(l, 0)), Some(QidBit::new(r, 0))].into(),
+                    [Some(l.bit(0)), Some(r.bit(0))].into(),
                 )))
                 .unwrap()
         });
@@ -630,7 +623,7 @@ mod tests {
     fn mark_contains_invalids() {
         let mut table = ResourceTable::new(QidSpace::Virtual);
         let qids = (0..4)
-            .map(|_| table.add_qid(QidInfo::new(BitLayout::Abstract)).unwrap())
+            .map(|_| table.add_qid(QidInfo::widthless()).unwrap())
             .collect::<Vec<_>>();
 
         assert!(
@@ -668,28 +661,24 @@ mod tests {
         assert!(table.verify_single_bit_base_qids().is_ok());
 
         // single base qid with width 1
-        let base = table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+        let base = table.add_qid(QidInfo::base(1)).unwrap();
         assert!(table.verify_single_bit_base_qids().is_ok());
 
         // Abstract
         let mut with_abstract = table.clone();
-        with_abstract
-            .add_qid(QidInfo::new(BitLayout::Abstract))
-            .unwrap();
+        with_abstract.add_qid(QidInfo::widthless()).unwrap();
         assert!(with_abstract.verify_single_bit_base_qids().is_err());
 
         // Alias
         let mut with_alias = table.clone();
         with_alias
-            .add_qid(QidInfo::new(BitLayout::Alias(
-                [Some(QidBit::new(base, 0))].into(),
-            )))
+            .add_qid(QidInfo::new(BitLayout::Alias([Some(base.bit(0))].into())))
             .unwrap();
         assert!(with_alias.verify_single_bit_base_qids().is_err());
 
         // Base with width > 1
         let mut with_wide = table.clone();
-        with_wide.add_qid(QidInfo::new(BitLayout::Base(2))).unwrap();
+        with_wide.add_qid(QidInfo::base(2)).unwrap();
         assert!(with_wide.verify_single_bit_base_qids().is_err());
     }
 }

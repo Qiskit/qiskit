@@ -114,6 +114,12 @@ impl Qid {
         Self::from_parts_checked(QidSpace::Physical, val)
     }
 
+    /// Shorthand creation of a [`QidBit`].
+    #[inline]
+    pub const fn bit(self, bit: u32) -> QidBit {
+        QidBit::new(self, bit)
+    }
+
     /// Get the integer "value" of the [`Qid`], stripping off the [`space`](Self::space) component.
     #[inline]
     pub const fn value(self) -> u32 {
@@ -352,6 +358,24 @@ impl QidInfo {
         Self { layout }
     }
 
+    /// Helper to create a new leaf qid with a given width.
+    #[inline]
+    pub const fn base(width: u32) -> Self {
+        Self {
+            layout: BitLayout::Base(width),
+        }
+    }
+
+    /// Helper to create a new abstract widthless qid.
+    ///
+    /// This corresponds to [`BitLayout::Abstract`] (but `abstract` is an unused keyword in Rust).
+    #[inline]
+    pub const fn widthless() -> Self {
+        Self {
+            layout: BitLayout::Abstract,
+        }
+    }
+
     /// Get the bit width (if defined) of this qid.
     #[inline]
     pub const fn width(&self) -> Option<u32> {
@@ -400,19 +424,19 @@ mod tests {
     fn qid_bit_order() {
         // We use a non-standard storage form and custom `Ord`.
         let mut weird = [
-            QidBit::new(Qid::phys(0), 2),
-            QidBit::new(Qid::phys(1), 1),
-            QidBit::new(Qid::phys(0), 0),
-            QidBit::new(Qid::phys(0), 1),
-            QidBit::new(Qid::phys(1), 0),
+            Qid::phys(0).bit(2),
+            Qid::phys(1).bit(1),
+            Qid::phys(0).bit(0),
+            Qid::phys(0).bit(1),
+            Qid::phys(1).bit(0),
         ];
         weird.sort();
         let expected = [
-            QidBit::new(Qid::phys(0), 0),
-            QidBit::new(Qid::phys(0), 1),
-            QidBit::new(Qid::phys(0), 2),
-            QidBit::new(Qid::phys(1), 0),
-            QidBit::new(Qid::phys(1), 1),
+            Qid::phys(0).bit(0),
+            Qid::phys(0).bit(1),
+            Qid::phys(0).bit(2),
+            Qid::phys(1).bit(0),
+            Qid::phys(1).bit(1),
         ];
         assert_eq!(weird, expected);
     }

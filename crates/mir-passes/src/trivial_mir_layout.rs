@@ -111,7 +111,7 @@ mod test {
             MirOp,
             pbc::{AngleType, Pauli, PauliRotation, PauliString},
         },
-        qid::{BitLayout, QidBit, QidInfo, QidList},
+        qid::{BitLayout, QidInfo, QidList},
         symbol_table::SymbolIdList,
     };
 
@@ -119,7 +119,7 @@ mod test {
     fn create_test_resource_table(space: QidSpace, n: u32) -> ResourceTable {
         let mut table = ResourceTable::new(space);
         for _ in 0..n {
-            table.add_qid(QidInfo::new(BitLayout::Base(1))).unwrap();
+            table.add_qid(QidInfo::base(1)).unwrap();
         }
         table
     }
@@ -178,7 +178,7 @@ mod test {
 
         // An alias in the Mir's resource table.
         let mut virtual_table = create_test_resource_table(QidSpace::Virtual, 2);
-        let bits = [0, 1].map(|i| Some(QidBit::new(Qid::virt(i), 0)));
+        let bits = [0, 1].map(|i| Some(Qid::virt(i).bit(0)));
         virtual_table
             .add_qid(QidInfo::new(BitLayout::Alias(Box::new(bits))))
             .unwrap();
@@ -187,17 +187,13 @@ mod test {
 
         // Abstract qid in the Mir's resource table.
         let mut virtual_table = create_test_resource_table(QidSpace::Virtual, 2);
-        virtual_table
-            .add_qid(QidInfo::new(BitLayout::Abstract))
-            .unwrap();
+        virtual_table.add_qid(QidInfo::widthless()).unwrap();
         let mut mir = create_simplet_test_mir(virtual_table);
         assert!(trivial_mir_layout(&mut mir, &dummy_physical_table).is_err());
 
         // Base qid with width>1 in the Mir's resource table.
         let mut virtual_table = create_test_resource_table(QidSpace::Virtual, 2);
-        virtual_table
-            .add_qid(QidInfo::new(BitLayout::Base(2)))
-            .unwrap();
+        virtual_table.add_qid(QidInfo::base(2)).unwrap();
         let mut mir = create_simplet_test_mir(virtual_table);
         assert!(trivial_mir_layout(&mut mir, &dummy_physical_table).is_err());
 
@@ -213,7 +209,7 @@ mod test {
 
         // An alias in the input physical table.
         let mut physical_table = create_test_resource_table(QidSpace::Physical, 2);
-        let bits = [0, 1].map(|i| Some(QidBit::new(Qid::phys(i), 0)));
+        let bits = [0, 1].map(|i| Some(Qid::phys(i).bit(0)));
         physical_table
             .add_qid(QidInfo::new(BitLayout::Alias(Box::new(bits))))
             .unwrap();
@@ -222,17 +218,13 @@ mod test {
 
         // An abstract qid in the input physical table.
         let mut physical_table = create_test_resource_table(QidSpace::Physical, 2);
-        physical_table
-            .add_qid(QidInfo::new(BitLayout::Abstract))
-            .unwrap();
+        physical_table.add_qid(QidInfo::widthless()).unwrap();
         let mut mir = create_simplet_test_mir(dummy_virtual_table.clone());
         assert!(trivial_mir_layout(&mut mir, &physical_table).is_err());
 
         // A base qid with width>1 in the input physical table.
         let mut physical_table = create_test_resource_table(QidSpace::Physical, 2);
-        physical_table
-            .add_qid(QidInfo::new(BitLayout::Base(2)))
-            .unwrap();
+        physical_table.add_qid(QidInfo::base(2)).unwrap();
         let mut mir = create_simplet_test_mir(dummy_virtual_table.clone());
         assert!(trivial_mir_layout(&mut mir, &physical_table).is_err());
     }

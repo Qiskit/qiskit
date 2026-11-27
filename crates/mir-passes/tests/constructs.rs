@@ -23,7 +23,7 @@ use qiskit_mir::instruction::MirInstruction;
 use qiskit_mir::mir::{Mir, MirDisplayOptions};
 use qiskit_mir::ops::MirOp;
 use qiskit_mir::ops::pbc::{AngleType, Pauli, PauliMeasure, PauliRotation, PauliString};
-use qiskit_mir::qid::{BitLayout, Qid, QidBit, QidInfo, QidList};
+use qiskit_mir::qid::{BitLayout, Qid, QidInfo, QidList};
 use qiskit_mir::symbol_table::{Symbol, SymbolId, SymbolIdList, SymbolType};
 
 fn rotation(paulis: &[Pauli], angle: f64, qids: &[Qid]) -> MirInstruction {
@@ -78,20 +78,20 @@ fn build_constructs_mir() -> Mir {
     let v2 = add_base(&mut mir, 2);
     let _v3 = mir
         .resource_table_mut()
-        .add_qid(QidInfo::new(BitLayout::Abstract))
+        .add_qid(QidInfo::widthless())
         .unwrap();
     // An alias of the (complete) bits of two other qids.
     let v4 = mir
         .resource_table_mut()
         .add_qid(QidInfo::new(BitLayout::Alias(
-            vec![Some(QidBit::new(v0, 0)), Some(QidBit::new(v1, 0))].into_boxed_slice(),
+            vec![Some(v0.bit(0)), Some(v1.bit(0))].into_boxed_slice(),
         )))
         .unwrap();
     // An alias where one of the bits does not alias anything.
     let v5 = mir
         .resource_table_mut()
         .add_qid(QidInfo::new(BitLayout::Alias(
-            vec![Some(QidBit::new(v0, 0)), None].into_boxed_slice(),
+            vec![Some(v0.bit(0)), None].into_boxed_slice(),
         )))
         .unwrap();
 

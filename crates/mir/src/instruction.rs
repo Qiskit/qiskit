@@ -311,11 +311,7 @@ mod tests {
 
         let resource_table = mir.resource_table_mut();
         let qids = (0..8)
-            .map(|_| {
-                resource_table
-                    .add_qid(QidInfo::new(BitLayout::Base(1)))
-                    .unwrap()
-            })
+            .map(|_| resource_table.add_qid(QidInfo::base(1)).unwrap())
             .collect::<Vec<_>>();
 
         let instr_list = mir.instructions_mut();
@@ -363,11 +359,7 @@ mod tests {
         let qid_len = 8;
         let pauli_len = 4;
         let qids = (0..qid_len)
-            .map(|_| {
-                resource_table
-                    .add_qid(QidInfo::new(BitLayout::Base(1)))
-                    .unwrap()
-            })
+            .map(|_| resource_table.add_qid(QidInfo::base(1)).unwrap())
             .collect::<Vec<_>>();
         let instr = MirInstruction {
             op: create_pauli_rotation_op(Pauli::X, pauli_len, 0.5),
@@ -436,16 +428,10 @@ mod tests {
     fn test_wide_qids() {
         let mut resource_table = ResourceTable::new(QidSpace::Virtual);
         let symbol_table = SymbolTable::default();
-        let qid_container = resource_table
-            .add_qid(QidInfo::new(BitLayout::Base(2)))
-            .unwrap();
+        let qid_container = resource_table.add_qid(QidInfo::base(2)).unwrap();
 
-        let qid_member1 = resource_table
-            .add_qid(QidInfo::new(BitLayout::Base(1)))
-            .unwrap();
-        let qid_member2 = resource_table
-            .add_qid(QidInfo::new(BitLayout::Base(1)))
-            .unwrap();
+        let qid_member1 = resource_table.add_qid(QidInfo::base(1)).unwrap();
+        let qid_member2 = resource_table.add_qid(QidInfo::base(1)).unwrap();
 
         resource_table
             .mark_contains(qid_container, qid_member1)
@@ -507,15 +493,9 @@ mod tests {
     fn test_aliased_qids() {
         let mut resource_table = ResourceTable::new(QidSpace::Virtual);
         let symbol_table = SymbolTable::default();
-        let qid_container = resource_table
-            .add_qid(QidInfo::new(BitLayout::Base(2)))
-            .unwrap();
-        let qid_member1 = resource_table
-            .add_qid(QidInfo::new(BitLayout::Base(1)))
-            .unwrap();
-        let qid_member2 = resource_table
-            .add_qid(QidInfo::new(BitLayout::Base(1)))
-            .unwrap();
+        let qid_container = resource_table.add_qid(QidInfo::base(2)).unwrap();
+        let qid_member1 = resource_table.add_qid(QidInfo::base(1)).unwrap();
+        let qid_member2 = resource_table.add_qid(QidInfo::base(1)).unwrap();
 
         resource_table
             .mark_contains(qid_container, qid_member1)
@@ -554,9 +534,7 @@ mod tests {
     fn test_bool_not() {
         let mut resource_table = ResourceTable::new(QidSpace::Virtual);
         let mut symbol_table = SymbolTable::default();
-        let qid = resource_table
-            .add_qid(QidInfo::new(BitLayout::Base(1)))
-            .unwrap();
+        let qid = resource_table.add_qid(QidInfo::base(1)).unwrap();
         let src = symbol_table
             .add(Symbol::new("c0".to_string(), SymbolType::Bool))
             .unwrap();
