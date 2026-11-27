@@ -437,7 +437,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
 
         midmeas_dd = pm.run(self.midmeas)
 
-        combined_u = UGate(0, 0, 0)
+        combined_u = UGate(0, pi, -pi)
 
         expected = QuantumCircuit(3, 1)
         expected.cx(0, 1)
@@ -452,7 +452,6 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.cx(1, 2)
         expected.cx(0, 1)
         expected.delay(700, 2)
-        expected.global_phase = pi
 
         self.assertEqual(midmeas_dd, expected)
         # check the absorption into U was done correctly
@@ -505,6 +504,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         expected.cx(1, 2)
         expected.cx(0, 1)
         expected.delay(700, 2)
+        expected.global_phase = pi / 2
 
         self.assertEqual(midmeas_dd, expected)
         # check the absorption into U was done correctly
@@ -513,6 +513,26 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
                 Operator(UGate(3 * pi / 4, -pi / 2, pi / 2)) & Operator(RXGate(pi / 4))
             )
         )
+
+    def test_single_gate_absorption_preserves_global_phase(self):
+        """Test absorbing the inverse of a one-gate sequence keeps the exact operator."""
+        for gate in [XGate(), YGate(), RXGate(pi / 4)]:
+            for with_successor in [False, True]:
+                with self.subTest(gate=gate.name, with_successor=with_successor):
+                    qc = QuantumCircuit(1)
+                    qc.u(0.4, -0.6, 1.3, 0)
+                    qc.delay(300, 0)
+                    if with_successor:
+                        qc.u(1.1, 0.2, -0.7, 0)
+                    pm = PassManager(
+                        [
+                            ALAPScheduleAnalysis(self.durations),
+                            PadDynamicalDecoupling(self.durations, [gate]),
+                        ]
+                    )
+                    out = pm.run(qc)
+                    self.assertIn(gate.name, out.count_ops())
+                    self.assertEqual(Operator(out), Operator(qc))
 
     def test_insert_ghz_uhrig(self):
         """Test custom spacing (following Uhrig DD [1]).
