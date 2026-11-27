@@ -41,7 +41,9 @@ use super::vec_map::VecMap;
 use crate::TranspilerError;
 use crate::neighbors::Neighbors;
 use crate::target::{Target, TargetCouplingError};
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, PyDAGCircuit, Wire};
+use qiskit_circuit::dag_circuit::{
+    DAGCircuit, DAGCircuitBuilder, DAGError, NodeType, PyDAGCircuit, Wire,
+};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::operations::{ControlFlow, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -176,7 +178,7 @@ impl RoutingResult<'_> {
     /// This is the correct method to call if the [RoutingTarget] represented the entirety of the
     /// device.  If the device was subset (such as for disjoint handling), use [rebuild_onto] with
     /// suitable mappings back to the full-width [PhysicalQubit] instances instead.
-    pub fn rebuild(&self) -> PyResult<DAGCircuit> {
+    pub fn rebuild(&self) -> Result<DAGCircuit, DAGError> {
         let num_swaps = self.order.swap_count();
         let dag = self.problem.dag.physical_empty_like_with_capacity(
             self.num_qubits(),
@@ -200,25 +202,25 @@ impl RoutingResult<'_> {
         &self,
         dag: DAGCircuit,
         map_fn: impl Fn(PhysicalQubit) -> PhysicalQubit,
-    ) -> PyResult<DAGCircuit> {
+    ) -> Result<DAGCircuit, DAGError> {
         let apply_swap = |swap: &[PhysicalQubit; 2],
                           layout: &mut NLayout,
                           dag: &mut DAGCircuitBuilder|
-         -> PyResult<NodeIndex> {
+         -> Result<NodeIndex, DAGError> {
             layout.swap_physical(swap[0], swap[1]);
             let swap = PackedInstruction::from_standard_gate(
                 StandardGate::Swap,
                 None,
                 dag.insert_qargs(&[Qubit(map_fn(swap[1]).0), Qubit(map_fn(swap[0]).0)]),
             );
-            dag.push_back(swap).map_err(Into::into)
+            dag.push_back(swap)
         };
         // The size here is pretty arbitrary, providing it can fit at least 2q operations in.
         let mut apply_scratch = Vec::with_capacity(4);
         let mut apply_op = |inst: &PackedInstruction,
                             layout: &NLayout,
                             dag: &mut DAGCircuitBuilder|
-         -> PyResult<NodeIndex> {
+         -> Result<NodeIndex, DAGError> {
             apply_scratch.clear();
             for qubit in self.problem.dag.get_qargs(inst.qubits) {
                 apply_scratch.push(Qubit(map_fn(VirtualQubit(qubit.0).to_phys(layout)).0));
@@ -227,7 +229,7 @@ impl RoutingResult<'_> {
                 qubits: dag.insert_qargs(&apply_scratch),
                 ..inst.clone()
             };
-            dag.push_back(new_inst).map_err(Into::into)
+            dag.push_back(new_inst)
         };
 
         let mut dag = dag.into_builder();
@@ -995,6 +997,7 @@ pub fn py_sabre_routing(
             layout,
         )
     })
+    .map_err(Into::into)
 }
 
 pub fn sabre_routing(
@@ -1005,7 +1008,7 @@ pub fn sabre_routing(
     num_trials: usize,
     seed: Option<u64>,
     run_in_parallel: Option<bool>,
-) -> PyResult<(DAGCircuit, NLayout)> {
+) -> Result<(DAGCircuit, NLayout), DAGError> {
     let Some(target) = target.0.as_ref() else {
         // All-to-all coupling.
         return Ok((dag.clone(), initial_layout.clone()));
