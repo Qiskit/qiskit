@@ -18,21 +18,18 @@ pub(crate) mod route;
 mod vec_map;
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
 pub(crate) use heuristic::Heuristic;
 pub(crate) use heuristic::SetScaling;
 pub use layout::sabre_layout_and_routing;
 pub(crate) use route::sabre_routing;
 
-pub fn sabre(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(route::sabre_routing))?;
-    m.add_wrapped(wrap_pyfunction!(layout::sabre_layout_and_routing))?;
-    m.add_class::<route::PyRoutingTarget>()?;
-    m.add_class::<heuristic::SetScaling>()?;
-    m.add_class::<heuristic::Heuristic>()?;
-    m.add_class::<heuristic::BasicHeuristic>()?;
-    m.add_class::<heuristic::LookaheadHeuristic>()?;
-    m.add_class::<heuristic::DecayHeuristic>()?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod sabre {
+    #[pymodule_export]
+    use super::{
+        heuristic::{BasicHeuristic, DecayHeuristic, Heuristic, LookaheadHeuristic, SetScaling},
+        layout::py_sabre_layout_and_routing,
+        route::{PyRoutingTarget, py_sabre_routing},
+    };
 }

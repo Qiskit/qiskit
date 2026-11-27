@@ -11,9 +11,8 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::{PhysicalQubit, Qubit};
 
@@ -73,7 +72,11 @@ fn recurse(
 
 #[pyfunction]
 #[pyo3(name = "check_map")]
-pub fn py_run_check_map(dag: &DAGCircuit, target: &Target) -> PyResult<Option<(String, [u32; 2])>> {
+pub fn py_run_check_map(
+    py_dag: &PyDAGCircuit,
+    target: &Target,
+) -> PyResult<Option<(String, [u32; 2])>> {
+    let dag = py_dag.try_read()?;
     if dag.has_control_flow() {
         recurse(dag, target, None)
     } else {
@@ -103,7 +106,8 @@ pub fn run_check_map<'a>(
         })
 }
 
-pub fn check_map_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_check_map))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "check_map")]
+pub mod check_map_mod {
+    #[pymodule_export]
+    use super::py_run_check_map;
 }

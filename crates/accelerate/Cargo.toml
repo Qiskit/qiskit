@@ -22,7 +22,7 @@ num-complex.workspace = true
 rustworkx-core.workspace = true
 num-bigint.workspace = true
 itertools.workspace = true
-qiskit-circuit.workspace = true
+qiskit-circuit = { workspace = true, features = [ "py" ] }
 qiskit-transpiler.workspace = true
 qiskit-quantum-info.workspace = true
 qiskit-util.workspace = true
@@ -51,9 +51,6 @@ features = ["rayon", "serde"]
 [dependencies.pulp]
 version = "0.22.2"
 features = ["macro"]
-
-[dev-dependencies]
-pyo3 = { workspace = true, features = ["auto-initialize"] }
 
 [features]
 cache_pygates = ["qiskit-circuit/cache_pygates"]

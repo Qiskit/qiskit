@@ -25,7 +25,7 @@ use rustworkx_core::petgraph::algo::toposort;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use rustworkx_core::petgraph::visit::NodeIndexable;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -54,17 +54,23 @@ type MappingIterItem = Option<(TwoQSynthesisResult<f64>, [Qubit; 2])>;
 #[pyfunction(name = "two_qubit_unitary_peephole_optimize")]
 pub fn py_two_qubit_unitary_peephole_optimize(
     py: Python,
-    dag: &DAGCircuit,
+    dag: &PyDAGCircuit,
     target: &Target,
     approximation_degree: Option<f64>,
-) -> PyResult<Option<DAGCircuit>> {
+) -> PyResult<Option<PyDAGCircuit>> {
+    let dag_ref = dag.try_read()?;
     let result = py.detach(move || {
-        two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree)
+        two_qubit_unitary_peephole_optimize_analysis(dag_ref, target, approximation_degree)
     })?;
     let Some(result) = result else {
         return Ok(None);
     };
-    two_qubit_unitary_peephole_optimize_apply(dag, result)
+    Ok(
+        two_qubit_unitary_peephole_optimize_apply(dag_ref, result)?.map(|out_dag| {
+            // Preserve metadata
+            PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag)
+        }),
+    )
 }
 
 /// A non-python entry-point to the pass function.
@@ -368,7 +374,8 @@ fn two_qubit_unitary_peephole_optimize_apply(
     Ok(Some(out_dag_builder.build()))
 }
 
-pub fn two_qubit_peephole_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_two_qubit_unitary_peephole_optimize))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "two_qubit_peephole")]
+pub mod two_qubit_peephole_mod {
+    #[pymodule_export]
+    use super::py_two_qubit_unitary_peephole_optimize;
 }

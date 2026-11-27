@@ -11,14 +11,9 @@
 // that they have been altered from the originals.
 
 use numpy::PyReadonlyArray2;
-use pyo3::{
-    Bound, PyResult,
-    exceptions::PyValueError,
-    pyfunction,
-    types::{PyModule, PyModuleMethods},
-    wrap_pyfunction,
-};
+use pyo3::{PyResult, exceptions::PyValueError, pyfunction, pymodule};
 use qiskit_circuit::{circuit_data::CircuitData, circuit_data::PyCircuitData, operations::Param};
+mod cnot_phase_synth;
 mod cx_cz_depth_lnn;
 
 pub(crate) mod cz_depth_lnn;
@@ -49,10 +44,11 @@ fn synth_cz_depth_line_mr(mat: PyReadonlyArray2<bool>) -> PyResult<PyCircuitData
     Ok(CircuitData::from_standard_gates(num_qubits as u32, lnn_gates, Param::Float(0.0))?.into())
 }
 
-pub fn linear_phase(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(synth_cz_depth_line_mr))?;
-    m.add_wrapped(wrap_pyfunction!(
-        cx_cz_depth_lnn::py_synth_cx_cz_depth_line_my
-    ))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
+pub mod linear_phase {
+    #[pymodule_export]
+    use super::{
+        cnot_phase_synth::synth_cnot_phase_aam, cx_cz_depth_lnn::py_synth_cx_cz_depth_line_my,
+        synth_cz_depth_line_mr,
+    };
 }

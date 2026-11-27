@@ -23,7 +23,7 @@ rand.workspace = true
 rand_pcg.workspace = true
 num-complex.workspace = true
 rustworkx-core.workspace = true
-qiskit-circuit.workspace = true
+qiskit-circuit = { workspace = true, features = ["py"] }
 qiskit-synthesis.workspace = true
 qiskit-quantum-info.workspace = true
 qiskit-util = { workspace = true, features = ["py"] }
@@ -60,9 +60,6 @@ features = ["rayon"]
 [dependencies.indexmap]
 workspace = true
 features = ["rayon"]
-
-[dev-dependencies]
-pyo3 = { workspace = true, features = ["auto-initialize"] }
 
 [features]
 cache_pygates = [

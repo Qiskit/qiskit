@@ -10,14 +10,22 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use pyo3::PyTypeInfo;
+#[cfg(feature = "py")]
 use pyo3::exceptions::PyAttributeError;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::sync::PyOnceLock;
+#[cfg(feature = "py")]
 use pyo3::types::PyTuple;
 
+#[cfg(feature = "py")]
 static BOOL_TYPE: PyOnceLock<Py<PyBool>> = PyOnceLock::new();
+#[cfg(feature = "py")]
 static DURATION_TYPE: PyOnceLock<Py<PyDuration>> = PyOnceLock::new();
+#[cfg(feature = "py")]
 static FLOAT_TYPE: PyOnceLock<Py<PyFloat>> = PyOnceLock::new();
 
 /// A classical expression's "type".
@@ -33,6 +41,7 @@ pub enum Type {
     Uint(u32),
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Type {
     type Target = PyAny;
     type Output = Bound<'py, Self::Target>;
@@ -48,6 +57,7 @@ impl<'py> IntoPyObject<'py> for Type {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Type {
     type Error = PyErr;
 
@@ -70,6 +80,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Type {
 ///
 /// This must not be subclassed by users; subclasses form the internal data of the representation
 /// of expressions, and it does not make sense to add more outside of Qiskit library code.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     hash,
@@ -80,8 +91,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Type {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyType(TypeKind);
+pub(super) struct PyType(TypeKind);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyType {
     /// Get the kind of this type.
@@ -115,6 +127,7 @@ impl PyType {
     }
 }
 
+#[cfg(feature = "py")]
 #[repr(u8)]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 enum TypeKind {
@@ -125,6 +138,7 @@ enum TypeKind {
 }
 
 /// The Boolean type.  This has exactly two values: ``True`` and ``False``.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     hash,
@@ -135,8 +149,9 @@ enum TypeKind {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyBool;
+pub(super) struct PyBool;
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyBool {
     #[new]
@@ -158,6 +173,7 @@ impl PyBool {
 }
 
 /// A length of time, possibly negative.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     hash,
@@ -168,8 +184,9 @@ impl PyBool {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyDuration;
+pub(super) struct PyDuration;
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyDuration {
     #[new]
@@ -193,6 +210,7 @@ impl PyDuration {
 /// An IEEE-754 double-precision floating point number.
 ///
 /// In the future, this may also be used to represent other fixed-width floats.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     hash,
@@ -203,8 +221,9 @@ impl PyDuration {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyFloat;
+pub(super) struct PyFloat;
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyFloat {
     #[new]
@@ -226,6 +245,7 @@ impl PyFloat {
 }
 
 /// An unsigned integer of fixed bit width.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     hash,
@@ -236,8 +256,9 @@ impl PyFloat {
     from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
-struct PyUint(u32);
+pub(super) struct PyUint(u32);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyUint {
     #[new]
@@ -257,13 +278,4 @@ impl PyUint {
     fn __reduce__<'py>(slf: PyRef<'py, Self>, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         (py.get_type::<Self>(), (slf.0,)).into_pyobject(py)
     }
-}
-
-pub(crate) fn register_python(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PyType>()?;
-    m.add_class::<PyBool>()?;
-    m.add_class::<PyDuration>()?;
-    m.add_class::<PyFloat>()?;
-    m.add_class::<PyUint>()?;
-    Ok(())
 }

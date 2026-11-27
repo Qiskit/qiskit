@@ -10,12 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::classical::expr::{Expr, ExprKind, PyExpr};
+use crate::classical::expr::Expr;
+#[cfg(feature = "py")]
+use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
+#[cfg(feature = "py")]
 use crate::imports;
-use pyo3::prelude::*;
-use pyo3::types::PyTuple;
-use pyo3::{IntoPyObjectExt, intern};
+#[cfg(feature = "py")]
+use pyo3::{IntoPyObjectExt, exceptions::PyValueError, intern, prelude::*, types::PyTuple};
 
 /// A binary expression.
 #[derive(Clone, Debug, PartialEq)]
@@ -67,11 +69,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for BinaryOp {
 }
 
 impl BinaryOp {
-    pub fn from_u8(value: u8) -> PyResult<BinaryOp> {
-        Ok(bytemuck::checked::cast::<u8, BinaryOp>(value))
+    pub fn try_from_u8(value: u8) -> Result<BinaryOp, bytemuck::checked::CheckedCastError> {
+        bytemuck::checked::try_cast::<u8, BinaryOp>(value)
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Binary {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -82,6 +85,7 @@ impl<'py> IntoPyObject<'py> for Binary {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Binary {
     type Error = <PyBinary as FromPyObject<'a, 'py>>::Error;
 
@@ -91,6 +95,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Binary {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for BinaryOp {
     type Target = PyAny;
     type Output = Bound<'py, Self::Target>;
@@ -101,20 +106,24 @@ impl<'py> IntoPyObject<'py> for BinaryOp {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for BinaryOp {
     type Error = PyErr;
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob.getattr(intern!(ob.py(), "value"))?;
-        Ok(bytemuck::checked::cast(value.extract::<u8>()?))
+        bytemuck::checked::try_cast(value.extract::<u8>()?)
+            .map_err(|e| PyValueError::new_err(e.to_string()))
     }
 }
 
 /// A Python descriptor to prevent PyO3 from attempting to import the Python-side
 /// enum before we're initialized.
+#[cfg(feature = "py")]
 #[pyclass(module = "qiskit._accelerate.circuit.classical.expr")]
 struct PyBinaryOp;
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyBinaryOp {
     fn __get__(&self, obj: &Bound<PyAny>, _obj_type: &Bound<PyAny>) -> Py<PyAny> {
@@ -129,6 +138,7 @@ impl PyBinaryOp {
 ///     left: The left-hand operand.
 ///     right: The right-hand operand.
 ///     type: The resolved type of the result.
+#[cfg(feature = "py")]
 #[pyclass(
     eq,
     extends = PyExpr,
@@ -139,6 +149,7 @@ impl PyBinaryOp {
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyBinary(Binary);
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyBinary {
     // The docstring for 'Op' is defined in Python (expr.py).
@@ -220,5 +231,15 @@ impl PyBinary {
             self.get_right(py)?.bind(py).repr()?,
             self.get_type(py)?.bind(py).repr()?,
         ))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_binary_op_from_u8_invalid_input() {
+        assert!(BinaryOp::try_from_u8(123).is_err())
     }
 }

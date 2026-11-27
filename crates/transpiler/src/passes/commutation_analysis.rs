@@ -10,10 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::PyModule;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
-use pyo3::{Bound, PyResult, Python, pyfunction, wrap_pyfunction};
+use pyo3::{PyResult, Python, pyfunction};
 
 use qiskit_util::IndexMap;
 use rayon::prelude::*;
@@ -21,7 +20,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::commutation_checker::{CommutationChecker, CommutationError};
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit, Wire};
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.
@@ -51,7 +50,7 @@ const MAX_NUM_QUBITS: u32 = 3;
 ///     node_indices = {(0, 0): 0, (1, 0): 3, (2, 0): 1, (3, 0): 1, (4, 0): 2}
 ///
 pub fn analyze_commutations(
-    dag: &mut DAGCircuit,
+    dag: &DAGCircuit,
     commutation_checker: &CommutationChecker,
     approximation_degree: f64,
 ) -> Result<(CommutationSet, NodeIndices), CommutationError> {
@@ -156,10 +155,10 @@ pub fn analyze_commutations(
 }
 
 #[pyfunction]
-#[pyo3(name = "analyze_commutations", signature = (dag, commutation_checker, approximation_degree=1.))]
+#[pyo3(name = "analyze_commutations", signature = (py_dag, commutation_checker, approximation_degree=1.))]
 pub fn py_analyze_commutations(
     py: Python,
-    dag: &mut DAGCircuit,
+    py_dag: &mut PyDAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
 ) -> PyResult<Py<PyDict>> {
@@ -167,11 +166,12 @@ pub fn py_analyze_commutations(
     //   * The commuting nodes per wire: {wire: [commuting_nodes_1, commuting_nodes_2, ...]}
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
+    // Release the GIL, otherwise rayon workers deadlock when they need it for Python-defined gates.
+    let dag = py_dag.try_read()?;
     let (commutation_set, node_indices) =
-        analyze_commutations(dag, commutation_checker, approximation_degree)?;
+        py.detach(|| analyze_commutations(dag, commutation_checker, approximation_degree))?;
 
     let out_dict = PyDict::new(py);
-
     // First set the {wire: [commuting_nodes_1, ...]} bit
     for (wire_index, commutations) in commutation_set.into_iter().enumerate() {
         if commutations.is_empty() {
@@ -219,7 +219,12 @@ pub fn py_analyze_commutations(
     Ok(out_dict.unbind())
 }
 
-pub fn commutation_analysis_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_analyze_commutations))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "commutation_analysis"
+)]
+pub mod commutation_analysis_mod {
+    #[pymodule_export]
+    use super::py_analyze_commutations;
 }

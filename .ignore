@@ -1,0 +1,5 @@
+# Tools that read `.ignore` files, such as ruff, apply these rules on top of `.gitignore`. 
+#
+# Re-include the type stubs that the build generates for `qiskit._accelerate`, which `.gitignore`
+# excludes, so that `ruff check qiskit` lints them.
+!/qiskit/_accelerate/

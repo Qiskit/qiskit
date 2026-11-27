@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in Parameter Expression comparision where expressions
+    with cancelled out parameters compared as equal even when having
+    different parameter lists.
+    Fixed `#17547 <https://github.com/Qiskit/qiskit/issues/17547>`__.
