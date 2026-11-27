@@ -17,7 +17,7 @@ use std::{
 
 use thiserror::Error;
 
-use crate::{IR, PassContext};
+use crate::{IR, PassContext, PassManager, Task};
 use qiskit_util::dyn_types::DynTypeId;
 
 /// The base behavior for compiler passes written in first-party Rust code.
@@ -43,6 +43,17 @@ where
             ob: self,
             phantom: marker::PhantomData,
         })
+    }
+
+    /// Consume this pass into a single-task [`PassManager`]
+    ///
+    /// This is generally intended as a Rust-space convenience for developers; it allows a
+    /// short-hand for testing a pass.
+    fn into_passmanager(self) -> PassManager {
+        let mut pm = PassManager::new();
+        pm.try_push_static_pass(self)
+            .expect("the first pass cannot cause an error");
+        pm
     }
 }
 
@@ -113,6 +124,19 @@ pub trait Pass: Any + Send + Sync {
     /// badly behaved passes might have lied about their output types, or this trait may be called
     /// outside the context of the [`PassManager`](crate::PassManager).
     fn run(&self, ir: Box<dyn IR>, context: &mut PassContext) -> Result<Box<dyn IR>, PassError>;
+}
+
+impl dyn Pass {
+    /// Consume this pass into a single-task [`PassManager`]
+    ///
+    /// This is generally intended as a Rust-space convenience for developers; it allows a
+    /// short-hand for testing a pass.
+    pub fn into_passmanager(self: Box<Self>) -> PassManager {
+        let mut pm = PassManager::new();
+        pm.try_push_task(Task::Transformation(self))
+            .expect("the first pass cannot cause an error");
+        pm
+    }
 }
 
 impl fmt::Debug for dyn Pass {
