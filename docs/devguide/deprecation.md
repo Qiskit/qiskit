@@ -257,7 +257,7 @@ messages and documentation should link to it (use the `additional_msg` argument 
 
 ## Deprecations in the C API
 
-Prior to Qiskit 3.0, the C API is explicitly unstable.  Despite this, we will still attempt to issue
+Prior to Qiskit 2.7, the C API is explicitly unstable.  Despite this, we will still attempt to issue
 suitable deprecations before removing functions, but this is on a best-effort basis only.  Functions
 may still change signatures without warning between versions.  We will still attempt to minimize the
 disruption from deprecations in the C API, but we do not commit to warning ahead of every change nor
