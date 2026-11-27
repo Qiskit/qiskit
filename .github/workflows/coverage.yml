@@ -9,9 +9,11 @@ concurrency:
   # and we get coverage reports on Coveralls for every push.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
-  coverage:
+  # The Python and Rust/C suites are measured in separate jobs so they run concurrently. Building
+  # is intentionally duplicated to avoid having to transfer large artifacts.
+  python:
     if: github.repository_owner == 'Qiskit'
-    name: Coverage
+    name: Python coverage
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +21,7 @@ jobs:
       - uses: actions/setup-python@v7
         name: Install Python
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install Rust
         run:
@@ -29,10 +31,12 @@ jobs:
             --component llvm-tools-preview
             --no-self-update
 
-      - name: Install dependencies
-        run: |
-            cargo install --locked grcov@0.8.20
-            sudo apt-get install lcov
+      - name: Cache stestr
+        uses: actions/cache@v6
+        with:
+          key: 'stestr | "${{ runner.os }}" | "coverage" | "${{ github.run_id }}"'
+          restore-keys: 'stestr | "${{ runner.os }}" | "coverage"'
+          path: .stestr
 
       # This is needed to support any requirements, particularly in the `optionals` set,
       # that might not have 'pyproject.toml' files specifying their build requirements.
@@ -58,6 +62,53 @@ jobs:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
           PYTHON: "coverage run --source qiskit --parallel-mode"
+          COVERAGE_CORE: sysmon
+
+      - name: Convert to lcov
+        run: |
+          set -e
+          coverage combine
+          coverage lcov -o python.info
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-python
+          path: python.info
+          if-no-files-found: error
+
+  native:
+    if: github.repository_owner == 'Qiskit'
+    name: Rust and C coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        name: Install Python
+        with:
+          python-version: '3.13'
+
+      - name: Install Rust
+        run:
+          rustup toolchain install stable
+            --override
+            --profile minimal
+            --component llvm-tools-preview
+            --no-self-update
+
+      # save about a minute of CI time by caching grcov
+      - name: Record Rust version for cache key
+        id: rust-version
+        run: 'echo "version=$(rustc --version | tr -d " ()")" >> $GITHUB_OUTPUT'
+
+      - name: Cache grcov
+        uses: actions/cache@v6
+        with:
+          key: 'grcov | "${{ runner.os }}" | "0.8.20" | "${{ steps.rust-version.outputs.version }}"'
+          path: ~/.cargo/bin/grcov
+
+      - name: Install dependencies
+        run: command -v grcov || cargo install --locked grcov@0.8.20
 
       - name: Generate ctest coverage report
         run: make ccoverage
@@ -68,7 +119,8 @@ jobs:
         run: |
           cargo test
         env:
-          RUSTFLAGS: "-Cinstrument-coverage -Cincremental=false"
+          CARGO_INCREMENTAL: 0
+          RUSTFLAGS: "-Cinstrument-coverage"
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"
 
       - name: Generate lcov with grcov
@@ -82,12 +134,35 @@ jobs:
           # expected to execute during testing, so keep them out of the coverage report.
           grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'crates/*' \
             --excl-line '(unreachable!|panic!|todo!|unimplemented!)'
-      - name: Convert to lcov and combine data
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-rust
+          path: rust.info
+          if-no-files-found: error
+
+  combine:
+    if: github.repository_owner == 'Qiskit'
+    name: Combine and upload
+    runs-on: ubuntu-latest
+    needs: [python, native]
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage-python
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage-rust
+
+      - name: Install lcov
+        run: sudo apt-get install lcov
+
+      - name: Combine data
         run: |
           set -e
-          coverage combine
-          coverage lcov -o python.info
-          lcov --add-tracefile python.info --add-tracefile rust.info --output-file coveralls.info
+          lcov --ignore-errors inconsistent,corrupt \
+            --add-tracefile python.info --add-tracefile rust.info --output-file coveralls.info
 
       - name: Coveralls
         uses: coverallsapp/github-action@v2.3.8
