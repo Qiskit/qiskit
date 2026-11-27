@@ -400,23 +400,24 @@ class TestCliffordTPassManager(QiskitTestCase):
         """Clifford+T transpilation of a circuit with an mcx gate."""
         # Create a circuit with an mcx gate and many dirty ancillas
         nqc = 20  # number of qubits in the circuit
-        qc = QuantumCircuit(nqc)
-        for i in range(nqc):  # make all the qubits dirty
-            qc.x(i)
         gate = MCXGate(n)
         nq = gate.num_qubits  # number of qubits in the gate
+        qc = QuantumCircuit(nqc)
+        for i in range(nq, nqc):
+            qc.h(i)
+        # Ensure the ancilla preparation cannot be rescheduled after the MCX.
+        qc.barrier()
         qc.append(gate, qc.qubits[0:nq])
 
         # Transpile to a Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
         pm = generate_preset_clifford_t_pass_manager(optimization_level=0)
         transpiled = pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()) - {"barrier"}, set(basis_gates))
 
-        # The resulting decomposition should be efficient in terms of T-count
-        # provided 1 ancilla qubit is available
+        # The resulting decomposition should use the dirty Maslov construction.
         t_count = _get_t_count(transpiled)
-        expected_t_count = {1: 0, 2: 7, 3: 17, 4: 29, 5: 41, 6: 51, 7: 63}
+        expected_t_count = {1: 0, 2: 7, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
         self.assertLessEqual(t_count, expected_t_count[n])
 
     @data(
@@ -889,6 +890,69 @@ class TestCliffordTPassManager(QiskitTestCase):
                 _ = transpile(qc, optimization_level=1, coupling_map=CouplingMap.from_line(3))
         self.assertEqual(len(run_calls), 1)
         self.assertEqual(run_calls[0], 9876)
+
+    def test_control_flow(self):
+        """Test Clifford+T transpilation of circuits containing control-flow operations."""
+        qc = QuantumCircuit(5, 1)
+        qc.ccx(0, 1, 2)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)) as else_:
+            qc.x(1)
+            qc.ccx(2, 3, 4)
+        with else_:
+            qc.x(1)
+            with qc.for_loop(range(3)):
+                qc.z(2)
+                with qc.for_loop((4, 0, 1)):
+                    qc.ccx(2, 3, 4)
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.ccx(0, 1, 2)
+            qc.measure(0, 0)
+
+        pm = generate_preset_clifford_t_pass_manager()
+        transpiled = pm.run(qc)
+
+        # count operations recursively
+        transpiled_ops = set(circuit_to_dag(transpiled).count_ops(recurse=True))
+
+        expected_ops = set(
+            {"z", "x", "h", "cx", "t", "tdg", "measure", "if_else", "for_loop", "while_loop"}
+        )
+        self.assertEqual(expected_ops, transpiled_ops)
+
+    def test_control_flow_with_rotations(self):
+        """Test Clifford+T transpilation of circuits containing control-flow operations
+        and non-Clifford rotation gates."""
+        qc = QuantumCircuit(5, 1)
+        qc.ccx(0, 1, 2)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)) as else_:
+            qc.rx(0.1, 1)
+            qc.ccx(2, 3, 4)
+        with else_:
+            qc.x(1)
+            with qc.for_loop(range(3)):
+                qc.rz(0.2, 2)
+                with qc.for_loop((4, 0, 1)):
+                    qc.ccx(2, 3, 4)
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.ccx(0, 1, 2)
+            qc.measure(0, 0)
+
+        pm = generate_preset_clifford_t_pass_manager()
+        transpiled = pm.run(qc)
+
+        transpiled_ops = set(circuit_to_dag(transpiled).count_ops(recurse=True))
+        basis_ops = {
+            *get_clifford_gate_names(),
+            "t",
+            "tdg",
+            "measure",
+            "if_else",
+            "for_loop",
+            "while_loop",
+        }
+        self.assertLessEqual(transpiled_ops, basis_ops)
 
 
 def _get_t_count(qc):

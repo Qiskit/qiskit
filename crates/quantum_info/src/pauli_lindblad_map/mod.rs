@@ -24,11 +24,11 @@ use pyo3::prelude::*;
 use qubit_sparse_pauli::{PyQubitSparsePauli, PyQubitSparsePauliList};
 
 #[cfg(feature = "python")]
-pub fn pauli_lindblad_map(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_class::<PyPauliLindbladMap>()?;
-    m.add_class::<PyQubitSparsePauli>()?;
-    m.add_class::<PyQubitSparsePauliList>()?;
-    m.add_class::<PyPhasedQubitSparsePauli>()?;
-    m.add_class::<PyPhasedQubitSparsePauliList>()?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate")]
+pub mod pauli_lindblad_map {
+    #[pymodule_export]
+    use super::{
+        PyPauliLindbladMap, PyPhasedQubitSparsePauli, PyPhasedQubitSparsePauliList,
+        PyQubitSparsePauli, PyQubitSparsePauliList,
+    };
 }

@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use qiskit_circuit::dag_circuit::DAGError;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -82,7 +81,8 @@ pub fn run_unroll_3q_or_more(
     Ok(())
 }
 
-pub fn unroll_3q_or_more_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_unroll_3q_or_more))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate", name = "unroll_3q_or_more")]
+pub mod unroll_3q_or_more_mod {
+    #[pymodule_export]
+    use super::py_unroll_3q_or_more;
 }

@@ -16,7 +16,7 @@ use crate::target::Target;
 use ::hashbrown::HashSet;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
+use pyo3::{PyResult, pyfunction};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{
@@ -131,17 +131,13 @@ fn push_node_back(
             .first()
             .ok_or_else(|| PyValueError::new_err("Delay instruction missing duration parameter"))?;
         let duration = match param {
-            Param::Obj(val) => {
-                // Try to extract as different numeric types
-                Python::attach(|py| val.bind(py).extract::<u64>())
-            }
-            Param::Float(f) => Ok(*f as u64),
+            Param::Int(val) => Ok(*val),
             _ => Err(TranspilerError::new_err(
                 "The provided Delay duration is not in terms of dt.",
             )),
         }?;
 
-        this_t0 + duration
+        this_t0 + u64::try_from(duration)?
     } else {
         this_t0
     };
@@ -305,7 +301,12 @@ pub fn run_constrained_reschedule(
     Ok(())
 }
 
-pub fn constrained_reschedule_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_run_constrained_reschedule))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "constrained_reschedule"
+)]
+pub mod constrained_reschedule_mod {
+    #[pymodule_export]
+    use super::py_run_constrained_reschedule;
 }

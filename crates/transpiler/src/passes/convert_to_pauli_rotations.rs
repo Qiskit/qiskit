@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use qiskit_circuit::operations::PauliBased;
 use smallvec::smallvec;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
@@ -554,8 +553,10 @@ pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
                             None,
                         )?;
                     }
-                    global_phase =
-                        radd_param(multiply_param(&angle, global_phase_update), global_phase);
+                    if global_phase_update != 0.0 {
+                        global_phase =
+                            radd_param(multiply_param(&angle, global_phase_update), global_phase);
+                    }
                 } else if matches!(gate, StandardGate::GlobalPhase) {
                     let global_phase_update = inst.params_view()[0].clone();
                     global_phase = radd_param(global_phase, global_phase_update);
@@ -616,7 +617,12 @@ pub fn convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
     Ok(new_dag)
 }
 
-pub fn convert_to_pauli_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_convert_to_pauli_rotations))?;
-    Ok(())
+#[pymodule(
+    submodule,
+    module = "qiskit._accelerate",
+    name = "convert_to_pauli_rotations"
+)]
+pub mod convert_to_pauli_rotations_mod {
+    #[pymodule_export]
+    use super::py_convert_to_pauli_rotations;
 }

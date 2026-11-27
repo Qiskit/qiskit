@@ -1,0 +1,4 @@
+---
+features_circuits:
+  - Update the :class:`.PauliEvolutionGate` defintion, directly appending the internal 
+    gates inside the multi controlled :class:`.PhaseGate` and :class:`.RZGate`.

@@ -157,7 +157,7 @@ fn decompose_two_qubit_product_gate(
 /// Decompose :math:`U = U_l \otimes U_r` where :math:`U \in SU(4)`,
 /// and :math:`U_l,~U_r \in SU(2)`.
 /// Args:
-///     special_unitary_matrix: special unitary matrix to decompose
+///     special_unitary: special unitary matrix to decompose
 /// Raises:
 ///     QiskitError: if decomposition isn't possible.
 pub fn py_decompose_two_qubit_product_gate(
@@ -177,7 +177,7 @@ pub fn py_decompose_two_qubit_product_gate(
 /// Computes the Weyl coordinates for a given two-qubit unitary matrix.
 ///
 /// Args:
-///     U (np.ndarray): Input two-qubit unitary.
+///     unitary (np.ndarray): Input two-qubit unitary.
 ///
 /// Returns:
 ///     np.ndarray: Array of the 3 Weyl coordinates.
@@ -386,11 +386,7 @@ fn matrixview4_to_faer<T: nalgebra::Scalar + Copy>(mat: MatrixView4<T>) -> MatRe
 
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
-#[pyclass(
-    module = "qiskit._accelerate.two_qubit_decompose",
-    subclass,
-    skip_from_py_object
-)]
+#[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitWeylDecomposition {
     #[pyo3(get)]
     pub(super) a: f64,
@@ -1144,7 +1140,7 @@ impl TwoQubitWeylDecomposition {
                 &[Qubit(0)],
             )?;
         }
-        global_phase += c2r.global_phase;
+        global_phase += c1r.global_phase;
         let c1l = unitary_to_gate_sequence_inner(
             nalgebra_array_view::<Complex64, U2, U2>(self.K1l.as_view()),
             &target_1q_basis_list,
@@ -1161,6 +1157,7 @@ impl TwoQubitWeylDecomposition {
                 &[Qubit(1)],
             )?;
         }
+        global_phase += c1l.global_phase;
         gate_sequence.set_global_phase_f64(global_phase);
         Ok(gate_sequence.into())
     }

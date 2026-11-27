@@ -175,10 +175,10 @@ pub fn pauli_network_mcts(
     .map_err(Into::into)
 }
 
-pub fn evolution(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(pauli_network_synthesis, m)?)?;
-    m.add_function(wrap_pyfunction!(pauli_network_mcts, m)?)?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
+pub mod evolution {
+    #[pymodule_export]
+    use super::{pauli_network_mcts, pauli_network_synthesis};
 }
 
 pub mod suzuki_trotter;

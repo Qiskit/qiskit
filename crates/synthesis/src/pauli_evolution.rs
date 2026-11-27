@@ -10,13 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::{
-    Python, intern,
-    types::{PyNone, PyString},
-};
+use crate::multi_controlled::{synth_mcp_noaux_default, synth_mcrz_noaux};
 use qiskit_circuit::{
-    Clbit, NoBlocks, Qubit,
-    circuit_instruction::OperationFromPython,
+    Clbit, Qubit,
+    circuit_data::CircuitData,
     operations::{Param, StandardGate, multiply_param},
     packed_instruction::PackedOperation,
 };
@@ -29,6 +26,20 @@ pub type Instruction = (
     Vec<Qubit>,
     Vec<Clbit>,
 );
+
+enum BasePhaseGate {
+    RZ,
+    Phase,
+}
+
+impl From<BasePhaseGate> for StandardGate {
+    fn from(gate: BasePhaseGate) -> Self {
+        match gate {
+            BasePhaseGate::RZ => StandardGate::RZ,
+            BasePhaseGate::Phase => StandardGate::Phase,
+        }
+    }
+}
 
 /// Return instructions to implement evolution of Pauli terms and projectors.
 ///
@@ -257,52 +268,31 @@ fn multi_qubit_evolution(
         // per default (unless the user specified otherwise)
         let params: SmallVec<[Param; 3]> = smallvec![time];
         let base_gate = if phase_gate_for_paulis {
-            StandardGate::Phase
+            BasePhaseGate::Phase
         } else {
-            StandardGate::RZ
+            BasePhaseGate::RZ
         };
 
-        let (packed, qubits) = if control_qubits.is_empty() {
+        if control_qubits.is_empty() {
             // simple case: no projectors, so we're done
-            let gate: PackedOperation = base_gate.into();
-            (gate, vec![pauli_qubits[0]])
+            let gate: PackedOperation = StandardGate::from(base_gate).into();
+            vec![(gate, params, vec![pauli_qubits[0]], empty_clbits.clone())]
         } else {
-            // if we have projectors, add controls to the target rotation
-            let controlled = add_control(base_gate, &params, &control_states);
-
-            // in our control convention the
-            control_qubits.reverse();
+            // if we have projectors, add controls to the target rotation.
             control_qubits.push(pauli_qubits[0]);
-            (controlled, control_qubits)
-        };
-        vec![(packed, params, qubits, empty_clbits.clone())]
+            add_open_control(base_gate, params, &control_qubits, &control_states)
+        }
     } else {
         // Here we purely have projectors, meaning the target rotation is a phase gate. Remember
         // we have to adjust the rotation angle to account for the different conventions;
         // RZ(t) = exp(-i t/2 Z) vs. P(t) = diag(1, exp(i t)).
         let params: SmallVec<[Param; 3]> = smallvec![multiply_param(&time, -0.5)];
-        let (packed, qubits) = if control_qubits.len() == 1 {
-            let gate: PackedOperation = StandardGate::Phase.into();
-            (gate, vec![control_qubits[0]])
-        } else {
-            let controlled = add_control(StandardGate::Phase, &params, &control_states[1..]);
-            control_qubits.reverse();
-            (controlled, control_qubits)
-        };
-        let inst: Instruction = (packed, params, qubits.clone(), empty_clbits.clone());
-
-        if control_states[0] {
-            // sandwich in X gates for the correct projector
-            let x: Instruction = (
-                StandardGate::X.into(),
-                smallvec![],
-                vec![*qubits.last().unwrap()],
-                empty_clbits.clone(),
-            );
-            vec![x.clone(), inst, x]
-        } else {
-            vec![inst]
-        }
+        add_open_control(
+            BasePhaseGate::Phase,
+            params,
+            &control_qubits,
+            &control_states,
+        )
     };
 
     // and finally chain everything together
@@ -378,34 +368,78 @@ fn cx_fountain(qubits: Vec<Qubit>) -> Box<dyn DoubleEndedIterator<Item = Instruc
     }))
 }
 
-/// Add controls to a standard gate with a specified control state.
-fn add_control(gate: StandardGate, params: &[Param], control_state: &[bool]) -> PackedOperation {
-    // This function does not return a PyResult to keep the evolution functions free from PyO3.
-    // We know that all calls here should be valid and unwrap eagerly.
-    Python::attach(|py| {
-        let pygate = gate
-            .create_py_op(py, Some(params.iter().cloned().collect()), None)
-            .expect("Failed to create Py version of standard gate.");
-        let num_controls = control_state.len();
-        let py_control_state = PyString::new(
-            py,
-            control_state
-                .iter()
-                .map(|is_open| is_open.then(|| '0').unwrap_or('1'))
-                .collect::<String>()
-                .as_str(),
-        );
-        let label = PyNone::get(py);
-        let controlled_gate = pygate
-            .call_method1(
-                py,
-                intern!(py, "control"),
-                (num_controls, label, py_control_state, false),
-            )
-            .expect("Failed to call .control()")
-            .extract::<OperationFromPython<NoBlocks>>(py)
-            .expect("The control state should be valid and match the number of controls.");
+/// Add controls to a standard gate, either Phase or RZ, returning the synthesized [`CircuitData`] directly.
+fn add_control_phase_rz(
+    num_ctrl_qubits: usize,
+    gate: BasePhaseGate,
+    params: &[Param],
+) -> CircuitData {
+    let [phase] = params else {
+        unreachable!("RZ and Phase gates always have exactly one parameter")
+    };
 
-        controlled_gate.operation
-    })
+    match gate {
+        BasePhaseGate::RZ => synth_mcrz_noaux(num_ctrl_qubits, phase.clone()),
+        BasePhaseGate::Phase => synth_mcp_noaux_default(num_ctrl_qubits, phase.clone()),
+    }
+    .expect("synth_mcrz_noaux / synth_mcp_noaux_default only fail on circuit construction errors.")
+}
+
+/// Flatten a synthesized [`CircuitData`] into a [`Vec`] of [`Instruction`] tuples.
+/// Since this function only handles MCPhase and MCRZ gates, it asserts that the global_phase is 0.
+///
+/// # Panics
+///
+/// Panics if `circuit` carries a non-zero global phase.
+fn circuit_to_instructions(circuit: CircuitData, global_qubits: &[Qubit]) -> Vec<Instruction> {
+    assert!(
+        matches!(circuit.global_phase(), Param::Float(p) if *p == 0.0),
+        "circuit_to_instructions: circuit has a non-zero global phase ({:?})",
+        circuit.global_phase(),
+    );
+    circuit
+        .iter()
+        .map(|inst| {
+            let op = inst.op.clone();
+            let params: SmallVec<[Param; 3]> = inst.params_view().iter().cloned().collect();
+            let qubits: Vec<Qubit> = circuit
+                .get_qargs(inst.qubits)
+                .iter()
+                .map(|local_q| global_qubits[local_q.index()])
+                .collect();
+            (op, params, qubits, vec![])
+        })
+        .collect()
+}
+
+/// Add open multi-controls to either Phase or RZ standard gate,
+/// by sandwitching a layer of X gates.
+fn add_open_control(
+    gate: BasePhaseGate,
+    params: SmallVec<[Param; 3]>,
+    controls: &[Qubit],
+    control_states: &[bool],
+) -> Vec<Instruction> {
+    let circuit = add_control_phase_rz(controls.len() - 1, gate, &params);
+    let insts = circuit_to_instructions(circuit, controls);
+    let x_gates: Vec<Instruction> = (0..control_states.len())
+        .filter(|&i| control_states[i])
+        .map(|i| {
+            (
+                StandardGate::X.into(),
+                smallvec![],
+                vec![controls[i]],
+                vec![],
+            )
+        })
+        .collect();
+
+    if x_gates.is_empty() {
+        insts
+    } else {
+        let mut sandwiched = x_gates.clone();
+        sandwiched.extend(insts);
+        sandwiched.extend(x_gates);
+        sandwiched
+    }
 }

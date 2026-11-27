@@ -176,19 +176,14 @@ fn check_invertible_binary_matrix(mat: PyReadonlyArray2<bool>) -> bool {
     utils::check_invertible_binary_matrix_inner(view)
 }
 
-pub fn linear(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(gauss_elimination_with_perm))?;
-    m.add_wrapped(wrap_pyfunction!(gauss_elimination))?;
-    m.add_wrapped(wrap_pyfunction!(compute_rank_after_gauss_elim))?;
-    m.add_wrapped(wrap_pyfunction!(compute_rank))?;
-    m.add_wrapped(wrap_pyfunction!(calc_inverse_matrix))?;
-    m.add_wrapped(wrap_pyfunction!(row_op))?;
-    m.add_wrapped(wrap_pyfunction!(col_op))?;
-    m.add_wrapped(wrap_pyfunction!(binary_matmul))?;
-    m.add_wrapped(wrap_pyfunction!(random_invertible_binary_matrix))?;
-    m.add_wrapped(wrap_pyfunction!(check_invertible_binary_matrix))?;
-    m.add_wrapped(wrap_pyfunction!(pmh::synth_cnot_count_full_pmh))?;
-    m.add_wrapped(wrap_pyfunction!(lnn::py_synth_cnot_depth_line_kms))?;
-    m.add_wrapped(wrap_pyfunction!(lnn::py_synth_cnot_lnn_instructions))?;
-    Ok(())
+#[pymodule(submodule, module = "qiskit._accelerate.synthesis")]
+pub mod linear {
+    #[pymodule_export]
+    use super::{
+        binary_matmul, calc_inverse_matrix, check_invertible_binary_matrix, col_op, compute_rank,
+        compute_rank_after_gauss_elim, gauss_elimination, gauss_elimination_with_perm,
+        lnn::{py_synth_cnot_depth_line_kms, py_synth_cnot_lnn_instructions},
+        pmh::synth_cnot_count_full_pmh,
+        random_invertible_binary_matrix, row_op,
+    };
 }
