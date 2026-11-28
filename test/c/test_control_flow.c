@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // TODO: remove these forward declarations
@@ -397,6 +398,92 @@ static int test_box_errors(void) {
     return result;
 }
 
+// Build the body shared by the while tests.
+static QkCircuit *build_while_body(void) {
+    QkCircuit *body = qk_circuit_new(2, 2);
+    uint32_t h_qubits[1] = {0};
+    qk_circuit_gate(body, QkGate_H, h_qubits, NULL);
+    qk_circuit_measure(body, 0, 0);
+    qk_circuit_measure(body, 1, 1);
+    return body;
+}
+
+// Test the error codes returned when appending a while loop fails.
+static int test_while_loop_errors(void) {
+    int result = Ok;
+    QkClassicalRegister *cr = NULL;
+    QkExprNode *expr = NULL;
+    QkCircuit *circuit = qk_circuit_new(2, 2);
+    QkCircuit *body = build_while_body();
+
+    uint32_t qubits[2] = {0, 1};
+    uint32_t clbits[2] = {0, 1};
+
+    QkExitCode exit_code = qk_circuit_while_loop_bit(circuit, body, qubits, clbits, 2, true);
+    if (exit_code != QkExitCode_IndexError) {
+        fprintf(stderr, "Expected QkExitCode_IndexError, got exit code %d\n", exit_code);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    size_t num_instructions = qk_circuit_num_instructions(circuit);
+    if (num_instructions != 0) {
+        fprintf(
+            stderr,
+            "Expected no instructions after a failed qk_circuit_while_loop_bit append, got %zu\n",
+            num_instructions);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    cr = qk_classical_register_new(2, "my_register");
+    body = build_while_body();
+
+    uint64_t limbs[1] = {3};
+    QkBigUint value = {limbs, 1};
+    exit_code = qk_circuit_while_loop_reg(circuit, body, qubits, clbits, cr, &value);
+    if (exit_code != QkExitCode_RegisterNotFound) {
+        fprintf(stderr, "Expected QkExitCode_RegisterNotFound, got exit code %d\n", exit_code);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    num_instructions = qk_circuit_num_instructions(circuit);
+    if (num_instructions != 0) {
+        fprintf(
+            stderr,
+            "Expected no instructions after a failed qk_circuit_while_loop_reg append, got %zu\n",
+            num_instructions);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    body = build_while_body();
+    QkDurationInfo unused = {0};
+    expr = inner_test_value(QkExprType_Uint, false, unused, 0, 5);
+    exit_code = qk_circuit_while_loop_expr(circuit, body, qubits, clbits, expr);
+    if (exit_code != QkExitCode_IncompatibleTypes) {
+        fprintf(stderr, "Expected QkExitCode_IncompatibleTypes, got exit code %d\n", exit_code);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    num_instructions = qk_circuit_num_instructions(circuit);
+    if (num_instructions != 0) {
+        fprintf(
+            stderr,
+            "Expected no instructions after a failed qk_circuit_while_loop_expr append, got %zu\n",
+            num_instructions);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_circuit_free(circuit);
+    qk_classical_register_free(cr);
+    return result;
+}
+
 // Test a for loop which is constructed like this in Python:
 // qc = QuantumCircuit(2, 1)
 // with qc.for_loop([1,2], loop_parameter=Parameter("x")):
@@ -700,14 +787,26 @@ cleanup:
 }
 
 // Test while loop with condition on classical bit:
-// with qc.while_loop((cr[1], False)):
-//     qc.x(0)
+// qc.while_loop((qc.clbits[1], False), body, [0, 1], [0, 1])
 static int test_while_on_bit(void) {
     int result = Ok;
-    QkCircuit *circuit = inner_test_control_flow_circuit();
     QkControlFlowInstruction *cf_inst = NULL;
+    QkCircuit *circuit = qk_circuit_new(2, 2);
+    uint32_t circuit_h_qubits[1] = {1};
+    qk_circuit_gate(circuit, QkGate_H, circuit_h_qubits, NULL);
 
-    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 3, NULL);
+    QkCircuit *body = build_while_body();
+
+    uint32_t qubits[2] = {0, 1};
+    uint32_t clbits[2] = {0, 1};
+    QkExitCode exit_code = qk_circuit_while_loop_bit(circuit, body, qubits, clbits, 1, false);
+    if (exit_code != QkExitCode_Success) {
+        fprintf(stderr, "Expected QkExitCode_Success, got exit code %d\n", exit_code);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 1, NULL);
     if (cf_inst == NULL) {
         fprintf(stderr, "Failed to get while loop instruction\n");
         result = NullptrError;
@@ -750,14 +849,33 @@ cleanup:
 }
 
 // Test while loop with condition on classical register:
-// with qc.while_loop((cr, 7)):
-//     qc.y(0)
+// qc.while_loop((cr, 7), body, [0, 1], [0, 1])
 static int test_while_on_register(void) {
     int result = Ok;
-    QkCircuit *circuit = inner_test_control_flow_circuit();
     QkControlFlowInstruction *cf_inst = NULL;
+    QkBigUint cond_val_biguint = {NULL, 0};
+    QkCircuit *circuit = qk_circuit_new(2, 0);
+    uint32_t circuit_h_qubits[1] = {1};
+    qk_circuit_gate(circuit, QkGate_H, circuit_h_qubits, NULL);
 
-    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 4, NULL);
+    QkClassicalRegister *cr = qk_classical_register_new(2, "my_register");
+    qk_circuit_add_classical_register(circuit, cr);
+
+    QkCircuit *body = build_while_body();
+
+    uint32_t qubits[2] = {0, 1};
+    uint32_t clbits[2] = {0, 1};
+
+    uint64_t limbs[1] = {7};
+    QkBigUint value = {limbs, 1};
+    QkExitCode exit_code = qk_circuit_while_loop_reg(circuit, body, qubits, clbits, cr, &value);
+    if (exit_code != QkExitCode_Success) {
+        fprintf(stderr, "Expected QkExitCode_Success, got exit code %d\n", exit_code);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 1, NULL);
     if (cf_inst == NULL) {
         fprintf(stderr, "Failed to get while loop instruction\n");
         result = NullptrError;
@@ -792,7 +910,7 @@ static int test_while_on_register(void) {
         goto cleanup;
     }
 
-    QkBigUint cond_val_biguint = qk_control_flow_condition_reg_cond_biguint(cf_inst);
+    cond_val_biguint = qk_control_flow_condition_reg_cond_biguint(cf_inst);
     if (!(cond_val_biguint.num_limbs == 1 && cond_val_biguint.limbs[0] == 7)) {
         fprintf(stderr, "Expected condition value 7, got %" PRIu64 "\n", cond_val);
         result = EqualityError;
@@ -803,19 +921,37 @@ cleanup:
     if (cf_inst != NULL) {
         qk_control_flow_instruction_free(cf_inst);
     }
+
+    qk_biguint_clear(&cond_val_biguint);
+    qk_classical_register_free(cr);
     qk_circuit_free(circuit);
     return result;
 }
 
 // Test while loop with condition on expression:
-// with qc.while_loop(expr.less(cr, 7)):
-//     qc.z(0)
+// qc.while_loop(expr.lift(True), body, [0, 1], [0, 1])
 static int test_while_on_expr(void) {
     int result = Ok;
-    QkCircuit *circuit = inner_test_control_flow_circuit();
     QkControlFlowInstruction *cf_inst = NULL;
 
-    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 5, NULL);
+    QkCircuit *circuit = qk_circuit_new(2, 2);
+    uint32_t circuit_h_qubits[1] = {1};
+    qk_circuit_gate(circuit, QkGate_H, circuit_h_qubits, NULL);
+
+    QkCircuit *body = build_while_body();
+
+    QkDurationInfo unused = {0};
+    QkExprNode *expr = inner_test_value(QkExprType_Bool, true, unused, 0, 0);
+    uint32_t qubits[2] = {0, 1};
+    uint32_t clbits[2] = {0, 1};
+    QkExitCode exit_code = qk_circuit_while_loop_expr(circuit, body, qubits, clbits, expr);
+    if (exit_code != QkExitCode_Success) {
+        fprintf(stderr, "Expected QkExitCode_Success, got exit code %d\n", exit_code);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 1, NULL);
     if (cf_inst == NULL) {
         fprintf(stderr, "Failed to get while loop instruction\n");
         result = NullptrError;
@@ -836,10 +972,17 @@ static int test_while_on_expr(void) {
         goto cleanup;
     }
 
-    const QkExprNode *expr = qk_control_flow_condition_expr(cf_inst);
-    if (expr == NULL) {
+    const QkExprNode *ret_expr = qk_control_flow_condition_expr(cf_inst);
+    if (ret_expr == NULL) {
         fprintf(stderr, "Expected non-null expression\n");
         result = NullptrError;
+        goto cleanup;
+    }
+
+    bool expr_val = qk_value_bool(qk_expr_as_value(ret_expr));
+    if (!expr_val) {
+        fprintf(stderr, "Expected expression true, got %d\n", expr_val);
+        result = EqualityError;
         goto cleanup;
     }
 
@@ -1000,13 +1143,32 @@ cleanup:
 }
 
 // Test while loop with condition on classical register:
-// with qc.while_loop((cr, (1<<80)-1)):
-//     qc.Z(0)
+// qc.while_loop((cr, (1 << 80) - 1), body, [0, 1], [0, 1])
 static int test_while_on_register_large_condition(void) {
     int result = Ok;
-    QkCircuit *circuit = inner_test_control_flow_circuit();
-    QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 9, NULL);
+    QkControlFlowInstruction *cf_inst = NULL;
+    QkCircuit *circuit = qk_circuit_new(2, 0);
+    uint32_t circuit_h_qubits[1] = {1};
+    qk_circuit_gate(circuit, QkGate_H, circuit_h_qubits, NULL);
 
+    QkClassicalRegister *cr = qk_classical_register_new(80, "wide_register");
+    qk_circuit_add_classical_register(circuit, cr);
+
+    QkCircuit *body = build_while_body();
+
+    uint32_t qubits[2] = {0, 1};
+    uint32_t clbits[2] = {0, 1};
+
+    uint64_t limbs[2] = {UINT64_MAX, 0xFFFF};
+    QkBigUint value = {limbs, 2};
+    QkExitCode exit_code = qk_circuit_while_loop_reg(circuit, body, qubits, clbits, cr, &value);
+    if (exit_code != QkExitCode_Success) {
+        fprintf(stderr, "Expected QkExitCode_Success, got exit code %d\n", exit_code);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 1, NULL);
     uint64_t cond_bit_width = qk_control_flow_condition_reg_cond_bit_width(cf_inst);
     if (cond_bit_width <= 64) {
         fprintf(stderr, "Expected condition width to be larger than 64 bits, got %" PRIu64 "\n",
@@ -1016,7 +1178,10 @@ static int test_while_on_register_large_condition(void) {
     }
 
 cleanup:
-    qk_control_flow_instruction_free(cf_inst);
+    if (cf_inst != NULL) {
+        qk_control_flow_instruction_free(cf_inst);
+    }
+    qk_classical_register_free(cr);
     qk_circuit_free(circuit);
     return result;
 }
@@ -1039,6 +1204,7 @@ int test_control_flow(void) {
     num_failed += RUN_TEST(test_switch_case_on_expr);
     num_failed += RUN_TEST(test_for_loop_over_range);
     num_failed += RUN_TEST(test_while_on_register_large_condition);
+    num_failed += RUN_TEST(test_while_loop_errors);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
